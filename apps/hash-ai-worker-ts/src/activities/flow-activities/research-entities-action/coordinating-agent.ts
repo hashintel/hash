@@ -5,6 +5,10 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -160,7 +164,8 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     testingParams,
   });
 
-  const { flowEntityId, stepId, webId } = await getFlowContext();
+  const { flowEntityId, runId, stepId, webId, workflowId } =
+    await getFlowContext();
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -583,6 +588,21 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     },
   ]);
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const allProposedEntitiesForOutput = [
+    ...allProposedEntities,
+    ...fileEntityProposals,
+  ];
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: allProposedEntitiesForOutput,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -592,7 +612,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
             outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: [...allProposedEntities, ...fileEntityProposals],
+              value: storedRef,
             },
           },
           {

@@ -1,11 +1,16 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolveArrayPayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
   PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
+  StoredPayloadRef,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 
@@ -17,10 +22,18 @@ import {
 export const persistEntitiesAction: AiFlowActionActivity<
   "persistEntities"
 > = async ({ inputs }) => {
-  const { draft, proposedEntities } = getSimplifiedAiFlowActionInputs({
-    inputs,
-    actionType: "persistEntities",
-  });
+  const { draft, proposedEntities: proposedEntitiesInput } =
+    getSimplifiedAiFlowActionInputs({
+      inputs,
+      actionType: "persistEntities",
+    });
+
+  // The input may be a stored reference - resolve it if so
+  const proposedEntities = await resolveArrayPayloadValue(
+    getStorageProvider(),
+    "ProposedEntity",
+    proposedEntitiesInput,
+  );
 
   /**
    * Sort the entities to persist in dependency order:
@@ -158,6 +171,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
       }
     }
 
+    // Note: This is a direct function call (not through Temporal), so we pass
+    // the actual value instead of a StoredPayloadRef. This bypasses the S3 storage
+    // because the payload doesn't go through Temporal's serialization.
     const persistedEntityOutputs = await persistEntityAction({
       inputs: [
         {
@@ -169,6 +185,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
           payload: {
             kind: "ProposedEntityWithResolvedLinks",
             value: entityWithResolvedLinks,
+          } as unknown as {
+            kind: "ProposedEntityWithResolvedLinks";
+            value: StoredPayloadRef<"ProposedEntityWithResolvedLinks">;
           },
         },
       ],

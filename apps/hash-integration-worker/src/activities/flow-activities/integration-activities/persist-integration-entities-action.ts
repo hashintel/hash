@@ -9,6 +9,10 @@ import {
 } from "@blockprotocol/type-system";
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
+  getStorageProvider,
+  resolveArrayPayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import {
   generateEntityMatcher,
   generateLinkMatcher,
 } from "@local/hash-backend-utils/integrations/aviation";
@@ -184,11 +188,6 @@ const persistEntities = async (params: {
           removeProperties: false,
         });
 
-        console.log(
-          "propertyPatches",
-          JSON.stringify(propertyPatches, null, 2),
-        );
-
         const updatedEntity =
           propertyPatches.length > 0
             ? await existingEntity.patch(graphApiClient, authentication, {
@@ -229,14 +228,6 @@ const persistEntities = async (params: {
             },
             entityTypeIds: proposedEntity.entityTypeIds,
           },
-        );
-
-        console.log(
-          "Merged",
-          mergePropertyObjectAndMetadata(
-            proposedEntity.properties,
-            proposedEntity.propertyMetadata,
-          ),
         );
 
         entityIdsByLocalId.set(
@@ -421,10 +412,18 @@ export const createPersistIntegrationEntitiesAction = ({
       const { flowEntityId, stepId, userAuthentication, webId } =
         await getFlowContext();
 
-      const { proposedEntities } = getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "persistIntegrationEntities",
-      });
+      const { proposedEntities: proposedEntitiesInput } =
+        getSimplifiedIntegrationFlowActionInputs({
+          inputs,
+          actionType: "persistIntegrationEntities",
+        });
+
+      // The input may be a stored reference - resolve it if so
+      const proposedEntities = await resolveArrayPayloadValue(
+        getStorageProvider(),
+        "ProposedEntity",
+        proposedEntitiesInput,
+      );
 
       const provenance: ProvidedEntityEditionProvenance = {
         actorType: "machine",

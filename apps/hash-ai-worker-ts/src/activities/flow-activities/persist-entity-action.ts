@@ -1,6 +1,10 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
@@ -57,13 +61,20 @@ export const persistEntityAction: AiFlowActionActivity<
     webId,
   } = await getFlowContext();
 
-  const { draft, proposedEntityWithResolvedLinks } =
+  const { draft, proposedEntityWithResolvedLinks: proposedEntityInput } =
     getSimplifiedAiFlowActionInputs({
       inputs,
       actionType: "persistEntity",
     });
 
   const createEditionAsDraft = draft ?? false;
+
+  // The input may be a stored reference - resolve it if so
+  const proposedEntityWithResolvedLinks = await resolvePayloadValue(
+    getStorageProvider(),
+    "ProposedEntityWithResolvedLinks",
+    proposedEntityInput,
+  );
 
   const {
     entityTypeIds,

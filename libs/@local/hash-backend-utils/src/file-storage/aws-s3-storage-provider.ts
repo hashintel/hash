@@ -192,4 +192,70 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
   }: GetFileEntityStorageKeyParams) {
     return `files/${entityId}/${editionIdentifier}/${filename}` as const;
   }
+
+  /**
+   * Generate a storage key for flow output payloads.
+   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
+   */
+  getFlowOutputStorageKey({
+    workflowId,
+    runId,
+    stepId,
+    outputName,
+  }: {
+    workflowId: string;
+    runId: string;
+    stepId: string;
+    outputName: string;
+  }) {
+    return `flows/${workflowId}/${runId}/${stepId}/${outputName}.json` as const;
+  }
+
+  /**
+   * Upload data directly to S3 without presigning.
+   * Used by workers that have direct S3 credentials.
+   */
+  async uploadDirect({
+    key,
+    body,
+    contentType = "application/json",
+  }: {
+    key: string;
+    body: string | Buffer;
+    contentType?: string;
+  }): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    });
+
+    await this.client.send(command);
+  }
+
+  /**
+   * Download data directly from S3 without presigning.
+   * Used by workers that have direct S3 credentials.
+   */
+  async downloadDirect({ key }: { key: string }): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const response = await this.client.send(command);
+
+    if (!response.Body) {
+      throw new Error(`No body returned for S3 key: ${key}`);
+    }
+
+    // Convert the readable stream to a Buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+
+    return Buffer.concat(chunks);
+  }
 }

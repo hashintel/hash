@@ -10,6 +10,7 @@ import type {
   StepInputSource,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
@@ -202,12 +203,21 @@ export const passOutputsToUnprocessedSteps = (params: {
           ({ outputName }) => outputName === aggregateOutput.stepOutputName,
         )!;
 
+        const existingValue = processedStep.aggregateOutput?.payload.value;
+        const newValue = matchingOutput.payload.value;
+
+        /**
+         * @todo H-6169: enable the aggregated output of groups of parallel steps to contain stored payload references.
+         */
+        if (isStoredPayloadRef(existingValue) || isStoredPayloadRef(newValue)) {
+          throw new Error(
+            `Cannot aggregate stored payload references. The stored payloads must be resolved before aggregation.`,
+          );
+        }
+
         const aggregateOutputPayload: ArrayPayload = {
           kind: aggregateOutput.payloadKind,
-          value: [
-            ...(processedStep.aggregateOutput?.payload.value ?? []),
-            matchingOutput.payload.value,
-          ].flat(),
+          value: [...(existingValue ?? []), newValue].flat(),
         } as ArrayPayload;
 
         processedStep.aggregateOutput = {
@@ -215,10 +225,29 @@ export const passOutputsToUnprocessedSteps = (params: {
           payload: aggregateOutputPayload,
         };
 
+        const inputToParallelizeValue =
+          processedStep.inputToParallelizeOn?.payload.value;
+        const aggregateOutputValue =
+          processedStep.aggregateOutput.payload.value;
+
+        // Stored refs should have been caught earlier in process-flow-workflow
+        /**
+         * @todo H-6169: enable the aggregated output of groups of parallel steps to contain stored payload references.
+         */
+        if (
+          isStoredPayloadRef(inputToParallelizeValue) ||
+          isStoredPayloadRef(aggregateOutputValue)
+        ) {
+          throw new Error(
+            `Unexpected stored payload ref in parallelization context`,
+          );
+        }
+
         if (
           processedStep.inputToParallelizeOn &&
-          processedStep.inputToParallelizeOn.payload.value.length ===
-            processedStep.aggregateOutput.payload.value.length
+          inputToParallelizeValue &&
+          (inputToParallelizeValue as unknown[]).length ===
+            (aggregateOutputValue as unknown[]).length
         ) {
           /**
            * If the number of items in the input that were parallelized on is

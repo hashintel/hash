@@ -2,7 +2,8 @@ import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
-  PayloadKindValues,
+  PayloadKind,
+  PayloadValue,
   StepInput,
 } from "./types.js";
 
@@ -854,18 +855,18 @@ type AiFlowInputPayloadType<
   (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
   { name: N }
 > extends { required: true; array: true }
-  ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>][]
+  ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
   : Extract<
         (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
         { name: N }
       > extends { required: false; array: true }
-    ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>][] | undefined
+    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
     : Extract<
           (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
         > extends { required: true; array: false }
-      ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>]
-      : PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>] | undefined;
+      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
+      : PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false> | undefined;
 
 type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
   [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
@@ -901,21 +902,21 @@ type IntegrationFlowInputPayloadType<
   (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
   { name: N }
 > extends { required: true; array: true }
-  ? PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>][]
+  ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
   : Extract<
         (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
         { name: N }
       > extends { required: false; array: true }
     ?
-        | PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>][]
+        | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
         | undefined
     : Extract<
           (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
         > extends { required: true; array: false }
-      ? PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>]
+      ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
       :
-          | PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>]
+          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
           | undefined;
 
 type SimplifiedIntegrationActionInputsObject<
@@ -961,23 +962,24 @@ export const getSimplifiedIntegrationFlowActionInputs = <
  * Uses a distributive conditional type to ensure that when OutputDef is a union,
  * each member is processed individually, creating a proper discriminated union
  * where outputName and payload are correctly paired.
+ *
+ * For stored payload kinds (ProposedEntity, ProposedEntityWithResolvedLinks),
+ * the value type is StoredPayloadRef instead of the actual payload.
  */
 type ActionStepOutput<
   OutputDef extends {
     name: string;
-    payloadKind: keyof PayloadKindValues;
+    payloadKind: PayloadKind;
     array: boolean;
   },
 > = OutputDef extends {
   name: infer N extends string;
-  payloadKind: infer K extends keyof PayloadKindValues;
+  payloadKind: infer K extends PayloadKind;
   array: infer A extends boolean;
 }
   ? {
       outputName: N;
-      payload: A extends true
-        ? { kind: K; value: PayloadKindValues[K][] }
-        : { kind: K; value: PayloadKindValues[K] };
+      payload: { kind: K; value: PayloadValue<K, A> };
     }
   : never;
 

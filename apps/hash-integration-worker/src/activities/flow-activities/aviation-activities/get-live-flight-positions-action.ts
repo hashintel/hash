@@ -10,6 +10,10 @@ import {
   type PropertyMetadata,
 } from "@blockprotocol/type-system";
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
 import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -99,7 +103,8 @@ export const createGetLiveFlightPositionsAction = ({
 }): IntegrationFlowActionActivity<"getLiveFlightPositions"> => {
   return async ({ inputs }) => {
     try {
-      const { userAuthentication } = await getFlowContext();
+      const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
+        await getFlowContext();
 
       const { persistedEntities } = getSimplifiedIntegrationFlowActionInputs({
         inputs,
@@ -111,6 +116,16 @@ export const createGetLiveFlightPositionsAction = ({
       );
 
       if (flightEntityIds.length === 0) {
+        const emptyStoredRef = await storePayload({
+          storageProvider: getStorageProvider(),
+          workflowId,
+          runId,
+          stepId,
+          outputName: "proposedEntities",
+          kind: "ProposedEntity",
+          value: [],
+        });
+
         return {
           code: StatusCode.Ok,
           message: "No persisted entities to check for live positions",
@@ -121,7 +136,7 @@ export const createGetLiveFlightPositionsAction = ({
                   outputName: "proposedEntities",
                   payload: {
                     kind: "ProposedEntity",
-                    value: [],
+                    value: emptyStoredRef,
                   },
                 },
               ],
@@ -230,6 +245,16 @@ export const createGetLiveFlightPositionsAction = ({
       }
 
       if (flightsToUpdate.length === 0) {
+        const emptyStoredRef = await storePayload({
+          storageProvider: getStorageProvider(),
+          workflowId,
+          runId,
+          stepId,
+          outputName: "proposedEntities",
+          kind: "ProposedEntity",
+          value: [],
+        });
+
         return {
           code: StatusCode.Ok,
           message: "No flights require live position updates",
@@ -240,7 +265,7 @@ export const createGetLiveFlightPositionsAction = ({
                   outputName: "proposedEntities",
                   payload: {
                     kind: "ProposedEntity",
-                    value: [],
+                    value: emptyStoredRef,
                   },
                 },
               ],
@@ -253,8 +278,6 @@ export const createGetLiveFlightPositionsAction = ({
       const proposedEntities: ProposedEntity[] = [];
       let successCount = 0;
       let notFoundCount = 0;
-
-      const { flowEntityId, stepId } = await getFlowContext();
 
       for (const {
         entityId,
@@ -339,6 +362,17 @@ export const createGetLiveFlightPositionsAction = ({
         successCount++;
       }
 
+      // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+      const storedRef = await storePayload({
+        storageProvider: getStorageProvider(),
+        workflowId,
+        runId,
+        stepId,
+        outputName: "proposedEntities",
+        kind: "ProposedEntity",
+        value: proposedEntities,
+      });
+
       return {
         code: StatusCode.Ok,
         message: `Fetched live positions for ${successCount} flights (${notFoundCount} not found in FlightRadar24)`,
@@ -349,7 +383,7 @@ export const createGetLiveFlightPositionsAction = ({
                 outputName: "proposedEntities",
                 payload: {
                   kind: "ProposedEntity",
-                  value: proposedEntities,
+                  value: storedRef,
                 },
               },
             ],
