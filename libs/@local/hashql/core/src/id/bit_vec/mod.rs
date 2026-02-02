@@ -2061,17 +2061,24 @@ impl<T: FiniteBitSetTy> FiniteBitSet<T> {
     }
 
     /// Sets the `index`th bit.
-    pub fn set(&mut self, index: u32) {
+    pub fn insert(&mut self, index: u32) {
         self.0 |= T::ONE.checked_shl(index).unwrap_or(T::ZERO);
     }
 
-    /// Unsets the `index`th bit.
-    pub fn clear(&mut self, index: u32) {
+    pub fn remove(&mut self, index: u32) {
         self.0 &= !T::ONE.checked_shl(index).unwrap_or(T::ZERO);
     }
 
+    pub fn set(&mut self, index: u32, value: bool) {
+        if value {
+            self.insert(index);
+        } else {
+            self.remove(index);
+        }
+    }
+
     /// Sets the `i`th to `j`th bits.
-    pub fn set_range(&mut self, range: Range<u32>) {
+    pub fn insert_range(&mut self, range: Range<u32>) {
         let bits = T::FILLED
             .checked_shl(range.end - range.start)
             .unwrap_or(T::ZERO)

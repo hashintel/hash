@@ -15,7 +15,7 @@ use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 use crate::{
     body::{
         Body,
-        basic_block::BasicBlockSlice,
+        basic_block::{BasicBlockId, BasicBlockSlice},
         basic_blocks::BasicBlocks,
         local::{Local, LocalVec},
         location::Location,
@@ -186,6 +186,12 @@ impl<A: Allocator> StatementCostVec<A> {
 
     pub fn all_unassigned(&self) -> bool {
         self.costs.iter().all(Option::is_none)
+    }
+
+    pub fn of(&self, block: BasicBlockId) -> &[Option<Cost>] {
+        let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
+
+        &self.costs[range]
     }
 
     /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
