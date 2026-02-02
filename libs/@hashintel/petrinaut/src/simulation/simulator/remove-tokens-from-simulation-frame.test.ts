@@ -25,15 +25,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 3,
           dimensions: 2,
@@ -53,15 +44,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 1,
@@ -81,15 +63,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 3,
           dimensions: 1,
@@ -113,15 +86,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 3,
           dimensions: 1,
@@ -146,15 +110,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 4,
           dimensions: 1,
@@ -179,15 +134,6 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 3,
           dimensions: 3,
@@ -216,29 +162,11 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 2,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 4, // After p1's 2 tokens * 2 dimensions
           count: 3,
           dimensions: 1,
@@ -269,29 +197,11 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 1,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 2,
           count: 2,
           dimensions: 1,
@@ -318,43 +228,16 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 1,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 2,
           count: 3,
           dimensions: 1,
         },
         p3: {
-          instance: {
-            id: "p3",
-            name: "Place 3",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 5,
           count: 2,
           dimensions: 1,
@@ -389,43 +272,16 @@ describe("removeTokensFromSimulationFrame", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 3,
           dimensions: 1,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 3,
           count: 2,
           dimensions: 2,
         },
         p3: {
-          instance: {
-            id: "p3",
-            name: "Place 3",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 7,
           count: 2,
           dimensions: 1,

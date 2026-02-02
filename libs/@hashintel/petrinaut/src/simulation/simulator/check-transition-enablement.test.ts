@@ -26,15 +26,6 @@ describe("isTransitionStructurallyEnabled", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 0,
@@ -83,15 +74,6 @@ describe("isTransitionStructurallyEnabled", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 0,
           dimensions: 0,
@@ -140,15 +122,6 @@ describe("isTransitionStructurallyEnabled", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 0,
@@ -198,29 +171,11 @@ describe("isTransitionStructurallyEnabled", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2,
           dimensions: 0,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 0, // No tokens
           dimensions: 0,
@@ -317,29 +272,11 @@ describe("checkTransitionEnablement", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 1,
           dimensions: 0,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 0,
           dimensions: 0,
@@ -408,29 +345,11 @@ describe("checkTransitionEnablement", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 0,
           dimensions: 0,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 0,
           dimensions: 0,
@@ -530,15 +449,6 @@ describe("checkTransitionEnablement", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            colorId: null,
-            differentialEquationId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 5,
           dimensions: 0,

@@ -348,7 +348,7 @@ describe("useSimulationWorker", () => {
       const frame = {
         time: 1.5,
         places: {
-          p1: { instance: {} as unknown, offset: 0, count: 1, dimensions: 1 },
+          p1: { offset: 0, count: 1, dimensions: 1 },
         },
         transitions: {},
         buffer: new Float64Array([1.0]),

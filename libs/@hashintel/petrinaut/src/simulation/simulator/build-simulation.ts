@@ -200,7 +200,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const dimensions = getPlaceDimensions(place, sdcpn);
 
     placeStates[placeId] = {
-      instance: place,
       offset: bufferSize,
       count,
       dimensions,
