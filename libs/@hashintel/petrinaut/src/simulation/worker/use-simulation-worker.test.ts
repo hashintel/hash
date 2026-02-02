@@ -68,10 +68,32 @@ let mockWorkerInstance: MockWorker | null = null;
 vi.stubGlobal(
   "Worker",
   class {
+    onmessage: ((event: MessageEvent<ToMainMessage>) => void) | null = null;
+    onerror: ((event: ErrorEvent) => void) | null = null;
+
     constructor() {
       mockWorkerInstance = new MockWorker();
-      // Assign to globalThis to make this instance available
-      Object.assign(this, mockWorkerInstance);
+      // Proxy onmessage/onerror to the mock instance
+      Object.defineProperty(this, "onmessage", {
+        get: () => mockWorkerInstance!.onmessage,
+        set: (fn: MockWorker["onmessage"]) => {
+          mockWorkerInstance!.onmessage = fn;
+        },
+      });
+      Object.defineProperty(this, "onerror", {
+        get: () => mockWorkerInstance!.onerror,
+        set: (fn: MockWorker["onerror"]) => {
+          mockWorkerInstance!.onerror = fn;
+        },
+      });
+    }
+
+    postMessage(message: ToWorkerMessage): void {
+      mockWorkerInstance?.postMessage(message);
+    }
+
+    terminate(): void {
+      mockWorkerInstance?.terminate();
     }
   },
 );

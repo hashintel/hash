@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 /**
  * Simulation WebWorker
  *
@@ -44,7 +45,7 @@ let lastAckedFrame = 0;
  * Post a typed message to the main thread.
  */
 function postTypedMessage(message: ToMainMessage): void {
-  globalThis.postMessage(message);
+  self.postMessage(message);
 }
 
 /**
@@ -131,7 +132,7 @@ async function computeLoop(): Promise<void> {
 /**
  * Handle incoming messages from main thread.
  */
-globalThis.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
+self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
   const message = event.data;
 
   switch (message.type) {
