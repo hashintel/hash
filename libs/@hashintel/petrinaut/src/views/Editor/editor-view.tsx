@@ -70,22 +70,6 @@ export const EditorView = ({
     clearSelection,
   } = use(EditorContext);
 
-  // Get simulation store method to initialize parameter values
-  // const initializeParameterValuesFromDefaults = useSimulationStore(
-  //   (state) => state.initializeParameterValuesFromDefaults,
-  // );
-
-  // Handler for mode change that initializes parameter values when switching to simulate mode
-  // function handleModeChange(newMode: "edit" | "simulate") {
-  //   if (newMode === "simulate" && mode !== "simulate") {
-  //     // Initialize parameter values from SDCPN defaults when switching to simulate mode
-  //     initializeParameterValuesFromDefaults();
-  //     // Clear selection when entering simulate mode
-  //     clearSelection();
-  //   }
-  //   setMode(newMode);
-  // }
-
   function handleNew() {
     createNewNet({
       title: "Untitled",
