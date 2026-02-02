@@ -1,6 +1,55 @@
 #![expect(non_upper_case_globals, non_snake_case, clippy::min_ident_chars)]
 use super::{ConstantSymbol, Symbol};
 
+/// Generates pre-interned symbols available at compile time.
+///
+/// This macro produces three artifacts from a single symbol table definition:
+///
+/// 1. **`SYMBOLS`** - A static slice of string values for interner pre-population
+/// 2. **Symbol constants** - `Symbol<'static>` constants (e.g., `sym::foo`, `sym::symbol::plus`)
+/// 3. **`LOOKUP`** - A static slice mapping string values to their [`Repr`] for fast lookup
+///
+/// # Syntax
+///
+/// ```text
+/// symbols! {@table;
+///     // Simple symbol: name becomes both the constant and string value
+///     foo,
+///
+///     // Explicit string: use when string differs from identifier
+///     r#true: "true",
+///     input_exists: "$exists",
+///
+///     // Nested module: groups related symbols under a namespace
+///     symbol: {
+///         plus: "+",
+///         minus: "-",
+///     },
+/// }
+/// ```
+///
+/// Each symbol `name` or `name: "value"` generates:
+/// - A constant `name: Symbol<'static>` with auto-generated docs
+/// - A submodule `name` containing `CONST: ConstantSymbol` for pattern matching
+///
+/// Modules create nested namespaces, so `symbol::plus` becomes accessible as `sym::symbol::plus`.
+///
+/// # Internal Rules
+///
+/// The macro uses internal rules (prefixed with `@`) to process the token stream:
+///
+/// - **`@strings`** - Collects all string values into the `SYMBOLS` slice
+/// - **`@consts`** - Generates `Symbol` constants and companion modules with index tracking
+/// - **`@consts @cont`** - Continuation after processing a nested module to resume counting
+/// - **`@lookup`** - Builds the string-to-repr mapping table for runtime lookup
+/// - **`@path`** - Helper to construct module paths (reverses accumulated path segments)
+/// - **`@table`** - Entry point that dispatches to all three generators
+///
+/// Index tracking uses the `${count($count)}` metavariable to assign sequential indices.
+/// Each processed symbol appends `()` to the count accumulator, and `${count(...)}` returns
+/// the number of elements.
+///
+/// [`Repr`]: super::repr::Repr
 macro_rules! symbols {
     (@strings [$($acc:tt)*];) => {
         pub(crate) static SYMBOLS: &[&str] = &[
