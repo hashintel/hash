@@ -1,5 +1,5 @@
 //! Tests for [`PostgresStatementPlacement`].
-#![expect(clippy::min_ident_chars)]
+#![expect(clippy::min_ident_chars, clippy::similar_names)]
 
 use hashql_core::{
     heap::Heap,
@@ -21,7 +21,7 @@ use crate::{
     op,
     pass::{
         analysis::execution::statement_placement::{
-            PostgresStatementPlacement, StatementPlacement,
+            PostgresStatementPlacement, StatementPlacement as _,
             tests::{assert_placement, run_placement},
         },
         transform::Traversals,
@@ -542,7 +542,7 @@ fn graph_read_edge_unsupported() {
 
     let mut builder = BodyBuilder::new(&interner);
 
-    let env_local = builder.local("env", unit_ty);
+    let _env_local = builder.local("env", unit_ty);
     let vertex = builder.local("vertex", entity_ty);
     let axis = builder.local("axis", int_ty);
     let graph_result = builder.local("graph_result", int_ty);
