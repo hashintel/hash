@@ -16,6 +16,23 @@ import {
   type PlayMode,
 } from "./context";
 
+/**
+ * Buffer duration in seconds based on play mode.
+ * - viewOnly: 0 (no buffering needed)
+ * - computeBuffer: 0.5s ahead
+ * - computeMax: 10s ahead (large buffer for continuous computation)
+ */
+function getBufferDuration(mode: PlayMode): number {
+  switch (mode) {
+    case "viewOnly":
+      return 0;
+    case "computeBuffer":
+      return 0.5;
+    case "computeMax":
+      return 10;
+  }
+}
+
 type PlaybackStateValues = {
   /** Current playback state */
   playbackState: PlaybackState;
@@ -82,7 +99,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const {
     dt,
     state: simulationState,
-    computeBufferDuration,
     totalFrames,
     getFrame,
     run: runSimulation,
@@ -100,7 +116,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const dtRef = useLatest(dt);
   const simulationStateRef = useLatest(simulationState);
   const maxTimeRef = useLatest(maxTime);
-  const computeBufferDurationRef = useLatest(computeBufferDuration);
   const totalFramesRef = useLatest(totalFrames);
 
   // viewOnly mode is available when there are computed frames to view
@@ -194,7 +209,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     // mode === "computeBuffer"
     // Ack only when in the buffer zone (current frame is near the end of available frames)
     const currentIndex = stateValues.currentFrameIndex;
-    const bufferFrames = Math.ceil(computeBufferDuration / dt);
+    const bufferDuration = getBufferDuration(mode);
+    const bufferFrames = Math.ceil(bufferDuration / dt);
 
     // If we're within bufferFrames of the end, ack to allow more computation
     if (currentIndex >= totalFrames - bufferFrames) {
@@ -204,7 +220,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     totalFrames,
     stateValues.playMode,
     stateValues.currentFrameIndex,
-    computeBufferDuration,
     dt,
     ack,
   ]);
@@ -224,10 +239,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       const state = stateValuesRef.current;
       const simState = simulationStateRef.current;
       const currentMaxTime = maxTimeRef.current;
-      const bufferDuration = computeBufferDurationRef.current;
       const frameCount = totalFramesRef.current;
       const speed = state.playbackSpeed;
       const mode = state.playMode;
+      const bufferDuration = getBufferDuration(mode);
 
       if (state.playbackState !== "Playing") {
         return;
@@ -327,7 +342,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     runSimulation,
     setMaxTime,
     // These refs and stable callbacks have stable identities, safe to include
-    computeBufferDurationRef,
     dtRef,
     maxTimeRef,
     simulationStateRef,
@@ -365,7 +379,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     const simState = simulationStateRef.current;
     const state = stateValuesRef.current;
     const currentMaxTime = maxTimeRef.current;
-    const bufferDuration = computeBufferDurationRef.current;
+    const bufferDuration = getBufferDuration(state.playMode);
 
     // Handle simulation control based on play mode
     if (state.playMode !== "viewOnly") {
@@ -440,7 +454,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     const simState = simulationStateRef.current;
     const currentMaxTime = maxTimeRef.current;
-    const bufferDuration = computeBufferDurationRef.current;
+    const bufferDuration = getBufferDuration(mode);
     const frameCount = totalFramesRef.current;
     const state = stateValuesRef.current;
 

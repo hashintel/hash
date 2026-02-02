@@ -147,11 +147,6 @@ export type SimulationContextValue = {
    */
   maxTime: number | null;
   /**
-   * Duration in seconds to buffer ahead when in computeBuffer mode.
-   * Default is 1 second.
-   */
-  computeBufferDuration: number;
-  /**
    * Total number of computed frames available.
    */
   totalFrames: number;
@@ -192,10 +187,6 @@ export type SimulationContextValue = {
    * Pass null to disable the time limit.
    */
   setMaxTime: (maxTime: number | null) => void;
-  /**
-   * Set the compute buffer duration in seconds.
-   */
-  setComputeBufferDuration: (duration: number) => void;
   initializeParameterValuesFromDefaults: () => void;
   initialize: (params: { seed: number; dt: number }) => void;
   run: () => void;
@@ -222,7 +213,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   initialMarking: new Map(),
   dt: 0.01,
   maxTime: null,
-  computeBufferDuration: 1,
   totalFrames: 0,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
@@ -230,7 +220,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setParameterValue: () => {},
   setDt: () => {},
   setMaxTime: () => {},
-  setComputeBufferDuration: () => {},
   initializeParameterValuesFromDefaults: () => {},
   initialize: () => {},
   run: () => {},
