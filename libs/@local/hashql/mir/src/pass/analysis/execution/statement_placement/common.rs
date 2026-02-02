@@ -54,6 +54,11 @@ type OperandFn<'heap> =
 ///
 /// The analysis is parameterized by target-specific predicates that determine whether individual
 /// rvalues and operands are supported by that target.
+///
+/// Values flowing through [`GraphRead`] edges are always marked as unsupported, since graph
+/// reads must be executed by the interpreter and cannot be dispatched to external backends.
+///
+/// [`GraphRead`]: crate::body::terminator::GraphRead
 pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
@@ -157,6 +162,22 @@ where
         for (arg, &param) in source_args.iter().zip(target_params) {
             let is_supported = (self.is_supported_operand)(self.context, self.body, state, arg);
             state.set(param, is_supported);
+        }
+    }
+
+    fn transfer_graph_read_edge<A: Allocator>(
+        &self,
+        _: BasicBlockId,
+
+        _: BasicBlockId,
+        target_params: &[Local],
+
+        state: &mut Self::Domain<A>,
+    ) {
+        // Graph reads must happen inside of the interpreter, and are therefore not supported on any
+        // backend.
+        for &param in target_params {
+            state.remove(param);
         }
     }
 }

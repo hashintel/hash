@@ -1,17 +1,30 @@
 //! Tests for [`PostgresStatementPlacement`].
 #![expect(clippy::min_ident_chars)]
 
-use hashql_core::{heap::Heap, symbol::sym, r#type::environment::Environment};
+use hashql_core::{
+    heap::Heap,
+    symbol::sym,
+    r#type::{TypeId, builder::TypeBuilder, environment::Environment},
+};
 use hashql_diagnostics::DiagnosticIssues;
 
 use crate::{
-    builder::body,
+    body::{
+        Source,
+        operand::Operand,
+        terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
+    },
+    builder::{BodyBuilder, body},
     context::MirContext,
     def::DefId,
     intern::Interner,
-    pass::analysis::execution::statement_placement::{
-        PostgresStatementPlacement,
-        tests::{assert_placement, run_placement},
+    op,
+    pass::{
+        analysis::execution::statement_placement::{
+            PostgresStatementPlacement, StatementPlacement,
+            tests::{assert_placement, run_placement},
+        },
+        transform::Traversals,
     },
 };
 
@@ -501,6 +514,85 @@ fn diamond_must_analysis() {
 
     assert_placement(
         "diamond_must_analysis",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Values flowing through `GraphRead` edges become unsupported.
+///
+/// Tests that `transfer_graph_read_edge` correctly marks target block parameters as
+/// non-dispatchable. Graph reads must be executed by the interpreter, so any value
+/// produced by a graph read cannot be pushed to Postgres.
+///
+/// Uses fluent builder API because `GraphRead` terminator is not supported by the `body!` macro.
+#[test]
+fn graph_read_edge_unsupported() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let bool_ty = TypeBuilder::synthetic(&env).boolean();
+    let unit_ty = TypeBuilder::synthetic(&env).tuple([] as [TypeId; 0]);
+    let entity_ty = TypeBuilder::synthetic(&env).opaque(sym::path::Entity, bool_ty);
+
+    let mut builder = BodyBuilder::new(&interner);
+
+    let env_local = builder.local("env", unit_ty);
+    let vertex = builder.local("vertex", entity_ty);
+    let axis = builder.local("axis", int_ty);
+    let graph_result = builder.local("graph_result", int_ty);
+    let local_val = builder.local("local_val", int_ty);
+    let sum = builder.local("sum", int_ty);
+    let result = builder.local("result", bool_ty);
+
+    let const_10 = builder.const_int(10);
+    let const_0 = builder.const_int(0);
+
+    let bb0 = builder.reserve_block([]);
+    let bb1 = builder.reserve_block([graph_result.local]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(axis, |rv| rv.load(const_10))
+        .assign_place(local_val, |rv| rv.load(const_10))
+        .finish_with_terminator(TerminatorKind::GraphRead(GraphRead {
+            head: GraphReadHead::Entity {
+                axis: Operand::Place(axis),
+            },
+            body: Vec::new_in(&heap),
+            tail: GraphReadTail::Collect,
+            target: bb1,
+        }));
+
+    builder
+        .build_block(bb1)
+        .assign_place(sum, |rv| rv.binary(graph_result, op![+], local_val))
+        .assign_place(result, |rv| rv.binary(sum, op![>], const_0))
+        .ret(result);
+
+    let mut body = builder.finish(2, bool_ty);
+    body.source = Source::GraphReadFilter(hashql_hir::node::HirId::PLACEHOLDER);
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let traversals = Traversals::with_capacity_in(vertex.local, body.local_decls.len(), &heap);
+
+    let mut placement = PostgresStatementPlacement::default();
+    let (traversal_costs, statement_costs) =
+        placement.statement_placement(&context, &body, &traversals, &heap);
+
+    assert_placement(
+        "graph_read_edge_unsupported",
         "postgres",
         &body,
         &context,
