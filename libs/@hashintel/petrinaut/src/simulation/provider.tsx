@@ -227,6 +227,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   };
 
+  const ack: SimulationContextValue["ack"] = (frameNumber) => {
+    workerActions.ack(frameNumber);
+  };
+
   // Ref for accessing latest frames in stable callbacks
   const framesRef = useLatest(workerState.frames);
 
@@ -271,6 +275,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     run: useStableCallback(run),
     pause: useStableCallback(pause),
     reset: useStableCallback(reset),
+    ack: useStableCallback(ack),
   };
 
   return (
