@@ -24,15 +24,6 @@ describe("computePossibleTransition", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            differentialEquationId: null,
-            colorId: null,
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 1, // Only 1 token available
           dimensions: 1,
@@ -132,29 +123,11 @@ describe("computePossibleTransition", () => {
       time: 0,
       places: {
         p1: {
-          instance: {
-            id: "p1",
-            name: "Place 1",
-            differentialEquationId: null,
-            colorId: "type1",
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 0,
           count: 2, // 2 tokens available
           dimensions: 1,
         },
         p2: {
-          instance: {
-            id: "p2",
-            name: "Place 2",
-            differentialEquationId: null,
-            colorId: "type1",
-            dynamicsEnabled: false,
-            x: 0,
-            y: 0,
-          },
           offset: 2,
           count: 0,
           dimensions: 1,

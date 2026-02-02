@@ -43,13 +43,19 @@ export function computeNextFrame(
 
     // Apply differential equations to each place that has dynamics enabled
     for (const [placeId, placeState] of Object.entries(currentFrame.places)) {
+      // Get the place instance from the simulation
+      const place = simulation.places.get(placeId);
+      if (!place) {
+        throw new Error(`Place with ID ${placeId} not found in simulation`);
+      }
+
       // Skip places without dynamics enabled
-      if (!placeState.instance.dynamicsEnabled) {
+      if (!place.dynamicsEnabled) {
         continue;
       }
 
       // Skip places without a type (no dimensions to work with)
-      if (!placeState.instance.colorId) {
+      if (!place.colorId) {
         continue;
       }
 
@@ -67,7 +73,7 @@ export function computeNextFrame(
       const placeBuffer = currentFrame.buffer.slice(offset, offset + placeSize);
 
       // Get the type definition to access dimension names
-      const typeId = placeState.instance.colorId;
+      const typeId = place.colorId;
       if (!typeId) {
         continue; // This shouldn't happen due to earlier check, but be safe
       }

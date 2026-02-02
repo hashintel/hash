@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { ID, Place, Transition } from "../core/types/sdcpn";
+import type { ID, Transition } from "../core/types/sdcpn";
 
 /**
  * Current state of the simulation lifecycle.
@@ -40,7 +40,6 @@ export type SimulationFrameState_Transition = {
  * State of a place within a simulation frame.
  */
 export type SimulationFrameState_Place = {
-  instance: Place;
   offset: number;
   count: number;
   dimensions: number;
