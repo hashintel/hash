@@ -62,8 +62,14 @@ fn count_regions<'heap, A: Allocator, B: Allocator>(
     regions
 }
 
-fn offset_basic_blocks<'heap>(body: &mut Body<'heap>, regions: &BasicBlockSlice<usize>) {
-    // TODO: create a vec of offsets (which we track), once done, we ensure that
+fn offset_basic_blocks<'heap>(body: &mut Body<'heap>, regions: &BasicBlockSlice<NonZero<usize>>) {
+    // TODO: create a vec of offsets (which we track), once done, visit all the blocks and increment
+    // their id by the offset indicated. We visit each only once, so this is fine.
+
+    // We then offset properly, which means if there are more than 1 region we remove the
+    // terminator, add it to the last and then create a chain of blocks with GOTO.
+    // Once done we split the statements, similarly to the algorithm already outlined.
+    // While doing so we note for each basic block it's affinity aka execution targets it supports.
 
     todo!()
 }
