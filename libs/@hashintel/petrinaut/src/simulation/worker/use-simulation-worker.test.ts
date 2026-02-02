@@ -70,7 +70,8 @@ vi.stubGlobal(
   class {
     constructor() {
       mockWorkerInstance = new MockWorker();
-      return mockWorkerInstance;
+      // Assign to globalThis to make this instance available
+      Object.assign(this, mockWorkerInstance);
     }
   },
 );
@@ -347,7 +348,7 @@ describe("useSimulationWorker", () => {
       const frame = {
         time: 1.5,
         places: {
-          p1: { instance: {} as any, offset: 0, count: 1, dimensions: 1 },
+          p1: { instance: {} as unknown, offset: 0, count: 1, dimensions: 1 },
         },
         transitions: {},
         buffer: new Float64Array([1.0]),
@@ -444,7 +445,7 @@ describe("useSimulationWorker", () => {
 
   describe("backpressure (ack)", () => {
     it("sends periodic ack messages", () => {
-      const { result } = renderHook(() => useSimulationWorker());
+      renderHook(() => useSimulationWorker());
 
       // Add some frames
       act(() => {

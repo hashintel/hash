@@ -1,12 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  act,
-  render,
-  type RenderResult,
-  waitFor,
-} from "@testing-library/react";
+import { act, render, type RenderResult } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -52,8 +47,8 @@ function createMockFrames(frameCount: number): SimulationFrame[] {
  */
 function createMockFrameAccessors(frames: SimulationFrame[]) {
   return {
-    getFrame: vi.fn(async (index: number) => frames[index] ?? null),
-    getAllFrames: vi.fn(async () => frames),
+    getFrame: vi.fn((index: number) => Promise.resolve(frames[index] ?? null)),
+    getAllFrames: vi.fn(() => Promise.resolve(frames)),
   };
 }
 
@@ -383,10 +378,10 @@ describe("PlaybackProvider", () => {
       expect(getPlaybackValue().playbackSpeed).toBe(10);
 
       act(() => {
-        getPlaybackValue().setPlaybackSpeed(Infinity);
+        getPlaybackValue().setPlaybackSpeed(Number.POSITIVE_INFINITY);
       });
 
-      expect(getPlaybackValue().playbackSpeed).toBe(Infinity);
+      expect(getPlaybackValue().playbackSpeed).toBe(Number.POSITIVE_INFINITY);
     });
   });
 
