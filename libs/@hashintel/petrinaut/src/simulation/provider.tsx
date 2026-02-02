@@ -29,7 +29,7 @@ type SimulationStateValues = {
   computeBufferDuration: number;
 };
 
-const initialStateValues: SimulationStateValues = {
+const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
   initialMarking: new Map(),
   dt: 0.01,
@@ -93,7 +93,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Configuration state (not managed by worker)
   const [stateValues, setStateValues] =
-    useState<SimulationStateValues>(initialStateValues);
+    useState<SimulationStateValues>(INITIAL_STATE_VALUES);
 
   // Ref for accessing latest state in callbacks
   const stateValuesRef = useLatest(stateValues);
@@ -104,7 +104,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Reinitialize when petriNetId changes
   useEffect(() => {
     workerActions.reset();
-    setStateValues(initialStateValues);
+    setStateValues(INITIAL_STATE_VALUES);
   }, [petriNetId, workerActions]);
 
   // Sync maxTime changes to worker
