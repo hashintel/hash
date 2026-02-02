@@ -32,21 +32,6 @@ pub(crate) mod output;
 pub(crate) mod reporter;
 pub(crate) mod ui;
 
-static PANICKED: AtomicBool = AtomicBool::new(false);
-
-fn panic_hook(panic_info: &PanicHookInfo) {
-    let message = panic_info
-        .payload_as_str()
-        .map_or_else(|| "Box<dyn Any>".to_owned(), ToOwned::to_owned);
-
-    let location = panic_info.location().map(ToString::to_string);
-
-    let backtrace = Backtrace::force_capture();
-
-    tracing::error!(message, location, %backtrace, "encountered panic");
-    PANICKED.store(true, Ordering::SeqCst);
-}
-
 pub(crate) struct Run {
     pub format: OutputFormat,
     pub bless: bool,
@@ -128,8 +113,6 @@ impl Runner {
     }
 
     fn execute_run(self, Run { format, bless }: Run) -> io::Result<ExitCode> {
-        panic::set_hook(Box::new(panic_hook));
-
         let graph = self.package_graph();
         let context = TrialContext { bless };
 
