@@ -315,6 +315,11 @@ export const updateEntityEmbeddings = async (
   // Build filter from entity IDs if provided
   let filter: Filter;
   if ("entityIds" in params) {
+    // Early return if no entity IDs provided - avoids ambiguous empty `any` filter
+    if (params.entityIds.length === 0) {
+      return usage;
+    }
+
     // Build a filter matching any of the entity IDs, excluding FlowRun entities
     filter = {
       all: [
