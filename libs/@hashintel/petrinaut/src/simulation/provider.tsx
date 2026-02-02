@@ -26,7 +26,6 @@ type SimulationStateValues = {
   initialMarking: InitialMarking;
   dt: number;
   maxTime: number | null;
-  computeBufferDuration: number;
 };
 
 const INITIAL_STATE_VALUES: SimulationStateValues = {
@@ -34,7 +33,6 @@ const INITIAL_STATE_VALUES: SimulationStateValues = {
   initialMarking: new Map(),
   dt: 0.01,
   maxTime: null,
-  computeBufferDuration: 1,
 };
 
 /**
@@ -142,11 +140,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) => {
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
-
-  const setComputeBufferDuration: SimulationContextValue["setComputeBufferDuration"] =
-    (duration) => {
-      setStateValues((prev) => ({ ...prev, computeBufferDuration: duration }));
-    };
 
   const initializeParameterValuesFromDefaults: SimulationContextValue["initializeParameterValuesFromDefaults"] =
     () => {
@@ -259,7 +252,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     initialMarking: stateValues.initialMarking,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
-    computeBufferDuration: stateValues.computeBufferDuration,
     totalFrames,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
@@ -267,7 +259,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
     setMaxTime: useStableCallback(setMaxTime),
-    setComputeBufferDuration: useStableCallback(setComputeBufferDuration),
     initializeParameterValuesFromDefaults: useStableCallback(
       initializeParameterValuesFromDefaults,
     ),

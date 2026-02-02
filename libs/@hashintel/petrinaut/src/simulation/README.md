@@ -24,13 +24,12 @@ State mapping from worker:
 
 ### Configuration State
 
-| Property                | Type                       | Default       | Description                                |
-| ----------------------- | -------------------------- | ------------- | ------------------------------------------ |
-| `parameterValues`       | `Record<string, string>`   | `{}`          | User-defined parameters                    |
-| `initialMarking`        | `Map<placeId, Marking>`    | `new Map()`   | Initial token placement                    |
-| `dt`                    | `number`                   | `0.01`        | Time step                                  |
-| `maxTime`               | `number \| null`           | `null`        | Simulation end time (immutable after init) |
-| `computeBufferDuration` | `number`                   | `1`           | Buffer ahead time                          |
+| Property          | Type                       | Default       | Description                                |
+| ----------------- | -------------------------- | ------------- | ------------------------------------------ |
+| `parameterValues` | `Record<string, string>`   | `{}`          | User-defined parameters                    |
+| `initialMarking`  | `Map<placeId, Marking>`    | `new Map()`   | Initial token placement                    |
+| `dt`              | `number`                   | `0.01`        | Time step                                  |
+| `maxTime`         | `number \| null`           | `null`        | Simulation end time (immutable after init) |
 
 > **Note:** `maxTime` can be configured via `setMaxTime()` before calling `initialize()`,
 > but once the simulation is initialized, `maxTime` becomes immutable and is stored
@@ -48,7 +47,6 @@ type SimulationContextValue = {
   initialMarking: InitialMarking;
   dt: number;
   maxTime: number | null;
-  computeBufferDuration: number;
   totalFrames: number;
 
   // Frame Access
@@ -60,7 +58,6 @@ type SimulationContextValue = {
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
   setMaxTime: (maxTime: number | null) => void;
-  setComputeBufferDuration: (duration: number) => void;
   initializeParameterValuesFromDefaults: () => void;
 
   // Lifecycle Actions
