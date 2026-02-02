@@ -107,11 +107,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues(INITIAL_STATE_VALUES);
   }, [petriNetId, workerActions]);
 
-  // Sync maxTime changes to worker
-  useEffect(() => {
-    workerActions.setMaxTime(stateValues.maxTime);
-  }, [stateValues.maxTime, workerActions]);
-
   //
   // Actions
   //
@@ -172,13 +167,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
-    // Delegate to worker
+    // Delegate to worker (maxTime is immutable once set at initialization)
     workerActions.initialize({
       sdcpn,
       initialMarking: currentState.initialMarking,
       parameterValues: currentState.parameterValues,
       seed,
       dt,
+      maxTime: currentState.maxTime,
     });
 
     // Update local dt

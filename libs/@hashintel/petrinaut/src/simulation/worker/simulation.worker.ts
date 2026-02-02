@@ -11,26 +11,25 @@
 
 import { SDCPNItemError } from "../../core/errors";
 import { buildSimulation } from "../simulator/build-simulation";
-import { checkTransitionEnablement } from "../simulator/check-transition-enablement";
 import { computeNextFrame } from "../simulator/compute-next-frame";
 import type { SimulationInstance } from "../simulator/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //
-// Configuration
+// Default Configuration
 //
 
 /**
- * Maximum number of frames the worker can compute ahead of acknowledgment.
+ * Default maximum number of frames the worker can compute ahead of acknowledgment.
  * Provides backpressure to prevent unbounded memory growth.
  */
-const MAX_FRAMES_AHEAD = 100000;
+const DEFAULT_MAX_FRAMES_AHEAD = 100000;
 
 /**
- * Number of frames to compute in each batch before checking for messages.
+ * Default number of frames to compute in each batch before checking for messages.
  * Higher values improve throughput but reduce responsiveness to pause/stop.
  */
-const BATCH_SIZE = 1000;
+const DEFAULT_BATCH_SIZE = 1000;
 
 //
 // Worker State
@@ -38,8 +37,11 @@ const BATCH_SIZE = 1000;
 
 let simulation: SimulationInstance | null = null;
 let isRunning = false;
-let maxTime: number | null = null;
 let lastAckedFrame = 0;
+
+// Backpressure configuration (can be changed at runtime)
+let maxFramesAhead = DEFAULT_MAX_FRAMES_AHEAD;
+let batchSize = DEFAULT_BATCH_SIZE;
 
 /**
  * Post a typed message to the main thread.
@@ -56,7 +58,7 @@ async function computeLoop(): Promise<void> {
   while (isRunning && simulation) {
     // Backpressure: wait if we're too far ahead
     const currentFrameNumber = simulation.currentFrameNumber;
-    if (currentFrameNumber - lastAckedFrame > MAX_FRAMES_AHEAD) {
+    if (currentFrameNumber - lastAckedFrame > maxFramesAhead) {
       // Yield and wait for ack
       await new Promise((resolve) => {
         setTimeout(resolve, 10);
@@ -67,37 +69,24 @@ async function computeLoop(): Promise<void> {
     // Compute a batch of frames
     const framesToSend: typeof simulation.frames = [];
 
-    for (let i = 0; i < BATCH_SIZE; i++) {
+    for (let i = 0; i < batchSize; i++) {
       try {
-        const { simulation: updatedSimulation, transitionFired } =
+        const { simulation: updatedSimulation, completionReason } =
           computeNextFrame(simulation);
 
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
         framesToSend.push(newFrame);
 
-        // Check stopping conditions
-        if (maxTime !== null && newFrame.time >= maxTime) {
+        // Check if simulation completed
+        if (completionReason !== null) {
           isRunning = false;
           postTypedMessage({
             type: "complete",
-            reason: "maxTime",
+            reason: completionReason,
             frameNumber: simulation.currentFrameNumber,
           });
           break;
-        }
-
-        if (!transitionFired) {
-          const enablementResult = checkTransitionEnablement(newFrame);
-          if (!enablementResult.hasEnabledTransition) {
-            isRunning = false;
-            postTypedMessage({
-              type: "complete",
-              reason: "deadlock",
-              frameNumber: simulation.currentFrameNumber,
-            });
-            break;
-          }
         }
       } catch (error) {
         isRunning = false;
@@ -148,9 +137,13 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
           parameterValues: message.parameterValues,
           seed: message.seed,
           dt: message.dt,
+          maxTime: message.maxTime,
         });
 
-        maxTime = null;
+        // Configure backpressure from init message or use defaults
+        maxFramesAhead = message.maxFramesAhead ?? DEFAULT_MAX_FRAMES_AHEAD;
+        batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
+
         lastAckedFrame = 0;
         isRunning = false;
 
@@ -209,13 +202,17 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     case "stop": {
       isRunning = false;
       simulation = null;
-      maxTime = null;
       lastAckedFrame = 0;
       break;
     }
 
-    case "setMaxTime": {
-      maxTime = message.maxTime;
+    case "setBackpressure": {
+      if (message.maxFramesAhead !== undefined) {
+        maxFramesAhead = message.maxFramesAhead;
+      }
+      if (message.batchSize !== undefined) {
+        batchSize = message.batchSize;
+      }
       break;
     }
 
