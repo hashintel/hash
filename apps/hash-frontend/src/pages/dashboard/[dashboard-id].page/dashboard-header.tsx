@@ -15,8 +15,7 @@ type DashboardHeaderProps = {
   isEditing: boolean;
   canEdit: boolean;
   onEditToggle: () => void;
-  onTitleChange?: (title: string) => void;
-  onDescriptionChange?: (description: string) => void;
+  onTitleOrDescriptionChange: (title: string, description: string) => void;
   onAddItem?: () => void;
 };
 
@@ -26,16 +25,16 @@ export const DashboardHeader = ({
   isEditing,
   canEdit,
   onEditToggle,
-  onTitleChange,
-  onDescriptionChange,
+  onTitleOrDescriptionChange,
   onAddItem,
 }: DashboardHeaderProps) => {
   const [editedTitle, setEditedTitle] = useState(title);
   const [editedDescription, setEditedDescription] = useState(description ?? "");
 
   const handleSave = () => {
-    onTitleChange?.(editedTitle);
-    onDescriptionChange?.(editedDescription);
+    if (editedTitle !== title || editedDescription !== description) {
+      onTitleOrDescriptionChange(editedTitle, editedDescription);
+    }
     onEditToggle();
   };
 
@@ -93,6 +92,7 @@ export const DashboardHeader = ({
               variant="secondary"
               startIcon={<AddIcon />}
               onClick={onAddItem}
+              size="xs"
             >
               Add Item
             </Button>

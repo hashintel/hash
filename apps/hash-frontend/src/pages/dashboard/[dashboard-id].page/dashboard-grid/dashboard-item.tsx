@@ -1,10 +1,11 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
-import { Box, Paper } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 
 import type { DashboardItemData } from "../../shared/types";
 import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
@@ -15,6 +16,7 @@ type DashboardItemProps = {
   onConfigureClick?: () => void;
   onRefreshClick?: () => void;
   onDeleteClick?: () => void;
+  onEntityClick?: (entityId: EntityId) => void;
 };
 
 export const DashboardItem = ({
@@ -23,8 +25,9 @@ export const DashboardItem = ({
   onConfigureClick,
   onRefreshClick,
   onDeleteClick,
+  onEntityClick,
 }: DashboardItemProps) => {
-  const { configurationStatus } = item;
+  const { configurationStatus, title } = item;
 
   return (
     <Paper
@@ -37,69 +40,92 @@ export const DashboardItem = ({
       }}
       elevation={2}
     >
-      {/* Floating action buttons in top right */}
+      {/* Header with title and action buttons */}
       <Box
         sx={{
-          position: "absolute",
-          top: 8,
-          right: 8,
           display: "flex",
-          gap: 0.5,
-          zIndex: 1,
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 1.5,
+          py: 1,
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          minHeight: 40,
         }}
       >
-        {configurationStatus === "ready" && (
-          <>
-            <IconButton
-              size="small"
-              onClick={onRefreshClick}
-              sx={{
-                backgroundColor: ({ palette }) => palette.common.white,
-                boxShadow: 1,
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.gray[10],
-                },
-              }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={onConfigureClick}
-              sx={{
-                backgroundColor: ({ palette }) => palette.common.white,
-                boxShadow: 1,
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.gray[10],
-                },
-              }}
-            >
-              <SettingsIcon fontSize="small" />
-            </IconButton>
-          </>
-        )}
-        {isEditing && (
-          <IconButton
-            size="small"
-            onClick={onDeleteClick}
+        {title && (
+          <Typography
+            variant="smallTextLabels"
             sx={{
-              backgroundColor: ({ palette }) => palette.common.white,
-              boxShadow: 1,
-              color: ({ palette }) => palette.red[70],
-              "&:hover": {
-                backgroundColor: ({ palette }) => palette.red[10],
-                color: ({ palette }) => palette.red[80],
-              },
+              fontWeight: 600,
+              color: ({ palette }) => palette.gray[80],
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              mr: 1,
             }}
           >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+            {title}
+          </Typography>
         )}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            flexShrink: 0,
+          }}
+        >
+          {configurationStatus === "ready" && (
+            <>
+              <IconButton
+                size="small"
+                onClick={onRefreshClick}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[10],
+                  },
+                }}
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={onConfigureClick}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[10],
+                  },
+                }}
+              >
+                <SettingsIcon fontSize="small" />
+              </IconButton>
+            </>
+          )}
+          {isEditing && (
+            <IconButton
+              size="small"
+              onClick={onDeleteClick}
+              sx={{
+                color: ({ palette }) => palette.red[70],
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.red[10],
+                  color: ({ palette }) => palette.red[80],
+                },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
       </Box>
 
       {/* Content */}
       <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
-        <DashboardItemContent item={item} onConfigureClick={onConfigureClick} />
+        <DashboardItemContent
+          item={item}
+          onConfigureClick={onConfigureClick}
+          onEntityClick={onEntityClick}
+        />
       </Box>
     </Paper>
   );

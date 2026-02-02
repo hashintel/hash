@@ -12,6 +12,7 @@ import {
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
 import {
   goalFlowDefinition,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
@@ -49,6 +50,7 @@ const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
   goalFlowDefinitionWithSpreadsheetDeliverable,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
   scheduledFlightsFlowDefinition,
+  configureDashboardItemFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

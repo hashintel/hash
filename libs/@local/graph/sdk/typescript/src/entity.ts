@@ -497,15 +497,18 @@ export const propertyObjectToPatches = (
  *
  * @deprecated this is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
- *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
+ *   directly. IF you use this, bear in mind that if removeProperties is true,
+ *   newProperties MUST represent ALL the properties that the entity will
  *   have after the patch. Any properties not specified in newProperties will be removed.
  */
 export const patchesFromPropertyObjects = ({
   oldProperties,
   newProperties,
+  removeProperties = true,
 }: {
   oldProperties: PropertyObject;
   newProperties: PropertyObjectWithMetadata;
+  removeProperties?: boolean;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
@@ -528,12 +531,14 @@ export const patchesFromPropertyObjects = ({
     }
   }
 
-  for (const key of typedKeys(oldProperties)) {
-    if (typeof newProperties.value[key] === "undefined") {
-      patches.push({
-        op: "remove",
-        path: [key],
-      });
+  if (removeProperties) {
+    for (const key of typedKeys(oldProperties)) {
+      if (typeof newProperties.value[key] === "undefined") {
+        patches.push({
+          op: "remove",
+          path: [key],
+        });
+      }
     }
   }
 

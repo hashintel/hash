@@ -31,6 +31,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
@@ -180,7 +181,13 @@ const persistEntities = async (params: {
         const propertyPatches = patchesFromPropertyObjects({
           oldProperties: existingEntity.properties,
           newProperties,
+          removeProperties: false,
         });
+
+        console.log(
+          "propertyPatches",
+          JSON.stringify(propertyPatches, null, 2),
+        );
 
         const updatedEntity =
           propertyPatches.length > 0
@@ -224,6 +231,14 @@ const persistEntities = async (params: {
           },
         );
 
+        console.log(
+          "Merged",
+          mergePropertyObjectAndMetadata(
+            proposedEntity.properties,
+            proposedEntity.propertyMetadata,
+          ),
+        );
+
         entityIdsByLocalId.set(
           proposedEntity.localEntityId,
           newEntity.metadata.recordId.entityId,
@@ -239,7 +254,7 @@ const persistEntities = async (params: {
         error instanceof Error ? error.message : "Unknown error";
       failedEntityProposals.push({
         proposedEntity,
-        message: `Failed to persist entity: ${errorMessage}`,
+        message: `Failed to persist entity: ${errorMessage}. ${stringifyError(error)}`,
       });
     }
   }
@@ -331,6 +346,7 @@ const persistLinks = async (params: {
         const propertyPatches = patchesFromPropertyObjects({
           oldProperties: existingLink.properties,
           newProperties,
+          removeProperties: false,
         });
 
         const updatedLink =

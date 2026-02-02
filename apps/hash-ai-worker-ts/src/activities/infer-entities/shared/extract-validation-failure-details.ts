@@ -73,5 +73,5 @@ export const extractErrorMessage = (err: unknown) => {
     // eslint-disable-next-line no-console
     console.error(`Unexpected error message structure: ${stringifyError(err)}`);
   }
-  return generateErrorMessage(err);
+  return stringifyError(err);
 };

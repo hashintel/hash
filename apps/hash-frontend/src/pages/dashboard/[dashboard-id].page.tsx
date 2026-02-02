@@ -3,7 +3,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
@@ -15,8 +15,12 @@ import type {
   DashboardGridLayout,
   GridPosition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedOntologyResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -46,9 +50,12 @@ import {
 } from "../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
+import { useSlideStack } from "../shared/slide-stack";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
 import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
+import { flightsWithLinksResolved } from "./[dashboard-id].page/dummy-data";
+import { generateDashboardItems } from "./[dashboard-id].page/generate-dashboard-items";
 import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 import type { DashboardData, DashboardItemData } from "./shared/types";
 
@@ -63,12 +70,55 @@ const DashboardPage: NextPageWithLayout = () => {
   const dashboardUuid = router.query["dashboard-id"] as EntityUuid | undefined;
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
+  const { pushToSlideStack } = useSlideStack();
 
   const [isEditing, setIsEditing] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DashboardItemData | null>(
     null,
   );
+
+  // Handle clicking on an entity within a chart or dashboard item
+  const handleEntityClick = useCallback(
+    (entityId: EntityId) => {
+      pushToSlideStack({
+        kind: "entity",
+        itemId: entityId,
+      });
+    },
+    [pushToSlideStack],
+  );
+
+  // const { data: flightGraphData } = useQuery<
+  //   QueryEntitySubgraphQuery,
+  //   QueryEntitySubgraphQueryVariables
+  // >(queryEntitySubgraphQuery, {
+  //   variables: {
+  //     request: {
+  //       filter: {
+  //         equal: [
+  //           { path: ["type", "versionedUrl"] },
+  //           { parameter: systemEntityTypes.flight.entityTypeId },
+  //         ],
+  //       },
+  //       graphResolveDepths: zeroedOntologyResolveDepths,
+  //       traversalPaths: [
+  //         {
+  //           edges: [
+  //             { kind: "has-left-entity", direction: "incoming" },
+  //             { kind: "has-right-entity", direction: "outgoing" },
+  //           ],
+  //         },
+  //       ],
+  //       temporalAxes: currentTimeInstantTemporalAxes,
+  //       includeDrafts: false,
+  //       includePermissions: false,
+  //     },
+  //   },
+  //   fetchPolicy: "cache-and-network",
+  // });
+
+  console.log(flightsWithLinksResolved);
 
   // Query for the dashboard and its linked items
   const {
@@ -131,43 +181,46 @@ const DashboardPage: NextPageWithLayout = () => {
       dashboardEntity.metadata.recordId.entityId,
     );
 
-    const items: DashboardItemData[] = [];
+    // const items: DashboardItemData[] = [];
 
-    for (const { linkEntity, rightEntity } of outgoingLinks) {
-      const link = linkEntity[0];
-      if (
-        !link?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.has.linkEntityTypeId,
-        )
-      ) {
-        continue;
-      }
+    // for (const { linkEntity, rightEntity } of outgoingLinks) {
+    //   const link = linkEntity[0];
+    //   if (
+    //     !link?.metadata.entityTypeIds.includes(
+    //       systemLinkEntityTypes.has.linkEntityTypeId,
+    //     )
+    //   ) {
+    //     continue;
+    //   }
 
-      const itemEntity = rightEntity[0] as
-        | HashEntity<DashboardItemEntity>
-        | undefined;
+    //   const itemEntity = rightEntity[0] as
+    //     | HashEntity<DashboardItemEntity>
+    //     | undefined;
 
-      if (!itemEntity) {
-        continue;
-      }
+    //   if (!itemEntity) {
+    //     continue;
+    //   }
 
-      const itemProps = simplifyProperties(itemEntity.properties);
-      const itemEntityId = itemEntity.metadata.recordId.entityId;
-      const linkEntityId = link.metadata.recordId.entityId;
+    //   const itemProps = simplifyProperties(itemEntity.properties);
+    //   const itemEntityId = itemEntity.metadata.recordId.entityId;
+    //   const linkEntityId = link.metadata.recordId.entityId;
 
-      items.push({
-        entityId: itemEntityId,
-        linkEntityId,
-        title: itemProps.name,
-        userGoal: itemProps.goal,
-        chartType: itemProps.chartType as ChartType,
-        chartData: null, // Chart data is computed at runtime
-        chartConfig: itemProps.chartConfiguration as ChartConfig,
-        gridPosition: itemProps.gridPosition as GridPosition,
-        configurationStatus:
-          itemProps.configurationStatus as DashboardItemData["configurationStatus"],
-      });
-    }
+    //   items.push({
+    //     entityId: itemEntityId,
+    //     linkEntityId,
+    //     title: itemProps.name,
+    //     userGoal: itemProps.goal,
+    //     chartType: itemProps.chartType as ChartType,
+    //     chartData: null, // Chart data is computed at runtime
+    //     chartConfig: itemProps.chartConfiguration as ChartConfig,
+    //     gridPosition: itemProps.gridPosition as GridPosition,
+    //     configurationStatus:
+    //       itemProps.configurationStatus as DashboardItemData["configurationStatus"],
+    //   });
+    // }
+
+    // Use generated demo items for the airline operator dashboard
+    const items: DashboardItemData[] = generateDashboardItems();
 
     return {
       entityId: dashboardEntity.metadata.recordId.entityId,
@@ -279,6 +332,50 @@ const DashboardPage: NextPageWithLayout = () => {
       await refetch();
     },
     [archiveEntities, refetch],
+  );
+
+  const handleTitleOrDescriptionChange = useCallback(
+    async (title: string, description: string) => {
+      if (!dashboard?.entityId) {
+        return;
+      }
+
+      await updateEntity({
+        variables: {
+          entityUpdate: {
+            entityId: dashboard.entityId,
+
+            propertyPatches: [
+              {
+                op: "add",
+                path: [blockProtocolPropertyTypes.name.propertyTypeBaseUrl],
+                property: {
+                  value: title,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+              },
+              {
+                op: "add",
+                path: [
+                  blockProtocolPropertyTypes.description.propertyTypeBaseUrl,
+                ],
+                property: {
+                  value: description,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+    },
+    [],
   );
 
   const handleAddItem = useCallback(async () => {
@@ -411,6 +508,7 @@ const DashboardPage: NextPageWithLayout = () => {
         canEdit={canEdit}
         onEditToggle={() => setIsEditing(!isEditing)}
         onAddItem={handleAddItem}
+        onTitleOrDescriptionChange={handleTitleOrDescriptionChange}
       />
 
       <DashboardGrid
@@ -420,6 +518,7 @@ const DashboardPage: NextPageWithLayout = () => {
         onItemConfigureClick={handleItemConfigureClick}
         onItemRefreshClick={handleItemRefreshClick}
         onItemDeleteClick={handleItemDeleteClick}
+        onEntityClick={handleEntityClick}
         isEditing={isEditing}
         canEdit={canEdit}
       />

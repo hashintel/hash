@@ -1,27 +1,29 @@
-import type { ECOption } from "@hashintel/design-system";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { Chart, ECOption } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 import type {
   ChartConfig,
   ChartType,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import { Box, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 const DEFAULT_COLORS = [
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#ff7300",
-  "#0088fe",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#14b8a6",
+  "#f97316",
 ];
 
 type ChartRendererProps = {
   chartType: ChartType;
   chartData: unknown[];
   chartConfig: ChartConfig;
+  onEntityClick?: (entityId: EntityId) => void;
 };
 
 /**
@@ -55,6 +57,9 @@ const buildEChartsOption = (
     chartType === "heatmap" || seriesConfig.some((s) => s.type === "heatmap");
   const isMap =
     chartType === "map" || seriesConfig.some((s) => s.type === "map");
+  const isGeoScatter =
+    chartConfig.xAxisLabel === "Longitude" &&
+    chartConfig.yAxisLabel === "Latitude";
 
   // Build series array
   const echartsSeries = seriesConfig.map((seriesItem, index) => {
@@ -76,6 +81,7 @@ const buildEChartsOption = (
         })),
         label: {
           show: true,
+          formatter: "{b}: {c}",
         },
         emphasis: {
           itemStyle: {
@@ -116,7 +122,49 @@ const buildEChartsOption = (
       };
     }
 
-    // Bar, line, scatter series format
+    // Scatter chart with geo coordinates
+    if (seriesItem.type === "scatter" && isGeoScatter) {
+      return {
+        type: "scatter" as const,
+        name: seriesItem.name ?? seriesItem.dataKey,
+        coordinateSystem: "cartesian2d",
+        data: data.map((item) => ({
+          value: [
+            item[categoryKey] as number,
+            item[seriesItem.dataKey] as number,
+          ],
+          name: String(item.flight ?? ""),
+          itemStyle: {
+            color: seriesColor,
+          },
+        })),
+        symbolSize: 12,
+        itemStyle: {
+          color: seriesColor,
+        },
+        emphasis: {
+          scale: 1.5,
+        },
+      };
+    }
+
+    // Regular scatter chart
+    if (seriesItem.type === "scatter") {
+      return {
+        type: "scatter" as const,
+        name: seriesItem.name ?? seriesItem.dataKey,
+        data: data.map((item) => [
+          item[categoryKey] as number,
+          item[seriesItem.dataKey] as number,
+        ]),
+        symbolSize: 10,
+        itemStyle: {
+          color: seriesColor,
+        },
+      };
+    }
+
+    // Bar, line series format
     return {
       type: seriesItem.type,
       name: seriesItem.name ?? seriesItem.dataKey,
@@ -139,6 +187,16 @@ const buildEChartsOption = (
     tooltip: showTooltip
       ? {
           trigger: isPieChart || isHeatmap ? "item" : "axis",
+          ...(isGeoScatter && {
+            trigger: "item",
+            formatter: (params: unknown) => {
+              const p = params as { name?: string; value?: [number, number] };
+              if (p.value) {
+                return `${p.name ?? "Flight"}<br/>Lng: ${p.value[0]?.toFixed(4)}<br/>Lat: ${p.value[1]?.toFixed(4)}`;
+              }
+              return "";
+            },
+          }),
         }
       : undefined,
     legend: showLegend
@@ -150,25 +208,70 @@ const buildEChartsOption = (
     grid:
       showGrid && needsCartesianAxes
         ? {
-            left: "3%",
-            right: "4%",
-            bottom: showLegend ? "15%" : "3%",
+            left: 60,
+            right: 20,
+            bottom: showLegend ? 50 : 40,
+            top: 20,
             containLabel: true,
           }
         : undefined,
-    ...(needsCartesianAxes && {
+    ...(needsCartesianAxes &&
+      !isGeoScatter && {
+        xAxis: {
+          type: "category" as const,
+          data: categories,
+          name: xAxisLabel,
+          nameLocation: "middle" as const,
+          nameGap: 25,
+          axisLabel: {
+            rotate: categories.length > 6 ? 45 : 0,
+            fontSize: 10,
+          },
+        },
+        yAxis: {
+          type: "value" as const,
+          name: yAxisLabel,
+          nameLocation: "middle" as const,
+          nameGap: 35,
+          axisLabel: {
+            fontSize: 10,
+          },
+        },
+      }),
+    ...(isGeoScatter && {
       xAxis: {
-        type: "category" as const,
-        data: categories,
+        type: "value" as const,
         name: xAxisLabel,
         nameLocation: "middle" as const,
-        nameGap: 30,
+        nameGap: 25,
+        min: -180,
+        max: 180,
+        axisLabel: {
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            type: "dashed" as const,
+            color: "#e0e0e0",
+          },
+        },
       },
       yAxis: {
         type: "value" as const,
         name: yAxisLabel,
         nameLocation: "middle" as const,
-        nameGap: 40,
+        nameGap: 35,
+        min: -90,
+        max: 90,
+        axisLabel: {
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            type: "dashed" as const,
+            color: "#e0e0e0",
+          },
+        },
       },
     }),
     ...(isHeatmap && {
@@ -193,7 +296,8 @@ const buildEChartsOption = (
         roam: true,
       },
     }),
-    series: echartsSeries,
+    // Cast series to satisfy ECOption type
+    series: echartsSeries as ECOption["series"],
   };
 
   return option;
@@ -203,6 +307,7 @@ export const ChartRenderer = ({
   chartType,
   chartData,
   chartConfig,
+  onEntityClick,
 }: ChartRendererProps) => {
   const echartsOption = useMemo(() => {
     if (!chartData.length || !chartConfig.series?.length) {
@@ -210,6 +315,30 @@ export const ChartRenderer = ({
     }
     return buildEChartsOption(chartType, chartData, chartConfig);
   }, [chartType, chartData, chartConfig]);
+
+  // Handle chart clicks for bar/line charts where data points have entityId
+  const handleChartInit = useCallback(
+    (chart: Chart) => {
+      if (!onEntityClick) {
+        return;
+      }
+
+      chart.on("click", (params) => {
+        // Get the data index from the clicked element
+        const { dataIndex } = params as { dataIndex?: number };
+        if (dataIndex !== undefined && dataIndex >= 0) {
+          // Access the original data to get entity ID
+          const dataItem = chartData[dataIndex] as
+            | { entityId?: EntityId }
+            | undefined;
+          if (dataItem?.entityId) {
+            onEntityClick(dataItem.entityId);
+          }
+        }
+      });
+    },
+    [chartData, onEntityClick],
+  );
 
   if (!echartsOption) {
     return (
@@ -228,5 +357,7 @@ export const ChartRenderer = ({
     );
   }
 
-  return <EChart options={echartsOption} />;
+  return (
+    <EChart options={echartsOption} onChartInitialized={handleChartInit} />
+  );
 };

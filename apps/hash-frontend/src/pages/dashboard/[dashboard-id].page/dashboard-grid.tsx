@@ -1,6 +1,7 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
@@ -23,6 +24,7 @@ type DashboardGridProps = {
   onItemConfigureClick: (item: DashboardItemData) => void;
   onItemRefreshClick: (item: DashboardItemData) => void;
   onItemDeleteClick: (item: DashboardItemData) => void;
+  onEntityClick?: (entityId: EntityId) => void;
   isEditing: boolean;
   canEdit: boolean;
 };
@@ -34,6 +36,7 @@ export const DashboardGrid = ({
   onItemConfigureClick,
   onItemRefreshClick,
   onItemDeleteClick,
+  onEntityClick,
   isEditing = false,
   canEdit = false,
 }: DashboardGridProps) => {
@@ -139,6 +142,7 @@ export const DashboardGrid = ({
                 onConfigureClick={() => onItemConfigureClick(item)}
                 onRefreshClick={() => onItemRefreshClick(item)}
                 onDeleteClick={() => onItemDeleteClick(item)}
+                onEntityClick={onEntityClick}
               />
             </div>
           ))}

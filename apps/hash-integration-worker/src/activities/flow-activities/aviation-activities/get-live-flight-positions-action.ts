@@ -7,7 +7,7 @@ import {
   extractEntityUuidFromEntityId,
   type LinkEntity,
   type OriginProvenance,
-  type ProvidedEntityEditionProvenance,
+  type PropertyMetadata,
 } from "@blockprotocol/type-system";
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
@@ -20,6 +20,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   type ArrivesAt,
@@ -28,6 +29,10 @@ import {
   type DepartsFromProperties,
   type Flight,
 } from "@local/hash-isomorphic-utils/system-types/flight";
+import type {
+  DateDataTypeMetadata,
+  TextDataTypeMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
@@ -159,6 +164,7 @@ export const createGetLiveFlightPositionsAction = ({
         entityId: EntityId;
         flightNumber: string;
         primaryKeyProperties: PrimaryKeyInput["flight"];
+        primaryKeyPropertyMetadata: PropertyMetadata;
       }> = [];
 
       for (const entity of rootEntities) {
@@ -198,6 +204,16 @@ export const createGetLiveFlightPositionsAction = ({
             arrivesAtLink.properties,
           )
         ) {
+          const primaryKeyPropertyMetadata = entity.propertyMetadata([
+            systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
+          ]);
+
+          if (!primaryKeyPropertyMetadata) {
+            throw new Error(
+              `Primary key property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
+            );
+          }
+
           flightsToUpdate.push({
             entityId: entity.metadata.recordId.entityId,
             flightNumber,
@@ -208,6 +224,7 @@ export const createGetLiveFlightPositionsAction = ({
                   "https://hash.ai/@h/types/property-type/flight-date/"
                 ]!,
             },
+            primaryKeyPropertyMetadata,
           });
         }
       }
@@ -239,19 +256,11 @@ export const createGetLiveFlightPositionsAction = ({
 
       const { flowEntityId, stepId } = await getFlowContext();
 
-      const baseProvenance: ProvidedEntityEditionProvenance = {
-        actorType: "machine",
-        origin: {
-          type: "flow",
-          id: flowEntityId,
-          stepIds: [stepId],
-        } satisfies OriginProvenance,
-      };
-
       for (const {
         entityId,
         flightNumber,
         primaryKeyProperties,
+        primaryKeyPropertyMetadata,
       } of flightsToUpdate) {
         const positionData = await getFlightPositionProperties(flightNumber);
 
@@ -260,12 +269,7 @@ export const createGetLiveFlightPositionsAction = ({
           continue;
         }
 
-        const { properties, provenance } = positionData;
-
-        const fullProvenance: ProvidedEntityEditionProvenance = {
-          ...baseProvenance,
-          ...provenance,
-        };
+        const { properties, provenance: sourceProvenance } = positionData;
 
         const propertiesWithPrimaryKey: Partial<
           Flight["propertiesWithMetadata"]["value"]
@@ -286,11 +290,8 @@ export const createGetLiveFlightPositionsAction = ({
                 "https://hash.ai/@h/types/property-type/flight-number/"
               ] = {
                 value: propertyValue,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  provenance: fullProvenance,
-                },
+                metadata:
+                  primaryKeyPropertyMetadata as unknown as TextDataTypeMetadata,
               };
               break;
             case "flightDate":
@@ -298,10 +299,8 @@ export const createGetLiveFlightPositionsAction = ({
                 "https://hash.ai/@h/types/property-type/flight-date/"
               ] = {
                 value: propertyValue,
-                metadata: {
-                  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1",
-                  provenance: fullProvenance,
-                },
+                metadata:
+                  primaryKeyPropertyMetadata as unknown as DateDataTypeMetadata,
               };
               break;
             default:
@@ -313,7 +312,7 @@ export const createGetLiveFlightPositionsAction = ({
 
         const { properties: propertiesOnly, propertyMetadata } =
           splitPropertiesAndMetadata({
-            value: properties as Flight["propertiesWithMetadata"]["value"],
+            value: propertiesWithPrimaryKey,
           });
 
         const proposedEntity: ProposedEntity = {
@@ -321,7 +320,15 @@ export const createGetLiveFlightPositionsAction = ({
             isSubjectOf: [],
             isObjectOf: [],
           },
-          provenance: fullProvenance,
+          provenance: {
+            actorType: "machine",
+            origin: {
+              type: "flow",
+              id: flowEntityId,
+              stepIds: [stepId],
+            } satisfies OriginProvenance,
+            ...sourceProvenance,
+          },
           propertyMetadata,
           localEntityId: entityId,
           entityTypeIds: [systemEntityTypes.flight.entityTypeId],
