@@ -87,7 +87,7 @@ ARG ENABLE_TEST_SERVER=no
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
-    PROTOC="$(mise which protoc)" \
+    export PROTOC="$(mise which protoc)" && \
     FEATURES=() && \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
     FEATURES+=("test-server"); \
