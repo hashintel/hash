@@ -1,8 +1,5 @@
-use core::sync::atomic::{AtomicBool, Ordering};
 use std::{
-    backtrace::Backtrace,
     io::{self, Write as _, stdout},
-    panic::{self, PanicHookInfo},
     process::ExitCode,
     time::Instant,
 };
