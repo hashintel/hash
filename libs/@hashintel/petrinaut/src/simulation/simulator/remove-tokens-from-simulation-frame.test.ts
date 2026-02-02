@@ -1,24 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { SimulationFrame, SimulationInstance } from "./types";
+import type { SimulationFrame } from "./types";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {},
@@ -35,20 +21,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -77,20 +49,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("throws error when token index is out of bounds", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -119,20 +77,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -165,20 +109,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes a single token from a place with 1D tokens", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -212,20 +142,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes multiple tokens from a place with 1D tokens", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -259,20 +175,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -310,20 +212,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("adjusts offsets for subsequent places after removal", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -377,20 +265,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes all tokens from a place", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -440,20 +314,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("handles removal from middle place with three places", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -525,20 +385,6 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const _simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
