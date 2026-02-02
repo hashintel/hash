@@ -18,7 +18,7 @@
 //! // Intern strings for efficient comparison
 //! let sym1 = heap.intern_symbol("hello");
 //! let sym2 = heap.intern_symbol("hello");
-//! assert!(std::ptr::eq(sym1.as_str(), sym2.as_str())); // Same pointer
+//! assert!(core::ptr::eq(sym1.as_str(), sym2.as_str())); // Same pointer
 //! ```
 //!
 //! # Type Aliases
@@ -80,8 +80,8 @@
 //!
 //! ## [`TransferInto`]
 //!
-//! Copy borrowed data (`&[T]` or `&str`) into the arena. Only implemented for arena allocators
-//! to prevent memory leaks from creating `&'static` references:
+//! Copy borrowed data (`&[T]` or `&str`) into the arena. The returned reference is tied to the
+//! arena's lifetime, ensuring the data is freed when the arena resets:
 //!
 //! ```
 //! # #![feature(allocator_api)]
@@ -143,10 +143,10 @@ pub type VecDeque<'heap, T> = vec_deque::VecDeque<T, &'heap Heap>;
 pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
     hashbrown::HashMap<K, V, S, &'heap Heap>;
 
-/// An arena allocator for AST nodes and collections with string interning.
+/// An arena allocator for AST nodes, collections, and symbols.
 ///
 /// Combines a bump allocator with a string interning table for deduplicated
-/// symbol storage. Interned strings enable O(1) comparison via pointer equality.
+/// symbol storage. Interned symbols enable O(1) comparison via pointer equality.
 #[derive(Debug)]
 pub struct Heap {
     inner: Allocator,
@@ -248,7 +248,7 @@ impl Heap {
 
     /// Allocates a value in the arena, returning a mutable reference.
     ///
-    /// Only accepts types that do **not** require [`Drop`]. Types requiring destructors
+    /// Only accepts types that do not require [`Drop`]. Types requiring destructors
     /// must use [`heap::Box`](Box) or [`heap::Vec`](Vec) instead.
     #[inline]
     pub fn alloc<T>(&self, value: T) -> &mut T {
