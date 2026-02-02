@@ -79,7 +79,7 @@ macro_rules! symbols {
         symbols!(@consts @cont [$($count)* ()] [$($next)*]; $($($rest)*)?);
     };
     (@consts @cont [$($count:tt)*] [$($next:tt)*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
-        symbols!(@consts @cont [$($count)* ()] [$($next)*];; $($inner)* $(, $($rest)*)?);
+        compile_error!("nested modules in modules are not supported");
     };
     (@consts @cont [$($count:tt)*] [$($next:tt)*]; $name:ident $(, $($rest:tt)*)?) => {
         symbols!(@consts @cont [$($count)* ()] [$($next)*]; $($($rest)*)?);
