@@ -14,10 +14,13 @@ yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
 eval "$(mise activate bash --shims)"
 
-echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)"
 mise install yq
+echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)"
 export RUSTUP_AUTO_INSTALL=0
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
+
+echo "Adding wasm32-unknown-unknown target"
+rustup target add wasm32-unknown-unknown
 
 echo "Installing prerequisites"
 mise install node npm:turbo java biome npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
