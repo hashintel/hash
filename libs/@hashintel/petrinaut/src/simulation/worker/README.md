@@ -6,21 +6,22 @@ WebWorker for off-main-thread SDCPN simulation computation.
 
 | State            | Type                           | Description                                            |
 | ---------------- | ------------------------------ | ------------------------------------------------------ |
-| `simulation`     | `SimulationInstance \| null`   | The compiled simulation instance                       |
+| `simulation`     | `SimulationInstance \| null`   | The compiled simulation instance (includes maxTime)    |
 | `isRunning`      | `boolean`                      | Whether the compute loop is active                     |
-| `maxTime`        | `number \| null`               | Simulation time stopping condition                     |
 | `lastAckedFrame` | `number`                       | Last frame acknowledged by main thread (backpressure)  |
+| `maxFramesAhead` | `number`                       | Configurable backpressure threshold                    |
+| `batchSize`      | `number`                       | Frames computed per batch                              |
 
 ## Messages: Main Thread → Worker
 
-| Type         | Payload                                                   | Description                          |
-| ------------ | --------------------------------------------------------- | ------------------------------------ |
-| `init`       | `{ sdcpn, initialMarking, parameterValues, seed, dt }`    | Initialize simulation                |
-| `start`      | —                                                         | Begin/resume computing frames        |
-| `pause`      | —                                                         | Pause computation (state retained)   |
-| `stop`       | —                                                         | Stop and discard simulation          |
-| `setMaxTime` | `{ maxTime: number \| null }`                             | Update max time stopping condition   |
-| `ack`        | `{ frameNumber }`                                         | Acknowledge frame receipt            |
+| Type              | Payload                                                                          | Description                          |
+| ----------------- | -------------------------------------------------------------------------------- | ------------------------------------ |
+| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation   |
+| `start`           | —                                                                                | Begin/resume computing frames        |
+| `pause`           | —                                                                                | Pause computation (state retained)   |
+| `stop`            | —                                                                                | Stop and discard simulation          |
+| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                | Reconfigure backpressure at runtime  |
+| `ack`             | `{ frameNumber }`                                                                | Acknowledge frame receipt            |
 
 ## Messages: Worker → Main Thread
 
@@ -35,15 +36,30 @@ WebWorker for off-main-thread SDCPN simulation computation.
 
 ## Backpressure
 
-Worker pauses when `currentFrame - lastAckedFrame > MAX_FRAMES_AHEAD` (100,000 frames).
+Worker pauses when `currentFrame - lastAckedFrame > maxFramesAhead`.
 Main thread sends periodic `ack` messages to allow worker to continue.
+
+Backpressure parameters can be configured:
+
+- At initialization via `init` message (`maxFramesAhead`, `batchSize`)
+- At runtime via `setBackpressure` message
 
 ## Configuration
 
 ```typescript
-const MAX_FRAMES_AHEAD = 100000; // Pause threshold
-const BATCH_SIZE = 1000;         // Frames per compute batch
+// Default values (can be overridden)
+const DEFAULT_MAX_FRAMES_AHEAD = 100000; // Pause threshold
+const DEFAULT_BATCH_SIZE = 1000;         // Frames per compute batch
 ```
+
+## maxTime Handling
+
+The `maxTime` simulation stopping condition is:
+
+- Set at initialization via the `init` message
+- Stored in `SimulationInstance` (immutable once set)
+- Checked by `computeNextFrame` in the simulator, not the worker
+- Cannot be changed after initialization
 
 ---
 
@@ -67,14 +83,29 @@ state.errorItemId: string | null
 
 ## Hook Actions
 
-| Action       | Signature                                | Description                    |
-| ------------ | ---------------------------------------- | ------------------------------ |
-| `initialize` | `(config: InitConfig) => void`           | Send init message, clear frames|
-| `start`      | `() => void`                             | Send start message             |
-| `pause`      | `() => void`                             | Send pause message             |
-| `stop`       | `() => void`                             | Send stop message, reset state |
-| `reset`      | `() => void`                             | Alias for stop                 |
-| `setMaxTime` | `(maxTime: number \| null) => void`      | Update max time                |
+| Action            | Signature                                              | Description                         |
+| ----------------- | ------------------------------------------------------ | ----------------------------------- |
+| `initialize`      | `(config: InitializeParams) => void`                   | Send init message, clear frames     |
+| `start`           | `() => void`                                           | Send start message                  |
+| `pause`           | `() => void`                                           | Send pause message                  |
+| `stop`            | `() => void`                                           | Send stop message, reset state      |
+| `reset`           | `() => void`                                           | Alias for stop                      |
+| `setBackpressure` | `(params: { maxFramesAhead?, batchSize? }) => void`    | Reconfigure backpressure at runtime |
+
+### InitializeParams
+
+```typescript
+type InitializeParams = {
+  sdcpn: SDCPN;
+  initialMarking: InitialMarking;
+  parameterValues: Record<string, string>;
+  seed: number;
+  dt: number;
+  maxTime: number | null;       // Immutable once set
+  maxFramesAhead?: number;      // Optional backpressure config
+  batchSize?: number;           // Optional backpressure config
+};
+```
 
 ## Status Transitions
 

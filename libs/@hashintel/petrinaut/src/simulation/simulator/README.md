@@ -20,9 +20,10 @@ type SimulationInstance = {
   lambdaFns: Map<string, LambdaFn>;
   transitionKernelFns: Map<string, TransitionKernelFn>;
 
-  // Configuration
+  // Configuration (immutable once set)
   parameterValues: Record<string, string>;
   dt: number;
+  maxTime: number | null;  // Simulation stopping condition
 
   // Mutable state
   rngState: number;
@@ -59,23 +60,42 @@ type SimulationFrameState_Transition = {
 
 ## Core Functions
 
-| Function                                                     | Description                                     |
-| ------------------------------------------------------------ | ----------------------------------------------- |
-| `buildSimulation(input)`                                     | Compiles SDCPN into SimulationInstance          |
-| `computeNextFrame(simulation)`                               | Computes next frame, returns updated simulation |
-| `checkTransitionEnablement(frame)`                           | Checks which transitions can fire               |
-| `computePossibleTransition(frame, simulation, transitionId)` | Attempts to fire a transition                   |
+| Function                                                     | Description                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------- |
+| `buildSimulation(input)`                                     | Compiles SDCPN into SimulationInstance                |
+| `computeNextFrame(simulation)`                               | Computes next frame, checks completion conditions     |
+| `checkTransitionEnablement(frame)`                           | Checks which transitions can fire                     |
+| `computePossibleTransition(frame, simulation, transitionId)` | Attempts to fire a transition                         |
+
+### computeNextFrame Return Type
+
+```typescript
+type SimulationCompletionReason = "maxTime" | "deadlock";
+
+type ComputeNextFrameResult = {
+  simulation: SimulationInstance;
+  transitionFired: boolean;
+  completionReason: SimulationCompletionReason | null;
+};
+```
+
+Completion conditions checked:
+
+- `"maxTime"`: Current frame time >= `simulation.maxTime`
+- `"deadlock"`: No transition fired and no transitions are enabled
 
 ## Computation Flow
 
 ```text
-buildSimulation(SDCPN, initialMarking, params)
+buildSimulation(SDCPN, initialMarking, params, maxTime)
        │
        ▼
 SimulationInstance (frame 0)
        │
        ▼ (loop)
 computeNextFrame(simulation)
+       │
+       ├─► Check if maxTime reached → return completionReason: "maxTime"
        │
        ├─► Apply differential equations (continuous dynamics)
        │
@@ -86,10 +106,12 @@ computeNextFrame(simulation)
        │        ├─► Sample firing probability
        │        └─► If fires: execute transition kernel
        │
-       └─► Build new SimulationFrame
+       ├─► Build new SimulationFrame
+       │
+       └─► Check completion conditions
               │
               ▼
-       Return { simulation, transitionFired }
+       Return { simulation, transitionFired, completionReason }
 ```
 
 ## Token Value Storage

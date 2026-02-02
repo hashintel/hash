@@ -39,25 +39,46 @@ export type WorkerState = {
 };
 
 /**
+ * Configuration for initializing a simulation.
+ */
+export type InitializeParams = {
+  sdcpn: SDCPN;
+  initialMarking: InitialMarking;
+  parameterValues: Record<string, string>;
+  seed: number;
+  dt: number;
+  /** Maximum simulation time (immutable once set). Null means no limit. */
+  maxTime: number | null;
+  /** Maximum frames the worker can compute ahead before waiting for ack (backpressure) */
+  maxFramesAhead?: number;
+  /** Number of frames to compute in each batch before checking for messages */
+  batchSize?: number;
+};
+
+/**
+ * Configuration for backpressure settings.
+ */
+export type BackpressureParams = {
+  /** Maximum frames the worker can compute ahead before waiting for ack */
+  maxFramesAhead?: number;
+  /** Number of frames to compute in each batch before checking for messages */
+  batchSize?: number;
+};
+
+/**
  * Actions available from the worker hook.
  */
 export type WorkerActions = {
   /** Initialize simulation with SDCPN and configuration */
-  initialize: (params: {
-    sdcpn: SDCPN;
-    initialMarking: InitialMarking;
-    parameterValues: Record<string, string>;
-    seed: number;
-    dt: number;
-  }) => void;
+  initialize: (params: InitializeParams) => void;
   /** Start or resume computing frames */
   start: () => void;
   /** Pause computation */
   pause: () => void;
   /** Stop and discard simulation */
   stop: () => void;
-  /** Update maximum simulation time */
-  setMaxTime: (maxTime: number | null) => void;
+  /** Update backpressure configuration at runtime */
+  setBackpressure: (params: BackpressureParams) => void;
   /** Reset to initial state */
   reset: () => void;
 };
@@ -207,6 +228,9 @@ export function useSimulationWorker(): {
     parameterValues,
     seed,
     dt,
+    maxTime,
+    maxFramesAhead,
+    batchSize,
   }) => {
     setState({
       status: "initializing",
@@ -225,6 +249,9 @@ export function useSimulationWorker(): {
       parameterValues,
       seed,
       dt,
+      maxTime,
+      maxFramesAhead,
+      batchSize,
     });
   };
 
@@ -243,8 +270,11 @@ export function useSimulationWorker(): {
     setState(initialState);
   };
 
-  const setMaxTime: WorkerActions["setMaxTime"] = (maxTime) => {
-    postMessage({ type: "setMaxTime", maxTime });
+  const setBackpressure: WorkerActions["setBackpressure"] = ({
+    maxFramesAhead,
+    batchSize,
+  }) => {
+    postMessage({ type: "setBackpressure", maxFramesAhead, batchSize });
   };
 
   const reset: WorkerActions["reset"] = () => {
@@ -258,7 +288,7 @@ export function useSimulationWorker(): {
     start,
     pause,
     stop,
-    setMaxTime,
+    setBackpressure,
     reset,
   };
 

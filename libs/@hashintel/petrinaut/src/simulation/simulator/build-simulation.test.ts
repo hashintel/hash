@@ -53,6 +53,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     const simulationInstance = buildSimulation(input);
@@ -200,6 +201,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 123,
       dt: 0.05,
+      maxTime: null,
     };
 
     const simulationInstance = buildSimulation(input);
@@ -310,6 +312,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     expect(() => buildSimulation(input)).toThrow(
@@ -366,6 +369,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     expect(() => buildSimulation(input)).toThrow(

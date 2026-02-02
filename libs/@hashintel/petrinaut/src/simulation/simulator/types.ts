@@ -55,6 +55,8 @@ export type SimulationInput = {
   seed: number;
   /** Time step for simulation advancement */
   dt: number;
+  /** Maximum simulation time (immutable once set). Null means no limit. */
+  maxTime: number | null;
 };
 
 /**
@@ -78,6 +80,8 @@ export type SimulationInstance = {
   parameterValues: ParameterValues;
   /** Time step for simulation advancement */
   dt: number;
+  /** Maximum simulation time (immutable). Null means no limit. */
+  maxTime: number | null;
   /** Current state of the seeded random number generator */
   rngState: number;
   /** History of all computed frames */

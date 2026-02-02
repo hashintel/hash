@@ -27,6 +27,12 @@ export type InitMessage = {
   seed: number;
   /** Time step for simulation advancement */
   dt: number;
+  /** Maximum simulation time (immutable once set). Null means no limit. */
+  maxTime: number | null;
+  /** Maximum frames the worker can compute ahead before waiting for ack (backpressure) */
+  maxFramesAhead?: number;
+  /** Number of frames to compute in each batch before checking for messages */
+  batchSize?: number;
 };
 
 /**
@@ -51,11 +57,14 @@ export type StopMessage = {
 };
 
 /**
- * Update the maximum simulation time stopping condition.
+ * Update backpressure configuration at runtime.
  */
-export type SetMaxTimeMessage = {
-  type: "setMaxTime";
-  maxTime: number | null;
+export type SetBackpressureMessage = {
+  type: "setBackpressure";
+  /** Maximum frames the worker can compute ahead before waiting for ack */
+  maxFramesAhead?: number;
+  /** Number of frames to compute in each batch before checking for messages */
+  batchSize?: number;
 };
 
 /**
@@ -76,7 +85,7 @@ export type ToWorkerMessage =
   | StartMessage
   | PauseMessage
   | StopMessage
-  | SetMaxTimeMessage
+  | SetBackpressureMessage
   | AckMessage;
 
 //

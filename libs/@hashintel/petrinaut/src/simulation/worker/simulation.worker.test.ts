@@ -119,6 +119,7 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
 
       // Should send initial frame and ready message
@@ -145,6 +146,7 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
 
       const errorMessages = getMessages("error");
@@ -176,6 +178,7 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
       clearMessages();
 
@@ -199,6 +202,7 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
       clearMessages();
 
@@ -214,8 +218,8 @@ describe("simulation.worker", () => {
     });
   });
 
-  describe("maxTime", () => {
-    it("accepts setMaxTime message", () => {
+  describe("backpressure", () => {
+    it("accepts setBackpressure message", () => {
       clearMessages();
 
       // Initialize
@@ -227,11 +231,16 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
       clearMessages();
 
-      // Set max time - should not error
-      sendToWorker({ type: "setMaxTime", maxTime: 10.0 });
+      // Set backpressure config - should not error
+      sendToWorker({
+        type: "setBackpressure",
+        maxFramesAhead: 50000,
+        batchSize: 500,
+      });
 
       const errorMessages = getMessages("error");
       expect(errorMessages).toHaveLength(0);
@@ -251,6 +260,7 @@ describe("simulation.worker", () => {
         parameterValues: {},
         seed: 42,
         dt: 0.1,
+        maxTime: null,
       });
       clearMessages();
 

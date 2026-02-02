@@ -61,6 +61,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     parameterValues: inputParameterValues,
     seed,
     dt,
+    maxTime,
   } = input;
 
   // Build maps for quick lookup
@@ -242,6 +243,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     transitionKernelFns,
     parameterValues,
     dt,
+    maxTime,
     rngState: seed,
     frames: [], // Will be populated with the initial frame
     currentFrameNumber: 0,

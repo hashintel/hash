@@ -1,6 +1,12 @@
+import { checkTransitionEnablement } from "./check-transition-enablement";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
 import type { SimulationInstance } from "./types";
+
+/**
+ * Reason why the simulation completed.
+ */
+export type SimulationCompletionReason = "maxTime" | "deadlock";
 
 /**
  * Result of computing the next frame.
@@ -16,6 +22,13 @@ export type ComputeNextFrameResult = {
    * When false, the token distribution did not change due to discrete events.
    */
   transitionFired: boolean;
+
+  /**
+   * If set, the simulation has completed and should not continue.
+   * - "maxTime": The simulation reached the configured maximum time.
+   * - "deadlock": No transitions are enabled and no further progress is possible.
+   */
+  completionReason: SimulationCompletionReason | null;
 };
 
 /**
@@ -33,6 +46,15 @@ export function computeNextFrame(
 ): ComputeNextFrameResult {
   // Get the current frame
   const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
+
+  // Check if maxTime has been reached before computing
+  if (simulation.maxTime !== null && currentFrame.time >= simulation.maxTime) {
+    return {
+      simulation,
+      transitionFired: false,
+      completionReason: "maxTime",
+    };
+  }
 
   // Step 1: Apply differential equations to places with dynamics enabled
   let frameAfterDynamics = currentFrame;
@@ -189,14 +211,32 @@ export function computeNextFrame(
         ),
       };
 
-  // Step 4: Return updated simulation instance with new frame added
+  // Step 4: Build updated simulation instance with new frame added
+  const updatedSimulation: SimulationInstance = {
+    ...simulation,
+    frames: [...simulation.frames, finalFrame],
+    currentFrameNumber: simulation.currentFrameNumber + 1,
+    rngState: transitionsResult.rngState,
+  };
+
+  // Step 5: Check for completion conditions
+  let completionReason: SimulationCompletionReason | null = null;
+
+  // Check if maxTime was reached with this new frame
+  if (simulation.maxTime !== null && finalFrame.time >= simulation.maxTime) {
+    completionReason = "maxTime";
+  }
+  // Check for deadlock if no transition fired
+  else if (!transitionFired) {
+    const enablementResult = checkTransitionEnablement(finalFrame);
+    if (!enablementResult.hasEnabledTransition) {
+      completionReason = "deadlock";
+    }
+  }
+
   return {
-    simulation: {
-      ...simulation,
-      frames: [...simulation.frames, finalFrame],
-      currentFrameNumber: simulation.currentFrameNumber + 1,
-      rngState: transitionsResult.rngState,
-    },
+    simulation: updatedSimulation,
     transitionFired,
+    completionReason,
   };
 }

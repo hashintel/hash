@@ -168,6 +168,7 @@ describe("useSimulationWorker", () => {
           parameterValues: { param1: "1.0" },
           seed: 42,
           dt: 0.1,
+          maxTime: 100,
         });
       });
 
@@ -178,6 +179,7 @@ describe("useSimulationWorker", () => {
       expect(initMessages[0]?.sdcpn).toBe(sdcpn);
       expect(initMessages[0]?.seed).toBe(42);
       expect(initMessages[0]?.dt).toBe(0.1);
+      expect(initMessages[0]?.maxTime).toBe(100);
     });
 
     it("serializes initialMarking Map to array", () => {
@@ -194,6 +196,7 @@ describe("useSimulationWorker", () => {
           parameterValues: {},
           seed: 42,
           dt: 0.1,
+          maxTime: null,
         });
       });
 
@@ -229,6 +232,7 @@ describe("useSimulationWorker", () => {
           parameterValues: {},
           seed: 42,
           dt: 0.1,
+          maxTime: null,
         });
       });
 
@@ -281,29 +285,29 @@ describe("useSimulationWorker", () => {
     });
   });
 
-  describe("setMaxTime action", () => {
-    it("sends setMaxTime message", () => {
+  describe("setBackpressure action", () => {
+    it("sends setBackpressure message with maxFramesAhead", () => {
       const { result } = renderHook(() => useSimulationWorker());
 
       act(() => {
-        result.current.actions.setMaxTime(100);
+        result.current.actions.setBackpressure({ maxFramesAhead: 50000 });
       });
 
-      const messages = mockWorkerInstance!.getMessages("setMaxTime");
+      const messages = mockWorkerInstance!.getMessages("setBackpressure");
       expect(messages).toHaveLength(1);
-      expect(messages[0]?.maxTime).toBe(100);
+      expect(messages[0]?.maxFramesAhead).toBe(50000);
     });
 
-    it("sends null maxTime", () => {
+    it("sends setBackpressure message with batchSize", () => {
       const { result } = renderHook(() => useSimulationWorker());
 
       act(() => {
-        result.current.actions.setMaxTime(null);
+        result.current.actions.setBackpressure({ batchSize: 500 });
       });
 
-      const messages = mockWorkerInstance!.getMessages("setMaxTime");
+      const messages = mockWorkerInstance!.getMessages("setBackpressure");
       expect(messages).toHaveLength(1);
-      expect(messages[0]?.maxTime).toBeNull();
+      expect(messages[0]?.batchSize).toBe(500);
     });
   });
 
@@ -348,6 +352,7 @@ describe("useSimulationWorker", () => {
           parameterValues: {},
           seed: 42,
           dt: 0.1,
+          maxTime: null,
         });
       });
 
