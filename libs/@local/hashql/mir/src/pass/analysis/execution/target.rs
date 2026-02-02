@@ -10,6 +10,11 @@ impl TargetId {
     pub const EMBEDDING: Self = Self(0x02);
     pub const INTERPRETER: Self = Self(0x01);
     pub const POSTGRES: Self = Self(0x00);
+    pub const TOTAL: usize = 3;
+
+    pub(crate) const fn all() -> [Self; Self::TOTAL] {
+        [Self::POSTGRES, Self::EMBEDDING, Self::INTERPRETER]
+    }
 }
 
 /// A backend capable of executing MIR statements.
