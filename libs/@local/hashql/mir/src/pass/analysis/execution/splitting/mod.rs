@@ -10,7 +10,7 @@ use hashql_core::{
 
 use super::{
     Cost, StatementCostVec,
-    target::{TargetBitSet, TargetId},
+    target::{TargetArray, TargetBitSet, TargetId},
 };
 use crate::{
     body::{
@@ -24,11 +24,11 @@ use crate::{
 };
 
 #[expect(clippy::cast_possible_truncation)]
-fn supported(costs: &[&[Option<Cost>]; TargetId::TOTAL], index: usize) -> TargetBitSet {
+fn supported(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> TargetBitSet {
     let mut output = FiniteBitSet::new_empty(TargetId::TOTAL as u32);
 
-    for (cost_index, cost) in costs.iter().enumerate() {
-        output.set(TargetId::new(cost_index as u8), cost[index].is_some());
+    for (cost_index, cost) in costs.iter_enumerated() {
+        output.set(cost_index, cost[index].is_some());
     }
 
     output
@@ -40,7 +40,7 @@ fn supported(costs: &[&[Option<Cost>]; TargetId::TOTAL], index: usize) -> Target
 #[expect(unsafe_code, clippy::cast_possible_truncation)]
 fn count_regions<A: Allocator, B: Allocator>(
     body: &Body<'_>,
-    statement_costs: &[StatementCostVec<A>; TargetId::TOTAL],
+    statement_costs: &TargetArray<StatementCostVec<A>>,
     alloc: B,
 ) -> BasicBlockVec<NonZero<usize>, B> {
     // By default, each region is one block (that doesn't need to be split)
@@ -111,7 +111,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     context: &MirContext<'_, 'heap>,
     body: &mut Body<'heap>,
     regions: &BasicBlockSlice<NonZero<usize>>,
-    statement_costs: &mut [StatementCostVec<A>; TargetId::TOTAL],
+    statement_costs: &mut TargetArray<StatementCostVec<A>>,
     alloc: B,
 ) -> BasicBlockVec<TargetBitSet, A> {
     debug_assert!(
@@ -131,7 +131,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     let mut targets = BasicBlockVec::from_elem_in(
         FiniteBitSet::new_empty(TargetId::TOTAL as u32),
         length.as_usize(),
-        statement_costs[0].allocator().clone(),
+        statement_costs[TargetId::INTERPRETER].allocator().clone(),
     );
 
     // We now need to remap all the basic blocks to their new ids
@@ -168,7 +168,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
 
             // Unlike other region blocks, these may be empty. In that case we just mark them as
             // supported.
-            if costs[0].is_empty() {
+            if costs[TargetId::INTERPRETER].is_empty() {
                 targets[start_id].insert_range(TargetId::MIN..=TargetId::LAST);
             } else {
                 targets[start_id] = supported(&costs, 0);
@@ -283,7 +283,7 @@ impl<A: Allocator> BasicBlockSplitting<A> {
         &self,
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
-        statement_costs: &mut [StatementCostVec<&'heap Heap>; TargetId::TOTAL],
+        statement_costs: &mut TargetArray<StatementCostVec<&'heap Heap>>,
     ) -> BasicBlockVec<TargetBitSet, &'heap Heap>
     where
         A: Clone,
