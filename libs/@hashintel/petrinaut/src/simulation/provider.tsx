@@ -220,6 +220,20 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     return Promise.resolve(framesRef.current);
   };
 
+  // Get frames in a range - for incremental updates
+  const getFramesInRange: SimulationContextValue["getFramesInRange"] = (
+    startIndex: number,
+    endIndex?: number,
+  ) => {
+    const frames = framesRef.current;
+    const start = Math.max(0, startIndex);
+    const end =
+      endIndex === undefined
+        ? frames.length
+        : Math.min(endIndex, frames.length);
+    return Promise.resolve(frames.slice(start, end));
+  };
+
   // Map worker state to context value
   const simulationState = mapWorkerStatusToSimulationState(workerState.status);
   const totalFrames = workerState.frames.length;
@@ -235,6 +249,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     totalFrames,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
+    getFramesInRange: useStableCallback(getFramesInRange),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),

@@ -43,12 +43,15 @@ function createMockFrames(frameCount: number): SimulationFrame[] {
 }
 
 /**
- * Creates mock getFrame and getAllFrames functions for testing.
+ * Creates mock getFrame, getAllFrames, and getFramesInRange functions for testing.
  */
 function createMockFrameAccessors(frames: SimulationFrame[]) {
   return {
     getFrame: vi.fn((index: number) => Promise.resolve(frames[index] ?? null)),
     getAllFrames: vi.fn(() => Promise.resolve(frames)),
+    getFramesInRange: vi.fn((start: number, end?: number) =>
+      Promise.resolve(frames.slice(start, end)),
+    ),
   };
 }
 
@@ -75,6 +78,7 @@ function createMockSimulationContext(
     totalFrames: frameCount,
     getFrame: frameAccessors.getFrame,
     getAllFrames: frameAccessors.getAllFrames,
+    getFramesInRange: frameAccessors.getFramesInRange,
     setInitialMarking: vi.fn(),
     setParameterValue: vi.fn(),
     setDt: vi.fn(),

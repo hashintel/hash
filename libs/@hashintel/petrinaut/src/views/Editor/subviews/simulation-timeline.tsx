@@ -254,10 +254,10 @@ interface TooltipState {
 
 /**
  * Hook to extract compartment data from simulation frames.
- * Uses getAllFrames() for async-compatible frame access.
+ * Uses incremental fetching via getFramesInRange() to only process new frames.
  */
 const useCompartmentData = (): CompartmentDataResult => {
-  const { getAllFrames, totalFrames } = use(SimulationContext);
+  const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
   } = use(SDCPNContext);
@@ -267,50 +267,80 @@ const useCompartmentData = (): CompartmentDataResult => {
     frameTimes: [],
   });
 
+  // Track the number of frames we've already processed
+  const processedFrameCountRef = useRef(0);
+
+  // Compute place colors once (memoized)
+  const placeColors = useMemo(() => {
+    const colors = new Map<string, string>();
+    for (const [index, place] of places.entries()) {
+      const tokenType = types.find((type) => type.id === place.colorId);
+      const color =
+        tokenType?.displayColor ??
+        DEFAULT_COLORS[index % DEFAULT_COLORS.length]!;
+      colors.set(place.id, color);
+    }
+    return colors;
+  }, [places, types]);
+
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
+      // Reset if simulation was reset (totalFrames dropped)
       if (totalFrames === 0) {
+        processedFrameCountRef.current = 0;
         setResult({ compartmentData: [], frameTimes: [] });
         return;
       }
 
-      const frames = await getAllFrames();
-      if (cancelled || frames.length === 0) {
+      // Check if we need to reset (e.g., simulation was restarted)
+      if (totalFrames < processedFrameCountRef.current) {
+        processedFrameCountRef.current = 0;
+      }
+
+      const startIndex = processedFrameCountRef.current;
+
+      // Nothing new to process
+      if (startIndex >= totalFrames) {
         return;
       }
 
-      // Create a map of place ID to color
-      const placeColors = new Map<string, string>();
-      for (const [index, place] of places.entries()) {
-        // Try to get color from the place's token type
-        const tokenType = types.find((type) => type.id === place.colorId);
-        const color =
-          tokenType?.displayColor ??
-          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!;
-        placeColors.set(place.id, color);
+      // Fetch only new frames
+      const newFrames = await getFramesInRange(startIndex);
+      if (cancelled || newFrames.length === 0) {
+        return;
       }
 
-      // Extract token counts for each place across all frames
-      const compartmentData = places.map((place) => {
-        const values = frames.map((frame) => {
-          const placeData = frame.places[place.id];
-          return placeData?.count ?? 0;
+      setResult((prev) => {
+        // Extract token counts for each place from new frames
+        const newCompartmentData = places.map((place, placeIndex) => {
+          const existingData = prev.compartmentData[placeIndex];
+          const existingValues = existingData?.values ?? [];
+
+          const newValues = newFrames.map((frame) => {
+            const placeData = frame.places[place.id];
+            return placeData?.count ?? 0;
+          });
+
+          return {
+            placeId: place.id,
+            placeName: place.name,
+            color: placeColors.get(place.id) ?? DEFAULT_COLORS[0]!,
+            values: [...existingValues, ...newValues],
+          };
         });
 
+        // Extract frame times from new frames
+        const newFrameTimes = newFrames.map((frame) => frame.time);
+
         return {
-          placeId: place.id,
-          placeName: place.name,
-          color: placeColors.get(place.id) ?? DEFAULT_COLORS[0]!,
-          values,
+          compartmentData: newCompartmentData,
+          frameTimes: [...prev.frameTimes, ...newFrameTimes],
         };
       });
 
-      // Extract frame times for tooltip display
-      const frameTimes = frames.map((frame) => frame.time);
-
-      setResult({ compartmentData, frameTimes });
+      processedFrameCountRef.current = totalFrames;
     };
 
     void fetchData();
@@ -318,7 +348,7 @@ const useCompartmentData = (): CompartmentDataResult => {
     return () => {
       cancelled = true;
     };
-  }, [getAllFrames, totalFrames, places, types]);
+  }, [getFramesInRange, totalFrames, places, placeColors]);
 
   return result;
 };

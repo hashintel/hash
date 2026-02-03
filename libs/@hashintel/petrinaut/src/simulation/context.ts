@@ -175,6 +175,23 @@ export type SimulationContextValue = {
    */
   getAllFrames: () => Promise<SimulationFrame[]>;
 
+  /**
+   * Get frames in a specified range.
+   * Returns frames from startIndex (inclusive) to endIndex (exclusive).
+   * If endIndex is not provided, returns frames from startIndex to the end.
+   *
+   * This is more efficient than getAllFrames() when you only need a subset
+   * of frames, such as when incrementally updating a visualization.
+   *
+   * @param startIndex - The starting frame index (inclusive, 0-based)
+   * @param endIndex - The ending frame index (exclusive). If omitted, returns to the end.
+   * @returns Promise resolving to array of frames in the range
+   */
+  getFramesInRange: (
+    startIndex: number,
+    endIndex?: number,
+  ) => Promise<SimulationFrame[]>;
+
   // Actions
   setInitialMarking: (
     placeId: string,
@@ -233,6 +250,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   totalFrames: 0,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
+  getFramesInRange: () => Promise.resolve([]),
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
