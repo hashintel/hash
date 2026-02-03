@@ -1,3 +1,12 @@
+//! Splits MIR [`BasicBlock`]s into contiguous regions with uniform target support.
+//!
+//! When a single block contains statements that different execution targets can handle,
+//! this pass partitions it into smaller blocks where each block's statements share the
+//! same target affinity. The pass remaps all [`BasicBlockId`]s, inserts [`Goto`] chains
+//! to connect split blocks, and returns per-block [`TargetBitSet`] affinities derived
+//! from [`StatementCostVec`] data.
+//!
+//! Use [`BasicBlockSplitting`] to run the pass on a [`Body`].
 use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible, mem, num::NonZero};
 
@@ -23,6 +32,12 @@ use crate::{
     visit::{VisitorMut, r#mut::filter},
 };
 
+#[cfg(test)]
+mod tests;
+
+/// Returns a [`TargetBitSet`] of execution targets that can cover the statement at `index`.
+///
+/// A target is supported when its [`Cost`] entry is present for that statement.
 #[expect(clippy::cast_possible_truncation)]
 fn supported(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> TargetBitSet {
     let mut output = FiniteBitSet::new_empty(TargetId::TOTAL as u32);
@@ -34,16 +49,17 @@ fn supported(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> TargetBitSet
     output
 }
 
-// The first phase is determining the number of regions that are needed, once done we can offset the
-// new statements. Why? Because this allows us to not shuffle anything around and keeps the order of
-// statements intact.
+/// Counts contiguous target regions per [`BasicBlock`].
+///
+/// Returns a non-zero count for each block. Blocks with fewer than two statements
+/// always yield one region.
 #[expect(unsafe_code, clippy::cast_possible_truncation)]
 fn count_regions<A: Allocator, B: Allocator>(
     body: &Body<'_>,
     statement_costs: &TargetArray<StatementCostVec<A>>,
     alloc: B,
 ) -> BasicBlockVec<NonZero<usize>, B> {
-    // By default, each region is one block (that doesn't need to be split)
+    // Start with one region per block and only grow when target support changes.
     let mut regions = BasicBlockVec::from_elem_in(
         // SAFETY: 1 is not 0
         unsafe { NonZero::new_unchecked(1) },
@@ -55,7 +71,7 @@ fn count_regions<A: Allocator, B: Allocator>(
         let costs = statement_costs.each_ref().map(|costs| costs.of(id));
 
         if block.statements.len() < 2 {
-            // There's no splitting required
+            // Zero or one statement cannot introduce a target boundary.
             continue;
         }
 
@@ -65,25 +81,23 @@ fn count_regions<A: Allocator, B: Allocator>(
         for stmt_index in 0..block.statements.len() {
             let next = supported(&costs, stmt_index);
 
-            // We must ensure that we always increment the total in the first iteration. In the
-            // Regelfall, this never happens, but in case the MIR is malformed and we cannot place
-            // the statement in any region we must still ensure that the code here is correct in
-            // having a minimum of one region.
+            // Always count the first statement as a region start. This keeps the count non-zero
+            // even if cost data is missing or malformed.
             if next != current || stmt_index == 0 {
                 total += 1;
                 current = next;
             }
         }
 
-        // SAFETY: There is no way for total to be zero, the above loop always runs, due to early
-        // termination if there are 0-1 statements, meaning that the increment in `total += 1` is
-        // triggered, leading to a valid NonZero value.
+        // SAFETY: The loop always counts the first statement for blocks with 2+ statements, so
+        // total cannot be zero here.
         regions[id] = unsafe { NonZero::new_unchecked(total) };
     }
 
     regions
 }
 
+/// Visitor that rewrites [`BasicBlockId`]s to their post-split positions.
 struct RemapBasicBlockId<'ctx> {
     ids: &'ctx BasicBlockSlice<BasicBlockId>,
 }
@@ -106,6 +120,10 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
     }
 }
 
+/// Splits [`BasicBlock`]s in-place and returns per-block [`TargetBitSet`] affinities.
+///
+/// Remaps all [`BasicBlockId`] references, connects split blocks with [`Goto`] chains,
+/// and updates [`StatementCostVec`] to reflect the new layout.
 #[expect(clippy::cast_possible_truncation)]
 fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     context: &MirContext<'_, 'heap>,
@@ -119,6 +137,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         "MIR body must have at least one basic block"
     );
 
+    // Compute prefix offsets: `indices` maps old block IDs to the first new ID.
     let mut length = BasicBlockId::START;
     let mut indices =
         BasicBlockVec::from_elem_in(BasicBlockId::MIN, body.basic_blocks.len(), alloc);
@@ -134,11 +153,9 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         statement_costs[TargetId::INTERPRETER].allocator().clone(),
     );
 
-    // We now need to remap all the basic blocks to their new ids
     Ok(()) = RemapBasicBlockId { ids: &indices }.visit_body(body);
 
-    // We now resize the basic blocks with new empty blocks, these blocks for now are completely
-    // uninitialized. This will change
+    // Extend the basic block list with placeholders we will fill during splitting.
     body.basic_blocks
         .as_mut()
         .fill_until(length.minus(1), || BasicBlock {
@@ -147,15 +164,14 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
             terminator: Terminator::unreachable(SpanId::SYNTHETIC),
         });
 
-    // We now go through all the blocks, and move them from their old location to their new one. We
-    // do this in reverse as to not overwrite anything.
+    // Move the original blocks into their new slots in reverse to avoid overwriting.
     for (old, &new) in indices.iter_enumerated().rev() {
         body.basic_blocks.as_mut().swap(old, new);
     }
 
-    // We now split these basic blocks into regions, and operate on said regions, to do so we first
-    // push the length to our scratch vector to be able properly index into the ranges.
+    // Push a sentinel so we can walk each original block's new range as [start, end).
     indices.push(length);
+
     let mut index = BasicBlockId::START;
     for &[start_id, end_id] in indices.windows() {
         let region = &mut body.basic_blocks.as_mut()[start_id..end_id];
@@ -166,8 +182,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         if region.len() < 2 {
             debug_assert_eq!(region.len(), 1);
 
-            // Unlike other region blocks, these may be empty. In that case we just mark them as
-            // supported.
+            // Unlike other regions, these may be empty. Mark empty blocks as supported everywhere.
             if costs[TargetId::INTERPRETER].is_empty() {
                 targets[start_id].insert_range(TargetId::MIN..=TargetId::LAST);
             } else {
@@ -175,21 +190,19 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
             }
 
             index.increment_by(1);
+
             // We only have a single block inside the region, so no need to split it.
             continue;
         }
 
-        // First we take a look at the terminator. We move the terminator of the first block to the
-        // last block, and then connect them via gotos.
+        // Preserve the original terminator on the last block and connect the rest with `Goto`.
         let [first, .., last] = region else {
             unreachable!()
         };
-        // As we expand the first terminator, we first take the span of the first blocks terminator,
-        // which is going to be the span for all other terminators.
         let terminator_span = first.terminator.span;
         mem::swap(&mut first.terminator, &mut last.terminator);
 
-        // We now connect each block to the next one via a goto
+        // Connect each block to the next one via a `Goto`.
         let [leading @ .., _] = region else {
             unreachable!()
         };
@@ -197,6 +210,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         for (offset, block) in leading.iter_mut().enumerate() {
             let next = start_id.plus(offset + 1);
             block.terminator = Terminator {
+                // Reuse the original terminator span for the inserted `Goto` terminators.
                 span: terminator_span,
                 kind: TerminatorKind::Goto(Goto {
                     target: Target::block(next),
@@ -204,19 +218,16 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
             }
         }
 
-        // The terminators have been successfully expanded. We now split the actual contents into
-        // the regions. We do this from the *back*, as that allows us to split the contents without
-        // moving everything around n times.
-
+        // Split statements into the new blocks from the back to avoid repeated moves.
         let [start, rest @ ..] = region else {
             unreachable!()
         };
         let mut rest = rest;
 
+        // Peel off runs and move them into recipient blocks counted from the end.
         let mut current = supported(&costs, start.statements.len() - 1);
         let mut ptr = start.statements.len() - 1;
 
-        // Split into the individual regions.
         let mut runs = 0;
         loop {
             let [remaining @ .., recipient] = rest else {
@@ -226,15 +237,16 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
                 ptr -= 1;
             }
 
-            // Set the current target to the current recipient block (+ 1 because exclusive bounds)
+            // Record the target affinity for the recipient block counted from the end.
             targets[end_id.minus(runs + 1)] = current;
 
-            // We now have a region of statements, split at the terminator (which is currently *out
-            // of* range)
+            // Split off the suffix for this run; the terminator already lives on the last block.
             let statements = start.statements.split_off(ptr + 1);
+            debug_assert!(
+                !statements.is_empty(),
+                "Each run contains at least one statement"
+            );
 
-            // We know there are non-zero statements in the region.
-            assert!(!statements.is_empty());
             current = supported(&costs, ptr);
 
             recipient.statements = statements;
@@ -243,31 +255,32 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         }
         debug_assert_eq!(runs, regions[index].get() - 1);
 
-        // We know that the runs is non-empty, set the supported matrix for the first block
+        // The first block holds the remaining run.
         targets[start_id] = current;
 
         index.increment_by(1);
     }
 
-    // We must now reprime the cost vec with our new indices
     for cost in statement_costs.iter_mut() {
         cost.remap(&body.basic_blocks);
     }
 
-    // Now that it's offset, we can take this to split up the regions (TODO)
-
-    // We then offset properly, which means if there are more than 1 region we remove the
-    // terminator, add it to the last and then create a chain of blocks with GOTO.
-    // Once done we split the statements, similarly to the algorithm already outlined.
-    // While doing so we note for each basic block it's affinity aka execution targets it supports.
     targets
 }
 
+/// Splits MIR [`BasicBlock`]s by execution target support.
+///
+/// Given per-statement cost data in a [`TargetArray<StatementCostVec>`], this pass
+/// partitions blocks so each resulting block's statements can all be handled by the
+/// same set of execution targets. The pass inserts [`Goto`] terminators to chain split
+/// blocks and returns per-block [`TargetBitSet`] affinities indicating which targets
+/// support each block.
 pub struct BasicBlockSplitting<A: Allocator> {
     alloc: A,
 }
 
 impl BasicBlockSplitting<Global> {
+    /// Creates a new pass using the global allocator.
     #[must_use]
     pub const fn new() -> Self {
         Self { alloc: Global }
@@ -275,10 +288,14 @@ impl BasicBlockSplitting<Global> {
 }
 
 impl<A: Allocator> BasicBlockSplitting<A> {
+    /// Creates a new pass using the provided allocator.
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 
+    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
+    ///
+    /// The returned vector is indexed by the new [`BasicBlockId`]s.
     pub fn split<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,
@@ -299,6 +316,3 @@ impl Default for BasicBlockSplitting<Global> {
         Self::new()
     }
 }
-
-#[cfg(test)]
-mod tests;
