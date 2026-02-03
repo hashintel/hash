@@ -12,6 +12,7 @@ import {
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
+  resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
@@ -106,10 +107,18 @@ export const createGetLiveFlightPositionsAction = ({
       const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
         await getFlowContext();
 
-      const { persistedEntities } = getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "getLiveFlightPositions",
-      });
+      const { persistedEntities: persistedEntitiesInput } =
+        getSimplifiedIntegrationFlowActionInputs({
+          inputs,
+          actionType: "getLiveFlightPositions",
+        });
+
+      // The input is a stored reference - resolve it
+      const persistedEntities = await resolvePayloadValue(
+        getStorageProvider(),
+        "PersistedEntitiesMetadata",
+        persistedEntitiesInput,
+      );
 
       const flightEntityIds = persistedEntities.persistedEntities.map(
         ({ entityId }) => entityId,

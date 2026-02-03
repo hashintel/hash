@@ -11,6 +11,7 @@ import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/fl
 import {
   getStorageProvider,
   resolveArrayPayloadValue,
+  storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import {
   generateEntityMatcher,
@@ -650,8 +651,14 @@ export const createPersistIntegrationEntitiesAction = ({
 }): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
-      const { flowEntityId, stepId, userAuthentication, webId } =
-        await getFlowContext();
+      const {
+        flowEntityId,
+        runId,
+        stepId,
+        userAuthentication,
+        webId,
+        workflowId,
+      } = await getFlowContext();
 
       const { proposedEntities: proposedEntitiesInput } =
         getSimplifiedIntegrationFlowActionInputs({
@@ -712,6 +719,17 @@ export const createPersistIntegrationEntitiesAction = ({
         failedEntityProposals: allFailedProposals,
       };
 
+      // Store the output in S3 to avoid passing large payloads through Temporal
+      const storedRef = await storePayload({
+        storageProvider: getStorageProvider(),
+        workflowId,
+        runId,
+        stepId,
+        outputName: "persistedEntities",
+        kind: "PersistedEntitiesMetadata",
+        value: result,
+      });
+
       const code =
         allPersistedEntities.length > 0
           ? StatusCode.Ok
@@ -736,7 +754,7 @@ export const createPersistIntegrationEntitiesAction = ({
                 outputName: "persistedEntities",
                 payload: {
                   kind: "PersistedEntitiesMetadata",
-                  value: result,
+                  value: storedRef,
                 },
               },
             ],

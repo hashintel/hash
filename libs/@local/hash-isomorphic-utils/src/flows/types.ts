@@ -166,6 +166,7 @@ export const isStoredPayloadRef = (
  * These kinds will have StoredPayloadRef as their value type in activity outputs.
  */
 export const storedPayloadKinds = [
+  "PersistedEntitiesMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
 ] as const;

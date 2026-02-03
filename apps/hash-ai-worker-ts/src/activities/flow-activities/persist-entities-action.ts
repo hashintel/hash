@@ -3,6 +3,7 @@ import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolveArrayPayloadValue,
+  storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -15,6 +16,7 @@ import type {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
+import { getFlowContext } from "../shared/get-flow-context.js";
 import {
   fileEntityTypeIds,
   persistEntityAction,
@@ -23,6 +25,8 @@ import {
 export const persistEntitiesAction: AiFlowActionActivity<
   "persistEntities"
 > = async ({ inputs }) => {
+  const { runId, stepId, workflowId } = await getFlowContext();
+
   const { draft, proposedEntities: proposedEntitiesInput } =
     getSimplifiedAiFlowActionInputs({
       inputs,
@@ -233,6 +237,20 @@ export const persistEntitiesAction: AiFlowActionActivity<
 
   const persistedEntities = Object.values(persistedEntitiesByLocalId);
 
+  // Store the output in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "persistedEntities",
+    kind: "PersistedEntitiesMetadata",
+    value: {
+      persistedEntities,
+      failedEntityProposals: Object.values(failedEntitiesByLocalId),
+    },
+  });
+
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
     code:
@@ -254,10 +272,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
             outputName: "persistedEntities",
             payload: {
               kind: "PersistedEntitiesMetadata",
-              value: {
-                persistedEntities,
-                failedEntityProposals: Object.values(failedEntitiesByLocalId),
-              },
+              value: storedRef,
             },
           },
         ],
