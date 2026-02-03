@@ -93,7 +93,6 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
-allocator-api2                     = { version = "0.2.8", default-features = false }
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
 anstream                           = { version = "0.6.21", default-features = false }

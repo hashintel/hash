@@ -1,4 +1,4 @@
-use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
+use core::{debug_assert_matches, ops::ControlFlow};
 
 use bitvec::bitvec;
 use smallvec::SmallVec;

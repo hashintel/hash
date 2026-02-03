@@ -105,7 +105,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use core::{assert_matches::assert_matches, time::Duration};
+    use core::{assert_matches, time::Duration};
 
     use bytes::Bytes;
     use error_stack::Report;

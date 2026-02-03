@@ -6,7 +6,7 @@ mod terminator;
 mod transform;
 mod types;
 
-use std::assert_matches::debug_assert_matches;
+use core::debug_assert_matches;
 
 use hashql_core::{
     collections::{

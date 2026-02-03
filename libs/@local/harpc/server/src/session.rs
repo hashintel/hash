@@ -289,7 +289,7 @@ impl<T, S> Task<T, S> {
             stream,
             // Default values
             cancel: CancellationToken::new(),
-            sweep_interval: Duration::from_secs(60),
+            sweep_interval: Duration::from_mins(1),
         }
     }
 
