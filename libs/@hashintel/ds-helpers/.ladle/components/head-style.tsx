@@ -11,6 +11,7 @@ interface HeadStyleProps {
  */
 export function HeadStyle({ id, css }: HeadStyleProps) {
   const elRef = useRef<HTMLStyleElement | null>(null);
+  const ownerRef = useRef(false);
 
   useLayoutEffect(() => {
     let el = document.getElementById(id) as HTMLStyleElement | null;
@@ -19,13 +20,18 @@ export function HeadStyle({ id, css }: HeadStyleProps) {
       el = document.createElement("style");
       el.id = id;
       document.head.appendChild(el);
+      ownerRef.current = true;
+    } else {
+      ownerRef.current = false;
     }
 
     el.textContent = css;
     elRef.current = el;
 
     return () => {
-      elRef.current?.remove();
+      if (ownerRef.current) {
+        elRef.current?.remove();
+      }
     };
   }, [id, css]);
 

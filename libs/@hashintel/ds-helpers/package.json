@@ -62,6 +62,9 @@
     "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },
+  "dependencies": {
+    "@radix-ui/colors": "3.0.0"
+  },
   "devDependencies": {
     "@hashintel/ds-theme": "0.0.3",
     "@ladle/react": "5.1.1",
@@ -82,8 +85,5 @@
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vitest": "^4.0.16"
-  },
-  "dependencies": {
-    "@radix-ui/colors": "3.0.0"
   }
 }

@@ -139,7 +139,7 @@ describe("transformSpacingScale", () => {
     const result = transformSpacingScale({
       "0": { value: 0 },
       "-private": { value: 10 },
-      "_internal": { value: 20 },
+      _internal: { value: 20 },
       "1": { value: 4 },
     });
     expect(result).toEqual({
@@ -183,7 +183,7 @@ describe("transformRadiusScale", () => {
     const result = transformRadiusScale({
       "1": { value: 2 },
       "-private": { value: 10 },
-      "_internal": { value: 20 },
+      _internal: { value: 20 },
       full: { value: 9999 },
     });
     expect(result).toEqual({

@@ -7,7 +7,8 @@ import { HeadStyle } from "../.ladle/components/head-style";
 
 /** Core color palette names that have numeric shades */
 const colorPaletteNames = Object.keys(coreColors).filter(
-  (name) => !["neutral", "whiteAlpha", "accentAlpha", "accentGray"].includes(name),
+  (name) =>
+    !["neutral", "whiteAlpha", "accentAlpha", "accentGray"].includes(name),
 );
 
 /** Shades available in core color scales */
@@ -21,7 +22,10 @@ const generatePaletteVariables = () => {
   return colorPaletteNames
     .map((color) => {
       const variables = shades
-        .map((shade) => `--colors-color-palette-${shade}: var(--colors-${color}-${shade});`)
+        .map(
+          (shade) =>
+            `--colors-color-palette-${shade}: var(--colors-${color}-${shade});`,
+        )
         .join(" ");
       return `[data-palette='${color}'] { ${variables} }`;
     })
@@ -133,7 +137,9 @@ const ColorPaletteSelector = () => {
 
       <HStack gap="3">
         <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-        <button className={buttonRecipe({ variant: "outline" })}>Outline</button>
+        <button className={buttonRecipe({ variant: "outline" })}>
+          Outline
+        </button>
         <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
       </HStack>
 
@@ -144,7 +150,12 @@ const ColorPaletteSelector = () => {
             className={swatchStyles}
             style={{ backgroundColor: `var(--colors-color-palette-${shade})` }}
           >
-            <span className={css({ color: "neutral.white", textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]" })}>
+            <span
+              className={css({
+                color: "neutral.white",
+                textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]",
+              })}
+            >
               {shade}
             </span>
           </div>
@@ -162,8 +173,12 @@ const ColorPaletteComparison = () => (
         <span className={labelStyles}>{palette}</span>
         <HStack gap="2">
           <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-          <button className={buttonRecipe({ variant: "outline" })}>Outline</button>
-          <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
+          <button className={buttonRecipe({ variant: "outline" })}>
+            Outline
+          </button>
+          <button className={buttonRecipe({ variant: "subtle" })}>
+            Subtle
+          </button>
         </HStack>
       </HStack>
     ))}
@@ -178,10 +193,19 @@ export const VirtualColors: Story = () => (
         <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
           Virtual Colors (colorPalette)
         </h1>
-        <p className={css({ fontSize: "sm", color: "text.secondary", maxWidth: "[600px]" })}>
-          Virtual colors allow components to be themed dynamically. Since Panda requires static
-          analysis, dynamic switching is achieved by remapping CSS variables via{" "}
-          <code className={css({ bg: "gray.10", px: "1", borderRadius: "md.1" })}>
+        <p
+          className={css({
+            fontSize: "sm",
+            color: "text.secondary",
+            maxWidth: "[600px]",
+          })}
+        >
+          Virtual colors allow components to be themed dynamically. Since Panda
+          requires static analysis, dynamic switching is achieved by remapping
+          CSS variables via{" "}
+          <code
+            className={css({ bg: "gray.10", px: "1", borderRadius: "md.1" })}
+          >
             data-palette
           </code>{" "}
           attributes on container elements.
@@ -189,24 +213,42 @@ export const VirtualColors: Story = () => (
       </VStack>
 
       <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>Interactive Demo</h2>
+        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+          Interactive Demo
+        </h2>
         <ColorPaletteSelector />
       </VStack>
 
       <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>Palette Comparison</h2>
+        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+          Palette Comparison
+        </h2>
         <ColorPaletteComparison />
       </VStack>
 
       <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>Badge Examples</h2>
+        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+          Badge Examples
+        </h2>
         <HStack gap="2" flexWrap="wrap">
-          <span data-palette="blue" className={badgeStyles}>Info</span>
-          <span data-palette="green" className={badgeStyles}>Success</span>
-          <span data-palette="yellow" className={badgeStyles}>Warning</span>
-          <span data-palette="red" className={badgeStyles}>Error</span>
-          <span data-palette="purple" className={badgeStyles}>Beta</span>
-          <span data-palette="accent" className={badgeStyles}>New</span>
+          <span data-palette="blue" className={badgeStyles}>
+            Info
+          </span>
+          <span data-palette="green" className={badgeStyles}>
+            Success
+          </span>
+          <span data-palette="yellow" className={badgeStyles}>
+            Warning
+          </span>
+          <span data-palette="red" className={badgeStyles}>
+            Error
+          </span>
+          <span data-palette="purple" className={badgeStyles}>
+            Beta
+          </span>
+          <span data-palette="accent" className={badgeStyles}>
+            New
+          </span>
         </HStack>
       </VStack>
     </VStack>
