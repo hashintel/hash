@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 /**
  * Returns a ref that always contains the latest value.
  *
  * This hook is useful when you need to access the current value of a prop or state
  * inside a callback or effect without adding it to the dependency array. The ref
- * is updated synchronously after each render, so it always holds the most recent value.
+ * is updated synchronously during render, so it's immediately available to other
+ * effects in the same render cycle.
  *
  * @example
  * ```ts
@@ -26,9 +27,9 @@ import { useEffect, useRef } from "react";
 export function useLatest<T>(value: T): React.RefObject<T> {
   const ref = useRef(value);
 
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
+  // Update synchronously during render (not in effect) so the ref is
+  // immediately available to other effects in the same render cycle
+  ref.current = value;
 
   return ref;
 }
