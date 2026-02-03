@@ -24,6 +24,34 @@ export type {
 
 const baseUrl = "https://aeroapi.flightaware.com/aeroapi";
 
+/**
+ * Maximum pages to request from the API.
+ * The rate limit is 5 result sets/second, and each page is one result set.
+ */
+const DEFAULT_MAX_PAGES = 5;
+
+/**
+ * Minimum interval between requests in milliseconds.
+ * Throttles requests to comply with the 5 result sets/second rate limit.
+ */
+const REQUEST_INTERVAL_MS = 1000;
+
+/**
+ * Time to wait before retrying after a 429 rate limit error.
+ */
+const RATE_LIMIT_RETRY_DELAY_MS = 2000;
+
+/** Tracks the timestamp of the last request for throttling. */
+let lastRequestTime = 0;
+
+/**
+ * Sleep for a specified number of milliseconds.
+ */
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 const generateUrl = (
   path: string,
   params?: Record<string, string | number | undefined>,
@@ -48,12 +76,26 @@ const makeRequest = async <T>(url: string): Promise<T> => {
     throw new Error("AERO_API_KEY environment variable is not set");
   }
 
+  // Throttle requests to once per second
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  if (timeSinceLastRequest < REQUEST_INTERVAL_MS) {
+    await sleep(REQUEST_INTERVAL_MS - timeSinceLastRequest);
+  }
+  lastRequestTime = Date.now();
+
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
       "x-apikey": apiKey,
     },
   });
+
+  // Handle rate limiting with retry
+  if (response.status === 429) {
+    await sleep(RATE_LIMIT_RETRY_DELAY_MS);
+    return makeRequest<T>(url);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -73,10 +115,10 @@ const makeRequest = async <T>(url: string): Promise<T> => {
 const getScheduledArrivals = async (
   params: ScheduledArrivalsRequestParams,
 ): Promise<AeroApiScheduledArrivalsResponse> => {
-  const { airportIcao, ...queryParams } = params;
+  const { airportIcao, max_pages = DEFAULT_MAX_PAGES, ...queryParams } = params;
   const url = generateUrl(
     `/airports/${airportIcao}/flights/scheduled_arrivals`,
-    queryParams,
+    { ...queryParams, max_pages },
   );
   return makeRequest<AeroApiScheduledArrivalsResponse>(url);
 };
@@ -146,11 +188,11 @@ export const getScheduledArrivalEntities = async (
 const getHistoricalArrivals = async (
   params: HistoricalArrivalsRequestParams,
 ): Promise<AeroApiHistoricalArrivalsResponse> => {
-  const { airportIcao, ...queryParams } = params;
-  const url = generateUrl(
-    `/history/airports/${airportIcao}/flights/arrivals`,
-    queryParams,
-  );
+  const { airportIcao, max_pages = DEFAULT_MAX_PAGES, ...queryParams } = params;
+  const url = generateUrl(`/history/airports/${airportIcao}/flights/arrivals`, {
+    ...queryParams,
+    max_pages,
+  });
   return makeRequest<AeroApiHistoricalArrivalsResponse>(url);
 };
 
