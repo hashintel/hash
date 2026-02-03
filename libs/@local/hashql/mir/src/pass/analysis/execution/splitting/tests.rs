@@ -3,6 +3,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
+    assert_matches::assert_matches,
     fmt::{self, Display},
 };
 use std::{io::Write as _, path::PathBuf};
@@ -92,7 +93,7 @@ fn make_target_costs<'heap, const N: usize>(
     costs
 }
 
-fn assert_assignment_locals<'heap>(body: &Body<'heap>, block_id: BasicBlockId, expected: &[&str]) {
+fn assert_assignment_locals(body: &Body<'_>, block_id: BasicBlockId, expected: &[&str]) {
     let block = &body.basic_blocks[block_id];
     assert_eq!(block.statements.len(), expected.len());
 
@@ -108,12 +109,12 @@ fn assert_assignment_locals<'heap>(body: &Body<'heap>, block_id: BasicBlockId, e
     }
 }
 
-fn assert_goto_terminator<'heap>(body: &Body<'heap>, block_id: BasicBlockId) {
+fn assert_goto_terminator(body: &Body<'_>, block_id: BasicBlockId) {
     let block = &body.basic_blocks[block_id];
-    assert!(matches!(block.terminator.kind, TerminatorKind::Goto(_)));
+    assert_matches!(block.terminator.kind, TerminatorKind::Goto(_));
 }
 
-fn assert_goto_target<'heap>(body: &Body<'heap>, block_id: BasicBlockId, target: BasicBlockId) {
+fn assert_goto_target(body: &Body<'_>, block_id: BasicBlockId, target: BasicBlockId) {
     let block = &body.basic_blocks[block_id];
     let TerminatorKind::Goto(goto) = &block.terminator.kind else {
         panic!("expected Goto terminator");
@@ -121,9 +122,9 @@ fn assert_goto_target<'heap>(body: &Body<'heap>, block_id: BasicBlockId, target:
     assert_eq!(goto.target.block, target);
 }
 
-fn assert_return_terminator<'heap>(body: &Body<'heap>, block_id: BasicBlockId) {
+fn assert_return_terminator(body: &Body<'_>, block_id: BasicBlockId) {
     let block = &body.basic_blocks[block_id];
-    assert!(matches!(block.terminator.kind, TerminatorKind::Return(_)));
+    assert_matches!(block.terminator.kind, TerminatorKind::Return(_));
 }
 
 // =============================================================================
