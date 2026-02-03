@@ -15,6 +15,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
     curl https://mise.run | sh && \
+    mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     eval "$(mise activate bash)" && \
