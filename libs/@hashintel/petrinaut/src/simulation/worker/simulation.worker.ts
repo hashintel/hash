@@ -23,7 +23,7 @@ import type { ToMainMessage, ToWorkerMessage } from "./messages";
  * Default maximum number of frames the worker can compute ahead of acknowledgment.
  * Provides backpressure to prevent unbounded memory growth.
  */
-const DEFAULT_MAX_FRAMES_AHEAD = 100000;
+const DEFAULT_MAX_FRAMES_AHEAD = 1000;
 
 /**
  * Default number of frames to compute in each batch before checking for messages.
@@ -37,7 +37,11 @@ const DEFAULT_BATCH_SIZE = 1000;
 
 let simulation: SimulationInstance | null = null;
 let isRunning = false;
-let lastAckedFrame = 0;
+/**
+ * Last frame number acknowledged by main thread.
+ * -1 means no ack received yet (blocks computation until first ack).
+ */
+let lastAckedFrame = -1;
 
 // Backpressure configuration (can be changed at runtime)
 let maxFramesAhead = DEFAULT_MAX_FRAMES_AHEAD;
@@ -56,9 +60,12 @@ function postTypedMessage(message: ToMainMessage): void {
  */
 async function computeLoop(): Promise<void> {
   while (isRunning && simulation) {
-    // Backpressure: wait if we're too far ahead
+    // Backpressure: wait if no ack received yet or too far ahead
     const currentFrameNumber = simulation.currentFrameNumber;
-    if (currentFrameNumber - lastAckedFrame > maxFramesAhead) {
+    if (
+      lastAckedFrame < 0 ||
+      currentFrameNumber - lastAckedFrame >= maxFramesAhead
+    ) {
       // Yield and wait for ack
       await new Promise((resolve) => {
         setTimeout(resolve, 10);
@@ -144,7 +151,8 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         maxFramesAhead = message.maxFramesAhead ?? DEFAULT_MAX_FRAMES_AHEAD;
         batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
 
-        lastAckedFrame = 0;
+        // Reset to -1: blocks computation until first ack
+        lastAckedFrame = -1;
         isRunning = false;
 
         // Send initial frame
@@ -202,7 +210,7 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     case "stop": {
       isRunning = false;
       simulation = null;
-      lastAckedFrame = 0;
+      lastAckedFrame = -1;
       break;
     }
 

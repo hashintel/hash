@@ -16,11 +16,11 @@ type PlaybackState = 'Stopped' | 'Playing' | 'Paused';
 
 Determines how simulation computation is handled during playback.
 
-| Mode            | Description                       | Buffer Duration | Backpressure (ack)               | Available When                  |
-| --------------- | --------------------------------- | --------------- | -------------------------------- | ------------------------------- |
-| `viewOnly`      | Only plays existing frames        | 0s              | Never acks (no computation)      | Simulation is Complete or Error |
-| `computeBuffer` | Computes ahead by buffer duration | 0.5s            | Acks when near end of frames     | Simulation can compute more     |
-| `computeMax`    | Computes as fast as possible      | 10s             | Acks on every new frame arrival  | Simulation can compute more     |
+| Mode            | Description                       | maxFramesAhead | batchSize | Backpressure (ack)              | Available When                  |
+| --------------- | --------------------------------- | -------------- | --------- | ------------------------------- | ------------------------------- |
+| `viewOnly`      | Only plays existing frames        | 0              | 0         | Never acks (no computation)     | Simulation is Complete or Error |
+| `computeBuffer` | Computes ahead by buffer duration | 200            | 50        | Acks when near end of frames    | Simulation can compute more     |
+| `computeMax`    | Computes as fast as possible      | 10000          | 500       | Acks on every new frame arrival | Simulation can compute more     |
 
 ### Playback Speed
 

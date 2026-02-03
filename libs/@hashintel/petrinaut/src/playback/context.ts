@@ -24,11 +24,6 @@ export type PlayMode = (typeof PLAY_MODES)[number];
 export const PLAY_MODES = ["viewOnly", "computeBuffer", "computeMax"] as const;
 
 /**
- * Number of frames to maintain ahead in computeBuffer mode before triggering computation.
- */
-export const COMPUTE_BUFFER_THRESHOLD = 100;
-
-/**
  * Available playback speed multipliers.
  * Infinity represents "Max" speed (as fast as possible).
  */
@@ -37,13 +32,22 @@ export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 /**
  * All available playback speeds for UI iteration.
  */
-export const PLAYBACK_SPEEDS = [1, 2, 5, 10, 30, 60, 120, Infinity] as const;
+export const PLAYBACK_SPEEDS = [
+  1,
+  2,
+  5,
+  10,
+  30,
+  60,
+  120,
+  Number.POSITIVE_INFINITY,
+] as const;
 
 /**
  * Format a playback speed for display.
  */
 export function formatPlaybackSpeed(speed: PlaybackSpeed): string {
-  return speed === Infinity ? "Max" : `${speed}x`;
+  return speed === Number.POSITIVE_INFINITY ? "Max" : `${speed}x`;
 }
 
 /**

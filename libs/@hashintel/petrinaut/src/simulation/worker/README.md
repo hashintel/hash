@@ -36,29 +36,35 @@ WebWorker for off-main-thread SDCPN simulation computation.
 
 ## Backpressure
 
-Worker pauses when `currentFrame - lastAckedFrame > maxFramesAhead`.
-The main thread sends `ack` messages to allow worker to continue.
+Worker blocks computation until an ack is received. Then it computes up to
+`maxFramesAhead` frames beyond the last acknowledged frame before waiting again.
+
+**Key behavior:**
+
+- Worker starts with `lastAckedFrame = -1` (no ack received)
+- Computation is blocked until the first `ack` message is received
+- If no ack is sent (e.g., in viewOnly mode), no new frames are computed
 
 **Important:** Ack messages are controlled by the **PlaybackProvider**, not sent automatically.
 The PlaybackProvider calls `SimulationContext.ack()` based on the current play mode:
 
-| Play Mode        | Ack Behavior                                              |
-| ---------------- | --------------------------------------------------------- |
-| `viewOnly`       | Never calls ack (no more computation needed)              |
-| `computeBuffer`  | Calls ack when in buffer zone (near end of frames)        |
-| `computeMax`     | Calls ack every time new frames arrive                    |
+| Play Mode        | maxFramesAhead | batchSize | Ack Behavior                                 |
+| ---------------- | -------------- | --------- | -------------------------------------------- |
+| `viewOnly`       | 0              | 0         | Never calls ack (no more computation needed) |
+| `computeBuffer`  | 200            | 50        | Calls ack when in buffer zone (near end)     |
+| `computeMax`     | 10000          | 500       | Calls ack every time new frames arrive       |
 
 Backpressure parameters can be configured:
 
 - At initialization via `init` message (`maxFramesAhead`, `batchSize`)
-- At runtime via `setBackpressure` message
+- At runtime via `setBackpressure` message (called by PlaybackProvider when playMode changes)
 
 ## Configuration
 
 ```typescript
 // Default values (can be overridden)
-const DEFAULT_MAX_FRAMES_AHEAD = 100000; // Pause threshold
-const DEFAULT_BATCH_SIZE = 1000;         // Frames per compute batch
+const DEFAULT_MAX_FRAMES_AHEAD = 1000; // Pause threshold
+const DEFAULT_BATCH_SIZE = 1000;       // Frames per compute batch
 ```
 
 ## maxTime Handling

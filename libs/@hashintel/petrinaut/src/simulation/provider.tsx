@@ -141,7 +141,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
 
-  const initialize: SimulationContextValue["initialize"] = ({ seed, dt }) => {
+  const initialize: SimulationContextValue["initialize"] = ({
+    seed,
+    dt,
+    maxFramesAhead,
+    batchSize,
+  }) => {
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
@@ -153,6 +158,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       seed,
       dt,
       maxTime: currentState.maxTime,
+      maxFramesAhead,
+      batchSize,
     });
 
     // Update local dt
@@ -205,6 +212,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   };
 
+  const setBackpressure: SimulationContextValue["setBackpressure"] = (
+    params,
+  ) => {
+    workerActions.setBackpressure(params);
+  };
+
   const ack: SimulationContextValue["ack"] = (frameNumber) => {
     workerActions.ack(frameNumber);
   };
@@ -248,6 +261,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     run: useStableCallback(run),
     pause: useStableCallback(pause),
     reset: useStableCallback(reset),
+    setBackpressure: useStableCallback(setBackpressure),
     ack: useStableCallback(ack),
   };
 
