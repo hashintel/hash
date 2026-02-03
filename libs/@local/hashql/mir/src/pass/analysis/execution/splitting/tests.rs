@@ -22,7 +22,7 @@ use crate::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice},
         location::Location,
-        statement::Statement,
+        statement::{Statement, StatementKind},
         terminator::TerminatorKind,
     },
     builder::body,
@@ -90,6 +90,40 @@ fn make_target_costs<'heap, const N: usize>(
     }
 
     costs
+}
+
+fn assert_assignment_locals<'heap>(body: &Body<'heap>, block_id: BasicBlockId, expected: &[&str]) {
+    let block = &body.basic_blocks[block_id];
+    assert_eq!(block.statements.len(), expected.len());
+
+    for (statement, expected_name) in block.statements.iter().zip(expected) {
+        let StatementKind::Assign(assign) = &statement.kind else {
+            panic!("expected assignment statement");
+        };
+
+        let name = body.local_decls[assign.lhs.local]
+            .name
+            .expect("expected named local");
+        assert_eq!(name.as_str(), *expected_name);
+    }
+}
+
+fn assert_goto_terminator<'heap>(body: &Body<'heap>, block_id: BasicBlockId) {
+    let block = &body.basic_blocks[block_id];
+    assert!(matches!(block.terminator.kind, TerminatorKind::Goto(_)));
+}
+
+fn assert_goto_target<'heap>(body: &Body<'heap>, block_id: BasicBlockId, target: BasicBlockId) {
+    let block = &body.basic_blocks[block_id];
+    let TerminatorKind::Goto(goto) = &block.terminator.kind else {
+        panic!("expected Goto terminator");
+    };
+    assert_eq!(goto.target.block, target);
+}
+
+fn assert_return_terminator<'heap>(body: &Body<'heap>, block_id: BasicBlockId) {
+    let block = &body.basic_blocks[block_id];
+    assert!(matches!(block.terminator.kind, TerminatorKind::Return(_)));
 }
 
 // =============================================================================
@@ -336,6 +370,17 @@ fn offset_single_block_no_split() {
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
+
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
+    assert_return_terminator(&body, BasicBlockId::new(0));
+
+    let expected = Targets {
+        interpreter: true,
+        postgres: true,
+        embedding: false,
+    }
+    .compile();
+    assert_eq!(targets[BasicBlockId::new(0)], expected);
 }
 
 #[test]
@@ -369,6 +414,26 @@ fn offset_single_block_splits() {
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
+
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
+    assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
+    assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
+    assert_return_terminator(&body, BasicBlockId::new(1));
+
+    let expected_first = Targets {
+        interpreter: true,
+        postgres: true,
+        embedding: false,
+    }
+    .compile();
+    let expected_second = Targets {
+        interpreter: true,
+        postgres: false,
+        embedding: false,
+    }
+    .compile();
+    assert_eq!(targets[BasicBlockId::new(0)], expected_first);
+    assert_eq!(targets[BasicBlockId::new(1)], expected_second);
 }
 
 #[test]
@@ -405,6 +470,20 @@ fn offset_multiple_blocks_no_splits() {
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
+
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
+    assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
+    assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
+    assert_return_terminator(&body, BasicBlockId::new(1));
+
+    let expected = Targets {
+        interpreter: true,
+        postgres: true,
+        embedding: false,
+    }
+    .compile();
+    assert_eq!(targets[BasicBlockId::new(0)], expected);
+    assert_eq!(targets[BasicBlockId::new(1)], expected);
 }
 
 #[test]
@@ -446,6 +525,30 @@ fn offset_multiple_blocks_mixed() {
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_eq!(targets.len(), 3);
+
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
+    assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
+    assert_assignment_locals(&body, BasicBlockId::new(2), &["z"]);
+    assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
+    assert_goto_target(&body, BasicBlockId::new(1), BasicBlockId::new(2));
+    assert_return_terminator(&body, BasicBlockId::new(2));
+
+    let expected_first = Targets {
+        interpreter: true,
+        postgres: true,
+        embedding: false,
+    }
+    .compile();
+    let expected_second = Targets {
+        interpreter: true,
+        postgres: false,
+        embedding: false,
+    }
+    .compile();
+
+    assert_eq!(targets[BasicBlockId::new(0)], expected_first);
+    assert_eq!(targets[BasicBlockId::new(1)], expected_second);
+    assert_eq!(targets[BasicBlockId::new(2)], expected_first);
 }
 
 #[test]
@@ -481,11 +584,7 @@ fn offset_terminator_moves_to_last() {
 
     let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
 
-    let last_block = &body.basic_blocks[BasicBlockId::new(1)];
-    assert!(matches!(
-        last_block.terminator.kind,
-        TerminatorKind::Return(_)
-    ));
+    assert_return_terminator(&body, BasicBlockId::new(1));
 }
 
 #[test]
@@ -495,12 +594,13 @@ fn offset_goto_chain_created() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, y: Int;
+        decl a: Int, b: Int, c: Int;
 
         bb0() {
-            x = load 1;
-            y = load 2;
-            return y;
+            a = load 1;
+            b = load 2;
+            c = load 3;
+            return c;
         }
     });
 
@@ -512,20 +612,19 @@ fn offset_goto_chain_created() {
     };
 
     let patterns = TargetArray::from_raw([
-        [[true, true]], //
-        [[true, false]],
-        [[false, false]],
+        [[true, true, true]],
+        [[true, false, true]],
+        [[false, false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
     let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
 
-    let first_block = &body.basic_blocks[BasicBlockId::new(0)];
-    assert!(matches!(
-        first_block.terminator.kind,
-        TerminatorKind::Goto(_)
-    ));
+    assert_eq!(body.basic_blocks.len(), 3);
+    assert_goto_terminator(&body, BasicBlockId::new(0));
+    assert_goto_terminator(&body, BasicBlockId::new(1));
+    assert_return_terminator(&body, BasicBlockId::new(2));
 }
 
 #[test]
@@ -535,12 +634,13 @@ fn offset_goto_targets_correct() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, y: Int;
+        decl a: Int, b: Int, c: Int;
 
         bb0() {
-            x = load 1;
-            y = load 2;
-            return y;
+            a = load 1;
+            b = load 2;
+            c = load 3;
+            return c;
         }
     });
 
@@ -552,21 +652,19 @@ fn offset_goto_targets_correct() {
     };
 
     let patterns = TargetArray::from_raw([
-        [[true, true]], //
-        [[true, false]],
-        [[false, false]],
+        [[true, true, true]],
+        [[true, false, true]],
+        [[false, false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
     let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
 
-    let first_block = &body.basic_blocks[BasicBlockId::new(0)];
-    if let TerminatorKind::Goto(goto) = &first_block.terminator.kind {
-        assert_eq!(goto.target.block, BasicBlockId::new(1));
-    } else {
-        panic!("expected Goto terminator");
-    }
+    assert_eq!(body.basic_blocks.len(), 3);
+    assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
+    assert_goto_target(&body, BasicBlockId::new(1), BasicBlockId::new(2));
+    assert_return_terminator(&body, BasicBlockId::new(2));
 }
 
 #[test]
@@ -602,8 +700,8 @@ fn offset_statements_split_correctly() {
 
     let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
 
-    assert_eq!(body.basic_blocks[BasicBlockId::new(0)].statements.len(), 1);
-    assert_eq!(body.basic_blocks[BasicBlockId::new(1)].statements.len(), 1);
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
+    assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
 }
 
 #[test]
@@ -640,11 +738,8 @@ fn offset_statement_order_preserved() {
 
     let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
 
-    let first_block = &body.basic_blocks[BasicBlockId::new(0)];
-    assert_eq!(first_block.statements.len(), 1);
-
-    let second_block = &body.basic_blocks[BasicBlockId::new(1)];
-    assert_eq!(second_block.statements.len(), 2);
+    assert_assignment_locals(&body, BasicBlockId::new(0), &["a"]);
+    assert_assignment_locals(&body, BasicBlockId::new(1), &["b", "c"]);
 }
 
 #[test]
