@@ -2,17 +2,15 @@
 
 React context and provider for SDCPN simulation management.
 
-## SimulationProvider
+## Overview
 
-Wraps `useSimulationWorker` and exposes simulation through React Context.
+SimulationProvider wraps the WebWorker-based simulation and exposes it through React Context. It handles configuration, lifecycle, and frame access while the actual computation runs off the main thread.
 
-### Simulation State
+## Simulation State
 
 ```typescript
 type SimulationState = 'NotRun' | 'Paused' | 'Running' | 'Complete' | 'Error';
 ```
-
-State mapping from worker:
 
 | WorkerStatus             | SimulationState |
 | ------------------------ | --------------- |
@@ -22,55 +20,16 @@ State mapping from worker:
 | `complete`               | `Complete`      |
 | `error`                  | `Error`         |
 
-### Configuration State
+## Configuration
 
-| Property          | Type                       | Default       | Description                                |
-| ----------------- | -------------------------- | ------------- | ------------------------------------------ |
-| `parameterValues` | `Record<string, string>`   | `{}`          | User-defined parameters                    |
-| `initialMarking`  | `Map<placeId, Marking>`    | `new Map()`   | Initial token placement                    |
-| `dt`              | `number`                   | `0.01`        | Time step                                  |
-| `maxTime`         | `number \| null`           | `null`        | Simulation end time (immutable after init) |
+| Property          | Default     | Description                                |
+| ----------------- | ----------- | ------------------------------------------ |
+| `parameterValues` | `{}`        | User-defined parameters                    |
+| `initialMarking`  | `new Map()` | Initial token placement                    |
+| `dt`              | `0.01`      | Time step in seconds                       |
+| `maxTime`         | `null`      | Simulation end time (immutable after init) |
 
-> **Note:** `maxTime` can be configured via `setMaxTime()` before calling `initialize()`,
-> but once the simulation is initialized, `maxTime` becomes immutable and is stored
-> in the `SimulationInstance`. The simulator checks this value in `computeNextFrame()`.
-
-### Context Value
-
-```typescript
-type SimulationContextValue = {
-  // State
-  state: SimulationState;
-  error: string | null;
-  errorItemId: string | null;
-  parameterValues: Record<string, string>;
-  initialMarking: InitialMarking;
-  dt: number;
-  maxTime: number | null;
-  totalFrames: number;
-
-  // Frame Access
-  getFrame: (index: number) => Promise<SimulationFrame | null>;
-  getAllFrames: () => Promise<SimulationFrame[]>;
-
-  // Configuration Actions
-  setInitialMarking: (placeId: string, marking: Marking) => void;
-  setParameterValue: (parameterId: string, value: string) => void;
-  setDt: (dt: number) => void;
-  setMaxTime: (maxTime: number | null) => void;
-
-  // Lifecycle Actions
-  initialize: (config: { seed: number; dt: number }) => void;
-  run: () => void;
-  pause: () => void;
-  reset: () => void;
-
-  // Backpressure Control (called by PlaybackProvider)
-  ack: (frameNumber: number) => void;
-};
-```
-
-### Lifecycle
+## Lifecycle
 
 ```text
                     ┌─────────────┐
@@ -96,15 +55,25 @@ type SimulationContextValue = {
                     └─────────────┘
 ```
 
-### Usage
+## Key Actions
+
+- `initialize()`: Returns Promise, resolves when worker is ready
+- `run()` / `pause()`: Control simulation generation
+- `getFrame(index)`: Access computed frames
+- `ack(frameNumber)`: Backpressure control (called by PlaybackProvider)
+- `setBackpressure()`: Configure worker backpressure parameters
+
+## Usage
 
 ```tsx
 <SimulationProvider>
-  <App />
+  <PlaybackProvider>
+    <App />
+  </PlaybackProvider>
 </SimulationProvider>
 
 // In component:
 const simulation = use(SimulationContext);
-simulation.initialize({ seed: 42, dt: 0.01 });
+await simulation.initialize({ seed: 42, dt: 0.01, maxFramesAhead: 100, batchSize: 50 });
 simulation.run();
 ```
