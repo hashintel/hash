@@ -5,7 +5,7 @@ macro_rules! cost {
 }
 
 mod cost;
-mod splitting;
+pub mod splitting;
 pub mod statement_placement;
 pub mod target;
 

@@ -249,6 +249,11 @@ where
     pub fn swap(&mut self, lhs: I, rhs: I) {
         self.raw.swap(lhs.as_usize(), rhs.as_usize());
     }
+
+    #[inline]
+    pub fn windows<const N: usize>(&self) -> impl ExactSizeIterator<Item = &[T; N]> {
+        self.raw.array_windows()
+    }
 }
 
 impl<I, T> IdSlice<I, Option<T>>
