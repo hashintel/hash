@@ -299,3 +299,6 @@ impl Default for BasicBlockSplitting<Global> {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests;
