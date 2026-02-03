@@ -83,6 +83,8 @@ function createMockSimulationContext(
     run: vi.fn(),
     pause: vi.fn(),
     reset: vi.fn(),
+    setBackpressure: vi.fn(),
+    ack: vi.fn(),
     ...overrides,
   };
 }

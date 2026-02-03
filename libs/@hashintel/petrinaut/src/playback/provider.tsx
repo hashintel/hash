@@ -16,6 +16,33 @@ import {
   type PlayMode,
 } from "./context";
 
+/**
+ * Backpressure configuration for a given play mode.
+ */
+export type PlayModeBackpressure = {
+  /** Maximum frames the worker can compute ahead before blocking */
+  maxFramesAhead: number;
+  /** Number of frames to compute in each batch */
+  batchSize: number;
+};
+
+/**
+ * Get the backpressure configuration for a given play mode.
+ * - viewOnly: no computation (0 frames ahead, 0 batch)
+ * - computeBuffer: minimal buffer (200 frames ahead, 50 batch)
+ * - computeMax: large buffer for fast computation (10000 frames ahead, 500 batch)
+ */
+export function getPlayModeBackpressure(mode: PlayMode): PlayModeBackpressure {
+  switch (mode) {
+    case "viewOnly":
+      return { maxFramesAhead: 0, batchSize: 0 };
+    case "computeBuffer":
+      return { maxFramesAhead: 40, batchSize: 10 };
+    case "computeMax":
+      return { maxFramesAhead: 10000, batchSize: 500 };
+  }
+}
+
 type PlaybackStateValues = {
   /** Current playback state */
   playbackState: PlaybackState;
@@ -84,8 +111,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     state: simulationState,
     totalFrames,
     getFrame,
+    initialize,
     run: runSimulation,
     pause: pauseSimulation,
+    setBackpressure,
     ack,
   } = use(SimulationContext);
 
@@ -137,6 +166,14 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
   }, [isComputeAvailable, stateValues.playMode]);
 
+  // Update backpressure when playMode changes
+  useEffect(() => {
+    const { maxFramesAhead, batchSize } = getPlayModeBackpressure(
+      stateValues.playMode,
+    );
+    setBackpressure({ maxFramesAhead, batchSize });
+  }, [stateValues.playMode, setBackpressure]);
+
   // Reset playback state when simulation is reset or changes
   useEffect(() => {
     if (simulationState === "NotRun") {
@@ -144,11 +181,19 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
   }, [simulationState]);
 
-  // Auto-start playback when simulation starts running
+  // Auto-start simulation and playback on state transitions
   const prevSimulationStateRef = useRef(simulationState);
   useEffect(() => {
     const prevState = prevSimulationStateRef.current;
     prevSimulationStateRef.current = simulationState;
+
+    // When simulation transitions from NotRun to Paused (ready after init), start it
+    if (simulationState === "Paused" && prevState === "NotRun") {
+      const state = stateValuesRef.current;
+      if (state.playMode !== "viewOnly") {
+        runSimulation();
+      }
+    }
 
     // When simulation transitions to Running, start playback at real-time speed
     if (simulationState === "Running" && prevState !== "Running") {
@@ -157,7 +202,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         playbackState: "Playing",
       }));
     }
-  }, [simulationState]);
+  }, [simulationState, runSimulation, stateValuesRef]);
 
   // Backpressure control: call ack based on playMode
   // - viewOnly: never call ack (worker should not compute more)
@@ -169,7 +214,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     prevTotalFramesRef.current = totalFrames;
 
     // Skip if no new frames or no frames at all
-    if (totalFrames === 0 || totalFrames === prevFrames) {
+    if (totalFrames === 0) {
       return;
     }
 
@@ -181,8 +226,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
 
     if (mode === "computeMax") {
+      // If no new frames arrived, don't ack
+      if (totalFrames === prevFrames) {
+        return;
+      }
       // Always ack when new frames arrive to allow continuous computation
-      console.log(">>ack(totalFrames)", totalFrames);
       ack(totalFrames);
       return;
     }
@@ -195,7 +243,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     // If we're within bufferFrames of the end, ack to allow more computation
     if (currentIndex >= totalFrames - bufferFrames) {
-      console.log("::ack(totalFrames) computeBuffer", totalFrames);
       ack(totalFrames);
     }
   }, [
@@ -331,13 +378,29 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   };
 
   const play: PlaybackContextValue["play"] = () => {
+    const simState = simulationStateRef.current;
+    const state = stateValuesRef.current;
+    const { maxFramesAhead, batchSize } = getPlayModeBackpressure(
+      state.playMode,
+    );
+
+    // Initialize simulation if not run yet
+    if (simState === "NotRun") {
+      initialize({
+        seed: Date.now(),
+        dt: dtRef.current,
+        maxFramesAhead,
+        batchSize,
+      });
+      // The effect below will call runSimulation() when state becomes Paused
+      // Then auto-start playback when state becomes Running
+      return;
+    }
+
     const frameCount = totalFramesRef.current;
     if (frameCount === 0) {
       return;
     }
-
-    const simState = simulationStateRef.current;
-    const state = stateValuesRef.current;
 
     // Resume simulation generation if not in viewOnly mode
     if (state.playMode !== "viewOnly" && simState === "Paused") {

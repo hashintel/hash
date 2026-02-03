@@ -302,9 +302,6 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const {
     state: simulationState,
     reset,
-    initialize,
-    run,
-    dt,
     maxTime,
     setMaxTime,
   } = use(SimulationContext);
@@ -433,23 +430,11 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       return;
     }
 
-    if (simulationState === "NotRun") {
-      // Initialize and start simulation computation
-      // PlaybackProvider will auto-start playback when simulation starts running
-      initialize({
-        seed: Date.now(),
-        dt,
-      });
-      // Wait for simulation to initialize
-      // This could be improved by using a promise of initialize completion instead of a timeout
-      setTimeout(() => {
-        run();
-      }, 50);
-    } else if (isPlaybackPlaying) {
+    if (isPlaybackPlaying) {
       // Pause playback
       playbackPause();
     } else {
-      // Start/resume playback
+      // Start/resume playback (PlaybackProvider handles NotRun case with proper backpressure)
       playbackPlay();
     }
   };

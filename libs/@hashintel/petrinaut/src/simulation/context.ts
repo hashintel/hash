@@ -187,10 +187,23 @@ export type SimulationContextValue = {
    * Pass null to disable the time limit.
    */
   setMaxTime: (maxTime: number | null) => void;
-  initialize: (params: { seed: number; dt: number }) => void;
+  initialize: (params: {
+    seed: number;
+    dt: number;
+    maxFramesAhead?: number;
+    batchSize?: number;
+  }) => void;
   run: () => void;
   pause: () => void;
   reset: () => void;
+  /**
+   * Update backpressure configuration at runtime.
+   * Called by PlaybackProvider when playMode changes.
+   */
+  setBackpressure: (params: {
+    maxFramesAhead?: number;
+    batchSize?: number;
+  }) => void;
   /**
    * Acknowledge receipt of frames up to the given frame number.
    * Used for backpressure control - the worker will pause computation
@@ -223,6 +236,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
+  setBackpressure: () => {},
   ack: () => {},
 };
 
