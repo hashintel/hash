@@ -272,6 +272,38 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         return;
       }
 
+      // Handle "Max" speed: jump to latest frame
+      if (speed === Infinity) {
+        const newFrameIndex = frameCount - 1;
+
+        // Only update if we're not already at the latest frame
+        if (newFrameIndex !== state.currentFrameIndex) {
+          const currentFrame = await getFrame(newFrameIndex);
+          setStateValues((prev) => ({
+            ...prev,
+            currentFrameIndex: newFrameIndex,
+            currentFrame,
+          }));
+        }
+
+        // Check if simulation is complete - pause playback
+        if (
+          simState === "Complete" ||
+          simState === "Error" ||
+          mode === "viewOnly"
+        ) {
+          setStateValues((prev) => ({
+            ...prev,
+            playbackState: "Paused",
+          }));
+          return;
+        }
+
+        // Continue loop to wait for new frames
+        animationFrameId = requestAnimationFrame(tick);
+        return;
+      }
+
       // Calculate elapsed time since last tick
       const deltaTime = currentTime - lastFrameTime;
       lastFrameTime = currentTime;
