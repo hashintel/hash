@@ -373,8 +373,14 @@ impl<I: Id, T: FiniteBitSetIntegral> ExactSizeIterator for FiniteBitIter<I, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::newtype;
+    #![expect(clippy::min_ident_chars)]
+    use crate::{
+        id::{
+            Id as _,
+            bit_vec::{BitRelations as _, FiniteBitSet},
+        },
+        newtype,
+    };
 
     newtype!(struct TestId(u32 is 0..=127));
 
