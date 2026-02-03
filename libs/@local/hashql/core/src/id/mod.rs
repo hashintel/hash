@@ -1,3 +1,4 @@
+mod array;
 pub mod bit_vec;
 mod index;
 mod slice;
@@ -13,7 +14,9 @@ use core::{
 
 use ::core::sync::atomic;
 
-pub use self::{index::IntoSliceIndex, slice::IdSlice, union_find::IdUnionFind, vec::IdVec};
+pub use self::{
+    array::IdArray, index::IntoSliceIndex, slice::IdSlice, union_find::IdUnionFind, vec::IdVec,
+};
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///

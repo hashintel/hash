@@ -1,4 +1,4 @@
-use hashql_core::id::{self, bit_vec::FiniteBitSet};
+use hashql_core::id::{self, IdArray, bit_vec::FiniteBitSet};
 
 use crate::pass::simplify_type_name;
 
@@ -8,9 +8,9 @@ id::newtype!(
 
 impl TargetId {
     pub const EMBEDDING: Self = Self(0x02);
-    pub const INTERPRETER: Self = Self(0x01);
+    pub const INTERPRETER: Self = Self(0x00);
     pub const LAST: Self = Self((Self::TOTAL - 1) as u8);
-    pub const POSTGRES: Self = Self(0x00);
+    pub const POSTGRES: Self = Self(0x01);
     pub const TOTAL: usize = 3;
 
     pub(crate) const fn all() -> [Self; Self::TOTAL] {
@@ -19,6 +19,7 @@ impl TargetId {
 }
 
 pub type TargetBitSet = FiniteBitSet<TargetId, u8>;
+pub type TargetArray<T> = IdArray<TargetId, T, { TargetId::TOTAL }>;
 
 /// A backend capable of executing MIR statements.
 ///
