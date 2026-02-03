@@ -7,7 +7,6 @@ use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
     fmt, iter,
-    mem::MaybeUninit,
     ops::{Index, IndexMut},
 };
 
@@ -194,6 +193,7 @@ impl<A: Allocator> StatementCostVec<A> {
         )
     }
 
+    #[expect(clippy::cast_possible_truncation)]
     pub fn remap(&mut self, blocks: &BasicBlocks)
     where
         A: Clone,
