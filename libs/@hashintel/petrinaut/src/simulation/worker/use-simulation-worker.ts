@@ -69,8 +69,8 @@ export type BackpressureParams = {
  * Actions available from the worker hook.
  */
 export type WorkerActions = {
-  /** Initialize simulation with SDCPN and configuration */
-  initialize: (params: InitializeParams) => void;
+  /** Initialize simulation with SDCPN and configuration. Returns a Promise that resolves when ready or rejects on error. */
+  initialize: (params: InitializeParams) => Promise<void>;
   /** Start or resume computing frames */
   start: () => void;
   /** Pause computation */
@@ -119,6 +119,12 @@ export function useSimulationWorker(): {
   const [state, setState] = useState<WorkerState>(initialState);
   const workerRef = useRef<Worker | null>(null);
 
+  // Pending initialization promise resolver
+  const pendingInitRef = useRef<{
+    resolve: () => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
   // Initialize worker on mount
   useEffect(() => {
     const worker = new Worker(
@@ -135,6 +141,11 @@ export function useSimulationWorker(): {
             ...prev,
             status: prev.status === "initializing" ? "ready" : prev.status,
           }));
+          // Resolve pending initialization promise
+          if (pendingInitRef.current) {
+            pendingInitRef.current.resolve();
+            pendingInitRef.current = null;
+          }
           break;
 
         case "frame":
@@ -172,6 +183,11 @@ export function useSimulationWorker(): {
             error: message.message,
             errorItemId: message.itemId,
           }));
+          // Reject pending initialization promise if this error occurred during init
+          if (pendingInitRef.current) {
+            pendingInitRef.current.reject(new Error(message.message));
+            pendingInitRef.current = null;
+          }
           break;
       }
     };
@@ -208,6 +224,12 @@ export function useSimulationWorker(): {
     maxFramesAhead,
     batchSize,
   }) => {
+    // Cancel any pending initialization
+    if (pendingInitRef.current) {
+      pendingInitRef.current.reject(new Error("Initialization cancelled"));
+      pendingInitRef.current = null;
+    }
+
     setState({
       status: "initializing",
       frames: [],
@@ -217,6 +239,11 @@ export function useSimulationWorker(): {
 
     // Convert Map to array for serialization
     const serializedMarking = Array.from(initialMarking.entries());
+
+    // Create promise that resolves when worker sends "ready" or rejects on "error"
+    const promise = new Promise<void>((resolve, reject) => {
+      pendingInitRef.current = { resolve, reject };
+    });
 
     postMessage({
       type: "init",
@@ -229,6 +256,8 @@ export function useSimulationWorker(): {
       maxFramesAhead,
       batchSize,
     });
+
+    return promise;
   };
 
   const start: WorkerActions["start"] = () => {

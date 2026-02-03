@@ -162,7 +162,7 @@ describe("useSimulationWorker", () => {
       ]);
 
       act(() => {
-        result.current.actions.initialize({
+        void result.current.actions.initialize({
           sdcpn,
           initialMarking,
           parameterValues: { param1: "1.0" },
@@ -190,7 +190,7 @@ describe("useSimulationWorker", () => {
       ]);
 
       act(() => {
-        result.current.actions.initialize({
+        void result.current.actions.initialize({
           sdcpn,
           initialMarking,
           parameterValues: {},
@@ -226,7 +226,7 @@ describe("useSimulationWorker", () => {
 
       // Initialize again
       act(() => {
-        result.current.actions.initialize({
+        void result.current.actions.initialize({
           sdcpn: createMinimalSDCPN(),
           initialMarking: new Map(),
           parameterValues: {},
@@ -346,7 +346,7 @@ describe("useSimulationWorker", () => {
 
       // Set status to initializing first
       act(() => {
-        result.current.actions.initialize({
+        void result.current.actions.initialize({
           sdcpn: createMinimalSDCPN(),
           initialMarking: new Map(),
           parameterValues: {},

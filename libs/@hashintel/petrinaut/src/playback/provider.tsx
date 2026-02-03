@@ -181,19 +181,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
   }, [simulationState]);
 
-  // Auto-start simulation and playback on state transitions
+  // Auto-start playback when simulation transitions to Running
   const prevSimulationStateRef = useRef(simulationState);
   useEffect(() => {
     const prevState = prevSimulationStateRef.current;
     prevSimulationStateRef.current = simulationState;
-
-    // When simulation transitions from NotRun to Paused (ready after init), start it
-    if (simulationState === "Paused" && prevState === "NotRun") {
-      const state = stateValuesRef.current;
-      if (state.playMode !== "viewOnly") {
-        runSimulation();
-      }
-    }
 
     // When simulation transitions to Running, start playback at real-time speed
     if (simulationState === "Running" && prevState !== "Running") {
@@ -202,7 +194,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         playbackState: "Playing",
       }));
     }
-  }, [simulationState, runSimulation, stateValuesRef]);
+  }, [simulationState]);
 
   // Backpressure control: call ack based on playMode
   // - viewOnly: never call ack (worker should not compute more)
@@ -377,7 +369,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }));
   };
 
-  const play: PlaybackContextValue["play"] = () => {
+  const play: PlaybackContextValue["play"] = async () => {
     const simState = simulationStateRef.current;
     const state = stateValuesRef.current;
     const { maxFramesAhead, batchSize } = getPlayModeBackpressure(
@@ -386,14 +378,15 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     // Initialize simulation if not run yet
     if (simState === "NotRun") {
-      initialize({
+      await initialize({
         seed: Date.now(),
         dt: dtRef.current,
         maxFramesAhead,
         batchSize,
       });
-      // The effect below will call runSimulation() when state becomes Paused
-      // Then auto-start playback when state becomes Running
+      // Initialization complete - start simulation
+      // The effect will set playbackState to "Playing" when simulation starts running
+      runSimulation();
       return;
     }
 

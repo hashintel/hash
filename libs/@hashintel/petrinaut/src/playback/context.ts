@@ -121,8 +121,10 @@ export type PlaybackContextValue = {
   /**
    * Start playback from the current frame.
    * Advances frames at real-time speed based on dt from SimulationContext.
+   * If simulation hasn't started yet, initializes and starts it first.
+   * Returns a Promise that resolves when playback has started.
    */
-  play: () => void;
+  play: () => Promise<void>;
 
   /**
    * Pause playback at the current frame.
@@ -156,7 +158,7 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   isViewOnlyAvailable: false,
   isComputeAvailable: true,
   setCurrentViewedFrame: () => {},
-  play: () => {},
+  play: () => Promise.resolve(),
   pause: () => {},
   stop: () => {},
   setPlaybackSpeed: () => {},
