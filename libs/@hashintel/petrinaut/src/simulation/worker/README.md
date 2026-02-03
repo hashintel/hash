@@ -2,131 +2,76 @@
 
 WebWorker for off-main-thread SDCPN simulation computation.
 
-## Worker Internal State
+## Overview
 
-| State            | Type                           | Description                                            |
-| ---------------- | ------------------------------ | ------------------------------------------------------ |
-| `simulation`     | `SimulationInstance \| null`   | The compiled simulation instance (includes maxTime)    |
-| `isRunning`      | `boolean`                      | Whether the compute loop is active                     |
-| `lastAckedFrame` | `number`                       | Last frame acknowledged by main thread (backpressure)  |
-| `maxFramesAhead` | `number`                       | Configurable backpressure threshold                    |
-| `batchSize`      | `number`                       | Frames computed per batch                              |
+The worker computes simulation frames in batches, controlled by backpressure from the main thread. This keeps the UI responsive while allowing fast computation.
 
-## Messages: Main Thread → Worker
+## Messages
 
-| Type              | Payload                                                                                      | Description                         |
-| ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation               |
-| `start`           | —                                                                                            | Begin/resume computing frames       |
-| `pause`           | —                                                                                            | Pause computation (state retained)  |
-| `stop`            | —                                                                                            | Stop and discard simulation         |
-| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                            | Reconfigure backpressure at runtime |
-| `ack`             | `{ frameNumber }`                                                                            | Acknowledge frame receipt           |
+**Main Thread → Worker:**
 
-## Messages: Worker → Main Thread
+| Type              | Payload                                              | Description                         |
+| ----------------- | ---------------------------------------------------- | ----------------------------------- |
+| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation |
+| `start`           | —                                                    | Begin/resume computing frames       |
+| `pause`           | —                                                    | Pause computation (state retained)  |
+| `stop`            | —                                                    | Stop and discard simulation         |
+| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                    | Reconfigure backpressure at runtime |
+| `ack`             | `{ frameNumber }`                                    | Acknowledge frame receipt           |
 
-| Type       | Payload                                                   | Description                          |
-| ---------- | --------------------------------------------------------- | ------------------------------------ |
-| `ready`    | `{ initialFrameCount }`                                   | Initialization complete              |
-| `frame`    | `{ frame: SimulationFrame }`                              | Single frame computed                |
-| `frames`   | `{ frames: SimulationFrame[] }`                           | Batch of frames                      |
-| `complete` | `{ reason: 'deadlock' \| 'maxTime', frameNumber }`        | Simulation ended                     |
-| `paused`   | `{ frameNumber }`                                         | Worker has paused                    |
-| `error`    | `{ message, itemId: string \| null }`                     | Error occurred                       |
+**Worker → Main Thread:**
+
+| Type       | Payload                                            | Description             |
+| ---------- | -------------------------------------------------- | ----------------------- |
+| `ready`    | `{ initialFrameCount }`                            | Initialization complete |
+| `frames`   | `{ frames: SimulationFrame[] }`                    | Batch of frames         |
+| `complete` | `{ reason: 'deadlock' \| 'maxTime', frameNumber }` | Simulation ended        |
+| `paused`   | `{ frameNumber }`                                  | Worker has paused       |
+| `error`    | `{ message, itemId: string \| null }`              | Error occurred          |
 
 ## Backpressure
 
-Worker blocks computation until an ack is received. Then it computes up to
-`maxFramesAhead` frames beyond the last acknowledged frame before waiting again.
+The worker blocks computation until it receives an `ack` message, then computes up to `maxFramesAhead` frames beyond the acknowledged frame before waiting again.
 
 **Key behavior:**
 
-- Worker starts with `lastAckedFrame = -1` (no ack received)
-- Computation is blocked until the first `ack` message is received
-- If no ack is sent (e.g., in viewOnly mode), no new frames are computed
+- Worker starts with `lastAckedFrame = -1` (blocked until first ack)
+- PlaybackProvider controls ack calls based on play mode
+- If no ack is sent (viewOnly mode), no new frames are computed
 
-**Important:** Ack messages are controlled by the **PlaybackProvider**, not sent automatically.
-The PlaybackProvider calls `SimulationContext.ack()` based on the current play mode:
+**Play mode configuration (set by PlaybackProvider):**
 
-| Play Mode        | maxFramesAhead | batchSize | Ack Behavior                                 |
-| ---------------- | -------------- | --------- | -------------------------------------------- |
-| `viewOnly`       | 0              | 0         | Never calls ack (no more computation needed) |
-| `computeBuffer`  | 200            | 50        | Calls ack when in buffer zone (near end)     |
-| `computeMax`     | 10000          | 500       | Calls ack every time new frames arrive       |
-
-Backpressure parameters can be configured:
-
-- At initialization via `init` message (`maxFramesAhead`, `batchSize`)
-- At runtime via `setBackpressure` message (called by PlaybackProvider when playMode changes)
-
-## Configuration
-
-```typescript
-// Default values (can be overridden)
-const DEFAULT_MAX_FRAMES_AHEAD = 1000; // Pause threshold
-const DEFAULT_BATCH_SIZE = 1000;       // Frames per compute batch
-```
-
-## maxTime Handling
-
-The `maxTime` simulation stopping condition is:
-
-- Set at initialization via the `init` message
-- Stored in `SimulationInstance` (immutable once set)
-- Checked by `computeNextFrame` in the simulator, not the worker
-- Cannot be changed after initialization
+| Play Mode        | maxFramesAhead | batchSize | Ack Behavior                     |
+| ---------------- | -------------- | --------- | -------------------------------- |
+| `viewOnly`       | 0              | 0         | Never acks (no computation)      |
+| `computeBuffer`  | 40             | 10        | Acks when near end of frames     |
+| `computeMax`     | 10000          | 500       | Acks on every new frame arrival  |
 
 ---
 
 # useSimulationWorker Hook
 
-React hook wrapping the WebWorker communication.
+React hook wrapping WebWorker communication.
 
-## Hook State
+## Status
 
 ```typescript
 type WorkerStatus = 'idle' | 'initializing' | 'ready' | 'running' | 'paused' | 'complete' | 'error';
-
-const { state, actions } = useSimulationWorker();
-
-// state
-state.status: WorkerStatus
-state.frames: SimulationFrame[]
-state.error: string | null
-state.errorItemId: string | null
 ```
-
-## Hook Actions
-
-| Action            | Signature                                              | Description                         |
-| ----------------- | ------------------------------------------------------ | ----------------------------------- |
-| `initialize`      | `(config: InitializeParams) => void`                   | Send init message, clear frames     |
-| `start`           | `() => void`                                           | Send start message                  |
-| `pause`           | `() => void`                                           | Send pause message                  |
-| `stop`            | `() => void`                                           | Send stop message, reset state      |
-| `reset`           | `() => void`                                           | Alias for stop                      |
-| `setBackpressure` | `(params: { maxFramesAhead?, batchSize? }) => void`    | Reconfigure backpressure at runtime |
-| `ack`             | `(frameNumber: number) => void`                        | Acknowledge frames (backpressure)   |
-
-### InitializeParams
-
-```typescript
-type InitializeParams = {
-  sdcpn: SDCPN;
-  initialMarking: InitialMarking;
-  parameterValues: Record<string, string>;
-  seed: number;
-  dt: number;
-  maxTime: number | null;       // Immutable once set
-  maxFramesAhead?: number;      // Optional backpressure config
-  batchSize?: number;           // Optional backpressure config
-};
-```
-
-## Status Transitions
 
 ```text
 idle → initializing → ready → running ⇄ paused
                          ↓         ↓
                       complete   error
 ```
+
+## Actions
+
+| Action            | Description                         |
+| ----------------- | ----------------------------------- |
+| `initialize`      | Send init message, returns Promise  |
+| `start`           | Begin/resume computing              |
+| `pause`           | Pause computation                   |
+| `stop` / `reset`  | Stop and discard simulation         |
+| `setBackpressure` | Reconfigure backpressure at runtime |
+| `ack`             | Acknowledge frames (backpressure)   |

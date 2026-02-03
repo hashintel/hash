@@ -2,59 +2,33 @@
 
 React context for viewing simulation frames at controlled speeds.
 
-## PlaybackContext
+## Overview
 
-Reads frames from SimulationContext and handles frame advancement using requestAnimationFrame (optimized for 60Hz).
+PlaybackProvider reads frames from SimulationContext and advances them using `requestAnimationFrame`. It controls both visualization playback and simulation computation via backpressure.
 
-### Playback State
-
-```typescript
-type PlaybackState = 'Stopped' | 'Playing' | 'Paused';
-```
-
-### Play Mode
+## Play Mode
 
 Determines how simulation computation is handled during playback.
 
-| Mode            | Description                       | maxFramesAhead | batchSize | Backpressure (ack)              | Available When                  |
-| --------------- | --------------------------------- | -------------- | --------- | ------------------------------- | ------------------------------- |
-| `viewOnly`      | Only plays existing frames        | 0              | 0         | Never acks (no computation)     | Simulation is Complete or Error |
-| `computeBuffer` | Computes ahead by buffer duration | 200            | 50        | Acks when near end of frames    | Simulation can compute more     |
-| `computeMax`    | Computes as fast as possible      | 10000          | 500       | Acks on every new frame arrival | Simulation can compute more     |
+| Mode            | Description                  | maxFramesAhead | batchSize | Ack Behavior                    |
+| --------------- | ---------------------------- | -------------- | --------- | ------------------------------- |
+| `viewOnly`      | Only plays existing frames   | 0              | 0         | Never acks (no computation)     |
+| `computeBuffer` | Computes minimally ahead     | 40             | 10        | Acks when near end of frames    |
+| `computeMax`    | Computes as fast as possible | 10000          | 500       | Acks on every new frame arrival |
 
-### Playback Speed
+- `viewOnly`: Available when simulation is Complete or Error
+- `computeBuffer`/`computeMax`: Available when simulation can still compute
+
+## Playback Speed
 
 ```typescript
 const PLAYBACK_SPEEDS = [1, 2, 5, 10, 30, 60, 120, Infinity] as const;
-// Infinity = "Max" speed (as fast as possible)
 ```
 
-### Context Value
+- Finite speeds: Frame advancement based on elapsed time × speed multiplier
+- `Infinity` ("Max"): Jumps directly to latest available frame each tick
 
-```typescript
-type PlaybackContextValue = {
-  // State
-  currentFrame: SimulationFrame | null;
-  currentViewedFrame: SimulationFrameState | null;
-  playbackState: PlaybackState;
-  currentFrameIndex: number;
-  totalFrames: number;
-  playbackSpeed: PlaybackSpeed;
-  playMode: PlayMode;
-  isViewOnlyAvailable: boolean;
-  isComputeAvailable: boolean;
-
-  // Actions
-  setCurrentViewedFrame: (frameIndex: number) => void;
-  play: () => void;
-  pause: () => void;
-  stop: () => void;
-  setPlaybackSpeed: (speed: PlaybackSpeed) => void;
-  setPlayMode: (mode: PlayMode) => void;
-};
-```
-
-### Lifecycle
+## Lifecycle
 
 ```text
                     ┌─────────────┐
@@ -72,23 +46,24 @@ type PlaybackContextValue = {
               stop()└─────────────┘
 ```
 
-### Integration with SimulationContext
+Playback auto-pauses when reaching the end of available frames (if simulation is complete or in viewOnly mode).
 
-PlaybackProvider interacts with SimulationContext:
+## Integration with SimulationContext
 
 **Reading:**
 
-- Gets frames via `getFrame()` / `getAllFrames()`
-- Uses `dt` for real-time playback timing
-- Monitors `totalFrames` to know when new frames are available
-- Uses `state` to determine available play modes
+- `getFrame()`: Access frame data for current index
+- `dt`: Calculate real-time playback timing
+- `totalFrames`: Know when new frames are available
+- `state`: Determine available play modes
 
 **Writing:**
 
-- Calls `ack(frameNumber)` to control worker backpressure based on play mode
-- Calls `run()` / `pause()` to control simulation in compute modes
+- `ack(frameNumber)`: Control worker backpressure based on play mode
+- `run()` / `pause()`: Control simulation generation in compute modes
+- `setBackpressure()`: Update worker configuration when play mode changes
 
-### Usage
+## Usage
 
 ```tsx
 <SimulationProvider>
