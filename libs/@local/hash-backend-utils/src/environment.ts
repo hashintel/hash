@@ -19,6 +19,7 @@ config({ silent: true, path: monorepoRootDir });
 export const getRequiredEnv = (name: string) => {
   const value = process.env[name];
   if (value === undefined) {
+    console.log("Process", process.env);
     throw new Error(`Environment variable ${name} is not set`);
   }
   return value;

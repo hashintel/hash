@@ -32,6 +32,7 @@ export type AiFlowActionDefinitionId =
  * Activities that are registered to the 'integration' temporal task queue.
  */
 export type IntegrationFlowActionDefinitionId =
+  | "getHistoricalFlightArrivals"
   | "getLiveFlightPositions"
   | "getScheduledFlights"
   | "persistIntegrationEntities";
@@ -698,6 +699,48 @@ const aiFlowActionDefinitionsAsConst = {
 >;
 
 const integrationFlowActionDefinitionsAsConst = {
+  getHistoricalFlightArrivals: {
+    actionDefinitionId: "getHistoricalFlightArrivals",
+    name: "Get Historical Flight Arrivals",
+    description:
+      "Fetch historical flight arrivals from AeroAPI for a given airport and date range.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "airportIcao",
+        description:
+          "The ICAO code of the airport (e.g. 'EGLL' for London Heathrow)",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Date"],
+        name: "startDate",
+        description:
+          "The start date for the historical query in ISO format (e.g. '2024-01-15')",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Date"],
+        name: "endDate",
+        description:
+          "The end date for the historical query in ISO format (e.g. '2024-01-16') – must be yesterday or earlier",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        description: "The proposed flight entities and related data",
+        array: true,
+        required: true,
+      },
+    ],
+  },
   getLiveFlightPositions: {
     actionDefinitionId: "getLiveFlightPositions",
     name: "Get Live Flight Positions",

@@ -27,7 +27,7 @@ import {
 } from "@temporalio/common";
 import proto from "@temporalio/proto";
 
-import type { AwsS3StorageProvider } from "../file-storage/aws-s3-storage-provider.js";
+import type { FileStorageProvider } from "../file-storage.js";
 import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { retrievePayload } from "./payload-storage.js";
@@ -40,7 +40,7 @@ type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
  */
 const resolveStoredPayloadsInOutputs = async (
   outputs: StepOutput[] | undefined,
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
 ): Promise<StepOutput[] | undefined> => {
   if (!outputs) {
     return outputs;
@@ -176,7 +176,7 @@ const getFlowRunDetailedFields = async ({
   workflowId: string;
   temporalClient: TemporalClient;
   /** Storage provider for resolving stored payload references */
-  storageProvider: AwsS3StorageProvider;
+  storageProvider: FileStorageProvider;
 }): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
@@ -746,7 +746,7 @@ export const getFlowRunFromTemporalWorkflowId = async (args: {
   temporalWorkflowId: string;
   webId: WebId;
   /** Storage provider for resolving stored payload references */
-  storageProvider: AwsS3StorageProvider;
+  storageProvider: FileStorageProvider;
 }): Promise<FlowRun> => {
   const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
   const detailedFields = await getFlowRunDetailedFields({

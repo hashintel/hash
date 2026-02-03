@@ -26,7 +26,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type { AwsS3StorageProvider } from "./file-storage/aws-s3-storage-provider.js";
+import type { FileStorageProvider } from "./file-storage.js";
 import {
   getFlowRunFromTemporalWorkflowId,
   getSparseFlowRunFromTemporalWorkflowId,
@@ -50,7 +50,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunId: EntityUuid;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
-  storageProvider: AwsS3StorageProvider;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   userAuthentication: { actorId: ActorEntityUuid };
 };
@@ -141,7 +141,7 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
-  storageProvider: AwsS3StorageProvider;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
 };
 

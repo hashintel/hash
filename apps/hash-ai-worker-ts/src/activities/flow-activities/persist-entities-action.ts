@@ -13,6 +13,7 @@ import type {
   StoredPayloadRef,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 
 import {
   fileEntityTypeIds,
@@ -91,6 +92,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
    * if an existing entity is found to update rather than a new one with the localId being created.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
+    // Heartbeat to indicate the activity is still running
+    Context.current().heartbeat();
+
     const {
       claims,
       entityTypeIds,

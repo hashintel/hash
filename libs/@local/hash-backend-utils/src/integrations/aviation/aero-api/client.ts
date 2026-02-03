@@ -6,14 +6,17 @@ import {
 } from "./client/build-graph.js";
 import { generateAeroApiProvenance } from "./client/provenance.js";
 import type {
+  AeroApiHistoricalArrivalsResponse,
   AeroApiScheduledArrivalsResponse,
   AeroApiScheduledFlight,
+  HistoricalArrivalsRequestParams,
   ScheduledArrivalsRequestParams,
 } from "./client/types.js";
 
 export type { AviationProposedEntity } from "./client/build-graph.js";
 export type {
   AeroApiAirport,
+  AeroApiHistoricalArrivalsResponse,
   AeroApiPaginationLinks,
   AeroApiScheduledArrivalsResponse,
   AeroApiScheduledFlight,
@@ -126,6 +129,135 @@ export const getScheduledArrivalEntities = async (
     start,
     end,
   });
+
+  const provenance = generateAeroApiProvenance();
+
+  return {
+    ...buildFlightGraphBatch(flights, provenance),
+    provenance,
+  };
+};
+
+/**
+ * Retrieve a single page of historical arrivals for an airport.
+ *
+ * @see https://www.flightaware.com/aeroapi/portal/documentation#get-/history/airports/-id-/flights/arrivals
+ */
+const getHistoricalArrivals = async (
+  params: HistoricalArrivalsRequestParams,
+): Promise<AeroApiHistoricalArrivalsResponse> => {
+  const { airportIcao, ...queryParams } = params;
+  const url = generateUrl(
+    `/history/airports/${airportIcao}/flights/arrivals`,
+    queryParams,
+  );
+  return makeRequest<AeroApiHistoricalArrivalsResponse>(url);
+};
+
+/**
+ * Retrieve all historical arrivals for a single 24-hour period, handling pagination.
+ */
+const getAllHistoricalArrivals = async (
+  params: Omit<HistoricalArrivalsRequestParams, "cursor">,
+): Promise<AeroApiScheduledFlight[]> => {
+  const allFlights: AeroApiScheduledFlight[] = [];
+
+  let response = await getHistoricalArrivals(params);
+  allFlights.push(...response.arrivals);
+
+  while (response.links?.next) {
+    response = await makeRequest<AeroApiHistoricalArrivalsResponse>(
+      `${baseUrl}${response.links.next}`,
+    );
+    allFlights.push(...response.arrivals);
+  }
+
+  return allFlights;
+};
+
+/**
+ * Generate 24-hour time chunks for a date range.
+ * Each chunk uses 04:00 UTC to 03:59:59 UTC the next day to align with operational days.
+ */
+const generateDateChunks = (
+  startDate: string,
+  endDate: string,
+): Array<{ start: string; end: string }> => {
+  const chunks: Array<{ start: string; end: string }> = [];
+
+  const startDateObj = new Date(`${startDate}T00:00:00Z`);
+  const endDateObj = new Date(`${endDate}T00:00:00Z`);
+
+  const currentDate = new Date(startDateObj);
+
+  while (currentDate <= endDateObj) {
+    const dateStr = currentDate.toISOString().slice(0, 10);
+    const nextDate = new Date(currentDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    const nextDateStr = nextDate.toISOString().slice(0, 10);
+
+    chunks.push({
+      start: `${dateStr}T04:00:00Z`,
+      end: `${nextDateStr}T03:59:59Z`,
+    });
+
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+  }
+
+  return chunks;
+};
+
+/**
+ * Retrieve all historical arrivals for an airport over a date range.
+ * Automatically chunks requests into 24-hour periods due to API limitations.
+ *
+ * @param airportIcao - ICAO airport code
+ * @param startDate - Start date in YYYY-MM-DD format
+ * @param endDate - End date in YYYY-MM-DD format (inclusive)
+ * @returns Array of all flights across the date range
+ */
+const getAllHistoricalArrivalsForDateRange = async (
+  airportIcao: string,
+  startDate: string,
+  endDate: string,
+): Promise<AeroApiScheduledFlight[]> => {
+  const chunks = generateDateChunks(startDate, endDate);
+  const allFlights: AeroApiScheduledFlight[] = [];
+
+  for (const chunk of chunks) {
+    const flights = await getAllHistoricalArrivals({
+      airportIcao,
+      start: chunk.start,
+      end: chunk.end,
+    });
+    allFlights.push(...flights);
+  }
+
+  return allFlights;
+};
+
+/**
+ * Fetch historical arrivals for an airport over a date range and map them to HASH entities.
+ *
+ * @param airportIcao - ICAO airport code (e.g., "EGLL" for London Heathrow)
+ * @param startDate - Start date in YYYY-MM-DD format
+ * @param endDate - End date in YYYY-MM-DD format (inclusive, must be yesterday or earlier)
+ * @returns Deduplicated entities and links ready for database insertion
+ */
+export const getHistoricalArrivalEntities = async (
+  airportIcao: string,
+  startDate: string,
+  endDate: string,
+): Promise<
+  BatchFlightGraphResult & {
+    provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
+  }
+> => {
+  const flights = await getAllHistoricalArrivalsForDateRange(
+    airportIcao,
+    startDate,
+    endDate,
+  );
 
   const provenance = generateAeroApiProvenance();
 

@@ -10,11 +10,12 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import type {
+  FileStorageProvider,
   GetFileEntityStorageKeyParams,
+  GetFlowOutputStorageKeyParams,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
-  UploadableStorageProvider,
 } from "../file-storage.js";
 
 export interface AwsS3StorageProviderConstructorArgs {
@@ -26,7 +27,7 @@ export interface AwsS3StorageProviderConstructorArgs {
 }
 
 /** Implementation of the storage provider for AWS S3. Uploads all files to a single bucket */
-export class AwsS3StorageProvider implements UploadableStorageProvider {
+export class AwsS3StorageProvider implements FileStorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
   private client: S3Client;
   private bucket: string;
@@ -202,12 +203,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     runId,
     stepId,
     outputName,
-  }: {
-    workflowId: string;
-    runId: string;
-    stepId: string;
-    outputName: string;
-  }) {
+  }: GetFlowOutputStorageKeyParams) {
     return `flows/${workflowId}/${runId}/${stepId}/${outputName}.json` as const;
   }
 

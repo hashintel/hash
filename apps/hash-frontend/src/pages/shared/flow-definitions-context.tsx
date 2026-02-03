@@ -19,7 +19,10 @@ import {
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import { scheduledFlightsFlowDefinition } from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+import {
+  historicalFlightsFlowDefinition,
+  scheduledFlightsFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -50,6 +53,7 @@ const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
   goalFlowDefinitionWithSpreadsheetDeliverable,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
   scheduledFlightsFlowDefinition,
+  historicalFlightsFlowDefinition,
   configureDashboardItemFlowDefinition,
 ];
 

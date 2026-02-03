@@ -5,15 +5,16 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getAwsS3Config } from "../aws-config.js";
+import type { FileStorageProvider } from "../file-storage.js";
 import { AwsS3StorageProvider } from "../file-storage/aws-s3-storage-provider.js";
 
-let _storageProvider: AwsS3StorageProvider | undefined;
+let _storageProvider: FileStorageProvider | undefined;
 
 /**
  * Get a singleton instance of the S3 storage provider.
  * This is shared across all activities in a worker.
  */
-export const getStorageProvider = (): AwsS3StorageProvider => {
+export const getStorageProvider = (): FileStorageProvider => {
   if (!_storageProvider) {
     const s3Config = getAwsS3Config();
     _storageProvider = new AwsS3StorageProvider(s3Config);
@@ -22,7 +23,7 @@ export const getStorageProvider = (): AwsS3StorageProvider => {
 };
 
 export type StorePayloadParams<K extends StoredPayloadKind> = {
-  storageProvider: AwsS3StorageProvider;
+  storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
   stepId: string;
@@ -78,7 +79,7 @@ export const storePayload = async <K extends StoredPayloadKind>(
  * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
  */
 export const retrievePayload = async <K extends StoredPayloadKind>(
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
   ref: StoredPayloadRef<K>,
 ): Promise<PayloadKindValues[K] | PayloadKindValues[K][]> => {
   const buffer = await storageProvider.downloadDirect({ key: ref.storageKey });
@@ -95,7 +96,7 @@ export const retrievePayload = async <K extends StoredPayloadKind>(
  * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
  */
 export const retrieveSingularPayload = async <K extends StoredPayloadKind>(
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
   ref: StoredPayloadRef<K>,
 ): Promise<PayloadKindValues[K]> => {
   if (ref.array) {
@@ -112,7 +113,7 @@ export const retrieveSingularPayload = async <K extends StoredPayloadKind>(
  * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
  */
 export const retrieveArrayPayload = async <K extends StoredPayloadKind>(
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
   ref: StoredPayloadRef<K>,
 ): Promise<PayloadKindValues[K][]> => {
   if (!ref.array) {
@@ -133,7 +134,7 @@ export const retrieveArrayPayload = async <K extends StoredPayloadKind>(
  * @param kind - The payload kind, used for type inference
  */
 export const resolvePayloadValue = async <K extends StoredPayloadKind>(
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
   _kind: K,
   ref: StoredPayloadRef<K>,
 ): Promise<PayloadKindValues[K]> => {
@@ -147,7 +148,7 @@ export const resolvePayloadValue = async <K extends StoredPayloadKind>(
  * @param kind - The payload kind, used for type inference
  */
 export const resolveArrayPayloadValue = async <K extends StoredPayloadKind>(
-  storageProvider: AwsS3StorageProvider,
+  storageProvider: FileStorageProvider,
   _kind: K,
   ref: StoredPayloadRef<K>,
 ): Promise<PayloadKindValues[K][]> => {

@@ -64,7 +64,7 @@ export const aviationProposedEntityToFlowProposedEntity = (
 };
 
 /**
- * Fetches scheduled flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
+ * Fetches scheduled arrival flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
  */
 export const getScheduledFlightsAction: IntegrationFlowActionActivity<
   "getScheduledFlights"
