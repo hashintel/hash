@@ -6,6 +6,7 @@ id::newtype!(
     pub struct TargetId(u8 is 0..=0xF0)
 );
 
+#[expect(clippy::cast_possible_truncation)]
 impl TargetId {
     pub const EMBEDDING: Self = Self(0x02);
     pub const INTERPRETER: Self = Self(0x00);
@@ -13,7 +14,8 @@ impl TargetId {
     pub const POSTGRES: Self = Self(0x01);
     pub const TOTAL: usize = 3;
 
-    pub(crate) const fn all() -> [Self; Self::TOTAL] {
+    #[must_use]
+    pub const fn all() -> [Self; Self::TOTAL] {
         [Self::POSTGRES, Self::EMBEDDING, Self::INTERPRETER]
     }
 }

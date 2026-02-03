@@ -1,5 +1,5 @@
+use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible, mem, num::NonZero};
-use std::alloc::Global;
 
 use hashql_core::{
     heap::Heap,
