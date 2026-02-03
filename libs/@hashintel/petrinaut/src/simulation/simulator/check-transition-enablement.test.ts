@@ -4,25 +4,10 @@ import {
   checkTransitionEnablement,
   isTransitionStructurallyEnabled,
 } from "./check-transition-enablement";
-import type { SimulationFrame, SimulationInstance } from "./types";
+import type { SimulationFrame } from "./types";
 
 describe("isTransitionStructurallyEnabled", () => {
   it("returns true when input place has sufficient tokens", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -57,21 +42,6 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("returns false when input place has insufficient tokens", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -106,21 +76,6 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("respects arc weights when checking enablement", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -156,21 +111,6 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("checks all input places for enablement", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -214,21 +154,6 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("returns true for transitions with no input arcs", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {},
@@ -259,21 +184,6 @@ describe("isTransitionStructurallyEnabled", () => {
 
 describe("checkTransitionEnablement", () => {
   it("returns hasEnabledTransition=true when at least one transition is enabled", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -333,21 +243,6 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns hasEnabledTransition=false when no transitions are enabled (deadlock)", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
@@ -407,21 +302,6 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns hasEnabledTransition=false when there are no transitions", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {},
@@ -439,21 +319,6 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns all transitions enabled when all have sufficient tokens", () => {
-    const _simulation: SimulationInstance = {
-      places: new Map(),
-      transitions: new Map(),
-      types: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      maxTime: null,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
       time: 0,
       places: {
