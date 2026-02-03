@@ -79,7 +79,7 @@ function createMockSimulationContext(
     setParameterValue: vi.fn(),
     setDt: vi.fn(),
     setMaxTime: vi.fn(),
-    initialize: vi.fn(),
+    initialize: vi.fn().mockResolvedValue(undefined),
     run: vi.fn(),
     pause: vi.fn(),
     reset: vi.fn(),
@@ -463,7 +463,7 @@ describe("PlaybackProvider", () => {
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().playbackState).toBe("Stopped");
@@ -479,7 +479,7 @@ describe("PlaybackProvider", () => {
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().playbackState).toBe("Stopped");
@@ -495,7 +495,7 @@ describe("PlaybackProvider", () => {
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().playbackState).toBe("Playing");
@@ -519,7 +519,7 @@ describe("PlaybackProvider", () => {
 
       // Play should restart from beginning
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().playbackState).toBe("Playing");
@@ -541,7 +541,7 @@ describe("PlaybackProvider", () => {
       expect(getPlaybackValue().playMode).toBe("computeMax");
 
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(runFn).toHaveBeenCalled();
@@ -564,7 +564,7 @@ describe("PlaybackProvider", () => {
       });
 
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       // run should not have been called
@@ -584,7 +584,7 @@ describe("PlaybackProvider", () => {
 
       // Start playing
       act(() => {
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().playbackState).toBe("Playing");
@@ -657,7 +657,7 @@ describe("PlaybackProvider", () => {
       // Set frame and play
       act(() => {
         getPlaybackValue().setCurrentViewedFrame(5);
-        getPlaybackValue().play();
+        void getPlaybackValue().play();
       });
 
       expect(getPlaybackValue().currentFrameIndex).toBe(5);

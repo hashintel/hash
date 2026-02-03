@@ -38,6 +38,14 @@ const DEFAULT_BATCH_SIZE = 1000;
 let simulation: SimulationInstance | null = null;
 let isRunning = false;
 /**
+ * Tracks whether the simulation has reached a terminal state.
+ * - "ready": initialized and ready to run
+ * - "running": currently computing frames
+ * - "complete": reached end condition (maxTime or other)
+ * - "error": encountered an error during computation
+ */
+let simulationStatus: "ready" | "running" | "complete" | "error" | null = null;
+/**
  * Last frame number acknowledged by main thread.
  * -1 means no ack received yet (blocks computation until first ack).
  */
@@ -88,6 +96,7 @@ async function computeLoop(): Promise<void> {
         // Check if simulation completed
         if (completionReason !== null) {
           isRunning = false;
+          simulationStatus = "complete";
           postTypedMessage({
             type: "complete",
             reason: completionReason,
@@ -97,6 +106,7 @@ async function computeLoop(): Promise<void> {
         }
       } catch (error) {
         isRunning = false;
+        simulationStatus = "error";
         postTypedMessage({
           type: "error",
           message:
@@ -154,6 +164,7 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         // Reset to -1: blocks computation until first ack
         lastAckedFrame = -1;
         isRunning = false;
+        simulationStatus = "ready";
 
         // Send initial frame
         const initialFrame = simulation.frames[0];
@@ -166,6 +177,7 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
           initialFrameCount: simulation.frames.length,
         });
       } catch (error) {
+        simulationStatus = "error";
         postTypedMessage({
           type: "error",
           message:
@@ -179,7 +191,7 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     }
 
     case "start": {
-      if (!simulation) {
+      if (!simulation || simulationStatus === null) {
         postTypedMessage({
           type: "error",
           message: "Cannot start: simulation not initialized",
@@ -188,16 +200,29 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         return;
       }
 
-      if (!isRunning) {
-        isRunning = true;
-        // Start compute loop (async, runs in background)
-        void computeLoop();
+      // Can't restart from terminal states
+      if (simulationStatus === "complete" || simulationStatus === "error") {
+        return;
       }
+
+      // Already running - no-op
+      if (isRunning) {
+        return;
+      }
+
+      isRunning = true;
+      simulationStatus = "running";
+      // Start compute loop (async, runs in background)
+      void computeLoop();
       break;
     }
 
     case "pause": {
       isRunning = false;
+      // Only transition to ready if we were running (not if already complete/error)
+      if (simulationStatus === "running") {
+        simulationStatus = "ready";
+      }
       if (simulation) {
         postTypedMessage({
           type: "paused",
@@ -210,6 +235,7 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     case "stop": {
       isRunning = false;
       simulation = null;
+      simulationStatus = null;
       lastAckedFrame = -1;
       break;
     }

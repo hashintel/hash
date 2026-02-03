@@ -150,8 +150,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
+    // Update local dt
+    setStateValues((prev) => ({ ...prev, dt }));
+
     // Delegate to worker (maxTime is immutable once set at initialization)
-    workerActions.initialize({
+    // Returns a promise that resolves when initialization is complete
+    return workerActions.initialize({
       sdcpn,
       initialMarking: currentState.initialMarking,
       parameterValues: currentState.parameterValues,
@@ -161,32 +165,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       maxFramesAhead,
       batchSize,
     });
-
-    // Update local dt
-    setStateValues((prev) => ({ ...prev, dt }));
   };
 
   const run: SimulationContextValue["run"] = () => {
-    const simulationState = mapWorkerStatusToSimulationState(
-      workerState.status,
-    );
-
-    // Guard against invalid states
-    if (simulationState === "Running") {
-      return; // Already running
-    }
-
-    if (
-      workerState.status === "idle" ||
-      workerState.status === "initializing"
-    ) {
-      return; // No simulation initialized
-    }
-
-    if (simulationState === "Error" || simulationState === "Complete") {
-      return; // Can't run from these states
-    }
-
+    // Worker handles all guard logic (not initialized, already running, complete, error)
     workerActions.start();
   };
 

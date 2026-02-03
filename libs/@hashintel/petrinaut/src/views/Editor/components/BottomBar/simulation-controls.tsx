@@ -435,7 +435,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       playbackPause();
     } else {
       // Start/resume playback (PlaybackProvider handles NotRun case with proper backpressure)
-      playbackPlay();
+      void playbackPlay();
     }
   };
 

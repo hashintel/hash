@@ -187,12 +187,17 @@ export type SimulationContextValue = {
    * Pass null to disable the time limit.
    */
   setMaxTime: (maxTime: number | null) => void;
+  /**
+   * Initialize the simulation with the given parameters.
+   * Returns a Promise that resolves when initialization is complete (ready state)
+   * or rejects if an error occurs during initialization.
+   */
   initialize: (params: {
     seed: number;
     dt: number;
     maxFramesAhead?: number;
     batchSize?: number;
-  }) => void;
+  }) => Promise<void>;
   run: () => void;
   pause: () => void;
   reset: () => void;
@@ -232,7 +237,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setParameterValue: () => {},
   setDt: () => {},
   setMaxTime: () => {},
-  initialize: () => {},
+  initialize: () => Promise.resolve(),
   run: () => {},
   pause: () => {},
   reset: () => {},
