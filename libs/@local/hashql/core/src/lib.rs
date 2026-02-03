@@ -22,6 +22,7 @@
     binary_heap_into_iter_sorted,
     clone_from_ref,
     const_cmp,
+    const_ops,
     const_trait_impl,
     debug_closure_helpers,
     extend_one,

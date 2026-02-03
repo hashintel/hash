@@ -7,6 +7,7 @@ use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
     fmt, iter,
+    mem::MaybeUninit,
     ops::{Index, IndexMut},
 };
 
@@ -140,11 +141,12 @@ pub struct StatementCostVec<A: Allocator = Global> {
 
 impl<A: Allocator> StatementCostVec<A> {
     #[expect(unsafe_code)]
-    fn from_iter(mut iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self
-    where
-        A: Clone,
-    {
-        let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc.clone());
+    fn offsets(
+        mut iter: impl ExactSizeIterator<Item = u32>,
+        alloc: A,
+    ) -> (Box<BasicBlockSlice<u32>, A>, usize) {
+        // Try to reuse existing offsets if available and of correct length
+        let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc);
 
         let mut offset = 0_u32;
 
@@ -161,11 +163,19 @@ impl<A: Allocator> StatementCostVec<A> {
         debug_assert!(rest.is_empty());
         debug_assert_eq!(iter.len(), 0);
 
-        let costs = alloc::vec::from_elem_in(None, offset as usize, alloc);
-
         // SAFETY: We have initialized all elements of the slice.
         let offsets = unsafe { offsets.assume_init() };
         let offsets = BasicBlockSlice::from_boxed_slice(offsets);
+
+        (offsets, offset as usize)
+    }
+
+    fn from_iter(iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        let (offsets, length) = Self::offsets(iter, alloc.clone());
+        let costs = alloc::vec::from_elem_in(None, length, alloc);
 
         Self { offsets, costs }
     }
@@ -184,6 +194,19 @@ impl<A: Allocator> StatementCostVec<A> {
         )
     }
 
+    pub fn remap(&mut self, blocks: &BasicBlocks)
+    where
+        A: Clone,
+    {
+        let alloc = Box::allocator(&self.offsets).clone();
+
+        let (offsets, _) = Self::offsets(
+            blocks.iter().map(|block| block.statements.len() as u32),
+            alloc,
+        );
+        self.offsets = offsets;
+    }
+
     pub fn all_unassigned(&self) -> bool {
         self.costs.iter().all(Option::is_none)
     }
@@ -192,6 +215,10 @@ impl<A: Allocator> StatementCostVec<A> {
         let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
 
         &self.costs[range]
+    }
+
+    pub fn allocator(&self) -> &A {
+        Box::allocator(&self.offsets)
     }
 
     /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
