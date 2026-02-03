@@ -10,14 +10,14 @@ The worker computes simulation frames in batches, controlled by backpressure fro
 
 **Main Thread → Worker:**
 
-| Type              | Payload                                              | Description                         |
-| ----------------- | ---------------------------------------------------- | ----------------------------------- |
-| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation |
-| `start`           | —                                                    | Begin/resume computing frames       |
-| `pause`           | —                                                    | Pause computation (state retained)  |
-| `stop`            | —                                                    | Stop and discard simulation         |
-| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                    | Reconfigure backpressure at runtime |
-| `ack`             | `{ frameNumber }`                                    | Acknowledge frame receipt           |
+| Type              | Payload                                                                                      | Description                         |
+| ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation               |
+| `start`           | —                                                                                            | Begin/resume computing frames       |
+| `pause`           | —                                                                                            | Pause computation (state retained)  |
+| `stop`            | —                                                                                            | Stop and discard simulation         |
+| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                            | Reconfigure backpressure at runtime |
+| `ack`             | `{ frameNumber }`                                                                            | Acknowledge frame receipt           |
 
 **Worker → Main Thread:**
 
