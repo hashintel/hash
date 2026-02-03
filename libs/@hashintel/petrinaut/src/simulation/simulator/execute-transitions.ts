@@ -170,6 +170,7 @@ export function executeTransitions(
       currentFrame,
       simulation,
       transitionId,
+      currentRngState,
     );
 
     if (result !== null) {

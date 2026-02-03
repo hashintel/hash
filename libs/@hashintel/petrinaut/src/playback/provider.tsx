@@ -223,7 +223,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         return;
       }
       // Always ack when new frames arrive to allow continuous computation
-      ack(totalFrames);
+      // Use totalFrames - 1 since frame indices are 0-based
+      ack(totalFrames - 1);
       return;
     }
 
@@ -234,8 +235,9 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     const bufferFrames = Math.ceil(bufferDurationInSeconds / dt);
 
     // If we're within bufferFrames of the end, ack to allow more computation
+    // Use totalFrames - 1 since frame indices are 0-based
     if (currentIndex >= totalFrames - bufferFrames) {
-      ack(totalFrames);
+      ack(totalFrames - 1);
     }
   }, [
     totalFrames,
@@ -372,7 +374,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     };
   }, [
     stateValues.playbackState,
-    runSimulation,
     // These refs and stable callbacks have stable identities, safe to include
     dtRef,
     simulationStateRef,

@@ -18,6 +18,7 @@ export function computePossibleTransition(
   frame: SimulationFrame,
   simulation: SimulationInstance,
   transitionId: string,
+  rngState: number,
 ): null | {
   remove: Record<PlaceID, Set<number> | number>;
   add: Record<PlaceID, number[][]>;
@@ -72,7 +73,7 @@ export function computePossibleTransition(
   //
 
   // Generate random number using seeded RNG and update state
-  const [U1, newRngState] = nextRandom(simulation.rngState);
+  const [U1, newRngState] = nextRandom(rngState);
   const { timeSinceLastFiringMs } = transition;
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
