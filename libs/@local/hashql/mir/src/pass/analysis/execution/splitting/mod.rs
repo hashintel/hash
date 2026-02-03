@@ -118,7 +118,7 @@ fn offset_basic_blocks<'heap, B: Allocator + Clone>(
     // uninitialized. This will change
     body.basic_blocks
         .as_mut()
-        .fill_until(length, || BasicBlock {
+        .fill_until(length.minus(1), || BasicBlock {
             params: Interned::empty(),
             statements: Vec::new_in(context.heap),
             terminator: Terminator::unreachable(SpanId::SYNTHETIC),
