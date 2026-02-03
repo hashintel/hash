@@ -52,7 +52,7 @@ describe("computePossibleTransition", () => {
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, simulation, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
 
     // THEN it should return null (transition not enabled)
     expect(result).toBeNull();
@@ -157,7 +157,7 @@ describe("computePossibleTransition", () => {
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, simulation, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();
