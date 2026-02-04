@@ -31,7 +31,7 @@ use crate::{
     body::Body,
     context::MirContext,
     pass::{
-        analysis::execution::cost::{StatementCostVec, TraversalCostVec},
+        execution::cost::{StatementCostVec, TraversalCostVec},
         transform::Traversals,
     },
 };
