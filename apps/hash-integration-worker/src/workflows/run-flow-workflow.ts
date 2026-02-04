@@ -11,6 +11,17 @@ import {
 } from "@temporalio/workflow";
 
 import type { createFlowActivities } from "../activities/flow-activities.js";
+import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
+
+type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
+
+/**
+ * Activities which send a frequent heartbeat to ensure they are known to be still running,
+ * allowing for startToCloseTimeout to be longer in favour of a short heartbeatTimeout.
+ */
+const activitiesHeartbeating: FlowActivityId[] = [
+  "persistIntegrationEntitiesAction",
+];
 
 const proxyFlowActivity: ProxyFlowActivity<
   IntegrationFlowActionDefinitionId,
@@ -23,7 +34,21 @@ const proxyFlowActivity: ProxyFlowActivity<
   >({
     cancellationType: ActivityCancellationType.ABANDON,
 
-    startToCloseTimeout: "300 second",
+    startToCloseTimeout: activitiesHeartbeating.includes(actionName)
+      ? "36000 second" // 10 hours
+      : "300 second", // 5 minutes
+
+    /**
+     * The heartbeat timeout is the time elapsed without a heartbeat after which the activity is considered to have failed.
+     * Note that:
+     *  - heartbeat-ing activities can receive notification when a flow is cancelled/closed, by catching Context.current().cancelled
+     *  - notification will only be received when the next heartbeat is processed, and so the activity should heartbeat frequently
+     *  - heartbeats are throttled by default to 80% of the heartbeatTimeout, so sending a heartbeat does not mean it will be processed then
+     *  - maxHeartbeatThrottleInterval can be set in WorkerOptions, and otherwise defaults to 60s
+     */
+    heartbeatTimeout: activitiesHeartbeating.includes(actionName)
+      ? `${heartbeatTimeoutSeconds} second`
+      : undefined,
 
     retry: { maximumAttempts },
     activityId,

@@ -7,7 +7,7 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-p
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
@@ -113,7 +113,7 @@ const statsPlugin = ({
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: Keyv;
-  uploadProvider: UploadableStorageProvider;
+  uploadProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   vaultClient?: VaultClient;
   emailTransporter: EmailTransporter;

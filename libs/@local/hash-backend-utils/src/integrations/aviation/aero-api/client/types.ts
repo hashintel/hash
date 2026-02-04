@@ -12,7 +12,7 @@ export type ScheduledArrivalsRequestParams = {
   start?: string;
   /** End of time range (ISO 8601) */
   end?: string;
-  /** Maximum number of results per page (default: 15, max: 200) */
+  /** Maximum number of pages to fetch (default: 1) */
   max_pages?: number;
   /** Cursor for pagination */
   cursor?: string;
@@ -168,4 +168,38 @@ export type AeroApiScheduledArrivalsResponse = {
   num_pages: number;
   /** Array of scheduled flights */
   scheduled_arrivals: AeroApiScheduledFlight[];
+};
+
+/**
+ * Request parameters for the historical arrivals endpoint.
+ * Note: The historical endpoint has a maximum time range of 24 hours.
+ */
+export type HistoricalArrivalsRequestParams = {
+  /** ICAO airport code */
+  airportIcao: string;
+  /** Filter by airline (ICAO code) */
+  airline?: string;
+  /** Filter by flight type (e.g., "Airline", "General_Aviation") */
+  type?: string;
+  /** Start of time range (ISO 8601) - required for historical queries */
+  start: string;
+  /** End of time range (ISO 8601) - required, max 24 hours from start */
+  end: string;
+  /** Maximum number of pages to fetch (default: 1) */
+  max_pages?: number;
+  /** Cursor for pagination */
+  cursor?: string;
+};
+
+/**
+ * Response from the historical arrivals endpoint.
+ * Same structure as scheduled arrivals but with `arrivals` array.
+ */
+export type AeroApiHistoricalArrivalsResponse = {
+  /** Pagination links */
+  links: AeroApiPaginationLinks | null;
+  /** Number of pages available */
+  num_pages: number;
+  /** Array of historical flights */
+  arrivals: AeroApiScheduledFlight[];
 };

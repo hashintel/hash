@@ -19,12 +19,11 @@ import type {
   ProvidedEntityEditionProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
   HashEntity,
@@ -264,20 +263,18 @@ export const createFileEntityFromUrl = async (params: {
     },
   );
 
-  const s3Config = getAwsS3Config();
-
-  const uploadProvider = new AwsS3StorageProvider(s3Config);
+  const storageProvider = getStorageProvider();
 
   const editionIdentifier = generateUuid();
 
-  const key = uploadProvider.getFileEntityStorageKey({
+  const key = storageProvider.getFileEntityStorageKey({
     entityId: incompleteFileEntity.metadata.recordId.entityId,
     editionIdentifier,
     filename,
   });
 
   const { fileStorageProperties, presignedPut } =
-    await uploadProvider.presignUpload({
+    await storageProvider.presignUpload({
       expiresInSeconds: 60 * 60 * 24, // 24 hours
       headers: {
         "content-length": fileSizeInBytes,

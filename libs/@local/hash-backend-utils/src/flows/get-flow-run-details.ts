@@ -7,9 +7,12 @@ import type {
   ExternalInputResponseSignal,
   FlowInputs,
   FlowSignalType,
+  Payload,
   ProgressLogSignal,
   SparseFlowRun,
+  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRun,
   FlowRunStatus,
@@ -24,10 +27,48 @@ import {
 } from "@temporalio/common";
 import proto from "@temporalio/proto";
 
+import type { FileStorageProvider } from "../file-storage.js";
 import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
+import { retrievePayload } from "./payload-storage.js";
 
 type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
+
+/**
+ * Resolve any stored payload references in step outputs.
+ * This downloads the actual payload data from S3 and replaces the reference.
+ */
+const resolveStoredPayloadsInOutputs = async (
+  outputs: StepOutput[] | undefined,
+  storageProvider: FileStorageProvider,
+): Promise<StepOutput[] | undefined> => {
+  if (!outputs) {
+    return outputs;
+  }
+
+  return Promise.all(
+    outputs.map(async (output) => {
+      const { payload } = output;
+
+      if (isStoredPayloadRef(payload.value)) {
+        const resolvedValue = await retrievePayload(
+          storageProvider,
+          payload.value,
+        );
+
+        return {
+          ...output,
+          payload: {
+            kind: payload.kind,
+            value: resolvedValue,
+          } as unknown as Payload,
+        };
+      }
+
+      return output;
+    }),
+  );
+};
 
 const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
   const { eventTime } = event ?? {};
@@ -130,9 +171,12 @@ const getActivityStartedDetails = (
 const getFlowRunDetailedFields = async ({
   workflowId,
   temporalClient,
+  storageProvider,
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
+  /** Storage provider for resolving stored payload references */
+  storageProvider: FileStorageProvider;
 }): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
@@ -593,12 +637,53 @@ const getFlowRunDetailedFields = async ({
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
+  // Resolve any stored payload references in step outputs
+  const steps: StepRun[] = await Promise.all(
+    Object.values(stepMap).map(async (step) => {
+      // The outputs in stepMap are from Temporal history - Status<{outputs: StepOutput[]}> objects
+      // We need to resolve stored refs in the actual step outputs within those Status objects
+      if (!step.outputs) {
+        return step;
+      }
+
+      const resolvedOutputs = await Promise.all(
+        step.outputs.map(async (output) => {
+          // output is Status<{outputs: StepOutput[]}>
+          const firstContent = output.contents[0];
+          if (!firstContent?.outputs) {
+            return output;
+          }
+
+          const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
+            firstContent.outputs,
+            storageProvider,
+          );
+
+          return {
+            ...output,
+            contents: [
+              {
+                ...firstContent,
+                outputs: resolvedInnerOutputs ?? [],
+              },
+            ],
+          };
+        }),
+      );
+
+      return {
+        ...step,
+        outputs: resolvedOutputs,
+      };
+    }),
+  );
+
   return {
     failureMessage: workflowFailureMessage,
     inputs: workflowInputs,
     outputs: workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
-    steps: Object.values(stepMap),
+    steps,
     startedAt: workflowStartedAt.toISOString(),
   };
 };
@@ -660,11 +745,14 @@ export const getFlowRunFromTemporalWorkflowId = async (args: {
   /** the identifier for the Temporal workflow */
   temporalWorkflowId: string;
   webId: WebId;
+  /** Storage provider for resolving stored payload references */
+  storageProvider: FileStorageProvider;
 }): Promise<FlowRun> => {
   const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
   const detailedFields = await getFlowRunDetailedFields({
     workflowId: args.temporalWorkflowId,
     temporalClient: args.temporalClient,
+    storageProvider: args.storageProvider,
   });
 
   return {

@@ -10,11 +10,12 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import type {
+  FileStorageProvider,
   GetFileEntityStorageKeyParams,
+  GetFlowOutputStorageKeyParams,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
-  UploadableStorageProvider,
 } from "../file-storage.js";
 
 export interface AwsS3StorageProviderConstructorArgs {
@@ -26,7 +27,7 @@ export interface AwsS3StorageProviderConstructorArgs {
 }
 
 /** Implementation of the storage provider for AWS S3. Uploads all files to a single bucket */
-export class AwsS3StorageProvider implements UploadableStorageProvider {
+export class AwsS3StorageProvider implements FileStorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
   private client: S3Client;
   private bucket: string;
@@ -191,5 +192,66 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     filename,
   }: GetFileEntityStorageKeyParams) {
     return `files/${entityId}/${editionIdentifier}/${filename}` as const;
+  }
+
+  /**
+   * Generate a storage key for flow output payloads.
+   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
+   */
+  getFlowOutputStorageKey({
+    workflowId,
+    runId,
+    stepId,
+    outputName,
+  }: GetFlowOutputStorageKeyParams) {
+    return `flows/${workflowId}/${runId}/${stepId}/${outputName}.json` as const;
+  }
+
+  /**
+   * Upload data directly to S3 without presigning.
+   * Used by workers that have direct S3 credentials.
+   */
+  async uploadDirect({
+    key,
+    body,
+    contentType = "application/json",
+  }: {
+    key: string;
+    body: string | Buffer;
+    contentType?: string;
+  }): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    });
+
+    await this.client.send(command);
+  }
+
+  /**
+   * Download data directly from S3 without presigning.
+   * Used by workers that have direct S3 credentials.
+   */
+  async downloadDirect({ key }: { key: string }): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const response = await this.client.send(command);
+
+    if (!response.Body) {
+      throw new Error(`No body returned for S3 key: ${key}`);
+    }
+
+    // Convert the readable stream to a Buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+
+    return Buffer.concat(chunks);
   }
 }

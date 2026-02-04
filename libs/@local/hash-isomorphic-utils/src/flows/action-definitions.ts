@@ -2,7 +2,8 @@ import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
-  PayloadKindValues,
+  PayloadKind,
+  PayloadValue,
   StepInput,
 } from "./types.js";
 
@@ -28,6 +29,8 @@ export type AiFlowActionDefinitionId =
  * Activities that are registered to the 'integration' temporal task queue.
  */
 export type IntegrationFlowActionDefinitionId =
+  | "getHistoricalFlightArrivals"
+  | "getLiveFlightPositions"
   | "getScheduledFlights"
   | "persistIntegrationEntities";
 
@@ -549,6 +552,74 @@ const aiFlowActionDefinitionsAsConst = {
 >;
 
 const integrationFlowActionDefinitionsAsConst = {
+  getHistoricalFlightArrivals: {
+    actionDefinitionId: "getHistoricalFlightArrivals",
+    name: "Get Historical Flight Arrivals",
+    description:
+      "Fetch historical flight arrivals from AeroAPI for a given airport and date range.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "airportIcao",
+        description:
+          "The ICAO code of the airport (e.g. 'EGLL' for London Heathrow)",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Date"],
+        name: "startDate",
+        description:
+          "The start date for the historical query in ISO format (e.g. '2024-01-15')",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Date"],
+        name: "endDate",
+        description:
+          "The end date for the historical query in ISO format (e.g. '2024-01-16') – must be yesterday or earlier",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        description: "The proposed flight entities and related data",
+        array: true,
+        required: true,
+      },
+    ],
+  },
+  getLiveFlightPositions: {
+    actionDefinitionId: "getLiveFlightPositions",
+    name: "Get Live Flight Positions",
+    description:
+      "Fetch live flight positions from FlightRadar24 for flights that have departed or recently arrived.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        name: "persistedEntities",
+        description:
+          "The persisted flight entities to check for live positions",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        description: "Updated flight entities with live position data",
+        array: true,
+        required: true,
+      },
+    ],
+  },
   getScheduledFlights: {
     actionDefinitionId: "getScheduledFlights",
     name: "Get Scheduled Flights",
@@ -680,18 +751,18 @@ type AiFlowInputPayloadType<
   (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
   { name: N }
 > extends { required: true; array: true }
-  ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>][]
+  ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
   : Extract<
         (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
         { name: N }
       > extends { required: false; array: true }
-    ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>][] | undefined
+    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
     : Extract<
           (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
         > extends { required: true; array: false }
-      ? PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>]
-      : PayloadKindValues[InputPayloadKindForAiFlowAction<T, N>] | undefined;
+      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
+      : PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false> | undefined;
 
 type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
   [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
@@ -727,21 +798,21 @@ type IntegrationFlowInputPayloadType<
   (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
   { name: N }
 > extends { required: true; array: true }
-  ? PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>][]
+  ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
   : Extract<
         (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
         { name: N }
       > extends { required: false; array: true }
     ?
-        | PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>][]
+        | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
         | undefined
     : Extract<
           (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
         > extends { required: true; array: false }
-      ? PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>]
+      ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
       :
-          | PayloadKindValues[InputPayloadKindForIntegrationFlowAction<T, N>]
+          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
           | undefined;
 
 type SimplifiedIntegrationActionInputsObject<
@@ -791,19 +862,17 @@ export const getSimplifiedIntegrationFlowActionInputs = <
 type ActionStepOutput<
   OutputDef extends {
     name: string;
-    payloadKind: keyof PayloadKindValues;
+    payloadKind: PayloadKind;
     array: boolean;
   },
 > = OutputDef extends {
   name: infer N extends string;
-  payloadKind: infer K extends keyof PayloadKindValues;
+  payloadKind: infer K extends PayloadKind;
   array: infer A extends boolean;
 }
   ? {
       outputName: N;
-      payload: A extends true
-        ? { kind: K; value: PayloadKindValues[K][] }
-        : { kind: K; value: PayloadKindValues[K] };
+      payload: { kind: K; value: PayloadValue<K, A> };
     }
   : never;
 

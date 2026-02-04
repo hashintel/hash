@@ -4,7 +4,6 @@ import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
   StorageType,
-  UploadableStorageProvider,
 } from "@local/hash-backend-utils/file-storage";
 import {
   isStorageType,
@@ -37,9 +36,7 @@ const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 // 1 hour.
 const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
-type StorageProviderInitialiser = (
-  app: Express,
-) => FileStorageProvider | UploadableStorageProvider;
+type StorageProviderInitialiser = (app: Express) => FileStorageProvider;
 
 const storageProviderInitialiserLookup: Record<
   StorageType,
@@ -68,20 +65,20 @@ export const initialiseStorageProvider = (
   return newProvider;
 };
 
-export const getUploadStorageProvider = (): UploadableStorageProvider => {
+export const getUploadStorageProvider = (): FileStorageProvider => {
   const uploadProvider = storageProviderLookup[uploadStorageProvider];
   if (!uploadProvider) {
     throw new Error(
       `Upload storage provider ${uploadStorageProvider} is required by the app but doesn't exist`,
     );
   }
-  return uploadProvider as UploadableStorageProvider;
+  return uploadProvider;
 };
 
 export const setupStorageProviders = (
   app: Express,
   fileUploadProvider: StorageType,
-): UploadableStorageProvider => {
+): FileStorageProvider => {
   initialiseStorageProvider(app, fileUploadProvider);
   uploadStorageProvider = fileUploadProvider;
   return getUploadStorageProvider();

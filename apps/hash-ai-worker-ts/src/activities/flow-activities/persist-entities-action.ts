@@ -1,5 +1,10 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolveArrayPayloadValue,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -8,19 +13,28 @@ import type {
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 
-import {
-  fileEntityTypeIds,
-  persistEntityAction,
-} from "./persist-entity-action.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
 
 export const persistEntitiesAction: AiFlowActionActivity<
   "persistEntities"
 > = async ({ inputs }) => {
-  const { draft, proposedEntities } = getSimplifiedAiFlowActionInputs({
-    inputs,
-    actionType: "persistEntities",
-  });
+  const { runId, stepId, workflowId } = await getFlowContext();
+
+  const { draft, proposedEntities: proposedEntitiesInput } =
+    getSimplifiedAiFlowActionInputs({
+      inputs,
+      actionType: "persistEntities",
+    });
+
+  // The input may be a stored reference - resolve it if so
+  const proposedEntities = await resolveArrayPayloadValue(
+    getStorageProvider(),
+    "ProposedEntity",
+    proposedEntitiesInput,
+  );
 
   /**
    * Sort the entities to persist in dependency order:
@@ -78,6 +92,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
    * if an existing entity is found to update rather than a new one with the localId being created.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
+    // Heartbeat to indicate the activity is still running
+    Context.current().heartbeat();
+
     const {
       claims,
       entityTypeIds,
@@ -158,20 +175,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
       }
     }
 
-    const persistedEntityOutputs = await persistEntityAction({
-      inputs: [
-        {
-          inputName: "draft",
-          payload: { kind: "Boolean", value: draft ?? false },
-        },
-        {
-          inputName: "proposedEntityWithResolvedLinks",
-          payload: {
-            kind: "ProposedEntityWithResolvedLinks",
-            value: entityWithResolvedLinks,
-          },
-        },
-      ],
+    const persistedEntityOutputs = await persistEntity({
+      proposedEntityWithResolvedLinks: entityWithResolvedLinks,
+      draft: draft ?? false,
     });
 
     const output = persistedEntityOutputs.contents[0]?.outputs[0]?.payload;
@@ -210,6 +216,20 @@ export const persistEntitiesAction: AiFlowActionActivity<
 
   const persistedEntities = Object.values(persistedEntitiesByLocalId);
 
+  // Store the output in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "persistedEntities",
+    kind: "PersistedEntitiesMetadata",
+    value: {
+      persistedEntities,
+      failedEntityProposals: Object.values(failedEntitiesByLocalId),
+    },
+  });
+
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
     code:
@@ -231,10 +251,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
             outputName: "persistedEntities",
             payload: {
               kind: "PersistedEntitiesMetadata",
-              value: {
-                persistedEntities,
-                failedEntityProposals: Object.values(failedEntitiesByLocalId),
-              },
+              value: storedRef,
             },
           },
         ],

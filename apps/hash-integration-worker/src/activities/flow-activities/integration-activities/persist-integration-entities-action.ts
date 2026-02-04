@@ -9,6 +9,11 @@ import {
 } from "@blockprotocol/type-system";
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
+  getStorageProvider,
+  resolveArrayPayloadValue,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import {
   generateEntityMatcher,
   generateLinkMatcher,
 } from "@local/hash-backend-utils/integrations/aviation";
@@ -31,7 +36,9 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 
@@ -77,6 +84,26 @@ const findExistingEntity = async (params: {
 
   const [entity] = entities;
   return entity ?? null;
+};
+
+/**
+ * Executes an array of async operations in parallel batches.
+ */
+const executeInBatches = async <T, R>(
+  items: T[],
+  batchSize: number,
+  operation: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    Context.current().heartbeat();
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(operation));
+    results.push(...batchResults);
+  }
+
+  return results;
 };
 
 const findExistingLink = async (params: {
@@ -131,6 +158,26 @@ const findExistingLink = async (params: {
   return entity ? new HashLinkEntity(entity) : null;
 };
 
+const BATCH_SIZE = 100;
+
+type EntityToCreate = {
+  proposedEntity: ProposedEntity;
+  params: Parameters<typeof HashEntity.create>[2];
+};
+
+type EntityToPatch = {
+  proposedEntity: ProposedEntity;
+  existingEntity: HashEntity;
+  propertyPatches: Parameters<
+    typeof HashEntity.prototype.patch
+  >[2]["propertyPatches"];
+};
+
+type EntityUnchanged = {
+  proposedEntity: ProposedEntity;
+  existingEntity: HashEntity;
+};
+
 /**
  * Persists proposed entities to the graph, creating new entities as needed.
  * Returns the mapping of local entity IDs to persisted entity IDs.
@@ -162,7 +209,14 @@ const persistEntities = async (params: {
     (entity) => !entity.sourceEntityId && !entity.targetEntityId,
   );
 
+  // Phase 1: Find existing entities and categorize operations
+  const entitiesToCreate: EntityToCreate[] = [];
+  const entitiesToPatch: EntityToPatch[] = [];
+  const unchangedEntities: EntityUnchanged[] = [];
+
   for (const proposedEntity of nonLinkEntities) {
+    Context.current().heartbeat();
+
     try {
       const existingEntity = await findExistingEntity({
         graphApiClient,
@@ -180,36 +234,22 @@ const persistEntities = async (params: {
         const propertyPatches = patchesFromPropertyObjects({
           oldProperties: existingEntity.properties,
           newProperties,
+          removeProperties: false,
         });
 
-        const updatedEntity =
-          propertyPatches.length > 0
-            ? await existingEntity.patch(graphApiClient, authentication, {
-                propertyPatches,
-                provenance: {
-                  ...provenance,
-                  sources: proposedEntity.provenance.sources,
-                },
-              })
-            : existingEntity;
-
-        entityIdsByLocalId.set(
-          proposedEntity.localEntityId,
-          updatedEntity.metadata.recordId.entityId,
-        );
-
-        persistedEntitiesMetadata.push({
-          entityId: updatedEntity.metadata.recordId.entityId,
-          operation:
-            propertyPatches.length > 0
-              ? "update"
-              : "already-exists-as-proposed",
-        });
+        if (propertyPatches.length > 0) {
+          entitiesToPatch.push({
+            proposedEntity,
+            existingEntity,
+            propertyPatches,
+          });
+        } else {
+          unchangedEntities.push({ proposedEntity, existingEntity });
+        }
       } else {
-        const newEntity = await HashEntity.create(
-          graphApiClient,
-          authentication,
-          {
+        entitiesToCreate.push({
+          proposedEntity,
+          params: {
             webId,
             draft: false,
             properties: mergePropertyObjectAndMetadata(
@@ -222,16 +262,6 @@ const persistEntities = async (params: {
             },
             entityTypeIds: proposedEntity.entityTypeIds,
           },
-        );
-
-        entityIdsByLocalId.set(
-          proposedEntity.localEntityId,
-          newEntity.metadata.recordId.entityId,
-        );
-
-        persistedEntitiesMetadata.push({
-          entityId: newEntity.metadata.recordId.entityId,
-          operation: "create",
         });
       }
     } catch (error) {
@@ -239,8 +269,119 @@ const persistEntities = async (params: {
         error instanceof Error ? error.message : "Unknown error";
       failedEntityProposals.push({
         proposedEntity,
-        message: `Failed to persist entity: ${errorMessage}`,
+        message: `Failed to find existing entity: ${errorMessage}. ${stringifyError(error)}`,
       });
+    }
+  }
+
+  // Phase 2: Handle unchanged entities (no API call needed)
+  for (const { proposedEntity, existingEntity } of unchangedEntities) {
+    entityIdsByLocalId.set(
+      proposedEntity.localEntityId,
+      existingEntity.metadata.recordId.entityId,
+    );
+    persistedEntitiesMetadata.push({
+      entityId: existingEntity.metadata.recordId.entityId,
+      operation: "already-exists-as-proposed",
+    });
+  }
+
+  // Phase 3: Batch create new entities in groups of BATCH_SIZE
+  for (
+    let batchStartIndex = 0;
+    batchStartIndex < entitiesToCreate.length;
+    batchStartIndex += BATCH_SIZE
+  ) {
+    Context.current().heartbeat();
+    const batch = entitiesToCreate.slice(
+      batchStartIndex,
+      batchStartIndex + BATCH_SIZE,
+    );
+
+    try {
+      const createdEntities = await HashEntity.createMultiple(
+        graphApiClient,
+        authentication,
+        batch.map((item) => item.params),
+      );
+
+      for (
+        let entityIndexInBatch = 0;
+        entityIndexInBatch < createdEntities.length;
+        entityIndexInBatch++
+      ) {
+        const proposedEntity = batch[entityIndexInBatch]!.proposedEntity;
+        const createdEntity = createdEntities[entityIndexInBatch]!;
+
+        entityIdsByLocalId.set(
+          proposedEntity.localEntityId,
+          createdEntity.metadata.recordId.entityId,
+        );
+        persistedEntitiesMetadata.push({
+          entityId: createdEntity.metadata.recordId.entityId,
+          operation: "create",
+        });
+      }
+    } catch (error) {
+      // If batch creation fails, add all entities in this batch to failed proposals
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      for (const { proposedEntity } of batch) {
+        failedEntityProposals.push({
+          proposedEntity,
+          message: `Failed to create entity in batch: ${errorMessage}. ${stringifyError(error)}`,
+        });
+      }
+    }
+  }
+
+  // Phase 4: Patch existing entities in parallel batches
+  if (entitiesToPatch.length > 0) {
+    const patchResults = await executeInBatches(
+      entitiesToPatch,
+      BATCH_SIZE,
+      async ({ proposedEntity, existingEntity, propertyPatches }) => {
+        try {
+          const updatedEntity = await existingEntity.patch(
+            graphApiClient,
+            authentication,
+            {
+              propertyPatches,
+              provenance: {
+                ...provenance,
+                sources: proposedEntity.provenance.sources,
+              },
+            },
+          );
+          return { success: true as const, proposedEntity, updatedEntity };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return {
+            success: false as const,
+            proposedEntity,
+            error: `Failed to patch entity: ${errorMessage}. ${stringifyError(error)}`,
+          };
+        }
+      },
+    );
+
+    for (const result of patchResults) {
+      if (result.success) {
+        entityIdsByLocalId.set(
+          result.proposedEntity.localEntityId,
+          result.updatedEntity.metadata.recordId.entityId,
+        );
+        persistedEntitiesMetadata.push({
+          entityId: result.updatedEntity.metadata.recordId.entityId,
+          operation: "update",
+        });
+      } else {
+        failedEntityProposals.push({
+          proposedEntity: result.proposedEntity,
+          message: result.error,
+        });
+      }
     }
   }
 
@@ -249,6 +390,24 @@ const persistEntities = async (params: {
     failedEntityProposals,
     entityIdsByLocalId,
   };
+};
+
+type LinkToCreate = {
+  proposedLink: ProposedEntity;
+  params: Parameters<typeof HashLinkEntity.create>[2];
+};
+
+type LinkToPatch = {
+  proposedLink: ProposedEntity;
+  existingLink: HashLinkEntity;
+  propertyPatches: Parameters<
+    typeof HashLinkEntity.prototype.patch
+  >[2]["propertyPatches"];
+};
+
+type LinkUnchanged = {
+  proposedLink: ProposedEntity;
+  existingLink: HashLinkEntity;
 };
 
 /**
@@ -281,7 +440,14 @@ const persistLinks = async (params: {
     (entity) => entity.sourceEntityId && entity.targetEntityId,
   );
 
+  // Phase 1: Resolve entity IDs and find existing links
+  const linksToCreate: LinkToCreate[] = [];
+  const linksToPatch: LinkToPatch[] = [];
+  const unchangedLinks: LinkUnchanged[] = [];
+
   for (const proposedLink of linkEntities) {
+    Context.current().heartbeat();
+
     const { sourceEntityId, targetEntityId } = proposedLink;
 
     if (!sourceEntityId || !targetEntityId) {
@@ -331,31 +497,22 @@ const persistLinks = async (params: {
         const propertyPatches = patchesFromPropertyObjects({
           oldProperties: existingLink.properties,
           newProperties,
+          removeProperties: false,
         });
 
-        const updatedLink =
-          propertyPatches.length > 0
-            ? await existingLink.patch(graphApiClient, authentication, {
-                propertyPatches,
-                provenance: {
-                  ...provenance,
-                  sources: proposedLink.provenance.sources,
-                },
-              })
-            : existingLink;
-
-        persistedEntitiesMetadata.push({
-          entityId: updatedLink.metadata.recordId.entityId,
-          operation:
-            propertyPatches.length > 0
-              ? "update"
-              : "already-exists-as-proposed",
-        });
+        if (propertyPatches.length > 0) {
+          linksToPatch.push({
+            proposedLink,
+            existingLink,
+            propertyPatches,
+          });
+        } else {
+          unchangedLinks.push({ proposedLink, existingLink });
+        }
       } else {
-        const newLink = await HashLinkEntity.create(
-          graphApiClient,
-          authentication,
-          {
+        linksToCreate.push({
+          proposedLink,
+          params: {
             webId,
             draft: false,
             linkData: {
@@ -372,11 +529,6 @@ const persistLinks = async (params: {
             },
             entityTypeIds: proposedLink.entityTypeIds,
           },
-        );
-
-        persistedEntitiesMetadata.push({
-          entityId: newLink.metadata.recordId.entityId,
-          operation: "create",
         });
       }
     } catch (error) {
@@ -384,8 +536,105 @@ const persistLinks = async (params: {
         error instanceof Error ? error.message : "Unknown error";
       failedEntityProposals.push({
         proposedEntity: proposedLink,
-        message: `Failed to persist link: ${errorMessage}`,
+        message: `Failed to find existing link: ${errorMessage}. ${stringifyError(error)}`,
       });
+    }
+  }
+
+  // Phase 2: Handle unchanged links (no API call needed)
+  for (const { existingLink } of unchangedLinks) {
+    persistedEntitiesMetadata.push({
+      entityId: existingLink.metadata.recordId.entityId,
+      operation: "already-exists-as-proposed",
+    });
+  }
+
+  // Phase 3: Batch create new links in groups of BATCH_SIZE
+  for (
+    let batchStartIndex = 0;
+    batchStartIndex < linksToCreate.length;
+    batchStartIndex += BATCH_SIZE
+  ) {
+    Context.current().heartbeat();
+    const batch = linksToCreate.slice(
+      batchStartIndex,
+      batchStartIndex + BATCH_SIZE,
+    );
+
+    try {
+      const createdLinks = await HashLinkEntity.createMultiple(
+        graphApiClient,
+        authentication,
+        batch.map((item) => item.params),
+      );
+
+      for (
+        let linkIndexInBatch = 0;
+        linkIndexInBatch < createdLinks.length;
+        linkIndexInBatch++
+      ) {
+        const createdLink = createdLinks[linkIndexInBatch]!;
+        persistedEntitiesMetadata.push({
+          entityId: createdLink.metadata.recordId.entityId,
+          operation: "create",
+        });
+      }
+    } catch (error) {
+      // If batch creation fails, add all links in this batch to failed proposals
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      for (const { proposedLink } of batch) {
+        failedEntityProposals.push({
+          proposedEntity: proposedLink,
+          message: `Failed to create link in batch: ${errorMessage}. ${stringifyError(error)}`,
+        });
+      }
+    }
+  }
+
+  // Phase 4: Patch existing links in parallel batches
+  if (linksToPatch.length > 0) {
+    const patchResults = await executeInBatches(
+      linksToPatch,
+      BATCH_SIZE,
+      async ({ proposedLink, existingLink, propertyPatches }) => {
+        try {
+          const updatedLink = await existingLink.patch(
+            graphApiClient,
+            authentication,
+            {
+              propertyPatches,
+              provenance: {
+                ...provenance,
+                sources: proposedLink.provenance.sources,
+              },
+            },
+          );
+          return { success: true as const, updatedLink };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return {
+            success: false as const,
+            proposedLink,
+            error: `Failed to patch link: ${errorMessage}. ${stringifyError(error)}`,
+          };
+        }
+      },
+    );
+
+    for (const result of patchResults) {
+      if (result.success) {
+        persistedEntitiesMetadata.push({
+          entityId: result.updatedLink.metadata.recordId.entityId,
+          operation: "update",
+        });
+      } else {
+        failedEntityProposals.push({
+          proposedEntity: result.proposedLink,
+          message: result.error,
+        });
+      }
     }
   }
 
@@ -402,13 +651,27 @@ export const createPersistIntegrationEntitiesAction = ({
 }): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
-      const { flowEntityId, stepId, userAuthentication, webId } =
-        await getFlowContext();
+      const {
+        flowEntityId,
+        runId,
+        stepId,
+        userAuthentication,
+        webId,
+        workflowId,
+      } = await getFlowContext();
 
-      const { proposedEntities } = getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "persistIntegrationEntities",
-      });
+      const { proposedEntities: proposedEntitiesInput } =
+        getSimplifiedIntegrationFlowActionInputs({
+          inputs,
+          actionType: "persistIntegrationEntities",
+        });
+
+      // The input may be a stored reference - resolve it if so
+      const proposedEntities = await resolveArrayPayloadValue(
+        getStorageProvider(),
+        "ProposedEntity",
+        proposedEntitiesInput,
+      );
 
       const provenance: ProvidedEntityEditionProvenance = {
         actorType: "machine",
@@ -456,6 +719,17 @@ export const createPersistIntegrationEntitiesAction = ({
         failedEntityProposals: allFailedProposals,
       };
 
+      // Store the output in S3 to avoid passing large payloads through Temporal
+      const storedRef = await storePayload({
+        storageProvider: getStorageProvider(),
+        workflowId,
+        runId,
+        stepId,
+        outputName: "persistedEntities",
+        kind: "PersistedEntitiesMetadata",
+        value: result,
+      });
+
       const code =
         allPersistedEntities.length > 0
           ? StatusCode.Ok
@@ -480,7 +754,7 @@ export const createPersistIntegrationEntitiesAction = ({
                 outputName: "persistedEntities",
                 payload: {
                   kind: "PersistedEntitiesMetadata",
-                  value: result,
+                  value: storedRef,
                 },
               },
             ],

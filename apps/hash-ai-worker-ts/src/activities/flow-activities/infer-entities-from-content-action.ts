@@ -12,6 +12,10 @@ import {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -43,7 +47,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
     actionType: "inferEntitiesFromContent",
   });
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
+  const { flowEntityId, userAuthentication, stepId, webId, workflowId, runId } =
     await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
@@ -208,6 +212,17 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
     }),
   );
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: proposedEntities,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -217,7 +232,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
             outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: proposedEntities,
+              value: storedRef,
             },
           },
         ],
