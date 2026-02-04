@@ -235,7 +235,7 @@ export const Topbar = ({
         </Link>
         <Divider topOffset={0.1} />
 
-        <Link href={`/${workerType}`} noLinkStyle sx={{ mr: 0.5 }}>
+        <Link href={`/${workerType}s`} noLinkStyle sx={{ mr: 0.5 }}>
           <Typography
             sx={{ ...typographySx, textTransform: "capitalize" }}
             variant="smallTextParagraphs"

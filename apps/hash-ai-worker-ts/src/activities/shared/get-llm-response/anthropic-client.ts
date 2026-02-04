@@ -19,6 +19,7 @@ const permittedAnthropicModels = [
   "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
   "claude-3-haiku-20240307",
+  "claude-opus-4-5",
 ] satisfies MessageCreateParamsBase["model"][];
 
 export type PermittedAnthropicModel = (typeof permittedAnthropicModels)[number];
@@ -36,6 +37,7 @@ export const anthropicMessageModelToContextWindow: Record<
   "claude-3-haiku-20240307": 200_000,
   "claude-3-opus-20240229": 200_000,
   "claude-3-5-sonnet-20240620": 200_000,
+  "claude-opus-4-5": 200_000,
 };
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
@@ -46,6 +48,7 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-3-haiku-20240307": 4096,
   "claude-3-opus-20240229": 4096,
   "claude-3-5-sonnet-20240620": 8192,
+  "claude-opus-4-5": 64_000,
 };
 
 export type AnthropicMessagesCreateParams = {
@@ -102,7 +105,7 @@ export const createAnthropicMessagesWithTools = async (params: {
 }): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
-  let response: Message & { _request_id?: string | null | undefined };
+  let response: Message;
 
   /**
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
@@ -110,7 +113,7 @@ export const createAnthropicMessagesWithTools = async (params: {
    */
   if (provider === "amazon-bedrock") {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
-    response = await anthropicBedrockClient.messages.create(
+    const stream = anthropicBedrockClient.messages.stream(
       {
         ...payload,
         model: bedrockModel,
@@ -122,13 +125,15 @@ export const createAnthropicMessagesWithTools = async (params: {
         },
       },
     );
+    response = await stream.finalMessage();
   } else {
-    response = await anthropic.messages.create(payload, {
+    const stream = anthropic.messages.stream(payload, {
       signal: Context.current().cancellationSignal,
       headers: {
         "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
       },
     });
+    response = await stream.finalMessage();
   }
 
   return { ...response, provider };

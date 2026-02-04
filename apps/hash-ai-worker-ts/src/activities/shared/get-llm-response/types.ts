@@ -16,13 +16,36 @@ import {
 } from "./google-vertex-ai-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 
+/**
+ * Extended JSON Schema type that supports $defs and $ref for schema references.
+ * This allows defining reusable schemas within tool definitions.
+ * The $defs type is permissive to accept schemas extracted from OpenAPI specs.
+ */
+export type LlmToolInputSchema = Omit<
+  JSONSchema,
+  "type" | "default" | "$defs" | "properties"
+> & {
+  additionalProperties: false;
+  type: "object";
+  /**
+   * Schema definitions that can be referenced via $ref.
+   * Uses `unknown` to accept schemas from various sources (e.g., OpenAPI JSON imports).
+   */
+  $defs?: Record<string, unknown>;
+  properties?: Record<
+    string,
+    | JSONSchema
+    | {
+        $ref: string;
+        description?: string;
+      }
+  >;
+};
+
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: Omit<JSONSchema, "type" | "default"> & {
-    additionalProperties: false;
-    type: "object";
-  };
+  inputSchema: LlmToolInputSchema;
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 
