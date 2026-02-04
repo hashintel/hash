@@ -62,15 +62,13 @@
     "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },
-  "dependencies": {
-    "@radix-ui/colors": "3.0.0"
-  },
   "devDependencies": {
     "@hashintel/ds-theme": "0.0.3",
     "@ladle/react": "5.1.1",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.4.3",
     "@playwright/test": "1.57.0",
+    "@radix-ui/colors": "3.0.0",
     "@tool-belt/type-predicates": "1.4.1",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "22.18.13",
