@@ -82,8 +82,6 @@ import type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
-  WorkflowIDPropertyValue,
-  WorkflowIDPropertyValueWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -166,6 +164,4 @@ export type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
-  WorkflowIDPropertyValue,
-  WorkflowIDPropertyValueWithMetadata,
 };

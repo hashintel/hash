@@ -1,0 +1,1023 @@
+{
+  "flight": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/flight-number/": "8Y210",
+      "https://hash.ai/@h/types/property-type/flight-status/": "Scheduled",
+      "https://hash.ai/@h/types/property-type/icao-code/": "AAV210",
+      "https://hash.ai/@h/types/property-type/flight-type/": "Airline",
+      "https://hash.ai/@h/types/property-type/flight-date/": "2026-01-30",
+      "https://hash.ai/@h/types/property-type/iata-code/": "8Y210"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~42c57e8b-8912-430c-b8d1-8aee077ae28f",
+        "editionId": "edc1b3db-a52b-40ce-9c9a-380a387ab132"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:09.867604000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:09.867604000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": ["https://hash.ai/@h/types/entity-type/flight/v/1"],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:49.546217000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:49.546217000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:49.546217000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:49.546217000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://hash.ai/@h/types/property-type/flight-number/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "8Y210"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/flight-status/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/flight-status/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/flight-status/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/flight-status/": "Scheduled"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/flight-type/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Airline"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/iata-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "8Y210"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/icao-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "AAV210"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/flight-date/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/date/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/date/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/date/": "2026-01-30"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "arrivalAirport": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/city/": "St Mawgan (Cornwall)",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "Newquay Cornwall",
+      "https://hash.ai/@h/types/property-type/timezone/": "Europe/London",
+      "https://hash.ai/@h/types/property-type/iata-code/": "NQY",
+      "https://hash.ai/@h/types/property-type/icao-code/": "EGHQ"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~be6f15d4-3439-4318-beda-443f6001cd03",
+        "editionId": "d1a7348a-f6f8-4dd4-80bb-e35f8b960a93"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:08.945683000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:08.945683000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": ["https://hash.ai/@h/types/entity-type/airport/v/1"],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:49.699699000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:49.699699000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:49.699699000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:49.699699000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://hash.ai/@h/types/property-type/city/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "St Mawgan (Cornwall)"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/timezone/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Europe/London"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/iata-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "NQY"
+              }
+            }
+          },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Newquay Cornwall"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/icao-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "EGHQ"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "arrivalStatus": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/delay-in-seconds/": 0,
+      "https://hash.ai/@h/types/property-type/scheduled-runway-time/": "2026-01-30T10:35:00Z",
+      "https://hash.ai/@h/types/property-type/estimated-gate-time/": "2026-01-30T10:40:00Z",
+      "https://hash.ai/@h/types/property-type/scheduled-gate-time/": "2026-01-30T10:40:00Z",
+      "https://hash.ai/@h/types/property-type/estimated-runway-time/": "2026-01-30T10:35:00Z"
+    },
+    "linkData": {
+      "leftEntityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~42c57e8b-8912-430c-b8d1-8aee077ae28f",
+      "rightEntityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~be6f15d4-3439-4318-beda-443f6001cd03"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~39239012-24ff-404b-9d24-9aabc4fccfb3",
+        "editionId": "8a09bf5f-d9c2-475a-bff6-e288b4005782"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:11.140387000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:11.140387000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": ["https://hash.ai/@h/types/entity-type/arrives-at/v/1"],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:50.653736000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:50.653736000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:50.653736000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:50.653736000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://hash.ai/@h/types/property-type/estimated-gate-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:40:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/estimated-runway-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:35:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/delay-in-seconds/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/integer/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/integer/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/integer/": 0
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/scheduled-gate-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:40:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/scheduled-runway-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:35:00Z"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "departureAirport": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/iata-code/": "ISC",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "St. Mary's",
+      "https://hash.ai/@h/types/property-type/city/": "St. Mary's",
+      "https://hash.ai/@h/types/property-type/timezone/": "Europe/London",
+      "https://hash.ai/@h/types/property-type/icao-code/": "EGHE"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~bd19cd95-ac63-4948-b03a-108c02ed6da3",
+        "editionId": "7a8ac259-af04-4748-9679-db5916540e0f"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:10.011246000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:10.011246000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": ["https://hash.ai/@h/types/entity-type/airport/v/1"],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:49.631238000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:49.631238000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:49.631238000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:49.631238000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "St. Mary's"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/timezone/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Europe/London"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/iata-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "ISC"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/icao-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "EGHE"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/city/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "St. Mary's"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "departureStatus": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/estimated-runway-time/": "2026-01-30T10:15:00Z",
+      "https://hash.ai/@h/types/property-type/delay-in-seconds/": 0,
+      "https://hash.ai/@h/types/property-type/scheduled-runway-time/": "2026-01-30T10:15:00Z",
+      "https://hash.ai/@h/types/property-type/estimated-gate-time/": "2026-01-30T10:10:00Z",
+      "https://hash.ai/@h/types/property-type/scheduled-gate-time/": "2026-01-30T10:10:00Z"
+    },
+    "linkData": {
+      "leftEntityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~42c57e8b-8912-430c-b8d1-8aee077ae28f",
+      "rightEntityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~bd19cd95-ac63-4948-b03a-108c02ed6da3"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~6052719f-7dfe-42a2-8a6c-a649a30a37db",
+        "editionId": "922008e7-6869-4f89-b2d7-415013902387"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:11.034163000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:11.034163000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": [
+        "https://hash.ai/@h/types/entity-type/departs-from/v/1"
+      ],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:50.474769000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:50.474769000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:50.474769000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:50.474769000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://hash.ai/@h/types/property-type/estimated-gate-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:10:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/scheduled-runway-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:15:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/scheduled-gate-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:10:00Z"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/delay-in-seconds/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/integer/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/integer/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/integer/": 0
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/estimated-runway-time/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "originalDataTypeId": "https://hash.ai/@h/types/data-type/datetime/v/1",
+              "canonical": {
+                "https://hash.ai/@h/types/data-type/datetime/": "2026-01-30T10:15:00Z"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "operatedBy": {
+    "properties": {
+      "https://hash.ai/@h/types/property-type/icao-code/": "AAV",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "AAV",
+      "https://hash.ai/@h/types/property-type/iata-code/": "8Y"
+    },
+    "metadata": {
+      "recordId": {
+        "entityId": "d4e19f55-faa3-4de7-a8ab-786e4219c977~1d09bb22-2266-49a6-bbaa-d1c770f20fb5",
+        "editionId": "8ba6e81d-7dbf-415c-9b75-c8cce8b9281e"
+      },
+      "temporalVersioning": {
+        "decisionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:10.143988000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        },
+        "transactionTime": {
+          "start": {
+            "kind": "inclusive",
+            "limit": "2026-01-30T13:44:10.143988000Z"
+          },
+          "end": {
+            "kind": "unbounded"
+          }
+        }
+      },
+      "entityTypeIds": ["https://hash.ai/@h/types/entity-type/airline/v/1"],
+      "archived": false,
+      "provenance": {
+        "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+        "createdAtTransactionTime": "2026-01-30T13:12:49.764560000Z",
+        "createdAtDecisionTime": "2026-01-30T13:12:49.764560000Z",
+        "firstNonDraftCreatedAtTransactionTime": "2026-01-30T13:12:49.764560000Z",
+        "firstNonDraftCreatedAtDecisionTime": "2026-01-30T13:12:49.764560000Z",
+        "edition": {
+          "createdById": "d4e19f55-faa3-4de7-a8ab-786e4219c977",
+          "sources": [
+            {
+              "type": "integration",
+              "location": {
+                "name": "FlightAware AeroAPI",
+                "uri": "https://aeroapi.flightaware.com/aeroapi/"
+              },
+              "loadedAt": "2026-01-30T13:44:06.036000000Z"
+            }
+          ],
+          "actorType": "machine",
+          "origin": {
+            "type": "flow",
+            "stepIds": ["2"],
+            "id": "d4e19f55-faa3-4de7-a8ab-786e4219c977~00c2f364-810b-4af2-b57a-799fc3525ddc"
+          }
+        }
+      },
+      "properties": {
+        "value": {
+          "https://hash.ai/@h/types/property-type/iata-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "8Y"
+              }
+            }
+          },
+          "https://hash.ai/@h/types/property-type/icao-code/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "AAV"
+              }
+            }
+          },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+            "metadata": {
+              "provenance": {
+                "sources": [
+                  {
+                    "type": "integration",
+                    "location": {
+                      "name": "FlightAware AeroAPI",
+                      "uri": "https://aeroapi.flightaware.com/aeroapi/"
+                    },
+                    "loadedAt": "2026-01-30T13:44:06.036000000Z"
+                  }
+                ]
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "AAV"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "usesAircraft": null
+}

@@ -11,5 +11,14 @@ export default [
         "react-hooks/rules-of-hooks": "off",
       },
     },
+    {
+      files: ["scripts/**/*.ts"],
+      rules: {
+        "import/no-extraneous-dependencies": [
+          "error",
+          { devDependencies: true },
+        ],
+      },
+    },
   ]),
 ];

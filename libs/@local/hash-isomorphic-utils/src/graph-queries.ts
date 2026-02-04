@@ -56,6 +56,15 @@ export const almostFullOntologyResolveDepths: GraphResolveDepths = {
   isOfType: true,
 };
 
+export const zeroedOntologyResolveDepths: GraphResolveDepths = {
+  constrainsValuesOn: 0,
+  constrainsPropertiesOn: 0,
+  constrainsLinksOn: 0,
+  constrainsLinkDestinationsOn: 0,
+  inheritsFrom: 0,
+  isOfType: false,
+};
+
 /**
  * Slices the datastore across this instant of time.
  *

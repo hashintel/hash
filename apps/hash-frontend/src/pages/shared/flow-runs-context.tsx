@@ -227,7 +227,8 @@ export const useStatusForSteps = (
     }
 
     let scheduledAt: string | undefined;
-    let closedAt: string | undefined;
+    let latestClosedAt: string | undefined;
+    let allStepsClosed = true;
     let status: SimpleStatus =
       stepRuns.at(-1)!.status === FlowStepStatus.Cancelled
         ? "Cancelled"
@@ -242,8 +243,12 @@ export const useStatusForSteps = (
         scheduledAt = stepRun.scheduledAt;
       }
 
-      if (stepRun.closedAt && (!closedAt || stepRun.closedAt > closedAt)) {
-        closedAt = stepRun.closedAt;
+      if (stepRun.closedAt) {
+        if (!latestClosedAt || stepRun.closedAt > latestClosedAt) {
+          latestClosedAt = stepRun.closedAt;
+        }
+      } else {
+        allStepsClosed = false;
       }
 
       let simpleStatus = statusToSimpleStatus(stepRun.status);
@@ -284,7 +289,7 @@ export const useStatusForSteps = (
     }
 
     return {
-      closedAt,
+      closedAt: allStepsClosed ? latestClosedAt : undefined,
       scheduledAt,
       overallStatus: status,
       statusByStep,
