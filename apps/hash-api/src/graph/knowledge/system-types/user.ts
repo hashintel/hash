@@ -320,6 +320,19 @@ export const getUser: ImpureGraphFunction<
   }
   entity.properties["https://hash.ai/@h/types/property-type/email/"] = emails;
 
+  entity.propertiesMetadata.value[
+    systemPropertyTypes.email.propertyTypeBaseUrl
+  ] ??= {
+    value: [
+      {
+        metadata: {
+          dataTypeId: systemPropertyTypes.email.propertyTypeId,
+          originalDataTypeId: systemPropertyTypes.email.propertyTypeId,
+        },
+      },
+    ],
+  };
+
   return getUserFromEntity({ entity });
 };
 
