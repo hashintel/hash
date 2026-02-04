@@ -49,15 +49,15 @@ struct Targets {
 
 impl Targets {
     fn compile(self) -> TargetBitSet {
-        let mut bitset = FiniteBitSet::new_empty(TargetId::TOTAL as u32);
+        let mut bitset = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
         if self.interpreter {
-            bitset.insert(TargetId::INTERPRETER);
+            bitset.insert(TargetId::Interpreter);
         }
         if self.postgres {
-            bitset.insert(TargetId::POSTGRES);
+            bitset.insert(TargetId::Postgres);
         }
         if self.embedding {
-            bitset.insert(TargetId::EMBEDDING);
+            bitset.insert(TargetId::Embedding);
         }
         bitset
     }
@@ -162,9 +162,9 @@ fn supported_single_target() {
 
     let result = supported(&costs, 0);
 
-    assert!(result.contains(TargetId::INTERPRETER));
-    assert!(!result.contains(TargetId::POSTGRES));
-    assert!(!result.contains(TargetId::EMBEDDING));
+    assert!(result.contains(TargetId::Interpreter));
+    assert!(!result.contains(TargetId::Postgres));
+    assert!(!result.contains(TargetId::Embedding));
 }
 
 #[test]
@@ -800,13 +800,13 @@ fn offset_targets_populated() {
 fn format_bitset(bitset: TargetBitSet) -> impl Display {
     fmt::from_fn(move |f| {
         let mut parts = Vec::new();
-        if bitset.contains(TargetId::INTERPRETER) {
+        if bitset.contains(TargetId::Interpreter) {
             parts.push("Interpreter");
         }
-        if bitset.contains(TargetId::POSTGRES) {
+        if bitset.contains(TargetId::Postgres) {
             parts.push("Postgres");
         }
-        if bitset.contains(TargetId::EMBEDDING) {
+        if bitset.contains(TargetId::Embedding) {
             parts.push("Embedding");
         }
 
@@ -849,10 +849,9 @@ impl<A: Allocator> TextFormatAnnotations for CostVecFormatAnnotation<'_, A> {
             }
 
             match target_id {
-                TargetId::INTERPRETER => value.push('I'),
-                TargetId::POSTGRES => value.push('P'),
-                TargetId::EMBEDDING => value.push('E'),
-                _ => value.push('?'),
+                TargetId::Interpreter => value.push('I'),
+                TargetId::Postgres => value.push('P'),
+                TargetId::Embedding => value.push('E'),
             }
         }
 

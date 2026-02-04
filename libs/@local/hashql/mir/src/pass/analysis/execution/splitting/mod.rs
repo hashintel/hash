@@ -40,7 +40,7 @@ mod tests;
 /// A target is supported when its [`Cost`] entry is present for that statement.
 #[expect(clippy::cast_possible_truncation)]
 fn supported(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> TargetBitSet {
-    let mut output = FiniteBitSet::new_empty(TargetId::TOTAL as u32);
+    let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
 
     for (cost_index, cost) in costs.iter_enumerated() {
         output.set(cost_index, cost[index].is_some());
@@ -76,7 +76,7 @@ fn count_regions<A: Allocator, B: Allocator>(
         }
 
         let mut total = 0;
-        let mut current: TargetBitSet = FiniteBitSet::new_empty(TargetId::TOTAL as u32);
+        let mut current: TargetBitSet = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
 
         for stmt_index in 0..block.statements.len() {
             let next = supported(&costs, stmt_index);
@@ -148,9 +148,9 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     }
 
     let mut targets = BasicBlockVec::from_elem_in(
-        FiniteBitSet::new_empty(TargetId::TOTAL as u32),
+        FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32),
         length.as_usize(),
-        statement_costs[TargetId::INTERPRETER].allocator().clone(),
+        statement_costs[TargetId::Interpreter].allocator().clone(),
     );
 
     Ok(()) = RemapBasicBlockId { ids: &indices }.visit_body(body);
@@ -183,8 +183,8 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
             debug_assert_eq!(region.len(), 1);
 
             // Unlike other regions, these may be empty. Mark empty blocks as supported everywhere.
-            if costs[TargetId::INTERPRETER].is_empty() {
-                targets[start_id].insert_range(TargetId::MIN..=TargetId::LAST);
+            if costs[TargetId::Interpreter].is_empty() {
+                targets[start_id].insert_range(TargetId::MIN..=TargetId::MAX);
             } else {
                 targets[start_id] = supported(&costs, 0);
             }
