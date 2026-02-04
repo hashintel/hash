@@ -7,10 +7,13 @@ import type {
   ExternalInputResponseSignal,
   FlowInputs,
   FlowSignalType,
-  Payload,
   ProgressLogSignal,
+  ResolvedPayload,
+  ResolvedStepOutput,
+  ResolvedStepRunOutput,
   SparseFlowRun,
   StepOutput,
+  StepRunOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import type {
@@ -41,7 +44,7 @@ type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 const resolveStoredPayloadsInOutputs = async (
   outputs: StepOutput[] | undefined,
   storageProvider: FileStorageProvider,
-): Promise<StepOutput[] | undefined> => {
+): Promise<ResolvedStepOutput[] | undefined> => {
   if (!outputs) {
     return outputs;
   }
@@ -61,11 +64,11 @@ const resolveStoredPayloadsInOutputs = async (
           payload: {
             kind: payload.kind,
             value: resolvedValue,
-          } as unknown as Payload,
-        };
+          } as unknown as ResolvedPayload,
+        } satisfies ResolvedStepOutput;
       }
 
-      return output;
+      return output as ResolvedStepOutput;
     }),
   );
 };
@@ -268,7 +271,11 @@ const getFlowRunDetailedFields = async ({
         .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
   )?.workflowExecutionFailedEventAttributes?.failure?.message;
 
-  const stepMap: { [activityId: string]: StepRun } = {};
+  const unresolvedStepMap: {
+    [activityId: string]: Omit<StepRun, "outputs"> & {
+      outputs?: StepRunOutput[] | null;
+    };
+  } = {};
 
   /**
    * Collect all progress signal events when building the step map,
@@ -440,12 +447,14 @@ const getFlowRunDetailedFields = async ({
         continue;
       }
 
-      if (stepMap[activityId]) {
+      if (unresolvedStepMap[activityId]) {
         // We've already encountered and therefore populated all the details for this step
         continue;
       }
 
-      const activityRecord: StepRun = {
+      const activityRecord: Omit<StepRun, "outputs"> & {
+        outputs?: StepRunOutput[] | null;
+      } = {
         stepId: activityId,
         stepType: activityType ?? "UNKNOWN",
         startedAt,
@@ -459,7 +468,7 @@ const getFlowRunDetailedFields = async ({
         attempt,
       };
 
-      stepMap[activityId] = activityRecord;
+      unresolvedStepMap[activityId] = activityRecord;
 
       switch (event.eventType) {
         case proto.temporal.api.enums.v1.EventType
@@ -567,7 +576,7 @@ const getFlowRunDetailedFields = async ({
   }
 
   for (const checkpoint of checkpointLogs) {
-    const step = stepMap[checkpoint.stepId];
+    const step = unresolvedStepMap[checkpoint.stepId];
     if (!step) {
       throw new Error(
         `Could not find step with id ${checkpoint.stepId} for checkpoint with id ${checkpoint.checkpointId}`,
@@ -607,7 +616,7 @@ const getFlowRunDetailedFields = async ({
     for (const log of logs) {
       const { stepId } = log;
 
-      const activityRecord = stepMap[stepId];
+      const activityRecord = unresolvedStepMap[stepId];
       if (!activityRecord) {
         throw new Error(`No activity record found for step with id ${stepId}`);
       }
@@ -619,7 +628,7 @@ const getFlowRunDetailedFields = async ({
   const inputRequests = Object.values(inputRequestsById);
   for (const inputRequest of inputRequests) {
     if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
-      const step = stepMap[inputRequest.stepId];
+      const step = unresolvedStepMap[inputRequest.stepId];
       if (!step) {
         throw new Error(
           `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,
@@ -633,17 +642,17 @@ const getFlowRunDetailedFields = async ({
     throw new Error("No workflow inputs found");
   }
 
-  for (const step of Object.values(stepMap)) {
+  for (const step of Object.values(unresolvedStepMap)) {
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
-    Object.values(stepMap).map(async (step) => {
+    Object.values(unresolvedStepMap).map(async (step) => {
       // The outputs in stepMap are from Temporal history - Status<{outputs: StepOutput[]}> objects
       // We need to resolve stored refs in the actual step outputs within those Status objects
       if (!step.outputs) {
-        return step;
+        return step as StepRun;
       }
 
       const resolvedOutputs = await Promise.all(
@@ -651,7 +660,7 @@ const getFlowRunDetailedFields = async ({
           // output is Status<{outputs: StepOutput[]}>
           const firstContent = output.contents[0];
           if (!firstContent?.outputs) {
-            return output;
+            return output as ResolvedStepRunOutput;
           }
 
           const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(

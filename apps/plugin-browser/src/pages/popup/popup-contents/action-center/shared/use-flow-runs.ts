@@ -37,7 +37,7 @@ const mapFlowRunToMinimalFlowRun = (
         ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
       ) {
         return (
-          payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]]
+          payload.value as unknown as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]]
         ).persistedEntities;
       }
       return [];

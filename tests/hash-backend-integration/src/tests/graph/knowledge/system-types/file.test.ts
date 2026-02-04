@@ -5,7 +5,12 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { EntityId, Timestamp, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  Timestamp,
+  Url,
+  WebId,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -47,11 +52,16 @@ describe("File", () => {
     const entityId = "abc~123" as EntityId;
     const editionIdentifier = "ed123" as Timestamp;
     const fileKey = `${entityId}/${editionIdentifier}/mock-test-key` as const;
-    const downloadUrl = "mock-download-url";
+    const downloadUrl = "mock-download-url" as Url;
     const uploadUrl = "mock-upload-url";
 
     graphContext.uploadProvider = {
       getFileEntityStorageKey: vi.fn(() => fileKey),
+      getFlowOutputStorageKey: vi.fn(() => "mock-flow-output-key"),
+      uploadDirect: vi.fn(() => Promise.resolve()),
+      downloadDirect: vi.fn(() =>
+        Promise.resolve(Buffer.from("mock-download-body")),
+      ),
       presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
       presignUpload: vi.fn(() =>
         Promise.resolve({

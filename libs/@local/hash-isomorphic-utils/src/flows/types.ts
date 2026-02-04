@@ -217,10 +217,34 @@ export type ArrayPayload = {
 
 /**
  * General payload type used throughout the flow system.
- * For stored payload kinds (ProposedEntity, ProposedEntityWithResolvedLinks),
+ * For stored payload kinds (ProposedEntity, ProposedEntityWithResolvedLinks, PersistedEntitiesMetadata),
  * the value may be a StoredPayloadRef that activities will resolve.
  */
 export type Payload = SingularPayload | ArrayPayload;
+
+/**
+ * Resolved payload types - used after stored refs have been resolved (e.g., in GraphQL responses).
+ * These contain actual values instead of StoredPayloadRef for stored payload kinds.
+ */
+export type ResolvedSingularPayload = {
+  [K in keyof PayloadKindValues]: {
+    kind: K;
+    value: PayloadKindValues[K];
+  };
+}[keyof PayloadKindValues];
+
+export type ResolvedArrayPayload = {
+  [K in keyof PayloadKindValues]: {
+    kind: K;
+    value: PayloadKindValues[K][];
+  };
+}[keyof PayloadKindValues];
+
+/**
+ * Payload type after stored refs have been resolved.
+ * Used in frontend/GraphQL contexts where the backend has already resolved StoredPayloadRefs.
+ */
+export type ResolvedPayload = ResolvedSingularPayload | ResolvedArrayPayload;
 
 /**
  * Step Definition
@@ -418,9 +442,25 @@ export type StepOutput<P extends Payload = Payload> = {
   payload: P;
 };
 
+/**
+ * StepOutput with resolved payload - used in frontend/GraphQL contexts
+ * where stored refs have been resolved by the backend.
+ */
+export type ResolvedStepOutput = {
+  outputName: string;
+  payload: ResolvedPayload;
+};
+
 export type StepRunOutput = Status<
   Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
 >;
+
+/**
+ * StepRunOutput with resolved payloads - used in frontend/GraphQL contexts.
+ */
+export type ResolvedStepRunOutput = Status<{
+  outputs: ResolvedStepOutput[];
+}>;
 
 export type ActionStep<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,

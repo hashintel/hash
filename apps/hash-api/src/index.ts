@@ -641,6 +641,7 @@ const main = async () => {
     context: machineActorContext,
     httpServer,
     logger,
+    storageProvider: uploadProvider,
     temporalClient,
   });
 

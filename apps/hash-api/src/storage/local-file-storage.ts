@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
+import type { Url } from "@blockprotocol/type-system";
 import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
@@ -82,9 +83,9 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     };
   }
 
-  async presignDownload(params: PresignedDownloadRequest): Promise<string> {
+  async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
     return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
-      .href;
+      .href as Url;
   }
 
   getFileEntityStorageKey({

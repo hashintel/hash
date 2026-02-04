@@ -1,10 +1,5 @@
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
-import { stringify } from "../../shared/stringify.js";
-
-const generateErrorMessage = (err: unknown) =>
-  err instanceof Error ? err.message : stringify(err);
-
 const isTrueObject = (obj: unknown): obj is object =>
   obj !== null && typeof obj === "object";
 

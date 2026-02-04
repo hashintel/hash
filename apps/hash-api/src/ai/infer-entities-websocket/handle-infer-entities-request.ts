@@ -1,5 +1,6 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
@@ -29,11 +30,13 @@ import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 export const handleInferEntitiesRequest = async ({
   graphApiClient,
+  storageProvider,
   temporalClient,
   message,
   user,
 }: {
   graphApiClient: GraphApi;
+  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: DistributiveOmit<
     | ManualInferenceWebsocketRequestMessage
@@ -72,6 +75,7 @@ export const handleInferEntitiesRequest = async ({
       },
       graphApiClient,
       includeDetails: true,
+      storageProvider,
       temporalClient,
     });
 
