@@ -212,12 +212,15 @@ fn place<'heap, A: Allocator, F: Allocator>(
 
     let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);
 
+    // TODO: entity size estimation we need aka how many entities do we need to send over, right now
+    // we only know it's one.
+
     for (id, block) in body.basic_blocks.iter_enumerated() {
         // TODO: we must find the footprint, and then add that. The problem is how do we condense it
         // down. I would like to get an estimate cost here by averaging the units. For the
         // footprint, we could say that we neglect the env, and set the entity to unknown. What we
         // must make sure is that liveness analysis does not take into consideration partial use of
-        // entity if it's in a direct load, because we circumvent these.
+        // entity if it's in a direct load, because we *really really* like to discourage them.
 
         let block_targets = targets[id];
 

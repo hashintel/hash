@@ -157,6 +157,25 @@ unit!(
     pub struct InformationUnit(u32)
 );
 
+impl InformationUnit {
+    #[inline]
+    #[must_use]
+    pub const fn checked_mul(self, cardinal: Cardinal) -> Option<Self> {
+        let raw = self.raw.checked_mul(cardinal.raw);
+
+        match raw {
+            Some(value) => Some(Self::new(value)),
+            None => None,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn midpoint(self, other: Self) -> Self {
+        Self::new(u32::midpoint(self.raw, other.raw))
+    }
+}
+
 unit!(
     /// A unit of cardinality (element count).
     ///
