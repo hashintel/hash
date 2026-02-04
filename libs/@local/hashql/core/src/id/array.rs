@@ -189,10 +189,10 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
         // Elide bound checks from subsequent calls to `I::from_usize`
         let _: I = I::from_usize(self.len().saturating_sub(1));
 
-        let mut index = I::MIN;
+        let mut index = 0;
         IdArray::from_raw(self.raw.map(|elem| {
-            let value = func(index, elem);
-            index.increment_by(1);
+            let value = func(I::from_usize(index), elem);
+            index += 1;
             value
         }))
     }
