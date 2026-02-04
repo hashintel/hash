@@ -112,6 +112,11 @@ fn interning(criterion: &mut Criterion) {
             |bencher, &count| {
                 let mut heap = Heap::new();
 
+                // pre-intern so that the dedup path is exercised
+                for ident in IDENTIFIERS {
+                    black_box(heap.intern_symbol(ident));
+                }
+
                 bencher.iter(|| {
                     heap.reset();
                     for _ in 0..count {
