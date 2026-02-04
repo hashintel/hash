@@ -64,6 +64,16 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/comment-notification/" as BaseUrl,
   },
+  dashboard: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/dashboard/" as BaseUrl,
+  },
+  dashboardItem: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard-item/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/dashboard-item/" as BaseUrl,
+  },
   doc: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/doc/v/1",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/doc/" as BaseUrl,
@@ -596,6 +606,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/browser-plugin-tab/" as BaseUrl,
   },
+  chartConfiguration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/chart-configuration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/chart-configuration/" as BaseUrl,
+  },
+  chartType: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/chart-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/chart-type/" as BaseUrl,
+  },
   city: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/city/v/1",
     propertyTypeBaseUrl:
@@ -610,6 +631,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/component-id/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/component-id/" as BaseUrl,
+  },
+  configurationStatus: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/configuration-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/configuration-status/" as BaseUrl,
   },
   connectionSourceName: {
     propertyTypeId:
@@ -844,11 +871,26 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/gate/" as BaseUrl,
   },
+  goal: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/goal/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/goal/" as BaseUrl,
+  },
   graphChangeType: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/graph-change-type/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/graph-change-type/" as BaseUrl,
+  },
+  gridLayout: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/grid-layout/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/grid-layout/" as BaseUrl,
+  },
+  gridPosition: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/grid-position/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/grid-position/" as BaseUrl,
   },
   groundSpeed: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/ground-speed/v/1",
@@ -1103,6 +1145,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/publication-year/" as BaseUrl,
   },
+  pythonScript: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/python-script/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/python-script/" as BaseUrl,
+  },
   readAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/read-at/v/1",
     propertyTypeBaseUrl:
@@ -1207,6 +1254,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/step-definitions/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/step-definitions/" as BaseUrl,
+  },
+  structuralQuery: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/structural-query/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/structural-query/" as BaseUrl,
   },
   studyArm: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/study-arm/v/1",

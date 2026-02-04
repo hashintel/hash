@@ -8,6 +8,9 @@ require("setimmediate");
 
 import "./globals.scss";
 import "./prism.css";
+// React Grid Layout CSS for dashboard drag-and-drop
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 
 import { ApolloProvider } from "@apollo/client/react";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";

@@ -11,6 +11,9 @@
     "lint:clippy": "just clippy",
     "test:unit": "mise run test:unit @rust/hash-graph-api && yarn codegen:generate-openapi-specs && git --no-pager diff --exit-code --color openapi"
   },
+  "exports": {
+    "./openapi.json": "./openapi/openapi.json"
+  },
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:*",
     "@rust/error-stack": "workspace:*",

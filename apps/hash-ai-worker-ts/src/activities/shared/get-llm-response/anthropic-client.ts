@@ -105,7 +105,7 @@ export const createAnthropicMessagesWithTools = async (params: {
 }): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
-  let response: Message & { _request_id?: string | null | undefined };
+  let response: Message;
 
   /**
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
@@ -115,7 +115,7 @@ export const createAnthropicMessagesWithTools = async (params: {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (false) {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
-    response = await anthropicBedrockClient.messages.create(
+    const stream = anthropicBedrockClient.messages.stream(
       {
         ...payload,
         model: bedrockModel,
@@ -124,10 +124,12 @@ export const createAnthropicMessagesWithTools = async (params: {
         signal: Context.current().cancellationSignal,
       },
     );
+    response = await stream.finalMessage();
   } else {
-    response = await anthropic.messages.create(payload, {
+    const stream = anthropic.messages.stream(payload, {
       signal: Context.current().cancellationSignal,
     });
+    response = await stream.finalMessage();
   }
 
   return { ...response, provider };
