@@ -9,7 +9,7 @@ use crate::{
     context::MirContext,
     def::DefId,
     intern::Interner,
-    pass::analysis::execution::statement_placement::{
+    pass::execution::statement_placement::{
         InterpreterStatementPlacement,
         tests::{assert_placement, run_placement},
     },

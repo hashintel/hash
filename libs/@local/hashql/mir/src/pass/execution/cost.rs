@@ -144,7 +144,6 @@ impl<A: Allocator> StatementCostVec<A> {
         mut iter: impl ExactSizeIterator<Item = u32>,
         alloc: A,
     ) -> (Box<BasicBlockSlice<u32>, A>, usize) {
-        // Try to reuse existing offsets if available and of correct length
         let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc);
 
         let mut offset = 0_u32;

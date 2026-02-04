@@ -29,7 +29,7 @@ use crate::{
     builder::body,
     context::MirContext,
     intern::Interner,
-    pass::analysis::execution::{
+    pass::execution::{
         StatementCostVec,
         cost::Cost,
         target::{TargetArray, TargetBitSet, TargetId},
