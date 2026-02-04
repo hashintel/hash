@@ -105,7 +105,7 @@ fn interning(criterion: &mut Criterion) {
 
     // Benchmark: Intern repeated strings (dedup path)
     for count in [100, 1000, 10000] {
-        group.throughput(Throughput::Elements(count));
+        group.throughput(Throughput::Elements((count * IDENTIFIERS.len()) as u64));
         group.bench_with_input(
             BenchmarkId::new("repeated", count),
             &count,
