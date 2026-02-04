@@ -213,6 +213,12 @@ fn place<'heap, A: Allocator, F: Allocator>(
     let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);
 
     for (id, block) in body.basic_blocks.iter_enumerated() {
+        // TODO: we must find the footprint, and then add that. The problem is how do we condense it
+        // down. I would like to get an estimate cost here by averaging the units. For the
+        // footprint, we could say that we neglect the env, and set the entity to unknown. What we
+        // must make sure is that liveness analysis does not take into consideration partial use of
+        // entity if it's in a direct load, because we circumvent these.
+
         let block_targets = targets[id];
 
         let matrices = output.of_mut(id);

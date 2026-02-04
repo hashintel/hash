@@ -13,6 +13,7 @@ use core::{alloc::Allocator, fmt};
 use hashql_core::heap::TryCloneIn;
 
 use super::{
+    InformationUnit,
     affine::AffineEquation,
     estimate::Estimate,
     range::{Cardinality, InformationRange},
