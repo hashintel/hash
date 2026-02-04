@@ -242,7 +242,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, &str, 3>::from_raw(["a", "b", "c"]);
-    /// let pairs: Vec<_> = array.into_iter_enumerated().collect();
+    /// let pairs: Vec<_> = array.into_iter_enumerated().into_iter().collect();
     ///
     /// assert_eq!(pairs[0], (SlotId::new(0), "a"));
     /// assert_eq!(pairs[2], (SlotId::new(2), "c"));
