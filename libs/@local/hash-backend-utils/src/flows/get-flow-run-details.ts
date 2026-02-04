@@ -38,12 +38,23 @@ import { retrievePayload } from "./payload-storage.js";
 type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 
 /**
+ * Cache for resolved payloads to avoid re-downloading the same S3 objects.
+ * Keyed by S3 storage key.
+ */
+type PayloadCache = Map<string, unknown>;
+
+/**
  * Resolve any stored payload references in step outputs.
  * This downloads the actual payload data from S3 and replaces the reference.
+ *
+ * @param outputs - The step outputs to resolve
+ * @param storageProvider - The storage provider to retrieve payloads from
+ * @param cache - Optional cache to avoid re-downloading the same S3 objects
  */
 const resolveStoredPayloadsInOutputs = async (
   outputs: StepOutput[] | undefined,
   storageProvider: FileStorageProvider,
+  cache?: PayloadCache,
 ): Promise<ResolvedStepOutput[] | undefined> => {
   if (!outputs) {
     return outputs;
@@ -54,10 +65,14 @@ const resolveStoredPayloadsInOutputs = async (
       const { payload } = output;
 
       if (isStoredPayloadRef(payload.value)) {
-        const resolvedValue = await retrievePayload(
-          storageProvider,
-          payload.value,
-        );
+        const storageKey = payload.value.storageKey;
+
+        // Check cache first
+        let resolvedValue = cache?.get(storageKey);
+        if (resolvedValue === undefined) {
+          resolvedValue = await retrievePayload(storageProvider, payload.value);
+          cache?.set(storageKey, resolvedValue);
+        }
 
         return {
           ...output,
@@ -646,6 +661,10 @@ const getFlowRunDetailedFields = async ({
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
+  // Create a cache for resolved payloads to avoid re-downloading the same S3 objects
+  // This is shared between step outputs and workflow outputs
+  const payloadCache: PayloadCache = new Map();
+
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
     Object.values(unresolvedStepMap).map(async (step) => {
@@ -666,6 +685,7 @@ const getFlowRunDetailedFields = async ({
           const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
             firstContent.outputs,
             storageProvider,
+            payloadCache,
           );
 
           return {
@@ -687,10 +707,41 @@ const getFlowRunDetailedFields = async ({
     }),
   );
 
+  // Resolve stored payload references in workflow outputs for consistency with step outputs.
+  // Workflow outputs may reference the same S3 locations as step outputs, so we use the same
+  // cache to avoid redundant downloads.
+  let resolvedWorkflowOutputs: ResolvedStepRunOutput[] | undefined;
+  if (workflowOutputs && Array.isArray(workflowOutputs)) {
+    resolvedWorkflowOutputs = await Promise.all(
+      (workflowOutputs as StepRunOutput[]).map(async (output) => {
+        const firstContent = output.contents[0];
+        if (!firstContent?.outputs) {
+          return output as ResolvedStepRunOutput;
+        }
+
+        const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
+          firstContent.outputs,
+          storageProvider,
+          payloadCache,
+        );
+
+        return {
+          ...output,
+          contents: [
+            {
+              ...firstContent,
+              outputs: resolvedInnerOutputs ?? [],
+            },
+          ],
+        };
+      }),
+    );
+  }
+
   return {
     failureMessage: workflowFailureMessage,
     inputs: workflowInputs,
-    outputs: workflowOutputs,
+    outputs: resolvedWorkflowOutputs ?? workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
     steps,
     startedAt: workflowStartedAt.toISOString(),

@@ -88,6 +88,22 @@ const findExistingEntity = async (params: {
 
 /**
  * Executes an array of async operations in parallel batches.
+ *
+ * This function processes items in batches, executing all operations within each batch
+ * concurrently via `Promise.all`. Heartbeats are sent at the start of each batch to
+ * signal activity progress to Temporal.
+ *
+ * **Error handling behavior:**
+ * - If an operation throws an error, `Promise.all` will reject and the entire batch fails.
+ * - For partial batch success, the operation callback should catch its own errors and
+ *   return a result indicating success or failure (e.g., a discriminated union type).
+ * - Successfully completed batches are preserved even if a later batch fails.
+ *
+ * @param items - The items to process
+ * @param batchSize - Number of items to process in each batch
+ * @param operation - Async function to execute for each item. Should handle its own errors
+ *                    if partial batch success is desired.
+ * @returns Array of results from all operations
  */
 const executeInBatches = async <T, R>(
   items: T[],
@@ -658,7 +674,7 @@ export const createPersistIntegrationEntitiesAction = ({
         userAuthentication,
         webId,
         workflowId,
-      } = await getFlowContext();
+      } = await getFlowContext({ graphApiClient });
 
       const { proposedEntities: proposedEntitiesInput } =
         getSimplifiedIntegrationFlowActionInputs({

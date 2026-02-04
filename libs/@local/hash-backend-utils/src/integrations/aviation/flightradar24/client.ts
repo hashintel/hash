@@ -2,6 +2,7 @@ import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
+import { createRateLimitedRequester } from "../../../rate-limiter.js";
 import { mapFlight } from "./client/flight.js";
 import { generateFlightradar24Provenance } from "./client/provenance.js";
 import type {
@@ -11,6 +12,17 @@ import type {
 } from "./client/types.js";
 
 const baseUrl = "https://fr24api.flightradar24.com/api/";
+
+/**
+ * Minimum interval between requests in milliseconds.
+ * Flightradar24 API rate limit is 10 queries per minute = 6 seconds per query.
+ */
+const REQUEST_INTERVAL_MS = 6000;
+
+/**
+ * Maximum number of retry attempts for rate limit errors.
+ */
+const MAX_RETRIES = 10;
 
 const generateUrl = (path: string, params?: Record<string, unknown>) => {
   const url = new URL(`${baseUrl}${path}`);
@@ -32,7 +44,11 @@ const generateUrl = (path: string, params?: Record<string, unknown>) => {
   return url.toString();
 };
 
-const makeRequest = async <T extends object>(url: string): Promise<T> => {
+/**
+ * Raw fetch function for Flightradar24 API requests.
+ * Throws an error with status property for rate limit handling.
+ */
+async function fetchFlightradar24<T>(url: string): Promise<T> {
   const apiToken = process.env.FLIGHTRADAR24_API_TOKEN;
 
   if (!apiToken) {
@@ -49,20 +65,39 @@ const makeRequest = async <T extends object>(url: string): Promise<T> => {
 
   if (!response.ok) {
     const errorData = (await response.json()) as unknown;
-
-    throw new Error(`Flightradar24 API error: ${stringifyError(errorData)}`);
+    const error = new Error(
+      `Flightradar24 API error: ${stringifyError(errorData)}`,
+    );
+    (error as Error & { status: number }).status = response.status;
+    throw error;
   }
 
-  const data = (await response.json()) as T | ErrorResponse;
+  const data = (await response.json()) as unknown;
 
-  if ("error" in data) {
+  // Check for error response structure
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "error" in data &&
+    typeof (data as ErrorResponse).error === "object"
+  ) {
+    const errorResponse = data as ErrorResponse;
     throw new Error(
-      `Flightradar24 API error: ${data.error.message} (code: ${data.error.code})`,
+      `Flightradar24 API error: ${errorResponse.error.message} (code: ${errorResponse.error.code})`,
     );
   }
 
-  return data;
-};
+  return data as T;
+}
+
+/**
+ * Rate-limited request function for Flightradar24 API.
+ * Uses promise chaining to ensure proper request spacing and handles 429 errors with backoff.
+ */
+const makeRequest = createRateLimitedRequester(fetchFlightradar24, {
+  requestIntervalMs: REQUEST_INTERVAL_MS,
+  maxRetries: MAX_RETRIES,
+});
 
 /**
  * Retrieve live flight position data from Flightradar24's flight-positions/light endpoint.

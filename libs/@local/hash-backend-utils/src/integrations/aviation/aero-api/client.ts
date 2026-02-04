@@ -1,5 +1,6 @@
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 
+import { createRateLimitedRequester } from "../../../rate-limiter.js";
 import {
   type BatchFlightGraphResult,
   buildFlightGraphBatch,
@@ -37,20 +38,9 @@ const DEFAULT_MAX_PAGES = 5;
 const REQUEST_INTERVAL_MS = 1000;
 
 /**
- * Time to wait before retrying after a 429 rate limit error.
+ * Maximum number of retry attempts for rate limit errors.
  */
-const RATE_LIMIT_RETRY_DELAY_MS = 2000;
-
-/** Tracks the timestamp of the last request for throttling. */
-let lastRequestTime = 0;
-
-/**
- * Sleep for a specified number of milliseconds.
- */
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+const MAX_RETRIES = 10;
 
 const generateUrl = (
   path: string,
@@ -69,20 +59,16 @@ const generateUrl = (
   return url.toString();
 };
 
-const makeRequest = async <T>(url: string): Promise<T> => {
+/**
+ * Raw fetch function for AeroAPI requests.
+ * Throws an error with status property for rate limit handling.
+ */
+async function fetchAeroApi<T>(url: string): Promise<T> {
   const apiKey = process.env.AERO_API_KEY;
 
   if (!apiKey) {
     throw new Error("AERO_API_KEY environment variable is not set");
   }
-
-  // Throttle requests to once per second
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequestTime;
-  if (timeSinceLastRequest < REQUEST_INTERVAL_MS) {
-    await sleep(REQUEST_INTERVAL_MS - timeSinceLastRequest);
-  }
-  lastRequestTime = Date.now();
 
   const response = await fetch(url, {
     headers: {
@@ -91,21 +77,25 @@ const makeRequest = async <T>(url: string): Promise<T> => {
     },
   });
 
-  // Handle rate limiting with retry
-  if (response.status === 429) {
-    await sleep(RATE_LIMIT_RETRY_DELAY_MS);
-    return makeRequest<T>(url);
-  }
-
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `AeroAPI error (${response.status}): ${errorText || response.statusText}`,
+    const error = new Error(
+      `AeroAPI error (${response.status}): ${(await response.text()) || response.statusText}`,
     );
+    (error as Error & { status: number }).status = response.status;
+    throw error;
   }
 
   return (await response.json()) as T;
-};
+}
+
+/**
+ * Rate-limited request function for AeroAPI.
+ * Uses promise chaining to ensure proper request spacing and handles 429 errors with backoff.
+ */
+const makeRequest = createRateLimitedRequester(fetchAeroApi, {
+  requestIntervalMs: REQUEST_INTERVAL_MS,
+  maxRetries: MAX_RETRIES,
+});
 
 /**
  * Retrieve a single page of scheduled arrivals for an airport.

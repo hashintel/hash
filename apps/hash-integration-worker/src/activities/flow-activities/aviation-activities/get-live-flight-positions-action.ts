@@ -105,7 +105,7 @@ export const createGetLiveFlightPositionsAction = ({
   return async ({ inputs }) => {
     try {
       const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
-        await getFlowContext();
+        await getFlowContext({ graphApiClient });
 
       const { persistedEntities: persistedEntitiesInput } =
         getSimplifiedIntegrationFlowActionInputs({
@@ -188,7 +188,8 @@ export const createGetLiveFlightPositionsAction = ({
         entityId: EntityId;
         flightNumber: string;
         primaryKeyProperties: PrimaryKeyInput["flight"];
-        primaryKeyPropertyMetadata: PropertyMetadata;
+        flightNumberPropertyMetadata: PropertyMetadata;
+        flightDatePropertyMetadata: PropertyMetadata;
       }> = [];
 
       for (const entity of rootEntities) {
@@ -228,13 +229,23 @@ export const createGetLiveFlightPositionsAction = ({
             arrivesAtLink.properties,
           )
         ) {
-          const primaryKeyPropertyMetadata = entity.propertyMetadata([
+          const flightNumberPropertyMetadata = entity.propertyMetadata([
             systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
           ]);
 
-          if (!primaryKeyPropertyMetadata) {
+          const flightDatePropertyMetadata = entity.propertyMetadata([
+            systemPropertyTypes.flightDate.propertyTypeBaseUrl,
+          ]);
+
+          if (!flightNumberPropertyMetadata) {
             throw new Error(
-              `Primary key property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
+              `Flight number property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
+            );
+          }
+
+          if (!flightDatePropertyMetadata) {
+            throw new Error(
+              `Flight date property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
             );
           }
 
@@ -248,7 +259,8 @@ export const createGetLiveFlightPositionsAction = ({
                   "https://hash.ai/@h/types/property-type/flight-date/"
                 ]!,
             },
-            primaryKeyPropertyMetadata,
+            flightNumberPropertyMetadata,
+            flightDatePropertyMetadata,
           });
         }
       }
@@ -292,7 +304,8 @@ export const createGetLiveFlightPositionsAction = ({
         entityId,
         flightNumber,
         primaryKeyProperties,
-        primaryKeyPropertyMetadata,
+        flightNumberPropertyMetadata,
+        flightDatePropertyMetadata,
       } of flightsToUpdate) {
         const positionData = await getFlightPositionProperties(flightNumber);
 
@@ -323,7 +336,7 @@ export const createGetLiveFlightPositionsAction = ({
               ] = {
                 value: propertyValue,
                 metadata:
-                  primaryKeyPropertyMetadata as unknown as TextDataTypeMetadata,
+                  flightNumberPropertyMetadata as unknown as TextDataTypeMetadata,
               };
               break;
             case "flightDate":
@@ -332,7 +345,7 @@ export const createGetLiveFlightPositionsAction = ({
               ] = {
                 value: propertyValue,
                 metadata:
-                  primaryKeyPropertyMetadata as unknown as DateDataTypeMetadata,
+                  flightDatePropertyMetadata as unknown as DateDataTypeMetadata,
               };
               break;
             default:

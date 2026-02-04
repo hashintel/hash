@@ -36,9 +36,16 @@ const mapFlowRunToMinimalFlowRun = (
         outputName ===
         ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
       ) {
-        return (
-          payload.value as unknown as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]]
-        ).persistedEntities;
+        /**
+         * The GraphQL layer resolves StoredPayloadRef values before returning them to clients,
+         * so payload.value is the actual resolved value at runtime, not a StoredPayloadRef.
+         * The type system includes StoredPayloadRef as a possible value type, but by the time
+         * the response reaches the browser, these have been resolved.
+         * @see libs/@local/hash-backend-utils/src/flows/get-flow-run-details.ts
+         */
+        const resolvedValue =
+          payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]];
+        return resolvedValue.persistedEntities;
       }
       return [];
     }),

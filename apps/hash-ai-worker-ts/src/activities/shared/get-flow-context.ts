@@ -3,6 +3,10 @@ import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
+import {
+  getFlowContextCache,
+  getFlowEntityInfo,
+} from "@local/hash-backend-utils/flows/get-flow-context";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
@@ -10,112 +14,24 @@ import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-uti
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  File,
-  FlowRun as FlowRunEntity,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
-import type { MemoryCache } from "cache-manager";
-import { caching } from "cache-manager";
 
 import { graphApiClient } from "./graph-api-client.js";
 
 let _temporalClient: TemporalClient | undefined;
 
-let _runFlowWorkflowParamsCache: MemoryCache | undefined;
-
-type PartialRunFlowWorkflowParams = Pick<
-  RunAiFlowWorkflowParams,
-  "dataSources" | "webId" | "userAuthentication"
-> & { createEntitiesAsDraft: boolean };
-
-type FlowEntityInfo = {
-  flowEntityId: EntityId;
-};
-
-const getCache = async () => {
-  _runFlowWorkflowParamsCache =
-    _runFlowWorkflowParamsCache ??
-    (await caching("memory", {
-      max: 100, // 100 items
-      ttl: 10 * 60 * 1000, // 10 minutes
-    }));
-  return _runFlowWorkflowParamsCache;
-};
-
 /**
- * Get the flow entity ID by querying for the entity with the given workflow ID.
- * The workflowId is stored as a property on the FlowRun entity.
- * Results are cached to avoid repeated queries.
+ * AI-specific workflow params that extend the base params with draft and data source info.
  */
-const getFlowEntityInfo = async (params: {
-  workflowId: string;
+type AiWorkflowParams = {
+  createEntitiesAsDraft: boolean;
+  dataSources: FlowDataSources;
   userAuthentication: { actorId: UserId };
-}): Promise<FlowEntityInfo> => {
-  const { workflowId, userAuthentication } = params;
-
-  const cache = await getCache();
-  const cacheKey = `flowEntity-${workflowId}`;
-
-  const cachedInfo = await cache.get<FlowEntityInfo>(cacheKey);
-  if (cachedInfo) {
-    return cachedInfo;
-  }
-
-  // Query for the flow entity using the workflowId property
-  const {
-    entities: [flowEntity],
-  } = await queryEntities<FlowRunEntity>(
-    { graphApi: graphApiClient },
-    userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.workflowId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: workflowId },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
-    },
-  );
-
-  if (!flowEntity) {
-    throw new Error(
-      `Flow entity not found for workflowId ${workflowId}. The flow entity may not have been persisted yet.`,
-    );
-  }
-
-  const flowEntityInfo: FlowEntityInfo = {
-    flowEntityId: flowEntity.metadata.recordId.entityId,
-  };
-
-  await cache.set(cacheKey, flowEntityInfo);
-  return flowEntityInfo;
+  webId: WebId;
 };
 
 export const getTemporalClient = async () => {
@@ -123,20 +39,21 @@ export const getTemporalClient = async () => {
   return _temporalClient;
 };
 
-const getPartialRunFlowWorkflowParams = async (params: {
+/**
+ * Get AI-specific workflow params from Temporal workflow history.
+ * Extends the base workflow params with createEntitiesAsDraft and dataSources.
+ */
+const getAiWorkflowParams = async (params: {
   workflowId: string;
-}): Promise<PartialRunFlowWorkflowParams> => {
+}): Promise<AiWorkflowParams> => {
   const { workflowId } = params;
 
-  const runFlowWorkflowParamsCache = await getCache();
+  const cache = await getFlowContextCache();
+  const cacheKey = `aiWorkflowParams-${workflowId}`;
 
-  const cachedPartialRunFlowWorkflowParams =
-    await runFlowWorkflowParamsCache.get<PartialRunFlowWorkflowParams>(
-      workflowId,
-    );
-
-  if (cachedPartialRunFlowWorkflowParams) {
-    return cachedPartialRunFlowWorkflowParams;
+  const cachedParams = await cache.get<AiWorkflowParams>(cacheKey);
+  if (cachedParams) {
+    return cachedParams;
   }
 
   const temporalClient = await getTemporalClient();
@@ -186,23 +103,15 @@ const getPartialRunFlowWorkflowParams = async (params: {
       draftTriggerInputNames.includes(output.outputName as "draft"),
     )?.payload.value;
 
-  /**
-   * Avoid caching the entire `RunFlowWorkflowParams` object to reduce memory usage
-   * of the cache.
-   */
-  const partialRunFlowWorkflowParams: PartialRunFlowWorkflowParams = {
+  const aiParams: AiWorkflowParams = {
     createEntitiesAsDraft,
     dataSources: runFlowWorkflowParams.dataSources,
     userAuthentication: runFlowWorkflowParams.userAuthentication,
     webId: runFlowWorkflowParams.webId,
   };
 
-  await runFlowWorkflowParamsCache.set(
-    workflowId,
-    partialRunFlowWorkflowParams,
-  );
-
-  return partialRunFlowWorkflowParams;
+  await cache.set(cacheKey, aiParams);
+  return aiParams;
 };
 
 type FlowContext = {
@@ -229,15 +138,17 @@ export const getFlowContext = async (): Promise<FlowContext> => {
   const { workflowId, runId } = activityContext.info.workflowExecution;
 
   const { createEntitiesAsDraft, dataSources, userAuthentication, webId } =
-    await getPartialRunFlowWorkflowParams({
+    await getAiWorkflowParams({
       workflowId,
     });
 
   // Query for the flow entity by workflowId (stored as a property on the entity)
   // This is necessary because the entity UUID may not match the workflow ID
+  // Uses shared utility with retry logic for race condition handling
   const { flowEntityId } = await getFlowEntityInfo({
     workflowId,
     userAuthentication,
+    graphApiClient,
   });
 
   const { activityId: stepId } = Context.current().info;
@@ -266,7 +177,7 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
   }
 
   const filesCacheKey = `files-${flowEntityId}`;
-  const cache = await getCache();
+  const cache = await getFlowContextCache();
 
   const cachedFiles = await cache.get<HashEntity<File>[]>(filesCacheKey);
 
