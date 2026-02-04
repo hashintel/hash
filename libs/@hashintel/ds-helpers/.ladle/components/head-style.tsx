@@ -1,11 +1,10 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect } from "react";
 
 interface HeadStyleProps {
   id: string;
   css: string;
 }
 
-// Track reference counts for shared style elements
 const refCounts = new Map<string, number>();
 
 /**
@@ -15,8 +14,6 @@ const refCounts = new Map<string, number>();
  * removed when all instances have unmounted.
  */
 export function HeadStyle({ id, css }: HeadStyleProps) {
-  const elRef = useRef<HTMLStyleElement | null>(null);
-
   useLayoutEffect(() => {
     let el = document.getElementById(id) as HTMLStyleElement | null;
 
@@ -28,13 +25,12 @@ export function HeadStyle({ id, css }: HeadStyleProps) {
 
     refCounts.set(id, (refCounts.get(id) ?? 0) + 1);
     el.textContent = css;
-    elRef.current = el;
 
     return () => {
       const count = (refCounts.get(id) ?? 1) - 1;
       if (count <= 0) {
         refCounts.delete(id);
-        elRef.current?.remove();
+        el?.remove();
       } else {
         refCounts.set(id, count);
       }
