@@ -261,8 +261,8 @@ macro_rules! newtype {
         $crate::id::newtype!(@parse_attrs [$($other)* #[$attr]] [$($step)*] [$($display)*] ; $(#[$($rest)*])* ; $($tail)*);
     };
 
-    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; ; $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
-        $crate::id::newtype!(@impl [$($other)*] [$($step)*] [$($display)*] $vis struct $name($type is $min..=$max));
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; ; $($tail:tt)*) => {
+        $crate::id::newtype!(@impl [$($other)*] [$($step)*] [$($display)*] $($tail)*);
     };
 
     // Implementation
