@@ -682,7 +682,6 @@ export const createPersistIntegrationEntitiesAction = ({
           actionType: "persistIntegrationEntities",
         });
 
-      // The input may be a stored reference - resolve it if so
       const proposedEntities = await resolveArrayPayloadValue(
         getStorageProvider(),
         "ProposedEntity",

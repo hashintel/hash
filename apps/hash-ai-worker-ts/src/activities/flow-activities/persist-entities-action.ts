@@ -29,7 +29,6 @@ export const persistEntitiesAction: AiFlowActionActivity<
       actionType: "persistEntities",
     });
 
-  // The input may be a stored reference - resolve it if so
   const proposedEntities = await resolveArrayPayloadValue(
     getStorageProvider(),
     "ProposedEntity",
