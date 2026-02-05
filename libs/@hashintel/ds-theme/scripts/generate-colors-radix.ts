@@ -2,7 +2,7 @@
  * Radix-colors based color token generator.
  *
  * Generates base color scales (0-12, a0-a12) from @radix-ui/colors.
- * Semantic tokens (bg, fg, bd) are composed in main.ts via createSemanticSet().
+ * Semantic tokens (bg, fg, bd) are composed per palette for colorPalette support.
  *
  * Run with: tsx scripts/generate-colors-radix.ts
  */
@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import { join } from "node:path";
 import * as radixColors from "@radix-ui/colors";
+import { withSemantics } from "../src/theme/utils";
 
 const OUTPUT_DIR = "src/theme/colors";
 
@@ -121,7 +122,8 @@ function generateBaseTokens(
  */
 function generateColorTokens(color: string): ColorTokens {
   const { light, dark } = getColorTokens(color);
-  return generateBaseTokens(light, dark);
+  const baseTokens = generateBaseTokens(light, dark);
+  return withSemantics(color, baseTokens);
 }
 
 /**

@@ -14,27 +14,20 @@ import {
   lineHeights,
   radii,
 } from "./theme/tokens.gen";
-import { createSemanticSet, withSemantics } from "./theme/utils";
+import { createSemanticSet } from "./theme/utils";
 
 /**
- * Wrap each base palette with semantic tokens (bg, fg, bd).
- * This is required for colorPalette switching to work - Panda copies the
- * structure from the target palette, so each must have bg.solid, fg.solid, etc.
+ * Base palettes already include semantic tokens (bg, fg, bd) for colorPalette.
  */
-const palettes = Object.fromEntries(
-  Object.entries(basePalettes).map(([name, tokens]) => [
-    name,
-    withSemantics(name, tokens as Record<string, unknown>),
-  ]),
-);
+const palettes = basePalettes;
 
 /** Status palette aliases - map semantic status names to color palettes */
 const statusPalettes = {
   status: {
-    info: withSemantics("blue", blue as Record<string, unknown>),
-    success: withSemantics("green", green as Record<string, unknown>),
-    warning: withSemantics("orange", orange as Record<string, unknown>),
-    error: withSemantics("red", red as Record<string, unknown>),
+    info: blue,
+    success: green,
+    warning: orange,
+    error: red,
   },
 };
 
@@ -82,7 +75,6 @@ export const preset = definePreset({
           // Neutral defaults (bg.*, fg.*, bd.* at top level)
           ...neutralSemantics,
           // Alias gray as neutral for colorPalette references
-          // @ts-expect-error - Panda accepts nested semantic token structures
           neutral: palettes["gray"],
         },
       },
