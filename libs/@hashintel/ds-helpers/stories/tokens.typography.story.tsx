@@ -95,7 +95,6 @@ const LineHeightDemo = ({
       <span className={valueStyles}>{value}</span>
       <div
         className={css({
-          bg: "blue.00",
           maxWidth: "[400px]",
         })}
         style={{
