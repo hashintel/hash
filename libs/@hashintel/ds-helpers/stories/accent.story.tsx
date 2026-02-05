@@ -40,7 +40,7 @@ const selectStyles = css({
   padding: "2",
   borderRadius: "md.2",
   border: "[1px_solid]",
-  borderColor: "bd",
+  borderColor: "bd.solid",
   fontSize: "sm",
   minWidth: "[140px]",
   cursor: "pointer",

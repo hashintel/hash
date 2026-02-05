@@ -111,7 +111,7 @@ const selectStyles = css({
   padding: "2",
   borderRadius: "md.2",
   border: "[1px_solid]",
-  borderColor: "bd",
+  borderColor: "bd.solid",
   fontSize: "sm",
   minWidth: "[140px]",
   cursor: "pointer",
@@ -169,7 +169,7 @@ const InteractiveDemo = () => {
 const NestedPalettes = () => (
   <VStack gap="4" alignItems="flex-start">
     <Box
-      colorPalette="blue"
+      colorPalette="status.error"
       p="4"
       borderRadius="md.3"
       bg="colorPalette.bg.surface"
