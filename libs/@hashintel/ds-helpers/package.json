@@ -52,7 +52,7 @@
   "scripts": {
     "build": "ladle build",
     "codegen": "panda codegen --clean",
-    "dev": "panda codegen --watch & ladle serve",
+    "dev": "turbo codegen && panda codegen --watch & ladle serve",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
