@@ -23,13 +23,13 @@ const fontWeightEntries = [
 const labelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
+  color: "fg.subtle",
   minWidth: "[60px]",
 });
 
 const valueStyles = css({
   fontSize: "xs",
-  color: "text.disabled",
+  color: "fg.subtle",
   minWidth: "[50px]",
 });
 
@@ -37,7 +37,7 @@ const sectionTitleStyles = css({
   fontSize: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
-  borderColor: "border.neutral.subtle",
+  borderColor: "bd.subtle",
   pb: "2",
   mb: "4",
   width: "[100%]",
@@ -95,7 +95,6 @@ const LineHeightDemo = ({
       <span className={valueStyles}>{value}</span>
       <div
         className={css({
-          bg: "blue.00",
           maxWidth: "[400px]",
         })}
         style={{
@@ -120,6 +119,7 @@ export const Typography: Story = () => (
       <h2 className={sectionTitleStyles}>Font Families</h2>
       <FontFamilyDemo name="display" tokenPath="fonts.display" />
       <FontFamilyDemo name="body" tokenPath="fonts.body" />
+      <FontFamilyDemo name="mono" tokenPath="fonts.mono" />
     </VStack>
 
     <VStack gap="4" alignItems="flex-start" width="[100%]">
@@ -142,7 +142,7 @@ export const Typography: Story = () => (
         <p
           className={css({
             fontSize: "xs",
-            color: "text.tertiary",
+            color: "fg.subtle",
             mb: "2",
           })}
         >
@@ -160,7 +160,7 @@ export const Typography: Story = () => (
         <p
           className={css({
             fontSize: "xs",
-            color: "text.tertiary",
+            color: "fg.subtle",
             mb: "2",
           })}
         >

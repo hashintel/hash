@@ -23,13 +23,13 @@ const steps = [
 const labelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
+  color: "fg.subtle",
   textAlign: "center",
 });
 
 const valueStyles = css({
   fontSize: "[10px]",
-  color: "text.disabled",
+  color: "fg.subtle",
   textAlign: "center",
 });
 
@@ -37,7 +37,7 @@ const sectionTitleStyles = css({
   fontSize: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
-  borderColor: "border.neutral.subtle",
+  borderColor: "bd.subtle",
   pb: "2",
   mb: "4",
   width: "[100%]",
@@ -53,7 +53,7 @@ const RadiusSwatch = ({ scale, step }: { scale: string; step: string }) => {
         className={css({
           width: "[48px]",
           height: "[48px]",
-          bg: "blue.50",
+          bg: "blue.9",
           transition: "[border-radius_0.2s]",
         })}
         style={{ borderRadius: value }}
@@ -107,11 +107,11 @@ const ComponentRadiusDemo = ({
               className={css({
                 width: "[64px]",
                 height: "[32px]",
-                bg: "gray.80",
+                bg: "gray.9",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "neutral.white",
+                color: "white",
                 fontSize: "xs",
                 fontWeight: "medium",
               })}
@@ -135,7 +135,7 @@ export const Radii: Story = () => (
     <p
       className={css({
         fontSize: "sm",
-        color: "text.secondary",
+        color: "fg.muted",
         maxWidth: "[600px]",
       })}
     >

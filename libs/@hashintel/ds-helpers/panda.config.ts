@@ -16,4 +16,34 @@ export default defineConfig({
   strictPropertyValues: true,
   strictTokens: true,
   validation: "error",
+  // Pre-generate colorPalette CSS for all palettes so dynamic switching works
+  staticCss: {
+    css: [
+      {
+        properties: {
+          colorPalette: [
+            // Core palettes
+            "gray",
+            "slate",
+            "blue",
+            "cyan",
+            "teal",
+            "red",
+            "orange",
+            "yellow",
+            "green",
+            "purple",
+            "pink",
+            // Status aliases
+            "status.info",
+            "status.success",
+            "status.warning",
+            "status.error",
+            // Neutral alias
+            "neutral",
+          ],
+        },
+      },
+    ],
+  },
 });

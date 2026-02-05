@@ -24,14 +24,14 @@ const steps = [
 const stepLabelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
+  color: "fg.subtle",
   width: "[24px]",
   textAlign: "right",
 });
 
 const valueStyles = css({
   fontSize: "xs",
-  color: "text.disabled",
+  color: "fg.subtle",
   minWidth: "[40px]",
 });
 
@@ -49,7 +49,7 @@ const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
       <div
         className={css({
           height: "[16px]",
-          bg: "blue.50",
+          bg: "blue.9",
           borderRadius: "md.2",
           transition: "[width_0.2s]",
         })}
@@ -86,7 +86,7 @@ export const Spacing: Story = () => (
     <p
       className={css({
         fontSize: "sm",
-        color: "text.secondary",
+        color: "fg.muted",
         maxWidth: "[600px]",
       })}
     >
