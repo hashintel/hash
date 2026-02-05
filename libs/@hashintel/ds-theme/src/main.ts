@@ -10,7 +10,6 @@ import {
 } from "./theme/colors.gen";
 import {
   spacing,
-  fonts,
   fontWeights,
   fontSizes,
   lineHeights,
@@ -76,7 +75,11 @@ export const preset = definePreset({
   theme: {
     tokens: {
       spacing,
-      fonts,
+      fonts: {
+        display: { value: "var(--font-inter-tight), Inter Tight, ui-sans-serif, system-ui, sans-serif" },
+        body: { value: "var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif" },
+        mono: { value: "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace" },
+      },
       fontWeights,
       fontSizes,
       lineHeights,

@@ -7168,6 +7168,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fontsource-variable/geist-mono@npm:5.2.7":
+  version: 5.2.7
+  resolution: "@fontsource-variable/geist-mono@npm:5.2.7"
+  checksum: 10c0/f401fe26e9edeadbef79ab32afb03393d03908d16efa355b94cc7f0a68f5ea96adacd4a2b0724f11eff4cc0b7484693d10f3098cda769692e6497c05af274ad6
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/inter-tight@npm:5.2.7":
+  version: 5.2.7
+  resolution: "@fontsource-variable/inter-tight@npm:5.2.7"
+  checksum: 10c0/ca93e2088c8fce926966180a2fc6ef94f62105043a4f5efba05a8402e566ae83a53401efd6ac53d765467a7ced6072f4e57a3f99e086c11eeae551e586cacbd5
+  languageName: node
+  linkType: hard
+
+"@fontsource-variable/inter@npm:5.2.8":
+  version: 5.2.8
+  resolution: "@fontsource-variable/inter@npm:5.2.8"
+  checksum: 10c0/35b46df31c8c18f55f87228acf6297e4dac6cc9f38d0faaafdaf5a40e40c386cf1bfb115fb0fe0dcdb9b7e14f582843693ccf070d9c903072a5b2fc0f8dfde56
+  languageName: node
+  linkType: hard
+
 "@fortawesome/fontawesome-common-types@npm:6.7.2":
   version: 6.7.2
   resolution: "@fortawesome/fontawesome-common-types@npm:6.7.2"
@@ -8364,6 +8385,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers"
   dependencies:
+    "@fontsource-variable/geist-mono": "npm:5.2.7"
+    "@fontsource-variable/inter": "npm:5.2.8"
+    "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@hashintel/ds-theme": "npm:0.0.3"
     "@ladle/react": "npm:5.1.1"
     "@mantine/hooks": "npm:8.3.5"
