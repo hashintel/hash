@@ -29,6 +29,10 @@
     "./theme": {
       "types": "./dist/theme.d.ts",
       "default": "./dist/theme.js"
+    },
+    "./accent": {
+      "types": "./dist/accent.d.ts",
+      "default": "./dist/accent.js"
     }
   },
   "publishConfig": {
