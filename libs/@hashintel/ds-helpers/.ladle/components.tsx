@@ -1,6 +1,10 @@
 import { ThemeState, type GlobalProvider } from "@ladle/react";
-import "./index.css";
 import { useLayoutEffect } from "react";
+import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
+
+import "./index.css";
 
 /**
  * Global provider for Ladle stories.

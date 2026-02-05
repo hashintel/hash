@@ -221,6 +221,13 @@
 }
 
 :root {
+  /* fonts - Fontsource variable fonts */
+  --font-inter: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter-tight: "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  --global-font-body: var(--font-inter);
+  --global-font-mono: var(--font-geist-mono);
+
   /* colors - using radix-based tokens */
   /* Step 0 is pure white/black, step 1+ are already tinted */
   --ladle-bg-color-primary: var(--colors-gray-0) !important;

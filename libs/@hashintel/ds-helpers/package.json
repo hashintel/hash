@@ -63,6 +63,9 @@
     "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
+    "@fontsource-variable/geist-mono": "5.2.7",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource-variable/inter-tight": "5.2.7",
     "@hashintel/ds-theme": "0.0.3",
     "@ladle/react": "5.1.1",
     "@mantine/hooks": "8.3.5",
