@@ -19,7 +19,7 @@ import {
 /**
  * Backpressure configuration for a given play mode.
  */
-export type PlayModeBackpressure = {
+type PlayModeBackpressure = {
   /** Maximum frames the worker can compute ahead before blocking */
   maxFramesAhead: number;
   /** Number of frames to compute in each batch */
@@ -32,7 +32,7 @@ export type PlayModeBackpressure = {
  * - computeBuffer: minimal buffer (200 frames ahead, 50 batch)
  * - computeMax: large buffer for fast computation (10000 frames ahead, 500 batch)
  */
-export function getPlayModeBackpressure(mode: PlayMode): PlayModeBackpressure {
+function getPlayModeBackpressure(mode: PlayMode): PlayModeBackpressure {
   switch (mode) {
     case "viewOnly":
       return { maxFramesAhead: 0, batchSize: 0 };
@@ -281,6 +281,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         // Only update if we're not already at the latest frame
         if (newFrameIndex !== state.currentFrameIndex) {
           const currentFrame = await getFrame(newFrameIndex);
+          // Re-check state after async operation - user may have stopped/paused
+          if (stateValuesRef.current.playbackState !== "Playing") {
+            return;
+          }
           setStateValues((prev) => ({
             ...prev,
             currentFrameIndex: newFrameIndex,
@@ -329,6 +333,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
         // Get current frame
         const currentFrame = await getFrame(newFrameIndex);
+
+        // Re-check state after async operation - user may have stopped/paused
+        if (stateValuesRef.current.playbackState !== "Playing") {
+          return;
+        }
 
         // Check if we've reached the end of available frames
         if (newFrameIndex >= frameCount - 1) {
@@ -389,17 +398,18 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] = (
     frameIndex: number,
   ) => {
-    const frameCount = totalFramesRef.current;
-    if (frameCount === 0) {
-      return;
-    }
-
-    const clampedIndex = Math.max(0, Math.min(frameIndex, frameCount - 1));
-
-    setStateValues((prev) => ({
-      ...prev,
-      currentFrameIndex: clampedIndex,
-    }));
+    setStateValues((prev) => {
+      // Read frameCount inside functional update to get latest value
+      const frameCount = totalFramesRef.current;
+      if (frameCount === 0) {
+        return prev;
+      }
+      const clampedIndex = Math.max(0, Math.min(frameIndex, frameCount - 1));
+      return {
+        ...prev,
+        currentFrameIndex: clampedIndex,
+      };
+    });
   };
 
   const play: PlaybackContextValue["play"] = async () => {
@@ -423,8 +433,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       return;
     }
 
-    const frameCount = totalFramesRef.current;
-    if (frameCount === 0) {
+    if (totalFramesRef.current === 0) {
       return;
     }
 
@@ -434,6 +443,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
 
     setStateValues((prev) => {
+      // Read frameCount inside functional update to get latest value
+      const frameCount = totalFramesRef.current;
       // If at the end, restart from beginning
       const shouldRestart = prev.currentFrameIndex >= frameCount - 1;
       return {
@@ -460,6 +471,14 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   };
 
   const stop: PlaybackContextValue["stop"] = () => {
+    const simState = simulationStateRef.current;
+    const state = stateValuesRef.current;
+
+    // Pause simulation generation if it's running (except in viewOnly mode)
+    if (state.playMode !== "viewOnly" && simState === "Running") {
+      pauseSimulation();
+    }
+
     setStateValues((prev) => ({
       ...prev,
       playbackState: "Stopped",

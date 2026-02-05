@@ -21,7 +21,7 @@ export type PlayMode = (typeof PLAY_MODES)[number];
 /**
  * All available play modes for UI iteration.
  */
-export const PLAY_MODES = ["viewOnly", "computeBuffer", "computeMax"] as const;
+const PLAY_MODES = ["viewOnly", "computeBuffer", "computeMax"] as const;
 
 /**
  * Available playback speed multipliers.

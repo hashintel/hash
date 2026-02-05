@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Add PlaybackContext for real-time simulation playback
+Add configurable simulation playback speed and maximum run time

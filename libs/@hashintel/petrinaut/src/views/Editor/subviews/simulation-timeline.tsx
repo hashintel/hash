@@ -119,6 +119,49 @@ const svgStyle = css({
   display: "block",
 });
 
+/**
+ * CSS-based hover dimming for run chart lines.
+ * When hovering over any line, all other lines dim.
+ * This is much faster than React re-renders because:
+ * 1. Only CSS changes, no React reconciliation
+ * 2. Browser optimizes opacity transitions natively
+ * 3. PlaceLine components don't re-render on hover
+ */
+const runChartHoveringStyle = css({
+  // When the chart has a hovered element, dim all place groups
+  '&[data-has-hover="true"] g[data-place-id]': {
+    opacity: "[0.2]",
+  },
+  // The hovered element stays fully visible
+  '&[data-has-hover="true"] g[data-place-id][data-hovered="true"]': {
+    opacity: "[1]",
+  },
+  // Transition for smooth dimming
+  "& g[data-place-id]": {
+    transition: "[opacity 0.15s ease]",
+  },
+});
+
+/**
+ * CSS-based hover dimming for stacked area chart.
+ * Similar to run chart but with different base opacities.
+ */
+const stackedChartHoveringStyle = css({
+  // When hovering, dim all areas
+  '&[data-has-hover="true"] path[data-place-id]': {
+    opacity: "[0.3]",
+  },
+  // The hovered element gets full opacity
+  '&[data-has-hover="true"] path[data-place-id][data-hovered="true"]': {
+    opacity: "[1]",
+  },
+  // Base opacity for non-hover state
+  "& path[data-place-id]": {
+    opacity: "[0.7]",
+    transition: "[opacity 0.15s ease]",
+  },
+});
+
 const tooltipStyle = css({
   position: "fixed",
   pointerEvents: "none",
@@ -313,26 +356,35 @@ const useCompartmentData = (): CompartmentDataResult => {
       }
 
       setResult((prev) => {
-        // Extract token counts for each place from new frames
-        const newCompartmentData = places.map((place, placeIndex) => {
-          const existingData = prev.compartmentData[placeIndex];
-          const existingValues = existingData?.values ?? [];
+        // Performance optimization: O(p + f) instead of O(p * f)
+        // First: set up place structure (iterate places once)
+        const placeStructure = places.map((place, placeIndex) => ({
+          placeId: place.id,
+          placeName: place.name,
+          color:
+            placeColors.get(place.id) ??
+            DEFAULT_COLORS[placeIndex % DEFAULT_COLORS.length]!,
+          existingValues: prev.compartmentData[placeIndex]?.values ?? [],
+          newValues: [] as number[],
+        }));
 
-          const newValues = newFrames.map((frame) => {
-            const placeData = frame.places[place.id];
-            return placeData?.count ?? 0;
-          });
+        // Second: iterate frames once, extracting token counts for all places per frame
+        const newFrameTimes: number[] = [];
+        for (const frame of newFrames) {
+          newFrameTimes.push(frame.time);
+          for (const placeData of placeStructure) {
+            const tokenCount = frame.places[placeData.placeId]?.count ?? 0;
+            placeData.newValues.push(tokenCount);
+          }
+        }
 
-          return {
-            placeId: place.id,
-            placeName: place.name,
-            color: placeColors.get(place.id) ?? DEFAULT_COLORS[0]!,
-            values: [...existingValues, ...newValues],
-          };
-        });
-
-        // Extract frame times from new frames
-        const newFrameTimes = newFrames.map((frame) => frame.time);
+        // Third: build final compartmentData from accumulated values
+        const newCompartmentData = placeStructure.map((placeData) => ({
+          placeId: placeData.placeId,
+          placeName: placeData.placeName,
+          color: placeData.color,
+          values: [...placeData.existingValues, ...placeData.newValues],
+        }));
 
         return {
           compartmentData: newCompartmentData,
@@ -576,6 +628,9 @@ interface ChartProps {
 /**
  * CompartmentTimeSeries displays a line chart showing token counts over time.
  * Clicking/dragging on the chart scrubs through frames.
+ *
+ * PERFORMANCE: Uses CSS-based hover dimming and event delegation to avoid
+ * re-rendering PlaceLine components on hover state changes.
  */
 const CompartmentTimeSeries: React.FC<ChartProps> = ({
   compartmentData,
@@ -591,7 +646,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
 
-  // Track locally hovered place (from SVG path hover)
+  // Track locally hovered place (from SVG path hover via event delegation)
   const [localHoveredPlaceId, setLocalHoveredPlaceId] = useState<string | null>(
     null,
   );
@@ -646,8 +701,8 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
 
   // Update tooltip based on mouse position and hovered place
   const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!localHoveredPlaceId || frameTimes.length === 0) {
+    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
+      if (!hoveredId || frameTimes.length === 0) {
         onTooltipChange(null);
         return;
       }
@@ -659,9 +714,9 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
       }
 
       const placeData = compartmentData.find(
-        (data) => data.placeId === localHoveredPlaceId,
+        (data) => data.placeId === hoveredId,
       );
-      if (!placeData || hiddenPlaces.has(localHoveredPlaceId)) {
+      if (!placeData || hiddenPlaces.has(hoveredId)) {
         onTooltipChange(null);
         return;
       }
@@ -683,26 +738,24 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     [
       compartmentData,
       hiddenPlaces,
-      localHoveredPlaceId,
       frameTimes,
       getFrameFromEvent,
       onTooltipChange,
     ],
   );
 
-  // Handle path hover
-  const handlePathMouseEnter = useCallback(
-    (placeId: string) => {
-      setLocalHoveredPlaceId(placeId);
-      onPlaceHover(placeId);
+  /**
+   * Extract placeId from an event target using event delegation.
+   * Walks up the DOM to find the nearest element with data-place-id.
+   */
+  const getPlaceIdFromEvent = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>): string | null => {
+      const target = event.target as SVGElement;
+      const placeGroup = target.closest("[data-place-id]");
+      return placeGroup?.getAttribute("data-place-id") ?? null;
     },
-    [onPlaceHover],
+    [],
   );
-
-  const handlePathMouseLeave = useCallback(() => {
-    setLocalHoveredPlaceId(null);
-    onPlaceHover(null);
-  }, [onPlaceHover]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
@@ -712,14 +765,36 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     [handleScrub],
   );
 
+  /**
+   * Event delegation handler for mouse movement.
+   * Detects which place is being hovered by walking up the DOM tree.
+   */
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
       if (isDraggingRef.current) {
         handleScrub(event);
       }
-      updateTooltip(event);
+
+      // Event delegation: extract placeId from the event target
+      const placeId = getPlaceIdFromEvent(event);
+
+      // Only update state if hover target changed
+      if (placeId !== localHoveredPlaceId) {
+        setLocalHoveredPlaceId(placeId);
+        onPlaceHover(placeId);
+      }
+
+      // Update tooltip with current hover state
+      updateTooltip(event, placeId ?? hoveredPlaceId);
     },
-    [handleScrub, updateTooltip],
+    [
+      handleScrub,
+      getPlaceIdFromEvent,
+      localHoveredPlaceId,
+      onPlaceHover,
+      updateTooltip,
+      hoveredPlaceId,
+    ],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -728,8 +803,10 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
 
   const handleMouseLeave = useCallback(() => {
     isDraggingRef.current = false;
+    setLocalHoveredPlaceId(null);
+    onPlaceHover(null);
     onTooltipChange(null);
-  }, [onTooltipChange]);
+  }, [onPlaceHover, onTooltipChange]);
 
   // Generate SVG path for a data series
   const generatePath = useCallback(
@@ -753,16 +830,23 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     return null;
   }
 
+  // Filter visible data once
+  const visibleData = compartmentData.filter(
+    (data) => !hiddenPlaces.has(data.placeId),
+  );
+
   return (
     <svg
       ref={chartRef}
-      className={svgStyle}
+      className={`${svgStyle} ${runChartHoveringStyle}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       preserveAspectRatio="none"
       viewBox="0 0 100 100"
+      // CSS uses this to know when to apply dimming styles
+      data-has-hover={!!activeHoveredPlaceId || undefined}
     >
       {/* Background grid lines */}
       <line
@@ -795,11 +879,15 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
       />
 
       {/* Data lines - render non-hovered first, then hovered on top */}
-      {compartmentData
-        .filter((data) => !hiddenPlaces.has(data.placeId))
+      {/* CSS handles opacity/dimming via data-place-id and data-hovered attributes */}
+      {visibleData
         .filter((data) => data.placeId !== activeHoveredPlaceId)
         .map((data) => (
-          <g key={data.placeId}>
+          <g
+            key={data.placeId}
+            data-place-id={data.placeId}
+            data-hovered={undefined}
+          >
             {/* Visible line */}
             <path
               d={generatePath(data.values, 100, 100)}
@@ -809,13 +897,9 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
               vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
               strokeLinecap="round"
-              opacity={activeHoveredPlaceId ? 0.2 : 1}
-              style={{
-                transition: "opacity 0.15s ease",
-                pointerEvents: "none",
-              }}
+              style={{ pointerEvents: "none" }}
             />
-            {/* Invisible hit area for easier hovering */}
+            {/* Invisible hit area for easier hovering - events bubble to parent SVG */}
             <path
               d={generatePath(data.values, 100, 100)}
               fill="none"
@@ -823,19 +907,20 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
               strokeWidth="8"
               vectorEffect="non-scaling-stroke"
               style={{ cursor: "pointer" }}
-              onMouseEnter={() => handlePathMouseEnter(data.placeId)}
-              onMouseLeave={handlePathMouseLeave}
             />
           </g>
         ))}
-      {/* Render hovered line on top */}
+      {/* Render hovered line on top for z-ordering */}
       {activeHoveredPlaceId &&
-        !hiddenPlaces.has(activeHoveredPlaceId) &&
-        compartmentData
+        visibleData
           .filter((data) => data.placeId === activeHoveredPlaceId)
           .map((data) => (
-            <g key={data.placeId}>
-              {/* Visible line */}
+            <g
+              key={data.placeId}
+              data-place-id={data.placeId}
+              data-hovered="true"
+            >
+              {/* Visible line - thicker when hovered */}
               <path
                 d={generatePath(data.values, 100, 100)}
                 fill="none"
@@ -846,7 +931,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
                 strokeLinecap="round"
                 style={{ pointerEvents: "none" }}
               />
-              {/* Invisible hit area */}
+              {/* Invisible hit area - events bubble to parent SVG */}
               <path
                 d={generatePath(data.values, 100, 100)}
                 fill="none"
@@ -854,8 +939,6 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
                 strokeWidth="8"
                 vectorEffect="non-scaling-stroke"
                 style={{ cursor: "pointer" }}
-                onMouseEnter={() => handlePathMouseEnter(data.placeId)}
-                onMouseLeave={handlePathMouseLeave}
               />
             </g>
           ))}
@@ -867,6 +950,9 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
  * StackedAreaChart displays a stacked area chart showing token counts over time.
  * Each place's tokens are stacked on top of each other to show the total distribution.
  * Clicking/dragging on the chart scrubs through frames.
+ *
+ * PERFORMANCE: Uses CSS-based hover dimming and event delegation to avoid
+ * re-rendering path elements on hover state changes.
  */
 const StackedAreaChart: React.FC<ChartProps> = ({
   compartmentData,
@@ -882,7 +968,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
 
-  // Track locally hovered place (from SVG path hover)
+  // Track locally hovered place (from SVG path hover via event delegation)
   const [localHoveredPlaceId, setLocalHoveredPlaceId] = useState<string | null>(
     null,
   );
@@ -975,8 +1061,8 @@ const StackedAreaChart: React.FC<ChartProps> = ({
 
   // Update tooltip based on mouse position and hovered place
   const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!localHoveredPlaceId || frameTimes.length === 0) {
+    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
+      if (!hoveredId || frameTimes.length === 0) {
         onTooltipChange(null);
         return;
       }
@@ -989,9 +1075,9 @@ const StackedAreaChart: React.FC<ChartProps> = ({
 
       // For stacked chart, get the original (non-stacked) value
       const placeData = compartmentData.find(
-        (data) => data.placeId === localHoveredPlaceId,
+        (data) => data.placeId === hoveredId,
       );
-      if (!placeData || hiddenPlaces.has(localHoveredPlaceId)) {
+      if (!placeData || hiddenPlaces.has(hoveredId)) {
         onTooltipChange(null);
         return;
       }
@@ -1013,26 +1099,29 @@ const StackedAreaChart: React.FC<ChartProps> = ({
     [
       compartmentData,
       hiddenPlaces,
-      localHoveredPlaceId,
       frameTimes,
       getFrameFromEvent,
       onTooltipChange,
     ],
   );
 
-  // Handle path hover
-  const handlePathMouseEnter = useCallback(
-    (placeId: string) => {
-      setLocalHoveredPlaceId(placeId);
-      onPlaceHover(placeId);
+  /**
+   * Extract placeId from an event target using event delegation.
+   * For stacked chart, paths have data-place-id directly on them.
+   */
+  const getPlaceIdFromEvent = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>): string | null => {
+      const target = event.target as SVGElement;
+      // First check if the target itself has data-place-id (for path elements)
+      if (target.hasAttribute("data-place-id")) {
+        return target.getAttribute("data-place-id");
+      }
+      // Fall back to walking up the DOM
+      const placeElement = target.closest("[data-place-id]");
+      return placeElement?.getAttribute("data-place-id") ?? null;
     },
-    [onPlaceHover],
+    [],
   );
-
-  const handlePathMouseLeave = useCallback(() => {
-    setLocalHoveredPlaceId(null);
-    onPlaceHover(null);
-  }, [onPlaceHover]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
@@ -1042,14 +1131,36 @@ const StackedAreaChart: React.FC<ChartProps> = ({
     [handleScrub],
   );
 
+  /**
+   * Event delegation handler for mouse movement.
+   * Detects which place is being hovered by checking data-place-id attributes.
+   */
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
       if (isDraggingRef.current) {
         handleScrub(event);
       }
-      updateTooltip(event);
+
+      // Event delegation: extract placeId from the event target
+      const placeId = getPlaceIdFromEvent(event);
+
+      // Only update state if hover target changed
+      if (placeId !== localHoveredPlaceId) {
+        setLocalHoveredPlaceId(placeId);
+        onPlaceHover(placeId);
+      }
+
+      // Update tooltip with current hover state
+      updateTooltip(event, placeId ?? hoveredPlaceId);
     },
-    [handleScrub, updateTooltip],
+    [
+      handleScrub,
+      getPlaceIdFromEvent,
+      localHoveredPlaceId,
+      onPlaceHover,
+      updateTooltip,
+      hoveredPlaceId,
+    ],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -1058,8 +1169,10 @@ const StackedAreaChart: React.FC<ChartProps> = ({
 
   const handleMouseLeave = useCallback(() => {
     isDraggingRef.current = false;
+    setLocalHoveredPlaceId(null);
+    onPlaceHover(null);
     onTooltipChange(null);
-  }, [onTooltipChange]);
+  }, [onPlaceHover, onTooltipChange]);
 
   // Generate SVG path for a stacked area
   const generateAreaPath = useCallback(
@@ -1100,13 +1213,15 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   return (
     <svg
       ref={chartRef}
-      className={svgStyle}
+      className={`${svgStyle} ${stackedChartHoveringStyle}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       preserveAspectRatio="none"
       viewBox="0 0 100 100"
+      // CSS uses this to know when to apply dimming styles
+      data-has-hover={!!activeHoveredPlaceId || undefined}
     >
       {/* Background grid lines */}
       <line
@@ -1139,25 +1254,20 @@ const StackedAreaChart: React.FC<ChartProps> = ({
       />
 
       {/* Stacked areas - render from bottom to top */}
-      {stackedData.map((data) => {
-        const isHovered = activeHoveredPlaceId === data.placeId;
-        const isDimmed = activeHoveredPlaceId && !isHovered;
-
-        return (
-          <path
-            key={data.placeId}
-            d={generateAreaPath(data.baseValues, data.topValues, 100, 100)}
-            fill={data.color}
-            stroke={data.color}
-            strokeWidth="0.5"
-            vectorEffect="non-scaling-stroke"
-            opacity={isDimmed ? 0.3 : isHovered ? 1 : 0.7}
-            style={{ transition: "opacity 0.15s ease", cursor: "pointer" }}
-            onMouseEnter={() => handlePathMouseEnter(data.placeId)}
-            onMouseLeave={handlePathMouseLeave}
-          />
-        );
-      })}
+      {/* CSS handles opacity/dimming via data-place-id and data-hovered attributes */}
+      {stackedData.map((data) => (
+        <path
+          key={data.placeId}
+          data-place-id={data.placeId}
+          data-hovered={activeHoveredPlaceId === data.placeId || undefined}
+          d={generateAreaPath(data.baseValues, data.topValues, 100, 100)}
+          fill={data.color}
+          stroke={data.color}
+          strokeWidth="0.5"
+          vectorEffect="non-scaling-stroke"
+          style={{ cursor: "pointer" }}
+        />
+      ))}
     </svg>
   );
 };
