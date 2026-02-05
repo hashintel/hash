@@ -11,6 +11,11 @@ import {
 
 const OUTPUT_DIR = "src/theme/colors";
 
+/**
+ * DEPRECATED: This script reads Figma exports and will be removed once the
+ * token pipeline is fully migrated. Prefer `generate-colors-radix.ts`.
+ */
+
 /** Light/dark mode color pair as exported by Figma. */
 const colorModeValueSchema = z
   .object({
