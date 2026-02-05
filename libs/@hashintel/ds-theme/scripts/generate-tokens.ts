@@ -132,10 +132,10 @@ function generateTypographyTokens(): void {
     }
   }
 
-  // Font weights (filter out deprecated entries with "-delete" suffix and private keys)
+  // Font weights (filter out deprecated entries)
   const fontWeights: Record<string, { value: number }> = {};
   for (const [name, entry] of Object.entries(parsed.weight)) {
-    if (shouldSkipKey(name) || name.includes("-delete")) continue;
+    if (shouldSkipKey(name)) continue;
     if ("type" in entry && entry.type === "fontWeight") {
       fontWeights[camelCase(name)] = { value: entry.value as number };
     }
