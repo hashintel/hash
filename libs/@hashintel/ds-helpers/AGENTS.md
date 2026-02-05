@@ -11,7 +11,7 @@ This package generates and distributes the **Panda CSS styled-system** for the H
 └─────────────────┘     └─────────────────┘     └─────────────────┘
         │                    ▲ YOU ARE HERE             │
    Design tokens          css(), cva(),           Button, Checkbox,
-   from Figma             tokens, jsx             Avatar, etc.
+   from token generators  tokens, jsx             Avatar, etc.
 ```
 
 - **Consumes**: `@hashintel/ds-theme` preset (design tokens, semantic colors, typography, spacing)
@@ -133,5 +133,5 @@ libs/@hashintel/ds-helpers/
 
 ## Related Packages
 
-- **ds-theme**: Design tokens from Figma (`libs/@hashintel/ds-theme`)
+- **ds-theme**: Design tokens from token generators (`libs/@hashintel/ds-theme`)
 - **ds-components**: React components using these utilities (`libs/@hashintel/ds-components`)
