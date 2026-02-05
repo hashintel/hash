@@ -63,12 +63,15 @@ use crate::{
         terminator::TerminatorKind,
     },
     context::MirContext,
-    pass::analysis::{
-        dataflow::{
-            LivenessAnalysis,
-            framework::{DataflowAnalysis as _, DataflowResults},
+    pass::{
+        analysis::{
+            dataflow::{
+                TraversalLivenessAnalysis,
+                framework::{DataflowAnalysis as _, DataflowResults},
+            },
+            size_estimation::{BodyFootprint, Cardinality, InformationRange},
         },
-        size_estimation::{BodyFootprint, Cardinality, InformationRange},
+        transform::Traversals,
     },
 };
 
@@ -601,12 +604,16 @@ impl<A: Allocator> TerminatorPlacement<A> {
         Self { alloc, entity_size }
     }
 
-    fn compute_liveness(&self, body: &Body) -> BasicBlockVec<DenseBitSet<Local>, &A> {
+    fn compute_liveness<'heap>(
+        &self,
+        body: &Body<'heap>,
+        traversals: &Traversals<'heap>,
+    ) -> BasicBlockVec<DenseBitSet<Local>, &A> {
         let DataflowResults {
             analysis: _,
             entry_states: live_in,
             exit_states: _,
-        } = LivenessAnalysis.iterate_to_fixpoint_in(body, &self.alloc);
+        } = TraversalLivenessAnalysis { traversals }.iterate_to_fixpoint_in(body, &self.alloc);
 
         live_in
     }
@@ -632,9 +639,10 @@ impl<A: Allocator> TerminatorPlacement<A> {
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         footprint: &BodyFootprint<&'heap Heap>,
+        traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
     ) -> TerminatorCostVec<&'heap Heap> {
-        let live_in = self.compute_liveness(body);
+        let live_in = self.compute_liveness(body, traversals);
         let scc = self.compute_scc(body);
 
         let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);

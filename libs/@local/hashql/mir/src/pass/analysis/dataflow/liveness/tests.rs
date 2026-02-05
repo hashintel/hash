@@ -1,5 +1,6 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
 
+use alloc::alloc::Global;
 use core::fmt::{self, Display};
 use std::path::PathBuf;
 
@@ -7,16 +8,24 @@ use hashql_core::{
     heap::Heap,
     id::bit_vec::DenseBitSet,
     pretty::Formatter,
-    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use insta::{Settings, assert_snapshot};
 
-use super::LivenessAnalysis;
+use super::{LivenessAnalysis, TraversalLivenessAnalysis};
 use crate::{
-    body::{Body, basic_block::BasicBlockId, local::Local},
+    body::{
+        Body,
+        basic_block::BasicBlockId,
+        local::Local,
+        place::{FieldIndex, Place, ProjectionKind},
+    },
     builder::body,
     intern::Interner,
-    pass::analysis::dataflow::framework::{DataflowAnalysis as _, DataflowResults, Direction},
+    pass::{
+        analysis::dataflow::framework::{DataflowAnalysis, DataflowResults, Direction},
+        transform::Traversals,
+    },
     pretty::TextFormatOptions,
 };
 
@@ -32,10 +41,13 @@ fn format_liveness_state(mut write: impl fmt::Write, state: &DenseBitSet<Local>)
     Ok(())
 }
 
-fn format_liveness_result(
+fn format_liveness_result<
+    'heap,
+    D: DataflowAnalysis<'heap, Domain<Global> = DenseBitSet<Local>>,
+>(
     mut write: impl fmt::Write,
     bb: BasicBlockId,
-    results: &DataflowResults<'_, LivenessAnalysis>,
+    results: &DataflowResults<'heap, D>,
 ) -> fmt::Result {
     let entry = &results.entry_states[bb];
     let exit = &results.exit_states[bb];
@@ -48,9 +60,9 @@ fn format_liveness_result(
     writeln!(write)
 }
 
-fn format_liveness(
+fn format_liveness<'heap, D: DataflowAnalysis<'heap, Domain<Global> = DenseBitSet<Local>>>(
     body: &Body<'_>,
-    results: &DataflowResults<'_, LivenessAnalysis>,
+    results: &DataflowResults<'heap, D>,
 ) -> impl Display {
     core::fmt::from_fn(|fmt| {
         for bb in body.basic_blocks.ids() {
@@ -324,4 +336,170 @@ fn diamond_one_branch_uses() {
     });
 
     assert_liveness("diamond_one_branch_uses", &env, &body);
+}
+
+// =============================================================================
+// TraversalLivenessAnalysis Tests
+// =============================================================================
+
+#[track_caller]
+fn assert_traversal_liveness<'heap>(
+    name: &'static str,
+    env: &Environment<'heap>,
+    body: &Body<'heap>,
+    traversals: &Traversals<'heap>,
+) {
+    let analysis = TraversalLivenessAnalysis { traversals };
+    let results = analysis.iterate_to_fixpoint(body);
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut settings = Settings::clone_current();
+    settings.set_snapshot_path(dir.join("tests/ui/pass/liveness"));
+    settings.set_prepend_module_to_snapshot(false);
+
+    let _drop = settings.bind_to_scope();
+
+    assert_snapshot!(
+        name,
+        format!(
+            "{}\n\n========\n\n{}",
+            format_body(env, body),
+            format_liveness(body, &results)
+        )
+    );
+}
+
+/// Assigning to a traversal destination does not mark the source as live.
+#[test]
+fn traversal_assignment_skips_source() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // _0 = env, _1 = source, _2 = traversal destination, _3 = result
+    let body = body!(interner, env; fn@0/2 -> Int {
+        decl env: (), source: (Int, Int), dest: Int;
+        @proj source_0 = source.0: Int;
+
+        bb0() {
+            dest = load source_0;
+            return dest;
+        }
+    });
+
+    // source = _1, destinations = {_2}
+    let source = Local::new(1);
+    let dest = Local::new(2);
+    let mut traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+    // The projection type is Int (the element type of the tuple)
+    traversals.insert(
+        dest,
+        Place::local(source).project(
+            &interner,
+            TypeBuilder::synthetic(&env).integer(),
+            ProjectionKind::Field(FieldIndex::new(0)),
+        ),
+    );
+
+    assert_traversal_liveness(
+        "traversal_assignment_skips_source",
+        &env,
+        &body,
+        &traversals,
+    );
+}
+
+/// Assigning to a non-traversal local marks the source as live.
+#[test]
+fn non_traversal_assignment_gens_source() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // _0 = env, _1 = source, _2 = NOT in traversals, _3 = result
+    let body = body!(interner, env; fn@0/2 -> Int {
+        decl env: (), source: (Int, Int), other: Int;
+        @proj source_0 = source.0: Int;
+
+        bb0() {
+            other = load source_0;
+            return other;
+        }
+    });
+
+    // source = _1, destinations = {} (empty - _2 is NOT a traversal destination)
+    let source = Local::new(1);
+    let traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+
+    assert_traversal_liveness(
+        "non_traversal_assignment_gens_source",
+        &env,
+        &body,
+        &traversals,
+    );
+}
+
+/// Assignment with projections on LHS (partial def) does not trigger traversal skip.
+#[test]
+fn lhs_projection_does_not_skip() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // _0 = env, _1 = source, _2 = traversal destination (tuple), _3 = result
+    let body = body!(interner, env; fn@0/2 -> (Int, Int) {
+        decl env: (), source: (Int, Int), dest: (Int, Int);
+        @proj source_0 = source.0: Int, dest_0 = dest.0: Int;
+
+        bb0() {
+            dest_0 = load source_0;
+            return dest;
+        }
+    });
+
+    // source = _1, destinations = {_2}
+    // Even though _2 is in traversals, the assignment is to dest.0 (has projection),
+    // so it should NOT skip the source use.
+    let _env = Local::new(0);
+    let source = Local::new(1);
+    let dest = Local::new(2);
+
+    let mut traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+    let source_0_place = Place::local(source).project(
+        &interner,
+        TypeBuilder::synthetic(&env).integer(),
+        ProjectionKind::Field(FieldIndex::new(0)),
+    );
+    traversals.insert(dest, source_0_place);
+
+    assert_traversal_liveness("lhs_projection_does_not_skip", &env, &body, &traversals);
+}
+
+/// Empty traversals set produces identical results to standard liveness.
+#[test]
+fn empty_traversals_is_standard_liveness() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/2 -> Int {
+        decl env: (), source: (Int, Int), dest: Int;
+        @proj source_0 = source.0: Int;
+
+        bb0() {
+            dest = load source_0;
+            return dest;
+        }
+    });
+
+    // source = _1, destinations = {} (empty)
+    let source = Local::new(1);
+    let traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
+
+    assert_traversal_liveness(
+        "empty_traversals_is_standard_liveness",
+        &env,
+        &body,
+        &traversals,
+    );
 }
