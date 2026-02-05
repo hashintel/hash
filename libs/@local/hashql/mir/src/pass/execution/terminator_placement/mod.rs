@@ -1,20 +1,35 @@
 //! Terminator placement analysis for MIR execution planning.
 //!
-//! Determines valid backend transitions at each terminator edge and assigns transfer costs.
-//! While statement placement decides *where* individual statements execute, terminator placement
-//! decides *which transitions* between backends are allowed at control flow edges.
+//! Complements [`StatementPlacement`] by analyzing control flow edges rather than individual
+//! statements. For each terminator edge, produces a [`TransMatrix`] encoding which backend
+//! transitions are valid and their associated transfer costs.
 //!
-//! Each terminator edge gets a [`TransMatrix`] that encodes:
-//! - Which (source_target → dest_target) transitions are valid
-//! - The cost of each transition (based on data that must be transferred)
+//! The execution planner uses this to determine optimal points for backend switches during query
+//! execution.
+//!
+//! # Main Types
+//!
+//! - [`TransMatrix`]: Per-edge transition costs indexed by (source, destination) target pairs
+//! - [`TerminatorCostVec`]: Collection of transition matrices for all edges in a body
+//! - [`TerminatorPlacement`]: Analysis driver that computes placement for a body
 //!
 //! # Transition Rules
 //!
-//! - **Same-backend**: Always allowed with zero cost.
-//! - **To Interpreter**: Always allowed (universal fallback) with transfer cost.
-//! - **From Interpreter to Postgres**: Never allowed (data has left the database).
-//! - **In loops**: Postgres transitions disabled (declarative SQL cannot model loops)
-//! - **GraphRead**: Only Interpreter → Interpreter (graph operations require runtime)
+//! The analysis enforces these constraints on backend transitions:
+//!
+//! | Transition | Allowed? | Cost |
+//! |------------|----------|------|
+//! | Same backend (A → A) | Always | 0 |
+//! | Any → Interpreter | Always | Transfer cost |
+//! | Other → Postgres | Never | — |
+//! | Any in loop → Postgres | Never | — |
+//! | `GraphRead` edge | Interpreter → Interpreter only | 0 |
+//! | `Goto` edge | Any supported transition | Transfer cost |
+//! | `SwitchInt` edge | Same-backend or → Interpreter only | Transfer cost |
+//!
+//! Transfer cost is computed from the estimated size of live locals that must cross the edge.
+//!
+//! [`StatementPlacement`]: super::statement_placement::StatementPlacement
 
 use alloc::alloc::Global;
 use core::{
@@ -42,7 +57,7 @@ use super::{
 use crate::{
     body::{
         Body,
-        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
+        basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
         basic_blocks::BasicBlocks,
         local::Local,
         terminator::TerminatorKind,
@@ -57,16 +72,33 @@ use crate::{
     },
 };
 
-/// Matrix encoding valid backend transitions and their costs for a single terminator edge.
+/// Transition cost matrix for a single terminator edge.
 ///
-/// For each (source, destination) target pair, stores `Some(cost)` if the transition is valid,
-/// or `None` if the transition is not allowed. The matrix is indexed by `TargetId` pairs.
+/// Maps each (source, destination) [`TargetId`] pair to either `Some(cost)` if the transition is
+/// valid, or `None` if disallowed. Supports indexing with tuple syntax: `matrix[(from, to)]`.
+///
+/// # Invariants
+///
+/// - Same-backend transitions (`A → A`) always have cost 0, enforced by [`insert`](Self::insert)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TransMatrix {
     matrix: [Option<Cost>; TargetId::VARIANT_COUNT * TargetId::VARIANT_COUNT],
 }
 
 impl TransMatrix {
+    /// Creates an empty matrix with all transitions disallowed.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// let matrix = TransMatrix::new();
+    /// assert!(
+    ///     matrix
+    ///         .get(TargetId::Interpreter, TargetId::Postgres)
+    ///         .is_none()
+    /// );
+    /// ```
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             matrix: [None; TargetId::VARIANT_COUNT * TargetId::VARIANT_COUNT],
@@ -74,49 +106,211 @@ impl TransMatrix {
     }
 
     #[inline]
-    fn offset(&self, from: TargetId, to: TargetId) -> usize {
+    fn offset(from: TargetId, to: TargetId) -> usize {
         from.as_usize() * TargetId::VARIANT_COUNT + to.as_usize()
     }
 
+    /// Returns the cost for transitioning from `from` to `to`, or `None` if disallowed.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Interpreter,
+    ///     Cost::new(100).unwrap(),
+    /// );
+    ///
+    /// assert_eq!(
+    ///     matrix.get(TargetId::Postgres, TargetId::Interpreter),
+    ///     Some(Cost::new(100).unwrap())
+    /// );
+    /// assert_eq!(matrix.get(TargetId::Interpreter, TargetId::Postgres), None);
+    /// ```
+    #[inline]
+    #[must_use]
     pub fn get(&self, from: TargetId, to: TargetId) -> Option<Cost> {
-        self.matrix[self.offset(from, to)]
+        self.matrix[Self::offset(from, to)]
     }
 
+    /// Returns a mutable reference to the cost entry for the given transition.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    ///
+    /// *matrix.get_mut(TargetId::Postgres, TargetId::Interpreter) = Some(Cost::new(50).unwrap());
+    /// assert_eq!(
+    ///     matrix.get(TargetId::Postgres, TargetId::Interpreter),
+    ///     Some(Cost::new(50).unwrap())
+    /// );
+    /// ```
+    #[inline]
     pub fn get_mut(&mut self, from: TargetId, to: TargetId) -> &mut Option<Cost> {
-        let offset = self.offset(from, to);
-        &mut self.matrix[offset]
+        &mut self.matrix[Self::offset(from, to)]
     }
 
+    /// Inserts a transition with the given cost.
+    ///
+    /// Same-backend transitions (where `from == to`) are always recorded with cost 0,
+    /// regardless of the `cost` argument.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    ///
+    /// // Cross-backend transition uses the provided cost
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Interpreter,
+    ///     Cost::new(100).unwrap(),
+    /// );
+    /// assert_eq!(
+    ///     matrix.get(TargetId::Postgres, TargetId::Interpreter),
+    ///     Some(Cost::new(100).unwrap())
+    /// );
+    ///
+    /// // Same-backend transition is always zero cost
+    /// matrix.insert(
+    ///     TargetId::Interpreter,
+    ///     TargetId::Interpreter,
+    ///     Cost::new(100).unwrap(),
+    /// );
+    /// assert_eq!(
+    ///     matrix.get(TargetId::Interpreter, TargetId::Interpreter),
+    ///     Some(Cost::new(0).unwrap())
+    /// );
+    /// ```
+    #[inline]
     pub fn insert(&mut self, from: TargetId, to: TargetId, mut cost: Cost) {
         if from == to {
             cost = cost!(0);
         }
 
-        let offset = self.offset(from, to);
-        self.matrix[offset] = Some(cost);
+        self.matrix[Self::offset(from, to)] = Some(cost);
     }
 
+    /// Resets all transitions to disallowed.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Interpreter,
+    ///     Cost::new(10).unwrap(),
+    /// );
+    ///
+    /// matrix.clear();
+    /// assert!(
+    ///     matrix
+    ///         .get(TargetId::Postgres, TargetId::Interpreter)
+    ///         .is_none()
+    /// );
+    /// ```
+    #[inline]
     pub fn clear(&mut self) {
         self.matrix.fill(None);
     }
 
-    /// Removes all transitions *to* the given target (except self-loops).
+    /// Removes all incoming transitions to `target` from other backends.
+    ///
+    /// Self-loops (`target` → `target`) are preserved.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    /// matrix.insert(
+    ///     TargetId::Interpreter,
+    ///     TargetId::Postgres,
+    ///     Cost::new(10).unwrap(),
+    /// );
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Postgres,
+    ///     Cost::new(0).unwrap(),
+    /// );
+    ///
+    /// matrix.remove_incoming(TargetId::Postgres);
+    ///
+    /// // Incoming from other backends removed
+    /// assert!(
+    ///     matrix
+    ///         .get(TargetId::Interpreter, TargetId::Postgres)
+    ///         .is_none()
+    /// );
+    /// // Self-loop preserved
+    /// assert!(matrix.get(TargetId::Postgres, TargetId::Postgres).is_some());
+    /// ```
+    #[inline]
     pub fn remove_incoming(&mut self, target: TargetId) {
         for source in TargetId::all() {
             if source == target {
                 continue;
             }
-            let offset = self.offset(source, target);
-            self.matrix[offset] = None;
+
+            self.matrix[Self::offset(source, target)] = None;
         }
     }
 
-    /// Removes all transitions both *to* and *from* the given target.
+    /// Removes all transitions both to and from `target`.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::terminator_placement::TransMatrix;
+    /// # use hashql_mir::pass::execution::target::TargetId;
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let mut matrix = TransMatrix::new();
+    /// matrix.insert(
+    ///     TargetId::Interpreter,
+    ///     TargetId::Postgres,
+    ///     Cost::new(10).unwrap(),
+    /// );
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Interpreter,
+    ///     Cost::new(20).unwrap(),
+    /// );
+    /// matrix.insert(
+    ///     TargetId::Postgres,
+    ///     TargetId::Postgres,
+    ///     Cost::new(0).unwrap(),
+    /// );
+    ///
+    /// matrix.remove_all(TargetId::Postgres);
+    ///
+    /// assert!(
+    ///     matrix
+    ///         .get(TargetId::Interpreter, TargetId::Postgres)
+    ///         .is_none()
+    /// );
+    /// assert!(
+    ///     matrix
+    ///         .get(TargetId::Postgres, TargetId::Interpreter)
+    ///         .is_none()
+    /// );
+    /// assert!(matrix.get(TargetId::Postgres, TargetId::Postgres).is_none());
+    /// ```
     pub fn remove_all(&mut self, target: TargetId) {
         for other in TargetId::all() {
-            self.matrix[self.offset(other, target)] = None;
-            self.matrix[self.offset(target, other)] = None;
+            self.matrix[Self::offset(other, target)] = None;
+            self.matrix[Self::offset(target, other)] = None;
         }
+    }
+}
+
+impl Default for TransMatrix {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -124,26 +318,32 @@ impl Index<(TargetId, TargetId)> for TransMatrix {
     type Output = Option<Cost>;
 
     fn index(&self, (from, to): (TargetId, TargetId)) -> &Self::Output {
-        &self.matrix[self.offset(from, to)]
+        &self.matrix[Self::offset(from, to)]
     }
 }
 
 impl IndexMut<(TargetId, TargetId)> for TransMatrix {
     fn index_mut(&mut self, (from, to): (TargetId, TargetId)) -> &mut Self::Output {
-        let offset = self.offset(from, to);
-        &mut self.matrix[offset]
+        &mut self.matrix[Self::offset(from, to)]
     }
 }
 
-/// Dense storage for transition matrices across all terminator edges in a body.
+/// Collection of [`TransMatrix`] entries for all terminator edges in a body.
 ///
-/// Uses offset-based indexing (like [`StatementCostVec`]) to store a variable number of
-/// [`TransMatrix`] entries per block based on successor count:
-/// - `Goto` / `GraphRead`: 1 edge
-/// - `SwitchInt`: N edges (one per branch)
-/// - `Return` / `Unreachable`: 0 edges
+/// Indexed by [`BasicBlockId`] via [`of`](Self::of), returning a slice of matrices corresponding
+/// to that block's successor edges. The slice length matches the terminator's successor count:
 ///
-/// [`StatementCostVec`]: super::cost::StatementCostVec
+/// | Terminator | Edges |
+/// |------------|-------|
+/// | [`Goto`] / [`GraphRead`] | 1 |
+/// | [`SwitchInt`] | N (branch count) |
+/// | [`Return`] / [`Unreachable`] | 0 |
+///
+/// [`Goto`]: TerminatorKind::Goto
+/// [`GraphRead`]: TerminatorKind::GraphRead
+/// [`SwitchInt`]: TerminatorKind::SwitchInt
+/// [`Return`]: TerminatorKind::Return
+/// [`Unreachable`]: TerminatorKind::Unreachable
 pub struct TerminatorCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     matrices: Vec<TransMatrix, A>,
@@ -186,6 +386,7 @@ impl<A: Allocator> TerminatorCostVec<A> {
         Self { offsets, matrices }
     }
 
+    /// Creates a cost vector sized for `blocks`, with all transitions initially disallowed.
     pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
     where
         A: Clone,
@@ -193,7 +394,8 @@ impl<A: Allocator> TerminatorCostVec<A> {
         Self::from_successor_counts(blocks.iter().map(Self::successor_count), alloc)
     }
 
-    fn successor_count(block: &crate::body::basic_block::BasicBlock) -> u32 {
+    #[expect(clippy::cast_possible_truncation)]
+    fn successor_count(block: &BasicBlock) -> u32 {
         match &block.terminator.kind {
             TerminatorKind::SwitchInt(switch) => switch.targets.targets().len() as u32,
             TerminatorKind::Goto(_) | TerminatorKind::GraphRead(_) => 1,
@@ -205,6 +407,7 @@ impl<A: Allocator> TerminatorCostVec<A> {
     pub fn of(&self, block: BasicBlockId) -> &[TransMatrix] {
         let start = self.offsets[block] as usize;
         let end = self.offsets[block.plus(1)] as usize;
+
         &self.matrices[start..end]
     }
 
@@ -212,13 +415,12 @@ impl<A: Allocator> TerminatorCostVec<A> {
     pub fn of_mut(&mut self, block: BasicBlockId) -> &mut [TransMatrix] {
         let start = self.offsets[block] as usize;
         let end = self.offsets[block.plus(1)] as usize;
+
         &mut self.matrices[start..end]
     }
 }
 
-/// Metadata for Tarjan SCC that counts nodes per component.
-///
-/// Used to identify loops: components with more than one node are part of a cycle.
+/// Tarjan metadata that counts nodes per strongly connected component.
 struct ComponentSizeMetadata;
 
 impl<N, S> Metadata<N, S> for ComponentSizeMetadata {
@@ -239,11 +441,16 @@ impl<N, S> Metadata<N, S> for ComponentSizeMetadata {
     fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 }
 
+/// Parameters for populating a single edge's [`TransMatrix`].
 struct PopulateEdgeMatrix {
+    /// Backends the source block can execute on.
     source_targets: TargetBitSet,
+    /// Backends the destination block can execute on.
     target_targets: TargetBitSet,
 
+    /// Cost of transferring live data across this edge.
     transfer_cost: Cost,
+    /// Whether this edge is part of a loop (disables Postgres transitions).
     is_in_loop: bool,
 }
 
@@ -310,7 +517,7 @@ impl PopulateEdgeMatrix {
         }
     }
 
-    /// GraphRead requires Interpreter execution (graph operations need runtime).
+    /// `GraphRead` requires Interpreter execution (graph operations need runtime).
     fn restrict_to_interpreter_only(&self, matrix: &mut TransMatrix) {
         matrix.clear();
 
@@ -335,13 +542,33 @@ impl PopulateEdgeMatrix {
     }
 }
 
+/// Computes terminator placement for a [`Body`].
+///
+/// Analyzes control flow edges to determine valid backend transitions and their costs. The
+/// resulting [`TerminatorCostVec`] is used by the execution planner alongside statement placement
+/// to select optimal execution targets.
+///
+/// # Usage
+///
+/// ```ignore
+/// let placement = TerminatorPlacement::new(&alloc, entity_size);
+/// let costs = placement.terminator_placement(context, body, footprint, targets);
+///
+/// // Query transitions for block 0's first successor edge
+/// let matrices = costs.of(BasicBlockId::new(0));
+/// let can_transition = matrices[0].get(TargetId::Postgres, TargetId::Interpreter);
+/// ```
 pub struct TerminatorPlacement<A: Allocator> {
     alloc: A,
     entity_size: InformationRange,
 }
 
 impl<A: Allocator> TerminatorPlacement<A> {
-    pub fn new(alloc: A, entity_size: InformationRange) -> Self {
+    /// Creates a new placement analyzer.
+    ///
+    /// The `entity_size` estimate is used when computing transfer costs — it represents the
+    /// expected size of entity data that may need to cross backend boundaries.
+    pub const fn new_in(entity_size: InformationRange, alloc: A) -> Self {
         Self { alloc, entity_size }
     }
 
@@ -362,7 +589,15 @@ impl<A: Allocator> TerminatorPlacement<A> {
         Tarjan::new_with_metadata_in(&body.basic_blocks, ComponentSizeMetadata, &self.alloc).run()
     }
 
-    /// Computes transition matrices for all terminator edges in the body.
+    /// Computes transition costs for all terminator edges in `body`.
+    ///
+    /// For each edge, determines which (source → destination) backend transitions are valid and
+    /// their associated costs. The `targets` slice provides the set of backends each block can
+    /// execute on (from statement placement), and `footprint` provides size estimates for
+    /// computing transfer costs.
+    ///
+    /// The returned [`TerminatorCostVec`] can be indexed by block ID to get the transition
+    /// matrices for that block's successor edges.
     pub fn terminator_placement<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,

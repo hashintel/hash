@@ -8,6 +8,6 @@ mod cost;
 pub mod splitting;
 pub mod statement_placement;
 pub mod target;
-mod terminator_placement;
+pub mod terminator_placement;
 
 pub use self::cost::{Cost, StatementCostVec, TraversalCostVec};
