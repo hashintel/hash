@@ -435,6 +435,7 @@ export const staticColors = { black, white };
 
 /**
  * Generate the barrel file that exports all colors.
+ * Aliases are composed in main.ts, not generated here.
  */
 function writeBarrelFile(colorNames: string[]): void {
   const filePath = join(process.cwd(), "src/theme/colors.gen.ts");
@@ -444,35 +445,22 @@ function writeBarrelFile(colorNames: string[]): void {
     .join("\n");
 
   const staticImport = `import { staticColors } from "./colors/static.gen";`;
-  const aliasesImport = `import { globalAliases } from "./colors/aliases.gen";`;
 
   const colorExports = colorNames.join(",\n  ");
 
   const content = `${imports}
 ${staticImport}
-${aliasesImport}
 
 /** Semantic color palettes with light/dark mode and variant tokens. */
-export const semanticColorPalettes = {
+export const palettes = {
   ${colorExports},
 };
 
 /** Static color tokens (black, white with alpha scales). */
 export { staticColors };
 
-/** Global semantic color aliases (fg, canvas, border, error). */
-export { globalAliases };
-
-/** Combined colors for Panda preset theme.tokens.colors. */
-export const coreColors = staticColors;
-
-/** Combined colors for Panda preset theme.semanticTokens.colors. */
-export const colors = {
-  ...semanticColorPalettes,
-  ...globalAliases,
-  // Alias gray as neutral for component APIs
-  neutral: gray,
-};
+/** Re-export individual palettes for direct import. */
+export { ${colorExports} };
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
@@ -490,41 +478,7 @@ function writeStaticColorsFile(): void {
   console.log(`📄 Created static.gen.ts`);
 }
 
-/**
- * Generate global semantic aliases (fg, bg, border, canvas, error).
- * Canvas uses step 0 for pure white/black backgrounds.
- */
-function generateGlobalAliases(): string {
-  return `import { defineSemanticTokens } from "@pandacss/dev";
 
-/**
- * Global semantic color aliases following park-ui conventions.
- * These provide app-level semantic meaning on top of color palettes.
- * Canvas uses step 0 for pure white (light) / black (dark) backgrounds.
- */
-export const globalAliases = defineSemanticTokens.colors({
-  fg: {
-    DEFAULT: { value: { _light: "{colors.gray.12}", _dark: "{colors.gray.12}" } },
-    muted: { value: { _light: "{colors.gray.11}", _dark: "{colors.gray.11}" } },
-    subtle: { value: { _light: "{colors.gray.10}", _dark: "{colors.gray.10}" } },
-  },
-  canvas: { value: { _light: "{colors.gray.0}", _dark: "{colors.gray.0}" } },
-  border: { value: { _light: "{colors.gray.4}", _dark: "{colors.gray.4}" } },
-  error: { value: { _light: "{colors.red.9}", _dark: "{colors.red.9}" } },
-});
-`;
-}
-
-/**
- * Write global aliases file.
- */
-function writeGlobalAliasesFile(): void {
-  const filePath = join(process.cwd(), OUTPUT_DIR, "aliases.gen.ts");
-  const content = generateGlobalAliases();
-
-  fs.writeFileSync(filePath, content, "utf8");
-  console.log(`📄 Created aliases.gen.ts`);
-}
 
 /**
  * Main entry point.
@@ -546,15 +500,11 @@ function main(): void {
   const palettes = colorNames.map(createColorPalette);
   palettes.forEach(writeColorFile);
 
-  // Generate global aliases
-  console.log("\n🎯 Generating global aliases:");
-  writeGlobalAliasesFile();
-
   // Generate barrel file
   console.log("\n📦 Generating barrel file:");
   writeBarrelFile(colorNames);
 
-  console.log(`\n✅ Generated ${colorNames.length} color palettes + aliases`);
+  console.log(`\n✅ Generated ${colorNames.length} color palettes`);
 }
 
 main();

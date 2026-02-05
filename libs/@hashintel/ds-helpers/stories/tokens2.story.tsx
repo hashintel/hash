@@ -338,19 +338,168 @@ export const GlobalAliases: Story = () => (
           <span className={css({ color: "fg" })}>Border color</span>
         </Box>
       </HStack>
-      <HStack gap="4" alignItems="center">
-        <span className={labelStyles}>error</span>
-        <Box
-          p="4"
-          bg="canvas"
-          borderRadius="md.3"
-          boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
-        >
-          <span style={{ color: token("colors.error") }}>Error color</span>
-        </Box>
-      </HStack>
     </VStack>
   </VStack>
 );
 
 GlobalAliases.storyName = "Global Aliases";
+
+/**
+ * Status color mappings for semantic use.
+ */
+const STATUS_COLORS = ["info", "success", "warning", "error"] as const;
+
+const StatusColorSwatch = ({
+  status,
+  step,
+}: {
+  status: string;
+  step: string | number;
+}) => {
+  const tokenPath = `colors.status.${status}.${step}` as Token;
+  const bgColor = token(tokenPath);
+  const isAlpha = typeof step === "string" && step.startsWith("a");
+
+  return (
+    <div
+      className={swatchStyles}
+      style={{
+        backgroundColor: bgColor,
+        boxShadow: isAlpha
+          ? "inset 0 0 0 1px rgba(0,0,0,0.1)"
+          : "inset 0 0 0 1px rgba(0,0,0,0.05)",
+      }}
+    >
+      <span
+        className={css({
+          color: "white",
+          textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]",
+          mixBlendMode: "difference",
+        })}
+      >
+        {step}
+      </span>
+    </div>
+  );
+};
+
+const StatusRow = ({
+  status,
+  steps,
+}: {
+  status: string;
+  steps: readonly (string | number)[];
+}) => (
+  <HStack gap="1" alignItems="center">
+    <span className={labelStyles}>{status}</span>
+    {steps.map((step) => (
+      <StatusColorSwatch key={step} status={status} step={step} />
+    ))}
+  </HStack>
+);
+
+export const StatusColors: Story = () => (
+  <VStack gap="4" alignItems="flex-start" p="6">
+    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+      Status Color Aliases
+    </h1>
+    <p
+      className={css({
+        fontSize: "sm",
+        color: "fg.muted",
+        maxWidth: "[600px]",
+      })}
+    >
+      Semantic status tokens that alias color palettes. Use{" "}
+      <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        status.info.3
+      </code>{" "}
+      instead of{" "}
+      <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        blue.3
+      </code>{" "}
+      for intent-driven styling.
+    </p>
+    <VStack gap="4" alignItems="flex-start">
+      <Box>
+        <h2
+          className={css({
+            fontSize: "lg",
+            fontWeight: "medium",
+            mb: "2",
+          })}
+        >
+          Solid Steps (0-12)
+        </h2>
+        <VStack gap="1" alignItems="flex-start">
+          <StepHeaders steps={SOLID_STEPS} />
+          {STATUS_COLORS.map((status) => (
+            <StatusRow key={status} status={status} steps={SOLID_STEPS} />
+          ))}
+        </VStack>
+      </Box>
+      <Box>
+        <h2
+          className={css({
+            fontSize: "lg",
+            fontWeight: "medium",
+            mb: "2",
+          })}
+        >
+          Alpha Steps (a0-a12)
+        </h2>
+        <TransparencyBackground>
+          <VStack gap="1" alignItems="flex-start">
+            <StepHeaders steps={ALPHA_STEPS} />
+            {STATUS_COLORS.map((status) => (
+              <StatusRow key={status} status={status} steps={ALPHA_STEPS} />
+            ))}
+          </VStack>
+        </TransparencyBackground>
+      </Box>
+    </VStack>
+    <Box mt="4">
+      <h2
+        className={css({
+          fontSize: "lg",
+          fontWeight: "medium",
+          mb: "2",
+        })}
+      >
+        Mapping Reference
+      </h2>
+      <VStack gap="2" alignItems="flex-start">
+        <HStack gap="4">
+          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+            status.info
+          </span>
+          <span className={css({ color: "fg.muted" })}>→</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>blue</span>
+        </HStack>
+        <HStack gap="4">
+          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+            status.success
+          </span>
+          <span className={css({ color: "fg.muted" })}>→</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>green</span>
+        </HStack>
+        <HStack gap="4">
+          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+            status.warning
+          </span>
+          <span className={css({ color: "fg.muted" })}>→</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>orange</span>
+        </HStack>
+        <HStack gap="4">
+          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+            status.error
+          </span>
+          <span className={css({ color: "fg.muted" })}>→</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>red</span>
+        </HStack>
+      </VStack>
+    </Box>
+  </VStack>
+);
+
+StatusColors.storyName = "Status Colors";

@@ -1,9 +1,16 @@
+export { palettes, staticColors } from "./theme/colors.gen";
 export {
-  coreColors,
-  colors,
-  semanticColorPalettes,
-  staticColors,
-  globalAliases,
+  blue,
+  cyan,
+  gray,
+  green,
+  orange,
+  pink,
+  purple,
+  red,
+  slate,
+  teal,
+  yellow,
 } from "./theme/colors.gen";
 export {
   spacing,
