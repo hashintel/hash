@@ -31,6 +31,11 @@ const activitiesHandlingCancellation: FlowActivityId[] = [
   "researchEntitiesAction",
 ];
 
+const activitiesHeartbeating: FlowActivityId[] = [
+  ...activitiesHandlingCancellation,
+  "persistEntitiesAction",
+];
+
 const proxyFlowActivity: ProxyFlowActivity<
   AiFlowActionDefinitionId,
   typeof createFlowActivities
@@ -44,7 +49,7 @@ const proxyFlowActivity: ProxyFlowActivity<
       ? ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
       : ActivityCancellationType.ABANDON,
 
-    startToCloseTimeout: activitiesHandlingCancellation.includes(actionName)
+    startToCloseTimeout: activitiesHeartbeating.includes(actionName)
       ? /**
          * @todo H-3129 – research tasks can take a long time, and waiting for user input takes an indefinite amount of time.
          *    - we need to be able to sleep at the workflow level and have activities that take a bounded, shorter amount of time.
@@ -64,7 +69,7 @@ const proxyFlowActivity: ProxyFlowActivity<
      *  - heartbeats are throttled by default to 80% of the heartbeatTimeout, so sending a heartbeat does not mean it will be processed then
      *  - maxHeartbeatThrottleInterval can be set in WorkerOptions, and otherwise defaults to 60s
      */
-    heartbeatTimeout: activitiesHandlingCancellation.includes(actionName)
+    heartbeatTimeout: activitiesHeartbeating.includes(actionName)
       ? `${heartbeatTimeoutSeconds} second`
       : undefined,
     retry: { maximumAttempts },

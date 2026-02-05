@@ -1,5 +1,9 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -401,7 +405,7 @@ export const answerQuestionAction: AiFlowActionActivity<
 > = async ({ inputs }) => {
   const {
     context,
-    entities: inputEntities,
+    entities: entitiesInput,
     question,
   } = getSimplifiedAiFlowActionInputs({
     inputs,
@@ -409,6 +413,15 @@ export const answerQuestionAction: AiFlowActionActivity<
   });
 
   const { userAuthentication } = await getFlowContext();
+
+  // Resolve the stored ref to get the array of PersistedEntitiesMetadata
+  const inputEntities = entitiesInput
+    ? await resolvePayloadValue(
+        getStorageProvider(),
+        "PersistedEntitiesMetadata",
+        entitiesInput,
+      )
+    : undefined;
 
   const entities = inputEntities
     ? await mapActionInputEntitiesToEntities({

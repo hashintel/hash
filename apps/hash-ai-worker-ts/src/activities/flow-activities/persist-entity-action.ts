@@ -1,6 +1,10 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
@@ -9,7 +13,10 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  PersistedEntityMetadata,
+  ProposedEntityWithResolvedLinks,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   HasObject,
@@ -47,9 +54,18 @@ export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.pptxPresentation.entityTypeId,
 ];
 
-export const persistEntityAction: AiFlowActionActivity<
-  "persistEntity"
-> = async ({ inputs }) => {
+/**
+ * Inner function that handles the actual entity persistence logic.
+ * This is called by both persistEntityAction (which resolves the payload ref first)
+ * and persistEntitiesAction (which passes the resolved value directly).
+ */
+export const persistEntity = async ({
+  proposedEntityWithResolvedLinks,
+  draft,
+}: {
+  proposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
+  draft: boolean;
+}): Promise<ReturnType<AiFlowActionActivity<"persistEntity">>> => {
   const {
     flowEntityId,
     stepId,
@@ -57,13 +73,7 @@ export const persistEntityAction: AiFlowActionActivity<
     webId,
   } = await getFlowContext();
 
-  const { draft, proposedEntityWithResolvedLinks } =
-    getSimplifiedAiFlowActionInputs({
-      inputs,
-      actionType: "persistEntity",
-    });
-
-  const createEditionAsDraft = draft ?? false;
+  const createEditionAsDraft = draft;
 
   const {
     entityTypeIds,
@@ -335,4 +345,28 @@ export const persistEntityAction: AiFlowActionActivity<
       },
     ],
   };
+};
+
+/**
+ * Flow action activity that persists a single entity.
+ */
+export const persistEntityAction: AiFlowActionActivity<
+  "persistEntity"
+> = async ({ inputs }) => {
+  const { draft, proposedEntityWithResolvedLinks: proposedEntityInput } =
+    getSimplifiedAiFlowActionInputs({
+      inputs,
+      actionType: "persistEntity",
+    });
+
+  const proposedEntityWithResolvedLinks = await resolvePayloadValue(
+    getStorageProvider(),
+    "ProposedEntityWithResolvedLinks",
+    proposedEntityInput,
+  );
+
+  return persistEntity({
+    proposedEntityWithResolvedLinks,
+    draft: draft ?? false,
+  });
 };

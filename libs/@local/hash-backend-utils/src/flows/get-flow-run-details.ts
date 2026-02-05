@@ -8,8 +8,14 @@ import type {
   FlowInputs,
   FlowSignalType,
   ProgressLogSignal,
+  ResolvedPayload,
+  ResolvedStepOutput,
+  ResolvedStepRunOutput,
   SparseFlowRun,
+  StepOutput,
+  StepRunOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRun,
   FlowRunStatus,
@@ -24,10 +30,63 @@ import {
 } from "@temporalio/common";
 import proto from "@temporalio/proto";
 
+import type { FileStorageProvider } from "../file-storage.js";
 import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
+import { retrievePayload } from "./payload-storage.js";
 
 type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
+
+/**
+ * Cache for resolved payloads to avoid re-downloading the same S3 objects.
+ * Keyed by S3 storage key.
+ */
+type PayloadCache = Map<string, unknown>;
+
+/**
+ * Resolve any stored payload references in step outputs.
+ * This downloads the actual payload data from S3 and replaces the reference.
+ *
+ * @param outputs - The step outputs to resolve
+ * @param storageProvider - The storage provider to retrieve payloads from
+ * @param cache - Optional cache to avoid re-downloading the same S3 objects
+ */
+const resolveStoredPayloadsInOutputs = async (
+  outputs: StepOutput[] | undefined,
+  storageProvider: FileStorageProvider,
+  cache?: PayloadCache,
+): Promise<ResolvedStepOutput[] | undefined> => {
+  if (!outputs) {
+    return outputs;
+  }
+
+  return Promise.all(
+    outputs.map(async (output) => {
+      const { payload } = output;
+
+      if (isStoredPayloadRef(payload.value)) {
+        const storageKey = payload.value.storageKey;
+
+        // Check cache first
+        let resolvedValue = cache?.get(storageKey);
+        if (resolvedValue === undefined) {
+          resolvedValue = await retrievePayload(storageProvider, payload.value);
+          cache?.set(storageKey, resolvedValue);
+        }
+
+        return {
+          ...output,
+          payload: {
+            kind: payload.kind,
+            value: resolvedValue,
+          } as unknown as ResolvedPayload,
+        } satisfies ResolvedStepOutput;
+      }
+
+      return output as ResolvedStepOutput;
+    }),
+  );
+};
 
 const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
   const { eventTime } = event ?? {};
@@ -130,9 +189,12 @@ const getActivityStartedDetails = (
 const getFlowRunDetailedFields = async ({
   workflowId,
   temporalClient,
+  storageProvider,
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
+  /** Storage provider for resolving stored payload references */
+  storageProvider: FileStorageProvider;
 }): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
@@ -224,7 +286,11 @@ const getFlowRunDetailedFields = async ({
         .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
   )?.workflowExecutionFailedEventAttributes?.failure?.message;
 
-  const stepMap: { [activityId: string]: StepRun } = {};
+  const unresolvedStepMap: {
+    [activityId: string]: Omit<StepRun, "outputs"> & {
+      outputs?: StepRunOutput[] | null;
+    };
+  } = {};
 
   /**
    * Collect all progress signal events when building the step map,
@@ -396,12 +462,14 @@ const getFlowRunDetailedFields = async ({
         continue;
       }
 
-      if (stepMap[activityId]) {
+      if (unresolvedStepMap[activityId]) {
         // We've already encountered and therefore populated all the details for this step
         continue;
       }
 
-      const activityRecord: StepRun = {
+      const activityRecord: Omit<StepRun, "outputs"> & {
+        outputs?: StepRunOutput[] | null;
+      } = {
         stepId: activityId,
         stepType: activityType ?? "UNKNOWN",
         startedAt,
@@ -415,7 +483,7 @@ const getFlowRunDetailedFields = async ({
         attempt,
       };
 
-      stepMap[activityId] = activityRecord;
+      unresolvedStepMap[activityId] = activityRecord;
 
       switch (event.eventType) {
         case proto.temporal.api.enums.v1.EventType
@@ -523,7 +591,7 @@ const getFlowRunDetailedFields = async ({
   }
 
   for (const checkpoint of checkpointLogs) {
-    const step = stepMap[checkpoint.stepId];
+    const step = unresolvedStepMap[checkpoint.stepId];
     if (!step) {
       throw new Error(
         `Could not find step with id ${checkpoint.stepId} for checkpoint with id ${checkpoint.checkpointId}`,
@@ -563,7 +631,7 @@ const getFlowRunDetailedFields = async ({
     for (const log of logs) {
       const { stepId } = log;
 
-      const activityRecord = stepMap[stepId];
+      const activityRecord = unresolvedStepMap[stepId];
       if (!activityRecord) {
         throw new Error(`No activity record found for step with id ${stepId}`);
       }
@@ -575,7 +643,7 @@ const getFlowRunDetailedFields = async ({
   const inputRequests = Object.values(inputRequestsById);
   for (const inputRequest of inputRequests) {
     if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
-      const step = stepMap[inputRequest.stepId];
+      const step = unresolvedStepMap[inputRequest.stepId];
       if (!step) {
         throw new Error(
           `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,
@@ -589,16 +657,93 @@ const getFlowRunDetailedFields = async ({
     throw new Error("No workflow inputs found");
   }
 
-  for (const step of Object.values(stepMap)) {
+  for (const step of Object.values(unresolvedStepMap)) {
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+  }
+
+  // Create a cache for resolved payloads to avoid re-downloading the same S3 objects
+  // This is shared between step outputs and workflow outputs
+  const payloadCache: PayloadCache = new Map();
+
+  // Resolve any stored payload references in step outputs
+  const steps: StepRun[] = await Promise.all(
+    Object.values(unresolvedStepMap).map(async (step) => {
+      // The outputs in stepMap are from Temporal history - Status<{outputs: StepOutput[]}> objects
+      // We need to resolve stored refs in the actual step outputs within those Status objects
+      if (!step.outputs) {
+        return step as StepRun;
+      }
+
+      const resolvedOutputs = await Promise.all(
+        step.outputs.map(async (output) => {
+          // output is Status<{outputs: StepOutput[]}>
+          const firstContent = output.contents[0];
+          if (!firstContent?.outputs) {
+            return output as ResolvedStepRunOutput;
+          }
+
+          const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
+            firstContent.outputs,
+            storageProvider,
+            payloadCache,
+          );
+
+          return {
+            ...output,
+            contents: [
+              {
+                ...firstContent,
+                outputs: resolvedInnerOutputs ?? [],
+              },
+            ],
+          };
+        }),
+      );
+
+      return {
+        ...step,
+        outputs: resolvedOutputs,
+      };
+    }),
+  );
+
+  // Resolve stored payload references in workflow outputs for consistency with step outputs.
+  // Workflow outputs may reference the same S3 locations as step outputs, so we use the same
+  // cache to avoid redundant downloads.
+  let resolvedWorkflowOutputs: ResolvedStepRunOutput[] | undefined;
+  if (workflowOutputs && Array.isArray(workflowOutputs)) {
+    resolvedWorkflowOutputs = await Promise.all(
+      (workflowOutputs as StepRunOutput[]).map(async (output) => {
+        const firstContent = output.contents[0];
+        if (!firstContent?.outputs) {
+          return output as ResolvedStepRunOutput;
+        }
+
+        const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
+          firstContent.outputs,
+          storageProvider,
+          payloadCache,
+        );
+
+        return {
+          ...output,
+          contents: [
+            {
+              ...firstContent,
+              outputs: resolvedInnerOutputs ?? [],
+            },
+          ],
+        };
+      }),
+    );
   }
 
   return {
     failureMessage: workflowFailureMessage,
     inputs: workflowInputs,
-    outputs: workflowOutputs,
+    outputs: resolvedWorkflowOutputs ?? workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
-    steps: Object.values(stepMap),
+    steps,
     startedAt: workflowStartedAt.toISOString(),
   };
 };
@@ -660,11 +805,14 @@ export const getFlowRunFromTemporalWorkflowId = async (args: {
   /** the identifier for the Temporal workflow */
   temporalWorkflowId: string;
   webId: WebId;
+  /** Storage provider for resolving stored payload references */
+  storageProvider: FileStorageProvider;
 }): Promise<FlowRun> => {
   const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
   const detailedFields = await getFlowRunDetailedFields({
     workflowId: args.temporalWorkflowId,
     temporalClient: args.temporalClient,
+    storageProvider: args.storageProvider,
   });
 
   return {

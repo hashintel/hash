@@ -4,6 +4,10 @@ import type {
 } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
   getTokensForGoogleAccount,
@@ -12,6 +16,11 @@ import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  PersistedEntitiesMetadata,
+  StoredPayloadRef,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -133,18 +142,33 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
    */
   let sheetRequests: sheets_v4.Schema$Request[] | undefined;
 
-  if ("format" in dataToWrite) {
-    if (dataToWrite.format !== "CSV") {
+  // Resolve stored ref if dataToWrite is a StoredPayloadRef (for PersistedEntitiesMetadata)
+  let resolvedDataToWrite:
+    | Exclude<typeof dataToWrite, StoredPayloadRef<"PersistedEntitiesMetadata">>
+    | PersistedEntitiesMetadata;
+
+  if (isStoredPayloadRef(dataToWrite)) {
+    resolvedDataToWrite = await resolvePayloadValue(
+      getStorageProvider(),
+      "PersistedEntitiesMetadata",
+      dataToWrite,
+    );
+  } else {
+    resolvedDataToWrite = dataToWrite;
+  }
+
+  if ("format" in resolvedDataToWrite) {
+    if (resolvedDataToWrite.format !== "CSV") {
       return {
         code: StatusCode.InvalidArgument,
-        message: `Invalid text format '${dataToWrite.format}' provided, must be 'CSV'.`,
+        message: `Invalid text format '${resolvedDataToWrite.format}' provided, must be 'CSV'.`,
         contents: [],
       };
     }
 
     try {
       sheetRequests = convertCsvToSheetRequests({
-        csvString: dataToWrite.content,
+        csvString: resolvedDataToWrite.content,
         format: { audience },
       });
     } catch {
@@ -155,21 +179,22 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
       };
     }
   } else {
-    const isPersistedEntities = "persistedEntities" in dataToWrite;
-    const queryFilter = isPersistedEntities
-      ? {
-          any: dataToWrite.persistedEntities.map((persistedEntityMetadata) =>
-            generateEntityIdFilter({
-              entityId: persistedEntityMetadata.entityId,
-              includeArchived: false,
-            }),
-          ),
-        }
-      : await getFilterFromBlockProtocolQueryEntity({
-          authentication: { actorId: userAccountId },
-          graphApiClient,
-          queryEntityId: dataToWrite,
-        });
+    const queryFilter =
+      "persistedEntities" in resolvedDataToWrite
+        ? {
+            any: resolvedDataToWrite.persistedEntities.map(
+              (persistedEntityMetadata) =>
+                generateEntityIdFilter({
+                  entityId: persistedEntityMetadata.entityId,
+                  includeArchived: false,
+                }),
+            ),
+          }
+        : await getFilterFromBlockProtocolQueryEntity({
+            authentication: { actorId: userAccountId },
+            graphApiClient,
+            queryEntityId: resolvedDataToWrite,
+          });
 
     const subgraph = await getSubgraphFromFilter({
       authentication: { actorId: userAccountId },
@@ -181,34 +206,35 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
        *
        * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
        */
-      traversalPaths: isPersistedEntities
-        ? []
-        : [
-            {
-              edges: [
-                {
-                  kind: "has-left-entity",
-                  direction: "incoming",
-                },
-                {
-                  kind: "has-right-entity",
-                  direction: "outgoing",
-                },
-              ],
-            },
-            {
-              edges: [
-                {
-                  kind: "has-right-entity",
-                  direction: "incoming",
-                },
-                {
-                  kind: "has-left-entity",
-                  direction: "outgoing",
-                },
-              ],
-            },
-          ],
+      traversalPaths:
+        "persistedEntities" in resolvedDataToWrite
+          ? []
+          : [
+              {
+                edges: [
+                  {
+                    kind: "has-left-entity",
+                    direction: "incoming",
+                  },
+                  {
+                    kind: "has-right-entity",
+                    direction: "outgoing",
+                  },
+                ],
+              },
+              {
+                edges: [
+                  {
+                    kind: "has-right-entity",
+                    direction: "incoming",
+                  },
+                  {
+                    kind: "has-left-entity",
+                    direction: "outgoing",
+                  },
+                ],
+              },
+            ],
     });
 
     sheetRequests = convertSubgraphToSheetRequests({

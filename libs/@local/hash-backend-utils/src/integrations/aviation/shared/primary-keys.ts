@@ -53,6 +53,17 @@ export const generatePrimaryKey = {
 };
 
 /**
+ * The properties needed to generate a primary key for each entity type.
+ */
+export type PrimaryKeyInput = {
+  [K in keyof typeof generatePrimaryKey]: {
+    [P in keyof Parameters<(typeof generatePrimaryKey)[K]>[0]]-?: NonNullable<
+      Parameters<(typeof generatePrimaryKey)[K]>[0][P]
+    >;
+  };
+};
+
+/**
  * Generates Graph API filters to find existing entities matching a proposed entity.
  */
 export const generateEntityMatcher = {

@@ -26,7 +26,7 @@ alwaysApply: false
 # Workspaces
 
 - The project uses yarn workspaces.
-- If you want to install a dependency, you need to do it in the relevant workspace. e.g. `hash/apps/hash-frontend`.
+- If you want to install a dependency, you need to do it in the relevant workspace. e.g. `apps/hash-frontend`.
 - The project
 
 # Frontend

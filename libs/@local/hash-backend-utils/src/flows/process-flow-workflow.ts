@@ -11,6 +11,7 @@ import type {
   Payload,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Status } from "@local/status";
@@ -390,6 +391,21 @@ export const processFlowWorkflow = async <
         parallelGroupStepDefinition;
 
       const arrayToParallelizeOn = inputToParallelizeOn.payload.value;
+
+      /**
+       * @todo H-6169: could enable this by creating an activity to retrieve the stored payloads and pass out the values,
+       *     but we'd need to be careful that this didn't re-introduce the problem the offloaded storage is trying to solve (big outputs and inputs to Temporal activities).
+       *     A better solution would be for activities to somehow pick items from the stored array after retrieving it, but at that point we're rethinking how Flows
+       *     are orchestrated and we want to do so wholesale. Deferred until there's a need.
+       */
+      if (isStoredPayloadRef(arrayToParallelizeOn)) {
+        processStepErrors[currentStepId] = {
+          code: StatusCode.Internal,
+          message: `Cannot parallelize on a stored payload reference for step ${currentStepId}. Stored payloads can only be resolved by activities.`,
+        };
+
+        return;
+      }
 
       const newSteps = arrayToParallelizeOn.flatMap(
         (parallelizedValue, index) =>

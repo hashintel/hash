@@ -12,24 +12,24 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 export const mapActionInputEntitiesToEntities = async (params: {
   actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
-  inputEntities: (
-    | SerializedEntity
-    | PersistedEntityMetadata
-    | PersistedEntitiesMetadata
-  )[];
+  inputEntities:
+    | SerializedEntity[]
+    | PersistedEntityMetadata[]
+    | PersistedEntitiesMetadata;
 }): Promise<HashEntity[]> => {
   const { actorId, graphApiClient, inputEntities } = params;
 
   const entityIdsToFetch: EntityId[] = [];
   const directEntities: HashEntity[] = [];
 
-  for (const inputEntity of inputEntities) {
+  const inputEntitiesArray =
+    "persistedEntities" in inputEntities
+      ? inputEntities.persistedEntities
+      : inputEntities;
+
+  for (const inputEntity of inputEntitiesArray) {
     if ("operation" in inputEntity) {
       entityIdsToFetch.push(inputEntity.entityId);
-    } else if ("persistedEntities" in inputEntity) {
-      for (const persistedEntity of inputEntity.persistedEntities) {
-        entityIdsToFetch.push(persistedEntity.entityId);
-      }
     } else {
       // SerializedEntity - convert directly
       directEntities.push(new HashEntity(inputEntity));

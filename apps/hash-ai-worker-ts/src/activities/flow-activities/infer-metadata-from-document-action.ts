@@ -7,6 +7,10 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
@@ -40,9 +44,11 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
 > = async ({ inputs }) => {
   const {
     flowEntityId,
+    runId,
     stepId,
     userAuthentication: { actorId: userActorId },
     webId,
+    workflowId,
   } = await getFlowContext();
 
   const { documentEntityId } = getSimplifiedAiFlowActionInputs({
@@ -234,6 +240,17 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
       propertyProvenance,
     });
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: proposedEntities,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -243,7 +260,7 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
             outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: proposedEntities,
+              value: storedRef,
             },
           },
           {
