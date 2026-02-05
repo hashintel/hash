@@ -127,13 +127,24 @@ function getColorTokens(color: string): {
 }
 
 /**
- * Generate base tokens (1-12 and a1-a12) for a color.
+ * Generate base tokens (0-12 and a0-a12) for a color.
+ * Step 0 is pure white (light) / black (dark) for true background color.
+ * Step a0 is fully transparent.
  */
 function generateBaseTokens(
   light: ColorScale,
   dark: ColorScale,
 ): Record<string, unknown> {
   const tokens: Record<string, unknown> = {};
+
+  // Step 0: pure white in light mode, pure black in dark mode
+  tokens[0] = {
+    value: { _light: "#ffffff", _dark: "#000000" },
+  };
+  // Step a0: fully transparent
+  tokens.a0 = {
+    value: { _light: "transparent", _dark: "transparent" },
+  };
 
   for (let i = 1; i <= 12; i++) {
     tokens[i] = {
@@ -481,6 +492,7 @@ function writeStaticColorsFile(): void {
 
 /**
  * Generate global semantic aliases (fg, bg, border, canvas, error).
+ * Canvas uses step 0 for pure white/black backgrounds.
  */
 function generateGlobalAliases(): string {
   return `import { defineSemanticTokens } from "@pandacss/dev";
@@ -488,6 +500,7 @@ function generateGlobalAliases(): string {
 /**
  * Global semantic color aliases following park-ui conventions.
  * These provide app-level semantic meaning on top of color palettes.
+ * Canvas uses step 0 for pure white (light) / black (dark) backgrounds.
  */
 export const globalAliases = defineSemanticTokens.colors({
   fg: {
@@ -495,7 +508,7 @@ export const globalAliases = defineSemanticTokens.colors({
     muted: { value: { _light: "{colors.gray.11}", _dark: "{colors.gray.11}" } },
     subtle: { value: { _light: "{colors.gray.10}", _dark: "{colors.gray.10}" } },
   },
-  canvas: { value: { _light: "{colors.gray.1}", _dark: "{colors.gray.1}" } },
+  canvas: { value: { _light: "{colors.gray.0}", _dark: "{colors.gray.0}" } },
   border: { value: { _light: "{colors.gray.4}", _dark: "{colors.gray.4}" } },
   error: { value: { _light: "{colors.red.9}", _dark: "{colors.red.9}" } },
 });
