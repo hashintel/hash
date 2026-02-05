@@ -22,7 +22,7 @@
 //! | Same backend (A → A) | Always | 0 |
 //! | Any → Interpreter | Always | Transfer cost |
 //! | Other → Postgres | Never | — |
-//! | Any in loop → Postgres | Never | — |
+//! | Any Postgres in loop | Never | — |
 //! | `GraphRead` edge | Interpreter → Interpreter only | 0 |
 //! | `Goto` edge | Any supported transition | Transfer cost |
 //! | `SwitchInt` edge | Same-backend or → Interpreter only | Transfer cost |
@@ -646,6 +646,8 @@ impl<A: Allocator> TerminatorPlacement<A> {
             let matrices = output.of_mut(block_id);
 
             for (edge_index, successor_id) in block.terminator.kind.successor_blocks().enumerate() {
+                let is_in_loop = is_in_loop || (successor_id == block_id);
+
                 let successor_targets = targets[successor_id];
                 let transfer_cost = self.compute_transfer_cost(
                     &mut required_locals,

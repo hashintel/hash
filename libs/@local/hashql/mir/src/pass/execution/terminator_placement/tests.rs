@@ -33,6 +33,7 @@ use crate::{
     pretty::TextFormatOptions,
 };
 
+#[expect(clippy::cast_possible_truncation)]
 fn target_set(targets: &[TargetId]) -> TargetBitSet {
     let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
     for &target in targets {
@@ -41,6 +42,7 @@ fn target_set(targets: &[TargetId]) -> TargetBitSet {
     set
 }
 
+#[expect(clippy::cast_possible_truncation)]
 fn all_targets() -> TargetBitSet {
     let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
     set.insert_range(TargetId::MIN..=TargetId::MAX);
@@ -117,7 +119,7 @@ fn format_edge_summary<A: core::alloc::Allocator>(
 ) -> impl Display + '_ {
     fmt::from_fn(move |fmt| {
         for block in 0..(edges.offsets.len() - 1) {
-            let block_id = BasicBlockId::new(block as u32);
+            let block_id = BasicBlockId::from_usize(block);
             let matrices = edges.of(block_id);
             writeln!(fmt, "{block_id}:")?;
             for (index, matrix) in matrices.iter().enumerate() {
@@ -181,14 +183,13 @@ fn goto_allows_cross_backend_non_postgres() {
     let env = Environment::new(&heap);
 
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl value: Int;
+        decl param: Int;
 
         bb0() {
-            goto bb1();
+            goto bb1(1);
         },
-        bb1() {
-            value = load 10;
-            return value;
+        bb1(param) {
+            return param;
         }
     });
 
@@ -225,14 +226,14 @@ fn switchint_blocks_cross_backend() {
     let env = Environment::new(&heap);
 
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl selector: Int, result: Int;
+        decl selector: Int, param: Int, result: Int;
 
         bb0() {
             selector = load 1;
-            switch selector [0 => bb1(), _ => bb2()];
+            switch selector [0 => bb1(1), _ => bb2()];
         },
-        bb1() {
-            return 0;
+        bb1(param) {
+            return param;
         },
         bb2() {
             result = load 10;
@@ -309,9 +310,9 @@ fn switchint_edge_targets_are_branch_specific() {
         build_targets(&body, &targets),
     );
 
-    let matrices = costs.of(BasicBlockId::new(0));
-    let first = matrices[0];
-    let second = matrices[1];
+    let [first, second] = costs.of(BasicBlockId::new(0)) else {
+        unreachable!()
+    };
 
     assert!(
         first
@@ -337,7 +338,7 @@ fn switchint_edge_targets_are_branch_specific() {
     assert!(
         second
             .get(TargetId::Interpreter, TargetId::Embedding)
-            .is_some()
+            .is_none()
     );
     assert!(
         second
@@ -494,18 +495,57 @@ fn postgres_removed_in_loops() {
 }
 
 #[test]
+fn postgres_removed_in_self_loops() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl value: Int;
+
+        bb0() {
+            value = load 0;
+            goto bb0();
+        }
+    });
+
+    let targets = [all_targets()];
+
+    let footprint = make_scalar_footprint(&body, &heap);
+    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let costs = placement.terminator_placement(
+        &MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        &body,
+        &footprint,
+        build_targets(&body, &targets),
+    );
+
+    let matrix = costs.of(BasicBlockId::new(0))[0];
+    assert_eq!(matrix.get(TargetId::Postgres, TargetId::Postgres), None);
+    assert_eq!(matrix.get(TargetId::Postgres, TargetId::Interpreter), None);
+    assert_eq!(
+        matrix.get(TargetId::Interpreter, TargetId::Interpreter),
+        Some(cost!(0))
+    );
+}
+
+#[test]
 fn transfer_cost_counts_live_and_params() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl live: Int, param: Int, cond: Bool;
+        decl live: Int, param: Int;
 
         bb0() {
             live = load 10;
-            cond = load true;
-            if cond then bb1(param) else bb2();
+            if true then bb1(1) else bb2();
         },
         bb1(param) {
             return live;
@@ -535,7 +575,7 @@ fn transfer_cost_counts_live_and_params() {
         build_targets(&body, &targets),
     );
 
-    let matrix = costs.of(BasicBlockId::new(0))[0];
+    let matrix = costs.of(BasicBlockId::new(0))[1];
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
         Some(cost!(2))
@@ -549,14 +589,14 @@ fn transfer_cost_is_max_for_unbounded() {
     let env = Environment::new(&heap);
 
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl value: [List Int], cond: Bool;
+        decl arg: [List Int], param: [List Int];
 
         bb0() {
-            cond = load true;
-            if cond then bb1() else bb2();
+            arg = list 1, 2;
+            if true then bb1(arg) else bb2();
         },
-        bb1() {
-            return value;
+        bb1(param) {
+            return 0;
         },
         bb2() {
             return 0;
@@ -583,7 +623,7 @@ fn transfer_cost_is_max_for_unbounded() {
         build_targets(&body, &targets),
     );
 
-    let matrix = costs.of(BasicBlockId::new(0))[0];
+    let matrix = costs.of(BasicBlockId::new(0))[1];
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
         Some(Cost::MAX)
