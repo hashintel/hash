@@ -2,6 +2,8 @@ import { IconButton, TextField } from "@hashintel/design-system";
 import {
   Add as AddIcon,
   Edit as EditIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
   Save as SaveIcon,
 } from "@mui/icons-material";
 import { Box, Typography } from "@mui/material";
@@ -14,7 +16,9 @@ type DashboardHeaderProps = {
   description?: string;
   isEditing: boolean;
   canEdit: boolean;
+  isFullscreen: boolean;
   onEditToggle: () => void;
+  onFullscreenToggle: () => void;
   onTitleOrDescriptionChange: (title: string, description: string) => void;
   onAddItem?: () => void;
 };
@@ -24,7 +28,9 @@ export const DashboardHeader = ({
   description,
   isEditing,
   canEdit,
+  isFullscreen,
   onEditToggle,
+  onFullscreenToggle,
   onTitleOrDescriptionChange,
   onAddItem,
 }: DashboardHeaderProps) => {
@@ -85,23 +91,26 @@ export const DashboardHeader = ({
         )}
       </Box>
 
-      {canEdit && (
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {isEditing && (
-            <Button
-              variant="secondary"
-              startIcon={<AddIcon />}
-              onClick={onAddItem}
-              size="xs"
-            >
-              Add Item
-            </Button>
-          )}
+      <Box sx={{ display: "flex", gap: 1 }}>
+        {canEdit && isEditing && (
+          <Button
+            variant="secondary"
+            startIcon={<AddIcon />}
+            onClick={onAddItem}
+            size="xs"
+          >
+            Add Item
+          </Button>
+        )}
+        {canEdit && (
           <IconButton onClick={isEditing ? handleSave : onEditToggle}>
             {isEditing ? <SaveIcon /> : <EditIcon />}
           </IconButton>
-        </Box>
-      )}
+        )}
+        <IconButton onClick={onFullscreenToggle}>
+          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+        </IconButton>
+      </Box>
     </Box>
   );
 };
