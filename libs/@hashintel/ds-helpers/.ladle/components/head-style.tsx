@@ -14,6 +14,8 @@ const refCounts = new Map<string, number>();
  * removed when all instances have unmounted.
  */
 export function HeadStyle({ id, css }: HeadStyleProps) {
+  // Effect 1: Element lifecycle management (ref counting)
+  // Only runs on mount, unmount, or when `id` changes
   useLayoutEffect(() => {
     let el = document.getElementById(id) as HTMLStyleElement | null;
 
@@ -24,17 +26,25 @@ export function HeadStyle({ id, css }: HeadStyleProps) {
     }
 
     refCounts.set(id, (refCounts.get(id) ?? 0) + 1);
-    el.textContent = css;
 
     return () => {
-      const count = (refCounts.get(id) ?? 1) - 1;
+      const count = (refCounts.get(id) ?? 0) - 1;
       if (count <= 0) {
         refCounts.delete(id);
-        el?.remove();
+        document.getElementById(id)?.remove();
       } else {
         refCounts.set(id, count);
       }
     };
+  }, [id]);
+
+  // Effect 2: Content updates
+  // Runs when `css` changes without affecting ref counting
+  useLayoutEffect(() => {
+    const el = document.getElementById(id) as HTMLStyleElement | null;
+    if (el) {
+      el.textContent = css;
+    }
   }, [id, css]);
 
   return null;
