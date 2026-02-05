@@ -64,7 +64,7 @@ async function fetchFlightradar24<T>(url: string): Promise<T> {
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as unknown;
+    const errorData: unknown = await response.json();
     const error = new Error(
       `Flightradar24 API error: ${stringifyError(errorData)}`,
     );
@@ -72,7 +72,7 @@ async function fetchFlightradar24<T>(url: string): Promise<T> {
     throw error;
   }
 
-  const data = (await response.json()) as unknown;
+  const data: unknown = await response.json();
 
   // Check for error response structure
   if (

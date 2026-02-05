@@ -12,9 +12,9 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Client as TemporalClient } from "@temporalio/client";
-import { backOff } from "exponential-backoff";
 import type { MemoryCache } from "cache-manager";
 import { caching } from "cache-manager";
+import { backOff } from "exponential-backoff";
 
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 
