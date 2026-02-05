@@ -5,29 +5,30 @@ import { VStack, HStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
 /**
- * Border color tokens for UI elements.
+ * Border color tokens.
  *
- * Structure:
- * - neutral.{default,subtle,muted,emphasis,hover,active}: Interactive states
- * - status.{info,success,warning,critical,caution}: Semantic borders
+ * Structure (from createSemanticSet):
+ * - bd.solid: Strong visible borders (step 7, hover → 8)
+ * - bd.subtle: Light borders (step 6, hover → 7)
+ * - bd.muted: Very subtle alpha borders (step a6, hover → a7)
+ *
+ * Each has: DEFAULT, hover, active, disabled variants
  */
 
-const neutralTokens = {
-  muted: "border.neutral.muted",
-  subtle: "border.neutral.subtle",
-  default: "border.neutral.default",
-  emphasis: "border.neutral.emphasis",
-  hover: "border.neutral.hover",
-  active: "border.neutral.active",
-} as const;
+type BdCategory = "solid" | "subtle" | "muted";
+type StateKey = "DEFAULT" | "hover" | "active" | "disabled";
 
-const statusTokens = {
-  info: "border.status.info",
-  success: "border.status.success",
-  caution: "border.status.caution",
-  warning: "border.status.warning",
-  critical: "border.status.critical",
-} as const;
+const bdCategories: { key: BdCategory; label: string; desc: string }[] = [
+  {
+    key: "solid",
+    label: "Solid",
+    desc: "Strong borders, focused inputs (step 7)",
+  },
+  { key: "subtle", label: "Subtle", desc: "Light borders, cards (step 6)" },
+  { key: "muted", label: "Muted", desc: "Very subtle alpha borders (step a6)" },
+];
+
+const states: StateKey[] = ["DEFAULT", "hover", "active", "disabled"];
 
 const BorderSwatch = ({
   label,
@@ -41,7 +42,7 @@ const BorderSwatch = ({
       width="[80px]"
       height="[56px]"
       borderRadius="md.3"
-      bg="neutral.white"
+      bg="canvas"
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -62,7 +63,7 @@ const BorderSwatch = ({
       className={css({
         fontSize: "xs",
         fontWeight: "medium",
-        color: "text.secondary",
+        color: "fg.muted",
       })}
     >
       {label}
@@ -70,7 +71,7 @@ const BorderSwatch = ({
     <span
       className={css({
         fontSize: "[10px]",
-        color: "text.disabled",
+        color: "fg.subtle",
       })}
     >
       {tokenPath}
@@ -78,7 +79,45 @@ const BorderSwatch = ({
   </VStack>
 );
 
-const StateDemo = ({
+const CategoryRow = ({
+  category,
+  description,
+}: {
+  category: BdCategory;
+  description: string;
+}) => (
+  <VStack gap="3" alignItems="flex-start">
+    <HStack gap="2" alignItems="baseline">
+      <span
+        className={css({
+          fontSize: "sm",
+          fontWeight: "semibold",
+          color: "fg.muted",
+        })}
+      >
+        bd.{category}
+      </span>
+      <span className={css({ fontSize: "xs", color: "fg.subtle" })}>
+        — {description}
+      </span>
+    </HStack>
+    <HStack gap="4" flexWrap="wrap">
+      {states.map((state) => {
+        const tokenPath =
+          state === "DEFAULT" ? `bd.${category}` : `bd.${category}.${state}`;
+        return (
+          <BorderSwatch
+            key={state}
+            label={state === "DEFAULT" ? "default" : state}
+            tokenPath={tokenPath}
+          />
+        );
+      })}
+    </HStack>
+  </VStack>
+);
+
+const InputDemo = ({
   label,
   tokenPath,
 }: {
@@ -91,7 +130,7 @@ const StateDemo = ({
         fontSize: "sm",
         fontWeight: "medium",
         minWidth: "[80px]",
-        color: "text.tertiary",
+        color: "fg.subtle",
       })}
     >
       {label}
@@ -100,90 +139,70 @@ const StateDemo = ({
       px="4"
       py="3"
       borderRadius="md.3"
-      bg="neutral.white"
+      bg="canvas"
       flex="1"
       maxWidth="[300px]"
       style={{
         border: `1px solid ${token(`colors.${tokenPath}` as Token)}`,
       }}
     >
-      <span className={css({ fontSize: "sm", color: "text.secondary" })}>
+      <span className={css({ fontSize: "sm", color: "fg.muted" })}>
         Input field example
       </span>
     </Box>
-    <span
-      className={css({
-        fontSize: "xs",
-        color: "text.disabled",
-      })}
-    >
+    <span className={css({ fontSize: "xs", color: "fg.subtle" })}>
       {tokenPath}
     </span>
   </HStack>
 );
 
 export const SemanticBorder: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6" maxWidth="[800px]">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Border Color Tokens
-    </h1>
-
-    {/* Neutral states as input-like demos */}
-    <VStack gap="2" alignItems="flex-start" width="[100%]">
-      <h2
-        className={css({
-          fontSize: "lg",
-          fontWeight: "semibold",
-          color: "text.secondary",
-        })}
-      >
-        Neutral (Interactive States)
-      </h2>
+  <VStack gap="8" alignItems="flex-start" p="6" maxWidth="[900px]">
+    <VStack gap="2" alignItems="flex-start">
+      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        Border Color Tokens (bd.*)
+      </h1>
       <p
         className={css({
           fontSize: "sm",
-          color: "text.tertiary",
-          mb: "2",
+          color: "fg.muted",
+          maxWidth: "[700px]",
         })}
       >
-        Border colors for form inputs and interactive containers
+        Border colors derived from the neutral palette via{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
+        >
+          createSemanticSet()
+        </code>
+        . These are global defaults; per-palette variants are available via{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
+        >
+          colorPalette.bd.*
+        </code>
+        .
       </p>
-      {(
-        ["muted", "subtle", "default", "emphasis", "hover", "active"] as const
-      ).map((key) => (
-        <StateDemo key={key} label={key} tokenPath={neutralTokens[key]} />
+    </VStack>
+
+    <VStack gap="6" alignItems="flex-start">
+      {bdCategories.map(({ key, desc }) => (
+        <CategoryRow key={key} category={key} description={desc} />
       ))}
     </VStack>
 
-    {/* Status borders as colored cards */}
-    <VStack gap="2" alignItems="flex-start" width="[100%]">
-      <h2
-        className={css({
-          fontSize: "lg",
-          fontWeight: "semibold",
-          color: "text.secondary",
-        })}
-      >
-        Status
+    <VStack gap="3" alignItems="flex-start" width="[100%]">
+      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+        Input Field Example
       </h2>
-      <p
-        className={css({
-          fontSize: "sm",
-          color: "text.tertiary",
-          mb: "2",
-        })}
-      >
-        Semantic border colors for alerts and status indicators
+      <p className={css({ fontSize: "sm", color: "fg.muted", mb: "2" })}>
+        Common usage: form inputs with different border intensities
       </p>
-      <HStack gap="4" flexWrap="wrap">
-        {(["info", "success", "caution", "warning", "critical"] as const).map(
-          (key) => (
-            <BorderSwatch key={key} label={key} tokenPath={statusTokens[key]} />
-          ),
-        )}
-      </HStack>
+      <InputDemo label="Default" tokenPath="bd.subtle" />
+      <InputDemo label="Hover" tokenPath="bd.subtle.hover" />
+      <InputDemo label="Focus" tokenPath="bd.solid" />
     </VStack>
   </VStack>
 );
 
-SemanticBorder.storyName = "Semantic: Border";
+SemanticBorder.storyName = "Border (bd)";
