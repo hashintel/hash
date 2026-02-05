@@ -1,5 +1,5 @@
 export default {
-  title: "Colors / Accent System",
+  title: "Colors / Color Palette",
 };
 
-export { AccentSystem } from "./accent.story";
+export { ColorPaletteSystem } from "./accent.story";

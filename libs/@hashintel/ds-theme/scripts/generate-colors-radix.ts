@@ -159,142 +159,130 @@ function generateBaseTokens(
 }
 
 /**
- * Create solid variant tokens for buttons, badges, etc.
+ * Semantic token structure: {property}.{variant}.{state}
+ *
+ * Properties: bg, fg, bd (border)
+ * Variants: solid, surface, muted, subtle (for bg/bd), link/muted/subtle (for fg)
+ * States: DEFAULT, hover, active, pressed, disabled
  */
-function createSolidVariant(name: string, isBright: boolean) {
+
+/**
+ * Helper to create a semantic token value.
+ */
+function tv(name: string, step: string | number) {
   return {
-    bg: {
-      DEFAULT: {
-        value: { _light: `{colors.${name}.9}`, _dark: `{colors.${name}.9}` },
-      },
-      hover: {
-        value: { _light: `{colors.${name}.10}`, _dark: `{colors.${name}.10}` },
-      },
-    },
-    fg: {
-      DEFAULT: {
-        value: isBright
-          ? { _light: "{colors.gray.12}", _dark: "{colors.gray.1}" }
-          : { _light: "white", _dark: "white" },
-      },
+    value: {
+      _light: `{colors.${name}.${step}}`,
+      _dark: `{colors.${name}.${step}}`,
     },
   };
 }
 
 /**
- * Create subtle variant tokens for light backgrounds.
+ * Helper for static values (like white for solid fg).
  */
-function createSubtleVariant(name: string, shade: string) {
+function staticVal(light: string, dark: string) {
+  return { value: { _light: light, _dark: dark } };
+}
+
+/**
+ * Create bg (background) tokens for a palette.
+ */
+function createBgTokens(name: string, isBright: boolean) {
   return {
-    bg: {
-      DEFAULT: {
-        value: { _light: `{colors.${name}.a3}`, _dark: `{colors.${name}.a3}` },
-      },
-      hover: {
-        value: { _light: `{colors.${name}.a4}`, _dark: `{colors.${name}.a4}` },
-      },
-      active: {
-        value: { _light: `{colors.${name}.a5}`, _dark: `{colors.${name}.a5}` },
-      },
+    solid: {
+      DEFAULT: tv(name, 9),
+      hover: tv(name, 10),
+      active: tv(name, 10),
+      disabled: tv(name, 6),
     },
-    fg: {
-      DEFAULT: {
-        value: {
-          _light: `{colors.${name}.${shade}}`,
-          _dark: `{colors.${name}.${shade}}`,
-        },
-      },
+    surface: {
+      DEFAULT: tv(name, "a2"),
+      hover: tv(name, "a3"),
+      active: tv(name, "a4"),
+      disabled: tv(name, "a2"),
+    },
+    muted: {
+      DEFAULT: tv(name, 3),
+      hover: tv(name, 4),
+      active: tv(name, 5),
+      disabled: tv(name, 2),
+    },
+    subtle: {
+      DEFAULT: tv(name, "a3"),
+      hover: tv(name, "a4"),
+      active: tv(name, "a5"),
+      disabled: tv(name, "a2"),
     },
   };
 }
 
 /**
- * Create surface variant tokens for cards, panels.
+ * Create fg (foreground/text) tokens for a palette.
  */
-function createSurfaceVariant(name: string, shade: string) {
+function createFgTokens(name: string, isBright: boolean) {
+  // For solid backgrounds, use white (or dark text for bright colors)
+  const solidFg = isBright
+    ? staticVal("{colors.gray.12}", "{colors.gray.1}")
+    : staticVal("white", "white");
+
   return {
-    bg: {
-      DEFAULT: {
-        value: { _light: `{colors.${name}.a2}`, _dark: `{colors.${name}.a2}` },
-      },
-      active: {
-        value: { _light: `{colors.${name}.a3}`, _dark: `{colors.${name}.a3}` },
-      },
+    // High contrast text on solid bg
+    solid: {
+      DEFAULT: solidFg,
     },
-    border: {
-      DEFAULT: {
-        value: { _light: `{colors.${name}.a6}`, _dark: `{colors.${name}.a6}` },
-      },
-      hover: {
-        value: { _light: `{colors.${name}.a7}`, _dark: `{colors.${name}.a7}` },
-      },
+    // Default readable text
+    DEFAULT: tv(name, 12),
+    // Secondary/muted text
+    muted: {
+      DEFAULT: tv(name, 11),
+      hover: tv(name, 12),
+      disabled: tv(name, 9),
     },
-    fg: {
-      DEFAULT: {
-        value: {
-          _light: `{colors.${name}.${shade}}`,
-          _dark: `{colors.${name}.${shade}}`,
-        },
-      },
+    // Tertiary/subtle text
+    subtle: {
+      DEFAULT: tv(name, 10),
+      hover: tv(name, 11),
+      disabled: tv(name, 8),
+    },
+    // Link text
+    link: {
+      DEFAULT: tv(name, 11),
+      hover: tv(name, 12),
+      active: tv(name, 11),
+      disabled: tv(name, 9),
     },
   };
 }
 
 /**
- * Create outline variant tokens for outlined buttons/inputs.
+ * Create bd (border) tokens for a palette.
  */
-function createOutlineVariant(name: string, shade: string) {
+function createBdTokens(name: string) {
   return {
-    bg: {
-      hover: {
-        value: { _light: `{colors.${name}.a2}`, _dark: `{colors.${name}.a2}` },
-      },
-      active: {
-        value: { _light: `{colors.${name}.a3}`, _dark: `{colors.${name}.a3}` },
-      },
+    solid: {
+      DEFAULT: tv(name, 7),
+      hover: tv(name, 8),
+      active: tv(name, 8),
+      disabled: tv(name, 5),
     },
-    border: {
-      DEFAULT: {
-        value: { _light: `{colors.${name}.a7}`, _dark: `{colors.${name}.a7}` },
-      },
+    subtle: {
+      DEFAULT: tv(name, 6),
+      hover: tv(name, 7),
+      active: tv(name, 7),
+      disabled: tv(name, 4),
     },
-    fg: {
-      DEFAULT: {
-        value: {
-          _light: `{colors.${name}.${shade}}`,
-          _dark: `{colors.${name}.${shade}}`,
-        },
-      },
+    muted: {
+      DEFAULT: tv(name, "a6"),
+      hover: tv(name, "a7"),
+      active: tv(name, "a7"),
+      disabled: tv(name, "a4"),
     },
   };
 }
 
 /**
- * Create plain/ghost variant tokens for text-only buttons.
- */
-function createPlainVariant(name: string, shade: string) {
-  return {
-    bg: {
-      hover: {
-        value: { _light: `{colors.${name}.a3}`, _dark: `{colors.${name}.a3}` },
-      },
-      active: {
-        value: { _light: `{colors.${name}.a4}`, _dark: `{colors.${name}.a4}` },
-      },
-    },
-    fg: {
-      DEFAULT: {
-        value: {
-          _light: `{colors.${name}.${shade}}`,
-          _dark: `{colors.${name}.${shade}}`,
-        },
-      },
-    },
-  };
-}
-
-/**
- * Generate all semantic tokens for a color including variants.
+ * Generate all semantic tokens for a color including property-first variants.
  */
 function generateSemanticTokens(color: string): ColorTokens {
   const { light, dark } = getColorTokens(color);
@@ -303,20 +291,17 @@ function generateSemanticTokens(color: string): ColorTokens {
   // For variant tokens, use the normalized name
   const name = isNeutralColor(color) ? "gray" : color;
   const isBright = isBrightColor(color);
-  // Neutrals use a12 for high contrast, others use a11
-  const shade = name === "gray" ? "a12" : "a11";
 
-  const variantTokens = {
-    solid: createSolidVariant(name, isBright),
-    subtle: createSubtleVariant(name, shade),
-    surface: createSurfaceVariant(name, shade),
-    outline: createOutlineVariant(name, shade),
-    plain: createPlainVariant(name, shade),
+  // Property-first semantic tokens: bg, fg, bd
+  const semanticTokens = {
+    bg: createBgTokens(name, isBright),
+    fg: createFgTokens(name, isBright),
+    bd: createBdTokens(name),
   };
 
   return {
     ...baseTokens,
-    ...variantTokens,
+    ...semanticTokens,
   };
 }
 
@@ -477,8 +462,6 @@ function writeStaticColorsFile(): void {
   fs.writeFileSync(filePath, content, "utf8");
   console.log(`📄 Created static.gen.ts`);
 }
-
-
 
 /**
  * Main entry point.
