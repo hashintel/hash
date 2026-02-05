@@ -2,6 +2,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import {
   Delete as DeleteIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
@@ -13,6 +15,9 @@ import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 type DashboardItemProps = {
   item: DashboardItemData;
   isEditing?: boolean;
+  isMinimized?: boolean;
+  isDataLoading?: boolean;
+  onMinimizeToggle?: () => void;
   onConfigureClick?: () => void;
   onRefreshClick?: () => void;
   onDeleteClick?: () => void;
@@ -22,6 +27,9 @@ type DashboardItemProps = {
 export const DashboardItem = ({
   item,
   isEditing = false,
+  isMinimized = false,
+  isDataLoading = false,
+  onMinimizeToggle,
   onConfigureClick,
   onRefreshClick,
   onDeleteClick,
@@ -47,9 +55,11 @@ export const DashboardItem = ({
           alignItems: "center",
           justifyContent: "space-between",
           px: 1.5,
-          py: 1,
-          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          minHeight: 40,
+          py: 0.5,
+          borderBottom: isMinimized
+            ? "none"
+            : ({ palette }) => `1px solid ${palette.gray[20]}`,
+          height: 36,
         }}
       >
         {title && (
@@ -99,6 +109,21 @@ export const DashboardItem = ({
               >
                 <SettingsIcon fontSize="small" />
               </IconButton>
+              <IconButton
+                size="small"
+                onClick={onMinimizeToggle}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[10],
+                  },
+                }}
+              >
+                {isMinimized ? (
+                  <ExpandMoreIcon fontSize="small" />
+                ) : (
+                  <ExpandLessIcon fontSize="small" />
+                )}
+              </IconButton>
             </>
           )}
           {isEditing && (
@@ -120,13 +145,16 @@ export const DashboardItem = ({
       </Box>
 
       {/* Content */}
-      <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
-        <DashboardItemContent
-          item={item}
-          onConfigureClick={onConfigureClick}
-          onEntityClick={onEntityClick}
-        />
-      </Box>
+      {!isMinimized && (
+        <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
+          <DashboardItemContent
+            item={item}
+            isDataLoading={isDataLoading}
+            onConfigureClick={onConfigureClick}
+            onEntityClick={onEntityClick}
+          />
+        </Box>
+      )}
     </Paper>
   );
 };
