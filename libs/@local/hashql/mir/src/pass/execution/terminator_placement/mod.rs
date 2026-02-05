@@ -72,6 +72,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Transition cost matrix for a single terminator edge.
 ///
 /// Maps each (source, destination) [`TargetId`] pair to either `Some(cost)` if the transition is
@@ -108,6 +111,14 @@ impl TransMatrix {
     #[inline]
     fn offset(from: TargetId, to: TargetId) -> usize {
         from.as_usize() * TargetId::VARIANT_COUNT + to.as_usize()
+    }
+
+    #[inline]
+    #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
+    fn from_offset(offset: usize) -> (TargetId, TargetId) {
+        let from = TargetId::from_usize(offset / TargetId::VARIANT_COUNT);
+        let to = TargetId::from_usize(offset % TargetId::VARIANT_COUNT);
+        (from, to)
     }
 
     /// Returns the cost for transitioning from `from` to `to`, or `None` if disallowed.
@@ -305,6 +316,15 @@ impl TransMatrix {
             self.matrix[Self::offset(other, target)] = None;
             self.matrix[Self::offset(target, other)] = None;
         }
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = (TargetId, TargetId, &Option<Cost>)> {
+        self.matrix.iter().enumerate().map(|(idx, cost)| {
+            let (from, to) = Self::from_offset(idx);
+
+            (from, to, cost)
+        })
     }
 }
 
@@ -551,7 +571,7 @@ impl PopulateEdgeMatrix {
 /// # Usage
 ///
 /// ```ignore
-/// let placement = TerminatorPlacement::new(&alloc, entity_size);
+/// let placement = TerminatorPlacement::new(entity_size, &alloc);
 /// let costs = placement.terminator_placement(context, body, footprint, targets);
 ///
 /// // Query transitions for block 0's first successor edge
@@ -563,11 +583,20 @@ pub struct TerminatorPlacement<A: Allocator> {
     entity_size: InformationRange,
 }
 
+impl TerminatorPlacement<Global> {
+    #[inline]
+    #[must_use]
+    pub const fn new(entity_size: InformationRange) -> Self {
+        Self::new_in(entity_size, Global)
+    }
+}
+
 impl<A: Allocator> TerminatorPlacement<A> {
     /// Creates a new placement analyzer.
     ///
     /// The `entity_size` estimate is used when computing transfer costs — it represents the
     /// expected size of entity data that may need to cross backend boundaries.
+    #[inline]
     pub const fn new_in(entity_size: InformationRange, alloc: A) -> Self {
         Self { alloc, entity_size }
     }
