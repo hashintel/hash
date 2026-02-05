@@ -11,38 +11,41 @@ This package is the **foundation** of the HASH design system, providing design t
 └─────────────────┘     └─────────────────┘     └─────────────────┘
      ▲ YOU ARE HERE           │                       │
    Design tokens          css(), cva(),           Button, Checkbox,
-   from Figma             tokens, jsx             Avatar, etc.
+   from token generators  tokens, jsx             Avatar, etc.
 ```
 
 ## Purpose
 
-A **Panda CSS preset** that exports design tokens generated from Figma variables. Consumed by `@hashintel/ds-helpers` which generates the styled-system utilities.
+A **Panda CSS preset** that exports design tokens. Consumed by `@hashintel/ds-helpers` which generates the styled-system utilities.
 
 ## Token Generation
 
-Tokens are generated from Figma design variables:
+Primary color tokens are generated from Radix colors. The legacy Figma pipeline
+remains for reference and will be removed after the next token refresh.
 
 ```
-scripts/figma-variables.json  →  generate-colors.ts  →  src/theme/colors/*.gen.ts
-                              →  generate-tokens.ts  →  src/theme/tokens/*.gen.ts
+scripts/generate-colors-radix.ts  →  src/theme/colors/*.gen.ts
+scripts/figma-variables.json      →  generate-colors.ts  →  src/theme/colors/*.gen.ts (deprecated)
+                                  →  generate-tokens.ts  →  src/theme/tokens/*.gen.ts
 ```
 
 Note: Generated files use `.gen.ts` suffix and are gitignored (per repo convention).
 
 ### Generation Workflow
 
-1. Export variables from Figma (manual step, stored in `scripts/figma-variables.json`)
-2. Run `yarn codegen` to regenerate token files
-3. Downstream packages regenerate their styled-system via `panda codegen`
+1. Run `yarn codegen` to regenerate token files
+2. Downstream packages regenerate their styled-system via `panda codegen`
+3. Export variables from Figma only when refreshing legacy token sources
 
 ### Codegen Scripts
 
 | Script                | Description                                  |
 | --------------------- | -------------------------------------------- |
-| `yarn codegen`        | Run all generators + format output           |
-| `yarn codegen:colors` | Generate color tokens from Figma             |
-| `yarn codegen:tokens` | Generate spacing/typography/radii from Figma |
-| `yarn codegen:format` | Format generated files with Biome            |
+| `yarn codegen`              | Run all generators + format output            |
+| `yarn codegen:colors`       | Generate color tokens from Figma (deprecated) |
+| `yarn codegen:colors:radix` | Generate color tokens from Radix              |
+| `yarn codegen:tokens`       | Generate spacing/typography/radii from Figma  |
+| `yarn codegen:format`       | Format generated files with Biome             |
 
 ## Exports
 
@@ -67,7 +70,7 @@ export default defineConfig({
 
 ### Core Colors
 
-Direct color scales with numeric shades (generated from Figma):
+Direct color scales with numeric shades (generated from Radix colors):
 
 ```
 gray.{00,10,20,30,35,40,50,60,70,80,90,95}
@@ -123,7 +126,7 @@ libs/@hashintel/ds-theme/
 | --------------- | -------------------------------- |
 | `yarn build`    | Build with tsdown                |
 | `yarn dev`      | Build in watch mode              |
-| `yarn codegen`  | Regenerate all tokens from Figma |
+| `yarn codegen`  | Regenerate all tokens |
 | `yarn lint:tsc` | TypeScript type checking         |
 | `yarn test`     | Run tests                        |
 
