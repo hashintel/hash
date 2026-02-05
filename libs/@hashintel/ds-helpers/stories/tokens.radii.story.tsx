@@ -23,13 +23,13 @@ const steps = [
 const labelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
+  color: "fg.subtle",
   textAlign: "center",
 });
 
 const valueStyles = css({
   fontSize: "[10px]",
-  color: "text.disabled",
+  color: "fg.subtle",
   textAlign: "center",
 });
 
@@ -37,7 +37,7 @@ const sectionTitleStyles = css({
   fontSize: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
-  borderColor: "border.neutral.subtle",
+  borderColor: "bd.subtle",
   pb: "2",
   mb: "4",
   width: "[100%]",
@@ -135,7 +135,7 @@ export const Radii: Story = () => (
     <p
       className={css({
         fontSize: "sm",
-        color: "text.secondary",
+        color: "fg.muted",
         maxWidth: "[600px]",
       })}
     >

@@ -134,11 +134,7 @@ const ColorPaletteSelector = () => {
   const [palette, setPalette] = useState<string>("blue");
 
   return (
-    <VStack
-      gap="4"
-      alignItems="flex-start"
-      style={{ colorPalette: palette } as React.CSSProperties}
-    >
+    <VStack gap="4" alignItems="flex-start" colorPalette={palette as "blue"}>
       <HStack gap="4" alignItems="center">
         <label className={labelStyles}>Color Palette:</label>
         <select
