@@ -1,10 +1,11 @@
-import { defineSemanticTokens } from "@pandacss/dev";
-
-export function createSemanticSet(palette: "colors.neutral" | "colorPalette") {
-  // palette step shortcut
+/**
+ * Creates the bg/fg/bd semantic structure referencing a specific palette.
+ * The palette must be a valid token path like "colors.blue" or "colors.neutral".
+ */
+export function createSemanticSet(palette: string) {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
 
-  return defineSemanticTokens.colors({
+  return {
     bg: {
       solid: {
         DEFAULT: ps("9"),
@@ -71,5 +72,19 @@ export function createSemanticSet(palette: "colors.neutral" | "colorPalette") {
         disabled: ps("a4"),
       },
     },
-  });
+  };
+}
+
+/**
+ * Wraps a base palette (0-12, a0-a12 scale) with semantic tokens (bg, fg, bd).
+ * This allows colorPalette switching to work - each palette has the full structure.
+ */
+export function withSemantics<T extends Record<string, unknown>>(
+  paletteName: string,
+  baseTokens: T,
+) {
+  return {
+    ...baseTokens,
+    ...createSemanticSet(`colors.${paletteName}`),
+  };
 }
