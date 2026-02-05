@@ -38,6 +38,7 @@
     "build": "tsdown",
     "codegen": "npm-run-all --continue-on-error codegen:colors codegen:tokens",
     "codegen:colors": "tsx scripts/generate-colors.ts",
+    "codegen:colors:radix": "tsx scripts/generate-colors-radix.ts",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "tsdown --watch",
     "dev:test": "vitest dev",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@pandacss/dev": "1.4.3",
+    "@radix-ui/colors": "3.0.0",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "22.18.13",
     "case-anything": "3.1.0",

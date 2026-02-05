@@ -1,4 +1,10 @@
-export { coreColors, semanticColors, colors } from "./theme/colors.gen";
+export {
+  coreColors,
+  colors,
+  semanticColorPalettes,
+  staticColors,
+  globalAliases,
+} from "./theme/colors.gen";
 export {
   spacing,
   fonts,

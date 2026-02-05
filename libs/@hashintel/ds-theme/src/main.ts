@@ -1,5 +1,5 @@
 import { definePreset } from "@pandacss/dev";
-import { colors } from "./theme/colors.gen";
+import { coreColors, colors } from "./theme/colors.gen";
 import {
   spacing,
   fonts,
@@ -25,6 +25,7 @@ export const preset = definePreset({
       fontSizes,
       lineHeights,
       radii,
+      colors: coreColors,
     },
     extend: {
       semanticTokens: {
