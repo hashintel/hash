@@ -2,18 +2,21 @@ import type { Story } from "@ladle/react";
 import { useState } from "react";
 import { css, cva } from "../styled-system/css";
 import { VStack, HStack, Box } from "../styled-system/jsx";
-import { HeadStyle } from "../.ladle/components/head-style";
-import {
-  generateAccentCSS,
-  ACCENT_PALETTES,
-  ACCENT_STATUS_MAP,
-} from "@hashintel/ds-theme/accent";
 
-// Generate the accent CSS rules
-const accentCSS = generateAccentCSS();
-
-/** Solid scale steps for visualization */
-const SOLID_STEPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+/** All palette names available for colorPalette */
+const COLOR_PALETTES = [
+  "gray",
+  "slate",
+  "blue",
+  "cyan",
+  "teal",
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "purple",
+  "pink",
+] as const;
 
 const swatchStyles = css({
   width: "[40px]",
@@ -37,15 +40,15 @@ const selectStyles = css({
   padding: "2",
   borderRadius: "md.2",
   border: "[1px_solid]",
-  borderColor: "border",
+  borderColor: "bd",
   fontSize: "sm",
   minWidth: "[140px]",
   cursor: "pointer",
 });
 
 /**
- * Button recipe using accent tokens.
- * These reference colorPalette which gets remapped by data-accent.
+ * Button recipe using colorPalette tokens.
+ * Uses the new property-first structure: bg.solid, fg.solid, bd.solid
  */
 const buttonRecipe = cva({
   base: {
@@ -60,46 +63,60 @@ const buttonRecipe = cva({
   variants: {
     variant: {
       solid: {
-        bg: "accent.solid.bg",
-        color: "accent.solid.fg",
-        _hover: { bg: "accent.solid.bg.hover" },
-      },
-      subtle: {
-        bg: "accent.subtle.bg",
-        color: "accent.subtle.fg",
-        _hover: { bg: "accent.subtle.bg.hover" },
-        _active: { bg: "accent.subtle.bg.active" },
+        bg: "colorPalette.bg.solid",
+        color: "colorPalette.fg.solid",
+        _hover: { bg: "colorPalette.bg.solid.hover" },
+        _active: { bg: "colorPalette.bg.solid.active" },
+        _disabled: {
+          bg: "colorPalette.bg.solid.disabled",
+          cursor: "not-allowed",
+        },
       },
       surface: {
-        bg: "accent.surface.bg",
-        color: "accent.surface.fg",
+        bg: "colorPalette.bg.surface",
+        color: "colorPalette.fg.muted",
         borderWidth: "[1px]",
         borderStyle: "solid",
-        borderColor: "accent.surface.border",
-        _hover: { borderColor: "accent.surface.border.hover" },
-        _active: { bg: "accent.surface.bg.active" },
+        borderColor: "colorPalette.bd.subtle",
+        _hover: {
+          bg: "colorPalette.bg.surface.hover",
+          borderColor: "colorPalette.bd.subtle.hover",
+        },
+        _active: { bg: "colorPalette.bg.surface.active" },
+      },
+      subtle: {
+        bg: "colorPalette.bg.subtle",
+        color: "colorPalette.fg.muted",
+        _hover: { bg: "colorPalette.bg.subtle.hover" },
+        _active: { bg: "colorPalette.bg.subtle.active" },
       },
       outline: {
         bg: "[transparent]",
-        color: "accent.outline.fg",
+        color: "colorPalette.fg.muted",
         borderWidth: "[1px]",
         borderStyle: "solid",
-        borderColor: "accent.outline.border",
-        _hover: { bg: "accent.outline.bg.hover" },
-        _active: { bg: "accent.outline.bg.active" },
+        borderColor: "colorPalette.bd.solid",
+        _hover: {
+          bg: "colorPalette.bg.surface",
+          borderColor: "colorPalette.bd.solid.hover",
+        },
+        _active: { bg: "colorPalette.bg.surface.active" },
       },
-      plain: {
+      ghost: {
         bg: "[transparent]",
-        color: "accent.plain.fg",
-        _hover: { bg: "accent.plain.bg.hover" },
-        _active: { bg: "accent.plain.bg.active" },
+        color: "colorPalette.fg.link",
+        _hover: {
+          bg: "colorPalette.bg.subtle",
+          color: "colorPalette.fg.link.hover",
+        },
+        _active: { bg: "colorPalette.bg.subtle.active" },
       },
     },
   },
   defaultVariants: { variant: "solid" },
 });
 
-/** Badge using accent tokens */
+/** Badge using colorPalette tokens */
 const badgeStyles = css({
   display: "inline-flex",
   alignItems: "center",
@@ -108,62 +125,32 @@ const badgeStyles = css({
   borderRadius: "md.1",
   fontSize: "xs",
   fontWeight: "medium",
-  bg: "accent.subtle.bg",
-  color: "accent.subtle.fg",
+  bg: "colorPalette.bg.subtle",
+  color: "colorPalette.fg.muted",
 });
 
-/** Accent scale swatch using the virtual accent tokens */
-const AccentSwatch = ({ step }: { step: number }) => (
-  <div
-    className={swatchStyles}
-    style={{ backgroundColor: `var(--colors-accent-${step})` }}
-  >
-    <span
-      className={css({
-        color: "white",
-        textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]",
-        mixBlendMode: "difference",
-      })}
-    >
-      {step}
-    </span>
-  </div>
-);
-
-/** Interactive demo - accent switching via data-accent attribute */
-const AccentSelector = () => {
-  const [accent, setAccent] = useState<string>("blue");
-
-  const allAccents = [
-    ...ACCENT_PALETTES,
-    "neutral",
-    ...Object.keys(ACCENT_STATUS_MAP),
-  ];
+/** Interactive demo - colorPalette switching via the colorPalette property */
+const ColorPaletteSelector = () => {
+  const [palette, setPalette] = useState<string>("blue");
 
   return (
-    <VStack gap="4" alignItems="flex-start" data-accent={accent}>
+    <VStack
+      gap="4"
+      alignItems="flex-start"
+      style={{ colorPalette: palette } as React.CSSProperties}
+    >
       <HStack gap="4" alignItems="center">
-        <label className={labelStyles}>Accent:</label>
+        <label className={labelStyles}>Color Palette:</label>
         <select
           className={selectStyles}
-          value={accent}
-          onChange={(e) => setAccent(e.target.value)}
+          value={palette}
+          onChange={(e) => setPalette(e.target.value)}
         >
-          <optgroup label="Palettes">
-            {ACCENT_PALETTES.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value="neutral">neutral (gray)</option>
-          </optgroup>
-          <optgroup label="Status">
-            {Object.keys(ACCENT_STATUS_MAP).map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </optgroup>
+          {COLOR_PALETTES.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
         </select>
       </HStack>
 
@@ -173,39 +160,45 @@ const AccentSelector = () => {
         </h3>
         <HStack gap="2">
           <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-          <button className={buttonRecipe({ variant: "subtle" })}>
-            Subtle
-          </button>
           <button className={buttonRecipe({ variant: "surface" })}>
             Surface
+          </button>
+          <button className={buttonRecipe({ variant: "subtle" })}>
+            Subtle
           </button>
           <button className={buttonRecipe({ variant: "outline" })}>
             Outline
           </button>
-          <button className={buttonRecipe({ variant: "plain" })}>Plain</button>
+          <button className={buttonRecipe({ variant: "ghost" })}>Ghost</button>
         </HStack>
       </VStack>
 
       <VStack gap="3" alignItems="flex-start">
         <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
-          Accent Scale
+          Badge
         </h3>
-        <HStack gap="1">
-          {SOLID_STEPS.map((step) => (
-            <AccentSwatch key={step} step={step} />
-          ))}
-        </HStack>
+        <span className={badgeStyles}>Label</span>
       </VStack>
     </VStack>
   );
 };
 
-/** Nested accent inheritance demo */
-const NestedAccents = () => (
+/** Nested colorPalette inheritance demo */
+const NestedPalettes = () => (
   <VStack gap="4" alignItems="flex-start">
-    <Box data-accent="blue" p="4" borderRadius="md.3" bg="accent.surface.bg">
+    <Box
+      colorPalette="blue"
+      p="4"
+      borderRadius="md.3"
+      bg="colorPalette.bg.surface"
+    >
       <VStack gap="3" alignItems="flex-start">
-        <span className={css({ color: "accent.11", fontWeight: "medium" })}>
+        <span
+          className={css({
+            color: "colorPalette.fg.muted",
+            fontWeight: "medium",
+          })}
+        >
           Blue context (parent)
         </span>
         <HStack gap="2">
@@ -216,41 +209,51 @@ const NestedAccents = () => (
         </HStack>
 
         <Box
-          data-accent="status.error"
+          colorPalette="red"
           p="4"
           borderRadius="md.2"
-          bg="accent.surface.bg"
+          bg="colorPalette.bg.surface"
           mt="2"
         >
           <VStack gap="2" alignItems="flex-start">
-            <span className={css({ color: "accent.11", fontWeight: "medium" })}>
-              Error context (nested)
+            <span
+              className={css({
+                color: "colorPalette.fg.muted",
+                fontWeight: "medium",
+              })}
+            >
+              Red context (nested)
             </span>
             <HStack gap="2">
               <button className={buttonRecipe({ variant: "solid" })}>
-                Error Button
+                Red Button
               </button>
-              <span className={badgeStyles}>Error Badge</span>
+              <span className={badgeStyles}>Red Badge</span>
             </HStack>
           </VStack>
         </Box>
 
         <Box
-          data-accent="status.success"
+          colorPalette="green"
           p="4"
           borderRadius="md.2"
-          bg="accent.surface.bg"
+          bg="colorPalette.bg.surface"
           mt="2"
         >
           <VStack gap="2" alignItems="flex-start">
-            <span className={css({ color: "accent.11", fontWeight: "medium" })}>
-              Success context (nested)
+            <span
+              className={css({
+                color: "colorPalette.fg.muted",
+                fontWeight: "medium",
+              })}
+            >
+              Green context (nested)
             </span>
             <HStack gap="2">
               <button className={buttonRecipe({ variant: "solid" })}>
-                Success Button
+                Green Button
               </button>
-              <span className={badgeStyles}>Success Badge</span>
+              <span className={badgeStyles}>Green Badge</span>
             </HStack>
           </VStack>
         </Box>
@@ -260,10 +263,10 @@ const NestedAccents = () => (
 );
 
 /** All palettes comparison */
-const AccentComparison = () => (
+const PaletteComparison = () => (
   <VStack gap="3" alignItems="flex-start">
-    {[...ACCENT_PALETTES, "neutral"].map((palette) => (
-      <HStack key={palette} gap="4" alignItems="center" data-accent={palette}>
+    {COLOR_PALETTES.map((palette) => (
+      <HStack key={palette} gap="4" alignItems="center" colorPalette={palette}>
         <span className={labelStyles}>{palette}</span>
         <HStack gap="2">
           <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
@@ -281,11 +284,21 @@ const AccentComparison = () => (
 );
 
 /** Status aliases demo */
-const StatusAccents = () => (
+const StatusPalettes = () => (
   <VStack gap="3" alignItems="flex-start">
-    {Object.entries(ACCENT_STATUS_MAP).map(([status, palette]) => (
-      <HStack key={status} gap="4" alignItems="center" data-accent={status}>
-        <span className={labelStyles}>{status}</span>
+    {[
+      { name: "status.info", label: "Info (blue)" },
+      { name: "status.success", label: "Success (green)" },
+      { name: "status.warning", label: "Warning (orange)" },
+      { name: "status.error", label: "Error (red)" },
+    ].map(({ name, label }) => (
+      <HStack
+        key={name}
+        gap="4"
+        alignItems="center"
+        colorPalette={name as "blue"}
+      >
+        <span className={labelStyles}>{label}</span>
         <HStack gap="2">
           <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
           <button className={buttonRecipe({ variant: "subtle" })}>
@@ -295,86 +308,88 @@ const StatusAccents = () => (
             Surface
           </button>
         </HStack>
-        <span className={badgeStyles}>{palette}</span>
+        <span className={badgeStyles}>{name}</span>
       </HStack>
     ))}
   </VStack>
 );
 
-export const AccentSystem: Story = () => (
-  <>
-    <HeadStyle id="accent-system" css={accentCSS} />
-    <VStack gap="8" alignItems="flex-start" p="6">
-      <VStack gap="2" alignItems="flex-start">
-        <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-          Accent Color System
-        </h1>
-        <p
-          className={css({
-            fontSize: "sm",
-            color: "fg.muted",
-            maxWidth: "[700px]",
-          })}
+export const ColorPaletteSystem: Story = () => (
+  <VStack gap="8" alignItems="flex-start" p="6">
+    <VStack gap="2" alignItems="flex-start">
+      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        Color Palette System
+      </h1>
+      <p
+        className={css({
+          fontSize: "sm",
+          color: "fg.muted",
+          maxWidth: "[700px]",
+        })}
+      >
+        Components use{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
         >
-          The accent system provides inheritable, switchable color contexts.
-          Components use{" "}
-          <code
-            className={css({ bg: "gray.3", px: "1", borderRadius: "md.1" })}
-          >
-            accent.*
-          </code>{" "}
-          tokens which resolve to{" "}
-          <code
-            className={css({ bg: "gray.3", px: "1", borderRadius: "md.1" })}
-          >
-            colorPalette.*
-          </code>{" "}
-          CSS variables. The{" "}
-          <code
-            className={css({ bg: "gray.3", px: "1", borderRadius: "md.1" })}
-          >
-            data-accent
-          </code>{" "}
-          attribute remaps these variables, and the change cascades to all
-          children.
-        </p>
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-          Interactive Demo
-        </h2>
-        <AccentSelector />
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-          Nested Inheritance
-        </h2>
-        <p className={css({ fontSize: "sm", color: "fg.muted" })}>
-          Child elements can override the accent, creating local color contexts.
-        </p>
-        <NestedAccents />
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-          Palette Comparison
-        </h2>
-        <AccentComparison />
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-          Status Aliases
-        </h2>
-        <p className={css({ fontSize: "sm", color: "fg.muted" })}>
-          Semantic status values map to underlying palettes.
-        </p>
-        <StatusAccents />
-      </VStack>
+          colorPalette.bg.*
+        </code>
+        ,{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
+        >
+          colorPalette.fg.*
+        </code>
+        , and{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
+        >
+          colorPalette.bd.*
+        </code>{" "}
+        tokens. Set the active palette with the{" "}
+        <code
+          className={css({ bg: "bg.muted", px: "1", borderRadius: "md.1" })}
+        >
+          colorPalette
+        </code>{" "}
+        property on any container. Changes cascade to all descendants.
+      </p>
     </VStack>
-  </>
+
+    <VStack gap="4" alignItems="flex-start">
+      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+        Interactive Demo
+      </h2>
+      <ColorPaletteSelector />
+    </VStack>
+
+    <VStack gap="4" alignItems="flex-start">
+      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+        Nested Inheritance
+      </h2>
+      <p className={css({ fontSize: "sm", color: "fg.muted" })}>
+        Child elements can override the colorPalette, creating local color
+        contexts.
+      </p>
+      <NestedPalettes />
+    </VStack>
+
+    <VStack gap="4" alignItems="flex-start">
+      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+        Palette Comparison
+      </h2>
+      <PaletteComparison />
+    </VStack>
+
+    <VStack gap="4" alignItems="flex-start">
+      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+        Status Aliases
+      </h2>
+      <p className={css({ fontSize: "sm", color: "fg.muted" })}>
+        Semantic status values map to color palettes: status.info → blue, etc.
+      </p>
+      <StatusPalettes />
+    </VStack>
+  </VStack>
 );
 
-AccentSystem.storyName = "Accent System";
+ColorPaletteSystem.storyName = "Color Palette System";

@@ -470,32 +470,64 @@ export const StatusColors: Story = () => (
       </h2>
       <VStack gap="2" alignItems="flex-start">
         <HStack gap="4">
-          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+          <span
+            className={css({
+              fontFamily: "mono",
+              fontSize: "sm",
+              minWidth: "[120px]",
+            })}
+          >
             status.info
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>blue</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
+            blue
+          </span>
         </HStack>
         <HStack gap="4">
-          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+          <span
+            className={css({
+              fontFamily: "mono",
+              fontSize: "sm",
+              minWidth: "[120px]",
+            })}
+          >
             status.success
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>green</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
+            green
+          </span>
         </HStack>
         <HStack gap="4">
-          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+          <span
+            className={css({
+              fontFamily: "mono",
+              fontSize: "sm",
+              minWidth: "[120px]",
+            })}
+          >
             status.warning
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>orange</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
+            orange
+          </span>
         </HStack>
         <HStack gap="4">
-          <span className={css({ fontFamily: "mono", fontSize: "sm", minWidth: "[120px]" })}>
+          <span
+            className={css({
+              fontFamily: "mono",
+              fontSize: "sm",
+              minWidth: "[120px]",
+            })}
+          >
             status.error
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>red</span>
+          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
+            red
+          </span>
         </HStack>
       </VStack>
     </Box>
