@@ -16,12 +16,7 @@ export type PlaybackState = "Stopped" | "Playing" | "Paused";
  * - `computeBuffer`: Computes minimally, only when less than 100 frames are available ahead.
  * - `computeMax`: Computes as fast as possible while playing.
  */
-export type PlayMode = (typeof PLAY_MODES)[number];
-
-/**
- * All available play modes for UI iteration.
- */
-const PLAY_MODES = ["viewOnly", "computeBuffer", "computeMax"] as const;
+export type PlayMode = "viewOnly" | "computeBuffer" | "computeMax";
 
 /**
  * Available playback speed multipliers.
