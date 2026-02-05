@@ -1,8 +1,8 @@
 /**
- * Experimental radix-colors based color token generator.
+ * Radix-colors based color token generator.
  *
- * This follows the park-ui pattern of importing colors directly from @radix-ui/colors
- * and generating semantic tokens with variant structures (solid, subtle, surface, outline, plain).
+ * Generates base color scales (0-12, a0-a12) from @radix-ui/colors.
+ * Semantic tokens (bg, fg, bd) are composed in main.ts via createSemanticSet().
  *
  * Run with: tsx scripts/generate-colors-radix.ts
  */
@@ -11,29 +11,10 @@ import fs from "node:fs";
 import { join } from "node:path";
 import * as radixColors from "@radix-ui/colors";
 
-// Configuration
 const OUTPUT_DIR = "src/theme/colors";
 
 /**
- * Neutral colors (grays) get special treatment for solid variants.
- */
-const NEUTRAL_COLORS = [
-  "gray",
-  "mauve",
-  "slate",
-  "sage",
-  "olive",
-  "sand",
-] as const;
-
-/**
- * Bright colors need dark foreground text on solid backgrounds.
- */
-const BRIGHT_COLORS = ["amber", "yellow", "lime", "mint", "sky"] as const;
-
-/**
  * Colors to include in generation. Add/remove as needed.
- * Using a subset that aligns with HASH brand needs.
  */
 const INCLUDED_COLORS = [
   // Neutrals
@@ -60,7 +41,6 @@ type ColorPalette = { name: ColorName; tokens: ColorTokens };
 
 /**
  * Check if a color name is valid for extraction from radix-colors.
- * Filters out uppercase variants and 'default' export.
  */
 function isValidColorName(colorName: string): boolean {
   return !/[A-Z]/.test(colorName) && colorName !== "default";
@@ -71,31 +51,9 @@ function isValidColorName(colorName: string): boolean {
  */
 function getColorNames(): ColorName[] {
   const allColors = Object.keys(radixColors).filter(isValidColorName);
-  // Filter to only included colors
   return allColors.filter((name) =>
     INCLUDED_COLORS.some((included) => name === included),
   );
-}
-
-/**
- * Normalize color name for output (gray stays gray, not neutral like park-ui).
- */
-function normalizeColorName(colorName: ColorName): ColorName {
-  return colorName;
-}
-
-/**
- * Check if color is a neutral (gray-like) color.
- */
-function isNeutralColor(color: string): boolean {
-  return NEUTRAL_COLORS.includes(color as (typeof NEUTRAL_COLORS)[number]);
-}
-
-/**
- * Check if color is a bright color needing dark foreground.
- */
-function isBrightColor(color: string): boolean {
-  return BRIGHT_COLORS.includes(color as (typeof BRIGHT_COLORS)[number]);
 }
 
 /**
@@ -159,162 +117,20 @@ function generateBaseTokens(
 }
 
 /**
- * Semantic token structure: {property}.{variant}.{state}
- *
- * Properties: bg, fg, bd (border)
- * Variants: solid, surface, muted, subtle (for bg/bd), link/muted/subtle (for fg)
- * States: DEFAULT, hover, active, pressed, disabled
+ * Generate tokens for a color (just the base scale).
  */
-
-/**
- * Helper to create a semantic token value.
- */
-function tv(name: string, step: string | number) {
-  return {
-    value: {
-      _light: `{colors.${name}.${step}}`,
-      _dark: `{colors.${name}.${step}}`,
-    },
-  };
-}
-
-/**
- * Helper for static values (like white for solid fg).
- */
-function staticVal(light: string, dark: string) {
-  return { value: { _light: light, _dark: dark } };
-}
-
-/**
- * Create bg (background) tokens for a palette.
- */
-function createBgTokens(name: string, isBright: boolean) {
-  return {
-    solid: {
-      DEFAULT: tv(name, 9),
-      hover: tv(name, 10),
-      active: tv(name, 10),
-      disabled: tv(name, 6),
-    },
-    surface: {
-      DEFAULT: tv(name, "a2"),
-      hover: tv(name, "a3"),
-      active: tv(name, "a4"),
-      disabled: tv(name, "a2"),
-    },
-    muted: {
-      DEFAULT: tv(name, 3),
-      hover: tv(name, 4),
-      active: tv(name, 5),
-      disabled: tv(name, 2),
-    },
-    subtle: {
-      DEFAULT: tv(name, "a3"),
-      hover: tv(name, "a4"),
-      active: tv(name, "a5"),
-      disabled: tv(name, "a2"),
-    },
-  };
-}
-
-/**
- * Create fg (foreground/text) tokens for a palette.
- */
-function createFgTokens(name: string, isBright: boolean) {
-  // For solid backgrounds, use white (or dark text for bright colors)
-  const solidFg = isBright
-    ? staticVal("{colors.gray.12}", "{colors.gray.1}")
-    : staticVal("white", "white");
-
-  return {
-    // High contrast text on solid bg
-    solid: {
-      DEFAULT: solidFg,
-    },
-    // Default readable text
-    DEFAULT: tv(name, 12),
-    // Secondary/muted text
-    muted: {
-      DEFAULT: tv(name, 11),
-      hover: tv(name, 12),
-      disabled: tv(name, 9),
-    },
-    // Tertiary/subtle text
-    subtle: {
-      DEFAULT: tv(name, 10),
-      hover: tv(name, 11),
-      disabled: tv(name, 8),
-    },
-    // Link text
-    link: {
-      DEFAULT: tv(name, 11),
-      hover: tv(name, 12),
-      active: tv(name, 11),
-      disabled: tv(name, 9),
-    },
-  };
-}
-
-/**
- * Create bd (border) tokens for a palette.
- */
-function createBdTokens(name: string) {
-  return {
-    solid: {
-      DEFAULT: tv(name, 7),
-      hover: tv(name, 8),
-      active: tv(name, 8),
-      disabled: tv(name, 5),
-    },
-    subtle: {
-      DEFAULT: tv(name, 6),
-      hover: tv(name, 7),
-      active: tv(name, 7),
-      disabled: tv(name, 4),
-    },
-    muted: {
-      DEFAULT: tv(name, "a6"),
-      hover: tv(name, "a7"),
-      active: tv(name, "a7"),
-      disabled: tv(name, "a4"),
-    },
-  };
-}
-
-/**
- * Generate all semantic tokens for a color including property-first variants.
- */
-function generateSemanticTokens(color: string): ColorTokens {
+function generateColorTokens(color: string): ColorTokens {
   const { light, dark } = getColorTokens(color);
-  const baseTokens = generateBaseTokens(light, dark);
-
-  // For variant tokens, use the normalized name
-  const name = isNeutralColor(color) ? "gray" : color;
-  const isBright = isBrightColor(color);
-
-  // Property-first semantic tokens: bg, fg, bd
-  const semanticTokens = {
-    bg: createBgTokens(name, isBright),
-    fg: createFgTokens(name, isBright),
-    bd: createBdTokens(name),
-  };
-
-  return {
-    ...baseTokens,
-    ...semanticTokens,
-  };
+  return generateBaseTokens(light, dark);
 }
 
 /**
  * Create a color palette object.
  */
 function createColorPalette(colorName: ColorName): ColorPalette {
-  const normalizedName = normalizeColorName(colorName);
-  const tokens = generateSemanticTokens(colorName);
-
   return {
-    name: normalizedName,
-    tokens,
+    name: colorName,
+    tokens: generateColorTokens(colorName),
   };
 }
 

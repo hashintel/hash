@@ -332,7 +332,7 @@ export const GlobalAliases: Story = () => (
           borderRadius="md.3"
           borderWidth="[2px]"
           borderStyle="solid"
-          borderColor="border"
+          borderColor="bd"
           minWidth="[200px]"
         >
           <span className={css({ color: "fg" })}>Border color</span>
@@ -411,14 +411,12 @@ export const StatusColors: Story = () => (
       })}
     >
       Semantic status tokens that alias color palettes. Use{" "}
-      <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+      <code className={css({ font: "mono", fontSize: "xs" })}>
         status.info.3
       </code>{" "}
       instead of{" "}
-      <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
-        blue.3
-      </code>{" "}
-      for intent-driven styling.
+      <code className={css({ font: "mono", fontSize: "xs" })}>blue.3</code> for
+      intent-driven styling.
     </p>
     <VStack gap="4" alignItems="flex-start">
       <Box>
@@ -472,7 +470,7 @@ export const StatusColors: Story = () => (
         <HStack gap="4">
           <span
             className={css({
-              fontFamily: "mono",
+              font: "mono",
               fontSize: "sm",
               minWidth: "[120px]",
             })}
@@ -480,14 +478,12 @@ export const StatusColors: Story = () => (
             status.info
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
-            blue
-          </span>
+          <span className={css({ font: "mono", fontSize: "sm" })}>blue</span>
         </HStack>
         <HStack gap="4">
           <span
             className={css({
-              fontFamily: "mono",
+              font: "mono",
               fontSize: "sm",
               minWidth: "[120px]",
             })}
@@ -495,14 +491,12 @@ export const StatusColors: Story = () => (
             status.success
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
-            green
-          </span>
+          <span className={css({ font: "mono", fontSize: "sm" })}>green</span>
         </HStack>
         <HStack gap="4">
           <span
             className={css({
-              fontFamily: "mono",
+              font: "mono",
               fontSize: "sm",
               minWidth: "[120px]",
             })}
@@ -510,14 +504,12 @@ export const StatusColors: Story = () => (
             status.warning
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
-            orange
-          </span>
+          <span className={css({ font: "mono", fontSize: "sm" })}>orange</span>
         </HStack>
         <HStack gap="4">
           <span
             className={css({
-              fontFamily: "mono",
+              font: "mono",
               fontSize: "sm",
               minWidth: "[120px]",
             })}
@@ -525,9 +517,7 @@ export const StatusColors: Story = () => (
             status.error
           </span>
           <span className={css({ color: "fg.muted" })}>→</span>
-          <span className={css({ fontFamily: "mono", fontSize: "sm" })}>
-            red
-          </span>
+          <span className={css({ font: "mono", fontSize: "sm" })}>red</span>
         </HStack>
       </VStack>
     </Box>

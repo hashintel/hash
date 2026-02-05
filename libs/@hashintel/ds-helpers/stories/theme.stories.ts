@@ -2,6 +2,7 @@ export default {
   title: "Tokens",
 };
 
+export { ColorPalette } from "./color-palette.story";
 export { Colors } from "./colors.core.story";
 export { VirtualColors } from "./colors.virtual.story";
 export { RadixMapping } from "./colors.radix-mapping.story";
