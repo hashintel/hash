@@ -136,6 +136,12 @@ macro_rules! range {
             }
 
             #[inline]
+            pub const fn zero() -> Self {
+                let zero = <$inner>::new(0);
+                Self { min: zero, max: Bound::Included(zero) }
+            }
+
+            #[inline]
             pub const fn full() -> Self {
                 let zero = <$inner>::new(0);
                 Self { min: zero, max: Bound::Unbounded }
