@@ -30,7 +30,7 @@ import type { Dashboard } from "@local/hash-isomorphic-utils/system-types/dashbo
 import type { DashboardItem as DashboardItemEntity } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
 import { Box, CircularProgress, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ArchiveEntitiesMutation,
@@ -54,14 +54,38 @@ import { useSlideStack } from "../shared/slide-stack";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
 import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
-import { flightsWithLinksResolved } from "./[dashboard-id].page/dummy-data";
+import { processVerticesIntoFlights } from "./[dashboard-id].page/dummy-data";
 import { generateDashboardItems } from "./[dashboard-id].page/generate-dashboard-items";
 import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 import type { DashboardData, DashboardItemData } from "./shared/types";
 
-const DashbordContainer = ({ children }: { children: React.ReactNode }) => {
+type DashboardContainerProps = {
+  children: React.ReactNode;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  isFullscreen: boolean;
+};
+
+const DashboardContainer = ({
+  children,
+  containerRef,
+  isFullscreen,
+}: DashboardContainerProps) => {
   return (
-    <Container sx={{ maxWidth: { lg: 1400 }, py: 5 }}>{children}</Container>
+    <Container
+      ref={containerRef}
+      sx={{
+        maxWidth: { lg: 1400 },
+        py: 5,
+        ...(isFullscreen && {
+          maxWidth: "100% !important",
+          height: "100vh",
+          overflow: "auto",
+          backgroundColor: ({ palette }) => palette.common.white,
+        }),
+      }}
+    >
+      {children}
+    </Container>
   );
 };
 
@@ -77,6 +101,32 @@ const DashboardPage: NextPageWithLayout = () => {
   const [selectedItem, setSelectedItem] = useState<DashboardItemData | null>(
     null,
   );
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Listen for fullscreen changes (e.g., user pressing Escape)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleFullscreenToggle = useCallback(async () => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await containerRef.current.requestFullscreen();
+    }
+  }, []);
 
   // Handle clicking on an entity within a chart or dashboard item
   const handleEntityClick = useCallback(
@@ -89,36 +139,34 @@ const DashboardPage: NextPageWithLayout = () => {
     [pushToSlideStack],
   );
 
-  // const { data: flightGraphData } = useQuery<
-  //   QueryEntitySubgraphQuery,
-  //   QueryEntitySubgraphQueryVariables
-  // >(queryEntitySubgraphQuery, {
-  //   variables: {
-  //     request: {
-  //       filter: {
-  //         equal: [
-  //           { path: ["type", "versionedUrl"] },
-  //           { parameter: systemEntityTypes.flight.entityTypeId },
-  //         ],
-  //       },
-  //       graphResolveDepths: zeroedOntologyResolveDepths,
-  //       traversalPaths: [
-  //         {
-  //           edges: [
-  //             { kind: "has-left-entity", direction: "incoming" },
-  //             { kind: "has-right-entity", direction: "outgoing" },
-  //           ],
-  //         },
-  //       ],
-  //       temporalAxes: currentTimeInstantTemporalAxes,
-  //       includeDrafts: false,
-  //       includePermissions: false,
-  //     },
-  //   },
-  //   fetchPolicy: "cache-and-network",
-  // });
-
-  console.log(flightsWithLinksResolved);
+  const { data: flightGraphData, loading: flightGraphLoading } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    variables: {
+      request: {
+        filter: {
+          equal: [
+            { path: ["type", "versionedUrl"] },
+            { parameter: systemEntityTypes.flight.entityTypeId },
+          ],
+        },
+        graphResolveDepths: zeroedOntologyResolveDepths,
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+        ],
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+  });
 
   // Query for the dashboard and its linked items
   const {
@@ -219,8 +267,17 @@ const DashboardPage: NextPageWithLayout = () => {
     //   });
     // }
 
-    // Use generated demo items for the airline operator dashboard
-    const items: DashboardItemData[] = generateDashboardItems();
+    // Process flight data from API and generate dashboard items
+    const flightVertices = flightGraphData?.queryEntitySubgraph.subgraph
+      .vertices as
+      | Record<string, Record<string, { kind: string; inner: unknown }>>
+      | undefined;
+    const flightsWithLinksResolved = flightVertices
+      ? processVerticesIntoFlights(flightVertices)
+      : [];
+    const items: DashboardItemData[] = generateDashboardItems(
+      flightsWithLinksResolved,
+    );
 
     return {
       entityId: dashboardEntity.metadata.recordId.entityId,
@@ -229,7 +286,7 @@ const DashboardPage: NextPageWithLayout = () => {
       gridLayout: gridLayout as DashboardGridLayout,
       items,
     };
-  }, [dashboardData]);
+  }, [dashboardData, flightGraphData]);
 
   const canEdit = useMemo((): boolean => {
     if (!dashboard) {
@@ -465,7 +522,10 @@ const DashboardPage: NextPageWithLayout = () => {
 
   if (loading && !dashboard) {
     return (
-      <DashbordContainer>
+      <DashboardContainer
+        containerRef={containerRef}
+        isFullscreen={isFullscreen}
+      >
         <Box
           sx={{
             display: "flex",
@@ -476,13 +536,16 @@ const DashboardPage: NextPageWithLayout = () => {
         >
           <CircularProgress />
         </Box>
-      </DashbordContainer>
+      </DashboardContainer>
     );
   }
 
   if (!dashboard) {
     return (
-      <DashbordContainer>
+      <DashboardContainer
+        containerRef={containerRef}
+        isFullscreen={isFullscreen}
+      >
         <Box
           sx={{
             display: "flex",
@@ -495,18 +558,20 @@ const DashboardPage: NextPageWithLayout = () => {
             Dashboard not found
           </Typography>
         </Box>
-      </DashbordContainer>
+      </DashboardContainer>
     );
   }
 
   return (
-    <DashbordContainer>
+    <DashboardContainer containerRef={containerRef} isFullscreen={isFullscreen}>
       <DashboardHeader
         title={dashboard.title}
         description={dashboard.description}
         isEditing={isEditing}
         canEdit={canEdit}
+        isFullscreen={isFullscreen}
         onEditToggle={() => setIsEditing(!isEditing)}
+        onFullscreenToggle={handleFullscreenToggle}
         onAddItem={handleAddItem}
         onTitleOrDescriptionChange={handleTitleOrDescriptionChange}
       />
@@ -521,6 +586,7 @@ const DashboardPage: NextPageWithLayout = () => {
         onEntityClick={handleEntityClick}
         isEditing={isEditing}
         canEdit={canEdit}
+        isDataLoading={flightGraphLoading}
       />
 
       {selectedItem && activeWorkspaceWebId && (
@@ -532,7 +598,7 @@ const DashboardPage: NextPageWithLayout = () => {
           initialGoal={selectedItem.userGoal}
         />
       )}
-    </DashbordContainer>
+    </DashboardContainer>
   );
 };
 

@@ -13,12 +13,12 @@ import type { ECElementEvent } from "echarts/types/dist/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type FlightPosition = {
-  entityId?: EntityId;
+  entityId: EntityId | null;
   flight: string;
   latitude: number;
   longitude: number;
-  altitude?: number;
-  heading?: number;
+  altitude: number | null;
+  heading: number | null;
 };
 
 type WorldMapRendererProps = {
@@ -28,23 +28,40 @@ type WorldMapRendererProps = {
 
 /**
  * SVG viewBox dimensions for the world map.
- * The SVG uses viewBox="0 0 2000 857"
+ * The SVG uses viewBox="0 0 1874 798"
  */
-const SVG_WIDTH = 2000;
-const SVG_HEIGHT = 857;
+const SVG_WIDTH = 1874;
+const SVG_HEIGHT = 798;
+
+/**
+ * Calibration offsets determined by comparing known geographic locations
+ * (Ireland at ~53°N, -6°W appears at ~845, 150 in the SVG).
+ *
+ * Equirectangular formula gives: x=904, y=162 for Dublin
+ * Actual SVG position: ~845, 150
+ * Reduced offset after testing.
+ */
+const SVG_X_OFFSET = -48;
+const SVG_Y_OFFSET = -12;
 
 /**
  * Convert geographic coordinates (lat/lng) to SVG coordinates.
- * The world map SVG uses a simple equirectangular projection:
- * - x: 0 to 2000 represents longitude -180 to 180
- * - y: 0 to 857 represents latitude 90 to -90 (inverted)
+ *
+ * Uses equirectangular projection with empirical calibration offsets
+ * to match the SVG map's actual coordinate system.
  */
 const geoToSvgCoords = (
   latitude: number,
   longitude: number,
 ): [number, number] => {
-  const svgX = ((longitude + 180) / 360) * SVG_WIDTH;
-  const svgY = ((90 - latitude) / 180) * SVG_HEIGHT;
+  // Base equirectangular projection
+  const baseX = ((longitude + 180) / 360) * SVG_WIDTH;
+  const baseY = ((90 - latitude) / 180) * SVG_HEIGHT;
+
+  // Apply calibration offsets
+  const svgX = baseX + SVG_X_OFFSET;
+  const svgY = baseY + SVG_Y_OFFSET;
+
   return [svgX, svgY];
 };
 
@@ -68,23 +85,30 @@ export const WorldMapRenderer = ({
 
       try {
         // Load the SVG file from public folder
-        const response = await fetch("/assets/world-map.svg");
+        const response = await fetch("/assets/world-map-natural-earth-ii.svg");
 
         if (!response.ok) {
           throw new Error(`Failed to load map: ${response.status}`);
         }
 
-        mapSvgContent = await response.text();
+        let svgContent = await response.text();
+
+        svgContent = svgContent.replace(
+          /<path\s/g,
+          '<path style="fill:white;stroke:#9CA3AF;stroke-width:0.8" ',
+        );
+
+        mapSvgContent = svgContent;
         echarts.registerMap("world_svg", { svg: mapSvgContent });
         mapRegistered = true;
         setIsMapReady(true);
       } catch {
-        // Fallback to inline simple world map
-        const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 857" width="2000" height="857">
-          <rect x="0" y="0" width="2000" height="857" fill="#e8f4fc"/>
+        // Fallback to inline simple world map (matching Natural Earth II dimensions)
+        const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1874 798" width="1874" height="798">
+          <rect x="0" y="0" width="1874" height="798" fill="#e8f4fc"/>
           <g stroke="#cde4f4" stroke-width="1" fill="none">
-            <line x1="0" y1="428" x2="2000" y2="428"/>
-            <line x1="1000" y1="0" x2="1000" y2="857"/>
+            <line x1="0" y1="399" x2="1874" y2="399"/>
+            <line x1="937" y1="0" x2="937" y2="798"/>
           </g>
         </svg>`;
         echarts.registerMap("world_svg", { svg: fallbackSvg });
@@ -99,12 +123,25 @@ export const WorldMapRenderer = ({
   // Handle chart click events
   const handleChartClick = useCallback(
     (params: ECElementEvent) => {
-      const data = params.data as { entityId?: EntityId } | undefined;
-      if (data?.entityId && onFlightClick) {
+      const data = params.data as { entityId: EntityId | null } | undefined;
+      if (
+        data?.entityId !== null &&
+        data?.entityId !== undefined &&
+        onFlightClick
+      ) {
         onFlightClick(data.entityId);
       }
     },
     [onFlightClick],
+  );
+
+  const handleChartInit = useCallback(
+    (chart: Chart) => {
+      chartRef.current = chart;
+      // Bind click event
+      chart.on("click", "series.scatter", handleChartClick);
+    },
+    [handleChartClick],
   );
 
   const option: ECOption = useMemo(() => {
@@ -119,24 +156,24 @@ export const WorldMapRenderer = ({
           const tooltipData = params as {
             name?: string;
             data?: {
-              lat?: number;
-              lng?: number;
-              altitude?: number;
-              heading?: number;
+              lat: number | null;
+              lng: number | null;
+              altitude: number | null;
+              heading: number | null;
             };
           };
           if (tooltipData.data) {
             let tooltip = `<strong>${tooltipData.name ?? "Flight"}</strong><br/>`;
-            if (tooltipData.data.lng !== undefined) {
-              tooltip += `Longitude: ${tooltipData.data.lng.toFixed(2)}°<br/>`;
-            }
-            if (tooltipData.data.lat !== undefined) {
+            if (tooltipData.data.lat !== null) {
               tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°`;
             }
-            if (tooltipData.data.altitude) {
+            if (tooltipData.data.lng !== null) {
+              tooltip += `Longitude: ${tooltipData.data.lng.toFixed(2)}°<br/>`;
+            }
+            if (tooltipData.data.altitude !== null) {
               tooltip += `<br/>Altitude: ${tooltipData.data.altitude.toLocaleString()} ft`;
             }
-            if (tooltipData.data.heading !== undefined) {
+            if (tooltipData.data.heading !== null) {
               tooltip += `<br/>Heading: ${tooltipData.data.heading}°`;
             }
             return tooltip;
@@ -148,18 +185,28 @@ export const WorldMapRenderer = ({
         map: "world_svg",
         roam: true,
         layoutCenter: ["50%", "50%"],
-        layoutSize: "130%",
+        layoutSize: "250%",
         aspectScale: 1,
+        // Disable all region interactions
+        selectedMode: false,
+        silent: true,
+        // Empty regions array tells ECharts not to apply region-specific styling
+        regions: [],
         itemStyle: {
-          borderColor: "#999",
-          borderWidth: 0.5,
+          // Force white fill to match SVG
+          areaColor: "#ffffff",
+          borderColor: "#E4E7EC",
+          borderWidth: 0.7,
         },
         emphasis: {
           itemStyle: {
-            areaColor: undefined,
+            areaColor: "#ffffff",
+            borderColor: "#E4E7EC",
           },
-          label: {
-            show: false,
+        },
+        select: {
+          itemStyle: {
+            areaColor: "#ffffff",
           },
         },
       },
@@ -181,11 +228,15 @@ export const WorldMapRenderer = ({
               lng: flight.longitude,
               altitude: flight.altitude,
               heading: flight.heading,
+              // Rotate the plane icon based on heading
+              // Aviation heading is clockwise from north (0° = N, 90° = E, 180° = S, 270° = W)
+              // ECharts symbolRotate is counter-clockwise, so we negate the heading
+              symbolRotate: flight.heading !== null ? -flight.heading : 0,
             };
           }),
+          // Plane icon pointing up (north direction)
           symbol: "path://M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z",
           symbolSize: 18,
-          symbolRotate: 0,
           itemStyle: {
             color: "#ef4444",
             shadowBlur: 6,
@@ -234,15 +285,6 @@ export const WorldMapRenderer = ({
       </Box>
     );
   }
-
-  const handleChartInit = useCallback(
-    (chart: Chart) => {
-      chartRef.current = chart;
-      // Bind click event
-      chart.on("click", "series.scatter", handleChartClick);
-    },
-    [handleChartClick],
-  );
 
   return <EChart options={option} onChartInitialized={handleChartInit} />;
 };

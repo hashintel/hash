@@ -25,6 +25,7 @@ const isCustomChartType = (
 
 type DashboardItemContentProps = {
   item: DashboardItemData;
+  isDataLoading?: boolean;
   onConfigureClick?: () => void;
   onEntityClick?: (entityId: EntityId) => void;
 };
@@ -64,6 +65,7 @@ const CustomRenderer = ({
 
 export const DashboardItemContent = ({
   item,
+  isDataLoading = false,
   onConfigureClick,
   onEntityClick,
 }: DashboardItemContentProps) => {
@@ -74,6 +76,30 @@ export const DashboardItemContent = ({
     configurationStatus,
     errorMessage,
   } = item;
+
+  // Show loading spinner when data is loading
+  if (isDataLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={32} />
+        <Typography
+          variant="smallTextParagraphs"
+          sx={{ color: ({ palette }) => palette.gray[60] }}
+        >
+          Loading data...
+        </Typography>
+      </Box>
+    );
+  }
 
   switch (configurationStatus) {
     case "pending":

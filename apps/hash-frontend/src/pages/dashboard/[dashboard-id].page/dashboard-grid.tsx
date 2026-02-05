@@ -6,7 +6,7 @@ import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
 import { Box, Typography } from "@mui/material";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   GridLayout,
   type Layout,
@@ -27,7 +27,11 @@ type DashboardGridProps = {
   onEntityClick?: (entityId: EntityId) => void;
   isEditing: boolean;
   canEdit: boolean;
+  isDataLoading?: boolean;
 };
+
+// Height in grid rows for a minimized item (header only, rowHeight is 36px)
+const MINIMIZED_HEIGHT = 1;
 
 export const DashboardGrid = ({
   dashboard,
@@ -39,15 +43,39 @@ export const DashboardGrid = ({
   onEntityClick,
   isEditing = false,
   canEdit = false,
+  isDataLoading = false,
 }: DashboardGridProps) => {
   const { width, containerRef, mounted } = useContainerWidth();
+  const [minimizedItems, setMinimizedItems] = useState<Record<string, number>>(
+    {},
+  );
+
+  const toggleMinimized = useCallback(
+    (itemId: string, originalHeight: number) => {
+      setMinimizedItems((prev) => {
+        if (itemId in prev) {
+          // Item is minimized, restore it
+          const { [itemId]: _, ...rest } = prev;
+          return rest;
+        }
+        // Item is expanded, minimize it (store original height for restoration)
+        return { ...prev, [itemId]: originalHeight };
+      });
+    },
+    [],
+  );
 
   const layout: Layout = useMemo(() => {
-    return dashboard.items.map((item) => ({
-      ...item.gridPosition,
-      i: item.gridPosition.i || item.entityId,
-    }));
-  }, [dashboard.items]);
+    return dashboard.items.map((item) => {
+      const itemId = item.gridPosition.i || item.entityId;
+      const isMinimized = itemId in minimizedItems;
+      return {
+        ...item.gridPosition,
+        i: itemId,
+        h: isMinimized ? MINIMIZED_HEIGHT : item.gridPosition.h,
+      };
+    });
+  }, [dashboard.items, minimizedItems]);
 
   const handleLayoutChange = useCallback(
     (newLayout: Layout) => {
@@ -122,7 +150,7 @@ export const DashboardGrid = ({
           compactor={verticalCompactor}
           gridConfig={{
             cols: 12,
-            rowHeight: 30,
+            rowHeight: 36,
           }}
           dragConfig={{
             bounded: true,
@@ -134,18 +162,27 @@ export const DashboardGrid = ({
           onDragStop={handleLayoutChange}
           onResizeStop={handleLayoutChange}
         >
-          {dashboard.items.map((item) => (
-            <div key={item.gridPosition.i || item.entityId}>
-              <DashboardItem
-                item={item}
-                isEditing={isEditing}
-                onConfigureClick={() => onItemConfigureClick(item)}
-                onRefreshClick={() => onItemRefreshClick(item)}
-                onDeleteClick={() => onItemDeleteClick(item)}
-                onEntityClick={onEntityClick}
-              />
-            </div>
-          ))}
+          {dashboard.items.map((item) => {
+            const itemId = item.gridPosition.i || item.entityId;
+            const isMinimized = itemId in minimizedItems;
+            return (
+              <div key={itemId}>
+                <DashboardItem
+                  item={item}
+                  isEditing={isEditing}
+                  isMinimized={isMinimized}
+                  isDataLoading={isDataLoading}
+                  onMinimizeToggle={() =>
+                    toggleMinimized(itemId, item.gridPosition.h)
+                  }
+                  onConfigureClick={() => onItemConfigureClick(item)}
+                  onRefreshClick={() => onItemRefreshClick(item)}
+                  onDeleteClick={() => onItemDeleteClick(item)}
+                  onEntityClick={onEntityClick}
+                />
+              </div>
+            );
+          })}
         </GridLayout>
       )}
     </Box>
