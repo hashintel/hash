@@ -22,24 +22,38 @@ export const getStorageProvider = (): FileStorageProvider => {
   return _storageProvider;
 };
 
-export type StorePayloadParams<K extends StoredPayloadKind> = {
+export type StorePayloadParams<
+  K extends StoredPayloadKind,
+  IsArray extends boolean,
+> = {
   storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
   stepId: string;
   outputName: string;
   kind: K;
-  value: PayloadKindValues[K] | PayloadKindValues[K][];
+  value: IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K];
 };
 
 /**
- * Store a payload in S3 and return a reference to it.
+ * Store a payload in S3 and return a typed reference to it.
+ * The return type is inferred based on whether `value` is an array.
+ *
  * Used to avoid passing large payloads through Temporal activities.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
+ * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks, PersistedEntitiesMetadata).
  */
-export const storePayload = async <K extends StoredPayloadKind>(
-  params: StorePayloadParams<K>,
-): Promise<StoredPayloadRef<K>> => {
+export const storePayload = async <
+  K extends StoredPayloadKind,
+  V extends PayloadKindValues[K] | PayloadKindValues[K][],
+>(params: {
+  storageProvider: FileStorageProvider;
+  workflowId: string;
+  runId: string;
+  stepId: string;
+  outputName: string;
+  kind: K;
+  value: V;
+}): Promise<StoredPayloadRef<K, V extends unknown[] ? true : false>> => {
   const {
     storageProvider,
     workflowId,
@@ -71,86 +85,46 @@ export const storePayload = async <K extends StoredPayloadKind>(
     kind,
     storageKey,
     array: isArray,
-  };
+  } as StoredPayloadRef<K, V extends unknown[] ? true : false>;
 };
 
 /**
  * Retrieve a payload from S3 using a stored reference.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
  */
-export const retrievePayload = async <K extends StoredPayloadKind>(
+export const retrievePayload = async <
+  K extends StoredPayloadKind,
+  IsArray extends boolean,
+>(
   storageProvider: FileStorageProvider,
-  ref: StoredPayloadRef<K>,
-): Promise<PayloadKindValues[K] | PayloadKindValues[K][]> => {
+  ref: StoredPayloadRef<K, IsArray>,
+): Promise<
+  IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]
+> => {
   const buffer = await storageProvider.downloadDirect({ key: ref.storageKey });
-  const data = JSON.parse(buffer.toString("utf-8")) as
-    | PayloadKindValues[K]
-    | PayloadKindValues[K][];
+  const data = JSON.parse(buffer.toString("utf-8")) as IsArray extends true
+    ? PayloadKindValues[K][]
+    : PayloadKindValues[K];
 
   return data;
 };
 
 /**
- * Retrieve a payload from S3 as a single value (not array).
- * Throws if the stored payload was an array.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
- */
-export const retrieveSingularPayload = async <K extends StoredPayloadKind>(
-  storageProvider: FileStorageProvider,
-  ref: StoredPayloadRef<K>,
-): Promise<PayloadKindValues[K]> => {
-  if (ref.array) {
-    throw new Error(
-      `Expected singular payload but got array for storage key: ${ref.storageKey}`,
-    );
-  }
-  return (await retrievePayload(storageProvider, ref)) as PayloadKindValues[K];
-};
-
-/**
- * Retrieve a payload from S3 as an array.
- * Throws if the stored payload was not an array.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
- */
-export const retrieveArrayPayload = async <K extends StoredPayloadKind>(
-  storageProvider: FileStorageProvider,
-  ref: StoredPayloadRef<K>,
-): Promise<PayloadKindValues[K][]> => {
-  if (!ref.array) {
-    throw new Error(
-      `Expected array payload but got singular for storage key: ${ref.storageKey}`,
-    );
-  }
-  return (await retrievePayload(
-    storageProvider,
-    ref,
-  )) as PayloadKindValues[K][];
-};
-
-/**
  * Resolve a stored payload reference to its actual value.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
+ * The return type is inferred from the ref's `IsArray` type parameter.
  *
- * @param kind - The payload kind, used for type inference
+ * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks, PersistedEntitiesMetadata).
+ *
+ * @param _kind - The payload kind, used for type inference at call sites
  */
-export const resolvePayloadValue = async <K extends StoredPayloadKind>(
+export const resolvePayloadValue = async <
+  K extends StoredPayloadKind,
+  IsArray extends boolean,
+>(
   storageProvider: FileStorageProvider,
   _kind: K,
-  ref: StoredPayloadRef<K>,
-): Promise<PayloadKindValues[K]> => {
-  return retrieveSingularPayload(storageProvider, ref);
-};
-
-/**
- * Resolve a stored payload reference to its actual array value.
- * Only works with StoredPayloadKind types (ProposedEntity, ProposedEntityWithResolvedLinks).
- *
- * @param kind - The payload kind, used for type inference
- */
-export const resolveArrayPayloadValue = async <K extends StoredPayloadKind>(
-  storageProvider: FileStorageProvider,
-  _kind: K,
-  ref: StoredPayloadRef<K>,
-): Promise<PayloadKindValues[K][]> => {
-  return retrieveArrayPayload(storageProvider, ref);
+  ref: StoredPayloadRef<K, IsArray>,
+): Promise<
+  IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]
+> => {
+  return retrievePayload(storageProvider, ref);
 };

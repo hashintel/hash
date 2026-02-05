@@ -10,7 +10,7 @@ import {
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
-  resolveArrayPayloadValue,
+  resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import {
@@ -682,7 +682,7 @@ export const createPersistIntegrationEntitiesAction = ({
           actionType: "persistIntegrationEntities",
         });
 
-      const proposedEntities = await resolveArrayPayloadValue(
+      const proposedEntities = await resolvePayloadValue(
         getStorageProvider(),
         "ProposedEntity",
         proposedEntitiesInput,

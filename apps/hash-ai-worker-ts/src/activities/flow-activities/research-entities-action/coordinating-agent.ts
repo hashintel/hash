@@ -7,7 +7,7 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
-  resolveArrayPayloadValue,
+  resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
@@ -84,7 +84,7 @@ const parseAndResolveCoordinatorInputs = async (params: {
 
   // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputExistingEntities = existingEntitiesInput
-    ? await resolveArrayPayloadValue(
+    ? await resolvePayloadValue(
         getStorageProvider(),
         "PersistedEntitiesMetadata",
         existingEntitiesInput,

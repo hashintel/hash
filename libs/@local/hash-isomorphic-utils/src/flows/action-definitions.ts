@@ -368,7 +368,7 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "existingEntities",
         required: false,
-        array: true,
+        array: false,
       },
     ],
     outputs: [
@@ -457,7 +457,7 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "entities",
         required: false,
-        array: true,
+        array: false,
       },
     ],
     outputs: [

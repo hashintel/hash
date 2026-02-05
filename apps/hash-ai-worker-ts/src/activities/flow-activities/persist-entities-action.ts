@@ -2,7 +2,7 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
-  resolveArrayPayloadValue,
+  resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
@@ -29,7 +29,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
       actionType: "persistEntities",
     });
 
-  const proposedEntities = await resolveArrayPayloadValue(
+  const proposedEntities = await resolvePayloadValue(
     getStorageProvider(),
     "ProposedEntity",
     proposedEntitiesInput,

@@ -2,7 +2,7 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
-  resolveArrayPayloadValue,
+  resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
@@ -416,7 +416,7 @@ export const answerQuestionAction: AiFlowActionActivity<
 
   // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputEntities = entitiesInput
-    ? await resolveArrayPayloadValue(
+    ? await resolvePayloadValue(
         getStorageProvider(),
         "PersistedEntitiesMetadata",
         entitiesInput,
