@@ -10323,6 +10323,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
     axios: "npm:1.12.2"
+    cache-manager: "npm:5.7.6"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.39.2"
     exponential-backoff: "npm:3.1.3"
