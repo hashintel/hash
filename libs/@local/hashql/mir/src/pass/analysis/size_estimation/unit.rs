@@ -37,6 +37,11 @@ macro_rules! unit {
             }
 
             #[inline]
+            pub const fn as_u32(self) -> u32 {
+                self.raw as u32
+            }
+
+            #[inline]
             pub const fn checked_add(self, rhs: Self) -> Option<Self> {
                 match self.raw.checked_add(rhs.raw) {
                     Some(raw) => Some(Self { raw }),

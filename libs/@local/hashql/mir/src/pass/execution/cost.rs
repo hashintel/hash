@@ -37,6 +37,11 @@ use crate::{
 pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
 impl Cost {
+    pub const MAX: Self = match core::num::niche_types::U32NotAllOnes::new(0xFFFF_FFFE) {
+        Some(cost) => Self(cost),
+        None => unreachable!(),
+    };
+
     /// Creates a cost from a `u32` value, returning `None` if the value is `u32::MAX`.
     ///
     /// The `u32::MAX` value is reserved as a niche for `Option<Cost>` optimization.
@@ -68,6 +73,13 @@ impl Cost {
     pub const unsafe fn new_unchecked(value: u32) -> Self {
         // SAFETY: The caller must ensure `value` is not `u32::MAX`.
         Self(unsafe { core::num::niche_types::U32NotAllOnes::new_unchecked(value) })
+    }
+
+    #[inline]
+    pub fn saturating_add(self, other: u32) -> Self {
+        let raw = self.0.as_inner();
+
+        Self::new(raw.saturating_add(other)).unwrap_or(Self::MAX)
     }
 }
 

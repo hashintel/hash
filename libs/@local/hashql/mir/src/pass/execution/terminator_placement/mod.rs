@@ -11,7 +11,10 @@ use hashql_core::{
         tarjan::{Metadata, SccId, StronglyConnectedComponents},
     },
     heap::Heap,
-    id::{Id as _, bit_vec::BitRelations as _},
+    id::{
+        Id as _,
+        bit_vec::{BitRelations as _, DenseBitSet},
+    },
 };
 
 use super::{
@@ -27,12 +30,11 @@ use crate::{
     },
     context::MirContext,
     pass::analysis::{
-        SizeEstimationAnalysis,
         dataflow::{
             LivenessAnalysis,
-            framework::{DataflowAnalysis, DataflowResults},
+            framework::{DataflowAnalysis as _, DataflowResults},
         },
-        size_estimation::BodyFootprint,
+        size_estimation::{BodyFootprint, Cardinality, InformationRange, InformationUnit},
     },
 };
 
@@ -194,96 +196,143 @@ impl<N, S> Metadata<N, S> for ComponentCountMetadata {
     fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 }
 
-fn place<'heap, A: Allocator, F: Allocator>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    footprint: &BodyFootprint<F>,
-    targets: &BasicBlockSlice<TargetBitSet>,
+pub struct TerminatorPlacement<A: Allocator> {
     alloc: A,
-) -> TerminatorCostVec<&'heap Heap> {
-    let DataflowResults {
-        analysis: _,
-        entry_states: _,
-        exit_states: liveness,
-    } = LivenessAnalysis.iterate_to_fixpoint_in(body, &alloc);
+    entity_size: InformationRange,
+}
 
-    let scc: StronglyConnectedComponents<BasicBlockId, SccId, ComponentCountMetadata, &A> =
-        Tarjan::new_with_metadata_in(&body.basic_blocks, ComponentCountMetadata, &alloc).run();
+impl<A: Allocator> TerminatorPlacement<A> {
+    pub fn terminator_placement<'heap>(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        footprint: &BodyFootprint<&'heap Heap>,
+        targets: &BasicBlockSlice<TargetBitSet>,
+    ) -> TerminatorCostVec<&'heap Heap> {
+        let DataflowResults {
+            analysis: _,
+            entry_states: live_in,
+            exit_states: _,
+        } = LivenessAnalysis.iterate_to_fixpoint_in(body, &self.alloc);
 
-    let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);
+        let scc: StronglyConnectedComponents<BasicBlockId, SccId, ComponentCountMetadata, &A> =
+            Tarjan::new_with_metadata_in(&body.basic_blocks, ComponentCountMetadata, &self.alloc)
+                .run();
 
-    // TODO: entity size estimation we need aka how many entities do we need to send over, right now
-    // we only know it's one.
+        let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);
 
-    for (id, block) in body.basic_blocks.iter_enumerated() {
-        // TODO: we must find the footprint, and then add that. The problem is how do we condense it
-        // down. I would like to get an estimate cost here by averaging the units. For the
-        // footprint, we could say that we neglect the env, and set the entity to unknown. What we
-        // must make sure is that liveness analysis does not take into consideration partial use of
-        // entity if it's in a direct load, because we *really really* like to discourage them.
+        // We assume that the env has a size of 0 (the reasoning for this is simple: the env is
+        // static, over 1000x invocations, the size of the env does not meaningfully
+        // contribute to the cost). Entity size is assumed to be unknown, but with a
+        // cardinality of 1, why one 1? Because we operate inside of the filter function on
+        // a single entity. Size estimations for the boundary can be computed by `* n` the
+        // expected cardinality at each edge, instead of being done here. Considering that
+        // this is linear scaling, and therefore doesn't influence any particular
+        // aspect we can simply ignore it.
+        // In the future we can make the entity size more precise, by considering the inner type,
+        // based on the narrowed entity type.
 
-        let block_targets = targets[id];
+        let mut successor_live_in = DenseBitSet::new_empty(body.local_decls.len());
+        for (id, block) in body.basic_blocks.iter_enumerated() {
+            let block_targets = targets[id];
 
-        let matrices = output.of_mut(id);
-        for (index, successor) in block.terminator.kind.successor_blocks().enumerate() {
-            let matrix = &mut matrices[index];
+            let matrices = output.of_mut(id);
+            for (index, successor) in block.terminator.kind.successor_blocks().enumerate() {
+                let matrix = &mut matrices[index];
 
-            // First every common ancestor of the block can be set
-            let successor_targets = targets[successor];
-            let mut common = successor_targets;
-            common.intersect(&block_targets);
+                let mut total_cost = cost!(0);
 
-            for target in &common {
-                // Our initial analysis does not attribute costs to edges. This is done in a
-                // post-processing step once we know how many variables need to be transferred.
-                matrix.insert(target, target, cost!(0));
-            }
-
-            // Move to the interpreter is always allowed
-            if successor_targets.contains(TargetId::Interpreter) {
-                for target in &block_targets {
-                    matrix.insert(target, TargetId::Interpreter, cost!(0));
+                successor_live_in.clone_from(&live_in[successor]); // The required live-in set
+                for &param in body.basic_blocks[successor].params {
+                    // add the params as well, as they need to be transferred
+                    successor_live_in.insert(param);
                 }
-            }
 
-            // Otherwise, it depends on the terminator
-            match &block.terminator.kind {
-                TerminatorKind::Goto(_) => {
-                    // goto allows move to arbitrary targets
-                    for source in &block_targets {
-                        for target in &successor_targets {
-                            matrix.insert(source, target, cost!(0));
+                for transferred in &successor_live_in {
+                    if let Some(value) = footprint.locals[transferred].average(
+                        &[InformationRange::zero(), self.entity_size],
+                        &[Cardinality::one(), Cardinality::one()],
+                    ) {
+                        total_cost = total_cost.saturating_add(value.as_u32());
+                    } else {
+                        // `None` = unbounded, therefore meaning that the cost is the largest we can
+                        // represent
+                        total_cost = Cost::MAX;
+                    }
+                }
+
+                // First every common ancestor of the block can be set
+                let successor_targets = targets[successor];
+                let mut common = successor_targets;
+                common.intersect(&block_targets);
+
+                for target in &common {
+                    // Traversal that is on the same backend is always preferred, and "free"
+                    matrix.insert(target, target, cost!(0));
+                }
+
+                // Move to the interpreter is always allowed
+                if successor_targets.contains(TargetId::Interpreter) {
+                    for target in &block_targets {
+                        matrix.insert(
+                            target,
+                            TargetId::Interpreter,
+                            if target == TargetId::Interpreter {
+                                cost!(0)
+                            } else {
+                                total_cost
+                            },
+                        );
+                    }
+                }
+
+                // Otherwise, it depends on the terminator
+                match &block.terminator.kind {
+                    TerminatorKind::Goto(_) => {
+                        // goto allows move to arbitrary targets
+                        for source in &block_targets {
+                            for target in &successor_targets {
+                                matrix.insert(
+                                    source,
+                                    target,
+                                    if source == target {
+                                        cost!(0)
+                                    } else {
+                                        total_cost
+                                    },
+                                );
+                            }
                         }
                     }
-                }
-                TerminatorKind::SwitchInt(_) => {
-                    // Due to the complexity, switch does not allow move to arbitrary targets
-                }
-                TerminatorKind::GraphRead(_) => {
-                    // Graph read is only allowed to be Interpreter -> Interpreter
-                    matrix.clear();
-
-                    if block_targets.contains(TargetId::Interpreter)
-                        && successor_targets.contains(TargetId::Interpreter)
-                    {
-                        matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
+                    TerminatorKind::SwitchInt(_) => {
+                        // Due to the complexity, switch does not allow move to arbitrary targets
                     }
+                    TerminatorKind::GraphRead(_) => {
+                        // Graph read is only allowed to be Interpreter -> Interpreter
+                        matrix.clear();
+
+                        if block_targets.contains(TargetId::Interpreter)
+                            && successor_targets.contains(TargetId::Interpreter)
+                        {
+                            matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
+                        }
+                    }
+                    TerminatorKind::Return(_) | TerminatorKind::Unreachable => unreachable!(),
                 }
-                TerminatorKind::Return(_) | TerminatorKind::Unreachable => unreachable!(),
-            }
 
-            // A move back from a Backend to Postgres is not possible
-            matrix.remove_to_target(TargetId::Postgres);
+                // A move back from a Backend to Postgres is not possible
+                matrix.remove_to_target(TargetId::Postgres);
 
-            let &members = scc.annotation(scc.scc(id));
-            if members > 1 {
-                // Because of the limitations of postgres (we cannot model loops in declarative
-                // queries easily), we're unable to provision loops onto the
-                // Postgres backend.
-                matrix.remove_connections_to(TargetId::Postgres);
+                let &members = scc.annotation(scc.scc(id));
+                if members > 1 {
+                    // Because of the limitations of postgres (we cannot model loops in declarative
+                    // queries easily), we're unable to provision loops onto the
+                    // Postgres backend.
+                    matrix.remove_connections_to(TargetId::Postgres);
+                }
             }
         }
-    }
 
-    output
+        output
+    }
 }
