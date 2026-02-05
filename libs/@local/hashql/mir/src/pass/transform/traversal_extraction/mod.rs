@@ -125,6 +125,14 @@ impl<'heap> Traversals<'heap> {
         self.derivations.lookup(local)
     }
 
+    pub fn contains(&self, local: Local) -> bool {
+        self.derivations.contains(local)
+    }
+
+    pub fn source(&self) -> Local {
+        self.source
+    }
+
     #[must_use]
     pub fn enabled(&self, body: &Body<'heap>) -> DenseBitSet<Local> {
         let mut set = DenseBitSet::new_empty(body.local_decls.len());
