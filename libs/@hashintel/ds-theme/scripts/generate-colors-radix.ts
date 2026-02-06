@@ -42,11 +42,15 @@ type ColorScale = Record<string, string>;
 type ColorTokens = Record<string, unknown>;
 type ColorPalette = { name: ColorName; tokens: ColorTokens };
 
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
+
 function toHex(color: Color): string {
-  const r = Math.round(color.srgb.r * 255);
-  const g = Math.round(color.srgb.g * 255);
-  const b = Math.round(color.srgb.b * 255);
-  const a = color.alpha;
+  const r = clamp(Math.round(color.srgb.r * 255), 0, 255);
+  const g = clamp(Math.round(color.srgb.g * 255), 0, 255);
+  const b = clamp(Math.round(color.srgb.b * 255), 0, 255);
+  const a = clamp(color.alpha, 0, 1);
   const rr = r.toString(16).padStart(2, "0");
   const gg = g.toString(16).padStart(2, "0");
   const bb = b.toString(16).padStart(2, "0");
@@ -60,10 +64,10 @@ function toHex(color: Color): string {
 }
 
 function toRgba(color: Color): string {
-  const r = Math.round(color.srgb.r * 255);
-  const g = Math.round(color.srgb.g * 255);
-  const b = Math.round(color.srgb.b * 255);
-  const a = Math.round(color.alpha * 1000) / 1000;
+  const r = clamp(Math.round(color.srgb.r * 255), 0, 255);
+  const g = clamp(Math.round(color.srgb.g * 255), 0, 255);
+  const b = clamp(Math.round(color.srgb.b * 255), 0, 255);
+  const a = clamp(Math.round(color.alpha * 1000) / 1000, 0, 1);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
@@ -199,10 +203,7 @@ function generateBaseTokens(
             lightAlphaValues[i]!,
             lightAlphaValues[i + 1]!,
           ),
-          _dark: interpolateColor(
-            darkAlphaValues[i]!,
-            darkAlphaValues[i + 1]!,
-          ),
+          _dark: interpolateColor(darkAlphaValues[i]!, darkAlphaValues[i + 1]!),
         },
       };
     }
@@ -310,10 +311,19 @@ function writeColorFile(palette: ColorPalette): void {
  * Scales use a00-a120 with half-steps (a05, a15, ..., a115) interpolated in OKLCH.
  */
 function generateStaticColorTokens(): string {
-  const blackAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
-  const whiteAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
+  const blackAlphas = [
+    0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
+  ];
+  const whiteAlphas = [
+    0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
+  ];
 
-  function buildStaticLines(r: number, g: number, b: number, alphas: number[]): string {
+  function buildStaticLines(
+    r: number,
+    g: number,
+    b: number,
+    alphas: number[],
+  ): string {
     const lines: string[] = [];
     for (let i = 0; i < alphas.length; i++) {
       const key = `a${String(i * 10).padStart(2, "0")}`;
