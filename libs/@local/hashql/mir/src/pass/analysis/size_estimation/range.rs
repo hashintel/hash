@@ -249,6 +249,10 @@ macro_rules! range {
 
             #[inline]
             fn saturating_mul(self, rhs: u16) -> Self::Output {
+                if rhs == 0 {
+                    return Self::empty();
+                }
+
                 let min = <$inner>::new(self.min.raw.saturating_mul(u32::from(rhs)));
                 let max = self
                     .max
@@ -486,6 +490,24 @@ mod tests {
             Bound::Included(InformationUnit::new(u32::MAX)),
         );
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn saturating_mul_by_zero_is_empty() {
+        let finite = InformationRange::new(
+            InformationUnit::new(5),
+            Bound::Included(InformationUnit::new(10)),
+        );
+        assert_eq!(finite.saturating_mul(0), InformationRange::empty());
+
+        let unbounded = InformationRange::new(InformationUnit::new(3), Bound::Unbounded);
+        assert_eq!(unbounded.saturating_mul(0), InformationRange::empty());
+
+        let card = Cardinality::new(Cardinal::new(1), Bound::Included(Cardinal::new(100)));
+        assert_eq!(card.saturating_mul(0), Cardinality::empty());
+
+        let card_unbounded = Cardinality::new(Cardinal::new(1), Bound::Unbounded);
+        assert_eq!(card_unbounded.saturating_mul(0), Cardinality::empty());
     }
 
     #[test]
