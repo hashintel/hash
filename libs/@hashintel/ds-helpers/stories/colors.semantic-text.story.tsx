@@ -8,32 +8,32 @@ import type { Token } from "../styled-system/tokens/tokens";
  * Foreground (text) color tokens.
  *
  * Structure (from createSemanticSet):
- * - fg: Default text color (step 12)
- * - fg.muted: Secondary text (step 11, with hover → 12)
- * - fg.subtle: Tertiary/disabled text (step 10, with hover → 11)
- * - fg.link: Link text (step 11, with hover → 12)
+ * - fg: Default text color (step 120)
+ * - fg.muted: Secondary text (step 110, with hover → 120)
+ * - fg.subtle: Tertiary/disabled text (step 100, with hover → 110)
+ * - fg.link: Link text (step 110, with hover → 120)
  * - fg.solid: Text on solid backgrounds (white)
  */
 
 const fgTokens = [
-  { key: "fg", label: "Default", desc: "Primary text (step 12)" },
-  { key: "fg.muted", label: "Muted", desc: "Secondary text (step 11)" },
+  { key: "fg", label: "Default", desc: "Primary text (step 120)" },
+  { key: "fg.muted", label: "Muted", desc: "Secondary text (step 110)" },
   {
     key: "fg.muted.hover",
     label: "Muted Hover",
-    desc: "Hovered secondary (step 12)",
+    desc: "Hovered secondary (step 120)",
   },
-  { key: "fg.subtle", label: "Subtle", desc: "Tertiary text (step 10)" },
+  { key: "fg.subtle", label: "Subtle", desc: "Tertiary text (step 100)" },
   {
     key: "fg.subtle.hover",
     label: "Subtle Hover",
-    desc: "Hovered tertiary (step 11)",
+    desc: "Hovered tertiary (step 110)",
   },
-  { key: "fg.link", label: "Link", desc: "Interactive links (step 11)" },
+  { key: "fg.link", label: "Link", desc: "Interactive links (step 110)" },
   {
     key: "fg.link.hover",
     label: "Link Hover",
-    desc: "Hovered links (step 12)",
+    desc: "Hovered links (step 120)",
   },
 ] as const;
 
