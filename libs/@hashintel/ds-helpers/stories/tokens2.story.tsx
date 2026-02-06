@@ -48,16 +48,60 @@ const COLOR_PALETTES = [
 
 /** Solid scale steps (00-120) - step 00 is pure white/black, with OKLCH half-steps */
 const SOLID_STEPS = [
-  "00", "05", "10", "15", "20", "25", "30", "35", "40", "45",
-  "50", "55", "60", "65", "70", "75", "80", "85", "90", "95",
-  "100", "105", "110", "115", "120",
+  "00",
+  "05",
+  "10",
+  "15",
+  "20",
+  "25",
+  "30",
+  "35",
+  "40",
+  "45",
+  "50",
+  "55",
+  "60",
+  "65",
+  "70",
+  "75",
+  "80",
+  "85",
+  "90",
+  "95",
+  "100",
+  "105",
+  "110",
+  "115",
+  "120",
 ] as const;
 
 /** Alpha scale steps (a00-a120) - step a00 is transparent, with OKLCH half-steps */
 const ALPHA_STEPS = [
-  "a00", "a05", "a10", "a15", "a20", "a25", "a30", "a35", "a40", "a45",
-  "a50", "a55", "a60", "a65", "a70", "a75", "a80", "a85", "a90", "a95",
-  "a100", "a105", "a110", "a115", "a120",
+  "a00",
+  "a05",
+  "a10",
+  "a15",
+  "a20",
+  "a25",
+  "a30",
+  "a35",
+  "a40",
+  "a45",
+  "a50",
+  "a55",
+  "a60",
+  "a65",
+  "a70",
+  "a75",
+  "a80",
+  "a85",
+  "a90",
+  "a95",
+  "a100",
+  "a105",
+  "a110",
+  "a115",
+  "a120",
 ] as const;
 
 const swatchStyles = css({
@@ -169,9 +213,9 @@ export const RadixSolidScales: Story = () => (
       })}
     >
       Step 00 is pure white (light) / black (dark). Steps 10-20 are tinted
-      backgrounds, 30-50 are interactive, 60-80 are borders, 90-100 are
-      solid backgrounds, and 110-120 are text. Half-steps (05, 15, ...) are
-      OKLCH interpolations.
+      backgrounds, 30-50 are interactive, 60-80 are borders, 90-100 are solid
+      backgrounds, and 110-120 are text. Half-steps (05, 15, ...) are OKLCH
+      interpolations.
     </p>
     <VStack gap="1" alignItems="flex-start">
       <StepHeaders steps={SOLID_STEPS} />
@@ -197,8 +241,8 @@ export const RadixAlphaScales: Story = () => (
       })}
     >
       Step a00 is fully transparent. Alpha variants a10-a120 use transparency
-      instead of solid colors, useful for overlays, shadows, and blending
-      with varying backgrounds. Half-steps are OKLCH interpolations.
+      instead of solid colors, useful for overlays, shadows, and blending with
+      varying backgrounds. Half-steps are OKLCH interpolations.
     </p>
     <TransparencyBackground>
       <VStack gap="1" alignItems="flex-start">
