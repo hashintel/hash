@@ -155,7 +155,7 @@ export const createAiActivities = ({
           ),
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: true,
+        includeDrafts: false,
         includePermissions: false,
       },
     );

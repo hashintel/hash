@@ -83,7 +83,13 @@ export const createGraphActivities = ({
 }: {
   graphApiClient: GraphApi;
 }) => ({
-  async getSystemMachineIds(): Promise<EntityId[]> {
+  async getSystemMachineIds(params: {
+    cursor?: EntityQueryCursor;
+    limit?: number;
+  }): Promise<{
+    machineIds: EntityId[];
+    cursor?: EntityQueryCursor | null;
+  }> {
     const systemMachine = await actor.getMachineByIdentifier(
       graphApiClient,
       { actorId: publicUserAccountId },
@@ -93,7 +99,7 @@ export const createGraphActivities = ({
       throw new Error("System machine not found");
     }
 
-    return queryEntities(
+    const { entities, cursor } = await queryEntities(
       { graphApi: graphApiClient },
       { actorId: systemMachine.id },
       {
@@ -121,10 +127,15 @@ export const createGraphActivities = ({
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
+        cursor: params.cursor,
+        limit: params.limit,
       },
-    ).then(({ entities }) =>
-      entities.map((entity) => entity.metadata.recordId.entityId),
     );
+
+    return {
+      machineIds: entities.map((entity) => entity.metadata.recordId.entityId),
+      cursor,
+    };
   },
 
   async queryDataTypes(params: {

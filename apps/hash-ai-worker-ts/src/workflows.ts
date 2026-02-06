@@ -271,8 +271,8 @@ export const updateEntityTypeEmbeddings = async (
   return usage;
 };
 
-/** Number of entities to process before calling continueAsNew to avoid history limits */
-const ENTITIES_PER_CONTINUE = 500;
+/** Number of entities to fetch per query batch */
+const ENTITY_BATCH_SIZE = 100;
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
@@ -352,46 +352,59 @@ export const updateEntityEmbeddings = async (
     ],
   };
 
-  // Query one batch of entities
-  const serializedResponse = await graphActivities.queryEntities({
-    authentication: params.authentication,
-    request: {
-      filter,
-      temporalAxes,
-      includeDrafts: true,
-      includePermissions: false,
-      cursor: params.cursor,
-      limit: ENTITIES_PER_CONTINUE,
-    },
-  });
-  const response = deserializeQueryEntitiesResponse(serializedResponse);
-  const entities = response.entities;
+  let cursor = params.cursor;
 
-  if (entities.length === 0) {
-    return usage;
-  }
-
-  // Extract entity IDs and pass batch to the activity
-  const entityIds = entities.map((entity) => entity.metadata.recordId.entityId);
-
-  // Activity handles: fetch, create embeddings, store
-  const embeddingUsage =
-    await aiActivities.createAndStoreEntityEmbeddingsActivity({
+  // Process batches until Temporal suggests continuing as new or we run out of entities
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cursor is reassigned in the loop
+  while (true) {
+    const serializedResponse = await graphActivities.queryEntities({
       authentication: params.authentication,
-      entityIds,
-      embeddingExclusions: params.embeddingExclusions,
+      request: {
+        filter,
+        temporalAxes,
+        includeDrafts: true,
+        includePermissions: false,
+        cursor,
+        limit: ENTITY_BATCH_SIZE,
+      },
     });
+    const response = deserializeQueryEntitiesResponse(serializedResponse);
+    const entities = response.entities;
 
-  usage.prompt_tokens += embeddingUsage.prompt_tokens;
-  usage.total_tokens += embeddingUsage.total_tokens;
+    if (entities.length === 0) {
+      break;
+    }
 
-  // If there are more entities, continueAsNew to avoid history limits
-  if (response.cursor) {
-    await continueAsNew<typeof updateEntityEmbeddings>({
-      ...params,
-      cursor: response.cursor,
-      accumulatedUsage: usage,
-    });
+    // Extract entity IDs and pass batch to the activity
+    const entityIds = entities.map(
+      (entity) => entity.metadata.recordId.entityId,
+    );
+
+    // Activity handles: fetch, create embeddings, store
+    const embeddingUsage =
+      await aiActivities.createAndStoreEntityEmbeddingsActivity({
+        authentication: params.authentication,
+        entityIds,
+        embeddingExclusions: params.embeddingExclusions,
+      });
+
+    usage.prompt_tokens += embeddingUsage.prompt_tokens;
+    usage.total_tokens += embeddingUsage.total_tokens;
+
+    if (!response.cursor) {
+      break;
+    }
+
+    // Let Temporal decide when workflow history is getting too large
+    if (workflowInfo().continueAsNewSuggested) {
+      await continueAsNew<typeof updateEntityEmbeddings>({
+        ...params,
+        cursor: response.cursor,
+        accumulatedUsage: usage,
+      });
+    }
+
+    cursor = response.cursor;
   }
 
   return usage;
@@ -430,12 +443,10 @@ export const updateAllEntityTypeEmbeddings =
       },
     });
 
-/** Number of webs to process before calling continueAsNew to avoid history limits */
-const WEBS_PER_CONTINUE = 10;
+/** Number of webs to process in parallel per batch */
+const WEBS_PER_BATCH = 10;
 
 type UpdateAllEntityEmbeddingsParams = {
-  /** Index to start processing from (for continueAsNew) */
-  startIndex?: number;
   /** Accumulated usage from previous continues */
   accumulatedUsage?: OpenAI.CreateEmbeddingResponse.Usage;
   /**
@@ -443,54 +454,71 @@ type UpdateAllEntityEmbeddingsParams = {
    * Values are arrays of property type base URLs to exclude for that entity type.
    */
   embeddingExclusions?: Record<BaseUrl, BaseUrl[]>;
+  /** Cursor for paginating through system machines (used with continueAsNew) */
+  machineCursor?: EntityQueryCursor;
 };
 
 export const updateAllEntityEmbeddings = async (
   params?: UpdateAllEntityEmbeddingsParams,
 ): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
-  const startIndex = params?.startIndex ?? 0;
   const usage: OpenAI.CreateEmbeddingResponse.Usage = {
     prompt_tokens: params?.accumulatedUsage?.prompt_tokens ?? 0,
     total_tokens: params?.accumulatedUsage?.total_tokens ?? 0,
   };
 
-  const systemMachineIds = await graphActivities.getSystemMachineIds();
-  const batch = systemMachineIds.slice(
-    startIndex,
-    startIndex + WEBS_PER_CONTINUE,
-  );
+  let machineCursor = params?.machineCursor;
 
-  // Execute batch of child workflows in parallel
-  const results = await Promise.all(
-    batch.map((systemMachineId) => {
-      const [webId, machineActorId] = splitEntityId(systemMachineId);
-      return executeChild(updateEntityEmbeddings, {
-        args: [
-          {
-            authentication: { actorId: machineActorId as MachineId },
-            filter: {
-              equal: [{ path: ["webId"] }, { parameter: webId }],
-            },
-            embeddingExclusions: params?.embeddingExclusions,
-          },
-        ],
-        workflowId: `update-entity-embeddings-${workflowInfo().workflowId}-${webId}`,
+  // Process batches of webs, paginating through system machines
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cursor is reassigned in the loop
+  while (true) {
+    const { machineIds, cursor: nextCursor } =
+      await graphActivities.getSystemMachineIds({
+        cursor: machineCursor,
+        limit: WEBS_PER_BATCH,
       });
-    }),
-  );
 
-  for (const webUsage of results) {
-    usage.prompt_tokens += webUsage.prompt_tokens;
-    usage.total_tokens += webUsage.total_tokens;
-  }
+    if (machineIds.length === 0) {
+      break;
+    }
 
-  // continueAsNew if more webs remain
-  if (startIndex + WEBS_PER_CONTINUE < systemMachineIds.length) {
-    await continueAsNew<typeof updateAllEntityEmbeddings>({
-      startIndex: startIndex + WEBS_PER_CONTINUE,
-      accumulatedUsage: usage,
-      embeddingExclusions: params?.embeddingExclusions,
-    });
+    // Execute batch of child workflows in parallel
+    const results = await Promise.all(
+      machineIds.map((systemMachineId) => {
+        const [webId, machineActorId] = splitEntityId(systemMachineId);
+        return executeChild(updateEntityEmbeddings, {
+          args: [
+            {
+              authentication: { actorId: machineActorId as MachineId },
+              filter: {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              embeddingExclusions: params?.embeddingExclusions,
+            },
+          ],
+          workflowId: `update-entity-embeddings-${workflowInfo().workflowId}-${webId}`,
+        });
+      }),
+    );
+
+    for (const webUsage of results) {
+      usage.prompt_tokens += webUsage.prompt_tokens;
+      usage.total_tokens += webUsage.total_tokens;
+    }
+
+    if (!nextCursor) {
+      break;
+    }
+
+    // Let Temporal decide when workflow history is getting too large
+    if (workflowInfo().continueAsNewSuggested) {
+      await continueAsNew<typeof updateAllEntityEmbeddings>({
+        accumulatedUsage: usage,
+        embeddingExclusions: params?.embeddingExclusions,
+        machineCursor: nextCursor,
+      });
+    }
+
+    machineCursor = nextCursor;
   }
 
   return usage;
