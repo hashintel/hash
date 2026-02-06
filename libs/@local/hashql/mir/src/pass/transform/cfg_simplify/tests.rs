@@ -20,7 +20,7 @@ use crate::{
     error::MirDiagnosticCategory,
     intern::Interner,
     pass::{TransformPass as _, transform::error::TransformationDiagnosticCategory},
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 #[track_caller]
@@ -35,12 +35,14 @@ fn assert_cfg_simplify_pass<'heap>(
         context.env,
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer: Vec::new(),
         indent: 4,
         sources: (),
         types: &mut formatter,
-    };
+        annotations: (),
+    }
+    .build();
 
     let mut bodies = [body];
 

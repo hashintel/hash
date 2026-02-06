@@ -229,6 +229,15 @@ impl<T: Id> DenseBitSet<T> {
     }
 
     #[inline]
+    pub fn set(&mut self, elem: T, value: bool) -> bool {
+        if value {
+            self.insert(elem)
+        } else {
+            self.remove(elem)
+        }
+    }
+
+    #[inline]
     pub fn insert_range(&mut self, elems: impl RangeBounds<T>) {
         let Some((start, end)) = inclusive_start_end(elems, self.domain_size) else {
             return;

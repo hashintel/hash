@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: Integer
+    let %3: Integer
+    let %4: Integer
+    let %5: Boolean
+    let %6: Boolean
+
+    bb0(): {
+        %2 = 10                                                                 // cost: 4
+        %3 = 20                                                                 // cost: 4
+        %4 = %2 + %3                                                            // cost: 4
+        %5 = %4 > 15                                                            // cost: 4
+        %6 = !%5                                                                // cost: 4
+
+        return %6
+    }
+}
+
+=================== Traversals ===================
+
+Traversals:

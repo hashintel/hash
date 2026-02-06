@@ -1,5 +1,7 @@
 //! Built-in semiring implementations for common numeric types.
 
+use core::cmp::Reverse;
+
 use hashql_core::id::{
     Id,
     bit_vec::{BitRelations as _, ChunkedBitSet, DenseBitSet, MixedBitSet},
@@ -192,6 +194,54 @@ macro_rules! impl_bitset {
 }
 
 impl_bitset!(DenseBitSet, ChunkedBitSet, MixedBitSet);
+
+impl<T, U> MeetSemiLattice<T> for Reverse<U>
+where
+    U: JoinSemiLattice<T>,
+{
+    #[inline]
+    fn meet(&self, lhs: &mut T, rhs: &T) -> bool {
+        self.0.join(lhs, rhs)
+    }
+}
+
+impl<T, U> HasBottom<T> for Reverse<U>
+where
+    U: HasTop<T>,
+{
+    #[inline]
+    fn bottom(&self) -> T {
+        self.0.top()
+    }
+
+    fn is_bottom(&self, value: &T) -> bool {
+        self.0.is_top(value)
+    }
+}
+
+impl<T, U> JoinSemiLattice<T> for Reverse<U>
+where
+    U: MeetSemiLattice<T>,
+{
+    #[inline]
+    fn join(&self, lhs: &mut T, rhs: &T) -> bool {
+        self.0.meet(lhs, rhs)
+    }
+}
+
+impl<T, U> HasTop<T> for Reverse<U>
+where
+    U: HasBottom<T>,
+{
+    #[inline]
+    fn top(&self) -> T {
+        self.0.bottom()
+    }
+
+    fn is_top(&self, value: &T) -> bool {
+        self.0.is_bottom(value)
+    }
+}
 
 #[cfg(test)]
 mod tests {
