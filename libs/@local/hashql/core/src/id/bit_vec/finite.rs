@@ -306,7 +306,12 @@ impl<I, T: FiniteBitSetIntegral> Hash for FiniteBitSet<I, T> {
 
 impl<I: Id, T: FiniteBitSetIntegral> Debug for FiniteBitSet<I, T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{:032b}", self.store)
+        write!(
+            fmt,
+            "{:0width$b}",
+            self.store,
+            width = (T::MAX_DOMAIN_SIZE as usize)
+        )
     }
 }
 
