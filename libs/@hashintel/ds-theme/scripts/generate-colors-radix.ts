@@ -1,7 +1,8 @@
 /**
  * Radix-colors based color token generator.
  *
- * Generates base color scales (0-12, a0-a12) from @radix-ui/colors.
+ * Generates base color scales (00-120 with half-steps, a00-a120 with half-steps)
+ * from @radix-ui/colors, interpolating midpoints in OKLCH color space.
  * Semantic tokens (bg, fg, bd) are composed per palette for colorPalette support.
  *
  * Run with: tsx scripts/generate-colors-radix.ts
@@ -9,6 +10,7 @@
 
 import fs from "node:fs";
 import { join } from "node:path";
+import Color from "colorjs.io";
 import * as radixColors from "@radix-ui/colors";
 import { withSemantics } from "../src/theme/utils";
 
@@ -39,6 +41,61 @@ type ColorName = string;
 type ColorScale = Record<string, string>;
 type ColorTokens = Record<string, unknown>;
 type ColorPalette = { name: ColorName; tokens: ColorTokens };
+
+function toHex(color: Color): string {
+  const r = Math.round(color.srgb.r * 255);
+  const g = Math.round(color.srgb.g * 255);
+  const b = Math.round(color.srgb.b * 255);
+  const a = color.alpha;
+  const rr = r.toString(16).padStart(2, "0");
+  const gg = g.toString(16).padStart(2, "0");
+  const bb = b.toString(16).padStart(2, "0");
+  if (a >= 0.999) {
+    return `#${rr}${gg}${bb}`;
+  }
+  const aa = Math.round(a * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${rr}${gg}${bb}${aa}`;
+}
+
+function toRgba(color: Color): string {
+  const r = Math.round(color.srgb.r * 255);
+  const g = Math.round(color.srgb.g * 255);
+  const b = Math.round(color.srgb.b * 255);
+  const a = Math.round(color.alpha * 1000) / 1000;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function interpolateColor(colorA: string, colorB: string): string {
+  let a: Color;
+  const b = new Color(colorB);
+
+  if (colorA === "transparent" || colorA === "rgba(0, 0, 0, 0)") {
+    a = new Color(b);
+    a.alpha = 0;
+  } else {
+    a = new Color(colorA);
+  }
+
+  const mid = a.mix(b, 0.5, { space: "oklch" });
+  return toHex(mid);
+}
+
+function interpolateColorRgba(colorA: string, colorB: string): string {
+  let a: Color;
+  const b = new Color(colorB);
+
+  if (colorA === "transparent" || colorA === "rgba(0, 0, 0, 0)") {
+    a = new Color(b);
+    a.alpha = 0;
+  } else {
+    a = new Color(colorA);
+  }
+
+  const mid = a.mix(b, 0.5, { space: "oklch" });
+  return toRgba(mid);
+}
 
 /**
  * Check if a color name is valid for extraction from radix-colors.
@@ -86,9 +143,10 @@ function getColorTokens(color: string): {
 }
 
 /**
- * Generate base tokens (0-12 and a0-a12) for a color.
- * Step 0 is pure white (light) / black (dark) for true background color.
- * Step a0 is fully transparent.
+ * Generate base tokens (00-120 with half-steps, a00-a120 with half-steps) for a color.
+ * Step 00 is pure white (light) / black (dark) for true background color.
+ * Step a00 is fully transparent.
+ * Half-steps (05, 15, ..., 115) are interpolated in OKLCH between adjacent steps.
  */
 function generateBaseTokens(
   light: ColorScale,
@@ -96,22 +154,58 @@ function generateBaseTokens(
 ): Record<string, unknown> {
   const tokens: Record<string, unknown> = {};
 
-  // Step 0: pure white in light mode, pure black in dark mode
-  tokens[0] = {
-    value: { _light: "#ffffff", _dark: "#000000" },
-  };
-  // Step a0: fully transparent
-  tokens.a0 = {
-    value: { _light: "transparent", _dark: "transparent" },
-  };
+  const lightValues: string[] = ["#ffffff"];
+  const darkValues: string[] = ["#000000"];
+  const lightAlphaValues: string[] = ["transparent"];
+  const darkAlphaValues: string[] = ["transparent"];
 
   for (let i = 1; i <= 12; i++) {
-    tokens[i] = {
-      value: { _light: light[i], _dark: dark[i] },
+    lightValues.push(light[i]!);
+    darkValues.push(dark[i]!);
+    lightAlphaValues.push(light[`a${i}`]!);
+    darkAlphaValues.push(dark[`a${i}`]!);
+  }
+
+  // Opaque tokens: 00, 05, 10, 15, ..., 115, 120
+  for (let i = 0; i <= 12; i++) {
+    const key = String(i * 10).padStart(2, "0");
+    tokens[key] = {
+      value: { _light: lightValues[i], _dark: darkValues[i] },
     };
-    tokens[`a${i}`] = {
-      value: { _light: light[`a${i}`], _dark: dark[`a${i}`] },
+
+    if (i < 12) {
+      const halfKey = String(i * 10 + 5).padStart(2, "0");
+      tokens[halfKey] = {
+        value: {
+          _light: interpolateColor(lightValues[i]!, lightValues[i + 1]!),
+          _dark: interpolateColor(darkValues[i]!, darkValues[i + 1]!),
+        },
+      };
+    }
+  }
+
+  // Alpha tokens: a00, a05, a10, a15, ..., a115, a120
+  for (let i = 0; i <= 12; i++) {
+    const key = `a${String(i * 10).padStart(2, "0")}`;
+    tokens[key] = {
+      value: { _light: lightAlphaValues[i], _dark: darkAlphaValues[i] },
     };
+
+    if (i < 12) {
+      const halfKey = `a${String(i * 10 + 5).padStart(2, "0")}`;
+      tokens[halfKey] = {
+        value: {
+          _light: interpolateColor(
+            lightAlphaValues[i]!,
+            lightAlphaValues[i + 1]!,
+          ),
+          _dark: interpolateColor(
+            darkAlphaValues[i]!,
+            darkAlphaValues[i + 1]!,
+          ),
+        },
+      };
+    }
   }
 
   return tokens;
@@ -138,11 +232,23 @@ function createColorPalette(colorName: ColorName): ColorPalette {
 
 const VALID_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 
+function tokenKeySortOrder(key: string): number {
+  const alphaMatch = key.match(/^a(\d+)$/);
+  if (alphaMatch) {
+    return 20000 + Number(alphaMatch[1]);
+  }
+  const numMatch = key.match(/^\d+$/);
+  if (numMatch) {
+    return 10000 + Number(key);
+  }
+  return 30000;
+}
+
 /**
  * Format tokens as TypeScript object literal string.
  */
 function formatTokensForOutput(tokens: ColorTokens): string {
-  const formatValue = (value: unknown): string => {
+  const formatValue = (value: unknown, sortKeys = false): string => {
     if (value === undefined) {
       return "undefined";
     }
@@ -155,7 +261,12 @@ function formatTokensForOutput(tokens: ColorTokens): string {
       return `[${value.map((v) => formatValue(v)).join(", ")}]`;
     }
 
-    const entries = Object.entries(value);
+    let entries = Object.entries(value);
+    if (sortKeys) {
+      entries = entries.sort(
+        ([a], [b]) => tokenKeySortOrder(a) - tokenKeySortOrder(b),
+      );
+    }
     const formatted = entries
       .map(([key, val]) => {
         const keyStr = VALID_IDENTIFIER_RE.test(key)
@@ -168,7 +279,7 @@ function formatTokensForOutput(tokens: ColorTokens): string {
     return `{ ${formatted} }`;
   };
 
-  return formatValue(tokens);
+  return formatValue(tokens, true);
 }
 
 /**
@@ -196,40 +307,50 @@ function writeColorFile(palette: ColorPalette): void {
 
 /**
  * Generate static tokens for black and white (non-semantic).
+ * Scales use a00-a120 with half-steps (a05, a15, ..., a115) interpolated in OKLCH.
  */
 function generateStaticColorTokens(): string {
+  const blackAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
+  const whiteAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
+
+  function buildStaticLines(r: number, g: number, b: number, alphas: number[]): string {
+    const lines: string[] = [];
+    for (let i = 0; i < alphas.length; i++) {
+      const key = `a${String(i * 10).padStart(2, "0")}`;
+      const a = alphas[i]!;
+      if (a === 0) {
+        lines.push(`  ${key}: { value: "rgba(${r}, ${g}, ${b}, 0)" },`);
+      } else {
+        lines.push(`  ${key}: { value: "rgba(${r}, ${g}, ${b}, ${a})" },`);
+      }
+
+      if (i < alphas.length - 1) {
+        const halfKey = `a${String(i * 10 + 5).padStart(2, "0")}`;
+        const currentVal = `rgba(${r}, ${g}, ${b}, ${a})`;
+        const nextVal = `rgba(${r}, ${g}, ${b}, ${alphas[i + 1]})`;
+        const mid = interpolateColorRgba(
+          a === 0 ? "transparent" : currentVal,
+          nextVal,
+        );
+        lines.push(`  ${halfKey}: { value: "${mid}" },`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  const blackLines = buildStaticLines(0, 0, 0, blackAlphas);
+  const whiteLines = buildStaticLines(255, 255, 255, whiteAlphas);
+
   return `import { defineTokens } from "@pandacss/dev";
 
 const black = defineTokens.colors({
   DEFAULT: { value: "#000000" },
-  a1: { value: "rgba(0, 0, 0, 0.05)" },
-  a2: { value: "rgba(0, 0, 0, 0.1)" },
-  a3: { value: "rgba(0, 0, 0, 0.15)" },
-  a4: { value: "rgba(0, 0, 0, 0.2)" },
-  a5: { value: "rgba(0, 0, 0, 0.3)" },
-  a6: { value: "rgba(0, 0, 0, 0.4)" },
-  a7: { value: "rgba(0, 0, 0, 0.5)" },
-  a8: { value: "rgba(0, 0, 0, 0.6)" },
-  a9: { value: "rgba(0, 0, 0, 0.7)" },
-  a10: { value: "rgba(0, 0, 0, 0.8)" },
-  a11: { value: "rgba(0, 0, 0, 0.9)" },
-  a12: { value: "rgba(0, 0, 0, 0.95)" },
+${blackLines}
 });
 
 const white = defineTokens.colors({
   DEFAULT: { value: "#ffffff" },
-  a1: { value: "rgba(255, 255, 255, 0.05)" },
-  a2: { value: "rgba(255, 255, 255, 0.1)" },
-  a3: { value: "rgba(255, 255, 255, 0.15)" },
-  a4: { value: "rgba(255, 255, 255, 0.2)" },
-  a5: { value: "rgba(255, 255, 255, 0.3)" },
-  a6: { value: "rgba(255, 255, 255, 0.4)" },
-  a7: { value: "rgba(255, 255, 255, 0.5)" },
-  a8: { value: "rgba(255, 255, 255, 0.6)" },
-  a9: { value: "rgba(255, 255, 255, 0.7)" },
-  a10: { value: "rgba(255, 255, 255, 0.8)" },
-  a11: { value: "rgba(255, 255, 255, 0.9)" },
-  a12: { value: "rgba(255, 255, 255, 0.95)" },
+${whiteLines}
 });
 
 export const staticColors = { black, white };
