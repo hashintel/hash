@@ -362,7 +362,7 @@ export const updateEntityEmbeddings = async (
       request: {
         filter,
         temporalAxes,
-        includeDrafts: true,
+        includeDrafts: false,
         includePermissions: false,
         cursor,
         limit: ENTITY_BATCH_SIZE,
