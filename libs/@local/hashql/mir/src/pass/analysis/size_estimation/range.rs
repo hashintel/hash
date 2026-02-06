@@ -55,6 +55,8 @@ const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
         (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
         (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included((lhs - 1) + rhs),
         (Bound::Excluded(0), Bound::Excluded(0)) => Bound::Excluded(0),
+        (Bound::Excluded(0), Bound::Excluded(rhs)) => Bound::Excluded(rhs),
+        (Bound::Excluded(lhs), Bound::Excluded(0)) => Bound::Excluded(lhs),
         (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs + rhs - 1),
 
         (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
@@ -356,7 +358,7 @@ mod tests {
             },
         },
         size_estimation::{
-            range::saturating_add_bound,
+            range::{add_bound, saturating_add_bound},
             unit::{Cardinal, InformationUnit},
         },
     };
@@ -484,6 +486,78 @@ mod tests {
             Bound::Included(InformationUnit::new(u32::MAX)),
         );
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn add_bound_included_included() {
+        assert_eq!(
+            add_bound(Bound::Included(3), Bound::Included(4)),
+            Bound::Included(7)
+        );
+    }
+
+    #[test]
+    fn add_bound_included_excluded() {
+        assert_eq!(
+            add_bound(Bound::Included(5), Bound::Excluded(0)),
+            Bound::Included(5)
+        );
+        assert_eq!(
+            add_bound(Bound::Included(5), Bound::Excluded(3)),
+            Bound::Included(7)
+        );
+    }
+
+    #[test]
+    fn add_bound_excluded_included() {
+        assert_eq!(
+            add_bound(Bound::Excluded(0), Bound::Included(5)),
+            Bound::Included(5)
+        );
+        assert_eq!(
+            add_bound(Bound::Excluded(3), Bound::Included(5)),
+            Bound::Included(7)
+        );
+    }
+
+    #[test]
+    fn add_bound_excluded_excluded() {
+        assert_eq!(
+            add_bound(Bound::Excluded(0), Bound::Excluded(0)),
+            Bound::Excluded(0)
+        );
+        assert_eq!(
+            add_bound(Bound::Excluded(0), Bound::Excluded(5)),
+            Bound::Excluded(5)
+        );
+        assert_eq!(
+            add_bound(Bound::Excluded(5), Bound::Excluded(0)),
+            Bound::Excluded(5)
+        );
+        assert_eq!(
+            add_bound(Bound::Excluded(3), Bound::Excluded(4)),
+            Bound::Excluded(6)
+        );
+    }
+
+    #[test]
+    fn add_bound_unbounded() {
+        assert_eq!(
+            add_bound(Bound::Unbounded, Bound::Included(5)),
+            Bound::Unbounded
+        );
+        assert_eq!(
+            add_bound(Bound::Included(5), Bound::Unbounded),
+            Bound::Unbounded
+        );
+        assert_eq!(
+            add_bound(Bound::Unbounded, Bound::Excluded(0)),
+            Bound::Unbounded
+        );
+        assert_eq!(
+            add_bound(Bound::Unbounded, Bound::Unbounded),
+            Bound::Unbounded
+        );
     }
 
     #[test]
