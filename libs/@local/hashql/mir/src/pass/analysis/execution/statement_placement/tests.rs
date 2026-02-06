@@ -187,7 +187,7 @@ fn non_graph_read_filter_returns_empty() {
         embedding.statement_placement(&context, &body, &traversals, &heap);
 
     assert_eq!(postgres_traversal.iter().count(), 0);
-    assert!(postgres_statement.is_empty());
+    assert!(postgres_statement.all_unassigned());
     assert_eq!(embedding_traversal.iter().count(), 0);
-    assert!(embedding_statement.is_empty());
+    assert!(embedding_statement.all_unassigned());
 }

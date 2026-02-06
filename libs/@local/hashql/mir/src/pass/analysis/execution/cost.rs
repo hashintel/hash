@@ -184,7 +184,7 @@ impl<A: Allocator> StatementCostVec<A> {
         )
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub fn all_unassigned(&self) -> bool {
         self.costs.iter().all(Option::is_none)
     }
 
