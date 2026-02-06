@@ -25,7 +25,11 @@ const bdCategories: { key: BdCategory; label: string; desc: string }[] = [
     desc: "Strong borders, focused inputs (step 70)",
   },
   { key: "subtle", label: "Subtle", desc: "Light borders, cards (step 60)" },
-  { key: "muted", label: "Muted", desc: "Very subtle alpha borders (step a60)" },
+  {
+    key: "muted",
+    label: "Muted",
+    desc: "Very subtle alpha borders (step a60)",
+  },
 ];
 
 const states: StateKey[] = ["DEFAULT", "hover", "active", "disabled"];

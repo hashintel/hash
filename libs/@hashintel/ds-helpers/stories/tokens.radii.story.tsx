@@ -53,7 +53,7 @@ const RadiusSwatch = ({ scale, step }: { scale: string; step: string }) => {
         className={css({
           width: "[48px]",
           height: "[48px]",
-          bg: "blue.9",
+          bg: "blue.90",
           transition: "[border-radius_0.2s]",
         })}
         style={{ borderRadius: value }}
@@ -107,7 +107,7 @@ const ComponentRadiusDemo = ({
               className={css({
                 width: "[64px]",
                 height: "[32px]",
-                bg: "gray.9",
+                bg: "gray.90",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -49,7 +49,7 @@ const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
       <div
         className={css({
           height: "[16px]",
-          bg: "blue.9",
+          bg: "blue.90",
           borderRadius: "md.2",
           transition: "[width_0.2s]",
         })}
