@@ -11,7 +11,7 @@ use crate::{
     },
     context::MirContext,
     pass::{
-        analysis::execution::{
+        execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
             target::Interpreter,
         },
