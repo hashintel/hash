@@ -91,10 +91,10 @@ pub trait DataflowAnalysis<'heap> {
     /// using types that support in-place cloning via [`clone_from`](Clone::clone_from),
     /// such as [`DenseBitSet`](hashql_core::id::bit_vec::DenseBitSet), which can reuse
     /// existing allocations.
-    type Domain<A: Allocator>: Clone;
+    type Domain<A: Allocator>;
 
     /// The lattice providing algebraic operations over the domain.
-    type Lattice<A: Allocator>: BoundedJoinSemiLattice<Self::Domain<A>>;
+    type Lattice<A: Allocator + Clone>: BoundedJoinSemiLattice<Self::Domain<A>>;
 
     /// Optional data computed for switch terminators to enable edge-specific refinement.
     ///
@@ -104,6 +104,34 @@ pub trait DataflowAnalysis<'heap> {
     ///
     /// The default type `!` (never) indicates no edge effects are used.
     type SwitchIntData = !;
+
+    /// Optional metadata for controlling fixpoint iteration behavior.
+    ///
+    /// This associated type enables bounded fixpoint iteration and custom termination
+    /// conditions. When set to a concrete type (not `!`), the framework will:
+    ///
+    /// 1. Call [`initialize_metadata`](Self::initialize_metadata) before iteration begins
+    /// 2. Pass the metadata to [`should_process_block`](Self::should_process_block) and
+    ///    [`should_propagate_between`](Self::should_propagate_between) for each operation
+    ///
+    /// # Example: Bounded Loop Iteration
+    ///
+    /// For analyses over programs with loops, fixpoint iteration may require many passes
+    /// before converging. Use metadata to bound the number of times each block is processed:
+    ///
+    /// ```ignore
+    /// type Metadata<A: Allocator> = IdVec<BasicBlockId, usize, A>;
+    ///
+    /// fn initialize_metadata<A: Allocator>(&self, body: &Body<'heap>, alloc: A) -> Option<Self::Metadata<A>> {
+    ///     Some(IdVec::from_elem_in(0, body.basic_blocks.len(), alloc))
+    /// }
+    ///
+    /// fn should_process_block<A: Allocator>(&self, _: &Body<'heap>, block: BasicBlockId, counts: &mut Self::Metadata<A>) -> bool {
+    ///     counts[block] += 1;
+    ///     counts[block] <= 16 // Process each block at most 16 times
+    /// }
+    /// ```
+    type Metadata<A: Allocator> = !;
 
     /// The direction of dataflow propagation.
     ///
@@ -119,7 +147,7 @@ pub trait DataflowAnalysis<'heap> {
     }
 
     /// Creates a lattice instance for this analysis.
-    fn lattice_in<A: Allocator>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A>;
+    fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A>;
 
     /// Initializes the boundary condition for the analysis.
     ///
@@ -129,7 +157,85 @@ pub trait DataflowAnalysis<'heap> {
     ///
     /// The `domain` is pre-initialized to [`bottom`](super::lattice::HasBottom::bottom);
     /// this method should modify it to represent the boundary condition.
-    fn initialize_boundary<A: Allocator>(&self, body: &Body<'heap>, domain: &mut Self::Domain<A>);
+    fn initialize_boundary<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        domain: &mut Self::Domain<A>,
+        alloc: A,
+    );
+
+    /// Initializes the metadata for controlling fixpoint iteration.
+    ///
+    /// Called once before iteration begins. Return `Some(metadata)` to enable
+    /// [`should_process_block`](Self::should_process_block) and
+    /// [`should_propagate_between`](Self::should_propagate_between) callbacks,
+    /// or `None` to disable them entirely (the default).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn initialize_metadata<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        alloc: A,
+    ) -> Option<Self::Metadata<A>> {
+        None
+    }
+
+    /// Controls whether a dequeued block should be processed.
+    ///
+    /// Called when a block is dequeued from the worklist. Return `false` to skip
+    /// processing this block entirely—no transfer functions will be applied and
+    /// no propagation to successors will occur.
+    ///
+    /// # Staleness Warning
+    ///
+    /// When this returns `false`, the block's exit state becomes stale: the entry
+    /// state reflects the join that caused the enqueue, but the exit state is from
+    /// the previous processing. If your analysis consumes exit states of blocks that
+    /// may be skipped, prefer [`should_propagate_between`](Self::should_propagate_between)
+    /// instead, which prevents the join entirely and maintains entry/exit consistency.
+    ///
+    /// This method is useful when staleness is acceptable (e.g., you only consume
+    /// exit states of terminal blocks like returns, which are never loop headers).
+    ///
+    /// The default implementation always returns `true` (process all blocks).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn should_process_block<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        block: BasicBlockId,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        true
+    }
+
+    /// Controls whether state should propagate along a specific edge.
+    ///
+    /// Called before joining state into the target block's entry. Return `false`
+    /// to skip both the join and the enqueue – the target's entry state will not
+    /// be updated and it will not be re-added to the worklist.
+    ///
+    /// This is the preferred mechanism for bounding loop iteration when you need
+    /// entry/exit state consistency. Because the join is skipped entirely, the
+    /// target block's entry and exit states remain consistent with each other
+    /// (both from the last successful processing).
+    ///
+    /// The tradeoff compared to [`should_process_block`](Self::should_process_block)
+    /// is that counting is per-edge rather than per-dequeue, so blocks with multiple
+    /// incoming edges may reach the bound faster. For loop headers (the typical
+    /// bounding target), this is usually acceptable since back-edges are the
+    /// primary concern.
+    ///
+    /// The default implementation always returns `true` (propagate all edges).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn should_propagate_between<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        source: BasicBlockId,
+        target: BasicBlockId,
+        state: &Self::Domain<A>,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        true
+    }
 
     /// Computes optional data for a switch terminator to enable edge-specific refinement.
     ///
@@ -283,9 +389,11 @@ pub trait DataflowAnalysis<'heap> {
     ) -> DataflowResults<'heap, Self, A>
     where
         Self: Sized,
+        Self::Domain<A>: Clone,
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
+        let mut metadata = self.initialize_metadata(body, alloc.clone());
 
         let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc.clone());
 
@@ -303,19 +411,19 @@ pub trait DataflowAnalysis<'heap> {
         let mut derived_states = IdVec::from_fn_in(
             body.basic_blocks.len(),
             |_: BasicBlockId| lattice.bottom(),
-            alloc,
+            alloc.clone(),
         );
 
         match Self::DIRECTION {
             Direction::Forward => {
                 // Boundary is entry state of START block
-                self.initialize_boundary(body, &mut join_states[BasicBlockId::START]);
+                self.initialize_boundary(body, &mut join_states[BasicBlockId::START], alloc);
             }
             Direction::Backward => {
                 // Boundary is exit state of return blocks
                 for (bb, block) in body.basic_blocks.iter_enumerated() {
                     if matches!(block.terminator.kind, TerminatorKind::Return(_)) {
-                        self.initialize_boundary(body, &mut join_states[bb]);
+                        self.initialize_boundary(body, &mut join_states[bb], alloc.clone());
                     }
                 }
             }
@@ -338,6 +446,12 @@ pub trait DataflowAnalysis<'heap> {
         let mut state = lattice.bottom();
 
         while let Some(bb) = queue.dequeue() {
+            if let Some(metadata) = &mut metadata
+                && !self.should_process_block(body, bb, metadata)
+            {
+                continue;
+            }
+
             // Using a cloned state here allows us to liberally modify the state inside of the
             // driver, as the value isn't persisted.
             state.clone_from(&join_states[bb]);
@@ -352,6 +466,12 @@ pub trait DataflowAnalysis<'heap> {
                 id: bb,
                 block: &body.basic_blocks[bb],
                 propagate: |target: BasicBlockId, state: &Self::Domain<A>| {
+                    if let Some(metadata) = &mut metadata
+                        && !self.should_propagate_between(body, bb, target, state, metadata)
+                    {
+                        return;
+                    }
+
                     // Join the propagated state into the target's join state.
                     // If this changed the target's state, re-queue it for processing.
                     let changed = lattice.join(&mut join_states[target], state);
@@ -389,6 +509,7 @@ pub trait DataflowAnalysis<'heap> {
     fn iterate_to_fixpoint(self, body: &Body<'heap>) -> DataflowResults<'heap, Self>
     where
         Self: Sized,
+        Self::Domain<Global>: Clone,
     {
         self.iterate_to_fixpoint_in(body, Global)
     }
@@ -399,7 +520,7 @@ pub trait DataflowAnalysis<'heap> {
 /// Encapsulates the logic for applying transfer functions within a block and propagating
 /// the resulting state to neighboring blocks. The `propagate` callback handles joining
 /// state into neighbors and re-queueing changed blocks.
-struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator, F> {
+struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator + Clone, F> {
     analysis: &'analysis D,
     lattice: &'analysis D::Lattice<A>,
 
@@ -415,8 +536,8 @@ struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocato
 
 impl<
     'heap,
-    D: DataflowAnalysis<'heap> + ?Sized,
-    A: Allocator,
+    D: DataflowAnalysis<'heap, Domain<A>: Clone> + ?Sized,
+    A: Allocator + Clone,
     F: FnMut(BasicBlockId, &D::Domain<A>),
 > Driver<'_, 'heap, D, A, F>
 {

@@ -182,6 +182,7 @@ impl<A: Allocator> CallGraph<'_, A> {
             })
     }
 
+    #[inline]
     pub fn filters(&self) -> impl Iterator<Item = DefId> {
         self.inner
             .nodes()

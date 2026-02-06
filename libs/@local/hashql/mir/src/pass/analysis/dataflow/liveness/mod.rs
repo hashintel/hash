@@ -53,16 +53,16 @@ pub struct LivenessAnalysis;
 
 impl<'heap> DataflowAnalysis<'heap> for LivenessAnalysis {
     type Domain<A: Allocator> = DenseBitSet<Local>;
-    type Lattice<A: Allocator> = PowersetLattice;
+    type Lattice<A: Allocator + Clone> = PowersetLattice;
     type SwitchIntData = !;
 
     const DIRECTION: Direction = Direction::Backward;
 
-    fn lattice_in<A: Allocator>(&self, body: &Body<'heap>, _: A) -> Self::Lattice<A> {
+    fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, _: A) -> Self::Lattice<A> {
         PowersetLattice::new(body.local_decls.len())
     }
 
-    fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>) {
+    fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {
         // No variables are live until we observe their first use
     }
 

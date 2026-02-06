@@ -149,7 +149,9 @@ impl<S, T> Semiring<T> for S where S: AdditiveMonoid<T> + MultiplicativeMonoid<T
 
 /// Join-semilattice structure over a carrier type.
 ///
-/// Provides a binary [`join`] operation (least upper bound / supremum).
+/// Provides a binary [`join`] operation (least upper bound / supremum). The implementor must
+/// guarantee that the `Rhs` type (if provided) is compatible with the `T` type, and belongs to the
+/// same semiring.
 ///
 /// # Laws
 ///
@@ -163,11 +165,11 @@ impl<S, T> Semiring<T> for S where S: AdditiveMonoid<T> + MultiplicativeMonoid<T
 /// Use [`laws::assert_join_semilattice`] to verify these laws in tests.
 ///
 /// [`join`]: JoinSemiLattice::join
-pub trait JoinSemiLattice<T> {
+pub trait JoinSemiLattice<T, Rhs = T> {
     /// Computes the least upper bound (supremum) of two elements.
     ///
     /// Returns `true` if `lhs` was changed.
-    fn join(&self, lhs: &mut T, rhs: &T) -> bool;
+    fn join(&self, lhs: &mut T, rhs: &Rhs) -> bool;
 
     /// Convenience method that takes ownership of `lhs` and returns the result.
     ///
@@ -175,7 +177,7 @@ pub trait JoinSemiLattice<T> {
     ///
     /// [`join`]: JoinSemiLattice::join
     #[inline]
-    fn join_owned(&self, mut lhs: T, rhs: &T) -> T
+    fn join_owned(&self, mut lhs: T, rhs: &Rhs) -> T
     where
         T: Sized,
     {
@@ -254,7 +256,7 @@ impl<S, T> Lattice<T> for S where S: JoinSemiLattice<T> + MeetSemiLattice<T> {}
 /// # Implementation
 ///
 /// Use [`laws::assert_is_bottom_consistent`] to verify consistency in tests.
-pub trait HasBottom<T> {
+pub trait HasBottom<T = Self> {
     /// Returns the bottom element (least element).
     fn bottom(&self) -> T;
 
@@ -273,7 +275,7 @@ pub trait HasBottom<T> {
 /// # Implementation
 ///
 /// Use [`laws::assert_is_top_consistent`] to verify consistency in tests.
-pub trait HasTop<T> {
+pub trait HasTop<T = Self> {
     /// Returns the top element (greatest element).
     fn top(&self) -> T;
 
