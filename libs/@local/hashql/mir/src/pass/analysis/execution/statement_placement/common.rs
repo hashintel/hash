@@ -2,7 +2,11 @@ use core::{alloc::Allocator, cell::Cell, cmp::Reverse};
 
 use hashql_core::{
     heap::Heap,
-    id::bit_vec::{BitRelations as _, DenseBitSet},
+    id::{
+        Id,
+        bit_vec::{BitRelations as _, DenseBitSet},
+    },
+    newtype,
 };
 
 use crate::{
@@ -26,6 +30,8 @@ use crate::{
     },
     visit::Visitor,
 };
+
+newtype!(struct ParamIndex(u16 is 0..=0xFF_FF));
 
 /// Single-use value wrapper ensuring a value is consumed exactly once.
 pub(crate) struct OnceValue<T>(Cell<Option<T>>);
@@ -159,8 +165,16 @@ where
     ) {
         debug_assert_eq!(source_args.len(), target_params.len());
 
-        for (arg, &param) in source_args.iter().zip(target_params) {
+        // This will only allocate if there are more than 128 params, which is unlikely.
+        let mut is_supported_set = DenseBitSet::new_empty(target_params.len());
+
+        for (index, arg) in source_args.iter().enumerate() {
             let is_supported = (self.is_supported_operand)(self.context, self.body, state, arg);
+            is_supported_set.set(ParamIndex::from_usize(index), is_supported);
+        }
+
+        for (index, &param) in target_params.iter().enumerate() {
+            let is_supported = is_supported_set.contains(ParamIndex::from_usize(index));
             state.set(param, is_supported);
         }
     }
