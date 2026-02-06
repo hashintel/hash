@@ -1366,6 +1366,13 @@ export const systemDataTypes = {
     title: "Bytes",
     description: "A unit of information equal to eight bits.",
   },
+  calendarYear: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/calendar-year/" as BaseUrl,
+    title: "Calendar Year",
+    description: "A year in the Gregorian calendar.",
+  },
   centimeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1",
     dataTypeBaseUrl:
@@ -1815,12 +1822,6 @@ export const systemDataTypes = {
     title: "Yards",
     description:
       "An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).",
-  },
-  year: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/year/" as BaseUrl,
-    title: "Year",
-    description: "A year in the Gregorian calendar.",
   },
 } as const satisfies Record<
   string,
