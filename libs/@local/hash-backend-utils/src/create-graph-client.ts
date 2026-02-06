@@ -71,7 +71,10 @@ class GraphApiError extends Error {
         );
       }
     } else {
-      throw new Error("No response found in Graph API error.");
+      // No response from server - likely timeout, connection refused, or network error
+      throw new Error(
+        `No response from Graph API: ${axiosError.code ?? "UNKNOWN"} - ${axiosError.message}`,
+      );
     }
   }
 }
