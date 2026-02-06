@@ -1980,9 +1980,10 @@ export type ProfileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 /**
  * The year in which something was first published.
  */
-export type PublicationYearPropertyValue = YearDataType;
+export type PublicationYearPropertyValue = CalendarYearDataType;
 
-export type PublicationYearPropertyValueWithMetadata = YearDataTypeWithMetadata;
+export type PublicationYearPropertyValueWithMetadata =
+  CalendarYearDataTypeWithMetadata;
 
 /**
  * The timestamp of when something was read.
@@ -2587,14 +2588,14 @@ export type WorkflowIDPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A year in the Gregorian calendar.
  */
-export type YearDataType = IntegerDataType;
+export type CalendarYearDataType = IntegerDataType;
 
-export type YearDataTypeWithMetadata = {
-  value: YearDataType;
-  metadata: YearDataTypeMetadata;
+export type CalendarYearDataTypeWithMetadata = {
+  value: CalendarYearDataType;
+  metadata: CalendarYearDataTypeMetadata;
 };
-export type YearDataTypeMetadata = {
+export type CalendarYearDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/calendar-year/v/1";
 };

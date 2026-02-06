@@ -767,8 +767,8 @@ export const judgeTestData: JudgeTest[] = [
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
-                            title: "Year",
+                            $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+                            title: "Calendar Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
                           },
@@ -837,8 +837,8 @@ export const judgeTestData: JudgeTest[] = [
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
-                            title: "Year",
+                            $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+                            title: "Calendar Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
                           },
@@ -990,8 +990,8 @@ export const judgeTestData: JudgeTest[] = [
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
-                            title: "Year",
+                            $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+                            title: "Calendar Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
                           },
@@ -1057,8 +1057,8 @@ export const judgeTestData: JudgeTest[] = [
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
-                            title: "Year",
+                            $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+                            title: "Calendar Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
                           },
