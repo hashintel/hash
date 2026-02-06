@@ -1,5 +1,5 @@
 #![expect(clippy::min_ident_chars)]
-use core::assert_matches::assert_matches;
+use core::assert_matches;
 
 use crate::{
     heap::Heap,

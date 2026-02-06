@@ -89,7 +89,7 @@ impl<'heap> Tuple<'heap> {
     ///
     /// ```
     /// # #![feature(assert_matches)]
-    /// # use core::assert_matches::assert_matches;
+    /// # use core::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
     ///     value::{Primitive, String, Tuple, TupleError, Value},

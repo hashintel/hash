@@ -1,4 +1,4 @@
-use core::assert_matches::assert_matches;
+use core::assert_matches;
 
 use hashql_diagnostics::Success;
 

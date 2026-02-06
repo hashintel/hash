@@ -133,7 +133,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use bytes::Bytes;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};

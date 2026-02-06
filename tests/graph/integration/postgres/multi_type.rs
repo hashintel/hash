@@ -1,4 +1,4 @@
-use core::{assert_matches::assert_matches, str::FromStr as _};
+use core::{assert_matches, str::FromStr as _};
 use std::collections::HashSet;
 
 use hash_graph_store::{
