@@ -27,6 +27,7 @@
 //! - Implement `MixedBitSet::intersect`.
 //! - Implement `DenseBitSet::negate`
 //! - Implement `DenseBitSet::first_unset`
+//! - Re-implement `FiniteBitSet`
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -39,14 +40,16 @@ use core::{
     alloc::Allocator,
     fmt, iter,
     marker::PhantomData,
-    ops::{BitAnd, BitAndAssign, BitOrAssign, Bound, Not, Range, RangeBounds, Shl},
+    ops::{Bound, Range, RangeBounds},
     slice,
 };
 
 use smallvec::{SmallVec, smallvec};
 
+pub use self::finite::{FiniteBitIter, FiniteBitSet};
 use super::{Id, IdVec};
 
+mod finite;
 #[cfg(test)]
 mod tests;
 
@@ -1994,113 +1997,4 @@ const fn max_bit(word: Word) -> usize {
 #[inline]
 fn count_ones(words: &[Word]) -> usize {
     words.iter().map(|word| word.count_ones() as usize).sum()
-}
-
-/// Integral type used to represent the bit set.
-pub trait FiniteBitSetTy:
-    BitAnd<Output = Self>
-    + BitAndAssign
-    + BitOrAssign
-    + Clone
-    + Copy
-    + Shl
-    + Not<Output = Self>
-    + PartialEq
-    + Sized
-{
-    /// Size of the domain representable by this type, e.g. 64 for `u64`.
-    const DOMAIN_SIZE: u32;
-
-    /// Value which represents the `FiniteBitSet` having every bit set.
-    const FILLED: Self;
-    /// Value which represents the `FiniteBitSet` having no bits set.
-    const EMPTY: Self;
-
-    /// Value for one as the integral type.
-    const ONE: Self;
-    /// Value for zero as the integral type.
-    const ZERO: Self;
-
-    /// Perform a checked left shift on the integral type.
-    fn checked_shl(self, rhs: u32) -> Option<Self>;
-    /// Perform a checked right shift on the integral type.
-    fn checked_shr(self, rhs: u32) -> Option<Self>;
-}
-
-impl FiniteBitSetTy for u32 {
-    const DOMAIN_SIZE: Self = 32;
-    const EMPTY: Self = Self::MIN;
-    const FILLED: Self = Self::MAX;
-    const ONE: Self = 1_u32;
-    const ZERO: Self = 0_u32;
-
-    fn checked_shl(self, rhs: u32) -> Option<Self> {
-        self.checked_shl(rhs)
-    }
-
-    fn checked_shr(self, rhs: u32) -> Option<Self> {
-        self.checked_shr(rhs)
-    }
-}
-
-impl fmt::Debug for FiniteBitSet<u32> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:032b}", self.0)
-    }
-}
-
-/// A fixed-sized bitset type represented by an integer type. Indices outwith than the range
-/// representable by `T` are considered set.
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub struct FiniteBitSet<T: FiniteBitSetTy>(pub T);
-
-impl<T: FiniteBitSetTy> FiniteBitSet<T> {
-    /// Creates a new, empty bitset.
-    pub const fn new_empty() -> Self {
-        Self(T::EMPTY)
-    }
-
-    /// Sets the `index`th bit.
-    pub fn set(&mut self, index: u32) {
-        self.0 |= T::ONE.checked_shl(index).unwrap_or(T::ZERO);
-    }
-
-    /// Unsets the `index`th bit.
-    pub fn clear(&mut self, index: u32) {
-        self.0 &= !T::ONE.checked_shl(index).unwrap_or(T::ZERO);
-    }
-
-    /// Sets the `i`th to `j`th bits.
-    pub fn set_range(&mut self, range: Range<u32>) {
-        let bits = T::FILLED
-            .checked_shl(range.end - range.start)
-            .unwrap_or(T::ZERO)
-            .not()
-            .checked_shl(range.start)
-            .unwrap_or(T::ZERO);
-        self.0 |= bits;
-    }
-
-    /// Is the set empty?
-    pub fn is_empty(&self) -> bool {
-        self.0 == T::EMPTY
-    }
-
-    /// Returns the domain size of the bitset.
-    #[must_use]
-    pub const fn within_domain(index: u32) -> bool {
-        index < T::DOMAIN_SIZE
-    }
-
-    /// Returns if the `index`th bit is set.
-    pub fn contains(&self, index: u32) -> Option<bool> {
-        Self::within_domain(index)
-            .then(|| ((self.0.checked_shr(index).unwrap_or(T::ONE)) & T::ONE) == T::ONE)
-    }
-}
-
-impl<T: FiniteBitSetTy> Default for FiniteBitSet<T> {
-    fn default() -> Self {
-        Self::new_empty()
-    }
 }
