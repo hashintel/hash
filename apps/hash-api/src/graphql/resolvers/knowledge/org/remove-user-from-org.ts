@@ -6,7 +6,7 @@ import type { MutationRemoveUserFromOrgArgs } from "@local/hash-isomorphic-utils
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
-import { getUserById } from "../../../../graph/knowledge/system-types/user";
+import { getUser } from "../../../../graph/knowledge/system-types/user";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import * as Error from "../../../error";
@@ -32,11 +32,10 @@ export const removeUserFromOrgResolver: ResolverFn<
     throw Error.notFound(`Organization with webId ${orgWebId} not found`);
   }
 
-  try {
-    await getUserById(context, authentication, {
-      entityId: userEntityId,
-    });
-  } catch {
+  const foundUser = await getUser(context, authentication, {
+    entityId: userEntityId,
+  });
+  if (!foundUser) {
     throw Error.notFound(`User with entityId ${userEntityId} not found`);
   }
 

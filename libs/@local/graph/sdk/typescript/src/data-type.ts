@@ -113,11 +113,7 @@ export const queryDataTypeSubgraph = (
     .queryDataTypeSubgraph(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
-      subgraph: mapGraphApiSubgraphToSubgraph(
-        response.subgraph,
-        authentication.actorId,
-        false,
-      ),
+      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
       cursor: response.cursor as VersionedUrl | undefined,
     }));
 

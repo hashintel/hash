@@ -31,7 +31,7 @@ import { getCommentById } from "./comment";
 import type { Page } from "./page";
 import { getPageFromEntity } from "./page";
 import type { User } from "./user";
-import { getUserById } from "./user";
+import { getUser } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
@@ -291,9 +291,16 @@ export const getMentionedUsersInTextualContent: ImpureGraphFunction<
         (mention, i, all) =>
           all.findIndex(({ entityId }) => entityId === mention.entityId) === i,
       )
-      .map(({ entityId }) =>
-        getUserById(context, authentication, { entityId }),
-      ),
+      .map(async ({ entityId }) => {
+        const user = await getUser(context, authentication, { entityId });
+
+        if (!user) {
+          throw new Error(
+            `User with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+          );
+        }
+        return user;
+      }),
   );
 
   return mentionedUsers;

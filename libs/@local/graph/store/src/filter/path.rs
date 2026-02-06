@@ -64,6 +64,12 @@ impl<'p> JsonPath<'p> {
         self.path.push(token);
     }
 
+    /// Returns a reference to the path tokens.
+    #[must_use]
+    pub fn path_tokens(&self) -> &[PathToken<'p>] {
+        &self.path
+    }
+
     fn write(&self, writer: &mut impl Write) -> Result<(), fmt::Error> {
         writer.write_char('$')?;
         for token in &self.path {

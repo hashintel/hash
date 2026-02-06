@@ -28,7 +28,7 @@ import type { Organization } from "@local/hash-isomorphic-utils/system-types/sha
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
 import {
-  getUserById,
+  getUser,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
 
@@ -106,9 +106,15 @@ export const getPendingOrgInvitationsFromSubgraph = async (
 
     const creator =
       creatorCache[invitingUserEntityId] ??
-      (await getUserById(context, authentication, {
+      (await getUser(context, authentication, {
         entityId: invitingUserEntityId,
       }));
+
+    if (!creator) {
+      throw new Error(
+        `User with entityId ${invitingUserEntityId} doesn't exist or cannot be accessed by requesting user.`,
+      );
+    }
 
     creatorCache[invitingUserEntityId] ??= creator;
 

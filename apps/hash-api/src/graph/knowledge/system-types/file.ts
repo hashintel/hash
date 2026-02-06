@@ -60,9 +60,13 @@ const generateCommonParameters = async (
   }
 
   if (fileEntityUpdateInput) {
-    const existingEntity = (await getLatestEntityById(ctx, authentication, {
-      entityId: fileEntityUpdateInput.existingFileEntityId,
-    })) as HashEntity<File>;
+    const existingEntity = await getLatestEntityById<File>(
+      ctx,
+      authentication,
+      {
+        entityId: fileEntityUpdateInput.existingFileEntityId,
+      },
+    );
 
     return {
       existingEntity,

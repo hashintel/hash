@@ -5,7 +5,7 @@ import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
-import { getUserById } from "../../knowledge/system-types/user";
+import { getUser } from "../../knowledge/system-types/user";
 
 export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
@@ -21,12 +21,12 @@ export const getWebShortname: ImpureGraphFunction<
   Promise<string>
 > = async (ctx, authentication, params) => {
   const namespace = (
-    (await getUserById(ctx, authentication, {
+    (await getUser(ctx, authentication, {
       entityId: entityIdFromComponents(
         params.accountOrAccountGroupId,
         params.accountOrAccountGroupId,
       ),
-    }).catch(() => undefined)) ??
+    })) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
         params.accountOrAccountGroupId,

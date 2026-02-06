@@ -5,7 +5,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
     filter::{
-        Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
+        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
+        PathToken, QueryRecord, protection::PropertyProtectionFilter,
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -13,6 +14,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
+use type_system::knowledge::Entity;
 
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
@@ -21,9 +23,9 @@ use crate::store::postgres::query::{
     WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
     table::{
-        DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
-        EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
-        PropertyTypeEmbeddings,
+        DataTypeEmbeddings, DatabaseColumn as _, EntityEditions, EntityEmbeddings,
+        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds,
+        OntologyTemporalMetadata, PropertyTypeEmbeddings,
     },
 };
 
@@ -59,6 +61,7 @@ struct PathSelection {
 }
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
+type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
@@ -66,7 +69,13 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
     table_hooks: HashMap<TableName<'p>, TableHook<'p, 'q, T>>,
+    column_hooks: HashMap<Column, ColumnHook<'p, 'q, T>>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
+    /// Optional property protection filter for Entity queries (lazy evaluation).
+    /// Parameters are only bound when Properties/PropertyMetadata columns are actually selected.
+    property_protection_filter: Option<&'p PropertyProtectionFilter<'p, 'q>>,
+    /// Cached masking expression (built lazily on first use).
+    property_keys_to_remove: Option<Expression>,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -127,8 +136,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             temporal_axes,
             table_hooks,
+            column_hooks: HashMap::new(),
             include_drafts,
             selections: HashMap::new(),
+            property_protection_filter: None,
+            property_keys_to_remove: None,
         }
     }
 
@@ -637,7 +649,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             Filter::In(lhs, rhs) => Condition::In(
                 self.compile_filter_expression(lhs).0,
-                self.compile_parameter_list(rhs).0,
+                self.compile_filter_expression_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
@@ -844,7 +856,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .extend(conditions);
         }
 
-        let column_expression = Expression::ColumnReference(column.aliased(alias));
+        let mut column_expression = Expression::ColumnReference(column.aliased(alias));
+        if let Some(hook) = self.column_hooks.get(&column) {
+            column_expression = hook(self, column_expression);
+        }
 
         match parameter {
             None => column_expression,
@@ -964,6 +979,30 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     unimplemented!("Cannot convert parameter at this stage");
                 }
                 self.compile_parameter(parameter)
+            }
+        }
+    }
+
+    #[instrument(level = "debug", skip_all)]
+    pub fn compile_filter_expression_list<'f: 'q>(
+        &mut self,
+        expression: &'p FilterExpressionList<'f, R>,
+    ) -> (Expression, ParameterType)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
+        match expression {
+            FilterExpressionList::Path { path } => {
+                let (column, json_field) = path.terminating_column();
+                let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
+                    ParameterType::Text
+                } else {
+                    column.parameter_type()
+                };
+                (self.compile_path_column(path), parameter_type)
+            }
+            FilterExpressionList::ParameterList { parameters } => {
+                self.compile_parameter_list(parameters)
             }
         }
     }
@@ -1144,5 +1183,77 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .required_tables
             .insert(current_table.into_owned());
         alias
+    }
+}
+
+/// Entity-specific methods for property masking.
+impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
+    /// Configures property masking for Entity queries.
+    ///
+    /// When enabled, protected properties (e.g., email) will be removed from the
+    /// properties JSONB in SELECT statements, unless the actor is the entity owner.
+    ///
+    /// This method automatically adds the necessary table joins and determines
+    /// the correct aliases internally.
+    pub fn with_property_masking(
+        &mut self,
+        property_protection_filter: &'p PropertyProtectionFilter<'p, 'q>,
+    ) {
+        if property_protection_filter.is_empty() {
+            return;
+        }
+
+        // Store reference for lazy evaluation - parameters bound only when columns are selected
+        self.property_protection_filter = Some(property_protection_filter);
+
+        self.column_hooks.insert(
+            Column::EntityEditions(EntityEditions::Properties),
+            Self::remove_property_keys_for_column,
+        );
+        self.column_hooks.insert(
+            Column::EntityEditions(EntityEditions::PropertyMetadata),
+            Self::remove_property_keys_for_column,
+        );
+    }
+
+    fn remove_property_keys_for_column(compiler: &mut Self, column: Expression) -> Expression {
+        // Build masking expression lazily on first use
+        if compiler.property_keys_to_remove.is_none()
+            && let Some(filter) = compiler.property_protection_filter
+        {
+            compiler.property_keys_to_remove = Some(Expression::Function(Function::ArrayConcat(
+                filter
+                    .iter()
+                    .map(|(property_url, filter)| {
+                        // Compile the condition - this will bind all necessary parameters
+                        let condition = compiler
+                            .compile_filter(filter)
+                            .expect("filter should compile");
+
+                        Expression::CaseWhen {
+                            conditions: vec![(
+                                Expression::Condition(Box::new(condition)),
+                                Expression::Function(Function::ArrayLiteral {
+                                    elements: vec![compiler.compile_parameter(property_url).0],
+                                    element_type: PostgresType::Text,
+                                }),
+                            )],
+                            else_result: Some(Box::new(Expression::Function(
+                                Function::ArrayLiteral {
+                                    elements: vec![],
+                                    element_type: PostgresType::Text,
+                                },
+                            ))),
+                        }
+                    })
+                    .collect(),
+            )));
+        }
+
+        if let Some(keys) = compiler.property_keys_to_remove.clone() {
+            Expression::Function(Function::JsonDeleteKeys(Box::new(column), Box::new(keys)))
+        } else {
+            column
+        }
     }
 }
