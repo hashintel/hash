@@ -13,6 +13,7 @@ import type {
 } from "./core/types/sdcpn";
 import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
 import { NotificationsProvider } from "./notifications/notifications-provider";
+import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
 import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
@@ -106,12 +107,14 @@ export const Petrinaut = ({
       <SDCPNProvider {...rest}>
         <CheckerProvider>
           <SimulationProvider>
-            <EditorProvider>
-              <MonacoSetup />
-              <EditorView
-                hideNetManagementControls={hideNetManagementControls}
-              />
-            </EditorProvider>
+            <PlaybackProvider>
+              <EditorProvider>
+                <MonacoSetup />
+                <EditorView
+                  hideNetManagementControls={hideNetManagementControls}
+                />
+              </EditorProvider>
+            </PlaybackProvider>
           </SimulationProvider>
         </CheckerProvider>
       </SDCPNProvider>

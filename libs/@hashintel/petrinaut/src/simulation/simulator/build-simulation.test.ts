@@ -53,6 +53,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     const simulationInstance = buildSimulation(input);
@@ -67,11 +68,11 @@ describe("buildSimulation", () => {
 
     // Verify initial frame properties
     expect(frame.time).toBe(0);
-    expect(frame.places.size).toBe(1);
-    expect(frame.transitions.size).toBe(0);
+    expect(Object.keys(frame.places).length).toBe(1);
+    expect(Object.keys(frame.transitions).length).toBe(0);
 
     // Verify place state
-    const p1State = frame.places.get("p1");
+    const p1State = frame.places.p1;
     expect(p1State).toBeDefined();
     expect(p1State?.count).toBe(2);
     expect(p1State?.offset).toBe(0);
@@ -200,6 +201,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 123,
       dt: 0.05,
+      maxTime: null,
     };
 
     const simulationInstance = buildSimulation(input);
@@ -210,10 +212,10 @@ describe("buildSimulation", () => {
     expect(simulationInstance.rngState).toBe(123);
 
     // Verify all places exist
-    expect(frame.places.size).toBe(3);
+    expect(Object.keys(frame.places).length).toBe(3);
 
     // Verify p1 state (places are sorted by ID, so p1 comes first)
-    const p1State = frame.places.get("p1");
+    const p1State = frame.places.p1;
     expect(p1State?.count).toBe(3);
     expect(p1State?.offset).toBe(0);
     const p1Type = simulationInstance.places.get("p1")?.colorId;
@@ -222,7 +224,7 @@ describe("buildSimulation", () => {
     expect(p1TypeDef?.elements.length).toBe(1);
 
     // Verify p2 state (comes after p1)
-    const p2State = frame.places.get("p2");
+    const p2State = frame.places.p2;
     expect(p2State?.count).toBe(1);
     expect(p2State?.offset).toBe(3); // After p1's 3 tokens
     const p2Type = simulationInstance.places.get("p2")?.colorId;
@@ -231,7 +233,7 @@ describe("buildSimulation", () => {
     expect(p2TypeDef?.elements.length).toBe(2);
 
     // Verify p3 state (comes after p2, has no tokens)
-    const p3State = frame.places.get("p3");
+    const p3State = frame.places.p3;
     expect(p3State?.count).toBe(0);
     expect(p3State?.offset).toBe(5); // After p1's 3 values + p2's 2 values
     const p3Type = simulationInstance.places.get("p3")?.colorId;
@@ -245,9 +247,9 @@ describe("buildSimulation", () => {
     );
 
     // Verify transitions exist with initial state
-    expect(frame.transitions.size).toBe(2);
-    expect(frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
-    expect(frame.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
+    expect(Object.keys(frame.transitions).length).toBe(2);
+    expect(frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
+    expect(frame.transitions.t2?.timeSinceLastFiringMs).toBe(0);
 
     // Verify all compiled functions exist
     expect(simulationInstance.differentialEquationFns.size).toBe(3);
@@ -310,6 +312,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     expect(() => buildSimulation(input)).toThrow(
@@ -366,6 +369,7 @@ describe("buildSimulation", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     };
 
     expect(() => buildSimulation(input)).toThrow(

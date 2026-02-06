@@ -1,7 +1,7 @@
 import type { ID } from "../../core/types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { SimulationFrame } from "./types";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
@@ -30,7 +30,7 @@ function addTokensToSimulationFrame(
 
   // Validate all places and token dimensions first
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places.get(placeId);
+    const placeState = frame.places[placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${placeId} not found in simulation frame.`,
@@ -51,7 +51,7 @@ function addTokensToSimulationFrame(
   // Calculate total size increase needed in buffer
   let totalSizeIncrease = 0;
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places.get(placeId)!;
+    const placeState = frame.places[placeId]!;
     const tokenSize = placeState.dimensions;
     totalSizeIncrease += tokens.length * tokenSize;
   }
@@ -60,11 +60,11 @@ function addTokensToSimulationFrame(
   const newBuffer = new Float64Array(frame.buffer.length + totalSizeIncrease);
 
   // Process places in order of their offsets to build the new buffer
-  const placesByOffset = Array.from(frame.places.entries()).sort(
+  const placesByOffset = Object.entries(frame.places).sort(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces = new Map(frame.places);
+  const newPlaces: SimulationFrame["places"] = { ...frame.places };
   let sourceIndex = 0;
   let targetIndex = 0;
 
@@ -88,24 +88,24 @@ function addTokensToSimulationFrame(
       }
 
       // Update this place's count
-      newPlaces.set(placeId, {
+      newPlaces[placeId] = {
         ...placeState,
         count: count + newTokens.length,
-      });
+      };
     }
   }
 
   // Recalculate all offsets based on the new buffer layout
   let currentOffset = 0;
   for (const [placeId, _placeState] of placesByOffset) {
-    const updatedState = newPlaces.get(placeId)!;
+    const updatedState = newPlaces[placeId]!;
     const tokenSize = updatedState.dimensions;
     const placeSize = updatedState.count * tokenSize;
 
-    newPlaces.set(placeId, {
+    newPlaces[placeId] = {
       ...updatedState,
       offset: currentOffset,
-    });
+    };
 
     currentOffset += placeSize;
   }
@@ -118,6 +118,18 @@ function addTokensToSimulationFrame(
 }
 
 /**
+ * Result of executing transitions on a frame.
+ */
+export type ExecuteTransitionsResult = {
+  /** The updated simulation frame */
+  frame: SimulationFrame;
+  /** The updated RNG state after all transitions */
+  rngState: number;
+  /** Whether any transition fired */
+  transitionFired: boolean;
+};
+
+/**
  * Executes all transitions sequentially on a simulation frame.
  *
  * This function:
@@ -128,9 +140,17 @@ function addTokensToSimulationFrame(
  * 5. At the end, adds all accumulated tokens at once
  *
  * @param frame - The simulation frame to execute transitions on
- * @returns A new SimulationFrame with all transitions applied, or the original frame if no transitions fired
+ * @param simulation - The simulation instance containing compiled functions
+ * @param dt - Time step for the simulation
+ * @param rngState - Current state of the random number generator
+ * @returns Result containing the updated frame, new RNG state, and whether any transition fired
  */
-export function executeTransitions(frame: SimulationFrame): SimulationFrame {
+export function executeTransitions(
+  frame: SimulationFrame,
+  simulation: SimulationInstance,
+  dt: number,
+  rngState: number,
+): ExecuteTransitionsResult {
   // Map to accumulate all tokens to add: PlaceID -> array of token values
   const tokensToAdd = new Map<PlaceID, number[][]>();
 
@@ -140,23 +160,25 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Start with the current frame and update it as transitions fire
   let currentFrame = frame;
 
+  // Track current RNG state
+  let currentRngState = rngState;
+
   // Iterate through all transitions in the frame
-  for (const [transitionId, _transitionState] of currentFrame.transitions) {
+  for (const transitionId of Object.keys(currentFrame.transitions)) {
     // Compute if this transition can fire based on the current state
-    const result = computePossibleTransition(currentFrame, transitionId);
+    const result = computePossibleTransition(
+      currentFrame,
+      simulation,
+      transitionId,
+      currentRngState,
+    );
 
     if (result !== null) {
       // Transition fired!
       transitionsFired.add(transitionId);
 
-      // Update RNG state in current frame for deterministic randomness
-      currentFrame = {
-        ...currentFrame,
-        simulation: {
-          ...currentFrame.simulation,
-          rngState: result.newRngState,
-        },
-      };
+      // Update RNG state for deterministic randomness
+      currentRngState = result.newRngState;
 
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
@@ -179,39 +201,46 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
     }
   }
 
-  // If no transitions fired, return the original frame
+  // If no transitions fired, return the original frame with unchanged RNG state
   if (transitionsFired.size === 0) {
-    return frame;
+    return { frame, rngState, transitionFired: false };
   }
 
   // Add all new tokens at once
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
-  const newTransitions = new Map(newFrame.transitions);
-  for (const [transitionId, transitionState] of newFrame.transitions) {
+  const newTransitions: SimulationFrame["transitions"] = {
+    ...newFrame.transitions,
+  };
+  for (const [transitionId, transitionState] of Object.entries(
+    newFrame.transitions,
+  )) {
     if (transitionsFired.has(transitionId)) {
       // Reset time since last firing and increment firing count for transitions that fired
-      newTransitions.set(transitionId, {
+      newTransitions[transitionId] = {
         ...transitionState,
         timeSinceLastFiringMs: 0,
         firedInThisFrame: true,
         firingCount: transitionState.firingCount + 1,
-      });
+      };
     } else {
       // Increment time for transitions that didn't fire
-      newTransitions.set(transitionId, {
+      newTransitions[transitionId] = {
         ...transitionState,
-        timeSinceLastFiringMs:
-          transitionState.timeSinceLastFiringMs + frame.simulation.dt,
+        timeSinceLastFiringMs: transitionState.timeSinceLastFiringMs + dt,
         firedInThisFrame: false,
-      });
+      };
     }
   }
 
   return {
-    ...newFrame,
-    transitions: newTransitions,
-    time: frame.time + frame.simulation.dt,
+    frame: {
+      ...newFrame,
+      transitions: newTransitions,
+      time: frame.time + dt,
+    },
+    rngState: currentRngState,
+    transitionFired: true,
   };
 }

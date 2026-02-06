@@ -68,6 +68,7 @@ describe("computeNextFrame", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     });
 
     // WHEN computing the next frame
@@ -120,6 +121,7 @@ describe("computeNextFrame", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     });
 
     // WHEN computing the next frame
@@ -175,6 +177,7 @@ describe("computeNextFrame", () => {
       parameterValues: {},
       seed: 42,
       dt: 0.1,
+      maxTime: null,
     });
 
     // WHEN computing the next frame

@@ -1,6 +1,12 @@
+import { checkTransitionEnablement } from "./check-transition-enablement";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
 import type { SimulationInstance } from "./types";
+
+/**
+ * Reason why the simulation completed.
+ */
+export type SimulationCompletionReason = "maxTime" | "deadlock";
 
 /**
  * Result of computing the next frame.
@@ -16,6 +22,13 @@ export type ComputeNextFrameResult = {
    * When false, the token distribution did not change due to discrete events.
    */
   transitionFired: boolean;
+
+  /**
+   * If set, the simulation has completed and should not continue.
+   * - "maxTime": The simulation reached the configured maximum time.
+   * - "deadlock": No transitions are enabled and no further progress is possible.
+   */
+  completionReason: SimulationCompletionReason | null;
 };
 
 /**
@@ -34,6 +47,15 @@ export function computeNextFrame(
   // Get the current frame
   const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
 
+  // Check if maxTime has been reached before computing
+  if (simulation.maxTime !== null && currentFrame.time >= simulation.maxTime) {
+    return {
+      simulation,
+      transitionFired: false,
+      completionReason: "maxTime",
+    };
+  }
+
   // Step 1: Apply differential equations to places with dynamics enabled
   let frameAfterDynamics = currentFrame;
 
@@ -42,14 +64,20 @@ export function computeNextFrame(
     const newBuffer = new Float64Array(currentFrame.buffer);
 
     // Apply differential equations to each place that has dynamics enabled
-    for (const [placeId, placeState] of currentFrame.places) {
+    for (const [placeId, placeState] of Object.entries(currentFrame.places)) {
+      // Get the place instance from the simulation
+      const place = simulation.places.get(placeId);
+      if (!place) {
+        throw new Error(`Place with ID ${placeId} not found in simulation`);
+      }
+
       // Skip places without dynamics enabled
-      if (!placeState.instance.dynamicsEnabled) {
+      if (!place.dynamicsEnabled) {
         continue;
       }
 
       // Skip places without a type (no dimensions to work with)
-      if (!placeState.instance.colorId) {
+      if (!place.colorId) {
         continue;
       }
 
@@ -67,7 +95,7 @@ export function computeNextFrame(
       const placeBuffer = currentFrame.buffer.slice(offset, offset + placeSize);
 
       // Get the type definition to access dimension names
-      const typeId = placeState.instance.colorId;
+      const typeId = place.colorId;
       if (!typeId) {
         continue; // This shouldn't happen due to earlier check, but be safe
       }
@@ -152,11 +180,14 @@ export function computeNextFrame(
   }
 
   // Step 2: Execute all transitions on the frame with updated dynamics
-  const frameAfterTransitions = executeTransitions(frameAfterDynamics);
-
-  // Detect if any transition fired by checking if time changed
-  // (executeTransitions only increments time when transitions fire)
-  const transitionFired = frameAfterTransitions.time !== currentFrame.time;
+  const transitionsResult = executeTransitions(
+    frameAfterDynamics,
+    simulation,
+    simulation.dt,
+    simulation.rngState,
+  );
+  const frameAfterTransitions = transitionsResult.frame;
+  const transitionFired = transitionsResult.transitionFired;
 
   // Step 3: Ensure time is always incremented (executeTransitions only increments if transitions fire)
   const finalFrame = transitionFired
@@ -165,26 +196,47 @@ export function computeNextFrame(
         ...frameAfterTransitions,
         time: currentFrame.time + simulation.dt,
         // Also update transition timeSinceLastFiringMs and firedInThisFrame since time advanced
-        transitions: new Map(
-          Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
-            id,
-            {
-              ...state,
-              timeSinceLastFiringMs:
-                state.timeSinceLastFiringMs + simulation.dt,
-              firedInThisFrame: false,
-            },
-          ]),
+        transitions: Object.fromEntries(
+          Object.entries(frameAfterTransitions.transitions).map(
+            ([id, state]) => [
+              id,
+              {
+                ...state,
+                timeSinceLastFiringMs:
+                  state.timeSinceLastFiringMs + simulation.dt,
+                firedInThisFrame: false,
+              },
+            ],
+          ),
         ),
       };
 
-  // Step 4: Return updated simulation instance with new frame added
+  // Step 4: Build updated simulation instance with new frame added
+  const updatedSimulation: SimulationInstance = {
+    ...simulation,
+    frames: [...simulation.frames, finalFrame],
+    currentFrameNumber: simulation.currentFrameNumber + 1,
+    rngState: transitionsResult.rngState,
+  };
+
+  // Step 5: Check for completion conditions
+  let completionReason: SimulationCompletionReason | null = null;
+
+  // Check if maxTime was reached with this new frame
+  if (simulation.maxTime !== null && finalFrame.time >= simulation.maxTime) {
+    completionReason = "maxTime";
+  }
+  // Check for deadlock if no transition fired
+  else if (!transitionFired) {
+    const enablementResult = checkTransitionEnablement(finalFrame);
+    if (!enablementResult.hasEnabledTransition) {
+      completionReason = "deadlock";
+    }
+  }
+
   return {
-    simulation: {
-      ...simulation,
-      frames: [...simulation.frames, finalFrame],
-      currentFrameNumber: simulation.currentFrameNumber + 1,
-    },
+    simulation: updatedSimulation,
     transitionFired,
+    completionReason,
   };
 }

@@ -6,6 +6,7 @@ import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
+import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { compileVisualizer } from "../../../simulation/simulator/compile-visualizer";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
@@ -28,8 +29,8 @@ const visualizerErrorStyle = css({
 const PlaceVisualizerOutputContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { simulation, initialMarking, parameterValues, currentViewedFrame } =
-    use(SimulationContext);
+  const { initialMarking, parameterValues } = use(SimulationContext);
+  const { currentFrame, totalFrames } = use(PlaybackContext);
 
   // Get default parameter values from SDCPN definition
   const defaultParameterValues = useDefaultParameterValues();
@@ -64,19 +65,11 @@ const PlaceVisualizerOutputContent: React.FC = () => {
   const dimensions = placeType.elements.length;
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
-  const frameIndex = currentViewedFrame?.number ?? 0;
 
   // Check if we have simulation frames or use initial marking
-  if (simulation && simulation.frames.length > 0) {
+  if (totalFrames > 0 && currentFrame) {
     // Use currently viewed simulation frame (need raw frame for buffer access)
-    const currentFrame = simulation.frames[frameIndex];
-    if (!currentFrame) {
-      return (
-        <div className={visualizerMessageStyle}>No frame data available</div>
-      );
-    }
-
-    const placeState = currentFrame.places.get(place.id);
+    const placeState = currentFrame.places[place.id];
     if (!placeState) {
       return (
         <div className={visualizerMessageStyle}>Place not found in frame</div>

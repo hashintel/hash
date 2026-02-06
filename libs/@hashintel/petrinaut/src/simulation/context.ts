@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { Color, ID, Place, SDCPN, Transition } from "../core/types/sdcpn";
+import type { ID, Transition } from "../core/types/sdcpn";
 
 /**
  * Current state of the simulation lifecycle.
@@ -36,116 +36,29 @@ export type SimulationFrameState_Transition = {
   firingCount: number;
 };
 
-//
-// Simulation Instance Types
-//
-// These types define the internal simulation data structures. They are defined
-// here to ensure the context module has no dependencies on the simulator module,
-// making the context the source of truth for type definitions.
-//
-// TODO FE-207: This is a temporary solution that leaks implementation details of the
-// SDCPN simulator (e.g., compiled function types, buffer layouts) into the
-// context module. Ideally, the context should only expose a minimal public
-// interface, and these internal types should live in the simulator module.
-// This would require refactoring SimulationContextValue to not expose the
-// full SimulationInstance, but instead provide accessor methods or a
-// simplified public state type.
-//
-
 /**
- * Runtime parameter values used during simulation execution.
- * Maps parameter names to their resolved numeric or boolean values.
+ * State of a place within a simulation frame.
  */
-export type ParameterValues = Record<string, number | boolean>;
-
-/**
- * Compiled differential equation function for continuous dynamics.
- * Computes the rate of change for tokens in a place with dynamics enabled.
- */
-export type DifferentialEquationFn = (
-  tokens: Record<string, number>[],
-  parameters: ParameterValues,
-) => Record<string, number>[];
-
-/**
- * Compiled lambda function for transition firing probability.
- * Returns a rate (number) for stochastic transitions or a boolean for predicate transitions.
- */
-export type LambdaFn = (
-  tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues,
-) => number | boolean;
-
-/**
- * Compiled transition kernel function for token generation.
- * Computes the output tokens to create when a transition fires.
- */
-export type TransitionKernelFn = (
-  tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues,
-) => Record<string, Record<string, number>[]>;
-
-/**
- * Input configuration for building a new simulation instance.
- */
-export type SimulationInput = {
-  /** The SDCPN definition to simulate */
-  sdcpn: SDCPN;
-  /** Initial token distribution across places */
-  initialMarking: Map<string, { values: Float64Array; count: number }>;
-  /** Parameter values from the simulation store (overrides SDCPN defaults) */
-  parameterValues: Record<string, string>;
-  /** Random seed for deterministic stochastic behavior */
-  seed: number;
-  /** Time step for simulation advancement */
-  dt: number;
-};
-
-/**
- * A running simulation instance with compiled functions and frame history.
- * Contains all state needed to execute and advance the simulation.
- */
-export type SimulationInstance = {
-  /** Place definitions indexed by ID */
-  places: Map<string, Place>;
-  /** Transition definitions indexed by ID */
-  transitions: Map<string, Transition>;
-  /** Color type definitions indexed by ID */
-  types: Map<string, Color>;
-  /** Compiled differential equation functions indexed by place ID */
-  differentialEquationFns: Map<string, DifferentialEquationFn>;
-  /** Compiled lambda functions indexed by transition ID */
-  lambdaFns: Map<string, LambdaFn>;
-  /** Compiled transition kernel functions indexed by transition ID */
-  transitionKernelFns: Map<string, TransitionKernelFn>;
-  /** Resolved parameter values for this simulation run */
-  parameterValues: ParameterValues;
-  /** Time step for simulation advancement */
-  dt: number;
-  /** Current state of the seeded random number generator */
-  rngState: number;
-  /** History of all computed frames */
-  frames: SimulationFrame[];
-  /** Index of the current frame in the frames array */
-  currentFrameNumber: number;
+export type SimulationFrameState_Place = {
+  offset: number;
+  count: number;
+  dimensions: number;
 };
 
 /**
  * A single frame (snapshot) of the simulation state at a point in time.
  * Contains the complete token distribution and transition states.
+ *
+ * All properties are serializable (no Map types) to support transfer
+ * between WebWorker and Main Thread via structured clone.
  */
 export type SimulationFrame = {
-  /** Back-reference to the parent simulation instance */
-  simulation: SimulationInstance;
   /** Simulation time at this frame */
   time: number;
-  /** Place states with token buffer offsets */
-  places: Map<
-    ID,
-    { instance: Place; offset: number; count: number; dimensions: number }
-  >;
-  /** Transition states with firing information */
-  transitions: Map<
+  /** Place states with token buffer offsets, keyed by place ID */
+  places: Record<ID, SimulationFrameState_Place>;
+  /** Transition states with firing information, keyed by transition ID */
+  transitions: Record<
     ID,
     SimulationFrameState_Transition & { instance: Transition }
   >;
@@ -156,7 +69,7 @@ export type SimulationFrame = {
    *
    * Layout: For each place, its tokens are stored contiguously.
    *
-   * Access to a place's token values can be done via the offset and count in the `places` map.
+   * Access to a place's token values can be done via the offset and count in the `places` record.
    */
   buffer: Float64Array;
 };
@@ -196,21 +109,88 @@ export type InitialMarking = Map<
 
 /**
  * The combined simulation context containing both state and actions.
+ *
+ * Note: The full SimulationInstance is not exposed. Instead, use `getFrame()`
+ * to access individual frame data. This encapsulation supports the WebWorker
+ * architecture where frames are computed off the main thread.
  */
 export type SimulationContextValue = {
   // State values
-  simulation: SimulationInstance | null;
+  /**
+   * Current lifecycle state of the simulation.
+   */
   state: SimulationState;
+  /**
+   * Error message if state is "Error".
+   */
   error: string | null;
+  /**
+   * ID of the SDCPN item that caused the error, if applicable.
+   */
   errorItemId: string | null;
+  /**
+   * Current parameter values (string representation for UI binding).
+   */
   parameterValues: Record<string, string>;
+  /**
+   * Initial token distribution for each place.
+   */
   initialMarking: InitialMarking;
   /**
-   * The currently viewed simulation frame state.
-   * Null when no simulation is running or no frames exist.
+   * Time step for simulation advancement.
    */
-  currentViewedFrame: SimulationFrameState | null;
   dt: number;
+  /**
+   * Maximum simulation time in seconds.
+   * When the simulation reaches this time, it will be paused.
+   * If null, the simulation runs until no transitions are enabled.
+   */
+  maxTime: number | null;
+  /**
+   * Total number of computed frames available.
+   */
+  totalFrames: number;
+
+  // Frame access
+  /**
+   * Get a specific frame by index.
+   * Returns null if the index is out of bounds or no simulation exists.
+   *
+   * This is the primary way to access frame data. The full frame history
+   * is kept internal to the provider for memory management.
+   *
+   * @param frameIndex - The index of the frame to retrieve (0-based)
+   * @returns Promise resolving to the frame data or null
+   */
+  getFrame: (frameIndex: number) => Promise<SimulationFrame | null>;
+
+  /**
+   * Get all computed frames.
+   * Returns an empty array if no simulation exists.
+   *
+   * Note: For large simulations, this may return a large array.
+   * Consider using getFrame() for single-frame access when possible.
+   *
+   * @returns Promise resolving to array of all frames
+   */
+  getAllFrames: () => Promise<SimulationFrame[]>;
+
+  /**
+   * Get frames in a specified range.
+   * Returns frames from startIndex (inclusive) to endIndex (exclusive).
+   * If endIndex is not provided, returns frames from startIndex to the end.
+   *
+   * This is more efficient than getAllFrames() when you only need a subset
+   * of frames, such as when incrementally updating a visualization.
+   *
+   * @param startIndex - The starting frame index (inclusive, 0-based)
+   * @param endIndex - The ending frame index (exclusive). If omitted, returns to the end.
+   * @returns Promise resolving to array of frames in the range
+   */
+  getFramesInRange: (
+    startIndex: number,
+    endIndex?: number,
+  ) => Promise<SimulationFrame[]>;
 
   // Actions
   setInitialMarking: (
@@ -219,32 +199,68 @@ export type SimulationContextValue = {
   ) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
-  initializeParameterValuesFromDefaults: () => void;
-  initialize: (params: { seed: number; dt: number }) => void;
+  /**
+   * Set the maximum simulation time in seconds.
+   * Pass null to disable the time limit.
+   */
+  setMaxTime: (maxTime: number | null) => void;
+  /**
+   * Initialize the simulation with the given parameters.
+   * Returns a Promise that resolves when initialization is complete (ready state)
+   * or rejects if an error occurs during initialization.
+   */
+  initialize: (params: {
+    seed: number;
+    dt: number;
+    maxFramesAhead?: number;
+    batchSize?: number;
+  }) => Promise<void>;
   run: () => void;
   pause: () => void;
   reset: () => void;
-  setCurrentViewedFrame: (frameIndex: number) => void;
+  /**
+   * Update backpressure configuration at runtime.
+   * Called by PlaybackProvider when playMode changes.
+   */
+  setBackpressure: (params: {
+    maxFramesAhead?: number;
+    batchSize?: number;
+  }) => void;
+  /**
+   * Acknowledge receipt of frames up to the given frame number.
+   * Used for backpressure control - the worker will pause computation
+   * when it gets too far ahead of acknowledged frames.
+   *
+   * This should be called by PlaybackProvider based on playMode:
+   * - viewOnly: never call ack
+   * - computeBuffer: call ack when in the buffer zone (near end of available frames)
+   * - computeMax: call ack every time new frames arrive
+   */
+  ack: (frameNumber: number) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
-  simulation: null,
   state: "NotRun",
   error: null,
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
-  currentViewedFrame: null,
   dt: 0.01,
+  maxTime: null,
+  totalFrames: 0,
+  getFrame: () => Promise.resolve(null),
+  getAllFrames: () => Promise.resolve([]),
+  getFramesInRange: () => Promise.resolve([]),
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
-  initializeParameterValuesFromDefaults: () => {},
-  initialize: () => {},
+  setMaxTime: () => {},
+  initialize: () => Promise.resolve(),
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setCurrentViewedFrame: () => {},
+  setBackpressure: () => {},
+  ack: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
