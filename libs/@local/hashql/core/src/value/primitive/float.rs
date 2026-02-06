@@ -103,7 +103,7 @@ impl<'heap> Float<'heap> {
     /// Panics if the stored value is not a valid JSON-formatted floating-point number.
     /// This should never happen for properly constructed AST nodes.
     #[must_use]
-    pub fn as_f32(&self) -> f32 {
+    pub fn as_f32(self) -> f32 {
         f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
@@ -140,7 +140,7 @@ impl<'heap> Float<'heap> {
     /// Panics if the stored value is not a valid JSON-formatted floating-point number.
     /// This should never happen for properly constructed AST nodes.
     #[must_use]
-    pub fn as_f64(&self) -> f64 {
+    pub fn as_f64(self) -> f64 {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
@@ -243,7 +243,7 @@ impl<'heap> Float<'heap> {
     /// assert_eq!(symbol.as_str(), "1.23e4");
     /// ```
     #[must_use]
-    pub const fn as_symbol(&self) -> Symbol<'heap> {
+    pub const fn as_symbol(self) -> Symbol<'heap> {
         self.value
     }
 }
