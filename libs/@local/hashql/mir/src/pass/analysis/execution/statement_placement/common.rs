@@ -3,7 +3,7 @@ use core::{alloc::Allocator, cell::Cell, cmp::Reverse};
 use hashql_core::{
     heap::Heap,
     id::{
-        Id,
+        Id as _,
         bit_vec::{BitRelations as _, DenseBitSet},
     },
     newtype,
