@@ -8421,6 +8421,7 @@ __metadata:
     "@tsconfig/strictest": "npm:^2.0.8"
     "@types/node": "npm:22.18.13"
     case-anything: "npm:3.1.0"
+    colorjs.io: "npm:0.6.1"
     npm-run-all: "npm:4.1.5"
     tsdown: "npm:^0.18.1"
     tsx: "npm:4.20.6"
@@ -25874,6 +25875,13 @@ __metadata:
   version: 2.0.20
   resolution: "colorette@npm:2.0.20"
   checksum: 10c0/e94116ff33b0ff56f3b83b9ace895e5bf87c2a7a47b3401b8c3f3226e050d5ef76cf4072fb3325f9dc24d1698f9b730baf4e05eeaf861d74a1883073f4c98a40
+  languageName: node
+  linkType: hard
+
+"colorjs.io@npm:0.6.1":
+  version: 0.6.1
+  resolution: "colorjs.io@npm:0.6.1"
+  checksum: 10c0/972aff12d88e86726898ff110aa15ea57a0348a3b958aeb93f4d6ae2d0ca91e487864e4d0d98b53943cc3ac3f747fb01b5ba3b6d922848d5c6888cb56e470b84
   languageName: node
   linkType: hard
 

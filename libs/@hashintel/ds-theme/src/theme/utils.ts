@@ -8,75 +8,75 @@ export function createSemanticSet(palette: string) {
   return {
     bg: {
       solid: {
-        DEFAULT: ps("9"),
-        hover: ps("10"),
-        active: ps("10"),
-        disabled: ps("6"),
+        DEFAULT: ps("90"),
+        hover: ps("100"),
+        active: ps("100"),
+        disabled: ps("60"),
       },
       surface: {
-        DEFAULT: ps("a2"),
-        hover: ps("a3"),
-        active: ps("a4"),
-        disabled: ps("a2"),
+        DEFAULT: ps("a20"),
+        hover: ps("a30"),
+        active: ps("a40"),
+        disabled: ps("a20"),
       },
       muted: {
-        DEFAULT: ps("3"),
-        hover: ps("4"),
-        active: ps("5"),
-        disabled: ps("2"),
+        DEFAULT: ps("30"),
+        hover: ps("40"),
+        active: ps("50"),
+        disabled: ps("20"),
       },
       subtle: {
-        DEFAULT: ps("a3"),
-        hover: ps("a4"),
-        active: ps("a5"),
-        disabled: ps("a2"),
+        DEFAULT: ps("a30"),
+        hover: ps("a40"),
+        active: ps("a50"),
+        disabled: ps("a20"),
       },
     },
     fg: {
       solid: { DEFAULT: { value: { _light: "white", _dark: "white" } } },
-      DEFAULT: ps("12"),
+      DEFAULT: ps("120"),
       muted: {
-        DEFAULT: ps("11"),
-        hover: ps("12"),
-        disabled: ps("9"),
+        DEFAULT: ps("110"),
+        hover: ps("120"),
+        disabled: ps("90"),
       },
       subtle: {
-        DEFAULT: ps("10"),
-        hover: ps("11"),
-        disabled: ps("8"),
+        DEFAULT: ps("100"),
+        hover: ps("110"),
+        disabled: ps("80"),
       },
       link: {
-        DEFAULT: ps("11"),
-        hover: ps("12"),
-        active: ps("11"),
-        disabled: ps("9"),
+        DEFAULT: ps("110"),
+        hover: ps("120"),
+        active: ps("110"),
+        disabled: ps("90"),
       },
     },
     bd: {
       solid: {
-        DEFAULT: ps("7"),
-        hover: ps("8"),
-        active: ps("8"),
-        disabled: ps("5"),
+        DEFAULT: ps("70"),
+        hover: ps("80"),
+        active: ps("80"),
+        disabled: ps("50"),
       },
       subtle: {
-        DEFAULT: ps("6"),
-        hover: ps("7"),
-        active: ps("7"),
-        disabled: ps("4"),
+        DEFAULT: ps("60"),
+        hover: ps("70"),
+        active: ps("70"),
+        disabled: ps("40"),
       },
       muted: {
-        DEFAULT: ps("a6"),
-        hover: ps("a7"),
-        active: ps("a7"),
-        disabled: ps("a4"),
+        DEFAULT: ps("a60"),
+        hover: ps("a70"),
+        active: ps("a70"),
+        disabled: ps("a40"),
       },
     },
   };
 }
 
 /**
- * Wraps a base palette (0-12, a0-a12 scale) with semantic tokens (bg, fg, bd).
+ * Wraps a base palette (00-120, a00-a120 scale) with semantic tokens (bg, fg, bd).
  * This allows colorPalette switching to work - each palette has the full structure.
  */
 export function withSemantics<T extends Record<string, unknown>>(
