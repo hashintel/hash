@@ -8,10 +8,10 @@ import type { Token } from "../styled-system/tokens/tokens";
  * Background color tokens.
  *
  * Structure (from createSemanticSet):
- * - bg.solid: Prominent solid backgrounds (step 9, hover → 10)
- * - bg.surface: Elevated surfaces with alpha (step a2, hover → a3)
- * - bg.muted: Subtle solid backgrounds (step 3, hover → 4)
- * - bg.subtle: Subtle alpha backgrounds (step a3, hover → a4)
+ * - bg.solid: Prominent solid backgrounds (step 90, hover → 100)
+ * - bg.surface: Elevated surfaces with alpha (step a20, hover → a30)
+ * - bg.muted: Subtle solid backgrounds (step 30, hover → 40)
+ * - bg.subtle: Subtle alpha backgrounds (step a30, hover → a40)
  *
  * Each has: DEFAULT, hover, active, disabled variants
  */
@@ -28,25 +28,25 @@ const bgCategories: {
   {
     key: "solid",
     label: "Solid",
-    desc: "Prominent buttons, CTAs (step 9)",
+    desc: "Prominent buttons, CTAs (step 90)",
     useDarkText: false,
   },
   {
     key: "surface",
     label: "Surface",
-    desc: "Elevated cards, overlays (alpha step a2)",
+    desc: "Elevated cards, overlays (alpha step a20)",
     useDarkText: true,
   },
   {
     key: "muted",
     label: "Muted",
-    desc: "Subtle solid fills (step 3)",
+    desc: "Subtle solid fills (step 30)",
     useDarkText: true,
   },
   {
     key: "subtle",
     label: "Subtle",
-    desc: "Very light alpha fills (step a3)",
+    desc: "Very light alpha fills (step a30)",
     useDarkText: true,
   },
 ];

@@ -8,9 +8,9 @@ import type { Token } from "../styled-system/tokens/tokens";
  * Border color tokens.
  *
  * Structure (from createSemanticSet):
- * - bd.solid: Strong visible borders (step 7, hover → 8)
- * - bd.subtle: Light borders (step 6, hover → 7)
- * - bd.muted: Very subtle alpha borders (step a6, hover → a7)
+ * - bd.solid: Strong visible borders (step 70, hover → 80)
+ * - bd.subtle: Light borders (step 60, hover → 70)
+ * - bd.muted: Very subtle alpha borders (step a60, hover → a70)
  *
  * Each has: DEFAULT, hover, active, disabled variants
  */
@@ -22,10 +22,10 @@ const bdCategories: { key: BdCategory; label: string; desc: string }[] = [
   {
     key: "solid",
     label: "Solid",
-    desc: "Strong borders, focused inputs (step 7)",
+    desc: "Strong borders, focused inputs (step 70)",
   },
-  { key: "subtle", label: "Subtle", desc: "Light borders, cards (step 6)" },
-  { key: "muted", label: "Muted", desc: "Very subtle alpha borders (step a6)" },
+  { key: "subtle", label: "Subtle", desc: "Light borders, cards (step 60)" },
+  { key: "muted", label: "Muted", desc: "Very subtle alpha borders (step a60)" },
 ];
 
 const states: StateKey[] = ["DEFAULT", "hover", "active", "disabled"];

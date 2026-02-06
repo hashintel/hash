@@ -30,7 +30,7 @@ const TransparencyBackground = ({ children }: { children: ReactNode }) => (
 
 /**
  * Color palettes from the radix-based generation.
- * These follow the radix 1-12 scale plus a1-a12 alpha variants.
+ * These follow the radix 00-120 scale with half-steps, plus a00-a120 alpha variants.
  */
 const COLOR_PALETTES = [
   "gray",
@@ -46,34 +46,28 @@ const COLOR_PALETTES = [
   "pink",
 ] as const;
 
-/** Solid scale steps (0-12) - step 0 is pure white/black */
-const SOLID_STEPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+/** Solid scale steps (00-120) - step 00 is pure white/black, with OKLCH half-steps */
+const SOLID_STEPS = [
+  "00", "05", "10", "15", "20", "25", "30", "35", "40", "45",
+  "50", "55", "60", "65", "70", "75", "80", "85", "90", "95",
+  "100", "105", "110", "115", "120",
+] as const;
 
-/** Alpha scale steps (a0-a12) - step a0 is transparent */
+/** Alpha scale steps (a00-a120) - step a00 is transparent, with OKLCH half-steps */
 const ALPHA_STEPS = [
-  "a0",
-  "a1",
-  "a2",
-  "a3",
-  "a4",
-  "a5",
-  "a6",
-  "a7",
-  "a8",
-  "a9",
-  "a10",
-  "a11",
-  "a12",
+  "a00", "a05", "a10", "a15", "a20", "a25", "a30", "a35", "a40", "a45",
+  "a50", "a55", "a60", "a65", "a70", "a75", "a80", "a85", "a90", "a95",
+  "a100", "a105", "a110", "a115", "a120",
 ] as const;
 
 const swatchStyles = css({
-  width: "[48px]",
-  height: "[48px]",
+  width: "[32px]",
+  height: "[32px]",
   borderRadius: "md.3",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: "[9px]",
+  fontSize: "[7px]",
   fontWeight: "medium",
 });
 
@@ -87,9 +81,9 @@ const labelStyles = css({
 });
 
 const headerStyles = css({
-  fontSize: "[9px]",
+  fontSize: "[7px]",
   fontWeight: "medium",
-  width: "[48px]",
+  width: "[32px]",
   textAlign: "center",
   color: "fg.muted",
 });
@@ -165,7 +159,7 @@ const StepHeaders = ({
 export const RadixSolidScales: Story = () => (
   <VStack gap="4" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Radix Solid Scales (0-12)
+      Radix Solid Scales (00-120)
     </h1>
     <p
       className={css({
@@ -174,9 +168,10 @@ export const RadixSolidScales: Story = () => (
         maxWidth: "[600px]",
       })}
     >
-      Step 0 is pure white (light) / black (dark). Steps 1-2 are tinted
-      backgrounds, 3-5 are interactive, 6-8 are borders, 9-10 are solid
-      backgrounds, and 11-12 are text.
+      Step 00 is pure white (light) / black (dark). Steps 10-20 are tinted
+      backgrounds, 30-50 are interactive, 60-80 are borders, 90-100 are
+      solid backgrounds, and 110-120 are text. Half-steps (05, 15, ...) are
+      OKLCH interpolations.
     </p>
     <VStack gap="1" alignItems="flex-start">
       <StepHeaders steps={SOLID_STEPS} />
@@ -192,7 +187,7 @@ RadixSolidScales.storyName = "Solid Scales";
 export const RadixAlphaScales: Story = () => (
   <VStack gap="4" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Radix Alpha Scales (a0-a12)
+      Radix Alpha Scales (a00-a120)
     </h1>
     <p
       className={css({
@@ -201,9 +196,9 @@ export const RadixAlphaScales: Story = () => (
         maxWidth: "[600px]",
       })}
     >
-      Step a0 is fully transparent. Alpha variants a1-a12 use transparency
-      instead of solid colors, useful for overlays, shadows, and blending with
-      varying backgrounds.
+      Step a00 is fully transparent. Alpha variants a10-a120 use transparency
+      instead of solid colors, useful for overlays, shadows, and blending
+      with varying backgrounds. Half-steps are OKLCH interpolations.
     </p>
     <TransparencyBackground>
       <VStack gap="1" alignItems="flex-start">
@@ -245,7 +240,7 @@ export const StaticColors: Story = () => (
       </VStack>
       <VStack gap="2" alignItems="flex-start">
         <h2 className={css({ fontSize: "lg", fontWeight: "medium" })}>White</h2>
-        <Box p="4" bg="gray.12" borderRadius="md.3">
+        <Box p="4" bg="gray.120" borderRadius="md.3">
           <HStack gap="1">
             {ALPHA_STEPS.map((step) => (
               <ColorSwatch key={step} colorName="white" step={step} />
@@ -412,10 +407,10 @@ export const StatusColors: Story = () => (
     >
       Semantic status tokens that alias color palettes. Use{" "}
       <code className={css({ font: "mono", fontSize: "xs" })}>
-        status.info.3
+        status.info.30
       </code>{" "}
       instead of{" "}
-      <code className={css({ font: "mono", fontSize: "xs" })}>blue.3</code> for
+      <code className={css({ font: "mono", fontSize: "xs" })}>blue.30</code> for
       intent-driven styling.
     </p>
     <VStack gap="4" alignItems="flex-start">
@@ -427,7 +422,7 @@ export const StatusColors: Story = () => (
             mb: "2",
           })}
         >
-          Solid Steps (0-12)
+          Solid Steps (00-120)
         </h2>
         <VStack gap="1" alignItems="flex-start">
           <StepHeaders steps={SOLID_STEPS} />
@@ -444,7 +439,7 @@ export const StatusColors: Story = () => (
             mb: "2",
           })}
         >
-          Alpha Steps (a0-a12)
+          Alpha Steps (a00-a120)
         </h2>
         <TransparencyBackground>
           <VStack gap="1" alignItems="flex-start">
