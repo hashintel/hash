@@ -1,0 +1,6 @@
+services:
+  postgres:
+    shm_size: 4GB
+
+    volumes:
+      - ./postgres/postgresql.bench.conf:/etc/postgresql/postgresql.conf:ro
