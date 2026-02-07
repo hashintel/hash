@@ -4,6 +4,12 @@ export default defineConfig({
   // Whether to use css reset
   preflight: { scope: ".petrinaut-root" },
 
+  // Prefix all utility classes (e.g. `.d_flex` → `.pn_d_flex`)
+  // prefix: "pn",
+
+  // Scope CSS variables to petrinaut root instead of :root
+  cssVarRoot: ".petrinaut-root",
+
   // Where to look for css declarations
   include: ["./src/**/*.{js,jsx,ts,tsx}"],
 

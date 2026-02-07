@@ -8,6 +8,7 @@
     "url": "git+https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/petrinaut"
   },
+  "style": "dist/main.css",
   "files": [
     "dist",
     "CHANGELOG.md",
