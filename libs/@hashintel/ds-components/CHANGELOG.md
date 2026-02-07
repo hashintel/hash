@@ -1,5 +1,12 @@
 # @hashintel/ds-components
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [[`6fa6625`](https://github.com/hashintel/hash/commit/6fa662581e74a0aa8b6577a10258b2d3a81bcc30)]:
+  - @hashintel/ds-helpers@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes

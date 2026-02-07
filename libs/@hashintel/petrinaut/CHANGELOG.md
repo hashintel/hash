@@ -1,5 +1,17 @@
 # @hashintel/petrinaut
 
+## 0.0.9
+
+### Patch Changes
+
+- [#8285](https://github.com/hashintel/hash/pull/8285) [`673ece2`](https://github.com/hashintel/hash/commit/673ece205d7622936980bf744574654026aad1c3) Thanks [@kube](https://github.com/kube)! - Fix read-only tooltips to always show during simulation mode
+
+- [#8295](https://github.com/hashintel/hash/pull/8295) [`4b22f76`](https://github.com/hashintel/hash/commit/4b22f7608491fe10a8b90753fe0cc47f99dbd296) Thanks [@kube](https://github.com/kube)! - Add configurable simulation playback speed and maximum run time
+
+- Updated dependencies [[`6fa6625`](https://github.com/hashintel/hash/commit/6fa662581e74a0aa8b6577a10258b2d3a81bcc30)]:
+  - @hashintel/ds-helpers@0.0.5
+  - @hashintel/ds-components@0.0.5
+
 ## 0.0.8
 
 ### Patch Changes
