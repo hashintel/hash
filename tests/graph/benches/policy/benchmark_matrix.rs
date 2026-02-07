@@ -6,6 +6,7 @@ use hash_graph_authorization::policies::{
     principal::actor::AuthenticatedActor,
     store::{PolicyStore as _, PrincipalStore as _, ResolvePoliciesParams},
 };
+use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::migration::StoreMigration as _;
 use type_system::principal::actor::ActorId;
 
@@ -313,12 +314,28 @@ async fn setup_benchmark_for_seed(
     let system_actor_id = ActorId::from(system_account);
 
     // 2. Seed data if needed
-    if let Some(seed_config) = seed_level.to_seed_config() {
+    let data = if let Some(seed_config) = seed_level.to_seed_config() {
         let data = seed_benchmark_data(&mut store_wrapper.store, system_actor_id, &seed_config)
             .await
             .expect("could not seed benchmark data");
         Some(data)
     } else {
         None
-    }
+    };
+
+    // 3. Update table statistics so the query planner has accurate row counts. Without this,
+    //    autoanalyze may or may not have run before benchmarks start (depending on HashMap
+    //    iteration order of seed levels), causing wildly different query plans and up to ~80%
+    //    variance between runs.
+    store_wrapper
+        .store
+        .as_client()
+        .batch_execute(
+            "ANALYZE principal, actor, actor_group, actor_role, role, team, team_hierarchy, \
+             policy_edition, policy_action",
+        )
+        .await
+        .expect("could not analyze tables");
+
+    data
 }
