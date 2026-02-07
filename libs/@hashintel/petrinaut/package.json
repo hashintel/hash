@@ -80,7 +80,7 @@
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "4.0.16"
+    "vitest": "4.0.18"
   },
   "peerDependencies": {
     "@hashintel/ds-components": "0.0.4",
