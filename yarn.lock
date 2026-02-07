@@ -556,7 +556,9 @@ __metadata:
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
     "@hashintel/block-design-system": "workspace:*"
     "@hashintel/design-system": "workspace:*"
-    "@hashintel/petrinaut-old": "workspace:*"
+    "@hashintel/ds-components": "workspace:*"
+    "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/petrinaut": "workspace:*"
     "@hashintel/query-editor": "workspace:*"
     "@hashintel/type-editor": "workspace:*"
     "@lit-labs/react": "npm:1.2.1"
@@ -7672,7 +7674,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-components@workspace:^, @hashintel/ds-components@workspace:libs/@hashintel/ds-components":
+"@hashintel/ds-components@workspace:*, @hashintel/ds-components@workspace:^, @hashintel/ds-components@workspace:libs/@hashintel/ds-components":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
@@ -7768,7 +7770,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut-old@workspace:*, @hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old":
+"@hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old"
   dependencies:
@@ -7801,7 +7803,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
+"@hashintel/petrinaut@workspace:*, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
