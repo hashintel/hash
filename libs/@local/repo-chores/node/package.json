@@ -10,7 +10,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.71.2",
+    "@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.4",
     "@linear/sdk": "61.0.0",
     "@local/hash-backend-utils": "0.0.0-private",
