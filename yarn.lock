@@ -8302,7 +8302,6 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@mantine/hooks": "npm:8.3.5"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
-    "@mui/material": "npm:5.18.0"
     "@pandacss/dev": "npm:1.4.3"
     "@sentry/react": "npm:10.22.0"
     "@testing-library/dom": "npm:10.4.0"
