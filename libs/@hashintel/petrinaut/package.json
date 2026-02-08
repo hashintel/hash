@@ -48,7 +48,6 @@
     "@hashintel/refractive": "workspace:^",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
-    "@mui/material": "5.18.0",
     "d3-array": "3.2.4",
     "d3-scale": "4.0.2",
     "elkjs": "0.11.0",
