@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     root: isLibMode ? undefined : "demo-site",
 
     // Use relative paths for library assets (fixes worker URL in webpack consumers)
-    // base: isLibMode ? "./" : undefined,
+    base: isLibMode ? "./" : undefined,
 
     resolve: {
       // Prefer browser exports from packages
@@ -68,6 +68,22 @@ export default defineConfig(({ mode }) => {
           plugins: ["babel-plugin-react-compiler"],
         },
       }),
+
+      // Vite lib mode emits worker URLs as `"" + new URL("assets/...", import.meta.url).href`
+      // wrapped in an outer `new URL(...)`. Simplify to `new URL("assets/...", import.meta.url)`.
+      isLibMode && {
+        name: "simplify-worker-url",
+        generateBundle(_, bundle) {
+          for (const chunk of Object.values(bundle)) {
+            if (chunk.type === "chunk") {
+              chunk.code = chunk.code.replace(
+                /new URL\(\s*\/\* @vite-ignore \*\/\s*"" \+ new URL\(("assets\/[^"]+"), import\.meta\.url\)\.href,\s*import\.meta\.url\s*\)/g,
+                "new URL($1, import.meta.url)",
+              );
+            }
+          }
+        },
+      },
 
       isLibMode &&
         dts({

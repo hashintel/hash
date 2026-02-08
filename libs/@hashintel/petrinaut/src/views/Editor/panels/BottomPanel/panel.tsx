@@ -141,7 +141,7 @@ export const BottomPanel: React.FC = () => {
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{
-        position: "fixed",
+        position: "absolute",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
