@@ -216,24 +216,24 @@ export const ColorPalettes: Story = () => (
       <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
         Static Colors (black / white)
       </h2>
-      <HStack gap="8">
+      <VStack gap="4" alignItems="flex-start">
         <VStack gap="2" alignItems="flex-start">
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             Black
           </h3>
-          <TransparencyBackground>
+          <Box p="4" borderRadius="md.3" style={{ backgroundColor: "white" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="black" step={step} />
               ))}
             </HStack>
-          </TransparencyBackground>
+          </Box>
         </VStack>
         <VStack gap="2" alignItems="flex-start">
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             White
           </h3>
-          <Box p="4" bg="neutral.s120" borderRadius="md.3">
+          <Box p="4" borderRadius="md.3" style={{ backgroundColor: "black" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="white" step={step} />
@@ -241,7 +241,7 @@ export const ColorPalettes: Story = () => (
             </HStack>
           </Box>
         </VStack>
-      </HStack>
+      </VStack>
     </VStack>
   </VStack>
 );
