@@ -15,19 +15,30 @@ jobs:
       contents: read
       security-events: write
 
+    if: (github.actor != 'dependabot[bot]')
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
+      - name: Mark workspace as safe for Docker
+        run: git config --global --add safe.directory /github/workspace
+
       - name: Run Gitleaks
         uses: docker://zricethezav/gitleaks:v8.30.0
         with:
           args: detect --source /github/workspace --log-opts="${{ github.event.pull_request.base.sha || github.event.before }}..HEAD" --report-format sarif --report-path /github/workspace/results.sarif
-        continue-on-error: true
+
+      - name: Check SARIF file exists
+        id: sarif_file_check
+        if: always()
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
+        with:
+          files: "results.sarif"
 
       - name: Upload SARIF
-        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        if: always() && steps.sarif_file_check.outputs.files_exists == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # v4.31.7
         with:
           sarif_file: results.sarif
