@@ -30,6 +30,57 @@ export const preset = definePreset({
     extend: {
       light: ":root &, .light &, [data-theme=light] &",
       dark: '.dark &, [data-theme="dark"] &',
+
+      // Safe hover: only applies on devices that truly support hover
+      // (mirrors Tailwind's hover variant which wraps in @media (hover: hover))
+      // Use data-support-hover to trigger statically in stories
+      supportHover: [
+        "@media (hover: hover) and (pointer: fine)",
+        "&:is(:hover, [data-support-hover])",
+      ],
+
+      // Focus-visible within: element has a descendant with focus-visible
+      focusVisibleWithin:
+        "&:is(:has(:focus-visible), [data-focus-visible-within])",
+
+      // Inert: element or ancestor is inert (mirrors Tailwind's inert variant)
+      inert: "&:is([inert], [inert] *, [data-inert])",
+
+      // Group focus-visible-within: parent .group has a focus-visible descendant
+      groupFocusVisibleWithin:
+        ".group:is(:has(:focus-visible), [data-focus-visible-within]) &",
+
+      // Peer focus-visible-within: sibling .peer has a focus-visible descendant
+      peerFocusVisibleWithin:
+        ".peer:is(:has(:focus-visible), [data-focus-visible-within]) ~ &",
+
+      // User-valid / user-invalid: form validation after user interaction
+      // (mirrors Tailwind's user-valid / user-invalid variants)
+      userValid: "&:is(:user-valid, [data-user-valid])",
+      userInvalid: "&:is(:user-invalid, [data-user-invalid])",
+
+      // Pointer/input capability queries (mirrors Tailwind's pointer variants)
+      // Use data-pointer-* to trigger statically in stories
+      pointerFine: "@media (pointer: fine)",
+      pointerCoarse: "@media (pointer: coarse)",
+      pointerNone: "@media (pointer: none)",
+      anyPointerFine: "@media (any-pointer: fine)",
+      anyPointerCoarse: "@media (any-pointer: coarse)",
+
+      // Interactive compound: ancestor matching a state (Tailwind's `in-*` pattern)
+      // style children when _any_ ancestor matches
+      inHover: ":where(:is(*:hover, [data-in-hover])) &",
+      inFocus: ":where(:is(*:focus, [data-in-focus])) &",
+      inFocusVisible: ":where(:is(*:focus-visible, [data-in-focus-visible])) &",
+      inFocusWithin: ":where(:is(*:focus-within, [data-in-focus-within])) &",
+
+      // Has-* compounds: parent matches when a descendant matches a state
+      hasHover: "&:is(:has(*:hover), [data-has-hover])",
+      hasFocus: "&:is(:has(*:focus), [data-has-focus])",
+      hasFocusVisible:
+        "&:is(:has(*:focus-visible), [data-has-focus-visible])",
+      hasFocusWithin: "&:is(:has(*:focus-within), [data-has-focus-within])",
+      hasChecked: "&:is(:has(*:checked), [data-has-checked])",
     },
   },
   globalCss,
