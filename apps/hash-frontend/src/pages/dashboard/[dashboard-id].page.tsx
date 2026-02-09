@@ -54,7 +54,6 @@ import { useSlideStack } from "../shared/slide-stack";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
 import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
-import { processVerticesIntoFlights } from "./[dashboard-id].page/dummy-data";
 import { generateDashboardItems } from "./[dashboard-id].page/generate-dashboard-items";
 import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 import type { DashboardData, DashboardItemData } from "./shared/types";
@@ -102,7 +101,18 @@ const DashboardPage: NextPageWithLayout = () => {
     null,
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [scriptParamsByItemId, setScriptParamsByItemId] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [hoveredEntityId, setHoveredEntityId] = useState<EntityId | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleScriptParamsChange = useCallback(
+    (itemId: string, params: Record<string, string>) => {
+      setScriptParamsByItemId((prev) => ({ ...prev, [itemId]: params }));
+    },
+    [],
+  );
 
   // Listen for fullscreen changes (e.g., user pressing Escape)
   useEffect(() => {
@@ -267,17 +277,11 @@ const DashboardPage: NextPageWithLayout = () => {
     //   });
     // }
 
-    // Process flight data from API and generate dashboard items
-    const flightVertices = flightGraphData?.queryEntitySubgraph.subgraph
-      .vertices as
+    // Pass API vertices to generate dashboard items (raw data for script-based items)
+    const vertices = flightGraphData?.queryEntitySubgraph.subgraph.vertices as
       | Record<string, Record<string, { kind: string; inner: unknown }>>
       | undefined;
-    const flightsWithLinksResolved = flightVertices
-      ? processVerticesIntoFlights(flightVertices)
-      : [];
-    const items: DashboardItemData[] = generateDashboardItems(
-      flightsWithLinksResolved,
-    );
+    const items: DashboardItemData[] = generateDashboardItems(vertices ?? {});
 
     return {
       entityId: dashboardEntity.metadata.recordId.entityId,
@@ -321,6 +325,9 @@ const DashboardPage: NextPageWithLayout = () => {
 
   const handleLayoutChange = useCallback(
     async (newLayout: GridPosition[]) => {
+      // @todo before merging – remove this return, just skipping db update for demo purpose
+      return;
+
       if (!dashboard) {
         return;
       }
@@ -578,12 +585,16 @@ const DashboardPage: NextPageWithLayout = () => {
 
       <DashboardGrid
         dashboard={dashboard}
+        scriptParamsByItemId={scriptParamsByItemId}
+        onScriptParamsChange={handleScriptParamsChange}
         onAddItemClick={handleAddItem}
         onLayoutChange={handleLayoutChange}
         onItemConfigureClick={handleItemConfigureClick}
         onItemRefreshClick={handleItemRefreshClick}
         onItemDeleteClick={handleItemDeleteClick}
         onEntityClick={handleEntityClick}
+        hoveredEntityId={hoveredEntityId}
+        onHoveredEntityChange={setHoveredEntityId}
         isEditing={isEditing}
         canEdit={canEdit}
         isDataLoading={flightGraphLoading}

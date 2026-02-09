@@ -42,6 +42,7 @@ const buildEChartsOption = (
     showLegend = true,
     showGrid = true,
     showTooltip = true,
+    tooltipLabelKey,
     colors = DEFAULT_COLORS,
   } = chartConfig;
 
@@ -197,6 +198,42 @@ const buildEChartsOption = (
               return "";
             },
           }),
+          ...(needsCartesianAxes &&
+            !isGeoScatter &&
+            tooltipLabelKey && {
+              formatter: (params: unknown) => {
+                const p = params as
+                  | { dataIndex?: number }
+                  | { dataIndex?: number }[];
+                const items = Array.isArray(p) ? p : [p];
+                if (items.length === 0) return "";
+                const dataIndex = items[0]?.dataIndex;
+                if (
+                  dataIndex == null ||
+                  dataIndex < 0 ||
+                  dataIndex >= data.length
+                )
+                  return "";
+                const row = data[dataIndex] as Record<string, unknown>;
+                const label = String(
+                  row[tooltipLabelKey] ?? row[categoryKey] ?? "",
+                );
+                const lines = [label];
+                for (const item of items) {
+                  const seriesItem = item as {
+                    seriesName?: string;
+                    value?: unknown;
+                  };
+                  if (
+                    seriesItem.seriesName != null &&
+                    seriesItem.value != null
+                  ) {
+                    lines.push(`${seriesItem.seriesName}: ${seriesItem.value}`);
+                  }
+                }
+                return lines.join("<br/>");
+              },
+            }),
         }
       : undefined,
     legend: showLegend

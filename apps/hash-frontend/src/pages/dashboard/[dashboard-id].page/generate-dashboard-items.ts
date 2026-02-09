@@ -5,14 +5,20 @@
  * various chart types and visualizations.
  */
 import type { EntityId } from "@blockprotocol/type-system";
-import type {
-  ChartConfig,
-  ChartType,
-} from "@local/hash-isomorphic-utils/dashboard-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import type { DashboardItemData } from "../shared/types";
-import type { FlightWithLinksResolved } from "./dummy-data";
+import { DUMMY_ITEM_CONFIGS } from "./dashboard-item-scripts";
+import {
+  type FlightWithLinksResolved,
+  processVerticesIntoFlights,
+} from "./dummy-data";
+
+/** Vertices map from API (subgraph.vertices). Same shape as input to processVerticesIntoFlights. */
+export type VerticesMap = Record<
+  string,
+  Record<string, { kind: string; inner: unknown }>
+>;
 
 type SimplifiedFlight = {
   entityId: EntityId;
@@ -69,8 +75,9 @@ type ProcessedFlightData = {
 
 /**
  * Process the raw flight data into a simplified format.
+ * Exported for use by runDataScript (dashboard data scripts).
  */
-const processFlightData = (
+export const processFlightData = (
   flightData: FlightWithLinksResolved[],
 ): ProcessedFlightData[] => {
   return flightData.map((item) => {
@@ -380,7 +387,7 @@ const generateScheduleTableData = (data: ProcessedFlightData[]) => {
  * Generate chart data for flights with position data (scatter chart).
  * Shows flights that have lat/lng coordinates.
  */
-const generateFlightPositionsData = (data: ProcessedFlightData[]) => {
+const _generateFlightPositionsData = (data: ProcessedFlightData[]) => {
   return data
     .filter(
       (
@@ -456,7 +463,7 @@ const _generateDepartureTimeDistributionData = (
  * Generate daily delay trend data with 7-day rolling average.
  * Shows average delay per day over the entire date range.
  */
-const generateDailyDelayTrendData = (data: ProcessedFlightData[]) => {
+const _generateDailyDelayTrendData = (data: ProcessedFlightData[]) => {
   const dailyDelays: Record<string, { totalDelay: number; count: number }> = {};
 
   for (const item of data) {
@@ -524,7 +531,7 @@ const generateDailyDelayTrendData = (data: ProcessedFlightData[]) => {
 /**
  * Generate delay data grouped by day of week.
  */
-const generateDelayByDayOfWeekData = (data: ProcessedFlightData[]) => {
+const _generateDelayByDayOfWeekData = (data: ProcessedFlightData[]) => {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const dayDelays: Record<number, { totalDelay: number; count: number }> = {};
 
@@ -569,7 +576,7 @@ const generateDelayByDayOfWeekData = (data: ProcessedFlightData[]) => {
 /**
  * Generate average delay by hour of day.
  */
-const generateDelayByHourData = (data: ProcessedFlightData[]) => {
+const _generateDelayByHourData = (data: ProcessedFlightData[]) => {
   const hourDelays: Record<number, { totalDelay: number; count: number }> = {};
 
   // Initialize all hours
@@ -613,7 +620,7 @@ const generateDelayByHourData = (data: ProcessedFlightData[]) => {
 /**
  * Generate bar data for average delay per flight by airline (sorted by worst first).
  */
-const generateAirlinePerformanceData = (data: ProcessedFlightData[]) => {
+const _generateAirlinePerformanceData = (data: ProcessedFlightData[]) => {
   const airlineStats: Record<
     string,
     { totalDelayMinutes: number; flights: number }
@@ -651,7 +658,7 @@ const generateAirlinePerformanceData = (data: ProcessedFlightData[]) => {
 /**
  * Generate bar data for average delay per flight by route (sorted by worst first).
  */
-const generateRoutePerformanceData = (data: ProcessedFlightData[]) => {
+const _generateRoutePerformanceData = (data: ProcessedFlightData[]) => {
   const routeStats: Record<
     string,
     { totalDelayMinutes: number; flights: number }
@@ -697,7 +704,7 @@ const generateRoutePerformanceData = (data: ProcessedFlightData[]) => {
 /**
  * Get date range string for chart titles.
  */
-const getDateRangeString = (data: ProcessedFlightData[]): string => {
+const _getDateRangeString = (data: ProcessedFlightData[]): string => {
   let minDate: string | null = null;
   let maxDate: string | null = null;
 
@@ -736,12 +743,7 @@ const getDateRangeString = (data: ProcessedFlightData[]): string => {
 /**
  * Arrivals board status type.
  */
-type ArrivalsBoardStatus =
-  | "On Time"
-  | "Landing"
-  | "Delayed"
-  | "Landed"
-  | "Cancelled";
+type ArrivalsBoardStatus = "On Time" | "Delayed" | "Landed" | "Cancelled";
 
 /**
  * Get the date string (YYYY-MM-DD) from an ISO timestamp.
@@ -777,7 +779,7 @@ const findMostRecentDate = (data: ProcessedFlightData[]): string | null => {
  * Generate arrivals board data for the classic airport display.
  * Shows only flights from the most recent date in the data.
  */
-const generateArrivalsBoardData = (data: ProcessedFlightData[]) => {
+const _generateArrivalsBoardData = (data: ProcessedFlightData[]) => {
   const formatTime = (isoString?: string): string => {
     if (!isoString) {
       return "--:--";
@@ -799,8 +801,6 @@ const generateArrivalsBoardData = (data: ProcessedFlightData[]) => {
     delaySeconds?: number,
   ): ArrivalsBoardStatus => {
     switch (flightStatus) {
-      case "Active":
-        return "Landing";
       case "Landed":
         return "Landed";
       case "Cancelled":
@@ -849,261 +849,54 @@ const generateArrivalsBoardData = (data: ProcessedFlightData[]) => {
 };
 
 /**
- * Create a dashboard item with the given configuration.
- */
-const createDashboardItem = (
-  id: string,
-  title: string,
-  chartType: ChartType,
-  chartData: unknown[],
-  chartConfig: ChartConfig,
-  gridPosition: { x: number; y: number; w: number; h: number },
-): DashboardItemData => ({
-  entityId: `demo-entity-${id}` as DashboardItemData["entityId"],
-  linkEntityId: `demo-link-${id}` as DashboardItemData["linkEntityId"],
-  title,
-  userGoal: `Display ${title.toLowerCase()}`,
-  chartType,
-  chartData,
-  chartConfig,
-  gridPosition: {
-    i: id,
-    ...gridPosition,
-  },
-  configurationStatus: "ready",
-});
-
-/**
- * Create a custom dashboard item (non-ECharts) without chartConfig.
- * Custom chart types like "departure-board" are handled by CustomRenderer.
- */
-const createCustomDashboardItem = (
-  id: string,
-  title: string,
-  chartType: string, // Custom types like "departure-board"
-  chartData: unknown[],
-  gridPosition: { x: number; y: number; w: number; h: number },
-): DashboardItemData => ({
-  entityId: `demo-entity-${id}` as DashboardItemData["entityId"],
-  linkEntityId: `demo-link-${id}` as DashboardItemData["linkEntityId"],
-  title,
-  userGoal: `Display ${title.toLowerCase()}`,
-  chartType,
-  chartData,
-  chartConfig: null,
-  gridPosition: {
-    i: id,
-    ...gridPosition,
-  },
-  configurationStatus: "ready",
-});
-
-/**
- * Generate all dashboard items for the airline operator demo.
+ * Generate dashboard items from API vertices (raw data).
+ * Each item has rawData (vertices), dataScript, and scriptParams; chartData is computed at render time.
  */
 export const generateDashboardItems = (
-  flightData: FlightWithLinksResolved[],
+  vertices: VerticesMap,
 ): DashboardItemData[] => {
-  const processedData = processFlightData(flightData);
-  const items: DashboardItemData[] = [];
-
-  // 1. Arrivals Board (Custom Component) - Top, full width, prominent
-  const arrivalsBoardData = generateArrivalsBoardData(processedData);
-  const mostRecentDate = findMostRecentDate(processedData);
-  const formattedDate = mostRecentDate
-    ? new Date(mostRecentDate).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "";
-  items.push(
-    createCustomDashboardItem(
-      "arrivals-board",
-      `Arrivals - Gatwick Airport (LGW)${formattedDate ? ` - ${formattedDate}` : ""}`,
-      "flight-board",
-      arrivalsBoardData,
-      { x: 0, y: 0, w: 12, h: 8 },
-    ),
-  );
-
-  // 2. Flight Positions World Map - Second row, full width
-  const positionData = generateFlightPositionsData(processedData);
-  if (positionData.length > 0) {
-    items.push(
-      createCustomDashboardItem(
-        "flight-positions",
-        "Live Flight Positions",
-        "world-map",
-        positionData,
-        { x: 0, y: 7, w: 12, h: 12 },
-      ),
-    );
-  }
-
-  // Get date range for chart titles
-  const dateRangeStr = getDateRangeString(processedData);
-  const dateRangeSuffix = dateRangeStr ? ` (${dateRangeStr})` : "";
-
-  // 3. Delay Trend (Line Chart with Rolling Average) - Third row, full width
-  const delayTrendData = generateDailyDelayTrendData(processedData);
-  items.push(
-    createDashboardItem(
-      "delay-trend",
-      `Daily Average Delay Trend${dateRangeSuffix}`,
-      "line",
-      delayTrendData,
-      {
-        categoryKey: "date",
-        series: [
-          {
-            type: "line",
-            dataKey: "avgDelay",
-            name: "Daily Avg Delay",
-            color: "#ef4444",
-            smooth: false,
-          },
-          {
-            type: "line",
-            dataKey: "rollingAvg",
-            name: "7-Day Rolling Avg",
-            color: "#3b82f6",
-            smooth: true,
-          },
-        ],
-        xAxisLabel: "Date",
-        yAxisLabel: "Average Delay (min)",
-        showLegend: true,
-        showTooltip: true,
-        showGrid: true,
-      },
-      { x: 0, y: 15, w: 12, h: 6 },
-    ),
-  );
-
-  // 4. Delay by Day of Week (Bar Chart) - Fourth row left
-  const dayOfWeekData = generateDelayByDayOfWeekData(processedData);
-  items.push(
-    createDashboardItem(
-      "delay-by-day",
-      `Avg Delay by Day of Week${dateRangeSuffix}`,
-      "bar",
-      dayOfWeekData,
-      {
-        categoryKey: "day",
-        series: [
-          {
-            type: "bar",
-            dataKey: "avgDelay",
-            name: "Avg Delay (min)",
-            color: "#f59e0b",
-          },
-        ],
-        showLegend: false,
-        showTooltip: true,
-        showGrid: true,
-      },
-      { x: 0, y: 21, w: 6, h: 6 },
-    ),
-  );
-
-  // 5. Average Delay by Hour (Line Chart) - Fourth row right
-  const hourlyDelayData = generateDelayByHourData(processedData);
-  items.push(
-    createDashboardItem(
-      "delay-by-hour",
-      `Avg Delay by Hour (UTC)${dateRangeSuffix}`,
-      "line",
-      hourlyDelayData,
-      {
-        categoryKey: "hour",
-        series: [
-          {
-            type: "line",
-            dataKey: "avgDelay",
-            name: "Avg Delay (min)",
-            color: "#8b5cf6",
-            smooth: true,
-            areaStyle: { opacity: 0.2 },
-          },
-        ],
-        showLegend: false,
-        showTooltip: true,
-        showGrid: true,
-      },
-      { x: 6, y: 21, w: 6, h: 6 },
-    ),
-  );
-
-  // 6. Airline Delays - Average delay per flight by airline (worst first)
-  const airlinePerformanceData = generateAirlinePerformanceData(processedData);
-  items.push(
-    createDashboardItem(
-      "airline-delays",
-      `Avg Delay per Flight by Airline${dateRangeSuffix}`,
-      "bar",
-      airlinePerformanceData,
-      {
-        categoryKey: "airline",
-        series: [
-          {
-            type: "bar",
-            dataKey: "avgDelay",
-            name: "Avg Delay (min)",
-            color: "#ef4444",
-          },
-        ],
-        showLegend: false,
-        showTooltip: true,
-        showGrid: true,
-      },
-      { x: 0, y: 27, w: 6, h: 6 },
-    ),
-  );
-
-  // 7. Route Delays - Average delay per flight by route (worst first)
-  const routePerformanceData = generateRoutePerformanceData(processedData);
-  items.push(
-    createDashboardItem(
-      "route-delays",
-      `Avg Delay per Flight by Route${dateRangeSuffix}`,
-      "bar",
-      routePerformanceData,
-      {
-        categoryKey: "route",
-        series: [
-          {
-            type: "bar",
-            dataKey: "avgDelay",
-            name: "Avg Delay (min)",
-            color: "#ef4444",
-          },
-        ],
-        showLegend: false,
-        showTooltip: true,
-        showGrid: true,
-      },
-      { x: 6, y: 27, w: 6, h: 6 },
-    ),
-  );
-
-  return items;
+  return DUMMY_ITEM_CONFIGS.map((config) => {
+    const scriptParams: Record<string, string> = {};
+    if (config.dataScript.parameters?.dateRange) {
+      scriptParams.dateRange =
+        config.dataScript.parameters.dateRange.default ?? "30d";
+    }
+    return {
+      entityId: `demo-entity-${config.id}` as DashboardItemData["entityId"],
+      linkEntityId:
+        `demo-link-${config.id}` as DashboardItemData["linkEntityId"],
+      title: config.title,
+      userGoal: `Display ${config.title.toLowerCase()}`,
+      chartType: config.chartType as DashboardItemData["chartType"],
+      chartData: null,
+      chartConfig: config.chartConfig,
+      gridPosition: { i: config.id, ...config.gridPosition },
+      configurationStatus: "ready",
+      rawData: vertices,
+      dataScript: config.dataScript,
+      scriptParams:
+        Object.keys(scriptParams).length > 0 ? scriptParams : undefined,
+    };
+  });
 };
 
 /**
  * Generate schedule table data for use outside charts.
- * This can be used with a table component if needed.
+ * Accepts API vertices (same as generateDashboardItems).
  */
-export const getScheduleTableData = (flightData: FlightWithLinksResolved[]) => {
-  const processedData = processFlightData(flightData);
+export const getScheduleTableData = (vertices: VerticesMap) => {
+  const flights = processVerticesIntoFlights(vertices);
+  const processedData = processFlightData(flights);
   return generateScheduleTableData(processedData);
 };
 
 /**
  * Get summary statistics for the flight data.
+ * Accepts API vertices (same as generateDashboardItems).
  */
-export const getFlightSummary = (flightData: FlightWithLinksResolved[]) => {
-  const processedData = processFlightData(flightData);
+export const getFlightSummary = (vertices: VerticesMap) => {
+  const flights = processVerticesIntoFlights(vertices);
+  const processedData = processFlightData(flights);
 
   const statusCounts = generateFlightStatusData(processedData);
   const totalFlights = processedData.length;

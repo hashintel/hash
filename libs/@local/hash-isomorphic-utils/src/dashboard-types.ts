@@ -98,6 +98,12 @@ export type ChartConfig = {
   /** Whether to show tooltips on hover */
   showTooltip?: boolean;
 
+  /**
+   * Optional data key for tooltip category label (e.g. full name).
+   * When set, tooltip shows this instead of categoryKey for the axis value.
+   */
+  tooltipLabelKey?: string;
+
   /** Color palette for series (hex colors) */
   colors?: string[];
 };

@@ -8,12 +8,21 @@ import {
   Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { Box, Paper, Typography } from "@mui/material";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 
 import type { DashboardItemData } from "../../shared/types";
 import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 
 type DashboardItemProps = {
   item: DashboardItemData;
+  /** Effective script params (from page state). Passed to content for script execution. */
+  scriptParams?: Record<string, string>;
+  /** Called when user changes a script parameter (e.g. date range). */
+  onScriptParamsChange?: (
+    itemId: string,
+    params: Record<string, string>,
+  ) => void;
   isEditing?: boolean;
   isMinimized?: boolean;
   isDataLoading?: boolean;
@@ -22,10 +31,14 @@ type DashboardItemProps = {
   onRefreshClick?: () => void;
   onDeleteClick?: () => void;
   onEntityClick?: (entityId: EntityId) => void;
+  hoveredEntityId?: EntityId | null;
+  onHoveredEntityChange?: (entityId: EntityId | null) => void;
 };
 
 export const DashboardItem = ({
   item,
+  scriptParams,
+  onScriptParamsChange,
   isEditing = false,
   isMinimized = false,
   isDataLoading = false,
@@ -34,8 +47,15 @@ export const DashboardItem = ({
   onRefreshClick,
   onDeleteClick,
   onEntityClick,
+  hoveredEntityId,
+  onHoveredEntityChange,
 }: DashboardItemProps) => {
-  const { configurationStatus, title } = item;
+  const { configurationStatus, title, dataScript, entityId } = item;
+  const itemId = item.gridPosition.i || entityId;
+  const dateRangeParam = dataScript?.parameters?.dateRange;
+  const effectiveScriptParams = scriptParams ?? item.scriptParams ?? {};
+  const currentDateRange =
+    effectiveScriptParams.dateRange ?? dateRangeParam?.default ?? "";
 
   return (
     <Paper
@@ -78,6 +98,34 @@ export const DashboardItem = ({
             {title}
           </Typography>
         )}
+        {!isMinimized &&
+          configurationStatus === "ready" &&
+          dateRangeParam &&
+          onScriptParamsChange && (
+            <Select
+              size="small"
+              value={currentDateRange}
+              onChange={(e) => {
+                const value = e.target.value;
+                onScriptParamsChange(itemId, {
+                  ...effectiveScriptParams,
+                  dateRange: value,
+                });
+              }}
+              sx={{
+                minWidth: 100,
+                height: 28,
+                fontSize: 12,
+                "& .MuiSelect-select": { py: 0.25 },
+              }}
+            >
+              {dateRangeParam.options.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
         <Box
           sx={{
             display: "flex",
@@ -149,9 +197,12 @@ export const DashboardItem = ({
         <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
           <DashboardItemContent
             item={item}
+            scriptParams={effectiveScriptParams}
             isDataLoading={isDataLoading}
             onConfigureClick={onConfigureClick}
             onEntityClick={onEntityClick}
+            hoveredEntityId={hoveredEntityId}
+            onHoveredEntityChange={onHoveredEntityChange}
           />
         </Box>
       )}
