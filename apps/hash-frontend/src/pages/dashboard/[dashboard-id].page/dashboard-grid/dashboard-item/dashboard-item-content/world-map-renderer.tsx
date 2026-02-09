@@ -12,6 +12,7 @@ import * as echarts from "echarts";
 import type { ECElementEvent } from "echarts/types/dist/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+/** Status used for arrow color: green = on time, red = delayed */
 export type FlightPosition = {
   entityId: EntityId | null;
   flight: string;
@@ -19,11 +20,22 @@ export type FlightPosition = {
   longitude: number;
   altitude: number | null;
   heading: number | null;
+  /** When set, arrow is green (on time) or red (delayed). */
+  status?:
+    | "On Time"
+    | "Delayed"
+    | "Landed"
+    | "Cancelled"
+    | "Boarding"
+    | "Departed";
 };
 
 type WorldMapRendererProps = {
   flights: FlightPosition[];
   onFlightClick?: (entityId: EntityId) => void;
+  /** When set, matching flight is highlighted blue and map pans to it. */
+  hoveredEntityId?: EntityId | null;
+  onHoveredEntityChange?: (entityId: EntityId | null) => void;
 };
 
 /**
@@ -69,12 +81,94 @@ const geoToSvgCoords = (
 let mapRegistered = false;
 let mapSvgContent: string | null = null;
 
+/**
+ * Arrow styles per flight status.
+ *  - On time: light green fill with dark green border for contrast
+ *  - Delayed / cancelled: darker red fill with dark red border
+ *  - Hovered (any status): blue fill with blue glow
+ */
+type ArrowStyle = {
+  color: string;
+  borderColor: string;
+  borderWidth: number;
+  shadowBlur: number;
+  shadowColor: string;
+};
+
+const ARROW_STYLE: Record<"onTime" | "delayed" | "hovered", ArrowStyle> = {
+  onTime: {
+    color: "#86EFAC",
+    borderColor: "#166534",
+    borderWidth: 1.5,
+    shadowBlur: 0,
+    shadowColor: "transparent",
+  },
+  delayed: {
+    color: "#DC2626",
+    borderColor: "#7F1D1D",
+    borderWidth: 1.5,
+    shadowBlur: 0,
+    shadowColor: "transparent",
+  },
+  hovered: {
+    color: "#3B82F6",
+    borderColor: "#1E40AF",
+    borderWidth: 1.5,
+    shadowBlur: 6,
+    shadowColor: "rgba(59, 130, 246, 0.6)",
+  },
+};
+
+const getArrowStyle = (
+  flight: FlightPosition,
+  hoveredEntityId: EntityId | null | undefined,
+): ArrowStyle => {
+  if (hoveredEntityId != null && flight.entityId === hoveredEntityId) {
+    return ARROW_STYLE.hovered;
+  }
+  if (flight.status === "Delayed" || flight.status === "Cancelled") {
+    return ARROW_STYLE.delayed;
+  }
+  return ARROW_STYLE.onTime;
+};
+
+/** Build the scatter series data array, optionally highlighting one entity. */
+const buildSeriesData = (
+  flights: FlightPosition[],
+  hoveredEntityId?: EntityId | null,
+) =>
+  flights.map((flight) => {
+    const [svgX, svgY] = geoToSvgCoords(flight.latitude, flight.longitude);
+    const style = getArrowStyle(flight, hoveredEntityId);
+    return {
+      name: flight.flight,
+      value: [svgX, svgY],
+      entityId: flight.entityId,
+      lat: flight.latitude,
+      lng: flight.longitude,
+      altitude: flight.altitude,
+      heading: flight.heading,
+      symbolRotate: flight.heading !== null ? -flight.heading : 0,
+      itemStyle: {
+        color: style.color,
+        borderColor: style.borderColor,
+        borderWidth: style.borderWidth,
+        shadowBlur: style.shadowBlur,
+        shadowColor: style.shadowColor,
+      },
+    };
+  });
+
 export const WorldMapRenderer = ({
   flights,
   onFlightClick,
+  hoveredEntityId,
+  onHoveredEntityChange,
 }: WorldMapRendererProps) => {
   const [isMapReady, setIsMapReady] = useState(mapRegistered);
   const chartRef = useRef<Chart | null>(null);
+  /** True while the user's mouse is over a flight marker in THIS component. */
+  const isLocalHover = useRef(false);
 
   useEffect(() => {
     const loadAndRegisterMap = async () => {
@@ -135,21 +229,81 @@ export const WorldMapRenderer = ({
     [onFlightClick],
   );
 
+  // Sync hover to dashboard-wide state so other components (e.g. flight board) can highlight
+  const handleChartMouseOver = useCallback(
+    (params: ECElementEvent) => {
+      const data = params.data as { entityId: EntityId | null } | undefined;
+      if (data?.entityId != null && onHoveredEntityChange) {
+        isLocalHover.current = true;
+        onHoveredEntityChange(data.entityId);
+      }
+    },
+    [onHoveredEntityChange],
+  );
+
+  // Fires when the mouse leaves a specific scatter marker (not just the whole chart).
+  const handleChartMouseOut = useCallback(() => {
+    isLocalHover.current = false;
+    if (onHoveredEntityChange) {
+      onHoveredEntityChange(null);
+    }
+  }, [onHoveredEntityChange]);
+
   const handleChartInit = useCallback(
     (chart: Chart) => {
       chartRef.current = chart;
-      // Bind click event
       chart.on("click", "series.scatter", handleChartClick);
+      chart.on("mouseover", "series.scatter", handleChartMouseOver);
+      chart.on("mouseout", "series.scatter", handleChartMouseOut);
     },
-    [handleChartClick],
+    [handleChartClick, handleChartMouseOver, handleChartMouseOut],
   );
 
+  /**
+   * Imperatively update arrow colors and optionally pan when the hovered
+   * entity changes. Avoids recalculating the full option useMemo on every
+   * hover, keeping re-renders cheap.
+   */
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) {
+      return;
+    }
+
+    // Always update arrow colors (cheap scatter data rebuild)
+    const data = buildSeriesData(flights, hoveredEntityId);
+    const update: Record<string, unknown> = {
+      series: [{ data }],
+    };
+
+    // Pan only when the hover came from another component AND the point
+    // isn't already visible in the current viewport.
+    if (!isLocalHover.current && hoveredEntityId != null) {
+      const flight = flights.find((f) => f.entityId === hoveredEntityId);
+      if (flight) {
+        const [svgX, svgY] = geoToSvgCoords(flight.latitude, flight.longitude);
+        const isInView = chart.containPixel("geo", [svgX, svgY]);
+        if (!isInView) {
+          update.geo = { center: [svgX, svgY], zoom: 2.5 };
+        }
+      }
+    }
+
+    chart.setOption(update, { lazyUpdate: true });
+  }, [hoveredEntityId, flights]);
+
+  /**
+   * Base ECharts option. Does NOT depend on hoveredEntityId — hover
+   * visuals are applied imperatively in the effect above.
+   */
   const option: ECOption = useMemo(() => {
     if (!isMapReady) {
       return {};
     }
 
     return {
+      animationDurationUpdate: 300,
+      animationEasingUpdate: "cubicOut",
       tooltip: {
         trigger: "item",
         formatter: (params: unknown) => {
@@ -165,7 +319,7 @@ export const WorldMapRenderer = ({
           if (tooltipData.data) {
             let tooltip = `<strong>${tooltipData.name ?? "Flight"}</strong><br/>`;
             if (tooltipData.data.lat !== null) {
-              tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°`;
+              tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°<br />`;
             }
             if (tooltipData.data.lng !== null) {
               tooltip += `Longitude: ${tooltipData.data.lng.toFixed(2)}°<br/>`;
@@ -187,13 +341,10 @@ export const WorldMapRenderer = ({
         layoutCenter: ["50%", "50%"],
         layoutSize: "250%",
         aspectScale: 1,
-        // Disable all region interactions
         selectedMode: false,
         silent: true,
-        // Empty regions array tells ECharts not to apply region-specific styling
         regions: [],
         itemStyle: {
-          // Force white fill to match SVG
           areaColor: "#ffffff",
           borderColor: "#E4E7EC",
           borderWidth: 0.7,
@@ -215,37 +366,14 @@ export const WorldMapRenderer = ({
           type: "scatter",
           coordinateSystem: "geo",
           geoIndex: 0,
-          data: flights.map((flight) => {
-            const [svgX, svgY] = geoToSvgCoords(
-              flight.latitude,
-              flight.longitude,
-            );
-            return {
-              name: flight.flight,
-              value: [svgX, svgY],
-              entityId: flight.entityId,
-              lat: flight.latitude,
-              lng: flight.longitude,
-              altitude: flight.altitude,
-              heading: flight.heading,
-              // Rotate the plane icon based on heading
-              // Aviation heading is clockwise from north (0° = N, 90° = E, 180° = S, 270° = W)
-              // ECharts symbolRotate is counter-clockwise, so we negate the heading
-              symbolRotate: flight.heading !== null ? -flight.heading : 0,
-            };
-          }),
-          // Plane icon pointing up (north direction)
+          data: buildSeriesData(flights),
           symbol: "path://M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z",
           symbolSize: 18,
-          itemStyle: {
-            color: "#ef4444",
-            shadowBlur: 6,
-            shadowColor: "rgba(239, 68, 68, 0.6)",
-          },
           emphasis: {
             scale: 1.5,
             itemStyle: {
-              color: "#dc2626",
+              borderColor: "#fff",
+              borderWidth: 1,
             },
           },
           zlevel: 1,

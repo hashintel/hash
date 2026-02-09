@@ -19,12 +19,21 @@ import { DashboardItem } from "./dashboard-grid/dashboard-item";
 
 type DashboardGridProps = {
   dashboard: DashboardData;
+  /** Current script params per item (e.g. date range). Keyed by item id (gridPosition.i or entityId). */
+  scriptParamsByItemId?: Record<string, Record<string, string>>;
+  onScriptParamsChange?: (
+    itemId: string,
+    params: Record<string, string>,
+  ) => void;
   onAddItemClick: () => void;
   onLayoutChange: (layout: GridPosition[]) => void;
   onItemConfigureClick: (item: DashboardItemData) => void;
   onItemRefreshClick: (item: DashboardItemData) => void;
   onItemDeleteClick: (item: DashboardItemData) => void;
   onEntityClick?: (entityId: EntityId) => void;
+  /** Dashboard-wide hovered entity; used to highlight matching rows/markers across items. */
+  hoveredEntityId?: EntityId | null;
+  onHoveredEntityChange?: (entityId: EntityId | null) => void;
   isEditing: boolean;
   canEdit: boolean;
   isDataLoading?: boolean;
@@ -35,12 +44,16 @@ const MINIMIZED_HEIGHT = 1;
 
 export const DashboardGrid = ({
   dashboard,
+  scriptParamsByItemId = {},
+  onScriptParamsChange,
   onAddItemClick,
   onLayoutChange,
   onItemConfigureClick,
   onItemRefreshClick,
   onItemDeleteClick,
   onEntityClick,
+  hoveredEntityId,
+  onHoveredEntityChange,
   isEditing = false,
   canEdit = false,
   isDataLoading = false,
@@ -169,6 +182,10 @@ export const DashboardGrid = ({
               <div key={itemId}>
                 <DashboardItem
                   item={item}
+                  scriptParams={
+                    scriptParamsByItemId[itemId] ?? item.scriptParams
+                  }
+                  onScriptParamsChange={onScriptParamsChange}
                   isEditing={isEditing}
                   isMinimized={isMinimized}
                   isDataLoading={isDataLoading}
@@ -179,6 +196,8 @@ export const DashboardGrid = ({
                   onRefreshClick={() => onItemRefreshClick(item)}
                   onDeleteClick={() => onItemDeleteClick(item)}
                   onEntityClick={onEntityClick}
+                  hoveredEntityId={hoveredEntityId}
+                  onHoveredEntityChange={onHoveredEntityChange}
                 />
               </div>
             );

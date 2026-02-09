@@ -6,7 +6,7 @@
  */
 import type { EntityId } from "@blockprotocol/type-system";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
+import { type FunctionComponent, useCallback, useEffect, useRef } from "react";
 
 export type FlightBoardFlight = {
   entityId?: EntityId;
@@ -19,7 +19,6 @@ export type FlightBoardFlight = {
   gate?: string;
   status:
     | "On Time"
-    | "Landing"
     | "Boarding"
     | "Delayed"
     | "Landed"
@@ -33,11 +32,13 @@ type FlightBoardProps = {
   flights: FlightBoardFlight[];
   mode?: FlightBoardMode;
   onFlightClick?: (entityId: EntityId) => void;
+  /** When set, the matching row is highlighted and scrolled into view. */
+  hoveredEntityId?: EntityId | null;
+  onHoveredEntityChange?: (entityId: EntityId | null) => void;
 };
 
 const statusColors: Record<FlightBoardFlight["status"], string> = {
   "On Time": "#4ADE80",
-  Landing: "#FBBF24",
   Boarding: "#FBBF24",
   Delayed: "#F87171",
   Landed: "#9CA3AF",
@@ -73,7 +74,19 @@ const BoardRow: FunctionComponent<{
   flight: FlightBoardFlight;
   mode: FlightBoardMode;
   onClick?: () => void;
-}> = ({ flight, mode, onClick }) => {
+  isHovered?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  rowRef?: React.Ref<HTMLDivElement>;
+}> = ({
+  flight,
+  mode,
+  onClick,
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+  rowRef,
+}) => {
   const statusColor = statusColors[flight.status];
   const textColor = "#FFD700";
   const location =
@@ -82,7 +95,10 @@ const BoardRow: FunctionComponent<{
 
   return (
     <Box
+      ref={rowRef}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       sx={{
         display: "grid",
         gridTemplateColumns: "80px 1fr 70px 70px 60px 100px",
@@ -90,10 +106,14 @@ const BoardRow: FunctionComponent<{
         py: 1,
         px: 2,
         borderBottom: "1px solid #2a2a2a",
-        backgroundColor: "transparent",
+        backgroundColor: isHovered ? "#1e3a5f" : "transparent",
         cursor: isClickable ? "pointer" : "default",
         "&:hover": {
-          backgroundColor: isClickable ? "#252525" : "#1a1a1a",
+          backgroundColor: isHovered
+            ? "#1e3a5f"
+            : isClickable
+              ? "#252525"
+              : "#1a1a1a",
         },
       }}
     >
@@ -106,7 +126,9 @@ const BoardRow: FunctionComponent<{
         fontSize={14}
         align="center"
         color={
-          flight.estimatedTime !== flight.scheduledTime ? "#F87171" : textColor
+          flight.estimatedTime && flight.estimatedTime > flight.scheduledTime
+            ? "#F87171"
+            : textColor
         }
       >
         {flight.estimatedTime ?? "-"}
@@ -125,10 +147,51 @@ export const FlightBoard: FunctionComponent<FlightBoardProps> = ({
   flights,
   mode = "arrivals",
   onFlightClick,
+  hoveredEntityId,
+  onHoveredEntityChange,
 }) => {
   const locationLabel = mode === "arrivals" ? "ORIGIN" : "DESTINATION";
   const boardLabel = mode === "arrivals" ? "ARRIVALS" : "DEPARTURES";
   const emptyMessage = mode === "arrivals" ? "NO ARRIVALS" : "NO DEPARTURES";
+
+  const rowRefsMap = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  /** True while the user's mouse is directly over a row in THIS board. */
+  const isLocalHover = useRef(false);
+
+  const setRowRef = useCallback(
+    (entityId: EntityId | undefined, el: HTMLDivElement | null) => {
+      if (entityId) {
+        if (el) {
+          rowRefsMap.current.set(entityId, el);
+        } else {
+          rowRefsMap.current.delete(entityId);
+        }
+      }
+    },
+    [],
+  );
+
+  // Only scroll when the hover came from another component AND the row
+  // isn't already visible in the scroll container.
+  useEffect(() => {
+    if (isLocalHover.current || hoveredEntityId == null) {
+      return;
+    }
+    const rowEl = rowRefsMap.current.get(hoveredEntityId);
+    const container = scrollContainerRef.current;
+    if (!rowEl || !container) {
+      return;
+    }
+    const rowRect = rowEl.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const isInView =
+      rowRect.top >= containerRect.top &&
+      rowRect.bottom <= containerRect.bottom;
+    if (!isInView) {
+      rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [hoveredEntityId]);
 
   return (
     <Box
@@ -176,6 +239,7 @@ export const FlightBoard: FunctionComponent<FlightBoardProps> = ({
 
       {/* Flight rows */}
       <Box
+        ref={scrollContainerRef}
         sx={{
           flex: 1,
           overflowY: "auto",
@@ -214,6 +278,32 @@ export const FlightBoard: FunctionComponent<FlightBoardProps> = ({
                   ? () => onFlightClick(flight.entityId!)
                   : undefined
               }
+              isHovered={
+                hoveredEntityId != null &&
+                flight.entityId != null &&
+                flight.entityId === hoveredEntityId
+              }
+              onMouseEnter={
+                flight.entityId && onHoveredEntityChange
+                  ? () => {
+                      isLocalHover.current = true;
+                      onHoveredEntityChange(flight.entityId!);
+                    }
+                  : undefined
+              }
+              onMouseLeave={
+                onHoveredEntityChange
+                  ? () => {
+                      isLocalHover.current = false;
+                      onHoveredEntityChange(null);
+                    }
+                  : undefined
+              }
+              rowRef={
+                flight.entityId
+                  ? (el) => setRowRef(flight.entityId, el)
+                  : undefined
+              }
             />
           ))
         )}
@@ -235,12 +325,11 @@ export const FlightBoard: FunctionComponent<FlightBoardProps> = ({
           {boardLabel}
         </DotMatrixText>
         <DotMatrixText fontSize={10} color="#555">
-          {new Date().toLocaleTimeString("en-US", {
+          {`${new Date().toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
-          })}{" "}
-          UTC
+          })} UTC`}
         </DotMatrixText>
       </Box>
     </Box>
