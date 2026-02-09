@@ -340,6 +340,15 @@ const main = async () => {
   await seedOrgsAndUsers({ logger, context: userActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
+  // Hardening directives that helmet sets by default but are lost when providing
+  // a custom contentSecurityPolicy (which replaces rather than merges directives).
+  const cspHardeningDirectives = {
+    baseUri: ["'self'"],
+    objectSrc: ["'none'"],
+    scriptSrcAttr: ["'none'"],
+    frameAncestors: ["'self'"],
+  } as const;
+
   const defaultHelmet = helmet();
 
   const graphqlExplorerHelmet = helmet({
@@ -350,6 +359,7 @@ const main = async () => {
           "'self'",
           "'unsafe-inline'",
           "https://embeddable-sandbox.cdn.apollographql.com",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
         ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: [
@@ -368,6 +378,20 @@ const main = async () => {
           "'self'",
           "https://apollo-server-landing-page.cdn.apollographql.com",
         ],
+        ...cspHardeningDirectives,
+      },
+    },
+  });
+
+  // The OAuth consent page (views/consent.hbs) loads normalize.css from cdnjs
+  // and consent.js from the local public directory.
+  const oauthConsentHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        ...cspHardeningDirectives,
       },
     },
   });
@@ -375,6 +399,9 @@ const main = async () => {
   app.use((req, res, next) => {
     if (req.path === GRAPHQL_PATH && req.method === "GET") {
       return graphqlExplorerHelmet(req, res, next);
+    }
+    if (req.path === "/oauth2/consent") {
+      return oauthConsentHelmet(req, res, next);
     }
     return defaultHelmet(req, res, next);
   });
