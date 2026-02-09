@@ -7,7 +7,7 @@ use utoipa::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum OriginType {
     WebApp,
@@ -70,7 +70,7 @@ impl OriginProvenance {
 mod patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     pub enum OriginProvenance {
         #[serde(rename_all = "camelCase")]

@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use serde::{Deserialize, Serialize};
-    use tsify_next::Tsify;
+    use tsify::Tsify;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(typescript_custom_section)]
@@ -42,15 +42,15 @@ export type Brand<Base, Kind extends string> = Base extends BrandedBase<
 
     // Common types
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Url(#[tsify(type = "Brand<string, \"Url\">")] String);
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Timestamp(#[tsify(type = "Brand<string, \"Timestamp\">")] String);
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum TemporalBound {
@@ -58,20 +58,20 @@ export type Brand<Base, Kind extends string> = Base extends BrandedBase<
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum LimitedTemporalBound {
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum ClosedTemporalBound {
         Inclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum OpenTemporalBound {
@@ -79,19 +79,19 @@ export type Brand<Base, Kind extends string> = Base extends BrandedBase<
         Unbounded,
     }
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct TemporalInterval<Start, End> {
         start: Start,
         end: End,
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct RightBoundedTemporalInterval {
         start: TemporalBound,
         end: LimitedTemporalBound,
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct LeftClosedTemporalInterval {
         start: ClosedTemporalBound,

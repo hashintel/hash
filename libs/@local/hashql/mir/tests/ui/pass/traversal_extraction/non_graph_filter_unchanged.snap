@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/traversal_extraction/tests.rs
+expression: value
+---
+fn {closure@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1.0 == 42
+
+        return %2
+    }
+}
+
+================== Changed: No ===================
+
+fn {closure@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1.0 == 42
+
+        return %2
+    }
+}

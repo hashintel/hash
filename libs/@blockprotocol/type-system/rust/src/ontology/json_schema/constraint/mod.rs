@@ -73,7 +73,7 @@ pub trait ConstraintValidator<V: ?Sized>: Constraint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ValueConstraints {
     Typed(Box<SingleValueConstraints>),
@@ -186,7 +186,7 @@ impl ConstraintValidator<PropertyValue> for ValueConstraints {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum JsonSchemaValueType {
@@ -212,7 +212,7 @@ impl fmt::Display for JsonSchemaValueType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SingleValueConstraints {
     Null,
@@ -331,7 +331,7 @@ impl Constraint for SingleValueSchema {
 mod wasm {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     enum SingleValueSchema {
         Schema {

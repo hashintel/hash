@@ -155,7 +155,7 @@ impl ToSchema<'_> for EntityId {
 #[cfg(target_arch = "wasm32")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
 mod patch {
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     pub struct EntityId(#[tsify(type = "Brand<string, \"EntityId\">")] String);
 }
 
@@ -186,7 +186,7 @@ impl EntityEditionId {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {

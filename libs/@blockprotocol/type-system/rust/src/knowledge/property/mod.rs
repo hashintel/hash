@@ -60,7 +60,7 @@ use crate::ontology::{
 ///
 /// [`PropertyType`]: crate::ontology::property_type::PropertyType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum Property {
@@ -94,7 +94,7 @@ pub enum Property {
 /// The structure mirrors the [`Property`] enum, with specialized types for arrays, objects,
 /// and values that maintain metadata at each level of the hierarchy.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum PropertyWithMetadata {

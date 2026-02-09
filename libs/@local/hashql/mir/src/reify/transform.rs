@@ -10,7 +10,7 @@ use hashql_hir::{
         HirPtr, Node,
         closure::Closure,
         kind::NodeKind,
-        r#let::{Binder, Binding, Let},
+        r#let::{Binding, Let},
     },
     visit::Visitor as _,
 };
@@ -18,6 +18,7 @@ use hashql_hir::{
 use super::{Reifier, current::CurrentBlock, error::local_variable_unmapped, unwrap_closure_type};
 use crate::{
     body::{
+        Source,
         local::{Local, LocalDecl},
         operand::Operand,
         place::Place,
@@ -32,7 +33,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         hir: HirPtr,
-        binder: Option<Binder<'heap>>,
+        source: Source<'heap>,
         closure: Closure<'heap>,
     ) -> (Typed<DefId>, Typed<Local>) {
         let mut dependencies = VariableDependencies::from_set(self.state.var_pool.acquire());
@@ -80,7 +81,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let closure_type_id = self.context.hir.map.monomorphized_type_id(hir.id);
         let closure_type = unwrap_closure_type(closure_type_id, self.context.mir.env);
         let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_closure(hir, &captures, env_type, binder, closure, closure_type);
+        let ptr = compiler.lower_closure(hir, source, &captures, env_type, closure, closure_type);
 
         block.push_statement(Statement {
             span: hir.span,
