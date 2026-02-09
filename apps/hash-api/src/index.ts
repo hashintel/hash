@@ -340,10 +340,71 @@ const main = async () => {
   await seedOrgsAndUsers({ logger, context: userActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
-  // Temporarily disable contentSecurityPolicy for the GraphQL playground
-  // Longer-term we can set rules which allow only the playground to load
-  // Potentially only in development mode
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // Hardening directives that helmet sets by default but are lost when providing
+  // a custom contentSecurityPolicy (which replaces rather than merges directives).
+  const cspHardeningDirectives = {
+    baseUri: ["'self'"],
+    objectSrc: ["'none'"],
+    scriptSrcAttr: ["'none'"],
+    frameAncestors: ["'self'"],
+  } as const;
+
+  const defaultHelmet = helmet();
+
+  const graphqlExplorerHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+        ],
+        frameSrc: ["'self'", "https://sandbox.embed.apollographql.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        manifestSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        ...cspHardeningDirectives,
+      },
+    },
+  });
+
+  // The OAuth consent page (views/consent.hbs) loads normalize.css from cdnjs
+  // and consent.js from the local public directory.
+  const oauthConsentHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        ...cspHardeningDirectives,
+      },
+    },
+  });
+
+  app.use((req, res, next) => {
+    if (req.path === GRAPHQL_PATH && req.method === "GET") {
+      return graphqlExplorerHelmet(req, res, next);
+    }
+    if (req.path === "/oauth2/consent") {
+      return oauthConsentHelmet(req, res, next);
+    }
+    return defaultHelmet(req, res, next);
+  });
 
   app.use(express.static("public"));
 
