@@ -10,7 +10,7 @@ thunk {thunk#1}() -> ::graph::TimeAxis {
     }
 }
 
-fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
 
     bb0(): {
@@ -30,7 +30,7 @@ fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean
         %2 = ()
 
         graph read entities(%0)
-        |> filter({closure@7}, %2)
+        |> filter({graph::read::filter@7}, %2)
         |> collect -> bb1(_)
     }
 
@@ -51,7 +51,7 @@ thunk {thunk#1}() -> ::graph::TimeAxis {
     }
 }
 
-fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
 
     bb0(): {
@@ -71,7 +71,7 @@ fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean
         %2 = ()
 
         graph read entities(%0)
-        |> filter({closure@7}, %2)
+        |> filter({graph::read::filter@7}, %2)
         |> collect -> bb1(_)
     }
 
@@ -92,7 +92,7 @@ thunk {thunk#1}() -> ::graph::TimeAxis {
     }
 }
 
-fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
 
     bb0(): {
@@ -120,7 +120,7 @@ fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean
         %2 = ()
 
         graph read entities(%0)
-        |> filter({closure@7}, %2)
+        |> filter({graph::read::filter@7}, %2)
         |> collect -> bb1(_)
     }
 

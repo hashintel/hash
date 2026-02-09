@@ -30,7 +30,7 @@ pub struct DataTypeMetadata {
 mod metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     enum DataTypeMetadata {
         #[serde(rename_all = "camelCase")]
@@ -111,7 +111,7 @@ pub type DataTypeWithMetadata = OntologyTypeWithMetadata<DataType>;
 mod with_metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     struct DataTypeWithMetadata {
         schema: DataType,
         metadata: DataTypeMetadata,

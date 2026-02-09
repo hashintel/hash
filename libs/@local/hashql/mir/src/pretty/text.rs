@@ -33,7 +33,10 @@ use crate::{
 const fn source_keyword(source: Source<'_>) -> &'static str {
     match source {
         Source::Thunk(..) => "thunk",
-        Source::Ctor(_) | Source::Closure(..) | Source::Intrinsic(_) => "fn",
+        Source::Ctor(_)
+        | Source::Closure(..)
+        | Source::GraphReadFilter(..)
+        | Source::Intrinsic(_) => "fn",
     }
 }
 
@@ -272,6 +275,7 @@ where
                 write!(self.writer, "{{ctor#{symbol}}}")
             }
             Source::Closure(id, binder) => named_symbol("closure", id, binder),
+            Source::GraphReadFilter(id) => named_symbol("graph::read::filter", id, None),
             Source::Thunk(id, binder) => named_symbol("thunk", id, binder),
             Source::Intrinsic(def_id) => {
                 write!(self.writer, "{{intrinsic#{def_id}}}")

@@ -274,7 +274,7 @@ impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
         let inline = match body.source {
             Source::Ctor(_) => InlineDirective::Always,
             Source::Closure(_, _) | Source::Thunk(_, _) => InlineDirective::Heuristic,
-            Source::Intrinsic(_) => InlineDirective::Never,
+            Source::Intrinsic(_) | Source::GraphReadFilter(_) => InlineDirective::Never,
         };
 
         // Detect loops using SCC analysis on the CFG.

@@ -6,7 +6,7 @@ use crate::knowledge::{Confidence, property::metadata::PropertyProvenance};
 /// The associated information for 'Link' entities.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkData {
     pub left_entity_id: EntityId,

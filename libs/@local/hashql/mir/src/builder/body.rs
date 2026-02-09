@@ -351,6 +351,9 @@ macro_rules! body {
     (@source fn) => {
         $crate::body::Source::Closure(hashql_hir::node::HirId::PLACEHOLDER, None)
     };
+    (@source [graph::read::filter]) => {
+        $crate::body::Source::GraphReadFilter(hashql_hir::node::HirId::PLACEHOLDER)
+    };
     (@source [ctor $name:expr]) => {
         $crate::body::Source::Ctor($name)
     };
