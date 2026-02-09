@@ -10,12 +10,7 @@ export { StatusColors } from "./tokens2.story";
 
 // Semantic colors
 export { GlobalAliases } from "./tokens2.story";
-export { SemanticText } from "./colors.semantic-text.story";
-export { SemanticBg } from "./colors.semantic-bg.story";
-export { SemanticBorder } from "./colors.semantic-border.story";
-
-// Color palette system
-export { ColorPaletteSystem } from "./accent.story";
+export { ColorVariants } from "./tokens.color-variants.story";
 
 // Other tokens
 export { Spacing } from "./tokens.spacing.story";

@@ -1,4 +1,4 @@
-import { definePreset } from "@pandacss/dev";
+import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import {
   palettes as basePalettes,
   staticColors,
@@ -15,14 +15,14 @@ import {
   radii,
 } from "./theme/tokens.gen";
 
-const statusPalettes = {
-  status: {
-    info: blue,
-    success: green,
-    warning: orange,
-    error: red,
+const globalCss = defineGlobalStyles({
+  "html, body": {
+    colorPalette: "neutral",
+    fontFamily: "body",
+    bg: "neutral.s00",
+    color: "neutral.s120",
   },
-};
+});
 
 export const preset = definePreset({
   name: "@hashintel/ds-theme",
@@ -32,6 +32,7 @@ export const preset = definePreset({
       dark: '.dark &, [data-theme="dark"] &',
     },
   },
+  globalCss,
   theme: {
     tokens: {
       spacing,
@@ -60,12 +61,17 @@ export const preset = definePreset({
       // @ts-expect-error -- `colorPalette` not recognized but it's legit
       colorPalette: {
         enabled: true,
-        include: ["bg.*", "fg.*", "bd.*"],
+        include: ["bg.*", "fg.*", "bd.*", "status.*"],
       },
       semanticTokens: {
         colors: {
           ...basePalettes,
-          ...statusPalettes,
+          status: {
+            info: blue,
+            success: green,
+            warning: orange,
+            error: red,
+          },
         },
       },
     },
