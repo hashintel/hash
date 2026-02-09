@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@apollo/server": "5.0.0",
-    "@apollo/server-plugin-landing-page-graphql-playground": "4.0.1",
     "@apollo/utils.keyvadapter": "4.0.1",
     "@apps/hash-graph": "0.0.0-private",
     "@as-integrations/express5": "1.1.2",

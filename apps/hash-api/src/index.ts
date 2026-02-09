@@ -340,10 +340,44 @@ const main = async () => {
   await seedOrgsAndUsers({ logger, context: userActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
-  // Temporarily disable contentSecurityPolicy for the GraphQL playground
-  // Longer-term we can set rules which allow only the playground to load
-  // Potentially only in development mode
-  app.use(helmet({ contentSecurityPolicy: false }));
+  const defaultHelmet = helmet();
+
+  const graphqlExplorerHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+        ],
+        frameSrc: ["'self'", "https://sandbox.embed.apollographql.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        manifestSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+      },
+    },
+  });
+
+  app.use((req, res, next) => {
+    if (req.path === GRAPHQL_PATH && req.method === "GET") {
+      return graphqlExplorerHelmet(req, res, next);
+    }
+    return defaultHelmet(req, res, next);
+  });
 
   app.use(express.static("public"));
 

@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
+import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
@@ -153,11 +153,21 @@ export const createApolloServer = async ({
     introspection: true,
     includeStacktraceInErrorResponses: true, // required for stack traces to be captured
     plugins: [
-      ApolloServerPluginLandingPageGraphQLPlayground({
-        settings: {
-          "request.credentials": "include",
-          "schema.polling.enable": false,
+      ApolloServerPluginLandingPageLocalDefault({
+        embed: {
+          endpointIsEditable: false,
+          initialState: {
+            pollForSchemaUpdates: false,
+          },
+          runTelemetry: false,
         },
+        document: `{
+  me {
+    subgraph {
+      vertices
+    }
+  }
+}`,
       }),
       statsPlugin({ statsd }),
       ApolloServerPluginDrainHttpServer({ httpServer }),
