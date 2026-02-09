@@ -137,6 +137,9 @@ export function useSimulationWorker(): {
 
       switch (message.type) {
         case "ready":
+          console.log(
+            "[Petrinaut:Debug] Worker sent 'ready' message, resolving pending init",
+          );
           setState((prev) => ({
             ...prev,
             status: prev.status === "initializing" ? "ready" : prev.status,
@@ -177,6 +180,10 @@ export function useSimulationWorker(): {
           break;
 
         case "error":
+          console.error(
+            "[Petrinaut:Debug] Worker sent 'error' message:",
+            message.message,
+          );
           setState((prev) => ({
             ...prev,
             status: "error",
@@ -204,6 +211,7 @@ export function useSimulationWorker(): {
     workerRef.current = worker;
 
     return () => {
+      console.log("[Petrinaut:Debug] Worker terminated (useEffect cleanup)");
       worker.terminate();
     };
   }, []);
@@ -226,10 +234,14 @@ export function useSimulationWorker(): {
   }) => {
     // Cancel any pending initialization
     if (pendingInitRef.current) {
+      console.warn(
+        "[Petrinaut:Debug] Cancelling pending initialization - new initialize() called before previous resolved",
+      );
       pendingInitRef.current.reject(new Error("Initialization cancelled"));
       pendingInitRef.current = null;
     }
 
+    console.log("[Petrinaut:Debug] useSimulationWorker.initialize() called");
     setState({
       status: "initializing",
       frames: [],
@@ -287,6 +299,7 @@ export function useSimulationWorker(): {
   };
 
   const reset: WorkerActions["reset"] = () => {
+    console.log("[Petrinaut:Debug] useSimulationWorker.reset() called");
     postMessage({ type: "stop" });
     setState(initialState);
   };
