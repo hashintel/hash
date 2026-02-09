@@ -100,8 +100,16 @@ const fgTokens = [
 const sampleText = "The quick brown fox jumps over the lazy dog.";
 
 const sectionHeading = css({ fontSize: "lg", fontWeight: "semibold" });
-const codeStyle = css({ bg: "colorPalette.bg.muted", px: "1", borderRadius: "md.1" });
-const labelStyle = css({ fontSize: "sm", fontWeight: "semibold", minWidth: "[100px]" });
+const codeStyle = css({
+  bg: "colorPalette.bg.muted",
+  px: "1",
+  borderRadius: "md.1",
+});
+const labelStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+  minWidth: "[100px]",
+});
 const captionStyle = css({ fontSize: "xs", color: "colorPalette.fg.subtle" });
 const subtitleStyle = css({ fontSize: "sm", color: "colorPalette.fg.muted" });
 
@@ -124,9 +132,7 @@ const BgSwatch = ({
   tokenPath: string;
   useDarkText: boolean;
 }) => {
-  const textColor = useDarkText
-    ? "colorPalette.fg"
-    : "colorPalette.fg.solid";
+  const textColor = useDarkText ? "colorPalette.fg" : "colorPalette.fg.solid";
   return (
     <Box
       px="4"
@@ -168,7 +174,13 @@ const BgCategoryRow = ({
 }) => (
   <VStack gap="2" alignItems="flex-start">
     <HStack gap="2" alignItems="baseline">
-      <span className={css({ fontSize: "sm", fontWeight: "semibold", color: "colorPalette.fg.muted" })}>
+      <span
+        className={css({
+          fontSize: "sm",
+          fontWeight: "semibold",
+          color: "colorPalette.fg.muted",
+        })}
+      >
         bg.{category}
       </span>
       <span className={captionStyle}>— {description}</span>
@@ -267,10 +279,18 @@ const BorderSwatch = ({
         }}
       />
     </Box>
-    <span className={css({ fontSize: "xs", fontWeight: "medium", color: "colorPalette.fg.muted" })}>
+    <span
+      className={css({
+        fontSize: "xs",
+        fontWeight: "medium",
+        color: "colorPalette.fg.muted",
+      })}
+    >
       {label}
     </span>
-    <span className={css({ fontSize: "[10px]", color: "colorPalette.fg.subtle" })}>
+    <span
+      className={css({ fontSize: "[10px]", color: "colorPalette.fg.subtle" })}
+    >
       {tokenPath}
     </span>
   </VStack>
@@ -285,7 +305,13 @@ const BdCategoryRow = ({
 }) => (
   <VStack gap="3" alignItems="flex-start">
     <HStack gap="2" alignItems="baseline">
-      <span className={css({ fontSize: "sm", fontWeight: "semibold", color: "colorPalette.fg.muted" })}>
+      <span
+        className={css({
+          fontSize: "sm",
+          fontWeight: "semibold",
+          color: "colorPalette.fg.muted",
+        })}
+      >
         bd.{category}
       </span>
       <span className={captionStyle}>— {description}</span>
@@ -407,7 +433,12 @@ const FgSection = () => (
     <h2 className={sectionHeading}>Foreground (fg.*)</h2>
     <VStack gap="3" alignItems="flex-start" width="[100%]">
       {fgTokens.map(({ key, label, desc }) => (
-        <TextSample key={key} label={label} tokenPath={key} description={desc} />
+        <TextSample
+          key={key}
+          label={label}
+          tokenPath={key}
+          description={desc}
+        />
       ))}
     </VStack>
     <VStack gap="3" alignItems="flex-start" width="[100%]">
@@ -475,9 +506,13 @@ const ComponentDemo = () => (
       </h3>
       <HStack gap="2">
         <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-        <button className={buttonRecipe({ variant: "surface" })}>Surface</button>
+        <button className={buttonRecipe({ variant: "surface" })}>
+          Surface
+        </button>
         <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
-        <button className={buttonRecipe({ variant: "outline" })}>Outline</button>
+        <button className={buttonRecipe({ variant: "outline" })}>
+          Outline
+        </button>
         <button className={buttonRecipe({ variant: "ghost" })}>Ghost</button>
       </HStack>
     </VStack>
@@ -538,9 +573,15 @@ export const ColorVariants: Story = () => {
             <HStack key={p} gap="4" alignItems="center" colorPalette={p}>
               <span className={labelStyle}>{p}</span>
               <HStack gap="2">
-                <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-                <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
-                <button className={buttonRecipe({ variant: "outline" })}>Outline</button>
+                <button className={buttonRecipe({ variant: "solid" })}>
+                  Solid
+                </button>
+                <button className={buttonRecipe({ variant: "subtle" })}>
+                  Subtle
+                </button>
+                <button className={buttonRecipe({ variant: "outline" })}>
+                  Outline
+                </button>
               </HStack>
               <span className={badgeStyles}>Badge</span>
             </HStack>
@@ -563,9 +604,15 @@ export const ColorVariants: Story = () => {
             >
               <span className={labelStyle}>{label}</span>
               <HStack gap="2">
-                <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-                <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
-                <button className={buttonRecipe({ variant: "surface" })}>Surface</button>
+                <button className={buttonRecipe({ variant: "solid" })}>
+                  Solid
+                </button>
+                <button className={buttonRecipe({ variant: "subtle" })}>
+                  Subtle
+                </button>
+                <button className={buttonRecipe({ variant: "surface" })}>
+                  Surface
+                </button>
               </HStack>
               <span className={badgeStyles}>{name}</span>
             </HStack>

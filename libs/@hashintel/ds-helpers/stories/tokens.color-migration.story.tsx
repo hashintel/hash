@@ -1,5 +1,5 @@
 import type { Story } from "@ladle/react";
-import { useEffect, useState } from "react";
+import { ThemeState, useLadleContext } from "@ladle/react";
 import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack, Box } from "../styled-system/jsx";
@@ -113,26 +113,12 @@ const swatchLabel = css({
   mixBlendMode: "difference",
 });
 
-const useDarkMode = () => {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.classList.contains("dark"),
-  );
-  useEffect(() => {
-    const el = document.documentElement;
-    const observer = new MutationObserver(() => {
-      setIsDark(el.classList.contains("dark"));
-    });
-    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-  return isDark;
-};
-
 const FigmaSwatch = ({ step }: { step: string }) => {
   const entry = figmaGray.gray[step as keyof typeof figmaGray.gray];
   if (!entry) return null;
 
-  const isDark = useDarkMode();
+  const { globalState } = useLadleContext();
+  const isDark = globalState.theme === ThemeState.Dark;
   const color = isDark ? entry._dark : entry._light;
 
   return (
