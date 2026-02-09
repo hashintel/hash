@@ -68,7 +68,8 @@ const SpacingBar = ({ step }: { step: string }) => {
   );
 };
 
-export const Spacing: Story = () => (
+export const Spacing: Story<{ spacing: string }> = ({ spacing }) => (
+  <div data-spacing={spacing}>
   <VStack gap="6" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Spacing Tokens
@@ -89,6 +90,14 @@ export const Spacing: Story = () => (
       ))}
     </VStack>
   </VStack>
+  </div>
 );
 
 Spacing.storyName = "Spacing";
+Spacing.argTypes = {
+  spacing: {
+    options: ["compact", "normal", "comfortable"],
+    control: { type: "select" },
+    defaultValue: "normal",
+  },
+};

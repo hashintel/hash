@@ -128,7 +128,8 @@ const ComponentRadiusDemo = ({
   </VStack>
 );
 
-export const Radii: Story = () => (
+export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
+  <div data-roundness={roundness}>
   <VStack gap="8" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Border Radius Tokens
@@ -164,6 +165,15 @@ export const Radii: Story = () => (
       />
     </VStack>
   </VStack>
+  </div>
 );
 
 Radii.storyName = "Border Radii";
+
+Radii.argTypes = {
+  roundness: {
+    options: ["none", "sm", "md", "lg", "xl"],
+    control: { type: "select" },
+    defaultValue: "md",
+  },
+};

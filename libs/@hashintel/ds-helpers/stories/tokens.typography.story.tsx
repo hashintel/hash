@@ -121,7 +121,8 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   </HStack>
 );
 
-export const Typography: Story = () => (
+export const Typography: Story<{ leadingFactor: string }> = ({ leadingFactor }) => (
+  <div data-leading={leadingFactor}>
   <VStack gap="8" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Typography
@@ -165,6 +166,14 @@ export const Typography: Story = () => (
       ))}
     </VStack>
   </VStack>
+  </div>
 );
 
 Typography.storyName = "Typography";
+Typography.argTypes = {
+  leadingFactor: {
+    options: ["tight", "normal", "loose"],
+    control: { type: "select" },
+    defaultValue: "normal",
+  },
+};
