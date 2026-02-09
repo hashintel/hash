@@ -23,6 +23,7 @@ import type Keyv from "keyv";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
+import { isProdEnv } from "../lib/env-config";
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -149,8 +150,7 @@ export const createApolloServer = async ({
     schema: combinedSchema,
     cache: new KeyvAdapter(cache),
     logger: logger.child({ service: "graphql" }),
-    // @todo: we may want to disable introspection at some point for production
-    introspection: true,
+    introspection: !isProdEnv,
     includeStacktraceInErrorResponses: true, // required for stack traces to be captured
     plugins: [
       ApolloServerPluginLandingPageGraphQLPlayground({
