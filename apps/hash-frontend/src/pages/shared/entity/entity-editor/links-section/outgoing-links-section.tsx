@@ -75,7 +75,8 @@ export const OutgoingLinksSection = ({
     return null;
   }
 
-  const outgoingLinksAndTargets = readonly
+  /** @todo revert 'true' to 'readonly' before merging (for testing / demo only) */
+  const outgoingLinksAndTargets = true
     ? getOutgoingLinkAndTargetEntities(
         entitySubgraph,
         entity.metadata.recordId.entityId,
@@ -109,7 +110,8 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {rows.length && !readonly ? (
+      {/** @todo revert '!true' to '!readonly' before merging (for testing / demo only) */}
+      {rows.length && !true ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
