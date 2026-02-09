@@ -26,6 +26,7 @@ const globalCss = defineGlobalStyles({
 
 export const preset = definePreset({
   name: "@hashintel/ds-theme",
+  globalCss,
   conditions: {
     extend: {
       light: ":root &, .light &, [data-theme=light] &",
@@ -77,13 +78,22 @@ export const preset = definePreset({
       // Has-* compounds: parent matches when a descendant matches a state
       hasHover: "&:is(:has(*:hover), [data-has-hover])",
       hasFocus: "&:is(:has(*:focus), [data-has-focus])",
-      hasFocusVisible:
-        "&:is(:has(*:focus-visible), [data-has-focus-visible])",
+      hasFocusVisible: "&:is(:has(*:focus-visible), [data-has-focus-visible])",
       hasFocusWithin: "&:is(:has(*:focus-within), [data-has-focus-within])",
       hasChecked: "&:is(:has(*:checked), [data-has-checked])",
     },
   },
-  globalCss,
+  utilities: {
+    extend: {
+      leading: {
+        className: "leading",
+        values: { tight: "1", normal: "1.5", loose: "1.75" },
+        transform(value: string) {
+          return { "--leading": value };
+        },
+      },
+    },
+  },
   theme: {
     tokens: {
       spacing,
@@ -113,6 +123,64 @@ export const preset = definePreset({
       colorPalette: {
         enabled: true,
         include: ["bg.*", "fg.*", "bd.*", "status.*"],
+      },
+      textStyles: {
+        xs: {
+          value: {
+            fontSize: "{fontSizes.xs}",
+            lineHeight: "calc(1em * var(--leading, 1.5))",
+            letterSpacing: "0.01em",
+          },
+        },
+        sm: {
+          value: {
+            fontSize: "{fontSizes.sm}",
+            lineHeight: "calc(1em * var(--leading, 1.5))",
+            letterSpacing: "0.005em",
+          },
+        },
+        base: {
+          value: {
+            fontSize: "{fontSizes.base}",
+            lineHeight: "calc(1em * var(--leading, 1.5))",
+            letterSpacing: "0em",
+          },
+        },
+        lg: {
+          value: {
+            fontSize: "{fontSizes.lg}",
+            lineHeight: "calc(1em * var(--leading, 1.5))",
+            letterSpacing: "-0.005em",
+          },
+        },
+        xl: {
+          value: {
+            fontSize: "{fontSizes.xl}",
+            lineHeight: "calc(1em * var(--leading, 1.5))",
+            letterSpacing: "-0.01em",
+          },
+        },
+        "2xl": {
+          value: {
+            fontSize: "{fontSizes.2xl}",
+            lineHeight: "calc(1em * var(--leading, 1.4))",
+            letterSpacing: "-0.015em",
+          },
+        },
+        "3xl": {
+          value: {
+            fontSize: "{fontSizes.3xl}",
+            lineHeight: "calc(1em * var(--leading, 1.3))",
+            letterSpacing: "-0.02em",
+          },
+        },
+        "4xl": {
+          value: {
+            fontSize: "{fontSizes.4xl}",
+            lineHeight: "calc(1em * var(--leading, 1.25))",
+            letterSpacing: "-0.025em",
+          },
+        },
       },
       semanticTokens: {
         colors: {

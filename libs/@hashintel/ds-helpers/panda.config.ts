@@ -20,7 +20,16 @@ export default defineConfig({
     css: [
       {
         properties: {
-          // NOTE: Pre-generate colorPalette CSS for all palettes so dynamic switching works
+          /*
+            NOTE:
+            this is specific to the Ladle demo,
+            so that we can have dynamic permutations
+
+            TODO:
+            extract these dynamically
+            from the exported tokens,
+            instead of hard-coding them here
+          */
           colorPalette: [
             // core
             "neutral",
@@ -37,6 +46,8 @@ export default defineConfig({
             "status.warning",
             "status.error",
           ],
+          textStyle: ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl"],
+          leading: ["tight", "normal", "loose"],
         },
       },
     ],

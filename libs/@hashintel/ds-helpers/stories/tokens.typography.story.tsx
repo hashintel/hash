@@ -4,16 +4,8 @@ import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
-const fontSizeOrder = [
-  "xs",
-  "sm",
-  "base",
-  "lg",
-  "xl",
-  "2xl",
-  "3xl",
-  "4xl",
-] as const;
+const textStyles = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl"] as const;
+const leadingValues = ["tight", "normal", "loose"] as const;
 const fontWeightEntries = [
   { name: "normal", value: 400 },
   { name: "medium", value: 500 },
@@ -43,6 +35,57 @@ const sectionTitleStyles = css({
   width: "[100%]",
 });
 
+const multiLineText =
+  "The quick brown fox jumps over the lazy dog. This sentence continues so that the text wraps across multiple lines, making differences in line height clearly visible.";
+
+type TextStyleName = (typeof textStyles)[number];
+type LeadingName = (typeof leadingValues)[number];
+
+const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
+  <HStack gap="4" alignItems="baseline">
+    <span className={labelStyles}>{style}</span>
+    <span className={css({ textStyle: style })}>
+      The quick brown fox jumps over the lazy dog
+    </span>
+  </HStack>
+);
+
+const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
+  <VStack gap="2" alignItems="flex-start" width="[100%]">
+    <span
+      className={css({
+        fontSize: "sm",
+        fontWeight: "semibold",
+        color: "fg.default",
+      })}
+    >
+      textStyle: {style}
+    </span>
+    <HStack gap="6" alignItems="flex-start" width="[100%]">
+      {leadingValues.map((leading) => (
+        <VStack
+          key={leading}
+          gap="1"
+          alignItems="flex-start"
+          flex="1"
+          minWidth="0"
+        >
+          <span className={valueStyles}>leading: {leading}</span>
+          <div
+            className={css({
+              textStyle: style,
+              leading,
+              maxWidth: "[100%]",
+            })}
+          >
+            {multiLineText}
+          </div>
+        </VStack>
+      ))}
+    </HStack>
+  </VStack>
+);
+
 const FontFamilyDemo = ({
   name,
   tokenPath,
@@ -58,19 +101,6 @@ const FontFamilyDemo = ({
   </HStack>
 );
 
-const FontSizeDemo = ({ size }: { size: string }) => {
-  const tokenPath = `fontSizes.${size}` as Token;
-  const value = token(tokenPath);
-
-  return (
-    <HStack gap="4" alignItems="baseline">
-      <span className={labelStyles}>{size}</span>
-      <span className={valueStyles}>{value}</span>
-      <span style={{ fontSize: value }}>The quick brown fox</span>
-    </HStack>
-  );
-};
-
 const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
@@ -81,39 +111,35 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   </HStack>
 );
 
-const LineHeightDemo = ({
-  category,
-  size,
-}: { category: string; size: string }) => {
-  const tokenPath = `lineHeights.${category}.${size}` as Token;
-  const value = token(tokenPath);
-  const fontSize = size.replace("text-", "");
-
-  return (
-    <HStack gap="4" alignItems="flex-start">
-      <span className={labelStyles}>{size}</span>
-      <span className={valueStyles}>{value}</span>
-      <div
-        className={css({
-          maxWidth: "[400px]",
-        })}
-        style={{
-          fontSize: token(`fontSizes.${fontSize}` as Token),
-          lineHeight: value,
-        }}
-      >
-        Multi-line text demo showing the line height value. This text wraps to
-        show spacing.
-      </div>
-    </HStack>
-  );
-};
-
 export const Typography: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Typography Tokens
+      Typography
     </h1>
+
+    <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <h2 className={sectionTitleStyles}>Text Styles</h2>
+      {textStyles.map((style) => (
+        <TextStyleDemo key={style} style={style} />
+      ))}
+    </VStack>
+
+    <VStack gap="6" alignItems="flex-start" width="[100%]">
+      <h2 className={sectionTitleStyles}>Leading Variants</h2>
+      <p
+        className={css({
+          fontSize: "xs",
+          color: "fg.subtle",
+          mb: "2",
+        })}
+      >
+        Each text style shown at tight (1), normal (1.5), and loose (1.75)
+        leading
+      </p>
+      {textStyles.map((style) => (
+        <LeadingComparisonRow key={style} style={style} />
+      ))}
+    </VStack>
 
     <VStack gap="4" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Font Families</h2>
@@ -123,54 +149,11 @@ export const Typography: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Font Sizes</h2>
-      {fontSizeOrder.map((size) => (
-        <FontSizeDemo key={size} size={size} />
-      ))}
-    </VStack>
-
-    <VStack gap="4" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Font Weights</h2>
       {fontWeightEntries.map(({ name, value }) => (
         <FontWeightDemo key={name} name={name} value={value} />
       ))}
     </VStack>
-
-    <HStack gap="12" alignItems="flex-start" width="[100%]">
-      <VStack gap="4" alignItems="flex-start" flex="1">
-        <h2 className={sectionTitleStyles}>Line Heights: None (Tight)</h2>
-        <p
-          className={css({
-            fontSize: "xs",
-            color: "fg.subtle",
-            mb: "2",
-          })}
-        >
-          Line height equals font size — for single-line text
-        </p>
-        {["text-xs", "text-sm", "text-base", "text-lg", "text-3xl"].map(
-          (size) => (
-            <LineHeightDemo key={size} category="none" size={size} />
-          ),
-        )}
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start" flex="1">
-        <h2 className={sectionTitleStyles}>Line Heights: Normal</h2>
-        <p
-          className={css({
-            fontSize: "xs",
-            color: "fg.subtle",
-            mb: "2",
-          })}
-        >
-          Comfortable line height for multi-line text
-        </p>
-        {["text-xs", "text-sm", "text-base", "text-lg"].map((size) => (
-          <LineHeightDemo key={size} category="normal" size={size} />
-        ))}
-      </VStack>
-    </HStack>
   </VStack>
 );
 
