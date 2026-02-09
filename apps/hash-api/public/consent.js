@@ -1,6 +1,4 @@
-function submitConsentForm() {
-  var submitButton = document.querySelector('button[type="submit"]');
-  var submitValue = submitButton.value;
+function submitConsentForm(submitValue) {
   var grantScope = document.querySelectorAll(
     'input[name="grant_scope"]:checked',
   );
@@ -30,9 +28,12 @@ function submitConsentForm() {
 
 function attachFormHandler() {
   var form = document.querySelector("form");
-  form.addEventListener("submit", function (event) {
-    event.preventDefault();
-    submitConsentForm();
+  var buttons = form.querySelectorAll('button[type="submit"]');
+  buttons.forEach(function (button) {
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      submitConsentForm(button.value);
+    });
   });
 }
 
