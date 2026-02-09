@@ -71,15 +71,31 @@ export default defineConfig(({ mode }) => {
 
       // Vite lib mode emits worker URLs as `"" + new URL("assets/...", import.meta.url).href`
       // wrapped in an outer `new URL(...)`. Simplify to `new URL("assets/...", import.meta.url)`.
+      // Also shim `window` in worker chunks: @babel/standalone bundles the `debug` package
+      // which accesses `window` in its `useColors()` without a typeof guard.
       isLibMode && {
-        name: "simplify-worker-url",
+        name: "fix-worker-bundle",
         generateBundle(_, bundle) {
-          for (const chunk of Object.values(bundle)) {
-            if (chunk.type === "chunk") {
-              chunk.code = chunk.code.replace(
+          for (const [fileName, item] of Object.entries(bundle)) {
+            if (item.type === "chunk") {
+              item.code = item.code.replace(
                 /new URL\(\s*\/\* @vite-ignore \*\/\s*"" \+ new URL\(("assets\/[^"]+"), import\.meta\.url\)\.href,\s*import\.meta\.url\s*\)/g,
                 "new URL($1, import.meta.url)",
               );
+            }
+
+            // Prepend window shim to worker bundles so libraries that
+            // access `window` (e.g. debug's useColors in @babel/standalone)
+            // work in Web Workers
+            if (fileName.includes("worker")) {
+              if (item.type === "chunk") {
+                item.code = `self.window = self;\n${item.code}`;
+              } else if (
+                item.type === "asset" &&
+                typeof item.source === "string"
+              ) {
+                item.source = `self.window = self;\n${item.source}`;
+              }
             }
           }
         },
