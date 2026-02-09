@@ -33,7 +33,7 @@ use crate::{
 /// - Types that are created and owned by the local system
 /// - Types that have been fetched from external sources
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyOwnership {
@@ -57,7 +57,7 @@ pub enum OntologyOwnership {
 ///
 /// Contains tracking information about the creation, modification, and origin of an ontology type.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenance {
@@ -70,7 +70,7 @@ pub struct OntologyProvenance {
 /// Contains information provided by the client about the creation context,
 /// including the acting entity's type and the origin of the creation action.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedOntologyEditionProvenance {
@@ -85,7 +85,7 @@ pub struct ProvidedOntologyEditionProvenance {
 /// Contains comprehensive tracking of who created and potentially archived this
 /// edition, along with user-provided context about the creation process.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyEditionProvenance {

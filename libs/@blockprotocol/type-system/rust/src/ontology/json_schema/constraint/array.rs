@@ -34,14 +34,14 @@ pub enum ArrayValidationError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum ArrayTypeTag {
     Array,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ArrayItemConstraints {
     Boolean,
@@ -133,7 +133,7 @@ impl Constraint for ArrayItemsSchema {
 mod wasm {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     enum ArrayItemsSchema {
         Schema {
@@ -148,7 +148,7 @@ mod wasm {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ArraySchema {
     Constrained(Box<ArrayConstraints>),
@@ -231,7 +231,7 @@ impl ConstraintValidator<[PropertyValue]> for ArraySchema {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArrayConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -292,7 +292,7 @@ impl ConstraintValidator<[PropertyValue]> for ArrayConstraints {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TupleConstraints {
     #[cfg_attr(target_arch = "wasm32", tsify(type = "false"))]

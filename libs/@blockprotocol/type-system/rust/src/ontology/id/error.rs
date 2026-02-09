@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 #[cfg(target_arch = "wasm32")]
-use tsify_next::Tsify;
+use tsify::Tsify;
 
 // TODO: Use error-stack
 //   see https://linear.app/hash/issue/BE-160/simplify-error-handling-in-type-system-package
