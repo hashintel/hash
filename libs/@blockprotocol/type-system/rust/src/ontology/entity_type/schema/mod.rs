@@ -21,7 +21,7 @@ use crate::ontology::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InverseEntityTypeMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -38,14 +38,14 @@ impl InverseEntityTypeMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeKindTag {
     EntityType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeSchemaTag {
     #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type")]
@@ -53,7 +53,7 @@ pub enum EntityTypeSchemaTag {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTypeSchemaMetadata {
     pub title: String,
@@ -65,7 +65,7 @@ pub struct EntityTypeSchemaMetadata {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTypeDisplayMetadata {
     #[serde(rename = "$id")]
@@ -194,7 +194,7 @@ pub struct EntityTypeDisplayMetadata {
 /// assert_eq!(links.len(), 1, "Should have exactly one link type");
 /// ```
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityType {
     #[serde(rename = "$schema")]
@@ -224,7 +224,7 @@ pub struct EntityType {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PartialEntityType {
     #[serde(rename = "$id")]
@@ -522,7 +522,7 @@ impl OntologyTypeSchema for ClosedEntityType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]
 pub struct EntityTypeReference {

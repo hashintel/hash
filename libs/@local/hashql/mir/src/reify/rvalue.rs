@@ -22,6 +22,7 @@ use super::{
 };
 use crate::{
     body::{
+        Source,
         constant::Constant,
         local::Local,
         operand::Operand,
@@ -291,7 +292,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 r#type: _,
                 value: env,
             },
-        ) = self.transform_closure(block, hir, Some(binder), closure);
+        ) = self.transform_closure(block, hir, Source::Closure(hir.id, Some(binder)), closure);
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).

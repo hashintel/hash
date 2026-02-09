@@ -13,7 +13,7 @@ use crate::ontology::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct ValueLabel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -30,14 +30,14 @@ impl ValueLabel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeTag {
     DataType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeSchemaTag {
     #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type")]
@@ -45,7 +45,7 @@ pub enum DataTypeSchemaTag {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueSchemaMetadata {
     pub description: String,
@@ -71,7 +71,7 @@ mod raw {
     };
 
     #[derive(serde::Serialize, serde::Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
     pub struct DataTypeBase {
         #[serde(rename = "$schema")]
@@ -185,7 +185,7 @@ mod raw {
     mod wasm {
         use super::*;
 
-        #[derive(tsify_next::Tsify)]
+        #[derive(tsify::Tsify)]
         #[serde(untagged)]
         enum DataType {
             Schema {
@@ -560,7 +560,7 @@ impl OntologyTypeSchema for DataType {
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]
 pub struct DataTypeReference {
