@@ -107,7 +107,7 @@ const ComponentRadiusDemo = ({
               className={css({
                 width: "[64px]",
                 height: "[32px]",
-                bg: "gray.90",
+                bg: "neutral.90",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -33,11 +33,8 @@ const TransparencyBackground = ({ children }: { children: ReactNode }) => (
  * These follow the radix 00-120 scale with half-steps, plus a00-a120 alpha variants.
  */
 const COLOR_PALETTES = [
-  "gray",
-  "slate",
+  "neutral",
   "blue",
-  "cyan",
-  "teal",
   "red",
   "orange",
   "yellow",
@@ -284,7 +281,7 @@ export const StaticColors: Story = () => (
       </VStack>
       <VStack gap="2" alignItems="flex-start">
         <h2 className={css({ fontSize: "lg", fontWeight: "medium" })}>White</h2>
-        <Box p="4" bg="gray.120" borderRadius="md.3">
+        <Box p="4" bg="neutral.120" borderRadius="md.3">
           <HStack gap="1">
             {ALPHA_STEPS.map((step) => (
               <ColorSwatch key={step} colorName="white" step={step} />

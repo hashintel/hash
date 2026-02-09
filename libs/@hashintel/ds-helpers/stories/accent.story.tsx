@@ -5,11 +5,8 @@ import { VStack, HStack, Box } from "../styled-system/jsx";
 
 /** All palette names available for colorPalette */
 const COLOR_PALETTES = [
-  "gray",
-  "slate",
+  "neutral",
   "blue",
-  "cyan",
-  "teal",
   "red",
   "orange",
   "yellow",

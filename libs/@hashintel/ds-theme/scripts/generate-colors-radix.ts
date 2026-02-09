@@ -20,22 +20,20 @@ const OUTPUT_DIR = "src/theme/colors";
  * Colors to include in generation. Add/remove as needed.
  */
 const INCLUDED_COLORS = [
-  // Neutrals
   "gray",
-  "slate",
-  // Brand colors
   "blue",
-  "cyan",
-  "teal",
-  // Semantic colors
-  "red",
+  "green",
   "orange",
   "yellow",
-  "green",
-  // Accent colors
+  "red",
   "purple",
   "pink",
 ] as const;
+
+/** Map radix color names to output names. Unmapped names use themselves. */
+const OUTPUT_NAMES: Record<string, string> = {
+  gray: "neutral",
+};
 
 type ColorName = string;
 type ColorScale = Record<string, string>;
@@ -215,19 +213,20 @@ function generateBaseTokens(
 /**
  * Generate tokens for a color (just the base scale).
  */
-function generateColorTokens(color: string): ColorTokens {
+function generateColorTokens(color: string, outputName: string): ColorTokens {
   const { light, dark } = getColorTokens(color);
   const baseTokens = generateBaseTokens(light, dark);
-  return withSemantics(color, baseTokens);
+  return withSemantics(outputName, baseTokens);
 }
 
 /**
  * Create a color palette object.
  */
 function createColorPalette(colorName: ColorName): ColorPalette {
+  const outputName = OUTPUT_NAMES[colorName] ?? colorName;
   return {
-    name: colorName,
-    tokens: generateColorTokens(colorName),
+    name: outputName,
+    tokens: generateColorTokens(colorName, outputName),
   };
 }
 
@@ -434,7 +433,7 @@ function main(): void {
 
   // Generate barrel file
   console.log("\n📦 Generating barrel file:");
-  writeBarrelFile(colorNames);
+  writeBarrelFile(palettes.map((p) => p.name));
 
   console.log(`\n✅ Generated ${colorNames.length} color palettes`);
 }

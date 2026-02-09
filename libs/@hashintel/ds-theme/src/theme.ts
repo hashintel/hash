@@ -1,15 +1,12 @@
 export { palettes, staticColors } from "./theme/colors.gen";
 export {
   blue,
-  cyan,
-  gray,
   green,
+  neutral,
   orange,
   pink,
   purple,
   red,
-  slate,
-  teal,
   yellow,
 } from "./theme/colors.gen";
 export {
