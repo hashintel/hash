@@ -54,7 +54,7 @@ pub(crate) fn mir_pass_transform_post_inline<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = PostInline::new_in(&mut scratch);
+    let mut pass = PostInline::new_in(heap, &mut scratch);
     let _: Changed = pass.run(
         &mut context,
         &mut GlobalTransformState::new_in(&bodies, heap),
