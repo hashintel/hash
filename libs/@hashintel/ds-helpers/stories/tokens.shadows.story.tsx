@@ -3,12 +3,35 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack, Grid } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type {
+  BaseShadow,
+  InsetShadow,
+  ElevationLevel,
+  ElevationScale,
+} from "./_types";
 
-const SHADOW_STEPS = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"] as const;
-const INSET_STEPS = ["inset-2xs", "inset-xs", "inset-sm"] as const;
+const SHADOW_STEPS: readonly BaseShadow[] = [
+  "2xs",
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "2xl",
+];
+const INSET_STEPS: readonly InsetShadow[] = [
+  "inset-2xs",
+  "inset-xs",
+  "inset-sm",
+];
 
-const ELEVATION_LEVELS = ["drop", "lift", "raise", "float"] as const;
-const ELEVATION_SCALES = ["micro", "macro"] as const;
+const ELEVATION_LEVELS: readonly ElevationLevel[] = [
+  "drop",
+  "lift",
+  "raise",
+  "float",
+];
+const ELEVATION_SCALES: readonly ElevationScale[] = ["micro", "macro"];
 
 const labelStyles = css({
   fontSize: "xs",

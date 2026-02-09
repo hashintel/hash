@@ -3,8 +3,9 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack, Box, Grid } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { PaletteName } from "./_types";
 
-const COLOR_PALETTES = [
+const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
   "blue",
   "red",
@@ -13,7 +14,7 @@ const COLOR_PALETTES = [
   "green",
   "purple",
   "pink",
-] as const;
+];
 
 type BgCategory = "solid" | "surface" | "muted" | "subtle";
 type BdCategory = "solid" | "subtle" | "muted";

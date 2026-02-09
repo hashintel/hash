@@ -5,8 +5,11 @@ import { token } from "../styled-system/tokens";
 import { VStack, HStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 import figmaGray from "./figma-gray-reference.json";
+import type { SolidStep } from "./_types";
 
-const FIGMA_STEPS = [
+type FigmaStep = keyof typeof figmaGray.gray;
+
+const FIGMA_STEPS: readonly FigmaStep[] = [
   "00",
   "10",
   "20",
@@ -19,9 +22,9 @@ const FIGMA_STEPS = [
   "80",
   "90",
   "95",
-] as const;
+];
 
-const RADIX_STEPS = [
+const RADIX_STEPS: readonly SolidStep[] = [
   "s00",
   "s05",
   "s10",
@@ -48,16 +51,13 @@ const RADIX_STEPS = [
   "s115",
   "s120",
   "s125",
-] as const;
+];
 
 /**
  * Initial best-guess mapping from figma gray steps to radix neutral steps.
  * Edit these values to visually align the figma chips under the correct radix chip.
  */
-const FIGMA_TO_RADIX_MAP: Record<
-  (typeof FIGMA_STEPS)[number],
-  string | undefined
-> = {
+const FIGMA_TO_RADIX_MAP: Record<FigmaStep, SolidStep | undefined> = {
   "00": "s05",
   "10": "s25",
   "20": "s45",

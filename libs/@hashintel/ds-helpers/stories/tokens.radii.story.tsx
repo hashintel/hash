@@ -3,9 +3,10 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { RadiusScale, RadiusStep } from "./_types";
 
-const scales = ["sm", "md", "lg"] as const;
-const steps = [
+const scales: readonly RadiusScale[] = ["sm", "md", "lg"];
+const steps: readonly RadiusStep[] = [
   "0",
   "1",
   "2",
@@ -18,7 +19,7 @@ const steps = [
   "9",
   "10",
   "full",
-] as const;
+];
 
 const labelStyles = css({
   fontSize: "xs",

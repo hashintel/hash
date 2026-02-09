@@ -4,6 +4,7 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { PaletteName, SolidStep, AlphaStep } from "./_types";
 
 const DIAGONAL_PATTERN_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M-4,4 l8,-8 M0,16 l16,-16 M12,20 l8,-8' stroke='%23808080' stroke-width='0.5' stroke-opacity='0.3'/%3E%3C/svg%3E")`;
 
@@ -27,7 +28,7 @@ const STATUS_ALIASES: Record<string, string> = {
   red: "status.error",
 };
 
-const COLOR_PALETTES = [
+const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
   "blue",
   "red",
@@ -36,9 +37,9 @@ const COLOR_PALETTES = [
   "green",
   "purple",
   "pink",
-] as const;
+];
 
-const SOLID_STEPS = [
+const SOLID_STEPS: readonly SolidStep[] = [
   "s00",
   "s05",
   "s10",
@@ -65,9 +66,9 @@ const SOLID_STEPS = [
   "s115",
   "s120",
   "s125",
-] as const;
+];
 
-const ALPHA_STEPS = [
+const ALPHA_STEPS: readonly AlphaStep[] = [
   "a00",
   "a05",
   "a10",
@@ -94,7 +95,7 @@ const ALPHA_STEPS = [
   "a115",
   "a120",
   "a125",
-] as const;
+];
 
 const swatchStyles = css({
   width: "[32px]",

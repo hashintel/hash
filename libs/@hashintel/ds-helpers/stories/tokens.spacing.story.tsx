@@ -3,8 +3,9 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { SpacingToken } from "./_types";
 
-const steps = [
+const steps: readonly SpacingToken[] = [
   "0",
   "0.5",
   "1",
@@ -28,7 +29,7 @@ const steps = [
   "16",
   "20",
   "24",
-] as const;
+];
 
 const stepLabelStyles = css({
   fontSize: "xs",

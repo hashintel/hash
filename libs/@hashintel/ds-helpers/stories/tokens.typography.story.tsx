@@ -3,8 +3,9 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { TextStyle, Leading, FontWeightToken } from "./_types";
 
-const textStyles = [
+const textStyles: readonly TextStyle[] = [
   "xs",
   "sm",
   "base",
@@ -13,13 +14,13 @@ const textStyles = [
   "2xl",
   "3xl",
   "4xl",
-] as const;
-const leadingValues = ["tight", "normal", "loose"] as const;
-const fontWeightEntries = [
+];
+const leadingValues: readonly Leading[] = ["tight", "normal", "loose"];
+const fontWeightEntries: readonly { name: FontWeightToken; value: number }[] = [
   { name: "normal", value: 400 },
   { name: "medium", value: 500 },
   { name: "semibold", value: 600 },
-] as const;
+];
 
 const labelStyles = css({
   fontSize: "xs",
@@ -47,8 +48,8 @@ const sectionTitleStyles = css({
 const multiLineText =
   "The quick brown fox jumps over the lazy dog. This sentence continues so that the text wraps across multiple lines, making differences in line height clearly visible.";
 
-type TextStyleName = (typeof textStyles)[number];
-type LeadingName = (typeof leadingValues)[number];
+type TextStyleName = TextStyle;
+type LeadingName = Leading;
 
 const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
   <HStack gap="4" alignItems="baseline">
