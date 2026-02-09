@@ -1,7 +1,7 @@
 /**
  * Radix-colors based color token generator.
  *
- * Generates base color scales (s00-s120 with half-steps, a00-a120 with half-steps)
+ * Generates base color scales (s00-s125 with half-steps, a00-a125 with half-steps)
  * from @radix-ui/colors, interpolating midpoints in OKLCH color space.
  * Semantic tokens (bg, fg, bd) are composed per palette for colorPalette support.
  *
@@ -96,6 +96,30 @@ function interpolateColor(colorA: string, colorB: string): string {
   return toHex(mid);
 }
 
+function extrapolateColor(colorA: string, colorB: string): string {
+  const a = new Color(colorA);
+  const b = new Color(colorB);
+
+  const aOklch = a.to("oklch");
+  const bOklch = b.to("oklch");
+
+  const dL = bOklch.get("l") - aOklch.get("l");
+  const dC = bOklch.get("c") - aOklch.get("c");
+  const hA = aOklch.get("h") || 0;
+  const hB = bOklch.get("h") || 0;
+  const dH = hB - hA;
+  const dAlpha = b.alpha - a.alpha;
+
+  const result = new Color("oklch", [
+    clamp(bOklch.get("l") + dL, 0, 1),
+    Math.max(0, bOklch.get("c") + dC),
+    (hB + dH) % 360,
+  ]);
+  result.alpha = clamp(b.alpha + dAlpha, 0, 1);
+
+  return toHex(result);
+}
+
 function interpolateColorRgba(colorA: string, colorB: string): string {
   let a: Color;
   const b = new Color(colorB);
@@ -109,6 +133,30 @@ function interpolateColorRgba(colorA: string, colorB: string): string {
 
   const mid = a.mix(b, 0.5, { space: "oklch" });
   return toRgba(mid);
+}
+
+function extrapolateColorRgba(colorA: string, colorB: string): string {
+  const a = new Color(colorA);
+  const b = new Color(colorB);
+
+  const aOklch = a.to("oklch");
+  const bOklch = b.to("oklch");
+
+  const dL = bOklch.get("l") - aOklch.get("l");
+  const dC = bOklch.get("c") - aOklch.get("c");
+  const hA = aOklch.get("h") || 0;
+  const hB = bOklch.get("h") || 0;
+  const dH = hB - hA;
+  const dAlpha = b.alpha - a.alpha;
+
+  const result = new Color("oklch", [
+    clamp(bOklch.get("l") + dL, 0, 1),
+    Math.max(0, bOklch.get("c") + dC),
+    (hB + dH) % 360,
+  ]);
+  result.alpha = clamp(b.alpha + dAlpha, 0, 1);
+
+  return toRgba(result);
 }
 
 /**
@@ -157,10 +205,11 @@ function getColorTokens(color: string): {
 }
 
 /**
- * Generate base tokens (s00-s120 with half-steps, a00-a120 with half-steps) for a color.
+ * Generate base tokens (s00-s125 with half-steps, a00-a125 with half-steps) for a color.
  * Step s00 is pure white (light) / black (dark) for true background color.
  * Step a00 is fully transparent.
  * Half-steps (s05, s15, ..., s115) are interpolated in OKLCH between adjacent steps.
+ * Step s125/a125 is extrapolated from the OKLCH delta between s115/a115 and s120/a120.
  */
 function generateBaseTokens(
   light: ColorScale,
@@ -180,7 +229,7 @@ function generateBaseTokens(
     darkAlphaValues.push(dark[`a${i}`]!);
   }
 
-  // Solid tokens: s00, s05, s10, s15, ..., s115, s120
+  // Solid tokens: s00, s05, s10, s15, ..., s115, s120, s125
   for (let i = 0; i <= 12; i++) {
     const key = `s${String(i * 10).padStart(2, "0")}`;
     tokens[key] = {
@@ -198,7 +247,17 @@ function generateBaseTokens(
     }
   }
 
-  // Alpha tokens: a00, a05, a10, a15, ..., a115, a120
+  // s125: extrapolate from s115 → s120 delta
+  const lightS115 = interpolateColor(lightValues[11]!, lightValues[12]!);
+  const darkS115 = interpolateColor(darkValues[11]!, darkValues[12]!);
+  tokens.s125 = {
+    value: {
+      _light: extrapolateColor(lightS115, lightValues[12]!),
+      _dark: extrapolateColor(darkS115, darkValues[12]!),
+    },
+  };
+
+  // Alpha tokens: a00, a05, a10, a15, ..., a115, a120, a125
   for (let i = 0; i <= 12; i++) {
     const key = `a${String(i * 10).padStart(2, "0")}`;
     tokens[key] = {
@@ -218,6 +277,16 @@ function generateBaseTokens(
       };
     }
   }
+
+  // a125: extrapolate from a115 → a120 delta
+  const lightA115 = interpolateColor(lightAlphaValues[11]!, lightAlphaValues[12]!);
+  const darkA115 = interpolateColor(darkAlphaValues[11]!, darkAlphaValues[12]!);
+  tokens.a125 = {
+    value: {
+      _light: extrapolateColor(lightA115, lightAlphaValues[12]!),
+      _dark: extrapolateColor(darkA115, darkAlphaValues[12]!),
+    },
+  };
 
   return tokens;
 }
@@ -357,6 +426,16 @@ function generateStaticColorTokens(): string {
         lines.push(`  ${halfKey}: { value: "${mid}" },`);
       }
     }
+
+    // a125: extrapolate from a115 → a120 delta
+    const lastIdx = alphas.length - 1;
+    const prevIdx = lastIdx - 1;
+    const a115Val = `rgba(${r}, ${g}, ${b}, ${alphas[prevIdx]})`;
+    const a115Mid = interpolateColorRgba(a115Val, `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`);
+    const a120Val = `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`;
+    const extrapolated = extrapolateColorRgba(a115Mid, a120Val);
+    lines.push(`  a125: { value: "${extrapolated}" },`);
+
     return lines.join("\n");
   }
 

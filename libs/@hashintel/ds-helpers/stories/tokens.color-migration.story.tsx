@@ -47,6 +47,7 @@ const RADIX_STEPS = [
   "s110",
   "s115",
   "s120",
+  "s125",
 ] as const;
 
 /**
@@ -68,7 +69,7 @@ const FIGMA_TO_RADIX_MAP: Record<
   "70": "s115",
   "80": undefined,
   "90": "s120",
-  "95": undefined,
+  "95": "s125",
 };
 
 const COLS = RADIX_STEPS.length;

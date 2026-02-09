@@ -64,6 +64,7 @@ const SOLID_STEPS = [
   "s110",
   "s115",
   "s120",
+  "s125",
 ] as const;
 
 const ALPHA_STEPS = [
@@ -92,6 +93,7 @@ const ALPHA_STEPS = [
   "a110",
   "a115",
   "a120",
+  "a125",
 ] as const;
 
 const swatchStyles = css({
@@ -215,9 +217,9 @@ export const ColorPalettes: Story = () => (
           maxWidth: "[700px]",
         })}
       >
-        Base color scales generated from Radix colors. Solid steps (s00–s120)
+        Base color scales generated from Radix colors. Solid steps (s00–s125)
         range from white/black through tinted backgrounds, interactive fills,
-        borders, solid backgrounds, to text. Alpha steps (a00–a120) use
+        borders, solid backgrounds, to text. Alpha steps (a00–a125) use
         transparency for overlays and blending. Half-steps are OKLCH
         interpolations. Palettes marked with a status alias on the right can
         also be referenced as{" "}
@@ -230,7 +232,7 @@ export const ColorPalettes: Story = () => (
 
     <VStack gap="4" alignItems="flex-start">
       <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-        Solid Scales (s00–s120)
+        Solid Scales (s00–s125)
       </h2>
       <VStack gap="1" alignItems="flex-start">
         <StepHeaders steps={SOLID_STEPS} />
@@ -242,7 +244,7 @@ export const ColorPalettes: Story = () => (
 
     <VStack gap="4" alignItems="flex-start">
       <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
-        Alpha Scales (a00–a120)
+        Alpha Scales (a00–a125)
       </h2>
       <TransparencyBackground>
         <VStack gap="1" alignItems="flex-start">
