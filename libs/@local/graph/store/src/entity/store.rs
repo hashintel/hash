@@ -80,6 +80,12 @@ const fn default_true() -> bool {
 #[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    clippy::allow_attributes,
+    reason = "This is a configuration struct. `struct_excessive_bools` does not always report for \
+              some reason, so we use `allow` here."
+)]
 pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default = "default_true")]
