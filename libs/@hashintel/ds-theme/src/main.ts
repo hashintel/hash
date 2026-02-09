@@ -9,6 +9,7 @@ import {
   red,
 } from "./theme/colors.gen";
 import { fontWeights, fontSizes, lineHeights, radii } from "./theme/tokens.gen";
+import { createSemanticSet } from "./theme/utils";
 
 const globalCss = defineGlobalStyles({
   "html, body": {
@@ -167,6 +168,7 @@ export const preset = definePreset({
       },
       semanticTokens: {
         colors: {
+          DEFAULT: createSemanticSet("colors.neutral"),
           ...basePalettes,
           status: {
             info: blue,
