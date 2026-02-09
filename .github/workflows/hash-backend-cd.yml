@@ -17,37 +17,9 @@ on:
       - "infra/docker/api/prod/**"
 
 env:
-  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  AWS_ECR_URL: ${{ secrets.AWS_ECR_URL }}
-
-  # New artifacts account ECR (cross-account)
   ARTIFACTS_ECR_URL: 469596578827.dkr.ecr.eu-central-1.amazonaws.com
   ARTIFACTS_ECR_ROLE_ARN: arn:aws:iam::469596578827:role/h-artifacts-euc1-ecr-push
   ARTIFACTS_AWS_REGION: eu-central-1
-
-  GH_RUN_ID: ${{ github.run_id }}
-
-  GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
-
-  HASH_API_RESOURCE_NAME: ${{ secrets.HASH_API_RESOURCE_NAME }}
-  HASH_GRAPH_RESOURCE_NAME: ${{ secrets.HASH_GRAPH_RESOURCE_NAME }}
-  HASH_KRATOS_RESOURCE_NAME: ${{ secrets.HASH_KRATOS_RESOURCE_NAME }}
-  HASH_HYDRA_RESOURCE_NAME: ${{ secrets.HASH_HYDRA_RESOURCE_NAME }}
-  HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraits
-  HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkerintegration
-
-  HASH_TEMPORAL_SETUP_RESOURCE_NAME: h-temporal-prod-usea1-setup
-  HASH_TEMPORAL_MIGRATE_RESOURCE_NAME: h-temporal-prod-usea1-migrate
-  HASH_TEMPORAL_VERSION: 1.23.1.0
-
-  HASH_ECS_CLUSTER_NAME: h-hash-prod-usea1-ecs
-  HASH_APP_SERVICE_NAME: h-hash-prod-usea1-appsvc
-  HASH_GRAPH_SERVICE_NAME: h-hash-prod-usea1-graph
-  HASH_WORKER_SERVICE_NAME: h-hash-prod-usea1-appworker-svc
-
-  HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
-  HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
 
   STAGING_AWS_REGION: eu-central-1
   STAGING_APP_CLUSTER_NAME: h-stage-euc1-app
@@ -96,7 +68,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -105,21 +77,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "graph"
-          CONTEXT_PATH: ${{ github.workspace }}/
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-graph/docker/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -152,7 +109,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -161,21 +118,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "api"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/docker/api/prod/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -206,7 +148,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -215,24 +157,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "kratos"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/kratos
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/kratos/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
-          BUILD_ARGS: |
-            ENV=prod
-            API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -266,7 +190,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -275,23 +199,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "hydra"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/hydra
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/hydra/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_HYDRA_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
-          BUILD_ARGS: |
-            ENV=prod
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -324,7 +231,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -333,23 +240,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "temporal-worker-ai-ts"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-ts/docker/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
-          BUILD_ARGS: |
-            GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -382,7 +272,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -391,21 +281,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "temporal-integration-worker"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-integration-worker/docker/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Push to artifacts ECR
         uses: ./.github/actions/docker-build-push
@@ -421,90 +296,6 @@ jobs:
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/integration-worker
           GITHUB_TOKEN: ${{ github.token }}
-
-  build-temporal-migrate:
-    name: Build and push Temporal Migrate image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          exportToken: true
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "temporal-migrate"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/temporal
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/migrate.Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_TEMPORAL_MIGRATE_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
-          BUILD_ARGS: |
-            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
-
-  build-temporal-setup:
-    name: Build and push Temporal Setup image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          exportToken: true
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "temporal-setup"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/temporal
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/setup.Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
-          GITHUB_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
-          BUILD_ARGS: |
-            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
   deploy-graph:
     name: Deploy HASH graph images
@@ -522,7 +313,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -531,16 +322,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.HASH_GRAPH_SERVICE_NAME }}
 
       - name: Redeploy graph staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -617,7 +398,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -626,16 +407,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
 
       - name: Redeploy API staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -722,7 +493,7 @@ jobs:
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           # Even though it could look like separate calls to fetch the secrets
@@ -731,16 +502,6 @@ jobs:
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.HASH_WORKER_SERVICE_NAME }}
 
       - name: Redeploy AI-TS staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -786,50 +547,12 @@ jobs:
           ECS_SERVICE_NAME: ${{ env.PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME }}
           ROLE_ARN: ${{ env.PRODUCTION_WORKER_DEPLOY_ROLE_ARN }}
 
-  deploy-temporal:
-    name: Deploy Temporal images
-    runs-on: ubuntu-latest
-    needs:
-      - build-temporal-migrate
-      - build-temporal-setup
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          exportToken: true
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.HASH_TEMPORAL_SERVICE_NAME }}
-
   notify-slack:
     name: Notify Slack on failure
     needs:
       - deploy-app
       - deploy-graph
       - deploy-workers
-      - deploy-temporal
     runs-on: ubuntu-latest
     if: ${{ failure() }}
     steps:
@@ -841,5 +564,3 @@ jobs:
           SLACK_TITLE: Backend deployment failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
-          VAULT_ADDR: ""
-          VAULT_TOKEN: ""
