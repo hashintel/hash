@@ -480,31 +480,6 @@ const main = async () => {
     next();
   });
 
-  /**
-   * Debugging endpoint to check how the server resolves the client's IP.
-   * Restricted to instance admins as it reveals proxy/CDN configuration details.
-   */
-  app.get("/my-ip", async (req, res) => {
-    const { user } = req;
-    if (!user) {
-      res.status(401).send("Not authenticated");
-      return;
-    }
-
-    const isAdmin = await isUserHashInstanceAdmin(
-      req.context,
-      { actorId: user.accountId },
-      { userAccountId: user.accountId },
-    );
-
-    if (!isAdmin) {
-      res.status(403).send("Forbidden");
-      return;
-    }
-
-    res.send(req.ip);
-  });
-
   /** OAuth2 consent flow */
   app.get("/oauth2/consent", authRouteRateLimiter, oauthConsentRequestHandler);
   app.post(
@@ -555,6 +530,31 @@ const main = async () => {
       vaultClient,
     };
     next();
+  });
+
+  /**
+   * Debugging endpoint to check how the server resolves the client's IP.
+   * Restricted to instance admins as it reveals proxy/CDN configuration details.
+   */
+  app.get("/my-ip", async (req, res) => {
+    const { user } = req;
+    if (!user) {
+      res.status(401).send("Not authenticated");
+      return;
+    }
+
+    const isAdmin = await isUserHashInstanceAdmin(
+      req.context,
+      { actorId: user.accountId },
+      { userAccountId: user.accountId },
+    );
+
+    if (!isAdmin) {
+      res.status(403).send("Forbidden");
+      return;
+    }
+
+    res.send(req.ip);
   });
 
   setupFileDownloadProxyHandler(app, keyv);
@@ -724,8 +724,8 @@ const main = async () => {
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
   app.use(
     GRAPHQL_PATH,
-    graphqlRateLimiter,
     cors<cors.CorsRequest>(CORS_CONFIG),
+    graphqlRateLimiter,
     express.json(),
     apolloMiddleware,
   );
