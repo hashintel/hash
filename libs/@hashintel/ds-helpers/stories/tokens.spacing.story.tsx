@@ -4,14 +4,19 @@ import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
-const scales = ["default", "compact", "comfortable"] as const;
 const steps = [
   "0",
+  "0.5",
   "1",
+  "1.5",
   "2",
+  "2.5",
   "3",
+  "3.5",
   "4",
+  "4.5",
   "5",
+  "5.5",
   "6",
   "7",
   "8",
@@ -19,28 +24,30 @@ const steps = [
   "10",
   "11",
   "12",
+  "14",
+  "16",
+  "20",
+  "24",
 ] as const;
 
 const stepLabelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
-  width: "[24px]",
+  width: "[32px]",
   textAlign: "right",
+  fontFamily: "mono",
 });
 
 const valueStyles = css({
   fontSize: "xs",
   color: "fg.subtle",
-  minWidth: "[40px]",
+  minWidth: "[48px]",
+  fontFamily: "mono",
 });
 
-const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
-  // For default scale, use just the step number (Panda's DEFAULT pattern)
-  const tokenPath =
-    scale === "default"
-      ? (`spacing.${step}` as Token)
-      : (`spacing.${scale}.${step}` as Token);
+const SpacingBar = ({ step }: { step: string }) => {
+  const tokenPath = `spacing.${step}` as Token;
   const value = token(tokenPath);
 
   return (
@@ -60,24 +67,6 @@ const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
   );
 };
 
-const ScaleColumn = ({ scale }: { scale: string }) => (
-  <VStack gap="1" alignItems="flex-start">
-    <span
-      className={css({
-        fontSize: "sm",
-        fontWeight: "semibold",
-        mb: "2",
-        textTransform: "capitalize",
-      })}
-    >
-      {scale}
-    </span>
-    {steps.map((step) => (
-      <SpacingBar key={step} scale={scale} step={step} />
-    ))}
-  </VStack>
-);
-
 export const Spacing: Story = () => (
   <VStack gap="6" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
@@ -90,15 +79,14 @@ export const Spacing: Story = () => (
         maxWidth: "[600px]",
       })}
     >
-      Spacing scales for different density modes. Default is the base scale,
-      compact reduces spacing for dense UIs, and comfortable increases spacing
-      for more relaxed layouts.
+      Spacing scale from the default Panda/Tailwind system. Values follow a
+      consistent 4px base unit (1 = 0.25rem = 4px).
     </p>
-    <HStack gap="12" alignItems="flex-start">
-      {scales.map((scale) => (
-        <ScaleColumn key={scale} scale={scale} />
+    <VStack gap="1" alignItems="flex-start">
+      {steps.map((step) => (
+        <SpacingBar key={step} step={step} />
       ))}
-    </HStack>
+    </VStack>
   </VStack>
 );
 

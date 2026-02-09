@@ -4,7 +4,16 @@ import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
-const textStyles = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl"] as const;
+const textStyles = [
+  "xs",
+  "sm",
+  "base",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+] as const;
 const leadingValues = ["tight", "normal", "loose"] as const;
 const fontWeightEntries = [
   { name: "normal", value: 400 },

@@ -10,8 +10,6 @@ export {
   yellow,
 } from "./theme/colors.gen";
 export {
-  spacing,
-  fonts,
   fontWeights,
   fontSizes,
   lineHeights,

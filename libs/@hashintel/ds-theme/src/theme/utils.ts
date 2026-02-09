@@ -13,13 +13,18 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  * The `kind` parameter controls how fg.solid and (for neutral) bg.solid are mapped
  * to ensure proper text contrast on solid backgrounds.
  */
-export function createSemanticSet(palette: string, kind: PaletteKind = "normal") {
+export function createSemanticSet(
+  palette: string,
+  kind: PaletteKind = "normal",
+) {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
 
   const bgSolid =
     kind === "neutral"
       ? {
-          DEFAULT: { value: { _light: "{colors.black}", _dark: "{colors.white}" } },
+          DEFAULT: {
+            value: { _light: "{colors.black}", _dark: "{colors.white}" },
+          },
           hover: ps("s120"),
           active: ps("s120"),
           disabled: ps("s60"),
@@ -33,9 +38,20 @@ export function createSemanticSet(palette: string, kind: PaletteKind = "normal")
 
   const fgSolid =
     kind === "neutral"
-      ? { DEFAULT: { value: { _light: "{colors.white}", _dark: "{colors.black}" } } }
+      ? {
+          DEFAULT: {
+            value: { _light: "{colors.white}", _dark: "{colors.black}" },
+          },
+        }
       : kind === "bright"
-        ? { DEFAULT: { value: { _light: "{colors.neutral.s120}", _dark: "{colors.neutral.s10}" } } }
+        ? {
+            DEFAULT: {
+              value: {
+                _light: "{colors.neutral.s120}",
+                _dark: "{colors.neutral.s10}",
+              },
+            },
+          }
         : { DEFAULT: { value: { _light: "white", _dark: "white" } } };
 
   return {

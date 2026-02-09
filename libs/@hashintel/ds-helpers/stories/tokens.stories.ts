@@ -14,3 +14,4 @@ export { ColorMappings } from "./tokens.color-migration.story";
 export { Spacing } from "./tokens.spacing.story";
 export { Typography } from "./tokens.typography.story";
 export { Radii } from "./tokens.radii.story";
+export { Shadows } from "./tokens.shadows.story";

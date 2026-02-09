@@ -250,11 +250,30 @@ export const ColorVariants: Story = () => (
       <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
         Color Variants
       </h1>
-      <p className={css({ fontSize: "sm", color: "fg.muted", maxWidth: "[700px]" })}>
-        Semantic <code className={css({ fontFamily: "mono", fontSize: "xs" })}>bg.*</code>,{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>fg.*</code>, and{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>bd.*</code> tokens
-        under each <code className={css({ fontFamily: "mono", fontSize: "xs" })}>colorPalette</code>.
+      <p
+        className={css({
+          fontSize: "sm",
+          color: "fg.muted",
+          maxWidth: "[700px]",
+        })}
+      >
+        Semantic{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          bg.*
+        </code>
+        ,{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          fg.*
+        </code>
+        , and{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          bd.*
+        </code>{" "}
+        tokens under each{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          colorPalette
+        </code>
+        .
       </p>
     </VStack>
 

@@ -279,7 +279,10 @@ function generateBaseTokens(
   }
 
   // a125: extrapolate from a115 → a120 delta
-  const lightA115 = interpolateColor(lightAlphaValues[11]!, lightAlphaValues[12]!);
+  const lightA115 = interpolateColor(
+    lightAlphaValues[11]!,
+    lightAlphaValues[12]!,
+  );
   const darkA115 = interpolateColor(darkAlphaValues[11]!, darkAlphaValues[12]!);
   tokens.a125 = {
     value: {
@@ -294,7 +297,11 @@ function generateBaseTokens(
 /**
  * Generate tokens for a color (just the base scale).
  */
-function generateColorTokens(color: string, outputName: string, kind: PaletteKind): ColorTokens {
+function generateColorTokens(
+  color: string,
+  outputName: string,
+  kind: PaletteKind,
+): ColorTokens {
   const { light, dark } = getColorTokens(color);
   const baseTokens = generateBaseTokens(light, dark);
   return withSemantics(outputName, baseTokens, kind);
@@ -431,7 +438,10 @@ function generateStaticColorTokens(): string {
     const lastIdx = alphas.length - 1;
     const prevIdx = lastIdx - 1;
     const a115Val = `rgba(${r}, ${g}, ${b}, ${alphas[prevIdx]})`;
-    const a115Mid = interpolateColorRgba(a115Val, `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`);
+    const a115Mid = interpolateColorRgba(
+      a115Val,
+      `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`,
+    );
     const a120Val = `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`;
     const extrapolated = extrapolateColorRgba(a115Mid, a120Val);
     lines.push(`  a125: { value: "${extrapolated}" },`);
