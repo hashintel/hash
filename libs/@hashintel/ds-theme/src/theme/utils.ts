@@ -1,18 +1,46 @@
 /**
+ * Palette contrast category:
+ * - "normal": dark colors at step 9 (blue, red, green, etc.) — white fg on solid
+ * - "bright": light/vivid colors at step 9 (yellow, orange, etc.) — dark fg on solid
+ * - "neutral": gray-scale palettes — solid uses black/white instead of step 9
+ */
+export type PaletteKind = "normal" | "bright" | "neutral";
+
+/**
  * Creates the bg/fg/bd semantic structure referencing a specific palette.
  * The palette must be a valid token path like "colors.blue" or "colors.neutral".
+ *
+ * The `kind` parameter controls how fg.solid and (for neutral) bg.solid are mapped
+ * to ensure proper text contrast on solid backgrounds.
  */
-export function createSemanticSet(palette: string) {
+export function createSemanticSet(palette: string, kind: PaletteKind = "normal") {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
+
+  const bgSolid =
+    kind === "neutral"
+      ? {
+          DEFAULT: { value: { _light: "{colors.black}", _dark: "{colors.white}" } },
+          hover: ps("s120"),
+          active: ps("s120"),
+          disabled: ps("s60"),
+        }
+      : {
+          DEFAULT: ps("s90"),
+          hover: ps("s100"),
+          active: ps("s100"),
+          disabled: ps("s60"),
+        };
+
+  const fgSolid =
+    kind === "neutral"
+      ? { DEFAULT: { value: { _light: "{colors.white}", _dark: "{colors.black}" } } }
+      : kind === "bright"
+        ? { DEFAULT: { value: { _light: "{colors.neutral.s120}", _dark: "{colors.neutral.s10}" } } }
+        : { DEFAULT: { value: { _light: "white", _dark: "white" } } };
 
   return {
     bg: {
-      solid: {
-        DEFAULT: ps("s90"),
-        hover: ps("s100"),
-        active: ps("s100"),
-        disabled: ps("s60"),
-      },
+      solid: bgSolid,
       surface: {
         DEFAULT: ps("a20"),
         hover: ps("a30"),
@@ -33,7 +61,7 @@ export function createSemanticSet(palette: string) {
       },
     },
     fg: {
-      solid: { DEFAULT: { value: { _light: "white", _dark: "white" } } },
+      solid: fgSolid,
       DEFAULT: ps("s120"),
       muted: {
         DEFAULT: ps("s110"),
@@ -82,9 +110,10 @@ export function createSemanticSet(palette: string) {
 export function withSemantics<T extends Record<string, unknown>>(
   paletteName: string,
   baseTokens: T,
+  kind: PaletteKind = "normal",
 ) {
   return {
     ...baseTokens,
-    ...createSemanticSet(`colors.${paletteName}`),
+    ...createSemanticSet(`colors.${paletteName}`, kind),
   };
 }

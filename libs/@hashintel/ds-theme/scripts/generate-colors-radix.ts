@@ -12,7 +12,7 @@ import fs from "node:fs";
 import { join } from "node:path";
 import Color from "colorjs.io";
 import * as radixColors from "@radix-ui/colors";
-import { withSemantics } from "../src/theme/utils";
+import { withSemantics, type PaletteKind } from "../src/theme/utils";
 
 const OUTPUT_DIR = "src/theme/colors";
 
@@ -34,6 +34,18 @@ const INCLUDED_COLORS = [
 const OUTPUT_NAMES: Record<string, string> = {
   gray: "neutral",
 };
+
+/** Colors whose step-9 is bright enough to need dark foreground text. */
+const BRIGHT_COLORS: readonly string[] = ["yellow", "orange"];
+
+/** Neutral/gray-scale colors that use black/white for solid backgrounds. */
+const NEUTRAL_COLORS: readonly string[] = ["gray"];
+
+function getPaletteKind(radixName: string): PaletteKind {
+  if (NEUTRAL_COLORS.includes(radixName)) return "neutral";
+  if (BRIGHT_COLORS.includes(radixName)) return "bright";
+  return "normal";
+}
 
 type ColorName = string;
 type ColorScale = Record<string, string>;
@@ -213,10 +225,10 @@ function generateBaseTokens(
 /**
  * Generate tokens for a color (just the base scale).
  */
-function generateColorTokens(color: string, outputName: string): ColorTokens {
+function generateColorTokens(color: string, outputName: string, kind: PaletteKind): ColorTokens {
   const { light, dark } = getColorTokens(color);
   const baseTokens = generateBaseTokens(light, dark);
-  return withSemantics(outputName, baseTokens);
+  return withSemantics(outputName, baseTokens, kind);
 }
 
 /**
@@ -224,9 +236,10 @@ function generateColorTokens(color: string, outputName: string): ColorTokens {
  */
 function createColorPalette(colorName: ColorName): ColorPalette {
   const outputName = OUTPUT_NAMES[colorName] ?? colorName;
+  const kind = getPaletteKind(colorName);
   return {
     name: outputName,
-    tokens: generateColorTokens(colorName, outputName),
+    tokens: generateColorTokens(colorName, outputName, kind),
   };
 }
 
