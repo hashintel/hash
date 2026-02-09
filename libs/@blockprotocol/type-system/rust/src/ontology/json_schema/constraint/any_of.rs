@@ -8,7 +8,7 @@ use super::{
 use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AnyOfConstraints {
     #[cfg_attr(

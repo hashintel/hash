@@ -1,6 +1,6 @@
 ════ MIR ═══════════════════════════════════════════════════════════════════════
 
-fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+fn {graph::read::filter@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
 
     bb0(): {
@@ -29,7 +29,7 @@ fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -
         %5 = (%3)
 
         graph read entities(%2)
-        |> filter({closure@11}, %5)
+        |> filter({graph::read::filter@11}, %5)
         |> collect -> bb2(_)
     }
 
