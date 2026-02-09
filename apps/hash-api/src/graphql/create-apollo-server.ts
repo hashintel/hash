@@ -151,7 +151,7 @@ export const createApolloServer = async ({
     cache: new KeyvAdapter(cache),
     logger: logger.child({ service: "graphql" }),
     introspection: !isProdEnv,
-    includeStacktraceInErrorResponses: true, // required for stack traces to be captured
+    includeStacktraceInErrorResponses: !isProdEnv,
     plugins: [
       ApolloServerPluginLandingPageGraphQLPlayground({
         settings: {
