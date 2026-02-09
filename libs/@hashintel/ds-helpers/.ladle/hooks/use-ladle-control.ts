@@ -59,26 +59,13 @@ export function useLadleIsPreview(): boolean {
   return globalState.mode === ModeState.Preview;
 }
 
-export const mantineSchemeBGColors = [
-  "var(--mantine-scheme-color-r0)",
-  "var(--mantine-scheme-color-r1)",
-  "var(--mantine-scheme-color-r2)",
-  "var(--mantine-scheme-color-b0)",
-  "var(--mantine-scheme-color-b1)",
-  "var(--mantine-scheme-color-b2)",
-] as const;
-
-export type MantineSchemeBGColor = (typeof mantineSchemeBGColors)[number];
-
 /**
  * Hook to programmatically set the background color of the Ladle story canvas.
  *
  * @param initialColor - Initial background color (optional)
  * @returns A function to set the background color
  */
-export function useLadleBackground(
-  initialColor?: (string & {}) | MantineSchemeBGColor,
-) {
+export function useLadleBackground(initialColor?: string & {}) {
   const setLadleBackground = useLadleControl("background", initialColor);
   const isFirstRender = useIsFirstRender();
   useLayoutEffect(() => {
