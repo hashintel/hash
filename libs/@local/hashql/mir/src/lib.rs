@@ -17,7 +17,6 @@
     assert_matches,
     binary_heap_drain_sorted,
     clone_from_ref,
-    cold_path,
     const_type_name,
     get_mut_unchecked,
     iter_array_chunks,
