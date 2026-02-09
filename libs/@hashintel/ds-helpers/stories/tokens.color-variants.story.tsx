@@ -1,8 +1,7 @@
 import type { Story } from "@ladle/react";
-import { useState } from "react";
-import { css, cva } from "../styled-system/css";
+import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
-import { VStack, HStack, Box } from "../styled-system/jsx";
+import { VStack, HStack, Box, Grid } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
 const COLOR_PALETTES = [
@@ -16,13 +15,6 @@ const COLOR_PALETTES = [
   "pink",
 ] as const;
 
-const STATUS_PALETTES = [
-  { name: "status.info", label: "Info (blue)" },
-  { name: "status.success", label: "Success (green)" },
-  { name: "status.warning", label: "Warning (orange)" },
-  { name: "status.error", label: "Error (red)" },
-] as const;
-
 type BgCategory = "solid" | "surface" | "muted" | "subtle";
 type BdCategory = "solid" | "subtle" | "muted";
 type StateKey = "DEFAULT" | "hover" | "active" | "disabled";
@@ -31,96 +23,44 @@ const states: StateKey[] = ["DEFAULT", "hover", "active", "disabled"];
 
 const bgCategories: {
   key: BgCategory;
-  label: string;
   desc: string;
   useDarkText: boolean;
 }[] = [
-  {
-    key: "solid",
-    label: "Solid",
-    desc: "Prominent buttons, CTAs (step 90)",
-    useDarkText: false,
-  },
-  {
-    key: "surface",
-    label: "Surface",
-    desc: "Elevated cards, overlays (alpha step a20)",
-    useDarkText: true,
-  },
-  {
-    key: "muted",
-    label: "Muted",
-    desc: "Subtle solid fills (step 30)",
-    useDarkText: true,
-  },
-  {
-    key: "subtle",
-    label: "Subtle",
-    desc: "Very light alpha fills (step a30)",
-    useDarkText: true,
-  },
+  { key: "solid", desc: "step 90", useDarkText: false },
+  { key: "surface", desc: "alpha a20", useDarkText: true },
+  { key: "muted", desc: "step 30", useDarkText: true },
+  { key: "subtle", desc: "alpha a30", useDarkText: true },
 ];
 
-const bdCategories: { key: BdCategory; label: string; desc: string }[] = [
-  {
-    key: "solid",
-    label: "Solid",
-    desc: "Strong borders, focused inputs (step 70)",
-  },
-  { key: "subtle", label: "Subtle", desc: "Light borders, cards (step 60)" },
-  {
-    key: "muted",
-    label: "Muted",
-    desc: "Very subtle alpha borders (step a60)",
-  },
+const bdCategories: { key: BdCategory; desc: string }[] = [
+  { key: "solid", desc: "step 70" },
+  { key: "subtle", desc: "step 60" },
+  { key: "muted", desc: "alpha a60" },
 ];
 
 const fgTokens = [
-  { key: "fg", label: "Default", desc: "Primary text (step 120)" },
-  { key: "fg.muted", label: "Muted", desc: "Secondary text (step 110)" },
-  {
-    key: "fg.muted.hover",
-    label: "Muted Hover",
-    desc: "Hovered secondary (step 120)",
-  },
-  { key: "fg.subtle", label: "Subtle", desc: "Tertiary text (step 100)" },
-  {
-    key: "fg.subtle.hover",
-    label: "Subtle Hover",
-    desc: "Hovered tertiary (step 110)",
-  },
-  { key: "fg.link", label: "Link", desc: "Interactive links (step 110)" },
-  {
-    key: "fg.link.hover",
-    label: "Link Hover",
-    desc: "Hovered links (step 120)",
-  },
+  { key: "fg", label: "default" },
+  { key: "fg.muted", label: "muted" },
+  { key: "fg.muted.hover", label: "muted.hover" },
+  { key: "fg.subtle", label: "subtle" },
+  { key: "fg.subtle.hover", label: "subtle.hover" },
+  { key: "fg.link", label: "link" },
+  { key: "fg.link.hover", label: "link.hover" },
+  { key: "fg.solid", label: "solid" },
 ] as const;
 
-const sampleText = "The quick brown fox jumps over the lazy dog.";
-
-const sectionHeading = css({ fontSize: "lg", fontWeight: "semibold" });
-const codeStyle = css({
-  bg: "colorPalette.bg.muted",
-  px: "1",
-  borderRadius: "md.1",
-});
-const labelStyle = css({
+const sectionTitle = css({
   fontSize: "sm",
   fontWeight: "semibold",
-  minWidth: "[100px]",
+  color: "colorPalette.fg.muted",
+  mb: "2",
 });
-const captionStyle = css({ fontSize: "xs", color: "colorPalette.fg.subtle" });
-const subtitleStyle = css({ fontSize: "sm", color: "colorPalette.fg.muted" });
 
-const selectStyles = css({
-  padding: "2",
-  borderRadius: "md.2",
-  border: "[1px_solid]",
-  borderColor: "colorPalette.bd.solid",
-  fontSize: "sm",
-  minWidth: "[140px]",
-  cursor: "pointer",
+const categoryLabel = css({
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "colorPalette.fg.subtle",
+  mb: "1",
 });
 
 const BgSwatch = ({
@@ -135,120 +75,94 @@ const BgSwatch = ({
   const textColor = useDarkText ? "colorPalette.fg" : "colorPalette.fg.solid";
   return (
     <Box
-      px="4"
-      py="3"
-      borderRadius="md.3"
-      minWidth="[100px]"
+      px="3"
+      py="2"
+      borderRadius="md.2"
+      minWidth="[70px]"
       boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
       style={{ backgroundColor: token(`colors.${tokenPath}` as Token) }}
     >
       <span
-        className={css({ fontSize: "sm", fontWeight: "medium" })}
+        className={css({ fontSize: "xs", fontWeight: "medium" })}
         style={{ color: token(`colors.${textColor}` as Token) }}
       >
         {label}
-      </span>
-      <span
-        className={css({
-          fontSize: "[10px]",
-          display: "block",
-          mt: "1",
-          opacity: "[0.7]",
-        })}
-        style={{ color: token(`colors.${textColor}` as Token) }}
-      >
-        {tokenPath}
       </span>
     </Box>
   );
 };
 
-const BgCategoryRow = ({
-  category,
-  description,
-  useDarkText,
-}: {
-  category: BgCategory;
-  description: string;
-  useDarkText: boolean;
-}) => (
-  <VStack gap="2" alignItems="flex-start">
-    <HStack gap="2" alignItems="baseline">
-      <span
-        className={css({
-          fontSize: "sm",
-          fontWeight: "semibold",
-          color: "colorPalette.fg.muted",
-        })}
-      >
-        bg.{category}
-      </span>
-      <span className={captionStyle}>— {description}</span>
-    </HStack>
-    <HStack gap="2" flexWrap="wrap">
-      {states.map((state) => {
-        const tokenPath =
-          state === "DEFAULT"
-            ? `colorPalette.bg.${category}`
-            : `colorPalette.bg.${category}.${state}`;
-        return (
-          <BgSwatch
-            key={state}
-            label={state === "DEFAULT" ? "default" : state}
-            tokenPath={tokenPath}
-            useDarkText={useDarkText}
-          />
-        );
-      })}
-    </HStack>
+const BgColumn = () => (
+  <VStack gap="3" alignItems="flex-start">
+    <span className={sectionTitle}>bg.*</span>
+    {bgCategories.map(({ key, desc, useDarkText }) => (
+      <VStack key={key} gap="1" alignItems="flex-start">
+        <span className={categoryLabel}>
+          bg.{key} — {desc}
+        </span>
+        <HStack gap="1" flexWrap="wrap">
+          {states.map((state) => {
+            const tokenPath =
+              state === "DEFAULT"
+                ? `colorPalette.bg.${key}`
+                : `colorPalette.bg.${key}.${state}`;
+            return (
+              <BgSwatch
+                key={state}
+                label={state === "DEFAULT" ? "def" : state}
+                tokenPath={tokenPath}
+                useDarkText={useDarkText}
+              />
+            );
+          })}
+        </HStack>
+      </VStack>
+    ))}
   </VStack>
 );
 
-const TextSample = ({
-  label,
-  tokenPath,
-  description,
-}: {
-  label: string;
-  tokenPath: string;
-  description: string;
-}) => (
-  <HStack gap="4" alignItems="center" width="[100%]">
-    <span
-      className={css({
-        fontSize: "sm",
-        fontWeight: "medium",
-        minWidth: "[120px]",
-        color: "colorPalette.fg.subtle",
+const FgColumn = () => (
+  <VStack gap="3" alignItems="flex-start">
+    <span className={sectionTitle}>fg.*</span>
+    <VStack gap="1" alignItems="flex-start" width="[100%]">
+      {fgTokens.map(({ key, label }) => {
+        const isSolid = key === "fg.solid";
+        return (
+          <HStack key={key} gap="2" alignItems="center" width="[100%]">
+            <span
+              className={css({
+                fontSize: "xs",
+                fontWeight: "medium",
+                minWidth: "[80px]",
+                color: "colorPalette.fg.subtle",
+              })}
+            >
+              {label}
+            </span>
+            <Box
+              px="3"
+              py="1.5"
+              borderRadius="md.2"
+              flex="1"
+              bg={isSolid ? "colorPalette.bg.solid" : undefined}
+              boxShadow={
+                isSolid ? undefined : "[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+              }
+            >
+              <span
+                className={css({ fontSize: "xs" })}
+                style={{
+                  color: token(`colors.colorPalette.${key}` as Token),
+                }}
+              >
+                Sample text
+              </span>
+            </Box>
+          </HStack>
+        );
       })}
-    >
-      {label}
-    </span>
-    <Box
-      px="4"
-      py="3"
-      borderRadius="md.3"
-      flex="1"
-      boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
-    >
-      <p
-        className={css({ fontSize: "base" })}
-        style={{ color: token(`colors.colorPalette.${tokenPath}` as Token) }}
-      >
-        {sampleText}
-      </p>
-      <span
-        className={css({
-          fontSize: "xs",
-          color: "colorPalette.fg.subtle",
-          mt: "1",
-          display: "block",
-        })}
-      >
-        colorPalette.{tokenPath} — {description}
-      </span>
-    </Box>
-  </HStack>
+    </VStack>
+  </VStack>
 );
 
 const BorderSwatch = ({
@@ -258,369 +172,98 @@ const BorderSwatch = ({
   label: string;
   tokenPath: string;
 }) => (
-  <VStack gap="1" alignItems="center">
+  <VStack gap="0.5" alignItems="center">
     <Box
-      width="[80px]"
-      height="[56px]"
-      borderRadius="md.3"
+      width="[56px]"
+      height="[42px]"
+      borderRadius="md.2"
       display="flex"
       alignItems="center"
       justifyContent="center"
       style={{
         border: `2px solid ${token(`colors.${tokenPath}` as Token)}`,
       }}
-    >
-      <Box
-        width="[32px]"
-        height="[24px]"
-        borderRadius="md.2"
-        style={{
-          border: `1px solid ${token(`colors.${tokenPath}` as Token)}`,
-        }}
-      />
-    </Box>
+    />
     <span
       className={css({
-        fontSize: "xs",
+        fontSize: "[10px]",
         fontWeight: "medium",
-        color: "colorPalette.fg.muted",
+        color: "colorPalette.fg.subtle",
       })}
     >
       {label}
     </span>
-    <span
-      className={css({ fontSize: "[10px]", color: "colorPalette.fg.subtle" })}
-    >
-      {tokenPath}
-    </span>
   </VStack>
 );
 
-const BdCategoryRow = ({
-  category,
-  description,
-}: {
-  category: BdCategory;
-  description: string;
-}) => (
+const BdColumn = () => (
   <VStack gap="3" alignItems="flex-start">
-    <HStack gap="2" alignItems="baseline">
-      <span
-        className={css({
-          fontSize: "sm",
-          fontWeight: "semibold",
-          color: "colorPalette.fg.muted",
-        })}
-      >
-        bd.{category}
-      </span>
-      <span className={captionStyle}>— {description}</span>
-    </HStack>
-    <HStack gap="4" flexWrap="wrap">
-      {states.map((state) => {
-        const tokenPath =
-          state === "DEFAULT"
-            ? `colorPalette.bd.${category}`
-            : `colorPalette.bd.${category}.${state}`;
-        return (
-          <BorderSwatch
-            key={state}
-            label={state === "DEFAULT" ? "default" : state}
-            tokenPath={tokenPath}
-          />
-        );
-      })}
-    </HStack>
-  </VStack>
-);
-
-const buttonRecipe = cva({
-  base: {
-    px: "4",
-    py: "2",
-    borderRadius: "md.2",
-    fontWeight: "medium",
-    fontSize: "sm",
-    cursor: "pointer",
-    transition: "[all_0.15s_ease]",
-  },
-  variants: {
-    variant: {
-      solid: {
-        bg: "colorPalette.bg.solid",
-        color: "colorPalette.fg.solid",
-        _hover: { bg: "colorPalette.bg.solid.hover" },
-        _active: { bg: "colorPalette.bg.solid.active" },
-        _disabled: {
-          bg: "colorPalette.bg.solid.disabled",
-          cursor: "not-allowed",
-        },
-      },
-      surface: {
-        bg: "colorPalette.bg.surface",
-        color: "colorPalette.fg.muted",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "colorPalette.bd.subtle",
-        _hover: {
-          bg: "colorPalette.bg.surface.hover",
-          borderColor: "colorPalette.bd.subtle.hover",
-        },
-        _active: { bg: "colorPalette.bg.surface.active" },
-      },
-      subtle: {
-        bg: "colorPalette.bg.subtle",
-        color: "colorPalette.fg.muted",
-        _hover: { bg: "colorPalette.bg.subtle.hover" },
-        _active: { bg: "colorPalette.bg.subtle.active" },
-      },
-      outline: {
-        bg: "[transparent]",
-        color: "colorPalette.fg.muted",
-        borderWidth: "[1px]",
-        borderStyle: "solid",
-        borderColor: "colorPalette.bd.solid",
-        _hover: {
-          bg: "colorPalette.bg.surface",
-          borderColor: "colorPalette.bd.solid.hover",
-        },
-        _active: { bg: "colorPalette.bg.surface.active" },
-      },
-      ghost: {
-        bg: "[transparent]",
-        color: "colorPalette.fg.link",
-        _hover: {
-          bg: "colorPalette.bg.subtle",
-          color: "colorPalette.fg.link.hover",
-        },
-        _active: { bg: "colorPalette.bg.subtle.active" },
-      },
-    },
-  },
-  defaultVariants: { variant: "solid" },
-});
-
-const badgeStyles = css({
-  display: "inline-flex",
-  alignItems: "center",
-  px: "2",
-  py: "1",
-  borderRadius: "md.1",
-  fontSize: "xs",
-  fontWeight: "medium",
-  bg: "colorPalette.bg.subtle",
-  color: "colorPalette.fg.muted",
-});
-
-const BgSection = () => (
-  <VStack gap="4" alignItems="flex-start">
-    <h2 className={sectionHeading}>Background (bg.*)</h2>
-    <VStack gap="6" alignItems="flex-start">
-      {bgCategories.map(({ key, desc, useDarkText }) => (
-        <BgCategoryRow
-          key={key}
-          category={key}
-          description={desc}
-          useDarkText={useDarkText}
-        />
-      ))}
-    </VStack>
-  </VStack>
-);
-
-const FgSection = () => (
-  <VStack gap="4" alignItems="flex-start" width="[100%]">
-    <h2 className={sectionHeading}>Foreground (fg.*)</h2>
-    <VStack gap="3" alignItems="flex-start" width="[100%]">
-      {fgTokens.map(({ key, label, desc }) => (
-        <TextSample
-          key={key}
-          label={label}
-          tokenPath={key}
-          description={desc}
-        />
-      ))}
-    </VStack>
-    <VStack gap="3" alignItems="flex-start" width="[100%]">
-      <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
-        Solid Background Text
-      </h3>
-      <HStack gap="4" alignItems="center" width="[100%]">
-        <span
-          className={css({
-            fontSize: "sm",
-            fontWeight: "medium",
-            minWidth: "[120px]",
-            color: "colorPalette.fg.subtle",
-          })}
-        >
-          fg.solid
+    <span className={sectionTitle}>bd.*</span>
+    {bdCategories.map(({ key, desc }) => (
+      <VStack key={key} gap="1" alignItems="flex-start">
+        <span className={categoryLabel}>
+          bd.{key} — {desc}
         </span>
-        <Box
-          bg="colorPalette.bg.solid"
-          px="4"
-          py="3"
-          borderRadius="md.3"
-          flex="1"
-        >
-          <p
-            className={css({ fontSize: "base" })}
-            style={{ color: token("colors.colorPalette.fg.solid" as Token) }}
-          >
-            {sampleText}
-          </p>
-          <span
-            className={css({
-              fontSize: "xs",
-              opacity: "[0.7]",
-              mt: "1",
-              display: "block",
-            })}
-            style={{ color: token("colors.colorPalette.fg.solid" as Token) }}
-          >
-            colorPalette.fg.solid — White text for solid backgrounds
-          </span>
-        </Box>
-      </HStack>
-    </VStack>
-  </VStack>
-);
-
-const BdSection = () => (
-  <VStack gap="4" alignItems="flex-start">
-    <h2 className={sectionHeading}>Border (bd.*)</h2>
-    <VStack gap="6" alignItems="flex-start">
-      {bdCategories.map(({ key, desc }) => (
-        <BdCategoryRow key={key} category={key} description={desc} />
-      ))}
-    </VStack>
-  </VStack>
-);
-
-const ComponentDemo = () => (
-  <VStack gap="4" alignItems="flex-start">
-    <h2 className={sectionHeading}>Component Examples</h2>
-    <VStack gap="3" alignItems="flex-start">
-      <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
-        Button Variants
-      </h3>
-      <HStack gap="2">
-        <button className={buttonRecipe({ variant: "solid" })}>Solid</button>
-        <button className={buttonRecipe({ variant: "surface" })}>
-          Surface
-        </button>
-        <button className={buttonRecipe({ variant: "subtle" })}>Subtle</button>
-        <button className={buttonRecipe({ variant: "outline" })}>
-          Outline
-        </button>
-        <button className={buttonRecipe({ variant: "ghost" })}>Ghost</button>
-      </HStack>
-    </VStack>
-    <VStack gap="3" alignItems="flex-start">
-      <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>Badge</h3>
-      <span className={badgeStyles}>Label</span>
-    </VStack>
-  </VStack>
-);
-
-export const ColorVariants: Story = () => {
-  const [palette, setPalette] = useState<string>("blue");
-
-  return (
-    <VStack
-      gap="10"
-      alignItems="flex-start"
-      p="6"
-      maxWidth="[900px]"
-      colorPalette={palette as "blue"}
-    >
-      <VStack gap="2" alignItems="flex-start">
-        <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-          Color Variants
-        </h1>
-        <p className={subtitleStyle}>
-          Semantic <code className={codeStyle}>bg.*</code>,{" "}
-          <code className={codeStyle}>fg.*</code>, and{" "}
-          <code className={codeStyle}>bd.*</code> tokens under the{" "}
-          <code className={codeStyle}>colorPalette</code> virtual palette.
-          Switch palettes to see how all tokens adapt.
-        </p>
-        <HStack gap="4" alignItems="center" mt="2">
-          <label className={labelStyle}>Color Palette:</label>
-          <select
-            className={selectStyles}
-            value={palette}
-            onChange={(e) => setPalette(e.target.value)}
-          >
-            {COLOR_PALETTES.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+        <HStack gap="1" flexWrap="wrap">
+          {states.map((state) => {
+            const tokenPath =
+              state === "DEFAULT"
+                ? `colorPalette.bd.${key}`
+                : `colorPalette.bd.${key}.${state}`;
+            return (
+              <BorderSwatch
+                key={state}
+                label={state === "DEFAULT" ? "def" : state}
+                tokenPath={tokenPath}
+              />
+            );
+          })}
         </HStack>
       </VStack>
+    ))}
+  </VStack>
+);
 
-      <BgSection />
-      <FgSection />
-      <BdSection />
-      <ComponentDemo />
+const PaletteSection = ({ palette }: { palette: string }) => (
+  <Box colorPalette={palette as "blue"}>
+    <h2
+      className={css({
+        fontSize: "lg",
+        fontWeight: "semibold",
+        mb: "4",
+        textTransform: "capitalize",
+      })}
+    >
+      {palette}
+    </h2>
+    <Grid columns={3} gap="6">
+      <BgColumn />
+      <FgColumn />
+      <BdColumn />
+    </Grid>
+  </Box>
+);
 
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={sectionHeading}>All Palettes Comparison</h2>
-        <VStack gap="3" alignItems="flex-start">
-          {COLOR_PALETTES.map((p) => (
-            <HStack key={p} gap="4" alignItems="center" colorPalette={p}>
-              <span className={labelStyle}>{p}</span>
-              <HStack gap="2">
-                <button className={buttonRecipe({ variant: "solid" })}>
-                  Solid
-                </button>
-                <button className={buttonRecipe({ variant: "subtle" })}>
-                  Subtle
-                </button>
-                <button className={buttonRecipe({ variant: "outline" })}>
-                  Outline
-                </button>
-              </HStack>
-              <span className={badgeStyles}>Badge</span>
-            </HStack>
-          ))}
-        </VStack>
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start">
-        <h2 className={sectionHeading}>Status Aliases</h2>
-        <p className={subtitleStyle}>
-          Semantic status values map to color palettes: status.info → blue, etc.
-        </p>
-        <VStack gap="3" alignItems="flex-start">
-          {STATUS_PALETTES.map(({ name, label }) => (
-            <HStack
-              key={name}
-              gap="4"
-              alignItems="center"
-              colorPalette={name as "blue"}
-            >
-              <span className={labelStyle}>{label}</span>
-              <HStack gap="2">
-                <button className={buttonRecipe({ variant: "solid" })}>
-                  Solid
-                </button>
-                <button className={buttonRecipe({ variant: "subtle" })}>
-                  Subtle
-                </button>
-                <button className={buttonRecipe({ variant: "surface" })}>
-                  Surface
-                </button>
-              </HStack>
-              <span className={badgeStyles}>{name}</span>
-            </HStack>
-          ))}
-        </VStack>
-      </VStack>
+export const ColorVariants: Story = () => (
+  <VStack gap="6" alignItems="flex-start" p="6">
+    <VStack gap="1" alignItems="flex-start">
+      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        Color Variants
+      </h1>
+      <p className={css({ fontSize: "sm", color: "fg.muted", maxWidth: "[700px]" })}>
+        Semantic <code className={css({ fontFamily: "mono", fontSize: "xs" })}>bg.*</code>,{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>fg.*</code>, and{" "}
+        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>bd.*</code> tokens
+        under each <code className={css({ fontFamily: "mono", fontSize: "xs" })}>colorPalette</code>.
+      </p>
     </VStack>
-  );
-};
+
+    <Grid columns={2} gap="10" width="[100%]">
+      {COLOR_PALETTES.map((palette) => (
+        <PaletteSection key={palette} palette={palette} />
+      ))}
+    </Grid>
+  </VStack>
+);
 
 ColorVariants.storyName = "Color Variants";
