@@ -157,7 +157,7 @@ export const createApolloServer = async ({
     introspection: true,
     includeStacktraceInErrorResponses: true, // required for stack traces to be captured
     plugins: [
-      !isProdEnv
+      isProdEnv
         ? ApolloServerPluginLandingPageProductionDefault({ footer: false })
         : ApolloServerPluginLandingPageLocalDefault({
             embed: {
