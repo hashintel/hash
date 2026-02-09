@@ -1,7 +1,7 @@
 /**
  * Radix-colors based color token generator.
  *
- * Generates base color scales (00-120 with half-steps, a00-a120 with half-steps)
+ * Generates base color scales (s00-s120 with half-steps, a00-a120 with half-steps)
  * from @radix-ui/colors, interpolating midpoints in OKLCH color space.
  * Semantic tokens (bg, fg, bd) are composed per palette for colorPalette support.
  *
@@ -145,10 +145,10 @@ function getColorTokens(color: string): {
 }
 
 /**
- * Generate base tokens (00-120 with half-steps, a00-a120 with half-steps) for a color.
- * Step 00 is pure white (light) / black (dark) for true background color.
+ * Generate base tokens (s00-s120 with half-steps, a00-a120 with half-steps) for a color.
+ * Step s00 is pure white (light) / black (dark) for true background color.
  * Step a00 is fully transparent.
- * Half-steps (05, 15, ..., 115) are interpolated in OKLCH between adjacent steps.
+ * Half-steps (s05, s15, ..., s115) are interpolated in OKLCH between adjacent steps.
  */
 function generateBaseTokens(
   light: ColorScale,
@@ -168,15 +168,15 @@ function generateBaseTokens(
     darkAlphaValues.push(dark[`a${i}`]!);
   }
 
-  // Opaque tokens: 00, 05, 10, 15, ..., 115, 120
+  // Solid tokens: s00, s05, s10, s15, ..., s115, s120
   for (let i = 0; i <= 12; i++) {
-    const key = String(i * 10).padStart(2, "0");
+    const key = `s${String(i * 10).padStart(2, "0")}`;
     tokens[key] = {
       value: { _light: lightValues[i], _dark: darkValues[i] },
     };
 
     if (i < 12) {
-      const halfKey = String(i * 10 + 5).padStart(2, "0");
+      const halfKey = `s${String(i * 10 + 5).padStart(2, "0")}`;
       tokens[halfKey] = {
         value: {
           _light: interpolateColor(lightValues[i]!, lightValues[i + 1]!),
@@ -237,9 +237,9 @@ function tokenKeySortOrder(key: string): number {
   if (alphaMatch) {
     return 20000 + Number(alphaMatch[1]);
   }
-  const numMatch = key.match(/^\d+$/);
-  if (numMatch) {
-    return 10000 + Number(key);
+  const solidMatch = key.match(/^s(\d+)$/);
+  if (solidMatch) {
+    return 10000 + Number(solidMatch[1]);
   }
   return 30000;
 }

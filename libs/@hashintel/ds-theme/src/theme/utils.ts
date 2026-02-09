@@ -8,10 +8,10 @@ export function createSemanticSet(palette: string) {
   return {
     bg: {
       solid: {
-        DEFAULT: ps("90"),
-        hover: ps("100"),
-        active: ps("100"),
-        disabled: ps("60"),
+        DEFAULT: ps("s90"),
+        hover: ps("s100"),
+        active: ps("s100"),
+        disabled: ps("s60"),
       },
       surface: {
         DEFAULT: ps("a20"),
@@ -20,10 +20,10 @@ export function createSemanticSet(palette: string) {
         disabled: ps("a20"),
       },
       muted: {
-        DEFAULT: ps("30"),
-        hover: ps("40"),
-        active: ps("50"),
-        disabled: ps("20"),
+        DEFAULT: ps("s30"),
+        hover: ps("s40"),
+        active: ps("s50"),
+        disabled: ps("s20"),
       },
       subtle: {
         DEFAULT: ps("a30"),
@@ -34,36 +34,36 @@ export function createSemanticSet(palette: string) {
     },
     fg: {
       solid: { DEFAULT: { value: { _light: "white", _dark: "white" } } },
-      DEFAULT: ps("120"),
+      DEFAULT: ps("s120"),
       muted: {
-        DEFAULT: ps("110"),
-        hover: ps("120"),
-        disabled: ps("90"),
+        DEFAULT: ps("s110"),
+        hover: ps("s120"),
+        disabled: ps("s90"),
       },
       subtle: {
-        DEFAULT: ps("100"),
-        hover: ps("110"),
-        disabled: ps("80"),
+        DEFAULT: ps("s100"),
+        hover: ps("s110"),
+        disabled: ps("s80"),
       },
       link: {
-        DEFAULT: ps("110"),
-        hover: ps("120"),
-        active: ps("110"),
-        disabled: ps("90"),
+        DEFAULT: ps("s110"),
+        hover: ps("s120"),
+        active: ps("s110"),
+        disabled: ps("s90"),
       },
     },
     bd: {
       solid: {
-        DEFAULT: ps("70"),
-        hover: ps("80"),
-        active: ps("80"),
-        disabled: ps("50"),
+        DEFAULT: ps("s70"),
+        hover: ps("s80"),
+        active: ps("s80"),
+        disabled: ps("s50"),
       },
       subtle: {
-        DEFAULT: ps("60"),
-        hover: ps("70"),
-        active: ps("70"),
-        disabled: ps("40"),
+        DEFAULT: ps("s60"),
+        hover: ps("s70"),
+        active: ps("s70"),
+        disabled: ps("s40"),
       },
       muted: {
         DEFAULT: ps("a60"),
@@ -76,7 +76,7 @@ export function createSemanticSet(palette: string) {
 }
 
 /**
- * Wraps a base palette (00-120, a00-a120 scale) with semantic tokens (bg, fg, bd).
+ * Wraps a base palette (s00-s120, a00-a120 scale) with semantic tokens (bg, fg, bd).
  * This allows colorPalette switching to work - each palette has the full structure.
  */
 export function withSemantics<T extends Record<string, unknown>>(

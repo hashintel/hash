@@ -43,33 +43,33 @@ const COLOR_PALETTES = [
   "pink",
 ] as const;
 
-/** Solid scale steps (00-120) - step 00 is pure white/black, with OKLCH half-steps */
+/** Solid scale steps (s00-s120) - step s00 is pure white/black, with OKLCH half-steps */
 const SOLID_STEPS = [
-  "00",
-  "05",
-  "10",
-  "15",
-  "20",
-  "25",
-  "30",
-  "35",
-  "40",
-  "45",
-  "50",
-  "55",
-  "60",
-  "65",
-  "70",
-  "75",
-  "80",
-  "85",
-  "90",
-  "95",
-  "100",
-  "105",
-  "110",
-  "115",
-  "120",
+  "s00",
+  "s05",
+  "s10",
+  "s15",
+  "s20",
+  "s25",
+  "s30",
+  "s35",
+  "s40",
+  "s45",
+  "s50",
+  "s55",
+  "s60",
+  "s65",
+  "s70",
+  "s75",
+  "s80",
+  "s85",
+  "s90",
+  "s95",
+  "s100",
+  "s105",
+  "s110",
+  "s115",
+  "s120",
 ] as const;
 
 /** Alpha scale steps (a00-a120) - step a00 is transparent, with OKLCH half-steps */
@@ -200,7 +200,7 @@ const StepHeaders = ({
 export const RadixSolidScales: Story = () => (
   <VStack gap="4" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Radix Solid Scales (00-120)
+      Radix Solid Scales (s00-s120)
     </h1>
     <p
       className={css({
@@ -209,10 +209,10 @@ export const RadixSolidScales: Story = () => (
         maxWidth: "[600px]",
       })}
     >
-      Step 00 is pure white (light) / black (dark). Steps 10-20 are tinted
-      backgrounds, 30-50 are interactive, 60-80 are borders, 90-100 are solid
-      backgrounds, and 110-120 are text. Half-steps (05, 15, ...) are OKLCH
-      interpolations.
+      Step s00 is pure white (light) / black (dark). Steps s10-s20 are tinted
+      backgrounds, s30-s50 are interactive, s60-s80 are borders, s90-s100 are
+      solid backgrounds, and s110-s120 are text. Half-steps (s05, s15, ...) are
+      OKLCH interpolations.
     </p>
     <VStack gap="1" alignItems="flex-start">
       <StepHeaders steps={SOLID_STEPS} />
@@ -281,7 +281,7 @@ export const StaticColors: Story = () => (
       </VStack>
       <VStack gap="2" alignItems="flex-start">
         <h2 className={css({ fontSize: "lg", fontWeight: "medium" })}>White</h2>
-        <Box p="4" bg="neutral.120" borderRadius="md.3">
+        <Box p="4" bg="neutral.s120" borderRadius="md.3">
           <HStack gap="1">
             {ALPHA_STEPS.map((step) => (
               <ColorSwatch key={step} colorName="white" step={step} />
@@ -448,11 +448,11 @@ export const StatusColors: Story = () => (
     >
       Semantic status tokens that alias color palettes. Use{" "}
       <code className={css({ font: "mono", fontSize: "xs" })}>
-        status.info.30
+        status.info.s30
       </code>{" "}
       instead of{" "}
-      <code className={css({ font: "mono", fontSize: "xs" })}>blue.30</code> for
-      intent-driven styling.
+      <code className={css({ font: "mono", fontSize: "xs" })}>blue.s30</code>{" "}
+      for intent-driven styling.
     </p>
     <VStack gap="4" alignItems="flex-start">
       <Box>
@@ -463,7 +463,7 @@ export const StatusColors: Story = () => (
             mb: "2",
           })}
         >
-          Solid Steps (00-120)
+          Solid Steps (s00-s120)
         </h2>
         <VStack gap="1" alignItems="flex-start">
           <StepHeaders steps={SOLID_STEPS} />

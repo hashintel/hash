@@ -14,11 +14,7 @@ import {
   lineHeights,
   radii,
 } from "./theme/tokens.gen";
-import { createSemanticSet } from "./theme/utils";
 
-const palettes = basePalettes;
-
-/** Status palette aliases - map semantic status names to color palettes */
 const statusPalettes = {
   status: {
     info: blue,
@@ -27,9 +23,6 @@ const statusPalettes = {
     error: red,
   },
 };
-
-/** Neutral semantic tokens - defaults when no colorPalette is set */
-const neutralSemantics = createSemanticSet("colors.neutral");
 
 export const preset = definePreset({
   name: "@hashintel/ds-theme",
@@ -63,11 +56,16 @@ export const preset = definePreset({
       colors: staticColors,
     },
     extend: {
+      // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
+      // @ts-expect-error -- `colorPalette` not recognized but it's legit
+      colorPalette: {
+        enabled: true,
+        include: ["bg.*", "fg.*", "bd.*"],
+      },
       semanticTokens: {
         colors: {
-          ...palettes,
+          ...basePalettes,
           ...statusPalettes,
-          ...neutralSemantics,
         },
       },
     },
