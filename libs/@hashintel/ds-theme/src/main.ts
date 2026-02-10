@@ -48,7 +48,7 @@ const scaleTokenValues = <T extends TokenTree>(
 
 const scaledSpacing = scaleTokenValues(
   pandaPreset.theme.tokens.spacing,
-  "--spacing-factor",
+  "--density-factor",
 );
 const scaledRadii = scaleTokenValues(
   pandaPreset.theme.tokens.radii,
@@ -74,10 +74,10 @@ const globalCss = defineGlobalStyles({
     "--leading-factor-loose": "1.1",
     "--leading-factor": "var(--leading-factor-normal)",
 
-    "--spacing-factor-compact": "0.875",
-    "--spacing-factor-normal": "1",
-    "--spacing-factor-comfortable": "1.125",
-    "--spacing-factor": "var(--spacing-factor-normal)",
+    "--density-factor-compact": "0.875",
+    "--density-factor-normal": "1",
+    "--density-factor-comfortable": "1.125",
+    "--density-factor": "var(--density-factor-normal)",
   },
   '[data-roundness="none"]': {
     "--roundness-factor": "var(--roundness-factor-none)",
@@ -105,14 +105,14 @@ const globalCss = defineGlobalStyles({
     "--leading-factor": "var(--leading-factor-loose)",
   },
 
-  '[data-spacing="compact"]': {
-    "--spacing-factor": "var(--spacing-factor-compact)",
+  '[data-density="compact"]': {
+    "--density-factor": "var(--density-factor-compact)",
   },
-  '[data-spacing="normal"]': {
-    "--spacing-factor": "var(--spacing-factor-normal)",
+  '[data-density="normal"]': {
+    "--density-factor": "var(--density-factor-normal)",
   },
-  '[data-spacing="comfortable"]': {
-    "--spacing-factor": "var(--spacing-factor-comfortable)",
+  '[data-density="comfortable"]': {
+    "--density-factor": "var(--density-factor-comfortable)",
   },
 });
 
@@ -165,9 +165,23 @@ export const preset = definePreset({
     extend: {
       leading: {
         className: "leading",
-        values: { tight: "1", normal: "1.5", loose: "1.75" },
+        values: { tight: "tight", normal: "normal", loose: "loose" },
         transform(value: string) {
-          return { "--leading": value };
+          return { "--leading-factor": `var(--leading-factor-${value})` };
+        },
+      },
+      density: {
+        className: "density",
+        values: { compact: "compact", normal: "normal", comfortable: "comfortable" },
+        transform(value: string) {
+          return { "--density-factor": `var(--density-factor-${value})` };
+        },
+      },
+      roundness: {
+        className: "roundness",
+        values: { none: "none", sm: "sm", md: "md", lg: "lg", xl: "xl" },
+        transform(value: string) {
+          return { "--roundness-factor": `var(--roundness-factor-${value})` };
         },
       },
     },
@@ -239,7 +253,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.xs}",
             lineHeight:
-              "calc(1em * var(--leading, 1.5) * var(--leading-factor, 1))",
+              "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0.01em",
           },
         },
@@ -247,7 +261,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.sm}",
             lineHeight:
-              "calc(1em * var(--leading, 1.5) * var(--leading-factor, 1))",
+              "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0.005em",
           },
         },
@@ -255,7 +269,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.base}",
             lineHeight:
-              "calc(1em * var(--leading, 1.5) * var(--leading-factor, 1))",
+              "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0em",
           },
         },
@@ -263,7 +277,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.lg}",
             lineHeight:
-              "calc(1em * var(--leading, 1.5) * var(--leading-factor, 1))",
+              "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "-0.005em",
           },
         },
@@ -271,7 +285,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.xl}",
             lineHeight:
-              "calc(1em * var(--leading, 1.5) * var(--leading-factor, 1))",
+              "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "-0.01em",
           },
         },
@@ -279,7 +293,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.2xl}",
             lineHeight:
-              "calc(1em * var(--leading, 1.4) * var(--leading-factor, 1))",
+              "calc(1em * 1.4 * var(--leading-factor, 1))",
             letterSpacing: "-0.015em",
           },
         },
@@ -287,7 +301,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.3xl}",
             lineHeight:
-              "calc(1em * var(--leading, 1.3) * var(--leading-factor, 1))",
+              "calc(1em * 1.3 * var(--leading-factor, 1))",
             letterSpacing: "-0.02em",
           },
         },
@@ -295,7 +309,7 @@ export const preset = definePreset({
           value: {
             fontSize: "{fontSizes.4xl}",
             lineHeight:
-              "calc(1em * var(--leading, 1.25) * var(--leading-factor, 1))",
+              "calc(1em * 1.25 * var(--leading-factor, 1))",
             letterSpacing: "-0.025em",
           },
         },

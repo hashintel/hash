@@ -146,8 +146,8 @@ export const Typography: Story<{ leadingFactor: string }> = ({
             mb: "2",
           })}
         >
-          Each text style shown at tight (1), normal (1.5), and loose (1.75)
-          leading
+          Each text style shown at tight (×0.9), normal (×1), and loose (×1.1)
+          leading factor
         </p>
         {textStyles.map((style) => (
           <LeadingComparisonRow key={style} style={style} />

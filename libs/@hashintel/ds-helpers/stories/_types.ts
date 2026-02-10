@@ -3,7 +3,6 @@ import type {
   FontWeightToken,
   ShadowToken,
   SpacingToken,
-  TextStyleToken,
 } from "../styled-system/tokens/tokens";
 import type { UtilityValues } from "../styled-system/types/prop-type";
 
@@ -51,7 +50,7 @@ export type ElevationScale = ShadowToken extends infer T
     : never
   : never;
 
-export type TextStyle = TextStyleToken;
+export type TextStyle = UtilityValues["textStyle"];
 
 /* TODO: expand to full-set of modifiers: leading, spacing, roundness */
 export type Leading = UtilityValues["leading"];
