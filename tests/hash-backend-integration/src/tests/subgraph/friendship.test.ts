@@ -443,10 +443,10 @@ describe("Ontology queries", () => {
       constrainsPropertiesOn: 255,
     },
     {
-      constrainsLinksOn: 255,
+      constrainsLinksOn: 4,
     },
     {
-      constrainsLinkDestinationsOn: 255,
+      constrainsLinkDestinationsOn: 4,
     },
   ])("read entity types %#", async (resolve_depths) => {
     const { subgraph } = await queryEntityTypeSubgraph(
