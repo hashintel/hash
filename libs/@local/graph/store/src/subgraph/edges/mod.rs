@@ -18,9 +18,9 @@ pub use self::{
     },
     traversal::{
         BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeKind, EntityTraversalPath,
-        MAX_ENTITY_TRAVERSAL_EDGES, MAX_TRAVERSAL_EDGES, SubgraphTraversalParams,
-        SubgraphTraversalValidationError, TraversalDepthError, TraversalEdge, TraversalEdgeKind,
-        TraversalPath, TraversalPathConversionError,
+        MAX_ENTITY_TRAVERSAL_EDGES, MAX_TRAVERSAL_EDGES, MAX_TRAVERSAL_PATHS,
+        SubgraphTraversalParams, SubgraphTraversalValidationError, TraversalDepthError,
+        TraversalEdge, TraversalEdgeKind, TraversalPath, TraversalPathConversionError,
     },
 };
 use crate::subgraph::{

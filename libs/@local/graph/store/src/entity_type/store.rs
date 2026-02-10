@@ -30,8 +30,9 @@ use crate::{
     subgraph::{
         Subgraph,
         edges::{
-            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams,
-            SubgraphTraversalValidationError, TraversalEdgeKind, TraversalPath,
+            EntityTraversalPath, GraphResolveDepths, MAX_TRAVERSAL_PATHS, SubgraphTraversalParams,
+            SubgraphTraversalValidationError, TraversalDepthError, TraversalEdgeKind,
+            TraversalPath,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -73,13 +74,14 @@ impl<'a> QueryEntityTypeSubgraphParams<'a> {
     ///
     /// Returns [`SubgraphTraversalValidationError`] if any limit is exceeded.
     pub fn validate(&self) -> Result<(), SubgraphTraversalValidationError> {
-        match self {
+        let path_count = match self {
             Self::Paths {
                 traversal_paths, ..
             } => {
                 for path in traversal_paths {
                     path.validate()?;
                 }
+                traversal_paths.len()
             }
             Self::ResolveDepths {
                 traversal_paths,
@@ -90,7 +92,15 @@ impl<'a> QueryEntityTypeSubgraphParams<'a> {
                     path.validate()?;
                 }
                 graph_resolve_depths.validate()?;
+                traversal_paths.len()
             }
+        };
+        if path_count > MAX_TRAVERSAL_PATHS {
+            return Err(TraversalDepthError::TooManyPaths {
+                actual: path_count,
+                max: MAX_TRAVERSAL_PATHS,
+            }
+            .into());
         }
         Ok(())
     }

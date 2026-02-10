@@ -112,6 +112,12 @@ impl TryFrom<TraversalEdge> for EntityTraversalEdge {
     }
 }
 
+/// Maximum number of traversal paths allowed in a single request.
+///
+/// Each path triggers a separate database traversal, so this bounds the total work per request.
+/// Current maximum usage in the codebase is 1–3 paths.
+pub const MAX_TRAVERSAL_PATHS: usize = 10;
+
 /// Maximum number of entity edges allowed in a single traversal path.
 ///
 /// This limits how many entity-to-entity hops (left/right entity traversals) can be requested
@@ -125,6 +131,8 @@ pub const MAX_TRAVERSAL_EDGES: usize = 15;
 /// Error returned when a traversal path exceeds allowed depth limits.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum TraversalDepthError {
+    #[display("Request has {actual} traversal paths, which exceeds the maximum of {max}.")]
+    TooManyPaths { actual: usize, max: usize },
     #[display("Traversal path has {actual} entity edges, which exceeds the maximum of {max}.")]
     EntityEdgesExceeded { actual: usize, max: usize },
     #[display("Traversal path has {actual} edges, which exceeds the maximum of {max}.")]

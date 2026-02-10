@@ -31,9 +31,9 @@ use hash_graph_store::{
     query::Ordering,
     subgraph::{
         edges::{
-            EntityTraversalPath, GraphResolveDepths, ResolveDepthExceededError,
-            SubgraphTraversalParams, SubgraphTraversalValidationError, TraversalDepthError,
-            TraversalPath, TraversalPathConversionError,
+            EntityTraversalPath, GraphResolveDepths, MAX_TRAVERSAL_PATHS,
+            ResolveDepthExceededError, SubgraphTraversalParams, SubgraphTraversalValidationError,
+            TraversalDepthError, TraversalPath, TraversalPathConversionError,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -821,6 +821,14 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
             .traversal_paths
             .take()
             .ok_or(QueryEntitySubgraphRequestError::MissingSubgraphTraversal)?;
+
+        if traversal_paths.len() > MAX_TRAVERSAL_PATHS {
+            return Err(TraversalDepthError::TooManyPaths {
+                actual: traversal_paths.len(),
+                max: MAX_TRAVERSAL_PATHS,
+            }
+            .into());
+        }
 
         let request = value.try_into()?;
 
