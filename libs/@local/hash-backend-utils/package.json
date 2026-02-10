@@ -23,9 +23,9 @@
   },
   "dependencies": {
     "@aws-crypto/sha256-js": "5.2.0",
-    "@aws-sdk/client-s3": "3.913.0",
-    "@aws-sdk/credential-provider-node": "3.913.0",
-    "@aws-sdk/s3-request-presigner": "3.913.0",
+    "@aws-sdk/client-s3": "3.986.0",
+    "@aws-sdk/credential-provider-node": "3.972.6",
+    "@aws-sdk/s3-request-presigner": "3.986.0",
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/graph": "0.4.1",
     "@blockprotocol/type-system": "0.2.1",
