@@ -3,20 +3,16 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen", "^build"],
-      "outputs": [".build/ladle/**"]
-    },
-    "codegen": {
       "outputs": ["styled-system/**"]
     },
-    "dev": {
-      "cache": false,
-      "dependsOn": ["^build"],
-      "persistent": true
-    },
-    "test": {
+    "build:ladle": {
       "dependsOn": ["build"],
-      "outputs": ["playwright-report/**"]
+      "outputs": [".build/ladle/**"]
+    },
+    "dev": {
+      "dependsOn": ["^dev"],
+      "cache": false,
+      "persistent": true
     }
   }
 }

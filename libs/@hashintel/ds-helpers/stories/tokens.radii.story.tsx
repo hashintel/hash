@@ -130,41 +130,41 @@ const ComponentRadiusDemo = ({
 
 export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
   <div data-roundness={roundness}>
-  <VStack gap="8" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Border Radius Tokens
-    </h1>
-    <p
-      className={css({
-        fontSize: "sm",
-        color: "fg.muted",
-        maxWidth: "[600px]",
-      })}
-    >
-      Radius scales for different component sizes. SM for small/compact
-      elements, MD for default, LG for larger components.
-    </p>
+    <VStack gap="8" alignItems="flex-start" p="6">
+      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        Border Radius Tokens
+      </h1>
+      <p
+        className={css({
+          fontSize: "sm",
+          color: "fg.muted",
+          maxWidth: "[600px]",
+        })}
+      >
+        Radius scales for different component sizes. SM for small/compact
+        elements, MD for default, LG for larger components.
+      </p>
 
-    <VStack gap="8" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Scales</h2>
-      {scales.map((scale) => (
-        <ScaleRow key={scale} scale={scale} />
-      ))}
-    </VStack>
+      <VStack gap="8" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Scales</h2>
+        {scales.map((scale) => (
+          <ScaleRow key={scale} scale={scale} />
+        ))}
+      </VStack>
 
-    <VStack gap="6" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Component-Specific Radii</h2>
-      <ComponentRadiusDemo
-        component="button"
-        variants={[
-          { name: "xs", tokenPath: "radii.component.button.xs" },
-          { name: "sm", tokenPath: "radii.component.button.sm" },
-          { name: "md", tokenPath: "radii.component.button.md" },
-          { name: "lg", tokenPath: "radii.component.button.lg" },
-        ]}
-      />
+      <VStack gap="6" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Component-Specific Radii</h2>
+        <ComponentRadiusDemo
+          component="button"
+          variants={[
+            { name: "xs", tokenPath: "radii.component.button.xs" },
+            { name: "sm", tokenPath: "radii.component.button.sm" },
+            { name: "md", tokenPath: "radii.component.button.md" },
+            { name: "lg", tokenPath: "radii.component.button.lg" },
+          ]}
+        />
+      </VStack>
     </VStack>
-  </VStack>
   </div>
 );
 

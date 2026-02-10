@@ -50,19 +50,22 @@
     "access": "public"
   },
   "scripts": {
-    "build": "ladle build",
-    "codegen": "panda codegen --clean",
-    "dev": "turbo codegen && panda codegen --watch & ladle serve",
+    "build": "panda codegen --clean",
+    "build:ladle": "ladle build",
+    "dev": "npm-run-all --parallel dev:panda dev:ladle",
+    "dev:panda": "panda codegen --watch",
+    "dev:ladle": "ladle serve",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
     "preflight:ladle": "ladle build && ladle preview",
-    "prepare": "turbo run codegen",
+    "prepare": "turbo run build",
     "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
+    "@csstools/postcss-oklab-function": "5.0.1",
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",

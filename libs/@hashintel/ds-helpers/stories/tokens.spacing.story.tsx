@@ -70,26 +70,26 @@ const SpacingBar = ({ step }: { step: string }) => {
 
 export const Spacing: Story<{ spacing: string }> = ({ spacing }) => (
   <div data-spacing={spacing}>
-  <VStack gap="6" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Spacing Tokens
-    </h1>
-    <p
-      className={css({
-        fontSize: "sm",
-        color: "fg.muted",
-        maxWidth: "[600px]",
-      })}
-    >
-      Spacing scale from the default Panda/Tailwind system. Values follow a
-      consistent 4px base unit (1 = 0.25rem = 4px).
-    </p>
-    <VStack gap="1" alignItems="flex-start">
-      {steps.map((step) => (
-        <SpacingBar key={step} step={step} />
-      ))}
+    <VStack gap="6" alignItems="flex-start" p="6">
+      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        Spacing Tokens
+      </h1>
+      <p
+        className={css({
+          fontSize: "sm",
+          color: "fg.muted",
+          maxWidth: "[600px]",
+        })}
+      >
+        Spacing scale from the default Panda/Tailwind system. Values follow a
+        consistent 4px base unit (1 = 0.25rem = 4px).
+      </p>
+      <VStack gap="1" alignItems="flex-start">
+        {steps.map((step) => (
+          <SpacingBar key={step} step={step} />
+        ))}
+      </VStack>
     </VStack>
-  </VStack>
   </div>
 );
 

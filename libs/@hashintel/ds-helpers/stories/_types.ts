@@ -57,6 +57,7 @@ export type RadiusScale = RadiusToken extends infer T
     : never
   : never;
 
+/* TODO: move radii back to their defaults from panda-preset */
 export type RadiusStep = RadiusToken extends infer T
   ? T extends `md.${infer S}`
     ? S
@@ -64,6 +65,8 @@ export type RadiusStep = RadiusToken extends infer T
   : never;
 
 export type TextStyle = UtilityValues["textStyle"];
+
+/* TODO: expand to full-set of modifiers: leading, spacing, roundness */
 export type Leading = UtilityValues["leading"];
 
 export type { FontWeightToken, SpacingToken };
