@@ -102,8 +102,8 @@ export const Spacing: Story = () => (
         >
           --density-factor
         </code>
-        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable
-        (×1.25 = 5px/unit).
+        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable (×1.25
+        = 5px/unit).
       </p>
     </VStack>
 

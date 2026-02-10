@@ -54,6 +54,10 @@ const scaledRadii = scaleTokenValues(
   pandaPreset.theme.tokens.radii,
   "--roundness-factor",
 );
+const scaledLineHeights = scaleTokenValues(
+  pandaPreset.theme.tokens.lineHeights as TokenTree,
+  "--leading-factor",
+);
 
 const globalCss = defineGlobalStyles({
   "html, body": {
@@ -164,6 +168,8 @@ export const preset = definePreset({
         /* SCALED tokens */
         spacing: scaledSpacing,
         radii: scaledRadii,
+        lineHeights:
+          scaledLineHeights as typeof pandaPreset.theme.tokens.lineHeights,
       },
       semanticTokens: {
         /* semantic colors */
@@ -203,70 +209,62 @@ export const preset = definePreset({
         xs: {
           value: {
             fontSize: "{fontSizes.xs}",
-            lineHeight:
-              "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0.01em",
           },
         },
         sm: {
           value: {
             fontSize: "{fontSizes.sm}",
-            lineHeight:
-              "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0.005em",
           },
         },
         base: {
           value: {
             fontSize: "{fontSizes.base}",
-            lineHeight:
-              "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "0em",
           },
         },
         lg: {
           value: {
             fontSize: "{fontSizes.lg}",
-            lineHeight:
-              "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "-0.005em",
           },
         },
         xl: {
           value: {
             fontSize: "{fontSizes.xl}",
-            lineHeight:
-              "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
             letterSpacing: "-0.01em",
           },
         },
         "2xl": {
           value: {
             fontSize: "{fontSizes.2xl}",
-            lineHeight:
-              "calc(1em * 1.4 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.4 * var(--leading-factor, 1))",
             letterSpacing: "-0.015em",
           },
         },
         "3xl": {
           value: {
             fontSize: "{fontSizes.3xl}",
-            lineHeight:
-              "calc(1em * 1.3 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.3 * var(--leading-factor, 1))",
             letterSpacing: "-0.02em",
           },
         },
         "4xl": {
           value: {
             fontSize: "{fontSizes.4xl}",
-            lineHeight:
-              "calc(1em * 1.25 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.25 * var(--leading-factor, 1))",
             letterSpacing: "-0.025em",
           },
         },
       },
       // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-      // @ts-expect-error -- `colorPalette` not recognized but it's legit
+      // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
       colorPalette: {
         enabled: true,
         include: ["bg.*", "fg.*", "bd.*", "status.*"],
