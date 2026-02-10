@@ -209,14 +209,14 @@ export const preset = definePreset({
         xs: {
           value: {
             fontSize: "{fontSizes.xs}",
-            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
             letterSpacing: "0.01em",
           },
         },
         sm: {
           value: {
             fontSize: "{fontSizes.sm}",
-            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
             letterSpacing: "0.005em",
           },
         },
@@ -237,7 +237,7 @@ export const preset = definePreset({
         xl: {
           value: {
             fontSize: "{fontSizes.xl}",
-            lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.4 * var(--leading-factor, 1))",
             letterSpacing: "-0.01em",
           },
         },
@@ -258,7 +258,7 @@ export const preset = definePreset({
         "4xl": {
           value: {
             fontSize: "{fontSizes.4xl}",
-            lineHeight: "calc(1em * 1.25 * var(--leading-factor, 1))",
+            lineHeight: "calc(1em * 1.3 * var(--leading-factor, 1))",
             letterSpacing: "-0.025em",
           },
         },

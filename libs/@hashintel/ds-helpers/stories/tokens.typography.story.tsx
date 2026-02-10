@@ -45,8 +45,14 @@ const sectionTitleStyles = css({
   width: "[100%]",
 });
 
-const multiLineText =
+const baseText =
   "The quick brown fox jumps over the lazy dog. This sentence continues so that the text wraps across multiple lines, making differences in line height clearly visible.";
+
+const sampleText = (style: TextStyle) => {
+  const idx = textStyles.indexOf(style);
+  const repeat = Math.max(1, textStyles.length - idx);
+  return Array.from({ length: repeat }, () => baseText).join(" ");
+};
 
 type TextStyleName = TextStyle;
 type LeadingName = Leading;
@@ -80,7 +86,9 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
           flex="1"
           minWidth="0"
         >
-          <span className={valueStyles}>leading: {leading}</span>
+          <span className={valueStyles}>
+            textStyle: {style} / leading: {leading}
+          </span>
           <div
             className={css({
               textStyle: style,
@@ -88,7 +96,7 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
               maxWidth: "[100%]",
             })}
           >
-            {multiLineText}
+            {sampleText(style)}
           </div>
         </VStack>
       ))}
