@@ -47,7 +47,7 @@
     "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.1",
     "@blockprotocol/type-system": "0.2.1",
-    "@google-cloud/storage": "7.17.2",
+    "@google-cloud/storage": "7.19.0",
     "@google-cloud/vertexai": "1.10.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
