@@ -8,7 +8,7 @@ import {
   orange,
   red,
 } from "./theme/colors.gen";
-import { fontWeights, fontSizes, lineHeights, radii } from "./theme/tokens.gen";
+import { fontWeights, fontSizes } from "./theme/tokens.gen";
 import { createSemanticSet } from "./theme/utils";
 
 type TokenTree = Record<string, unknown>;
@@ -50,9 +50,10 @@ const scaledSpacing = scaleTokenValues(
   pandaPreset.theme.tokens.spacing,
   "--spacing-factor",
 );
-const scaledRadii = scaleTokenValues(radii, "--roundness-factor", {
-  skipReferences: true,
-});
+const scaledRadii = scaleTokenValues(
+  pandaPreset.theme.tokens.radii,
+  "--roundness-factor",
+);
 
 const globalCss = defineGlobalStyles({
   "html, body": {
@@ -64,8 +65,8 @@ const globalCss = defineGlobalStyles({
     "--roundness-factor-none": "0",
     "--roundness-factor-sm": "0.75",
     "--roundness-factor-md": "1",
-    "--roundness-factor-lg": "1.25",
-    "--roundness-factor-xl": "1.5",
+    "--roundness-factor-lg": "1.5",
+    "--roundness-factor-xl": "2",
     "--roundness-factor": "var(--roundness-factor-md)",
 
     "--leading-factor-tight": "0.9",
@@ -174,8 +175,9 @@ export const preset = definePreset({
   theme: {
     extend: {
       tokens: {
-        spacing: scaledSpacing,
-        sizes: pandaPreset.theme.tokens.sizes,
+        /* typography */
+        fontSizes,
+        fontWeights,
         fonts: {
           display: {
             value:
@@ -190,18 +192,47 @@ export const preset = definePreset({
               "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace",
           },
         },
-        fontWeights,
-        fontSizes,
-        lineHeights,
-        radii: scaledRadii,
+        /* static tokens */
         colors: staticColors,
+        sizes: pandaPreset.theme.tokens.sizes,
         shadows: pandaPreset.theme.tokens.shadows,
+        /* SCALED tokens */
+        spacing: scaledSpacing,
+        radii: scaledRadii,
       },
-      // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-      // @ts-expect-error -- `colorPalette` not recognized but it's legit
-      colorPalette: {
-        enabled: true,
-        include: ["bg.*", "fg.*", "bd.*", "status.*"],
+      semanticTokens: {
+        /* semantic colors */
+        colors: {
+          DEFAULT: createSemanticSet("colors.neutral"),
+          ...basePalettes,
+          status: {
+            info: blue,
+            success: green,
+            warning: orange,
+            error: red,
+          },
+        },
+        /* semantic shadows */
+        shadows: {
+          elevation: {
+            drop: {
+              macro: { value: "{shadows.xs}" },
+              micro: { value: "{shadows.2xs}" },
+            },
+            lift: {
+              macro: { value: "{shadows.sm}" },
+              micro: { value: "{shadows.xs}" },
+            },
+            raise: {
+              macro: { value: "{shadows.md}" },
+              micro: { value: "{shadows.sm}" },
+            },
+            float: {
+              macro: { value: "{shadows.lg}" },
+              micro: { value: "{shadows.md}" },
+            },
+          },
+        },
       },
       textStyles: {
         xs: {
@@ -269,37 +300,11 @@ export const preset = definePreset({
           },
         },
       },
-      semanticTokens: {
-        colors: {
-          DEFAULT: createSemanticSet("colors.neutral"),
-          ...basePalettes,
-          status: {
-            info: blue,
-            success: green,
-            warning: orange,
-            error: red,
-          },
-        },
-        shadows: {
-          elevation: {
-            drop: {
-              macro: { value: "{shadows.xs}" },
-              micro: { value: "{shadows.2xs}" },
-            },
-            lift: {
-              macro: { value: "{shadows.sm}" },
-              micro: { value: "{shadows.xs}" },
-            },
-            raise: {
-              macro: { value: "{shadows.md}" },
-              micro: { value: "{shadows.sm}" },
-            },
-            float: {
-              macro: { value: "{shadows.lg}" },
-              micro: { value: "{shadows.md}" },
-            },
-          },
-        },
+      // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
+      // @ts-expect-error -- `colorPalette` not recognized but it's legit
+      colorPalette: {
+        enabled: true,
+        include: ["bg.*", "fg.*", "bd.*", "status.*"],
       },
     },
   },

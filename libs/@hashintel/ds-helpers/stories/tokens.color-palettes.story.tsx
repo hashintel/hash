@@ -11,7 +11,7 @@ const DIAGONAL_PATTERN_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 const TransparencyBackground = ({ children }: { children: ReactNode }) => (
   <Box
     p="4"
-    borderRadius="md.3"
+    borderRadius="md"
     style={{
       backgroundImage: DIAGONAL_PATTERN_SVG,
       backgroundSize: "16px 16px",
@@ -100,7 +100,7 @@ const ALPHA_STEPS: readonly AlphaStep[] = [
 const swatchStyles = css({
   width: "[32px]",
   height: "[32px]",
-  borderRadius: "md.3",
+  borderRadius: "md",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -266,7 +266,7 @@ export const ColorPalettes: Story = () => (
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             Black
           </h3>
-          <Box p="4" borderRadius="md.3" style={{ backgroundColor: "white" }}>
+          <Box p="4" borderRadius="md" style={{ backgroundColor: "white" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="black" step={step} />
@@ -278,7 +278,7 @@ export const ColorPalettes: Story = () => (
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             White
           </h3>
-          <Box p="4" borderRadius="md.3" style={{ backgroundColor: "black" }}>
+          <Box p="4" borderRadius="md" style={{ backgroundColor: "black" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="white" step={step} />

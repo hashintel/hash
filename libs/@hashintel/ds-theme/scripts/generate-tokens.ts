@@ -8,9 +8,7 @@ import {
   shouldSkipKey,
   transformPropertyKey,
   transformSpacingScale,
-  transformRadiusScale,
   transformLineHeightReference,
-  transformRadiusReference,
 } from "./transforms";
 
 const OUTPUT_DIR = "src/theme/tokens";
@@ -29,7 +27,6 @@ const variableTypeSchema = z.enum([
   "fontWeight",
   "fontFamily",
   "lineHeight",
-  "borderRadius",
   "color",
 ]);
 
@@ -180,72 +177,6 @@ export const lineHeights = defineTokens.lineHeights(${formatTokensForOutput(line
 }
 
 // ============================================================================
-// BORDER RADIUS TOKENS
-// ============================================================================
-
-const radiusValueSchema = z.object({
-  value: z.union([z.number(), z.string()]),
-  type: z.literal("borderRadius"),
-  resolvedType: z.literal("FLOAT"),
-});
-
-const radiusScaleSchema = z.record(z.string(), radiusValueSchema);
-
-const radiusSchema = z.object({
-  core: z.record(z.string(), radiusScaleSchema).optional(),
-  component: z
-    .record(z.string(), z.record(z.string(), radiusValueSchema))
-    .optional(),
-});
-
-function generateRadiusTokens(): void {
-  const radius = figmaVariables.radius;
-  if (!radius) {
-    console.log("⚠️ No radius tokens found in Figma export");
-    return;
-  }
-
-  const parsed = radiusSchema.parse(radius);
-  const filePath = join(process.cwd(), OUTPUT_DIR, "radii.gen.ts");
-
-  // Core radii scales (sm, md, lg, etc.)
-  const coreRadii: Record<string, Record<string, { value: string }>> = {};
-  if (parsed.core) {
-    for (const [scaleName, scale] of Object.entries(parsed.core)) {
-      if (shouldSkipKey(scaleName)) continue;
-      coreRadii[camelCase(scaleName)] = transformRadiusScale(scale);
-    }
-  }
-
-  // Component-specific radii (button, etc.)
-  const componentRadii: Record<string, Record<string, { value: string }>> = {};
-  if (parsed.component) {
-    for (const [componentName, sizes] of Object.entries(parsed.component)) {
-      if (shouldSkipKey(componentName)) continue;
-      const sizeTokens: Record<string, { value: string }> = {};
-      for (const [size, { value }] of Object.entries(sizes)) {
-        if (shouldSkipKey(size)) continue;
-        sizeTokens[camelCase(size)] = {
-          value: transformRadiusReference(value),
-        };
-      }
-      componentRadii[camelCase(componentName)] = sizeTokens;
-    }
-  }
-
-  // Merge core and component radii
-  const allRadii = { ...coreRadii, component: componentRadii };
-
-  const content = `import { defineTokens } from "@pandacss/dev";
-
-export const radii = defineTokens.radii(${formatTokensForOutput(allRadii)});
-`;
-
-  fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created radii.gen.ts");
-}
-
-// ============================================================================
 // BARREL FILE
 // ============================================================================
 
@@ -254,7 +185,6 @@ function generateBarrelFile(): void {
 
   const content = `export { spacing } from "./tokens/spacing.gen";
 export { fonts, fontWeights, fontSizes, lineHeights } from "./tokens/typography.gen";
-export { radii } from "./tokens/radii.gen";
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
@@ -270,7 +200,6 @@ const figmaVariablesSchema = z.object({
   "color.semantic": z.record(z.string(), z.unknown()),
   spacing: spacingSchema,
   typography: typographySchema,
-  radius: radiusSchema,
 });
 
 // ============================================================================
@@ -295,9 +224,6 @@ function main(): void {
 
   console.log("\n📦 Typography tokens:");
   generateTypographyTokens();
-
-  console.log("\n📦 Border radius tokens:");
-  generateRadiusTokens();
 
   console.log("\n📦 Barrel file:");
   generateBarrelFile();

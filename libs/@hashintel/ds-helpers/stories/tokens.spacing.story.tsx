@@ -58,7 +58,7 @@ const SpacingBar = ({ step }: { step: string }) => {
         className={css({
           height: "[16px]",
           bg: "blue.s90",
-          borderRadius: "md.2",
+          borderRadius: "sm",
           transition: "[width_0.2s]",
         })}
         style={{ width: value }}

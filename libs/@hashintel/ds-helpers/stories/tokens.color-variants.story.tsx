@@ -78,7 +78,7 @@ const BgSwatch = ({
     <Box
       px="3"
       py="2"
-      borderRadius="md.2"
+      borderRadius="sm"
       minWidth="[70px]"
       boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
       style={{ backgroundColor: token(`colors.${tokenPath}` as Token) }}
@@ -143,7 +143,7 @@ const FgColumn = () => (
             <Box
               px="3"
               py="1.5"
-              borderRadius="md.2"
+              borderRadius="sm"
               flex="1"
               bg={isSolid ? "colorPalette.bg.solid" : undefined}
               boxShadow={
@@ -177,7 +177,7 @@ const BorderSwatch = ({
     <Box
       width="[56px]"
       height="[42px]"
-      borderRadius="md.2"
+      borderRadius="sm"
       display="flex"
       alignItems="center"
       justifyContent="center"

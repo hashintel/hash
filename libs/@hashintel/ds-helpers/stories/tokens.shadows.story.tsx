@@ -69,7 +69,7 @@ const ShadowSwatch = ({
         className={css({
           width: "[80px]",
           height: "[80px]",
-          borderRadius: "md.4",
+          borderRadius: "lg",
           bg: "neutral.s00",
         })}
         style={{ boxShadow: shadowValue }}
@@ -92,7 +92,7 @@ const InsetSwatch = ({
         className={css({
           width: "[80px]",
           height: "[80px]",
-          borderRadius: "md.4",
+          borderRadius: "lg",
           bg: "neutral.s10",
         })}
         style={{ boxShadow: shadowValue }}
@@ -119,7 +119,7 @@ const ElevationSwatch = ({
     <VStack gap="2" alignItems="center">
       <div
         className={css({
-          borderRadius: "md.4",
+          borderRadius: "lg",
           bg: "neutral.s00",
         })}
         style={{

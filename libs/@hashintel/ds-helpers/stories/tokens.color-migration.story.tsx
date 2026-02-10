@@ -79,7 +79,7 @@ const GRID_GAP = 4;
 const swatchStyles = css({
   width: "[40px]",
   height: "[40px]",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

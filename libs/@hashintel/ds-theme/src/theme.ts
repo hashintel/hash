@@ -13,5 +13,4 @@ export {
   fontWeights,
   fontSizes,
   lineHeights,
-  radii,
 } from "./theme/tokens.gen";

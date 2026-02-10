@@ -5,9 +5,7 @@ import {
   transformPropertyKey,
   formatTokensForOutput,
   transformSpacingScale,
-  transformRadiusScale,
   transformLineHeightReference,
-  transformRadiusReference,
 } from "./transforms";
 
 describe("shouldSkipKey", () => {
@@ -172,62 +170,6 @@ describe("transformSpacingScale", () => {
   });
 });
 
-describe("transformRadiusScale", () => {
-  it("adds px suffix to numeric values", () => {
-    const result = transformRadiusScale({
-      "1": { value: 2 },
-      "2": { value: 4 },
-    });
-    expect(result).toEqual({
-      "1": { value: "2px" },
-      "2": { value: "4px" },
-    });
-  });
-
-  it("handles 9999 as pill radius", () => {
-    const result = transformRadiusScale({
-      full: { value: 9999 },
-    });
-    expect(result).toEqual({
-      full: { value: "9999px" },
-    });
-  });
-
-  it("preserves string references unchanged", () => {
-    const result = transformRadiusScale({
-      sm: { value: "{radius.4}" },
-    });
-    expect(result).toEqual({
-      sm: { value: "{radius.4}" },
-    });
-  });
-
-  it("skips keys containing -delete", () => {
-    const result = transformRadiusScale({
-      "1": { value: 2 },
-      "-normal-delete": { value: 10 },
-      full: { value: 9999 },
-    });
-    expect(result).toEqual({
-      "1": { value: "2px" },
-      full: { value: "9999px" },
-    });
-  });
-
-  it("skips keys starting with _ or - (not inside value objects)", () => {
-    const result = transformRadiusScale({
-      "1": { value: 2 },
-      _internal: { value: 4 },
-      "-private": { value: 6 },
-      full: { value: 9999 },
-    });
-    expect(result).toEqual({
-      "1": { value: "2px" },
-      full: { value: "9999px" },
-    });
-  });
-});
-
 describe("transformLineHeightReference", () => {
   it("converts size references to fontSizes references", () => {
     expect(transformLineHeightReference("{size.3xl}")).toBe("{fontSizes.3xl}");
@@ -240,22 +182,5 @@ describe("transformLineHeightReference", () => {
 
   it("handles non-reference strings unchanged", () => {
     expect(transformLineHeightReference("normal")).toBe("normal");
-  });
-});
-
-describe("transformRadiusReference", () => {
-  it("converts radius references to radii.md references", () => {
-    expect(transformRadiusReference("{radius.4}")).toBe("{radii.md.4}");
-    expect(transformRadiusReference("{radius.10}")).toBe("{radii.md.10}");
-  });
-
-  it("adds px suffix to numeric values", () => {
-    expect(transformRadiusReference(8)).toBe("8px");
-  });
-
-  it("handles non-reference strings unchanged", () => {
-    expect(transformRadiusReference("{some.other.ref}")).toBe(
-      "{some.other.ref}",
-    );
   });
 });

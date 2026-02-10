@@ -1,9 +1,9 @@
 import type {
   ColorToken,
   FontWeightToken,
-  RadiusToken,
   ShadowToken,
   SpacingToken,
+  TextStyleToken,
 } from "../styled-system/tokens/tokens";
 import type { UtilityValues } from "../styled-system/types/prop-type";
 
@@ -51,20 +51,7 @@ export type ElevationScale = ShadowToken extends infer T
     : never
   : never;
 
-export type RadiusScale = RadiusToken extends infer T
-  ? T extends `${infer S}.${infer _}`
-    ? Exclude<S, "component" | "none" | "full">
-    : never
-  : never;
-
-/* TODO: move radii back to their defaults from panda-preset */
-export type RadiusStep = RadiusToken extends infer T
-  ? T extends `md.${infer S}`
-    ? S
-    : never
-  : never;
-
-export type TextStyle = UtilityValues["textStyle"];
+export type TextStyle = TextStyleToken;
 
 /* TODO: expand to full-set of modifiers: leading, spacing, roundness */
 export type Leading = UtilityValues["leading"];
