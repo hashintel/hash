@@ -69,7 +69,7 @@ const SpacingBar = ({ step }: { step: string }) => {
 };
 
 export const Spacing: Story<{ density: string }> = ({ density }) => (
-  <div data-density={density}>
+  <div className={css({ density })}>
     <VStack gap="6" alignItems="flex-start" p="6">
       <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
         Spacing Tokens

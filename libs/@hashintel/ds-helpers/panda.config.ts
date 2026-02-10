@@ -48,6 +48,8 @@ export default defineConfig({
           ],
           textStyle: ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl"],
           leading: ["tight", "normal", "loose"],
+          roundness: ["none", "sm", "md", "lg", "xl"],
+          density: ["compact", "normal", "comfortable"],
         },
       },
     ],

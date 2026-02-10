@@ -61,58 +61,9 @@ const globalCss = defineGlobalStyles({
     fontFamily: "body",
     bg: "neutral.s00",
     color: "neutral.s120",
-
-    "--roundness-factor-none": "0",
-    "--roundness-factor-sm": "0.75",
-    "--roundness-factor-md": "1",
-    "--roundness-factor-lg": "1.5",
-    "--roundness-factor-xl": "2",
-    "--roundness-factor": "var(--roundness-factor-md)",
-
-    "--leading-factor-tight": "0.9",
-    "--leading-factor-normal": "1",
-    "--leading-factor-loose": "1.1",
-    "--leading-factor": "var(--leading-factor-normal)",
-
-    "--density-factor-compact": "0.875",
-    "--density-factor-normal": "1",
-    "--density-factor-comfortable": "1.125",
-    "--density-factor": "var(--density-factor-normal)",
-  },
-  '[data-roundness="none"]': {
-    "--roundness-factor": "var(--roundness-factor-none)",
-  },
-  '[data-roundness="sm"]': {
-    "--roundness-factor": "var(--roundness-factor-sm)",
-  },
-  '[data-roundness="md"]': {
-    "--roundness-factor": "var(--roundness-factor-md)",
-  },
-  '[data-roundness="lg"]': {
-    "--roundness-factor": "var(--roundness-factor-lg)",
-  },
-  '[data-roundness="xl"]': {
-    "--roundness-factor": "var(--roundness-factor-xl)",
-  },
-
-  '[data-leading="tight"]': {
-    "--leading-factor": "var(--leading-factor-tight)",
-  },
-  '[data-leading="normal"]': {
-    "--leading-factor": "var(--leading-factor-normal)",
-  },
-  '[data-leading="loose"]': {
-    "--leading-factor": "var(--leading-factor-loose)",
-  },
-
-  '[data-density="compact"]': {
-    "--density-factor": "var(--density-factor-compact)",
-  },
-  '[data-density="normal"]': {
-    "--density-factor": "var(--density-factor-normal)",
-  },
-  '[data-density="comfortable"]': {
-    "--density-factor": "var(--density-factor-comfortable)",
+    "--roundness-factor": "1",
+    "--leading-factor": "1",
+    "--density-factor": "1",
   },
 });
 
@@ -165,23 +116,23 @@ export const preset = definePreset({
     extend: {
       leading: {
         className: "leading",
-        values: { tight: "tight", normal: "normal", loose: "loose" },
+        values: { tight: "0.9", normal: "1", loose: "1.1" },
         transform(value: string) {
-          return { "--leading-factor": `var(--leading-factor-${value})` };
+          return { "--leading-factor": value };
         },
       },
       density: {
         className: "density",
-        values: { compact: "compact", normal: "normal", comfortable: "comfortable" },
+        values: { compact: "0.875", normal: "1", comfortable: "1.125" },
         transform(value: string) {
-          return { "--density-factor": `var(--density-factor-${value})` };
+          return { "--density-factor": value };
         },
       },
       roundness: {
         className: "roundness",
-        values: { none: "none", sm: "sm", md: "md", lg: "lg", xl: "xl" },
+        values: { none: "0", sm: "0.75", md: "1", lg: "1.5", xl: "2" },
         transform(value: string) {
-          return { "--roundness-factor": `var(--roundness-factor-${value})` };
+          return { "--roundness-factor": value };
         },
       },
     },

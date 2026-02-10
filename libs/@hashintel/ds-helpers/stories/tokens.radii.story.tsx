@@ -55,17 +55,15 @@ const RadiusSwatch = ({ step }: { step: string }) => {
   );
 };
 
-const SwatchGrid = ({
-  "data-roundness": roundness,
-}: { "data-roundness"?: string }) => (
+const SwatchGrid = ({ roundness }: { roundness?: string }) => (
   <div
     className={css({
       display: "grid",
       gap: "4",
       justifyItems: "center",
+      roundness,
     })}
     style={{ gridTemplateColumns: `repeat(${steps.length}, auto)` }}
-    data-roundness={roundness}
   >
     {steps.map((step) => (
       <RadiusSwatch key={step} step={step} />
@@ -82,7 +80,7 @@ const ComponentDemo = ({ roundness }: { roundness: string }) => {
   ];
 
   return (
-    <HStack gap="6" flexWrap="wrap" data-roundness={roundness}>
+    <HStack gap="6" flexWrap="wrap" className={css({ roundness })}>
       {items.map(({ label, radius, w, h }) => {
         const tokenPath = `radii.${radius}` as Token;
         const value = token(tokenPath);
@@ -112,7 +110,7 @@ const ComponentDemo = ({ roundness }: { roundness: string }) => {
 };
 
 export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
-  <div data-roundness={roundness}>
+  <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">
         <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
@@ -189,7 +187,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
             >
               roundness: {level}
             </span>
-            <SwatchGrid data-roundness={level} />
+            <SwatchGrid roundness={level} />
           </VStack>
         ))}
       </VStack>
