@@ -98,10 +98,9 @@ ciphers:
   algorithm: xchacha20-poly1305
 
 hashers:
-  # @todo: replace with argon2 algorithm
   algorithm: bcrypt
   bcrypt:
-    cost: 8
+    cost: 12
 
 identity:
   default_schema_id: default

@@ -17,6 +17,7 @@ import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   getHashClientTypeFromRequest,
   hashClientHeaderKey,
@@ -105,6 +106,38 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
 
 /**
+ * A rate limiter for the GraphQL endpoint.
+ *
+ * Authenticated users get a higher limit because normal page loads
+ * can generate 5–10+ individual GraphQL requests (context providers,
+ * page content, comments, etc.), and navigating between pages or
+ * using features like flows can produce rapid bursts.
+ *
+ * Unauthenticated users are given a tighter limit because they
+ * access far less functionality.
+ */
+const graphqlRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
+  limit: (req) => (req.user ? 300 : 60),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user) {
+      return getActorIdFromRequest(req);
+    }
+    return ipKeyGenerator(req.ip!);
+  },
+  message: {
+    errors: [
+      {
+        message: "Too many requests, please try again later.",
+        extensions: { code: "RATE_LIMITED" },
+      },
+    ],
+  },
+});
+
+/**
  * A rate limit which throttles requests based on the user identifier rather than the IP address.
  */
 const userIdentifierRateLimiter = rateLimit({
@@ -116,6 +149,23 @@ const userIdentifierRateLimiter = rateLimit({
        * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
       return req.body.identifier as string;
+    }
+    return ipKeyGenerator(req.ip!);
+  },
+});
+
+/**
+ * A rate limiter for the GPT endpoints. These are OAuth-protected but
+ * should still be limited to prevent abuse by a compromised or misbehaving client.
+ */
+const gptRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
+  limit: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user) {
+      return getActorIdFromRequest(req);
     }
     return ipKeyGenerator(req.ip!);
   },
@@ -227,10 +277,6 @@ const main = async () => {
       },
     });
   }
-
-  app.get("/my-ip", (req, res) => {
-    res.send(req.ip);
-  });
 
   // Add logging of requests
   app.use((req, res, next) => {
@@ -547,6 +593,31 @@ const main = async () => {
     next();
   });
 
+  /**
+   * Debugging endpoint to check how the server resolves the client's IP.
+   * Restricted to instance admins as it reveals proxy/CDN configuration details.
+   */
+  app.get("/my-ip", async (req, res) => {
+    const { user } = req;
+    if (!user) {
+      res.status(401).send("Not authenticated");
+      return;
+    }
+
+    const isAdmin = await isUserHashInstanceAdmin(
+      req.context,
+      { actorId: user.accountId },
+      { userAccountId: user.accountId },
+    );
+
+    if (!isAdmin) {
+      res.status(403).send("Forbidden");
+      return;
+    }
+
+    res.send(req.ip);
+  });
+
   setupFileDownloadProxyHandler(app, keyv);
 
   setupBlockProtocolExternalServiceMethodProxy(app);
@@ -663,10 +734,14 @@ const main = async () => {
   );
 
   // Endpoints used by HashGPT or in support of it
-  app.post("/gpt/entities/query", gptQueryEntities);
-  app.post("/gpt/entities/query-types", gptQueryTypes);
-  app.get("/gpt/user-webs", gptGetUserWebs);
-  app.post("/gpt/upsert-gpt-oauth-client", upsertGptOauthClient);
+  app.post("/gpt/entities/query", gptRateLimiter, gptQueryEntities);
+  app.post("/gpt/entities/query-types", gptRateLimiter, gptQueryTypes);
+  app.get("/gpt/user-webs", gptRateLimiter, gptGetUserWebs);
+  app.post(
+    "/gpt/upsert-gpt-oauth-client",
+    gptRateLimiter,
+    upsertGptOauthClient,
+  );
 
   /**
    * This middleware MUST:
@@ -711,6 +786,7 @@ const main = async () => {
   app.use(
     GRAPHQL_PATH,
     cors<cors.CorsRequest>(CORS_CONFIG),
+    graphqlRateLimiter,
     express.json(),
     apolloMiddleware,
   );
