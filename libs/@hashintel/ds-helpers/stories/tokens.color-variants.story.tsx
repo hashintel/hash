@@ -51,14 +51,14 @@ const fgTokens = [
 ] as const;
 
 const sectionTitle = css({
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "semibold",
   color: "colorPalette.fg.muted",
   mb: "2",
 });
 
 const categoryLabel = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "colorPalette.fg.subtle",
   mb: "1",
@@ -84,7 +84,7 @@ const BgSwatch = ({
       style={{ backgroundColor: token(`colors.${tokenPath}` as Token) }}
     >
       <span
-        className={css({ fontSize: "xs", fontWeight: "medium" })}
+        className={css({ textStyle: "xs", fontWeight: "medium" })}
         style={{ color: token(`colors.${textColor}` as Token) }}
       >
         {label}
@@ -132,7 +132,7 @@ const FgColumn = () => (
           <HStack key={key} gap="2" alignItems="center" width="[100%]">
             <span
               className={css({
-                fontSize: "xs",
+                textStyle: "xs",
                 fontWeight: "medium",
                 minWidth: "[80px]",
                 color: "colorPalette.fg.subtle",
@@ -151,7 +151,7 @@ const FgColumn = () => (
               }
             >
               <span
-                className={css({ fontSize: "xs" })}
+                className={css({ textStyle: "xs" })}
                 style={{
                   color: token(`colors.colorPalette.${key}` as Token),
                 }}
@@ -229,7 +229,7 @@ const PaletteSection = ({ palette }: { palette: string }) => (
   <Box colorPalette={palette as "blue"}>
     <h2
       className={css({
-        fontSize: "lg",
+        textStyle: "lg",
         fontWeight: "semibold",
         mb: "4",
         textTransform: "capitalize",
@@ -248,30 +248,30 @@ const PaletteSection = ({ palette }: { palette: string }) => (
 export const ColorVariants: Story = () => (
   <VStack gap="6" alignItems="flex-start" p="6">
     <VStack gap="1" alignItems="flex-start">
-      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Color Variants
       </h1>
       <p
         className={css({
-          fontSize: "sm",
+          textStyle: "sm",
           color: "fg.muted",
           maxWidth: "[700px]",
         })}
       >
         Semantic{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           bg.*
         </code>
         ,{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           fg.*
         </code>
         , and{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           bd.*
         </code>{" "}
         tokens under each{" "}
-        <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           colorPalette
         </code>
         .

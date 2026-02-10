@@ -23,20 +23,20 @@ const fontWeightEntries: readonly { name: FontWeightToken; value: number }[] = [
 ];
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
   minWidth: "[60px]",
 });
 
 const valueStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   color: "fg.subtle",
   minWidth: "[50px]",
 });
 
 const sectionTitleStyles = css({
-  fontSize: "lg",
+  textStyle: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
   borderColor: "bd.subtle",
@@ -70,7 +70,7 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
   <VStack gap="2" alignItems="flex-start" width="[100%]">
     <span
       className={css({
-        fontSize: "sm",
+        textStyle: "sm",
         fontWeight: "semibold",
         color: "fg.solid",
       })}
@@ -134,7 +134,7 @@ export const Typography: Story<{ leadingFactor: string }> = ({
 }) => (
   <div className={css({ leading: leadingFactor })}>
     <VStack gap="8" alignItems="flex-start" p="6">
-      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Typography
       </h1>
 
@@ -149,7 +149,7 @@ export const Typography: Story<{ leadingFactor: string }> = ({
         <h2 className={sectionTitleStyles}>Leading Variants</h2>
         <p
           className={css({
-            fontSize: "xs",
+            textStyle: "xs",
             color: "fg.subtle",
             mb: "2",
           })}

@@ -109,7 +109,7 @@ const swatchStyles = css({
 });
 
 const labelStyles = css({
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "semibold",
   textTransform: "capitalize",
   minWidth: "[80px]",
@@ -208,12 +208,12 @@ const StepHeaders = ({
 export const ColorPalettes: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <VStack gap="2" alignItems="flex-start">
-      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Color Palettes
       </h1>
       <p
         className={css({
-          fontSize: "sm",
+          textStyle: "sm",
           color: "fg.muted",
           maxWidth: "[700px]",
         })}
@@ -224,7 +224,7 @@ export const ColorPalettes: Story = () => (
         transparency for overlays and blending. Half-steps are OKLCH
         interpolations. Palettes marked with a status alias on the right can
         also be referenced as{" "}
-        <code className={css({ font: "mono", fontSize: "xs" })}>
+        <code className={css({ font: "mono", textStyle: "xs" })}>
           status.*.s30
         </code>{" "}
         etc.
@@ -232,7 +232,7 @@ export const ColorPalettes: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
         Solid Scales (s00–s125)
       </h2>
       <VStack gap="1" alignItems="flex-start">
@@ -244,7 +244,7 @@ export const ColorPalettes: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
         Alpha Scales (a00–a125)
       </h2>
       <TransparencyBackground>
@@ -258,7 +258,7 @@ export const ColorPalettes: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={css({ fontSize: "lg", fontWeight: "semibold" })}>
+      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
         Static Colors (black / white)
       </h2>
       <VStack gap="4" alignItems="flex-start">

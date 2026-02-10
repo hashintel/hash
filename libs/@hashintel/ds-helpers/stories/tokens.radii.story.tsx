@@ -19,7 +19,7 @@ const steps = [
 const roundnessLevels = ["none", "sm", "md", "lg", "xl"] as const;
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
   textAlign: "center",
@@ -27,7 +27,7 @@ const labelStyles = css({
 });
 
 const sectionTitleStyles = css({
-  fontSize: "lg",
+  textStyle: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
   borderColor: "bd.subtle",
@@ -93,7 +93,7 @@ const ComponentDemo = ({ roundness }: { roundness: string }) => {
                 alignItems: "center",
                 justifyContent: "center",
                 color: "white",
-                fontSize: "xs",
+                textStyle: "xs",
                 fontWeight: "medium",
                 transition: "[border-radius_0.2s]",
               })}
@@ -113,12 +113,12 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
   <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">
-        <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+        <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
           Border Radius Tokens
         </h1>
         <p
           className={css({
-            fontSize: "sm",
+            textStyle: "sm",
             color: "fg.muted",
             maxWidth: "[640px]",
           })}
@@ -128,7 +128,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
           <code
             className={css({
               fontFamily: "mono",
-              fontSize: "xs",
+              textStyle: "xs",
               bg: "neutral.s20",
               px: "1",
               py: "0.5",
@@ -157,7 +157,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
         <h2 className={sectionTitleStyles}>All Roundness Levels Compared</h2>
         <Box
           className={css({
-            fontSize: "xs",
+            textStyle: "xs",
             color: "fg.muted",
             fontFamily: "mono",
             bg: "neutral.s10",
@@ -178,7 +178,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
           <VStack key={level} gap="3" alignItems="flex-start" width="[100%]">
             <span
               className={css({
-                fontSize: "sm",
+                textStyle: "sm",
                 fontWeight: "semibold",
                 textTransform: "uppercase",
                 letterSpacing: "[0.05em]",

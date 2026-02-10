@@ -25,7 +25,7 @@ const steps: readonly SpacingToken[] = [
 const densityLevels = ["compact", "normal", "comfortable"] as const;
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
   fontFamily: "mono",
@@ -55,7 +55,7 @@ const DensityColumn = ({ density }: { density: string }) => (
   <VStack gap="0" alignItems="flex-start" className={css({ density })}>
     <span
       className={css({
-        fontSize: "xs",
+        textStyle: "xs",
         fontWeight: "semibold",
         textTransform: "uppercase",
         letterSpacing: "[0.05em]",
@@ -78,12 +78,12 @@ const DensityColumn = ({ density }: { density: string }) => (
 export const Spacing: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <VStack gap="2" alignItems="flex-start">
-      <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Spacing Tokens
       </h1>
       <p
         className={css({
-          fontSize: "sm",
+          textStyle: "sm",
           color: "fg.muted",
           maxWidth: "[640px]",
         })}
@@ -93,7 +93,7 @@ export const Spacing: Story = () => (
         <code
           className={css({
             fontFamily: "mono",
-            fontSize: "xs",
+            textStyle: "xs",
             bg: "neutral.s20",
             px: "1",
             py: "0.5",

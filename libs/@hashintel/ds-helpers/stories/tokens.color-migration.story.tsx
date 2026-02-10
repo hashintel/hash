@@ -89,7 +89,7 @@ const swatchStyles = css({
 });
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "semibold",
   minWidth: "[100px]",
   textAlign: "right",
@@ -168,7 +168,7 @@ export const ColorMappings: Story = () => {
       <VStack gap="1" alignItems="flex-start">
         <h1
           className={css({
-            fontSize: "2xl",
+            textStyle: "2xl",
             fontWeight: "semibold",
           })}
         >
@@ -176,7 +176,7 @@ export const ColorMappings: Story = () => {
         </h1>
         <p
           className={css({
-            fontSize: "sm",
+            textStyle: "sm",
             color: "colorPalette.fg.muted",
             maxWidth: "[700px]",
           })}
@@ -227,7 +227,7 @@ export const ColorMappings: Story = () => {
       <Box mt="4">
         <h2
           className={css({
-            fontSize: "lg",
+            textStyle: "lg",
             fontWeight: "semibold",
             mb: "3",
           })}
@@ -236,18 +236,18 @@ export const ColorMappings: Story = () => {
         </h2>
         <p
           className={css({
-            fontSize: "sm",
+            textStyle: "sm",
             color: "colorPalette.fg.muted",
             mb: "3",
             maxWidth: "[500px]",
           })}
         >
           Edit{" "}
-          <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
             FIGMA_TO_RADIX_MAP
           </code>{" "}
           in{" "}
-          <code className={css({ fontFamily: "mono", fontSize: "xs" })}>
+          <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
             colors.comparison.story.tsx
           </code>{" "}
           to adjust these mappings.
@@ -255,7 +255,7 @@ export const ColorMappings: Story = () => {
         <table
           className={css({
             fontFamily: "mono",
-            fontSize: "sm",
+            textStyle: "sm",
             borderCollapse: "collapse",
           })}
         >

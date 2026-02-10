@@ -34,7 +34,7 @@ const ELEVATION_LEVELS: readonly ElevationLevel[] = [
 const ELEVATION_SCALES: readonly ElevationScale[] = ["micro", "macro"];
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
   textAlign: "center",
@@ -48,7 +48,7 @@ const valueStyles = css({
 });
 
 const sectionTitleStyles = css({
-  fontSize: "lg",
+  textStyle: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
   borderColor: "bd.subtle",
@@ -135,12 +135,12 @@ const ElevationSwatch = ({
 
 export const Shadows: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
+    <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
       Shadows &amp; Elevation
     </h1>
     <p
       className={css({
-        fontSize: "sm",
+        textStyle: "sm",
         color: "fg.muted",
         maxWidth: "[700px]",
       })}
@@ -176,7 +176,7 @@ export const Shadows: Story = () => (
       <h2 className={sectionTitleStyles}>Elevation Tokens</h2>
       <p
         className={css({
-          fontSize: "sm",
+          textStyle: "sm",
           color: "fg.muted",
           maxWidth: "[600px]",
           mt: "[-16px]",
@@ -192,7 +192,7 @@ export const Shadows: Story = () => (
           <VStack key={scale} gap="4" alignItems="flex-start">
             <span
               className={css({
-                fontSize: "sm",
+                textStyle: "sm",
                 fontWeight: "semibold",
                 textTransform: "capitalize",
               })}
