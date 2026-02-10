@@ -52,7 +52,7 @@ const fgTokens = [
   { key: "fg.subtle.hover", label: "subtle.hover" },
   { key: "fg.link", label: "link" },
   { key: "fg.link.hover", label: "link.hover" },
-  { key: "fg.solid", label: "solid" },
+  { key: "bg.solid.fg", label: "solid (bg.solid.fg)" },
 ] as const;
 
 const sectionTitle = css({
@@ -80,7 +80,7 @@ const BgSwatch = ({
 }) => {
   const textColor = useDarkText
     ? "colorPalette.fg.heading"
-    : "colorPalette.fg.solid";
+    : "colorPalette.bg.solid.fg";
   return (
     <Box
       px="3"
@@ -134,7 +134,7 @@ const FgColumn = () => (
     <span className={sectionTitle}>fg.*</span>
     <VStack gap="1" alignItems="flex-start" width="[100%]">
       {fgTokens.map(({ key, label }) => {
-        const isSolid = key === "fg.solid";
+        const isSolid = key === "bg.solid.fg";
         return (
           <HStack key={key} gap="2" alignItems="center" width="[100%]">
             <span

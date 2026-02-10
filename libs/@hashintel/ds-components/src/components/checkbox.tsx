@@ -74,7 +74,7 @@ const checkboxControlStyles = css({
   "&[data-state='checked'], &[data-state='indeterminate']": {
     borderColor: "bd.solid.active",
     backgroundColor: "bg.solid",
-    color: "fg.solid",
+    color: "bg.solid.fg",
   },
 
   // Hover on checked/indeterminate states

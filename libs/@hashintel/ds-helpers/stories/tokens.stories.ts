@@ -8,6 +8,9 @@ export { ColorPalettes } from "./tokens.color-palettes.story";
 // Semantic color variants (bg/fg/bd under colorPalette)
 export { ColorVariants } from "./tokens.color-variants.story";
 
+// Background & border layering demo
+export { ColorLayering } from "./tokens.color-layering.story";
+
 export { ColorMappings } from "./tokens.color-migration.story";
 
 // Other tokens

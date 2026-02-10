@@ -72,7 +72,7 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
       className={css({
         textStyle: "sm",
         fontWeight: "semibold",
-        color: "fg.solid",
+        color: "bg.solid.fg",
       })}
     >
       textStyle: {style}

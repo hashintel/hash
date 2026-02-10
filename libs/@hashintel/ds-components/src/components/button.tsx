@@ -117,7 +117,7 @@ const buttonRecipe = cva({
       colorScheme: "brand",
       css: {
         backgroundColor: "blue.bg.solid",
-        color: "fg.solid",
+        color: "bg.solid.fg",
         _hover: {
           backgroundColor: "blue.bg.solid.hover",
         },
@@ -137,7 +137,7 @@ const buttonRecipe = cva({
       colorScheme: "neutral",
       css: {
         backgroundColor: "bg.solid",
-        color: "fg.solid",
+        color: "bg.solid.fg",
         _hover: {
           backgroundColor: "bg.solid.hover",
         },
@@ -157,7 +157,7 @@ const buttonRecipe = cva({
       colorScheme: "critical",
       css: {
         backgroundColor: "status.error.bg.solid",
-        color: "fg.solid",
+        color: "bg.solid.fg",
         _hover: {
           backgroundColor: "status.error.bg.solid.hover",
         },

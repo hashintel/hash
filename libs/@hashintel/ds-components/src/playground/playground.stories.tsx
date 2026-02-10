@@ -53,7 +53,7 @@ const Playground = () => {
 
   const getIconStyle = (isSelected: boolean) =>
     css({
-      color: isSelected ? "fg.solid" : "fg.heading",
+      color: isSelected ? "bg.solid.fg" : "fg.heading",
       textShadow: isSelected
         ? undefined
         : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",
@@ -384,7 +384,7 @@ const Playground = () => {
                     <Button
                       className={css({
                         backgroundColor: "[rgba(0,0,0,0.8)]",
-                        color: "fg.solid",
+                        color: "bg.solid.fg",
                       })}
                       onClick={() => setSelectedButton("select")}
                     >

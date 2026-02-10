@@ -12,11 +12,12 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  *
  * bg — alpha-based layers from transparent (min) through surface/subtle/shaded/strong
  *       up to opaque solid; provides hover/active/disabled for each.
+ *       bg.solid.fg provides the contrast text color for solid backgrounds.
  * fg — text hierarchy from max (strongest) through heading/body/muted/subtle,
- *       plus solid (for text on solid bg) and link.
+ *       plus link.
  * bd — alpha-based borders at three weights: subtle, solid, strong.
  *
- * The `kind` parameter controls how fg.solid and (for neutral) bg.solid are mapped
+ * The `kind` parameter controls how bg.solid.fg and (for neutral) bg.solid are mapped
  * to ensure proper text contrast on solid backgrounds.
  */
 export function createSemanticSet(
@@ -24,6 +25,20 @@ export function createSemanticSet(
   kind: PaletteKind = "normal",
 ) {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
+
+  const onSolid =
+    kind === "neutral"
+      ? {
+          value: { _light: "{colors.white}", _dark: "{colors.black}" },
+        }
+      : kind === "bright"
+        ? {
+            value: {
+              _light: "{colors.neutral.s120}",
+              _dark: "{colors.neutral.s10}",
+            },
+          }
+        : { value: { _light: "white", _dark: "white" } };
 
   const bgSolid =
     kind === "neutral"
@@ -34,31 +49,15 @@ export function createSemanticSet(
           hover: ps("s120"),
           active: ps("s120"),
           disabled: ps("s60"),
+          fg: onSolid,
         }
       : {
           DEFAULT: ps("s90"),
           hover: ps("s100"),
           active: ps("s100"),
           disabled: ps("s60"),
+          fg: onSolid,
         };
-
-  const fgSolid =
-    kind === "neutral"
-      ? {
-          DEFAULT: {
-            value: { _light: "{colors.white}", _dark: "{colors.black}" },
-          },
-        }
-      : kind === "bright"
-        ? {
-            DEFAULT: {
-              value: {
-                _light: "{colors.neutral.s120}",
-                _dark: "{colors.neutral.s10}",
-              },
-            },
-          }
-        : { DEFAULT: { value: { _light: "white", _dark: "white" } } };
 
   return {
     bg: {
@@ -95,7 +94,6 @@ export function createSemanticSet(
       solid: bgSolid,
     },
     fg: {
-      solid: fgSolid,
       max: ps("s125"),
       heading: ps("s120"),
       body: {
