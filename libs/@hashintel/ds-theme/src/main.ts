@@ -123,7 +123,7 @@ export const preset = definePreset({
       },
       density: {
         className: "density",
-        values: { compact: "0.875", normal: "1", comfortable: "1.125" },
+        values: { compact: "0.75", normal: "1", comfortable: "1.25" },
         transform(value: string) {
           return { "--density-factor": value };
         },

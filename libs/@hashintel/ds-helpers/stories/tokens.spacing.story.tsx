@@ -6,45 +6,32 @@ import type { Token } from "../styled-system/tokens/tokens";
 import type { SpacingToken } from "./_types";
 
 const steps: readonly SpacingToken[] = [
-  "0",
   "0.5",
   "1",
   "1.5",
   "2",
-  "2.5",
   "3",
-  "3.5",
   "4",
-  "4.5",
   "5",
-  "5.5",
   "6",
-  "7",
   "8",
-  "9",
   "10",
-  "11",
   "12",
-  "14",
   "16",
   "20",
   "24",
 ];
 
-const stepLabelStyles = css({
+const densityLevels = ["compact", "normal", "comfortable"] as const;
+
+const labelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "fg.subtle",
-  width: "[32px]",
+  fontFamily: "mono",
   textAlign: "right",
-  fontFamily: "mono",
-});
-
-const valueStyles = css({
-  fontSize: "xs",
-  color: "fg.subtle",
-  minWidth: "[48px]",
-  fontFamily: "mono",
+  width: "[28px]",
+  flexShrink: "0",
 });
 
 const SpacingBar = ({ step }: { step: string }) => {
@@ -52,25 +39,45 @@ const SpacingBar = ({ step }: { step: string }) => {
   const value = token(tokenPath);
 
   return (
-    <HStack gap="4" alignItems="center">
-      <span className={stepLabelStyles}>{step}</span>
-      <div
-        className={css({
-          height: "[16px]",
-          bg: "blue.s90",
-          borderRadius: "sm",
-          transition: "[width_0.2s]",
-        })}
-        style={{ width: value }}
-      />
-      <span className={valueStyles}>{value}</span>
-    </HStack>
+    <div
+      className={css({
+        height: "[12px]",
+        bg: "blue.s90",
+        borderRadius: "xs",
+        transition: "[width_0.2s]",
+      })}
+      style={{ width: value }}
+    />
   );
 };
 
-export const Spacing: Story<{ density: string }> = ({ density }) => (
-  <div className={css({ density })}>
-    <VStack gap="6" alignItems="flex-start" p="6">
+const DensityColumn = ({ density }: { density: string }) => (
+  <VStack gap="0" alignItems="flex-start" className={css({ density })}>
+    <span
+      className={css({
+        fontSize: "xs",
+        fontWeight: "semibold",
+        textTransform: "uppercase",
+        letterSpacing: "[0.05em]",
+        fontFamily: "mono",
+        mb: "3",
+        ps: "[32px]",
+      })}
+    >
+      {density}
+    </span>
+    {steps.map((step) => (
+      <HStack key={step} gap="1" alignItems="center" py="0.5">
+        <span className={labelStyles}>{step}</span>
+        <SpacingBar step={step} />
+      </HStack>
+    ))}
+  </VStack>
+);
+
+export const Spacing: Story = () => (
+  <VStack gap="8" alignItems="flex-start" p="6">
+    <VStack gap="2" alignItems="flex-start">
       <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
         Spacing Tokens
       </h1>
@@ -78,26 +85,34 @@ export const Spacing: Story<{ density: string }> = ({ density }) => (
         className={css({
           fontSize: "sm",
           color: "fg.muted",
-          maxWidth: "[600px]",
+          maxWidth: "[640px]",
         })}
       >
-        Spacing scale from the default Panda/Tailwind system. Values follow a
-        consistent 4px base unit (1 = 0.25rem = 4px).
+        Spacing values from the Panda/Tailwind scale (1 = 0.25rem = 4px),
+        multiplied by{" "}
+        <code
+          className={css({
+            fontFamily: "mono",
+            fontSize: "xs",
+            bg: "neutral.s20",
+            px: "1",
+            py: "0.5",
+            borderRadius: "xs",
+          })}
+        >
+          --density-factor
+        </code>
+        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable
+        (×1.25 = 5px/unit).
       </p>
-      <VStack gap="1" alignItems="flex-start">
-        {steps.map((step) => (
-          <SpacingBar key={step} step={step} />
-        ))}
-      </VStack>
     </VStack>
-  </div>
+
+    <HStack gap="8" alignItems="flex-start" flexWrap="wrap">
+      {densityLevels.map((density) => (
+        <DensityColumn key={density} density={density} />
+      ))}
+    </HStack>
+  </VStack>
 );
 
 Spacing.storyName = "Spacing";
-Spacing.argTypes = {
-  density: {
-    options: ["compact", "normal", "comfortable"],
-    control: { type: "select" },
-    defaultValue: "normal",
-  },
-};
