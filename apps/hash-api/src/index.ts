@@ -176,6 +176,37 @@ const hydraProxy = createProxyMiddleware<Request, Response>({
   pathRewrite: (_, req) => req.originalUrl,
 });
 
+const redactAuthQueryParams = (value: string): string =>
+  value
+    /**
+     * Fail closed for auth logs by replacing complete query strings.
+     * This avoids relying on an allowlist of sensitive key names.
+     */
+    .replace(/\?[^#\s]*/g, "?[REDACTED_QUERY]");
+
+const sanitizeProxyLogArgs = (args: unknown[]): unknown[] =>
+  args.map((arg) =>
+    typeof arg === "string" ? redactAuthQueryParams(arg) : arg,
+  );
+
+const kratosProxyLogger = {
+  /**
+   * `http-proxy-middleware` logs include request URLs.
+   *
+   * `/auth/*` requests can include Ory self-service query parameters, so we
+   * sanitize all forwarded log levels consistently.
+   */
+  info: (...args: unknown[]) => {
+    logger.info(sanitizeProxyLogArgs(args));
+  },
+  warn: (...args: unknown[]) => {
+    logger.warn(sanitizeProxyLogArgs(args));
+  },
+  error: (...args: unknown[]) => {
+    logger.error(sanitizeProxyLogArgs(args));
+  },
+};
+
 const kratosProxy = createProxyMiddleware<Request, Response>({
   target: kratosPublicUrl,
   pathRewrite: {
@@ -185,7 +216,7 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
      */
     "^/auth": "",
   },
-  logger: console,
+  logger: kratosProxyLogger,
   selfHandleResponse: true,
   on: {
     proxyReq: fixRequestBody,
