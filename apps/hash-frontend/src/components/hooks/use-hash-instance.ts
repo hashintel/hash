@@ -12,10 +12,11 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
 
-/**
- * Retrieves the HASH instance.
- */
-export const useHashInstance = (): {
+export const useHashInstance = ({
+  skip = false,
+}: {
+  skip?: boolean;
+} = {}): {
   loading: boolean;
   hashInstance?: Simplified<HashEntity<HASHInstance>>;
   isUserAdmin: boolean;
@@ -26,6 +27,7 @@ export const useHashInstance = (): {
     GetHashInstanceSettingsQueryQueryVariables
   >(getHashInstanceSettings, {
     fetchPolicy: "cache-and-network",
+    skip,
   });
 
   const { hashInstanceSettings } = data ?? {};

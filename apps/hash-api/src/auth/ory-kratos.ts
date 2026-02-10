@@ -46,3 +46,15 @@ export const deleteKratosIdentity = async (params: {
     id: params.kratosIdentityId,
   });
 };
+
+export const isUserEmailVerified = async (
+  kratosIdentityId: string,
+): Promise<boolean> => {
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: kratosIdentityId,
+  });
+
+  return (
+    identity.verifiable_addresses?.some(({ verified }) => verified) ?? false
+  );
+};

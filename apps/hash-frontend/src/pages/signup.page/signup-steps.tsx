@@ -7,9 +7,14 @@ import { useMemo } from "react";
 import { Circle1RegularIcon } from "../../shared/icons/circle-1-regular-icon";
 import { Circle2RegularIcon } from "../../shared/icons/circle-2-regular-icon";
 import { Circle3RegularIcon } from "../../shared/icons/circle-3-regular-icon";
+import { Circle4RegularIcon } from "../../shared/icons/circle-4-regular-icon";
 import { CircleArrowRightRegularIcon } from "../../shared/icons/circle-arrow-right-regular-icon";
 
-type StepName = "reserve-username" | "start-using-hash" | "accept-invitation";
+type StepName =
+  | "verify-email"
+  | "reserve-username"
+  | "start-using-hash"
+  | "accept-invitation";
 
 type Step = {
   name: StepName;
@@ -18,11 +23,11 @@ type Step = {
 };
 
 const stepsWithoutInvitation: Step[] = [
-  // {
-  //   name: "verify-email",
-  //   label: "Verify your email address",
-  //   labelPastTense: "Email address verified",
-  // },
+  {
+    name: "verify-email",
+    label: "Verify your email address",
+    labelPastTense: "Email address verified",
+  },
   {
     name: "reserve-username",
     label: "Reserve your username",
@@ -47,12 +52,14 @@ const stepNumberToHumanReadable: Record<number, string> = {
   1: "One",
   2: "Two",
   3: "Three",
+  4: "Four",
 };
 
 const stepNumberToCircleIcon: Record<number, ReactNode> = {
   1: <Circle1RegularIcon />,
   2: <Circle2RegularIcon />,
   3: <Circle3RegularIcon />,
+  4: <Circle4RegularIcon />,
 };
 
 export const SignupSteps: FunctionComponent<{

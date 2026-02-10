@@ -14,11 +14,14 @@ import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { VerifiableIdentityAddress } from "@ory/client";
+import type { AxiosError } from "axios";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -29,13 +32,16 @@ import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import { oryKratosClient } from "./ory-kratos";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;
 }>;
 
 type AuthInfoContextValue = {
+  aal2Required: boolean;
   authenticatedUser?: User;
+  emailVerificationStatusKnown: boolean;
   isInstanceAdmin: boolean | undefined;
   refetch: RefetchAuthInfoFunction;
 };
@@ -56,6 +62,12 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   const [authenticatedUserSubgraph, setAuthenticatedUserSubgraph] = useState(
     initialAuthenticatedUserSubgraph,
   ); // use the initial server-sent data to start – after that, the client controls the value
+  const [verifiableAddresses, setVerifiableAddresses] = useState<
+    VerifiableIdentityAddress[]
+  >([]);
+  const [aal2Required, setAal2Required] = useState(false);
+  const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] =
+    useState(false);
 
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {
@@ -83,18 +95,30 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       .map((linkEntity) => new HashLinkEntity<IsMemberOf>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
+  const isAuthenticatedUserPrimaryEmailVerified = verifiableAddresses.some(
+    ({ verified }) => verified,
+  );
+
+  const skipExtraAuthenticatedUserQueries =
+    !!authenticatedUserSubgraph &&
+    (!emailVerificationStatusKnown || !isAuthenticatedUserPrimaryEmailVerified);
+
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
-    orgAccountGroupIds:
-      userMemberOfLinks?.map(
-        (link) =>
-          extractEntityUuidFromEntityId(
-            link.linkData.rightEntityId,
-          ) as string as ActorGroupEntityUuid,
-      ) ?? [],
+    orgAccountGroupIds: skipExtraAuthenticatedUserQueries
+      ? []
+      : (userMemberOfLinks?.map(
+          (link) =>
+            extractEntityUuidFromEntityId(
+              link.linkData.rightEntityId,
+            ) as string as ActorGroupEntityUuid,
+        ) ?? []),
   });
 
   const constructUserValue = useCallback(
-    (subgraph: Subgraph<EntityRootType<HashEntity>> | undefined) => {
+    (
+      subgraph: Subgraph<EntityRootType<HashEntity>> | undefined,
+      suppliedVerifiableAddresses: VerifiableIdentityAddress[],
+    ) => {
       if (!subgraph) {
         return undefined;
       }
@@ -112,6 +136,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         subgraph,
         resolvedOrgs,
         userEntity,
+        verifiableAddresses: suppliedVerifiableAddresses,
       });
     },
     [resolvedOrgs, userMemberOfLinks],
@@ -119,7 +144,9 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const apolloClient = useApolloClient();
 
-  const { isUserAdmin: isInstanceAdmin } = useHashInstance();
+  const { isUserAdmin: isInstanceAdmin } = useHashInstance({
+    skip: skipExtraAuthenticatedUserQueries,
+  });
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
@@ -132,17 +159,42 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
        * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
        * @see https://github.com/apollographql/apollo-client/issues/6086
        */
-      const subgraph = await apolloClient
-        .query<MeQuery>({
-          query: meQuery,
-          fetchPolicy: "network-only",
-        })
-        .then(({ data }) =>
-          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-            data.me.subgraph,
-          ),
-        )
-        .catch(() => undefined);
+      const [subgraph, kratosSessionResult] = await Promise.all([
+        apolloClient
+          .query<MeQuery>({
+            query: meQuery,
+            fetchPolicy: "network-only",
+          })
+          .then(({ data }) =>
+            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+              data.me.subgraph,
+            ),
+          )
+          .catch(() => undefined),
+        oryKratosClient
+          .toSession()
+          .then(({ data }) => ({
+            aal2Required: false,
+            emailVerificationStatusKnown: true,
+            session: data,
+          }))
+          .catch((error: AxiosError) => ({
+            aal2Required: error.response?.status === 403,
+            emailVerificationStatusKnown: error.response?.status !== 403,
+            session: undefined,
+          })),
+      ]);
+
+      if (kratosSessionResult.emailVerificationStatusKnown) {
+        setVerifiableAddresses(
+          kratosSessionResult.session?.identity?.verifiable_addresses ?? [],
+        );
+      }
+
+      setAal2Required(kratosSessionResult.aal2Required);
+      setEmailVerificationStatusKnown(
+        kratosSessionResult.emailVerificationStatusKnown,
+      );
 
       if (!subgraph) {
         setAuthenticatedUserSubgraph(undefined);
@@ -151,17 +203,28 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
       setAuthenticatedUserSubgraph(subgraph);
 
-      return { authenticatedUser: constructUserValue(subgraph) };
+      const newVerifiableAddresses =
+        kratosSessionResult.session?.identity?.verifiable_addresses ?? [];
+
+      return {
+        authenticatedUser: constructUserValue(subgraph, newVerifiableAddresses),
+      };
     }, [constructUserValue, apolloClient]);
 
+  useEffect(() => {
+    void fetchAuthenticatedUser();
+  }, [fetchAuthenticatedUser]);
+
   const authenticatedUser = useMemo(
-    () => constructUserValue(authenticatedUserSubgraph),
-    [authenticatedUserSubgraph, constructUserValue],
+    () => constructUserValue(authenticatedUserSubgraph, verifiableAddresses),
+    [authenticatedUserSubgraph, constructUserValue, verifiableAddresses],
   );
 
   const value = useMemo(
     () => ({
+      aal2Required,
       authenticatedUser,
+      emailVerificationStatusKnown,
       isInstanceAdmin,
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified
@@ -169,7 +232,14 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         return fetchAuthenticatedUser();
       },
     }),
-    [authenticatedUser, isInstanceAdmin, fetchAuthenticatedUser, refetchOrgs],
+    [
+      aal2Required,
+      authenticatedUser,
+      emailVerificationStatusKnown,
+      isInstanceAdmin,
+      fetchAuthenticatedUser,
+      refetchOrgs,
+    ],
   );
 
   return (

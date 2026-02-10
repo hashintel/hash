@@ -11,6 +11,8 @@ serve:
 session:
   # Let sessions live for 3 years
   lifespan: 26280h # 24 h * 365 days * 3 years
+  whoami:
+    required_aal: highest_available
 
 selfservice:
   default_browser_return_url: http://localhost:3000/
@@ -32,6 +34,12 @@ selfservice:
       config:
         # and make sure to enable the code method.
         enabled: true
+    totp:
+      config:
+        issuer: HASH
+      enabled: true
+    lookup_secret:
+      enabled: true
 
   flows:
     error:
@@ -87,7 +95,7 @@ selfservice:
 
     settings:
       # Set through SELFSERVICE_FLOWS_SETTINGS_UI_URL
-      ui_url: http://localhost:3000/change-password
+      ui_url: http://localhost:3000/settings/security
 
 log:
   level: debug

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import type { Org } from "../../lib/user-and-org";
 import { HouseSolidIcon } from "../../shared/icons/house-solid-icon";
+import { LockRegularIcon } from "../../shared/icons/lock-regular-icon";
 import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
@@ -45,6 +46,11 @@ const generateMenuLinks = (
 
   const menuItems: SidebarItemData[] = [
     // { label: "Personal info", href: "/settings/personal" },
+    {
+      label: "Security",
+      href: "/settings/security",
+      icon: LockRegularIcon,
+    },
     {
       label: "Organizations",
       href: "/settings/organizations",

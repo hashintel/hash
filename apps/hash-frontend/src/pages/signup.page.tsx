@@ -31,6 +31,7 @@ import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";
+import { VerifyEmailStep } from "./signup.page/verify-email-step";
 
 const LoginButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -144,10 +145,8 @@ const SignupPage: NextPageWithLayout = () => {
     ],
   );
 
-  /** @todo: un-comment this to actually check whether the email is verified */
-  // const userHasVerifiedEmail =
-  //   authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
-  const userHasVerifiedEmail = true;
+  const userHasVerifiedEmail =
+    authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
 
   return (
     <AuthLayout
@@ -178,15 +177,20 @@ const SignupPage: NextPageWithLayout = () => {
               onAccept={() => setShowInvitationStep(false)}
             />
           ) : authenticatedUser && userHasAccessToHashData?.hasAccessToHash ? (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
               <AccountSetupForm
                 onSubmit={handleAccountSetupSubmit}
                 loading={updateUserLoading}
                 errorMessage={errorMessage}
               />
-            ) : /** @todo: add verification form */
-            null
+            ) : (
+              <VerifyEmailStep
+                email={authenticatedUser.emails[0]?.address ?? ""}
+                onVerified={async () => {
+                  await refetchAuthenticatedUser();
+                }}
+              />
+            )
           ) : (
             <SignupRegistrationForm />
           )}
@@ -209,7 +213,9 @@ const SignupPage: NextPageWithLayout = () => {
               currentStep={
                 invitation && !authenticatedUser
                   ? "accept-invitation"
-                  : "reserve-username"
+                  : !userHasVerifiedEmail
+                    ? "verify-email"
+                    : "reserve-username"
               }
               withInvitation={!!invitation}
             />

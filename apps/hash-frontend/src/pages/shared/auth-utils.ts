@@ -23,19 +23,33 @@ export const parseGraphQLError = (
   errors: GraphQLError[],
   priorityErrorCode?: string,
 ): { errorCode: string; message: string } => {
-  const priorityError = errors.find(
-    ({ extensions }) => extensions.code === priorityErrorCode,
-  );
+  const extractErrorCode = (error: GraphQLError) =>
+    typeof error.extensions.code === "string"
+      ? error.extensions.code
+      : "unknown";
+
+  if (errors.length === 0) {
+    return {
+      errorCode: "unknown",
+      message: "An unexpected error occurred.",
+    };
+  }
+
+  const priorityError = priorityErrorCode
+    ? errors.find(({ extensions }) => extensions.code === priorityErrorCode)
+    : undefined;
 
   if (priorityError) {
     return {
-      errorCode: priorityError.extensions.code as string,
+      errorCode: extractErrorCode(priorityError),
       message: priorityError.message,
     };
   }
 
+  const firstError = errors[0]!;
+
   return {
-    errorCode: errors[0]!.extensions.code as string,
-    message: errors[0]!.message,
+    errorCode: extractErrorCode(firstError),
+    message: firstError.message,
   };
 };

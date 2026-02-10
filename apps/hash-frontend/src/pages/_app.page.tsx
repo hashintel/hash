@@ -55,6 +55,7 @@ import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { maintenanceRoute } from "./shared/maintenance";
+import { type IdentityTraits, oryKratosClient } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { SlideStackProvider } from "./shared/slide-stack";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
@@ -71,6 +72,8 @@ type AppProps = {
   Component: NextPageWithLayout;
 } & AppInitialProps &
   NextAppProps;
+
+const unverifiedUserPermittedPagePathnames = ["/verify-email", "/verification"];
 
 const App: FunctionComponent<AppProps> = ({
   Component,
@@ -90,7 +93,29 @@ const App: FunctionComponent<AppProps> = ({
     setSsr(false);
   }, []);
 
-  const { authenticatedUser } = useAuthInfo();
+  const { aal2Required, authenticatedUser, emailVerificationStatusKnown } =
+    useAuthInfo();
+
+  const primaryEmailVerified =
+    authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
+  const userMustVerifyEmail =
+    !!authenticatedUser &&
+    emailVerificationStatusKnown &&
+    !primaryEmailVerified;
+  const awaitingEmailVerificationStatus =
+    !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
+
+  useEffect(() => {
+    if (
+      !router.isReady ||
+      !userMustVerifyEmail ||
+      unverifiedUserPermittedPagePathnames.includes(router.pathname)
+    ) {
+      return;
+    }
+
+    void router.replace("/verify-email");
+  }, [router, userMustVerifyEmail]);
 
   useEffect(() => {
     setSentryUser({ authenticatedUser });
@@ -100,11 +125,47 @@ const App: FunctionComponent<AppProps> = ({
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
-  if (ssr || !router.isReady) {
+  if (ssr || !router.isReady || awaitingEmailVerificationStatus) {
     return <Suspense />; // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
+
+  if (
+    userMustVerifyEmail &&
+    !unverifiedUserPermittedPagePathnames.includes(router.pathname)
+  ) {
+    return <Suspense />;
+  }
+
+  if (userMustVerifyEmail) {
+    return (
+      <Suspense>
+        <CacheProvider value={emotionCache}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <KeyboardShortcutsContextProvider>
+              {getLayout(<Component {...pageProps} />)}
+            </KeyboardShortcutsContextProvider>
+          </ThemeProvider>
+        </CacheProvider>
+        <GlobalStyles
+          styles={{
+            "@keyframes mui-auto-fill": { from: { display: "block" } },
+            "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
+            "@keyframes spin": {
+              from: {
+                transform: "rotate(0deg)",
+              },
+              to: {
+                transform: "rotate(360deg)",
+              },
+            },
+          }}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <Suspense>
@@ -196,11 +257,37 @@ const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
   "/signin",
   "/signup",
+  "/verify-email",
   "/recovery",
   "/",
 ];
 
 const redirectIfAuthenticatedPathnames = ["/signup"];
+
+const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
+  oryKratosClient
+    .toSession({ cookie })
+    .then(({ data }) => {
+      const identity = data.identity;
+
+      if (!identity) {
+        return undefined;
+      }
+
+      const identityTraits = identity.traits as IdentityTraits;
+      const primaryEmailAddress = identityTraits.emails[0];
+
+      if (!primaryEmailAddress) {
+        return false;
+      }
+
+      return (
+        identity.verifiable_addresses?.find(
+          ({ value }) => value === primaryEmailAddress,
+        )?.verified === true
+      );
+    })
+    .catch(() => undefined);
 
 /**
  * A map from a feature flag, to the list of pages which should not be accessible
@@ -267,6 +354,16 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   }
 
   const user = constructMinimalUser({ userEntity });
+
+  const primaryEmailVerified = await getPrimaryEmailVerificationStatus(cookie);
+
+  if (primaryEmailVerified === false && pathname !== "/verify-email") {
+    redirectInGetInitialProps({ appContext, location: "/verify-email" });
+    return { initialAuthenticatedUserSubgraph, user };
+  } else if (primaryEmailVerified === true && pathname === "/verify-email") {
+    redirectInGetInitialProps({ appContext, location: "/" });
+    return { initialAuthenticatedUserSubgraph, user };
+  }
 
   // If the user is logged in but hasn't completed signup...
   if (!user.accountSignupComplete) {

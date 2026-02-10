@@ -27,11 +27,22 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler, Request, Response } from "express";
+import type {
+  ErrorRequestHandler,
+  Request,
+  RequestHandler,
+  Response,
+} from "express";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import {
+  Kind,
+  type OperationDefinitionNode,
+  OperationTypeNode,
+  parse,
+} from "graphql";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import {
@@ -52,6 +63,7 @@ import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
+import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
 import {
   oauthConsentRequestHandler,
@@ -77,7 +89,13 @@ import {
   GRAPHQL_PATH,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
+import {
+  isDevEnv,
+  isProdEnv,
+  isStatsDEnabled,
+  isTestEnv,
+  port,
+} from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -120,6 +138,40 @@ const userIdentifierRateLimiter = rateLimit({
     return ipKeyGenerator(req.ip!);
   },
 });
+
+const unverifiedUserPermittedGraphQLOperations = new Set([
+  "me",
+  "hasAccessToHash",
+]);
+
+const unverifiedUserErrorMessage =
+  "You must verify your primary email address before using HASH.";
+
+const isPermittedGraphQLOperationForUnverifiedUser = (req: Request) => {
+  const operationName = req.body?.operationName;
+  const query = req.body?.query;
+
+  if (
+    typeof operationName !== "string" ||
+    typeof query !== "string" ||
+    !unverifiedUserPermittedGraphQLOperations.has(operationName)
+  ) {
+    return false;
+  }
+
+  try {
+    const parsedDocument = parse(query);
+    const operation = parsedDocument.definitions.find(
+      (definition): definition is OperationDefinitionNode =>
+        definition.kind === Kind.OPERATION_DEFINITION &&
+        definition.name?.value === operationName,
+    );
+
+    return operation?.operation === OperationTypeNode.QUERY;
+  } catch {
+    return false;
+  }
+};
 
 const hydraProxy = createProxyMiddleware<Request, Response>({
   target: hydraPublicUrl ?? "",
@@ -464,6 +516,24 @@ const main = async () => {
   });
   app.use(authMiddleware);
 
+  const enforceVerifiedPrimaryEmail: RequestHandler = (req, res, next) => {
+    if (!req.user || req.primaryEmailVerified !== false) {
+      next();
+      return;
+    }
+
+    if (req.path === GRAPHQL_PATH || req.path === "/health-check") {
+      next();
+      return;
+    }
+
+    res.status(403).json({
+      message: unverifiedUserErrorMessage,
+    });
+  };
+
+  app.use(enforceVerifiedPrimaryEmail);
+
   /**
    * Add scope to Sentry, now the user has been checked.
    * We could set some of this scope earlier, but it doesn't get picked up for GraphQL requests for some reason
@@ -708,10 +778,31 @@ const main = async () => {
 
   // Start the Apollo GraphQL server.
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
+  const enforceVerifiedPrimaryEmailForGraphQl: RequestHandler = (
+    req,
+    res,
+    next,
+  ) => {
+    if (!req.user || req.primaryEmailVerified !== false) {
+      next();
+      return;
+    }
+
+    if (isPermittedGraphQLOperationForUnverifiedUser(req)) {
+      next();
+      return;
+    }
+
+    res.status(403).json({
+      errors: [{ message: unverifiedUserErrorMessage }],
+    });
+  };
+
   app.use(
     GRAPHQL_PATH,
     cors<cors.CorsRequest>(CORS_CONFIG),
     express.json(),
+    enforceVerifiedPrimaryEmailForGraphQl,
     apolloMiddleware,
   );
 
@@ -725,6 +816,20 @@ const main = async () => {
       resolve();
     });
   });
+
+  if (!isTestEnv) {
+    const unverifiedEmailCleanupJob = createUnverifiedEmailCleanupJob({
+      context: machineActorContext,
+      logger,
+    });
+
+    await unverifiedEmailCleanupJob.start();
+
+    shutdown.addCleanup(
+      "Unverified email cleanup job",
+      unverifiedEmailCleanupJob.stop,
+    );
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
