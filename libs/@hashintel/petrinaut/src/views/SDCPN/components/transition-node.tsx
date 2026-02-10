@@ -18,16 +18,16 @@ const containerStyle = css({
 const transitionBoxStyle = cva({
   base: {
     padding: "4",
-    borderRadius: "md.6",
+    borderRadius: "xl",
     width: "[160px]",
     height: "[80px]",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    background: "gray.20",
+    background: "neutral.s20",
     border: "2px solid",
-    borderColor: "gray.50",
+    borderColor: "neutral.s50",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
@@ -35,7 +35,7 @@ const transitionBoxStyle = cva({
     transition: "[outline 0.2s ease, border-color 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor: "gray.70",
+      borderColor: "neutral.s70",
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },
@@ -66,7 +66,7 @@ const stochasticIconStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "blue.60",
+  color: "blue.s60",
   fontSize: "[18px]",
 });
 
@@ -90,7 +90,7 @@ const firingIndicatorStyle = css({
   alignItems: "center",
   justifyContent: "center",
   fontSize: "[20px]",
-  color: "yellow.60",
+  color: "yellow.s60",
   // Initial state: hidden
   opacity: "[0]",
   transform: "scale(0.5)",

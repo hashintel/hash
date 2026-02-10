@@ -22,9 +22,9 @@ const switchControlStyles = (disabled: boolean) =>
     display: "inline-block",
     cursor: disabled ? "not-allowed" : "pointer",
     transition: "[all 0.2s ease]",
-    backgroundColor: "gray.40",
+    backgroundColor: "neutral.s40",
     _checked: {
-      backgroundColor: "green.40",
+      backgroundColor: "green.s40",
     },
   });
 

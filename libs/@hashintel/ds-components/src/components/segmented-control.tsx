@@ -20,7 +20,7 @@ const rootBackdropStyles = css({
   position: "absolute",
   display: "flex",
   alignItems: "center",
-  backgroundColor: "gray.10/20",
+  backgroundColor: "neutral.s10/20",
   left: "[0px]",
   top: "[0px]",
   right: "[0px]",
@@ -34,9 +34,9 @@ const indicatorStyles = css({
   left: "var(--left)",
   top: "var(--top)",
   boxShadow: "sm",
-  backgroundColor: "neutral.white/60",
+  backgroundColor: "white/60",
   "[data-part='root']:active &": {
-    backgroundColor: "neutral.white/60",
+    backgroundColor: "white/60",
   },
 });
 
@@ -60,7 +60,7 @@ const itemStyles = css({
     shadow: "lg",
   },
   _hover: {
-    backgroundColor: "neutral.white/60",
+    backgroundColor: "white/60",
   },
 });
 

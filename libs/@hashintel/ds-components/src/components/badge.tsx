@@ -40,36 +40,36 @@ const badgeRecipe = cva({
   variants: {
     colorScheme: {
       gray: {
-        backgroundColor: "gray.20",
-        color: "gray.80",
+        backgroundColor: "neutral.s20",
+        color: "neutral.s80",
       },
       brand: {
-        backgroundColor: "blue.10",
-        color: "blue.80",
+        backgroundColor: "blue.s10",
+        color: "blue.s80",
       },
       green: {
-        backgroundColor: "green.10",
-        color: "green.80",
+        backgroundColor: "green.s10",
+        color: "green.s80",
       },
       orange: {
-        backgroundColor: "orange.10",
-        color: "orange.80",
+        backgroundColor: "orange.s10",
+        color: "orange.s80",
       },
       red: {
-        backgroundColor: "red.00",
-        color: "red.80",
+        backgroundColor: "red.s00",
+        color: "red.s80",
       },
       purple: {
-        backgroundColor: "purple.00",
-        color: "purple.80",
+        backgroundColor: "purple.s00",
+        color: "purple.s80",
       },
       pink: {
-        backgroundColor: "pink.10",
-        color: "pink.80",
+        backgroundColor: "pink.s10",
+        color: "pink.s80",
       },
       yellow: {
-        backgroundColor: "yellow.10",
-        color: "yellow.80",
+        backgroundColor: "yellow.s10",
+        color: "yellow.s80",
       },
     },
     size: {
@@ -81,19 +81,19 @@ const badgeRecipe = cva({
       },
       sm: {
         fontSize: "xs",
-        lineHeight: "none.text-xs",
+        lineHeight: "none",
         gap: "3",
         height: "[16px]",
       },
       md: {
         fontSize: "sm",
-        lineHeight: "none.text-sm",
+        lineHeight: "none",
         gap: "3",
         height: "[20px]",
       },
       lg: {
         fontSize: "base",
-        lineHeight: "none.text-base",
+        lineHeight: "none",
         gap: "3",
         height: "[24px]",
       },
@@ -110,7 +110,7 @@ const badgeRecipe = cva({
       size: "xs",
       css: {
         paddingX: "3",
-        borderRadius: "md.2",
+        borderRadius: "sm",
       },
     },
     {
@@ -118,7 +118,7 @@ const badgeRecipe = cva({
       size: "sm",
       css: {
         paddingX: "3",
-        borderRadius: "md.2",
+        borderRadius: "sm",
       },
     },
     {
@@ -126,7 +126,7 @@ const badgeRecipe = cva({
       size: "md",
       css: {
         paddingX: "4",
-        borderRadius: "md.3",
+        borderRadius: "md",
       },
     },
     {
@@ -134,7 +134,7 @@ const badgeRecipe = cva({
       size: "lg",
       css: {
         paddingX: "4",
-        borderRadius: "md.3",
+        borderRadius: "md",
       },
     },
     // Square badges - fixed width and border radius
@@ -144,7 +144,7 @@ const badgeRecipe = cva({
       css: {
         paddingX: "3",
         width: "[14px]",
-        borderRadius: "md.2",
+        borderRadius: "sm",
       },
     },
     {
@@ -153,7 +153,7 @@ const badgeRecipe = cva({
       css: {
         paddingX: "3",
         width: "[16px]",
-        borderRadius: "md.2",
+        borderRadius: "sm",
       },
     },
     {
@@ -162,7 +162,7 @@ const badgeRecipe = cva({
       css: {
         paddingX: "4",
         width: "[20px]",
-        borderRadius: "md.3",
+        borderRadius: "md",
       },
     },
     {
@@ -171,7 +171,7 @@ const badgeRecipe = cva({
       css: {
         paddingX: "4",
         width: "[24px]",
-        borderRadius: "md.3",
+        borderRadius: "md",
       },
     },
   ],

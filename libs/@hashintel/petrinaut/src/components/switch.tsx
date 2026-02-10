@@ -10,9 +10,9 @@ const controlStyle = css({
   height: "[20px]",
   borderRadius: "[10px]",
   transition: "[all 0.2s ease]",
-  backgroundColor: "gray.40",
+  backgroundColor: "neutral.s40",
   _checked: {
-    backgroundColor: "green.40",
+    backgroundColor: "green.s40",
   },
   _disabled: {
     cursor: "not-allowed",

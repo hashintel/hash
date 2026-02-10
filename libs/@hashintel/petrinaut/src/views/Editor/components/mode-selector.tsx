@@ -70,7 +70,7 @@ const segmentItemTextStyle = cva({
         color: "[white]",
       },
       false: {
-        color: "gray.70",
+        color: "neutral.s70",
       },
     },
   },

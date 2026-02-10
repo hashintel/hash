@@ -63,23 +63,23 @@ const radioItemRecipe = cva({
       default: {
         cursor: "pointer",
         padding: "4", // 6px
-        borderRadius: "md.4", // 8px
+        borderRadius: "md", // 8px
         gap: "5", // 8px
         "&:hover:not([data-disabled])": {
-          backgroundColor: "bg.neutral.subtle.hover",
+          backgroundColor: "neutral.bg.subtle.hover",
         },
       },
       card: {
         gap: "7", // 12px
         padding: "7", // 12px
-        backgroundColor: "bg.neutral.subtle",
+        backgroundColor: "neutral.bg.subtle",
         border: "1px solid",
-        borderColor: "border.neutral.subtle",
+        borderColor: "neutral.bd.subtle",
         borderRadius: "[10px]",
         cursor: "pointer",
         width: "[316px]",
         "&:hover:not([data-disabled])": {
-          borderColor: "border.neutral",
+          borderColor: "neutral.bd.solid",
         },
       },
     },
@@ -130,8 +130,8 @@ const cardIconBadgeStyles = css({
   justifyContent: "center",
   width: "[32px]",
   height: "[32px]",
-  backgroundColor: "bg.neutral.subtle",
-  borderRadius: "md.4", // 8px
+  backgroundColor: "neutral.bg.subtle",
+  borderRadius: "md", // 8px
   paddingX: "5", // 8px
   paddingY: "0",
   overflow: "clip",
@@ -165,8 +165,8 @@ const cardTextGroupStyles = css({
 const labelTextStyles = css({
   fontSize: "sm", // 14px
   fontWeight: "medium",
-  lineHeight: "none.text-sm", // 14px
-  color: "text.primary",
+  lineHeight: "none", // 14px
+  color: "fg",
   whiteSpace: "nowrap",
   "&[data-disabled]": {
     opacity: "[0.5]",
@@ -177,8 +177,8 @@ const labelTextStyles = css({
 const cardLabelTextStyles = css({
   fontSize: "sm", // 14px
   fontWeight: "medium",
-  lineHeight: "none.text-sm", // 14px
-  color: "text.primary",
+  lineHeight: "none", // 14px
+  color: "fg",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -193,7 +193,7 @@ const descriptionTextStyles = css({
   fontSize: "xs", // 12px
   fontWeight: "normal",
   lineHeight: "[1.5]",
-  color: "text.secondary",
+  color: "fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",

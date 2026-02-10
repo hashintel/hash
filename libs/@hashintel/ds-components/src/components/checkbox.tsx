@@ -53,16 +53,16 @@ const checkboxControlStyles = css({
   justifyContent: "center",
   width: "[16px]",
   height: "[16px]",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   border: "1px solid",
-  borderColor: "border.neutral",
-  backgroundColor: "bg.neutral.subtle",
+  borderColor: "neutral.bd.solid",
+  backgroundColor: "neutral.bg.subtle",
   transition: "[all 0.2s ease]",
   flexShrink: "0",
 
   // Hover state (unchecked)
   "&[data-state='unchecked']:hover:not([data-disabled])": {
-    borderColor: "border.neutral.hover",
+    borderColor: "neutral.bd.solid.hover",
   },
 
   // Focus state
@@ -72,16 +72,16 @@ const checkboxControlStyles = css({
 
   // Checked and indeterminate states
   "&[data-state='checked'], &[data-state='indeterminate']": {
-    borderColor: "border.neutral.active",
-    backgroundColor: "bg.neutral.bold",
-    color: "text.inverted",
+    borderColor: "neutral.bd.solid.active",
+    backgroundColor: "neutral.bg.solid",
+    color: "fg.solid",
   },
 
   // Hover on checked/indeterminate states
   "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
     {
-      backgroundColor: "bg.neutral.bold.hover",
-      borderColor: "bg.neutral.bold.hover",
+      backgroundColor: "neutral.bg.solid.hover",
+      borderColor: "neutral.bg.solid.hover",
     },
 
   // Disabled state
@@ -92,7 +92,7 @@ const checkboxControlStyles = css({
 
   // Invalid state
   _invalid: {
-    borderColor: "border.status.critical",
+    borderColor: "status.error.bd.solid",
   },
 });
 
@@ -109,7 +109,7 @@ const checkboxLabelStyles = (disabled: boolean) =>
   css({
     fontSize: "[14px]",
     fontWeight: "medium",
-    color: "text.primary",
+    color: "fg",
     cursor: disabled ? "not-allowed" : "pointer",
     userSelect: "none",
     whiteSpace: "nowrap",
