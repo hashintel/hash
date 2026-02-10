@@ -1,6 +1,6 @@
 use core::error::Error;
 
-use super::{EdgeDirection, GraphResolveDepths};
+use super::{EdgeDirection, GraphResolveDepths, ResolveDepthExceededError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
@@ -112,6 +112,27 @@ impl TryFrom<TraversalEdge> for EntityTraversalEdge {
     }
 }
 
+/// Maximum number of entity edges allowed in a single traversal path.
+///
+/// This limits how many entity-to-entity hops (left/right entity traversals) can be requested
+/// in a single path to prevent excessive database traversal. Current maximum usage in the
+/// codebase is 8 edges (block collection contents).
+pub const MAX_ENTITY_TRAVERSAL_EDGES: usize = 10;
+
+/// Maximum number of edges allowed in a single traversal path (including ontology edges).
+pub const MAX_TRAVERSAL_EDGES: usize = 15;
+
+/// Error returned when a traversal path exceeds allowed depth limits.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+pub enum TraversalDepthError {
+    #[display("Traversal path has {actual} entity edges, which exceeds the maximum of {max}.")]
+    EntityEdgesExceeded { actual: usize, max: usize },
+    #[display("Traversal path has {actual} edges, which exceeds the maximum of {max}.")]
+    TotalEdgesExceeded { actual: usize, max: usize },
+}
+
+impl core::error::Error for TraversalDepthError {}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -120,12 +141,67 @@ pub struct EntityTraversalPath {
     pub edges: Vec<EntityTraversalEdge>,
 }
 
+impl EntityTraversalPath {
+    /// Validates that the number of entity edges does not exceed
+    /// [`MAX_ENTITY_TRAVERSAL_EDGES`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TraversalDepthError::EntityEdgesExceeded`] if the limit is exceeded.
+    pub const fn validate(&self) -> Result<(), TraversalDepthError> {
+        let edges = self.edges.len();
+        if edges > MAX_ENTITY_TRAVERSAL_EDGES {
+            return Err(TraversalDepthError::EntityEdgesExceeded {
+                actual: edges,
+                max: MAX_ENTITY_TRAVERSAL_EDGES,
+            });
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TraversalPath {
     pub edges: Vec<TraversalEdge>,
+}
+
+impl TraversalPath {
+    /// Validates that the path does not exceed [`MAX_TRAVERSAL_EDGES`] total edges and
+    /// [`MAX_ENTITY_TRAVERSAL_EDGES`] entity edges.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TraversalDepthError`] if any limit is exceeded.
+    pub fn validate(&self) -> Result<(), TraversalDepthError> {
+        let total = self.edges.len();
+        if total > MAX_TRAVERSAL_EDGES {
+            return Err(TraversalDepthError::TotalEdgesExceeded {
+                actual: total,
+                max: MAX_TRAVERSAL_EDGES,
+            });
+        }
+
+        let entity_edges = self
+            .edges
+            .iter()
+            .filter(|edge| {
+                matches!(
+                    edge,
+                    TraversalEdge::HasLeftEntity { .. } | TraversalEdge::HasRightEntity { .. }
+                )
+            })
+            .count();
+        if entity_edges > MAX_ENTITY_TRAVERSAL_EDGES {
+            return Err(TraversalDepthError::EntityEdgesExceeded {
+                actual: entity_edges,
+                max: MAX_ENTITY_TRAVERSAL_EDGES,
+            });
+        }
+        Ok(())
+    }
 }
 
 impl TraversalPath {
@@ -214,6 +290,15 @@ impl TryFrom<TraversalPath> for EntityTraversalPath {
             .map(|edges| Self { edges })
     }
 }
+
+/// Error returned when subgraph traversal parameters exceed allowed limits.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::From)]
+pub enum SubgraphTraversalValidationError {
+    TraversalDepth(TraversalDepthError),
+    ResolveDepth(ResolveDepthExceededError),
+}
+
+impl Error for SubgraphTraversalValidationError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase")]

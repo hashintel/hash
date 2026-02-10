@@ -31,8 +31,9 @@ use hash_graph_store::{
     query::Ordering,
     subgraph::{
         edges::{
-            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalPath,
-            TraversalPathConversionError,
+            EntityTraversalPath, GraphResolveDepths, ResolveDepthExceededError,
+            SubgraphTraversalParams, SubgraphTraversalValidationError, TraversalDepthError,
+            TraversalPath, TraversalPathConversionError,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -746,9 +747,23 @@ enum QueryEntitySubgraphRequestError {
          optionally `graphResolveDepths'."
     )]
     MissingSubgraphTraversal,
+    #[from]
+    TraversalValidation(SubgraphTraversalValidationError),
 }
 
 impl core::error::Error for QueryEntitySubgraphRequestError {}
+
+impl From<TraversalDepthError> for QueryEntitySubgraphRequestError {
+    fn from(err: TraversalDepthError) -> Self {
+        Self::TraversalValidation(err.into())
+    }
+}
+
+impl From<ResolveDepthExceededError> for QueryEntitySubgraphRequestError {
+    fn from(err: ResolveDepthExceededError) -> Self {
+        Self::TraversalValidation(err.into())
+    }
+}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(
@@ -809,42 +824,55 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
 
         let request = value.try_into()?;
 
-        match (graph_resolve_depths, request) {
-            (None, QueryEntitiesRequest::Filter { filter, options }) => {
-                Ok(QueryEntitySubgraphRequest::PathsWithFilter {
-                    traversal_paths,
-                    filter,
-                    options,
-                })
+        match graph_resolve_depths {
+            None => {
+                for path in &traversal_paths {
+                    path.validate()?;
+                }
+                match request {
+                    QueryEntitiesRequest::Filter { filter, options } => {
+                        Ok(QueryEntitySubgraphRequest::PathsWithFilter {
+                            traversal_paths,
+                            filter,
+                            options,
+                        })
+                    }
+                    QueryEntitiesRequest::Query { query, options } => {
+                        Ok(QueryEntitySubgraphRequest::PathsWithQuery {
+                            traversal_paths,
+                            query,
+                            options,
+                        })
+                    }
+                }
             }
-            (None, QueryEntitiesRequest::Query { query, options }) => {
-                Ok(QueryEntitySubgraphRequest::PathsWithQuery {
-                    traversal_paths,
-                    query,
-                    options,
-                })
-            }
-            (Some(graph_resolve_depths), QueryEntitiesRequest::Filter { filter, options }) => {
-                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
-                    traversal_paths: traversal_paths
-                        .into_iter()
-                        .map(EntityTraversalPath::try_from)
-                        .collect::<Result<_, _>>()?,
-                    graph_resolve_depths,
-                    filter,
-                    options,
-                })
-            }
-            (Some(graph_resolve_depths), QueryEntitiesRequest::Query { query, options }) => {
-                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
-                    traversal_paths: traversal_paths
-                        .into_iter()
-                        .map(EntityTraversalPath::try_from)
-                        .collect::<Result<_, _>>()?,
-                    graph_resolve_depths,
-                    query,
-                    options,
-                })
+            Some(graph_resolve_depths) => {
+                let entity_paths: Vec<EntityTraversalPath> = traversal_paths
+                    .into_iter()
+                    .map(EntityTraversalPath::try_from)
+                    .collect::<Result<_, _>>()?;
+                for path in &entity_paths {
+                    path.validate()?;
+                }
+                graph_resolve_depths.validate()?;
+                match request {
+                    QueryEntitiesRequest::Filter { filter, options } => {
+                        Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
+                            traversal_paths: entity_paths,
+                            graph_resolve_depths,
+                            filter,
+                            options,
+                        })
+                    }
+                    QueryEntitiesRequest::Query { query, options } => {
+                        Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
+                            traversal_paths: entity_paths,
+                            graph_resolve_depths,
+                            query,
+                            options,
+                        })
+                    }
+                }
             }
         }
     }

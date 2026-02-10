@@ -30,8 +30,8 @@ use crate::{
     subgraph::{
         Subgraph,
         edges::{
-            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
-            TraversalPath,
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams,
+            SubgraphTraversalValidationError, TraversalEdgeKind, TraversalPath,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -67,6 +67,34 @@ pub enum QueryEntityTypeSubgraphParams<'p> {
 }
 
 impl<'a> QueryEntityTypeSubgraphParams<'a> {
+    /// Validates traversal paths and resolve depths against their limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SubgraphTraversalValidationError`] if any limit is exceeded.
+    pub fn validate(&self) -> Result<(), SubgraphTraversalValidationError> {
+        match self {
+            Self::Paths {
+                traversal_paths, ..
+            } => {
+                for path in traversal_paths {
+                    path.validate()?;
+                }
+            }
+            Self::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+                ..
+            } => {
+                for path in traversal_paths {
+                    path.validate()?;
+                }
+                graph_resolve_depths.validate()?;
+            }
+        }
+        Ok(())
+    }
+
     #[must_use]
     pub const fn request(&self) -> &CommonQueryEntityTypesParams<'a> {
         match self {

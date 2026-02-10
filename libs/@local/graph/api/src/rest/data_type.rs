@@ -420,15 +420,18 @@ where
         .await
         .map_err(report_to_response)?;
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let params = QueryDataTypeSubgraphParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+    params
+        .validate()
+        .map_err(Report::new)
+        .map_err(report_to_response)?;
+
     let response = store
-        .query_data_type_subgraph(
-            actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            QueryDataTypeSubgraphParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
-        )
+        .query_data_type_subgraph(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(|response| {
