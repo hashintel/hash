@@ -135,10 +135,6 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
      */
     "^/auth": "",
   },
-  /**
-   * Avoid proxy-level URL logging here as `/auth/*` requests can contain
-   * sensitive query parameters used by Ory self-service flows.
-   */
   selfHandleResponse: true,
   on: {
     proxyReq: fixRequestBody,
