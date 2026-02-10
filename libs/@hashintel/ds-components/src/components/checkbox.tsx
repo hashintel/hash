@@ -55,14 +55,14 @@ const checkboxControlStyles = css({
   height: "[16px]",
   borderRadius: "sm",
   border: "1px solid",
-  borderColor: "neutral.bd.solid",
-  backgroundColor: "neutral.bg.subtle",
+  borderColor: "bd.solid",
+  backgroundColor: "bg.subtle",
   transition: "[all 0.2s ease]",
   flexShrink: "0",
 
   // Hover state (unchecked)
   "&[data-state='unchecked']:hover:not([data-disabled])": {
-    borderColor: "neutral.bd.solid.hover",
+    borderColor: "bd.solid.hover",
   },
 
   // Focus state
@@ -72,16 +72,16 @@ const checkboxControlStyles = css({
 
   // Checked and indeterminate states
   "&[data-state='checked'], &[data-state='indeterminate']": {
-    borderColor: "neutral.bd.solid.active",
-    backgroundColor: "neutral.bg.solid",
+    borderColor: "bd.solid.active",
+    backgroundColor: "bg.solid",
     color: "fg.solid",
   },
 
   // Hover on checked/indeterminate states
   "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
     {
-      backgroundColor: "neutral.bg.solid.hover",
-      borderColor: "neutral.bg.solid.hover",
+      backgroundColor: "bg.solid.hover",
+      borderColor: "bg.solid.hover",
     },
 
   // Disabled state

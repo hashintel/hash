@@ -66,20 +66,20 @@ const radioItemRecipe = cva({
         borderRadius: "md", // 8px
         gap: "5", // 8px
         "&:hover:not([data-disabled])": {
-          backgroundColor: "neutral.bg.subtle.hover",
+          backgroundColor: "bg.subtle.hover",
         },
       },
       card: {
         gap: "7", // 12px
         padding: "7", // 12px
-        backgroundColor: "neutral.bg.subtle",
+        backgroundColor: "bg.subtle",
         border: "1px solid",
-        borderColor: "neutral.bd.subtle",
+        borderColor: "bd.subtle",
         borderRadius: "[10px]",
         cursor: "pointer",
         width: "[316px]",
         "&:hover:not([data-disabled])": {
-          borderColor: "neutral.bd.solid",
+          borderColor: "bd.solid",
         },
       },
     },
@@ -130,7 +130,7 @@ const cardIconBadgeStyles = css({
   justifyContent: "center",
   width: "[32px]",
   height: "[32px]",
-  backgroundColor: "neutral.bg.subtle",
+  backgroundColor: "bg.subtle",
   borderRadius: "md", // 8px
   paddingX: "5", // 8px
   paddingY: "0",

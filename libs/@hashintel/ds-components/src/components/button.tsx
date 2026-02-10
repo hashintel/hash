@@ -136,13 +136,13 @@ const buttonRecipe = cva({
       variant: "primary",
       colorScheme: "neutral",
       css: {
-        backgroundColor: "neutral.bg.solid",
+        backgroundColor: "bg.solid",
         color: "fg.solid",
         _hover: {
-          backgroundColor: "neutral.bg.solid.hover",
+          backgroundColor: "bg.solid.hover",
         },
         _active: {
-          backgroundColor: "neutral.bg.solid.active",
+          backgroundColor: "bg.solid.active",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -176,7 +176,7 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "brand",
       css: {
-        backgroundColor: "neutral.bg.subtle",
+        backgroundColor: "bg.subtle",
         border: "[1px solid]",
         borderColor: "blue.bg.solid",
         color: "fg.link",
@@ -202,17 +202,17 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "neutral",
       css: {
-        backgroundColor: "neutral.bg.subtle",
+        backgroundColor: "bg.subtle",
         border: "[1px solid]",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         color: "fg.muted",
         _hover: {
-          backgroundColor: "neutral.bg.subtle.hover",
-          borderColor: "neutral.bd.solid.hover",
+          backgroundColor: "bg.subtle.hover",
+          borderColor: "bd.solid.hover",
         },
         _active: {
-          backgroundColor: "neutral.bg.subtle.active",
-          borderColor: "neutral.bd.solid.hover",
+          backgroundColor: "bg.subtle.active",
+          borderColor: "bd.solid.hover",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -226,7 +226,7 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "critical",
       css: {
-        backgroundColor: "neutral.bg.subtle",
+        backgroundColor: "bg.subtle",
         border: "[1px solid]",
         borderColor: "status.error.bg.solid",
         color: "status.error.fg",
@@ -277,11 +277,11 @@ const buttonRecipe = cva({
         backgroundColor: "[transparent]",
         color: "fg.subtle",
         _hover: {
-          backgroundColor: "neutral.bg.subtle.hover",
+          backgroundColor: "bg.subtle.hover",
           color: "fg",
         },
         _active: {
-          backgroundColor: "neutral.bg.subtle.active",
+          backgroundColor: "bg.subtle.active",
           color: "fg",
         },
         _focusVisible: {

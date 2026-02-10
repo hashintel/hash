@@ -46,9 +46,9 @@ const avatarRootRecipe = cva({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: "0",
-    backgroundColor: "neutral.bd.muted",
+    backgroundColor: "bd.muted",
     border: "1px solid",
-    borderColor: "neutral.bd.subtle",
+    borderColor: "bd.subtle",
     overflow: "hidden",
   },
   variants: {
@@ -270,7 +270,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "16",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "xs",
       },
     },
@@ -279,7 +279,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "20",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "xs",
       },
     },
@@ -288,7 +288,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "24",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "xs",
       },
     },
@@ -297,7 +297,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "32",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "xs",
       },
     },
@@ -306,7 +306,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "40",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "sm",
       },
     },
@@ -315,7 +315,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "48",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "sm",
       },
     },
@@ -324,7 +324,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "64",
       css: {
         border: "1px solid",
-        borderColor: "neutral.bd.solid",
+        borderColor: "bd.solid",
         borderRadius: "md",
       },
     },
