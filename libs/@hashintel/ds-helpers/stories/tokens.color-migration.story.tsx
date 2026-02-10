@@ -103,7 +103,7 @@ const headerStyles = css({
   fontWeight: "medium",
   width: "[40px]",
   textAlign: "center",
-  color: "colorPalette.fg.muted",
+  color: "colorPalette.fg.body",
   fontFamily: "mono",
   flexShrink: "0",
 });
@@ -177,7 +177,7 @@ export const ColorMappings: Story = () => {
         <p
           className={css({
             textStyle: "sm",
-            color: "colorPalette.fg.muted",
+            color: "colorPalette.fg.body",
             maxWidth: "[700px]",
           })}
         >
@@ -237,7 +237,7 @@ export const ColorMappings: Story = () => {
         <p
           className={css({
             textStyle: "sm",
-            color: "colorPalette.fg.muted",
+            color: "colorPalette.fg.body",
             mb: "3",
             maxWidth: "[500px]",
           })}

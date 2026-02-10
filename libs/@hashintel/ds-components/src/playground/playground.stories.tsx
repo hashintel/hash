@@ -53,7 +53,7 @@ const Playground = () => {
 
   const getIconStyle = (isSelected: boolean) =>
     css({
-      color: isSelected ? "fg.solid" : "fg",
+      color: isSelected ? "fg.solid" : "fg.heading",
       textShadow: isSelected
         ? undefined
         : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",

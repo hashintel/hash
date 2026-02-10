@@ -27,7 +27,7 @@ const densityLevels = ["compact", "normal", "comfortable"] as const;
 const labelStyles = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "fg.subtle",
+  color: "fg.muted",
   fontFamily: "mono",
   textAlign: "right",
   width: "[28px]",
@@ -84,7 +84,7 @@ export const Spacing: Story = () => (
       <p
         className={css({
           textStyle: "sm",
-          color: "fg.muted",
+          color: "fg.body",
           maxWidth: "[640px]",
         })}
       >

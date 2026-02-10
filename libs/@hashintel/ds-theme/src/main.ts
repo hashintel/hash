@@ -64,7 +64,7 @@ const globalCss = defineGlobalStyles({
     colorPalette: "neutral",
     fontFamily: "body",
     bg: "neutral.s00",
-    color: "neutral.s120",
+    color: "fg.heading",
     "--roundness-factor": "1",
     "--leading-factor": "1",
     "--density-factor": "1",

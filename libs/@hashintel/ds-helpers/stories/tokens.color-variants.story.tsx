@@ -16,8 +16,8 @@ const COLOR_PALETTES: readonly PaletteName[] = [
   "pink",
 ];
 
-type BgCategory = "solid" | "surface" | "muted" | "subtle";
-type BdCategory = "solid" | "subtle" | "muted";
+type BgCategory = "min" | "surface" | "subtle" | "shaded" | "strong" | "solid";
+type BdCategory = "subtle" | "solid" | "strong";
 type StateKey = "DEFAULT" | "hover" | "active" | "disabled";
 
 const states: StateKey[] = ["DEFAULT", "hover", "active", "disabled"];
@@ -27,20 +27,25 @@ const bgCategories: {
   desc: string;
   useDarkText: boolean;
 }[] = [
-  { key: "solid", desc: "step 90", useDarkText: false },
-  { key: "surface", desc: "alpha a20", useDarkText: true },
-  { key: "muted", desc: "step 30", useDarkText: true },
-  { key: "subtle", desc: "alpha a30", useDarkText: true },
+  { key: "min", desc: "lightest", useDarkText: true },
+  { key: "surface", desc: "surface", useDarkText: true },
+  { key: "subtle", desc: "alpha-based", useDarkText: true },
+  { key: "shaded", desc: "shaded", useDarkText: true },
+  { key: "strong", desc: "strong", useDarkText: false },
+  { key: "solid", desc: "solid", useDarkText: false },
 ];
 
 const bdCategories: { key: BdCategory; desc: string }[] = [
-  { key: "solid", desc: "step 70" },
-  { key: "subtle", desc: "step 60" },
-  { key: "muted", desc: "alpha a60" },
+  { key: "subtle", desc: "alpha-based" },
+  { key: "solid", desc: "alpha-based" },
+  { key: "strong", desc: "strong" },
 ];
 
 const fgTokens = [
-  { key: "fg", label: "default" },
+  { key: "fg.max", label: "max" },
+  { key: "fg.heading", label: "heading" },
+  { key: "fg.body", label: "body" },
+  { key: "fg.body.hover", label: "body.hover" },
   { key: "fg.muted", label: "muted" },
   { key: "fg.muted.hover", label: "muted.hover" },
   { key: "fg.subtle", label: "subtle" },
@@ -53,14 +58,14 @@ const fgTokens = [
 const sectionTitle = css({
   textStyle: "sm",
   fontWeight: "semibold",
-  color: "colorPalette.fg.muted",
+  color: "colorPalette.fg.body",
   mb: "2",
 });
 
 const categoryLabel = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "colorPalette.fg.subtle",
+  color: "colorPalette.fg.muted",
   mb: "1",
 });
 
@@ -73,7 +78,9 @@ const BgSwatch = ({
   tokenPath: string;
   useDarkText: boolean;
 }) => {
-  const textColor = useDarkText ? "colorPalette.fg" : "colorPalette.fg.solid";
+  const textColor = useDarkText
+    ? "colorPalette.fg.heading"
+    : "colorPalette.fg.solid";
   return (
     <Box
       px="3"
@@ -135,7 +142,7 @@ const FgColumn = () => (
                 textStyle: "xs",
                 fontWeight: "medium",
                 minWidth: "[80px]",
-                color: "colorPalette.fg.subtle",
+                color: "colorPalette.fg.muted",
               })}
             >
               {label}
@@ -189,7 +196,7 @@ const BorderSwatch = ({
       className={css({
         fontSize: "[10px]",
         fontWeight: "medium",
-        color: "colorPalette.fg.subtle",
+        color: "colorPalette.fg.muted",
       })}
     >
       {label}
@@ -254,7 +261,7 @@ export const ColorVariants: Story = () => (
       <p
         className={css({
           textStyle: "sm",
-          color: "fg.muted",
+          color: "fg.body",
           maxWidth: "[700px]",
         })}
       >

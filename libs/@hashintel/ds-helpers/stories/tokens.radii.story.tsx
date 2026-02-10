@@ -21,7 +21,7 @@ const roundnessLevels = ["none", "sm", "md", "lg", "xl"] as const;
 const labelStyles = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "fg.subtle",
+  color: "fg.muted",
   textAlign: "center",
   fontFamily: "mono",
 });
@@ -119,7 +119,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
         <p
           className={css({
             textStyle: "sm",
-            color: "fg.muted",
+            color: "fg.body",
             maxWidth: "[640px]",
           })}
         >
@@ -158,7 +158,7 @@ export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
         <Box
           className={css({
             textStyle: "xs",
-            color: "fg.muted",
+            color: "fg.body",
             fontFamily: "mono",
             bg: "neutral.s10",
             p: "3",

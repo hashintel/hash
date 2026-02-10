@@ -25,13 +25,13 @@ const fontWeightEntries: readonly { name: FontWeightToken; value: number }[] = [
 const labelStyles = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "fg.subtle",
+  color: "fg.muted",
   minWidth: "[60px]",
 });
 
 const valueStyles = css({
   textStyle: "xs",
-  color: "fg.subtle",
+  color: "fg.muted",
   minWidth: "[50px]",
 });
 
@@ -150,7 +150,7 @@ export const Typography: Story<{ leadingFactor: string }> = ({
         <p
           className={css({
             textStyle: "xs",
-            color: "fg.subtle",
+            color: "fg.muted",
             mb: "2",
           })}
         >

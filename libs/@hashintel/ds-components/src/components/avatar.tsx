@@ -46,7 +46,7 @@ const avatarRootRecipe = cva({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: "0",
-    backgroundColor: "bd.muted",
+    backgroundColor: "bd.solid",
     border: "1px solid",
     borderColor: "bd.subtle",
     overflow: "hidden",
@@ -124,7 +124,7 @@ const avatarFallbackRecipe = cva({
     width: "[100%]",
     height: "[100%]",
     fontWeight: "medium",
-    color: "fg",
+    color: "fg.heading",
     textAlign: "center",
   },
   variants: {

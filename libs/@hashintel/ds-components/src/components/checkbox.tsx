@@ -109,7 +109,7 @@ const checkboxLabelStyles = (disabled: boolean) =>
   css({
     fontSize: "[14px]",
     fontWeight: "medium",
-    color: "fg",
+    color: "fg.heading",
     cursor: disabled ? "not-allowed" : "pointer",
     userSelect: "none",
     whiteSpace: "nowrap",

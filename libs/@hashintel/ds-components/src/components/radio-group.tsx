@@ -166,7 +166,7 @@ const labelTextStyles = css({
   fontSize: "sm", // 14px
   fontWeight: "medium",
   lineHeight: "none", // 14px
-  color: "fg",
+  color: "fg.heading",
   whiteSpace: "nowrap",
   "&[data-disabled]": {
     opacity: "[0.5]",
@@ -178,7 +178,7 @@ const cardLabelTextStyles = css({
   fontSize: "sm", // 14px
   fontWeight: "medium",
   lineHeight: "none", // 14px
-  color: "fg",
+  color: "fg.heading",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -193,7 +193,7 @@ const descriptionTextStyles = css({
   fontSize: "xs", // 12px
   fontWeight: "normal",
   lineHeight: "[1.5]",
-  color: "fg.muted",
+  color: "fg.body",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",

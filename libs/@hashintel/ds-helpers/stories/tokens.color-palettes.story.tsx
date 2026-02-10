@@ -122,13 +122,13 @@ const headerStyles = css({
   fontWeight: "medium",
   width: "[32px]",
   textAlign: "center",
-  color: "fg.muted",
+  color: "fg.body",
 });
 
 const aliasStyles = css({
   fontSize: "[10px]",
   fontWeight: "medium",
-  color: "fg.subtle",
+  color: "fg.muted",
   pl: "3",
   whiteSpace: "nowrap",
 });
@@ -214,7 +214,7 @@ export const ColorPalettes: Story = () => (
       <p
         className={css({
           textStyle: "sm",
-          color: "fg.muted",
+          color: "fg.body",
           maxWidth: "[700px]",
         })}
       >

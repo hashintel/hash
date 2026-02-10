@@ -205,7 +205,7 @@ const buttonRecipe = cva({
         backgroundColor: "bg.subtle",
         border: "[1px solid]",
         borderColor: "bd.solid",
-        color: "fg.muted",
+        color: "fg.body",
         _hover: {
           backgroundColor: "bg.subtle.hover",
           borderColor: "bd.solid.hover",
@@ -229,16 +229,16 @@ const buttonRecipe = cva({
         backgroundColor: "bg.subtle",
         border: "[1px solid]",
         borderColor: "status.error.bg.solid",
-        color: "status.error.fg",
+        color: "status.error.fg.heading",
         _hover: {
           backgroundColor: "status.error.bg.subtle.hover",
           borderColor: "status.error.bg.solid.hover",
-          color: "status.error.fg",
+          color: "status.error.fg.heading",
         },
         _active: {
           backgroundColor: "status.error.bg.subtle.active",
           borderColor: "status.error.bg.solid.active",
-          color: "status.error.fg",
+          color: "status.error.fg.heading",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -275,14 +275,14 @@ const buttonRecipe = cva({
       colorScheme: "neutral",
       css: {
         backgroundColor: "[transparent]",
-        color: "fg.subtle",
+        color: "fg.muted",
         _hover: {
           backgroundColor: "bg.subtle.hover",
-          color: "fg",
+          color: "fg.heading",
         },
         _active: {
           backgroundColor: "bg.subtle.active",
-          color: "fg",
+          color: "fg.heading",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -297,14 +297,14 @@ const buttonRecipe = cva({
       colorScheme: "critical",
       css: {
         backgroundColor: "[transparent]",
-        color: "status.error.fg",
+        color: "status.error.fg.heading",
         _hover: {
           backgroundColor: "status.error.bg.subtle.hover",
-          color: "status.error.fg",
+          color: "status.error.fg.heading",
         },
         _active: {
           backgroundColor: "status.error.bg.subtle.active",
-          color: "status.error.fg",
+          color: "status.error.fg.heading",
         },
         _focusVisible: {
           outline: "[2px solid]",

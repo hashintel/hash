@@ -36,13 +36,13 @@ const ELEVATION_SCALES: readonly ElevationScale[] = ["micro", "macro"];
 const labelStyles = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "fg.subtle",
+  color: "fg.muted",
   textAlign: "center",
 });
 
 const valueStyles = css({
   fontSize: "[10px]",
-  color: "fg.subtle",
+  color: "fg.muted",
   textAlign: "center",
   fontFamily: "mono",
 });
@@ -141,7 +141,7 @@ export const Shadows: Story = () => (
     <p
       className={css({
         textStyle: "sm",
-        color: "fg.muted",
+        color: "fg.body",
         maxWidth: "[700px]",
       })}
     >
@@ -177,7 +177,7 @@ export const Shadows: Story = () => (
       <p
         className={css({
           textStyle: "sm",
-          color: "fg.muted",
+          color: "fg.body",
           maxWidth: "[600px]",
           mt: "[-16px]",
         })}
@@ -201,7 +201,7 @@ export const Shadows: Story = () => (
               <span
                 className={css({
                   fontWeight: "normal",
-                  color: "fg.subtle",
+                  color: "fg.muted",
                   ml: "2",
                 })}
               >

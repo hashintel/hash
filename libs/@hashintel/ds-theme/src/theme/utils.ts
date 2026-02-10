@@ -10,6 +10,12 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  * Creates the bg/fg/bd semantic structure referencing a specific palette.
  * The palette must be a valid token path like "colors.blue" or "colors.neutral".
  *
+ * bg — alpha-based layers from transparent (min) through surface/subtle/shaded/strong
+ *       up to opaque solid; provides hover/active/disabled for each.
+ * fg — text hierarchy from max (strongest) through heading/body/muted/subtle,
+ *       plus solid (for text on solid bg) and link.
+ * bd — alpha-based borders at three weights: subtle, solid, strong.
+ *
  * The `kind` parameter controls how fg.solid and (for neutral) bg.solid are mapped
  * to ensure proper text contrast on solid backgrounds.
  */
@@ -56,38 +62,56 @@ export function createSemanticSet(
 
   return {
     bg: {
-      solid: bgSolid,
+      min: {
+        DEFAULT: ps("a00"),
+        hover: ps("a05"),
+        active: ps("a10"),
+        disabled: ps("a00"),
+      },
       surface: {
+        DEFAULT: ps("a10"),
+        hover: ps("a15"),
+        active: ps("a20"),
+        disabled: ps("a05"),
+      },
+      subtle: {
         DEFAULT: ps("a20"),
         hover: ps("a30"),
         active: ps("a40"),
+        disabled: ps("a10"),
+      },
+      shaded: {
+        DEFAULT: ps("a40"),
+        hover: ps("a50"),
+        active: ps("a55"),
         disabled: ps("a20"),
       },
-      muted: {
-        DEFAULT: ps("s30"),
-        hover: ps("s40"),
-        active: ps("s50"),
-        disabled: ps("s20"),
+      strong: {
+        DEFAULT: ps("a60"),
+        hover: ps("a70"),
+        active: ps("a75"),
+        disabled: ps("a40"),
       },
-      subtle: {
-        DEFAULT: ps("a30"),
-        hover: ps("a40"),
-        active: ps("a50"),
-        disabled: ps("a20"),
-      },
+      solid: bgSolid,
     },
     fg: {
       solid: fgSolid,
-      DEFAULT: ps("s120"),
-      muted: {
+      max: ps("s125"),
+      heading: ps("s120"),
+      body: {
         DEFAULT: ps("s110"),
         hover: ps("s120"),
         disabled: ps("s90"),
       },
-      subtle: {
+      muted: {
         DEFAULT: ps("s100"),
         hover: ps("s110"),
         disabled: ps("s80"),
+      },
+      subtle: {
+        DEFAULT: ps("s90"),
+        hover: ps("s100"),
+        disabled: ps("s70"),
       },
       link: {
         DEFAULT: ps("s110"),
@@ -97,23 +121,23 @@ export function createSemanticSet(
       },
     },
     bd: {
-      solid: {
-        DEFAULT: ps("s70"),
-        hover: ps("s80"),
-        active: ps("s80"),
-        disabled: ps("s50"),
-      },
       subtle: {
-        DEFAULT: ps("s60"),
-        hover: ps("s70"),
-        active: ps("s70"),
-        disabled: ps("s40"),
+        DEFAULT: ps("a40"),
+        hover: ps("a50"),
+        active: ps("a50"),
+        disabled: ps("a20"),
       },
-      muted: {
+      solid: {
         DEFAULT: ps("a60"),
         hover: ps("a70"),
         active: ps("a70"),
         disabled: ps("a40"),
+      },
+      strong: {
+        DEFAULT: ps("a80"),
+        hover: ps("a90"),
+        active: ps("a90"),
+        disabled: ps("a60"),
       },
     },
   };
