@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, styled, Typography } from "@mui/material";
 import type { VerificationFlow } from "@ory/client";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
@@ -7,11 +7,29 @@ import { useEffect, useRef, useState } from "react";
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { VerifyEmailStep } from "./shared/verify-email-step";
+
+const LogoutButton = styled((props: ButtonProps) => (
+  <Button variant="secondary" size="small" {...props} />
+))(({ theme }) => ({
+  color: theme.palette.common.white,
+  background: "#1F2933",
+  transition: theme.transitions.create(["background", "box-shadow"]),
+  borderColor: "#283644",
+  boxShadow: theme.shadows[3],
+  "&:hover": {
+    background: "#283644",
+    boxShadow: theme.shadows[4],
+    "&:before": {
+      opacity: 0,
+    },
+  },
+}));
 
 const VerifyEmailPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -110,11 +128,9 @@ const VerifyEmailPage: NextPageWithLayout = () => {
   if (autoVerifying) {
     return (
       <AuthLayout
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+        headerEndAdornment={
+          <LogoutButton onClick={logout}>Log out</LogoutButton>
+        }
       >
         <Box
           sx={{
@@ -137,11 +153,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
 
   return (
     <AuthLayout
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
+      headerEndAdornment={<LogoutButton onClick={logout}>Log out</LogoutButton>}
     >
       <Box sx={{ maxWidth: 600 }}>
         <VerifyEmailStep
@@ -153,14 +165,6 @@ const VerifyEmailPage: NextPageWithLayout = () => {
           }}
         />
       </Box>
-      <Button
-        variant="secondary"
-        onClick={logout}
-        size="small"
-        sx={{ position: "absolute", bottom: 24, right: 24 }}
-      >
-        Log out
-      </Button>
     </AuthLayout>
   );
 };

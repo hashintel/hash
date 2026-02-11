@@ -64,6 +64,8 @@ const clientSideEmotionCache = createEmotionCache();
 
 type AppInitialProps = {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
+  /** Set when getInitialProps determines a client-side redirect is needed. */
+  redirectTo?: string;
   user?: MinimalUser;
 };
 
@@ -73,11 +75,12 @@ type AppProps = {
 } & AppInitialProps &
   NextAppProps;
 
-const unverifiedUserPermittedPagePathnames = ["/verification"];
+const unverifiedUserPermittedPagePathnames = ["/verification", "/signup"];
 
-const App: FunctionComponent<AppProps> = ({
+const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
   Component,
   pageProps,
+  redirectTo,
   emotionCache = clientSideEmotionCache,
 }) => {
   // Helps prevent tree mismatch between server and client on initial render
@@ -106,6 +109,17 @@ const App: FunctionComponent<AppProps> = ({
 
   const awaitingEmailVerificationStatus =
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
+
+  /**
+   * Handle client-side redirects determined by getInitialProps. These are
+   * deferred to useEffect so they don't conflict with the in-progress route
+   * transition (which would stall the NProgress bar).
+   */
+  useEffect(() => {
+    if (redirectTo && router.isReady) {
+      void router.replace(redirectTo);
+    }
+  }, [redirectTo, router]);
 
   useEffect(() => {
     if (
@@ -240,7 +254,7 @@ const App: FunctionComponent<AppProps> = ({
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUserSubgraph, user } = props;
+  const { initialAuthenticatedUserSubgraph, redirectTo, user } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -248,7 +262,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
         initialAuthenticatedUserSubgraph={initialAuthenticatedUserSubgraph}
         key={user?.accountId}
       >
-        <App {...props} />
+        <App {...props} redirectTo={redirectTo} />
       </AuthInfoProvider>
     </ApolloProvider>
   );
@@ -337,19 +351,28 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
 
+  /**
+   * Helper: on server-side, performs an HTTP 307 redirect. On client-side,
+   * returns a redirectTo field so the component can handle it via useEffect
+   * (avoids calling router.push during an active transition, which stalls NProgress).
+   */
+  const redirect = (location: string): AppInitialProps => {
+    redirectInGetInitialProps({ appContext, location });
+    return { redirectTo: req ? undefined : location };
+  };
+
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the sign in page
-      redirectInGetInitialProps({
-        appContext,
-        location: `/signin${
+      return redirect(
+        `/signin${
           ["", "/", "/404"].includes(pathname)
             ? ""
             : `?return_to=${req?.url ?? asPath}`
         }`,
-      });
+      );
     }
 
     return {};
@@ -361,15 +384,22 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   if (primaryEmailVerified === false) {
     if (!unverifiedUserPermittedPagePathnames.includes(pathname)) {
-      redirectInGetInitialProps({ appContext, location: "/verification" });
+      return {
+        initialAuthenticatedUserSubgraph,
+        user,
+        ...redirect("/verification"),
+      };
     }
 
     return { initialAuthenticatedUserSubgraph, user };
   }
 
   if (primaryEmailVerified === true && pathname === "/verification") {
-    redirectInGetInitialProps({ appContext, location: "/" });
-    return { initialAuthenticatedUserSubgraph, user };
+    return {
+      initialAuthenticatedUserSubgraph,
+      user,
+      ...redirect("/"),
+    };
   }
 
   // If the user is logged in but hasn't completed signup...
@@ -384,18 +414,30 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     // ...if they have access to HASH but aren't on the signup page...
     if (hasAccessToHash && !pathname.startsWith("/signup")) {
       // ...then redirect them to the signup page.
-      redirectInGetInitialProps({ appContext, location: "/signup" });
+      return {
+        initialAuthenticatedUserSubgraph,
+        user,
+        ...redirect("/signup"),
+      };
       // ...if they don't have access to HASH but aren't on the home page...
     } else if (!hasAccessToHash && pathname !== "/") {
       // ...then redirect them to the home page.
-      redirectInGetInitialProps({ appContext, location: "/" });
+      return {
+        initialAuthenticatedUserSubgraph,
+        user,
+        ...redirect("/"),
+      };
     }
   } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
     /**
      * If the user has completed signup and is on a page they shouldn't be on
      * (e.g. /signup), then redirect them to the home page.
      */
-    redirectInGetInitialProps({ appContext, location: "/" });
+    return {
+      initialAuthenticatedUserSubgraph,
+      user,
+      ...redirect("/"),
+    };
   }
 
   // For each feature flag...
@@ -417,7 +459,11 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
       if (!isUserAdmin) {
         // ...then redirect them to the home page instead.
-        redirectInGetInitialProps({ appContext, location: "/" });
+        return {
+          initialAuthenticatedUserSubgraph,
+          user,
+          ...redirect("/"),
+        };
       }
     }
   }

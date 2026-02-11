@@ -227,8 +227,17 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       emailVerificationStatusKnown,
       isInstanceAdmin,
       refetch: async () => {
-        // Refetch the detail on orgs in case this refetch is following them being modified
-        await refetchOrgs();
+        // Refetch the detail on orgs in case this refetch is following them being modified.
+        // Only attempt if the user has completed signup – users who haven't finished
+        // setup (e.g. still verifying email) cannot query entities yet.
+        if (authenticatedUser?.accountSignupComplete) {
+          try {
+            await refetchOrgs();
+          } catch {
+            // Swallow so that fetchAuthenticatedUser still runs
+          }
+        }
+
         return fetchAuthenticatedUser();
       },
     }),

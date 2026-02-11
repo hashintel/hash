@@ -6,6 +6,7 @@ import type { AxiosError } from "axios";
 import type { FormEventHandler, FunctionComponent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import { isProduction } from "../../lib/config";
 import { Button } from "../../shared/ui";
 import { AuthHeading } from "./auth-heading";
 import { AuthPaper } from "./auth-paper";
@@ -152,8 +153,6 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
       });
   };
 
-  const codeSentInSession = !!flow;
-
   return (
     <AuthPaper>
       <AuthHeading>Verify your email address</AuthHeading>
@@ -164,9 +163,9 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           mb: 3,
         }}
       >
-        {codeSentInSession
+        {flow
           ? `Enter the verification code sent to ${email}`
-          : `We've sent a verification code to ${email}. Click the link in the email to verify, or request a new code below to enter manually.`}
+          : `We've sent a verification code to ${email}. Click the link in the email to verify instantly, or request a new code below to enter manually.`}
       </Typography>
       <Box
         component="form"
@@ -178,7 +177,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           width: "100%",
         }}
       >
-        {codeSentInSession ? (
+        {flow ? (
           <>
             <TextField
               label="Verification code"
@@ -229,6 +228,27 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
       </Box>
+      {!isProduction ? (
+        <Typography
+          sx={{
+            mt: 2,
+            fontSize: 13,
+            color: ({ palette }) => palette.gray[50],
+            textAlign: "center",
+          }}
+        >
+          Dev mode: check{" "}
+          <a
+            href="http://localhost:4436"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "inherit" }}
+          >
+            MailSlurper (localhost:4436)
+          </a>{" "}
+          for the verification email.
+        </Typography>
+      ) : null}
     </AuthPaper>
   );
 };
