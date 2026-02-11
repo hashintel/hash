@@ -5,7 +5,7 @@ use alloc::alloc::Global;
 
 use hashql_core::{heap::Heap, id::bit_vec::FiniteBitSet, r#type::environment::Environment};
 
-use super::{PlacementContext, arc_consistency};
+use super::ArcConsistency;
 use crate::{
     body::{
         Body,
@@ -14,7 +14,6 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
         target::{TargetBitSet, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },
@@ -45,22 +44,12 @@ fn run_ac3<'heap>(
     domains: &mut [TargetBitSet],
     terminators: &mut TerminatorCostVec<&'heap Heap>,
 ) {
-    let statements = StatementCostVec::new(&body.basic_blocks, *body.local_decls.allocator());
-    let ctx = PlacementContext {
+    let mut arc = ArcConsistency {
         blocks: BasicBlockSlice::from_raw_mut(domains),
-        statements: &statements,
         terminators,
     };
 
-    arc_consistency(body, ctx, &Global);
-}
-
-fn identity_matrix() -> TransMatrix {
-    let mut matrix = TransMatrix::new();
-    for target in TargetId::all() {
-        matrix.insert(target, target, cost!(0));
-    }
-    matrix
+    arc.run_in(body, Global);
 }
 
 fn full_matrix() -> TransMatrix {
@@ -287,6 +276,44 @@ fn self_loop_pruning() {
 }
 
 #[test]
+fn bidirectional_edges_require_joint_support() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0 ↔ bb1 (two edges, both directions)
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
+
+        bb0() {
+            goto bb1();
+        },
+        bb1() {
+            x = load 0;
+            goto bb0();
+        }
+    });
+
+    let mut domains = [all_targets(), all_targets()];
+
+    let mut forward = TransMatrix::new();
+    forward.insert(TargetId::Interpreter, TargetId::Postgres, cost!(0));
+    forward.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
+
+    let mut reverse = TransMatrix::new();
+    reverse.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators.of_mut(bb(0))[0] = forward;
+    terminators.of_mut(bb(1))[0] = reverse;
+
+    run_ac3(&body, &mut domains, &mut terminators);
+
+    assert_eq!(domains[0], target_set(&[TargetId::Postgres]));
+    assert_eq!(domains[1], target_set(&[TargetId::Postgres]));
+}
+
+#[test]
 fn matrix_pruned_after_ac3() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
@@ -308,8 +335,8 @@ fn matrix_pruned_after_ac3() {
 
     let mut matrix = TransMatrix::new();
     matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-    matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(5));
     matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(10));
+    matrix.insert(TargetId::Embedding, TargetId::Interpreter, cost!(20));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
@@ -321,8 +348,8 @@ fn matrix_pruned_after_ac3() {
         pruned.get(TargetId::Interpreter, TargetId::Interpreter),
         Some(cost!(0))
     );
-    assert_eq!(pruned.get(TargetId::Interpreter, TargetId::Postgres), None);
     assert_eq!(pruned.get(TargetId::Postgres, TargetId::Interpreter), None);
+    assert_eq!(pruned.get(TargetId::Embedding, TargetId::Interpreter), None);
 }
 
 #[test]
