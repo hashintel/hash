@@ -350,7 +350,6 @@ impl<'a, C: Id> IntoIterator for &'a RowMut<'a, C> {
 pub struct BitMatrix<R: Id, C: Id, A: Allocator = Global> {
     row_domain_size: usize,
     col_domain_size: usize,
-    words_per_row: usize,
     words: Vec<Word, A>,
     marker: PhantomData<fn(R, C)>,
 }
@@ -383,7 +382,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
         Self {
             row_domain_size,
             col_domain_size,
-            words_per_row,
             words,
             marker: PhantomData,
         }
@@ -405,7 +403,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
         Self {
             row_domain_size: num_rows,
             col_domain_size,
-            words_per_row,
             words,
             marker: PhantomData,
         }
@@ -421,6 +418,11 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     #[must_use]
     pub const fn col_domain_size(&self) -> usize {
         self.col_domain_size
+    }
+
+    #[inline]
+    fn words_per_row(&self) -> usize {
+        num_words(self.col_domain_size)
     }
 
     /// Iterates over all valid row indices.
@@ -629,47 +631,37 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     /// two that slicing + indexing would produce.
     #[inline]
     fn flat_index_and_mask(&self, row: R, col: C) -> (usize, Word) {
-        assert!(
-            row.as_usize() < self.row_domain_size && col.as_usize() < self.col_domain_size,
-            "({}, {}) out of bounds for {}×{} matrix",
-            row.as_usize(),
-            col.as_usize(),
-            self.row_domain_size,
-            self.col_domain_size,
-        );
+        assert!(row.as_usize() < self.row_domain_size && col.as_usize() < self.col_domain_size);
         let (word_index, mask) = word_index_and_mask(col.as_usize());
-        (row.as_usize() * self.words_per_row + word_index, mask)
+        (row.as_usize() * self.words_per_row() + word_index, mask)
     }
 
     #[inline]
     fn assert_row(&self, row: R) {
-        assert!(
-            row.as_usize() < self.row_domain_size,
-            "row index {} out of bounds for {} rows",
-            row.as_usize(),
-            self.row_domain_size,
-        );
+        assert!(row.as_usize() < self.row_domain_size);
     }
 
     #[inline]
     fn row_words(&self, row: R) -> &[Word] {
-        let start = row.as_usize() * self.words_per_row;
-        &self.words[start..start + self.words_per_row]
+        let words_per_row = self.words_per_row();
+        let start = row.as_usize() * words_per_row;
+        &self.words[start..start + words_per_row]
     }
 
     #[inline]
     fn row_words_mut(&mut self, row: R) -> &mut [Word] {
-        let start = row.as_usize() * self.words_per_row;
-        &mut self.words[start..start + self.words_per_row]
+        let words_per_row = self.words_per_row();
+        let start = row.as_usize() * words_per_row;
+        &mut self.words[start..start + words_per_row]
     }
 
     /// Applies `op` element-wise: `write[i] = op(write[i], read[i])`.
     /// Returns `true` if `write` changed.
     #[inline]
     fn bitwise_rows(&mut self, read: R, write: R, op: impl Fn(Word, Word) -> Word) -> bool {
-        let read_start = read.as_usize() * self.words_per_row;
-        let write_start = write.as_usize() * self.words_per_row;
-        let words_per_row = self.words_per_row;
+        let words_per_row = self.words_per_row();
+        let read_start = read.as_usize() * words_per_row;
+        let write_start = write.as_usize() * words_per_row;
         let words = &mut *self.words;
 
         let mut changed: Word = 0;
@@ -842,6 +834,7 @@ impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
             self.backing[start..start + self.words_per_row].fill(0);
             offset
         } else {
+            debug_assert!(self.backing.len() <= u32::MAX as usize);
             let offset = self.backing.len() as u32;
             self.backing
                 .resize(self.backing.len() + self.words_per_row, 0);
@@ -882,7 +875,7 @@ impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
         self.col_domain_size
     }
 
-    /// Returns the number of currently allocated (non-empty) rows.
+    /// Returns the number of currently allocated rows.
     #[inline]
     #[must_use]
     pub fn allocated_rows(&self) -> usize {
@@ -914,6 +907,7 @@ impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
     /// Has no effect if the row is unallocated.
     #[inline]
     pub fn remove(&mut self, row: R, col: C) -> bool {
+        assert!(col.as_usize() < self.col_domain_size);
         let Some(words) = self.row_words_mut(row) else {
             return false;
         };
