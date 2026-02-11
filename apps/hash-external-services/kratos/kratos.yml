@@ -59,18 +59,14 @@ selfservice:
                   # required to have the identity id available to the hook (waits for the identity to be created)
                   # @see https://github.com/ory/kratos/issues/3340#issuecomment-1609634498
                   parse: false
-                # Note that while this is configured to be `localhost`
-                # the deployment process will replace this with a build-time
-                # value.
-                url: http://localhost:5001/kratos-after-registration
+                # Set `url` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL` environment variable
                 method: POST
                 body: file:///etc/config/kratos/hooks/after.registration.jsonnet
                 auth:
                   type: api_key
                   config:
                     name: KRATOS_API_KEY
-                    # TODO - figure out how to get this from an environment variable
-                    value: secret
+                    # Set `value` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE` environment variable
                     in: header
             - hook: session
 
