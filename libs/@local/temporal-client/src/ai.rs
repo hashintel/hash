@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use serde::Serialize;
-use temporal_client::{WorkflowClientTrait as _, WorkflowOptions};
-use temporal_sdk_core_protos::{
+use temporalio_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporalio_common::protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
 use type_system::{
@@ -38,6 +38,7 @@ impl TemporalClient {
                         JSON_ENCODING_VAL.as_bytes().to_vec(),
                     )]),
                     data: serde_json::to_vec(payload).change_context(WorkflowError(workflow))?,
+                    external_payloads: Vec::new(),
                 }],
                 "ai".to_owned(),
                 Uuid::new_v4().to_string(),
