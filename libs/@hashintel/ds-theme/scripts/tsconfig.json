@@ -5,24 +5,16 @@
     "exactOptionalPropertyTypes": false,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "lib": [
-      "es2023",
-      "DOM"
-    ],
+    "lib": ["es2023", "DOM"],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
     "noPropertyAccessFromIndexSignature": false,
     "resolveJsonModule": true,
     "target": "esnext",
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "verbatimModuleSyntax": true
   },
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": [
-    "./**/*.ts"
-  ]
+  "include": ["./**/*.ts"]
 }
-

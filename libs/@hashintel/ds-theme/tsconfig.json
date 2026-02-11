@@ -5,10 +5,7 @@
     "exactOptionalPropertyTypes": false,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "lib": [
-      "es2023",
-      "DOM"
-    ],
+    "lib": ["es2023", "DOM"],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
@@ -17,12 +14,7 @@
     "types": [],
     "verbatimModuleSyntax": true
   },
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "exclude": ["node_modules", "dist"],
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

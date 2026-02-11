@@ -3,6 +3,6 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "buildCommand": "turbo run build",
+  "buildCommand": "turbo run build:ladle",
   "outputDirectory": ".build/ladle"
 }
