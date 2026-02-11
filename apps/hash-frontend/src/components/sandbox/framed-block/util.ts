@@ -9,7 +9,7 @@ const requestMap = new Map<string, { resolve: PromiseFn; reject: PromiseFn }>();
 
 export function sendMessage<T = unknown>(
   message: Omit<MessageFromFramedBlock, "requestId">,
-  origin: string = "*",
+  origin: string = window.location.origin,
 ) {
   const requestId = uuid();
   const promise = new Promise<T>((resolve, reject) => {

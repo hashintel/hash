@@ -59,7 +59,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   }, [blockProperties, sourceUrl]);
 
   const sendMessage = useCallback(
-    (message: MessageFromBlockFramer, origin = "*") =>
+    (message: MessageFromBlockFramer, origin = window.location.origin) =>
       frameRef.current?.contentWindow?.postMessage(message, origin),
     [],
   );

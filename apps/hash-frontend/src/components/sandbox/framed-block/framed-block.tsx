@@ -38,13 +38,20 @@ export const FramedBlock: FunctionComponent = () => {
   );
 
   useEffect(() => {
-    const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
-      switch (data.type) {
+    const msgHandler = (event: MessageEvent<MessageFromBlockFramer>) => {
+      // Only accept messages from the parent window's origin.
+      // The sandbox iframe is served from the same Next.js app, so the
+      // parent origin matches our own. This prevents cross-origin injection.
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      switch (event.data.type) {
         case "newData":
-          setBlockProperties(data.payload as HashEntity);
+          setBlockProperties(event.data.payload as HashEntity);
           break;
         case "response":
-          settlePromiseFromResponse(data);
+          settlePromiseFromResponse(event.data);
           break;
       }
     };
