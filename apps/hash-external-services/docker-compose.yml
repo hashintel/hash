@@ -136,7 +136,7 @@ services:
       - no-new-privileges:true
 
   redis:
-    image: redis:6.2
+    image: redis:8.6
     read_only: true
     deploy:
       restart_policy:
