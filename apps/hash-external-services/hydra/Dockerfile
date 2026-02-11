@@ -2,14 +2,14 @@ FROM oryd/hydra:v25.4
 
 USER root
 
-RUN mkdir -p /home/ory/.postgresql
+RUN mkdir -p /home/nonroot/.postgresql
 
 # Add AWS certificate bundle for SSL connection
-ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/ory/.postgresql/root.crt
-RUN chown -R ory:ory /home/ory && \
-    chmod a+r /home/ory/.postgresql
+ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/nonroot/.postgresql/root.crt
+RUN chown -R nonroot:nonroot /home/nonroot && \
+    chmod a+r /home/nonroot/.postgresql
 
-USER ory
+USER nonroot
 
 ENTRYPOINT ["hydra"]
 
