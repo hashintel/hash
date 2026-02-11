@@ -1,9 +1,8 @@
-use proptest::{prop_assert, prop_assert_eq, test_runner::Config};
 use test_strategy::proptest;
 
 use super::{BitMatrix, RowRef, SparseBitMatrix};
 use crate::{
-    id::{Id as _, bit_vec, bit_vec::DenseBitSet},
+    id::{Id as _, bit_vec::DenseBitSet},
     newtype,
 };
 
@@ -854,78 +853,6 @@ fn arbitrary_dense_ops(
     )
 }
 
-#[proptest(
-    if cfg!(miri) {
-        Config { failure_persistence: None, cases: 20, ..Config::default() }
-    } else {
-        Config::default()
-    }
-)]
-fn dense_old_vs_new_equivalence(
-    #[strategy(3..=32_usize)] rows: usize,
-    #[strategy(1..=200_usize)] cols: usize,
-    #[strategy(arbitrary_dense_ops(#rows, #cols, 200))] ops: Vec<DenseOp>,
-) {
-    let mut old_matrix = bit_vec::BitMatrix::<TestId, TestId>::new(rows, cols);
-    let mut new_matrix = BitMatrix::<TestId, TestId>::new(rows, cols);
-
-    for op in &ops {
-        match *op {
-            DenseOp::Insert(row, col) => {
-                let row = TestId::from_usize(row);
-                let col = TestId::from_usize(col);
-                let old_changed = old_matrix.insert(row, col);
-                let new_changed = new_matrix.insert(row, col);
-                assert_eq!(
-                    old_changed, new_changed,
-                    "insert({row:?}, {col:?}) changed mismatch"
-                );
-            }
-            DenseOp::Contains(row, col) => {
-                let row = TestId::from_usize(row);
-                let col = TestId::from_usize(col);
-                let old_val = old_matrix.contains(row, col);
-                let new_val = new_matrix.contains(row, col);
-                assert_eq!(old_val, new_val, "contains({row:?}, {col:?}) mismatch");
-            }
-            DenseOp::UnionRows(read, write) => {
-                let read = TestId::from_usize(read);
-                let write = TestId::from_usize(write);
-                let old_changed = old_matrix.union_rows(read, write);
-                let new_changed = new_matrix.union_rows(read, write);
-                assert_eq!(
-                    old_changed, new_changed,
-                    "union_rows({read:?}, {write:?}) changed mismatch"
-                );
-            }
-            DenseOp::InsertAllIntoRow(row) => {
-                let row = TestId::from_usize(row);
-                old_matrix.insert_all_into_row(row);
-                new_matrix.insert_all_into_row(row);
-            }
-            DenseOp::CountRow(row) => {
-                let row = TestId::from_usize(row);
-                let old_count = old_matrix.count(row);
-                let new_count = new_matrix.count_row(row);
-                assert_eq!(old_count, new_count, "count_row({row:?}) mismatch");
-            }
-        }
-    }
-
-    // Final full comparison
-    for row in 0..rows {
-        for col in 0..cols {
-            let row = TestId::from_usize(row);
-            let col = TestId::from_usize(col);
-            assert_eq!(
-                old_matrix.contains(row, col),
-                new_matrix.contains(row, col),
-                "final mismatch at ({row:?}, {col:?})"
-            );
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 enum SparseOp {
     Insert(usize, usize),
@@ -952,84 +879,7 @@ fn arbitrary_sparse_ops(
     )
 }
 
-#[proptest(
-    if cfg!(miri) {
-        Config { failure_persistence: None, cases: 20, ..Config::default() }
-    } else {
-        Config::default()
-    }
-)]
-fn sparse_old_vs_new_equivalence(
-    #[strategy(3..=32_usize)] rows: usize,
-    #[strategy(1..=200_usize)] cols: usize,
-    #[strategy(arbitrary_sparse_ops(#rows, #cols, 200))] ops: Vec<SparseOp>,
-) {
-    let mut old_matrix = bit_vec::SparseBitMatrix::<TestId, TestId>::new(cols);
-    let mut new_matrix = SparseBitMatrix::<TestId, TestId>::new(cols);
-
-    for op in &ops {
-        match *op {
-            SparseOp::Insert(row, col) => {
-                let row = TestId::from_usize(row);
-                let col = TestId::from_usize(col);
-                let old_changed = old_matrix.insert(row, col);
-                let new_changed = new_matrix.insert(row, col);
-                assert_eq!(
-                    old_changed, new_changed,
-                    "insert({row:?}, {col:?}) changed mismatch"
-                );
-            }
-            SparseOp::Remove(row, col) => {
-                let row = TestId::from_usize(row);
-                let col = TestId::from_usize(col);
-                let old_changed = old_matrix.remove(row, col);
-                let new_changed = new_matrix.remove(row, col);
-                assert_eq!(
-                    old_changed, new_changed,
-                    "remove({row:?}, {col:?}) changed mismatch"
-                );
-            }
-            SparseOp::Contains(row, col) => {
-                let row = TestId::from_usize(row);
-                let col = TestId::from_usize(col);
-                let old_val = old_matrix.contains(row, col);
-                let new_val = new_matrix.contains(row, col);
-                assert_eq!(old_val, new_val, "contains({row:?}, {col:?}) mismatch");
-            }
-            SparseOp::UnionRows(read, write) => {
-                let read = TestId::from_usize(read);
-                let write = TestId::from_usize(write);
-                let old_changed = old_matrix.union_rows(read, write);
-                let new_changed = new_matrix.union_rows(read, write);
-                assert_eq!(
-                    old_changed, new_changed,
-                    "union_rows({read:?}, {write:?}) changed mismatch"
-                );
-            }
-        }
-    }
-
-    // Final full comparison
-    for row in 0..rows {
-        for col in 0..cols {
-            let row = TestId::from_usize(row);
-            let col = TestId::from_usize(col);
-            assert_eq!(
-                old_matrix.contains(row, col),
-                new_matrix.contains(row, col),
-                "final mismatch at ({row:?}, {col:?})"
-            );
-        }
-    }
-}
-
-#[proptest(
-    if cfg!(miri) {
-        Config { failure_persistence: None, cases: 20, ..Config::default() }
-    } else {
-        Config::default()
-    }
-)]
+#[proptest]
 fn dense_vs_sparse_equivalence(
     #[strategy(3..=32_usize)] rows: usize,
     #[strategy(1..=200_usize)] cols: usize,
@@ -1093,13 +943,7 @@ fn dense_vs_sparse_equivalence(
     }
 }
 
-#[proptest(
-    if cfg!(miri) {
-        Config { failure_persistence: None, cases: 20, ..Config::default() }
-    } else {
-        Config::default()
-    }
-)]
+#[proptest]
 fn dense_excess_bits_invariant(
     #[strategy(1..=32_usize)] rows: usize,
     #[strategy(1..=200_usize)] cols: usize,
@@ -1118,7 +962,12 @@ fn dense_excess_bits_invariant(
             DenseOp::InsertAllIntoRow(row) => {
                 matrix.insert_all_into_row(TestId::from_usize(row));
             }
-            _ => {}
+            DenseOp::Contains(row, col) => {
+                let _contains = matrix.contains(TestId::from_usize(row), TestId::from_usize(col));
+            }
+            DenseOp::CountRow(row) => {
+                let _count = matrix.count_row(TestId::from_usize(row));
+            }
         }
     }
 
