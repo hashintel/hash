@@ -80,7 +80,9 @@ const SecurityPage: NextPageWithLayout = () => {
     authenticatedUser?.emails[0]?.address ?? "";
 
   const [flow, setFlow] = useState<SettingsFlow>();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
+  const [currentPasswordError, setCurrentPasswordError] = useState<string>();
   const [totpCode, setTotpCode] = useState("");
   const [disableTotpCode, setDisableTotpCode] = useState("");
   const [showTotpSetupForm, setShowTotpSetupForm] = useState(false);
@@ -238,22 +240,52 @@ const SecurityPage: NextPageWithLayout = () => {
   const handlePasswordSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
-    if (!flow || !password) {
+    if (!flow || !currentPassword || !password) {
       return;
     }
 
     setUpdatingPassword(true);
+    setCurrentPasswordError(undefined);
     persistFlowIdInUrl(flow);
 
-    void submitSettingsUpdate(flow, {
-      method: "password",
-      password,
-      csrf_token: mustGetCsrfTokenFromFlow(flow),
-    })
-      .then((nextFlow) => {
-        if (nextFlow) {
-          setPassword("");
+    // Step 1: Verify the current password by creating and submitting a
+    //         refresh login flow. This also refreshes the session to
+    //         "privileged", ensuring the settings update won't be rejected.
+    void oryKratosClient
+      .createBrowserLoginFlow({ refresh: true })
+      .then(({ data: loginFlow }) =>
+        oryKratosClient.updateLoginFlow({
+          flow: loginFlow.id,
+          updateLoginFlowBody: {
+            method: "password",
+            identifier: usernameForPasswordManagers,
+            password: currentPassword,
+            csrf_token: mustGetCsrfTokenFromFlow(loginFlow),
+          },
+        }),
+      )
+      .then(
+        // Step 2: Current password verified, now update to the new password
+        async () => {
+          const nextFlow = await submitSettingsUpdate(flow, {
+            method: "password",
+            password,
+            csrf_token: mustGetCsrfTokenFromFlow(flow),
+          });
+
+          if (nextFlow) {
+            setCurrentPassword("");
+            setPassword("");
+          }
+        },
+      )
+      .catch((error: AxiosError) => {
+        if (error.response?.status === 400) {
+          setCurrentPasswordError("Current password is incorrect.");
+          return;
         }
+
+        void handleFlowError(error);
       })
       .finally(() => setUpdatingPassword(false));
   };
@@ -317,14 +349,25 @@ const SecurityPage: NextPageWithLayout = () => {
     setDisablingTotp(true);
     persistFlowIdInUrl(flow);
 
+    // Step 1: Validate the TOTP code to prove the user has authenticator access
     void submitSettingsUpdate(flow, {
       method: "totp",
-      totp_unlink: true,
       totp_code: disableTotpCode,
       csrf_token: mustGetCsrfTokenFromFlow(flow),
     })
-      .then((nextFlow) => {
-        if (nextFlow) {
+      .then(async (verifiedFlow) => {
+        if (!verifiedFlow) {
+          return;
+        }
+
+        // Step 2: Code was valid, now unlink TOTP
+        const unlinkedFlow = await submitSettingsUpdate(verifiedFlow, {
+          method: "totp",
+          totp_unlink: true,
+          csrf_token: mustGetCsrfTokenFromFlow(verifiedFlow),
+        });
+
+        if (unlinkedFlow) {
           setDisableTotpCode("");
           setShowTotpDisableForm(false);
         }
@@ -419,25 +462,48 @@ const SecurityPage: NextPageWithLayout = () => {
             >
               Password
             </Typography>
-            <TextField
-              label="New password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Enter your new password"
-              value={password}
-              onChange={({ target }) => setPassword(target.value)}
-              error={
-                !!passwordInputUiNode?.messages.find(
-                  ({ type }) => type === "error",
-                )
-              }
-              helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
-                <Typography key={id}>{text}</Typography>
-              ))}
-              required
-            />
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <TextField
+                label="Current password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your current password"
+                value={currentPassword}
+                onChange={({ target }) => {
+                  setCurrentPassword(target.value);
+                  setCurrentPasswordError(undefined);
+                }}
+                error={!!currentPasswordError}
+                helperText={
+                  currentPasswordError ? (
+                    <Typography>{currentPasswordError}</Typography>
+                  ) : undefined
+                }
+                required
+              />
+              <TextField
+                label="New password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Enter your new password"
+                value={password}
+                onChange={({ target }) => setPassword(target.value)}
+                error={
+                  !!passwordInputUiNode?.messages.find(
+                    ({ type }) => type === "error",
+                  )
+                }
+                helperText={passwordInputUiNode?.messages.map(
+                  ({ id, text }) => <Typography key={id}>{text}</Typography>,
+                )}
+                required
+              />
+            </Box>
             <Box mt={1.5}>
-              <Button type="submit" disabled={!password || updatingPassword}>
+              <Button
+                type="submit"
+                disabled={!currentPassword || !password || updatingPassword}
+              >
                 {updatingPassword ? "Updating password..." : "Update password"}
               </Button>
             </Box>
