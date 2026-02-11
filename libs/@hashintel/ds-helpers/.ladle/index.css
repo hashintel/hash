@@ -230,15 +230,14 @@
   --global-font-body: var(--font-inter);
   --global-font-mono: var(--font-geist-mono);
 
-  /* colors - using radix-based tokens */
-  /* Step 0 is pure white/black, step 1+ are already tinted */
-  --ladle-bg-color-primary: var(--colors-gray-0) !important;
-  --ladle-bg-color-secondary: var(--colors-gray-2) !important;
-  --ladle-color-primary: var(--colors-gray-12) !important;
-  --ladle-color-secondary: var(--colors-gray-11) !important;
-  --ladle-color-hover: var(--colors-gray-9) !important;
-  --ladle-color-accent: var(--colors-blue-9);
-  --ladle-blueprint: var(--colors-blue-6);
+  /* colors - using radix-based semantic tokens */
+  --ladle-bg-color-primary: var(--colors-neutral-s00) !important;
+  --ladle-bg-color-secondary: var(--colors-neutral-s20) !important;
+  --ladle-color-primary: var(--colors-neutral-s120) !important;
+  --ladle-color-secondary: var(--colors-neutral-s110) !important;
+  --ladle-color-hover: var(--colors-neutral-s90) !important;
+  --ladle-color-accent: var(--colors-blue-s90);
+  --ladle-blueprint: var(--colors-blue-s60);
 
   /* dimensions */
   --ladle-ring-size: 64px;
@@ -251,8 +250,8 @@
 }
 
 .ladle-main {
-  color: var(--colors-fg);
-  background-color: var(--colors-canvas);
+  color: var(--colors-fg-body);
+  background-color: var(--colors-neutral-s00);
 }
 
 /* Light mode (default) */

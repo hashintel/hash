@@ -116,9 +116,10 @@ const swatchLabel = css({
 
 const FigmaSwatch = ({ step }: { step: string }) => {
   const entry = figmaGray.gray[step as keyof typeof figmaGray.gray];
+  const { globalState } = useLadleContext();
+
   if (!entry) return null;
 
-  const { globalState } = useLadleContext();
   const isDark = globalState.theme === ThemeState.Dark;
   const color = isDark ? entry._dark : entry._light;
 

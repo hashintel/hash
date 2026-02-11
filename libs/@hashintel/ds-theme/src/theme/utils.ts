@@ -17,35 +17,29 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  *       plus link.
  * bd — alpha-based borders at three weights: subtle, solid, strong.
  *
- * The `kind` parameter controls how bg.solid.fg and (for neutral) bg.solid are mapped
- * to ensure proper text contrast on solid backgrounds.
+ * The `kind` parameter controls how bg.solid.fg is mapped to ensure proper text
+ * contrast on solid backgrounds ("bright" palettes use neutral fg, others use s00).
  */
 export function createSemanticSet(
-  palette: string,
+  palette: string = "neutral",
   kind: PaletteKind = "normal",
 ) {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
 
   const onSolid =
-    kind === "neutral"
+    kind === "bright"
       ? {
-          value: { _light: "{colors.white}", _dark: "{colors.black}" },
+          value: {
+            _light: "{colors.neutral.s120}",
+            _dark: "{colors.neutral.s10}",
+          },
         }
-      : kind === "bright"
-        ? {
-            value: {
-              _light: "{colors.neutral.s120}",
-              _dark: "{colors.neutral.s10}",
-            },
-          }
-        : { value: { _light: "white", _dark: "white" } };
+      : ps("s00");
 
   const bgSolid =
     kind === "neutral"
       ? {
-          DEFAULT: {
-            value: { _light: "{colors.black}", _dark: "{colors.white}" },
-          },
+          DEFAULT: ps("s125"),
           hover: ps("s120"),
           active: ps("s120"),
           disabled: ps("s60"),

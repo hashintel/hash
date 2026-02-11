@@ -76,7 +76,8 @@ export const preset = definePreset({
   globalCss,
   conditions: {
     extend: {
-      light: ":root &, .light &, [data-theme=light] &",
+      light:
+        ':where(:root:not(.dark, [data-theme="dark"])) &, .light &, [data-theme=light] &',
       dark: '.dark &, [data-theme="dark"] &',
 
       supportHover: [
@@ -174,7 +175,7 @@ export const preset = definePreset({
       semanticTokens: {
         /* semantic colors */
         colors: {
-          DEFAULT: createSemanticSet("colors.neutral"),
+          DEFAULT: createSemanticSet("colors.neutral", "neutral"),
           ...basePalettes,
           status: {
             info: blue,

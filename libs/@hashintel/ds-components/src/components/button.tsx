@@ -117,7 +117,7 @@ const buttonRecipe = cva({
       colorScheme: "brand",
       css: {
         backgroundColor: "blue.bg.solid",
-        color: "bg.solid.fg",
+        color: "blue.bg.solid.fg",
         _hover: {
           backgroundColor: "blue.bg.solid.hover",
         },
@@ -157,7 +157,7 @@ const buttonRecipe = cva({
       colorScheme: "critical",
       css: {
         backgroundColor: "status.error.bg.solid",
-        color: "bg.solid.fg",
+        color: "status.error.bg.solid.fg",
         _hover: {
           backgroundColor: "status.error.bg.solid.hover",
         },
@@ -179,16 +179,16 @@ const buttonRecipe = cva({
         backgroundColor: "bg.subtle",
         border: "[1px solid]",
         borderColor: "blue.bg.solid",
-        color: "fg.link",
+        color: "blue.fg.link",
         _hover: {
           backgroundColor: "blue.bg.subtle.hover",
           borderColor: "blue.bg.solid.hover",
-          color: "fg.link.hover",
+          color: "blue.fg.link.hover",
         },
         _active: {
           backgroundColor: "blue.bg.subtle.active",
           borderColor: "blue.bg.solid.active",
-          color: "fg.link.hover",
+          color: "blue.fg.link.hover",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -253,14 +253,14 @@ const buttonRecipe = cva({
       colorScheme: "brand",
       css: {
         backgroundColor: "[transparent]",
-        color: "fg.link",
+        color: "blue.fg.link",
         _hover: {
           backgroundColor: "blue.bg.subtle.hover",
-          color: "fg.link.hover",
+          color: "blue.fg.link.hover",
         },
         _active: {
           backgroundColor: "blue.bg.subtle.active",
-          color: "fg.link.hover",
+          color: "blue.fg.link.hover",
         },
         _focusVisible: {
           outline: "[2px solid]",

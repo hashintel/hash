@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["^build"],
       "outputs": ["styled-system/**"]
     },
     "build:ladle": {
@@ -13,9 +14,9 @@
       "dependsOn": ["build"]
     },
     "dev": {
-      "dependsOn": ["^dev"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "with": ["@hashintel/ds-theme#dev"]
     }
   }
 }
