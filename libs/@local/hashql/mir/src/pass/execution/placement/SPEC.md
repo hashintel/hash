@@ -42,41 +42,41 @@ The algorithm has three phases:
 2. **SCC decomposition + internal CSP solving**
 3. **Two-pass DAG refinement** (forward + backward)
 
-### Phase 1: Arc Consistency Pruning
+### Phase 1: Arc Consistency Pruning (AC-3)
 
-Iteratively remove targets from block domains that have no valid transitions across any incident CFG edge. Constraints are directional: for edge `(u → v)`, test `M[(t_u, t_v)]` in the edge's direction.
+Enforce arc consistency using the AC-3 algorithm. Each CFG edge `(u → v)` is a directed binary constraint: `TransMatrix_edge[(t_u, t_v)].is_some()`.
+
+A work queue of edges is seeded with all CFG edges. For each edge, remove unsupported targets from the endpoint domains. When a block's domain shrinks, re-enqueue all other edges incident to that block.
 
 ```
-changed = true
-while changed:
-    changed = false
-    for each CFG edge (u → v) with TransMatrix M:
-        // prune source: u must have some compatible target in v
-        for target_u in targets[u]:
-            if no target_v in targets[v] where M[(target_u, target_v)].is_some():
-                targets[u].remove(target_u)
-                changed = true
-        // prune destination: v must have some compatible target in u
-        for target_v in targets[v]:
-            if no target_u in targets[u] where M[(target_u, target_v)].is_some():
-                targets[v].remove(target_v)
-                changed = true
+queue = all CFG edges (both directions: (u, v) and (v, u) as separate constraints)
+
+while queue is not empty:
+    (u, v, M) = queue.pop()
+
+    // revise u's domain: remove targets with no support in v
+    for target_u in targets[u]:
+        if no target_v in targets[v] where M[(target_u, target_v)].is_some():
+            targets[u].remove(target_u)
+
+            // u's domain changed: re-enqueue all other edges incident to u
+            for each edge (w, u) or (u, w) where w != v:
+                queue.push(edge)
 
     // safety net: should never trigger due to Interpreter guarantee
-    for each block b:
-        if targets[b].is_empty():
-            emit diagnostic
-            targets[b].insert(Interpreter)
+    if targets[u].is_empty():
+        emit diagnostic
+        targets[u].insert(Interpreter)
 ```
 
 **Properties:**
 
-- Domains only shrink, so the fixpoint converges.
+- Domains only shrink, so the algorithm terminates.
+- Each edge is re-examined at most O(K) times (where K is the number of targets), since each re-enqueue is caused by a domain shrinking, and domains can shrink at most K times.
+- Total complexity: O(E · K²) where E is the number of CFG edges — efficient even with many targets.
 - The Interpreter guarantee means domains should never empty — the diagnostic is a safety net. In debug builds, treat empty domains as hard internal errors.
 - After pruning, every surviving target in a block has at least one valid transition partner across each incident edge (but not necessarily the _assigned_ partner).
 - Unreachable blocks (not reachable from entry) are still pruned but diagnostics for empty domains on unreachable blocks should be suppressed or downgraded.
-
-**Future optimization:** when `TargetId` grows to dozens of variants, switch from global fixpoint scanning to work-queue AC-3 with per-constraint support counting.
 
 ### Phase 2: SCC Decomposition + Internal CSP
 
@@ -306,7 +306,3 @@ After the first iteration, the forward pass is no longer greedy with heuristic s
 **Termination:** each switch strictly decreases total cost. Cost is bounded below. Finite cost values + strict decrease = finite iterations.
 
 **When to add:** a single backward pass catches most suboptimality. The fixpoint loop only helps when a backward-pass change makes an upstream block's earlier choice suboptimal — a chain reaction across three or more blocks. Add this if profiling shows the single backward pass leaves measurable cost on the table, particularly as the number of backends grows.
-
-### Work-Queue AC-3 Pruning
-
-Replace the global fixpoint scan in Phase 1 with work-queue AC-3: maintain a queue of edges to re-check, seeded with all edges, and only re-enqueue edges whose endpoint domains changed. Reduces wasted scanning when `TargetId` grows to dozens of variants.
