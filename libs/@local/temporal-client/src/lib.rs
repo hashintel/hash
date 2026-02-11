@@ -27,7 +27,6 @@ impl fmt::Debug for TemporalClient {
         fmt.debug_struct("TemporalClient")
             .field("namespace", &self.client.get_client().namespace())
             .field("identity", &self.client.get_client().identity())
-            .field("options", self.client.get_client().options())
             .finish()
     }
 }
@@ -55,11 +54,6 @@ impl IntoFuture for TemporalClientConfig {
 }
 
 impl TemporalClientConfig {
-    /// Creates a new Temporal client configuration.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the configuration is invalid.
     pub fn new(url: impl Into<Url>) -> Self {
         Self {
             options: ClientOptions::builder()
