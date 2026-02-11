@@ -1,4 +1,4 @@
-FROM oryd/hydra:v2.2.0
+FROM oryd/hydra:v25.4
 
 USER root
 

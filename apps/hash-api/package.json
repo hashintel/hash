@@ -60,7 +60,7 @@
     "@opentelemetry/sdk-trace-base": "2.2.0",
     "@opentelemetry/sdk-trace-node": "2.2.0",
     "@ory/client": "1.22.7",
-    "@ory/hydra-client": "2.2.1",
+    "@ory/hydra-client": "25.4.0",
     "@ory/kratos-client": "25.4.0",
     "@rudderstack/rudder-sdk-node": "2.1.10",
     "@sentry/node": "10.27.0",
