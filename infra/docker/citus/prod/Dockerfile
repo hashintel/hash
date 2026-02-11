@@ -1,4 +1,4 @@
-FROM postgres:13.4
+FROM postgres:18.1
 
 # These environment variables are used by the parent image (postgres) for initializing
 # the database and user. These may be overridden during 'docker run'. The variable
