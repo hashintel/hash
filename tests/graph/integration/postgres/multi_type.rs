@@ -1,4 +1,4 @@
-use core::{assert_matches::assert_matches, str::FromStr as _};
+use core::{assert_matches, str::FromStr as _};
 use std::collections::HashSet;
 
 use hash_graph_store::{
@@ -141,35 +141,34 @@ async fn initial_person() {
             .contains(&person_entity_type_id())
     );
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert_eq!(&entities[0], &entity);
 
@@ -207,65 +206,63 @@ async fn initial_person() {
             .contains(&org_entity_type_id()),
     );
 
-    let updated_person_entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let updated_person_entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
-    let updated_org_entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let updated_org_entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert_eq!(updated_person_entities, updated_org_entities);
     assert_eq!(
@@ -321,65 +318,63 @@ async fn create_multi() {
             .contains(&org_entity_type_id()),
     );
 
-    let person_entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let person_entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
-    let org_entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let org_entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert_eq!(person_entities, org_entities);
     assert_eq!(&person_entities[0], &entity);
@@ -412,35 +407,34 @@ async fn create_multi() {
             .contains(&person_entity_type_id())
     );
 
-    let updated_person_entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let updated_person_entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert_eq!(
         updated_person_entities,

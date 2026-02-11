@@ -8,7 +8,7 @@ extern crate alloc;
 mod definitions;
 
 use alloc::borrow::Cow;
-use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
+use core::{assert_matches, error::Error, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use hash_graph_authorization::policies::{

@@ -5,6 +5,23 @@
 const VALID_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 
 /**
+ * Check if a property key should be skipped during token generation.
+ *
+ * Rules:
+ * - Always skip keys containing "-delete" (Figma deleted items marker)
+ * - Skip keys starting with "_" or "-" at the category/property level
+ * - But NOT inside `value: { ... }` objects where they are Panda CSS conditions
+ *
+ * @param key - The property key to check
+ * @param isInsideValue - Whether this key is inside a `value` object (default: false)
+ */
+export function shouldSkipKey(key: string, isInsideValue = false): boolean {
+  if (key.includes("-delete")) return true;
+  if (isInsideValue) return false;
+  return key.startsWith("_") || key.startsWith("-");
+}
+
+/**
  * Clean a description string from Figma export.
  * Removes leading weird characters and newlines before the actual description.
  */
@@ -58,35 +75,38 @@ export function formatTokensForOutput(tokens: Record<string, unknown>): string {
 /**
  * Transform spacing scale values to Panda token format.
  * Adds "px" suffix to numeric values.
+ * Skips keys containing "-delete" (Figma deleted items).
  */
 export function transformSpacingScale(
   scale: Record<string, { value: number }>,
 ): Record<string, { value: string }> {
   return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => [
-      step,
-      { value: `${value}px` },
-    ]),
+    Object.entries(scale)
+      .filter(([step]) => !shouldSkipKey(step))
+      .map(([step, { value }]) => [step, { value: `${value}px` }]),
   );
 }
 
 /**
  * Transform radius scale values to Panda token format.
  * Handles numeric values (with px suffix), 9999 as pill radius, and reference strings.
+ * Skips keys containing "-delete" (Figma deleted items).
  */
 export function transformRadiusScale(
   scale: Record<string, { value: number | string }>,
 ): Record<string, { value: string }> {
   return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => {
-      const tokenValue =
-        typeof value === "string"
-          ? value
-          : value === 9999
-            ? "9999px"
-            : `${value}px`;
-      return [step, { value: tokenValue }];
-    }),
+    Object.entries(scale)
+      .filter(([step]) => !shouldSkipKey(step))
+      .map(([step, { value }]) => {
+        const tokenValue =
+          typeof value === "string"
+            ? value
+            : value === 9999
+              ? "9999px"
+              : `${value}px`;
+        return [step, { value: tokenValue }];
+      }),
   );
 }
 

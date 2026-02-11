@@ -21,7 +21,7 @@ use crate::knowledge::property::{Property, PropertyPath};
 /// particular path.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", tag = "op")]
 pub enum PropertyDiff<'e> {
     /// A property was added at the specified path.

@@ -182,18 +182,6 @@ impl<A: Allocator> CallGraph<'_, A> {
             })
     }
 
-    pub fn filters(&self) -> impl Iterator<Item = DefId> {
-        self.inner
-            .nodes()
-            .ids()
-            .filter(|&node| {
-                self.inner
-                    .incoming_edges(node)
-                    .any(|edge| matches!(edge.data, CallKind::Filter(_)))
-            })
-            .map(|node| DefId::new(node.as_u32()))
-    }
-
     #[inline]
     pub fn is_leaf(&self, def: DefId) -> bool {
         let def = NodeId::new(def.as_usize());

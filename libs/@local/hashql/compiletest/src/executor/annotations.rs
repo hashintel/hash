@@ -142,7 +142,7 @@ pub(crate) fn verify_annotations<S, R>(
 #[cfg(test)]
 mod tests {
     use core::{
-        assert_matches::assert_matches,
+        assert_matches,
         fmt::{self, Debug, Display},
     };
 

@@ -6,7 +6,7 @@ mod terminator;
 mod transform;
 mod types;
 
-use std::assert_matches::debug_assert_matches;
+use core::debug_assert_matches;
 
 use hashql_core::{
     collections::{
@@ -183,9 +183,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         // In the future we might want to specialize `ctor` in a way that allows us to move them to
         // be thin calls (although that would require that we move functions into a separate type
         // from closures).
-        let env = if matches!(source, Source::Closure(_, _) | Source::Ctor(_)) {
+        let env = if matches!(
+            source,
+            Source::Closure(_, _) | Source::Ctor(_) | Source::GraphReadFilter(_)
+        ) {
             let r#type = if let Some((_, type_id)) = captures {
-                debug_assert_matches!(source, Source::Closure(..));
+                debug_assert_matches!(source, Source::Closure(..) | Source::GraphReadFilter(..));
                 type_id
             } else {
                 // In case there are no captures, the environment will always be a unit type (aka
@@ -289,16 +292,16 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     fn lower_closure(
         self,
         hir: HirPtr,
+        source: Source<'heap>,
         captures: &MixedBitSet<VarId>,
         env_type: TypeId,
-        binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
         closure_type: ClosureType<'heap>,
     ) -> DefId {
         debug_assert_eq!(closure_type.params.len(), closure.signature.params.len());
 
         self.lower_impl(
-            Source::Closure(hir.id, binder),
+            source,
             hir.span,
             closure
                 .signature

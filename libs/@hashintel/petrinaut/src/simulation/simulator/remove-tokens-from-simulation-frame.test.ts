@@ -1,29 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { SimulationFrame, SimulationInstance } from "./types";
+import type { SimulationFrame } from "./types";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map(),
-      transitions: new Map(),
+      places: {},
+      transitions: {},
       buffer: new Float64Array([]),
     };
 
@@ -36,43 +21,16 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3,
-            dimensions: 2,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 2,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
     };
 
@@ -82,43 +40,16 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("throws error when token index is out of bounds", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0]),
     };
 
@@ -128,43 +59,16 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     };
 
@@ -174,47 +78,20 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
-    expect(result.places.get("p1")?.count).toBe(3);
+    expect(result.places.p1?.count).toBe(3);
   });
 
   it("removes a single token from a place with 1D tokens", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     };
 
@@ -224,48 +101,21 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
-    expect(result.places.get("p1")?.count).toBe(2);
-    expect(result.places.get("p1")?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("removes multiple tokens from a place with 1D tokens", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 4,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 4,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     };
 
@@ -275,48 +125,21 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
-    expect(result.places.get("p1")?.count).toBe(2);
-    expect(result.places.get("p1")?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3,
-            dimensions: 3,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 3,
+        },
+      },
+      transitions: {},
       // 3 tokens with 3 dimensions each: [1,2,3], [4,5,6], [7,8,9]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
     };
@@ -330,65 +153,26 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(result.buffer).toEqual(
       new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
     );
-    expect(result.places.get("p1")?.count).toBe(2);
-    expect(result.places.get("p1")?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("adjusts offsets for subsequent places after removal", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 2,
-          },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 4, // After p1's 2 tokens * 2 dimensions
-            count: 3,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 2,
+        },
+        p2: {
+          offset: 4, // After p1's 2 tokens * 2 dimensions
+          count: 3,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       // p1: [1,2], [3,4]  |  p2: [5], [6], [7]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
     };
@@ -401,68 +185,29 @@ describe("removeTokensFromSimulationFrame", () => {
 
     // Expected: p1: [3,4]  |  p2: [5], [6], [7]
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0, 5.0, 6.0, 7.0]));
-    expect(result.places.get("p1")?.count).toBe(1);
-    expect(result.places.get("p1")?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(1);
+    expect(result.places.p1?.offset).toBe(0);
     // p2's offset should be adjusted from 4 to 2 (removed 2 elements)
-    expect(result.places.get("p2")?.offset).toBe(2);
-    expect(result.places.get("p2")?.count).toBe(3);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p2?.count).toBe(3);
   });
 
   it("removes all tokens from a place", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 2,
+          count: 2,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     };
 
@@ -472,84 +217,33 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
-    expect(result.places.get("p1")?.count).toBe(0);
-    expect(result.places.get("p1")?.offset).toBe(0);
-    expect(result.places.get("p2")?.offset).toBe(0);
-    expect(result.places.get("p2")?.count).toBe(2);
+    expect(result.places.p1?.count).toBe(0);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p2?.offset).toBe(0);
+    expect(result.places.p2?.count).toBe(2);
   });
 
   it("handles removal from middle place with three places", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 3,
-            dimensions: 1,
-          },
-        ],
-        [
-          "p3",
-          {
-            instance: {
-              id: "p3",
-              name: "Place 3",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 5,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 2,
+          count: 3,
+          dimensions: 1,
+        },
+        p3: {
+          offset: 5,
+          count: 2,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       // p1: [1, 2] | p2: [3, 4, 5] | p3: [6, 7]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
     };
@@ -564,87 +258,36 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(result.buffer).toEqual(
       new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
     );
-    expect(result.places.get("p1")?.offset).toBe(0);
-    expect(result.places.get("p1")?.count).toBe(2);
-    expect(result.places.get("p2")?.offset).toBe(2);
-    expect(result.places.get("p2")?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p2?.count).toBe(2);
     // p3's offset should be adjusted from 5 to 4 (removed 1 element)
-    expect(result.places.get("p3")?.offset).toBe(4);
-    expect(result.places.get("p3")?.count).toBe(2);
+    expect(result.places.p3?.offset).toBe(4);
+    expect(result.places.p3?.count).toBe(2);
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const simulation: SimulationInstance = {
-      types: new Map(),
-      places: new Map(),
-      transitions: new Map(),
-      differentialEquationFns: new Map(),
-      lambdaFns: new Map(),
-      transitionKernelFns: new Map(),
-      parameterValues: {},
-      dt: 0.1,
-      rngState: 42,
-      frames: [],
-      currentFrameNumber: 0,
-    };
-
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3,
-            dimensions: 1,
-          },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 3,
-            count: 2,
-            dimensions: 2,
-          },
-        ],
-        [
-          "p3",
-          {
-            instance: {
-              id: "p3",
-              name: "Place 3",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 7,
-            count: 2,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map(),
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 3,
+          count: 2,
+          dimensions: 2,
+        },
+        p3: {
+          offset: 7,
+          count: 2,
+          dimensions: 1,
+        },
+      },
+      transitions: {},
       // p1: [1], [2], [3] | p2: [4,5], [6,7] | p3: [8], [9]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
     };
@@ -661,11 +304,11 @@ describe("removeTokensFromSimulationFrame", () => {
 
     // Expected: p1: [1], [3] | p2: [6,7] | p3: [8]
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0, 6.0, 7.0, 8.0]));
-    expect(result.places.get("p1")?.count).toBe(2);
-    expect(result.places.get("p1")?.offset).toBe(0);
-    expect(result.places.get("p2")?.count).toBe(1);
-    expect(result.places.get("p2")?.offset).toBe(2);
-    expect(result.places.get("p3")?.count).toBe(1);
-    expect(result.places.get("p3")?.offset).toBe(4);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p2?.count).toBe(1);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p3?.count).toBe(1);
+    expect(result.places.p3?.offset).toBe(4);
   });
 });

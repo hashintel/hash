@@ -3,11 +3,14 @@ import { performance } from "node:perf_hooks";
 
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
+import {
+  ApolloServerPluginLandingPageLocalDefault,
+  ApolloServerPluginLandingPageProductionDefault,
+} from "@apollo/server/plugin/landingPage/default";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
@@ -23,6 +26,7 @@ import type Keyv from "keyv";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
+import { isProdEnv } from "../lib/env-config";
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -113,7 +117,7 @@ const statsPlugin = ({
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: Keyv;
-  uploadProvider: UploadableStorageProvider;
+  uploadProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   vaultClient?: VaultClient;
   emailTransporter: EmailTransporter;
@@ -149,16 +153,27 @@ export const createApolloServer = async ({
     schema: combinedSchema,
     cache: new KeyvAdapter(cache),
     logger: logger.child({ service: "graphql" }),
-    // @todo: we may want to disable introspection at some point for production
-    introspection: true,
-    includeStacktraceInErrorResponses: true, // required for stack traces to be captured
+    introspection: !isProdEnv,
+    includeStacktraceInErrorResponses: !isProdEnv,
     plugins: [
-      ApolloServerPluginLandingPageGraphQLPlayground({
-        settings: {
-          "request.credentials": "include",
-          "schema.polling.enable": false,
-        },
-      }),
+      isProdEnv
+        ? ApolloServerPluginLandingPageProductionDefault({ footer: false })
+        : ApolloServerPluginLandingPageLocalDefault({
+            embed: {
+              endpointIsEditable: false,
+              initialState: {
+                pollForSchemaUpdates: false,
+              },
+              runTelemetry: false,
+            },
+            document: `{
+  me {
+    subgraph {
+      vertices
+    }
+  }
+}`,
+          }),
       statsPlugin({ statsd }),
       ApolloServerPluginDrainHttpServer({ httpServer }),
     ],

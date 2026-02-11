@@ -341,7 +341,7 @@ impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
 #[cfg(test)]
 mod tests {
     use alloc::borrow::Cow;
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use crate::{
         lexer::{

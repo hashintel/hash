@@ -1,13 +1,15 @@
 use core::hash::Hash;
 use std::collections::HashMap;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
+use hash_graph_authorization::policies::PolicyComponents;
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
     error::QueryError,
-    filter::{Filter, FilterExpression, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
@@ -16,6 +18,8 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{
     knowledge::entity::{Entity, id::EntityEditionId},
     ontology::{
@@ -25,7 +29,11 @@ use type_system::{
     },
 };
 
-use crate::store::postgres::{AsClient, PostgresStore};
+use crate::store::postgres::{
+    AsClient, PostgresStore,
+    crud::QueryRecordDecode as _,
+    query::{PostgresRecord as _, SelectCompiler},
+};
 
 impl<C> PostgresStore<C>
 where
@@ -43,7 +51,9 @@ where
                 FilterExpression::Path {
                     path: DataTypeQueryPath::OntologyId,
                 },
-                ParameterList::DataTypeIds(data_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::DataTypeIds(data_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -71,7 +81,9 @@ where
                 FilterExpression::Path {
                     path: PropertyTypeQueryPath::OntologyId,
                 },
-                ParameterList::PropertyTypeIds(property_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::PropertyTypeIds(property_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -99,7 +111,9 @@ where
                 FilterExpression::Path {
                     path: EntityTypeQueryPath::OntologyId,
                 },
-                ParameterList::EntityTypeIds(entity_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::EntityTypeIds(entity_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -121,19 +135,58 @@ where
         edition_ids: &[EntityEditionId],
         subgraph: &mut Subgraph,
         include_drafts: bool,
+        policy_components: &PolicyComponents,
     ) -> Result<(), Report<QueryError>> {
-        let entities = <Self as Read<Entity>>::read_vec(
-            self,
-            &[Filter::<Entity>::In(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EditionId,
-                },
-                ParameterList::EntityEditionIds(edition_ids),
-            )],
-            Some(&subgraph.temporal_axes.resolved),
-            include_drafts,
-        )
-        .await?;
+        let temporal_axes = Some(&subgraph.temporal_axes.resolved);
+        let filter = Filter::<Entity>::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::EditionId,
+            },
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityEditionIds(edition_ids),
+            },
+        );
+
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
+
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+
+        let property_protection_filter;
+        if should_apply_protection {
+            // We cannot re-use the previously generated filter as the lifetimes of `Filter` are
+            // invariant.
+            //   see: https://linear.app/hash/issue/BE-363/refactor-filter-to-be-covariant-over-lifetime-parameters
+            property_protection_filter = self
+                .settings
+                .filter_protection
+                .to_property_protection_filter(policy_components.actor_id());
+            compiler.with_property_masking(&property_protection_filter);
+        }
+
+        let record_artifacts = Entity::parameters();
+        let record_indices = Entity::compile(&mut compiler, &record_artifacts);
+
+        compiler.add_filter(&filter).change_context(QueryError)?;
+
+        let (statement, parameters) = compiler.compile();
+
+        let entities: Vec<Entity> = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
+            .await
+            .change_context(QueryError)?
+            .map_ok(|row| Entity::decode(&row, &record_indices))
+            .try_collect()
+            .await
+            .change_context(QueryError)?;
 
         tracing::info_span!("insert_into_subgraph", count = entities.len()).in_scope(|| {
             for entity in entities {
@@ -233,6 +286,7 @@ impl<'edges> TraversalContext<'edges> {
         store: &PostgresStore<C>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
+        policy_components: &PolicyComponents,
     ) -> Result<(), Report<QueryError>> {
         if !self.data_types.0.is_empty() {
             store
@@ -260,12 +314,9 @@ impl<'edges> TraversalContext<'edges> {
         }
 
         if !self.entities.is_empty() {
+            let edition_ids = self.entities.into_keys().collect::<Vec<_>>();
             store
-                .read_entities_by_ids(
-                    &self.entities.into_keys().collect::<Vec<_>>(),
-                    subgraph,
-                    include_drafts,
-                )
+                .read_entities_by_ids(&edition_ids, subgraph, include_drafts, policy_components)
                 .await?;
         }
 

@@ -79,6 +79,10 @@ blocks/**/.env
 **/mise*.local.toml
 **/mise/config*.local.toml
 
+# agentprofiles (temporary, until I can switch to using `mise.local.toml` files)
+.envrc
+.envrc.agentprofiles
+
 # macOS directory file
 **/.DS_Store
 

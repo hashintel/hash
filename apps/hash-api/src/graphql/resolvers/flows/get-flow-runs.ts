@@ -29,6 +29,7 @@ export const getFlowRunsResolver: ResolverFn<
     },
     graphApiClient: dataSources.graphApi,
     includeDetails,
+    storageProvider: dataSources.uploadProvider,
     temporalClient: temporal,
   });
 };

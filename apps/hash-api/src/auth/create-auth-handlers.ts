@@ -3,15 +3,13 @@ import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { Session } from "@ory/kratos-client";
+import * as Sentry from "@sentry/node";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import {
-  createUser,
-  getUserByKratosIdentityId,
-} from "../graph/knowledge/system-types/user";
+import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
 import type { KratosUserIdentity } from "./ory-kratos";
@@ -68,15 +66,14 @@ const kratosAfterRegistrationHookHandler =
         res.status(200).end();
       } catch (error) {
         // The kratos hook can interrupt creation on 4xx and 5xx responses.
-        // We pass context as an error to not leak any kratos implementation details.
 
+        Sentry.captureException(error);
         res.status(400).send(
           JSON.stringify({
             messages: [
               {
                 type: "error",
                 error: "Error creating user",
-                context: error,
               },
             ],
           }),
@@ -140,10 +137,11 @@ export const getUserAndSession = async ({
       throw new Error("Could not find kratos identity for session");
     }
 
-    const { id: kratosIdentityId } = identity;
+    const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
 
-    const user = await getUserByKratosIdentityId(context, authentication, {
+    const user = await getUser(context, authentication, {
       kratosIdentityId,
+      emails: traits.emails,
     });
 
     if (!user) {
@@ -179,7 +177,7 @@ export const createAuthMiddleware = (params: {
         token: accessOrSessionToken,
       });
       if (introspectionResult.data.active && introspectionResult.data.sub) {
-        const user = await getUserByKratosIdentityId(
+        const user = await getUser(
           context,
           { actorId: publicUserAccountId },
           {

@@ -469,7 +469,7 @@ impl<'heap> Resolver<'_, 'heap> {
 #[cfg(test)]
 mod test {
     #![coverage(off)]
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use super::{Reference, ResolutionError};
     use crate::{

@@ -84,10 +84,8 @@ import type {
   ClosedMultiEntityTypesRootMap,
   EntityTypeResolveDefinitions,
 } from "./ontology.js";
-import { isUserHashInstanceAdmin } from "./principal/hash-instance-admins.js";
 import {
   deserializeGraphVertices,
-  mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
   serializeGraphVertices,
 } from "./subgraph.js";
@@ -241,69 +239,6 @@ export type SerializedQueryEntitiesResponse<
   }
 >;
 
-export const queryEntities = async <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
->(
-  context: {
-    graphApi: GraphApi;
-    temporalClient?: TemporalClient;
-  },
-  authentication: AuthenticationContext,
-  params: QueryEntitiesRequest,
-  options?: { preserveProperties?: boolean },
-): Promise<QueryEntitiesResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
-  const { preserveProperties = false } = options ?? {};
-
-  const isRequesterAdmin = preserveProperties
-    ? true
-    : process.env.NODE_ENV === "test"
-      ? false
-      : await isUserHashInstanceAdmin(context, authentication, {
-          userAccountId: authentication.actorId,
-        });
-
-  return context.graphApi
-    .queryEntities(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      entities: response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(
-          entity,
-          authentication.actorId,
-          isRequesterAdmin,
-        ),
-      ),
-      closedMultiEntityTypes: response.closedMultiEntityTypes
-        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
-            response.closedMultiEntityTypes,
-          )
-        : undefined,
-      definitions: response.definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            response.definitions,
-          )
-        : undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
-      permissions: response.permissions as EntityPermissionsMap | undefined,
-    }));
-};
-
 export type QueryEntitySubgraphRequest = ExclusiveUnion<
   DistributiveReplaceProperties<
     QueryEntitySubgraphRequestGraphApi,
@@ -363,13 +298,6 @@ export const queryEntitySubgraph = async <
     await rewriteSemanticFilter(params.filter, context.temporalClient);
   }
 
-  const isRequesterAdmin =
-    process.env.NODE_ENV === "test"
-      ? false
-      : await isUserHashInstanceAdmin(context, authentication, {
-          userAccountId: authentication.actorId,
-        });
-
   return await context.graphApi
     .queryEntitySubgraph(authentication.actorId, params)
     .then(({ data }) => {
@@ -378,7 +306,7 @@ export const queryEntitySubgraph = async <
       const subgraph = mapGraphApiSubgraphToSubgraph<
         EntityRootType<HashEntity<PropertyMap>>,
         PropertyMap
-      >(unfilteredSubgraph, authentication.actorId, isRequesterAdmin);
+      >(unfilteredSubgraph);
       // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
       for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
         const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
@@ -497,15 +425,18 @@ export const propertyObjectToPatches = (
  *
  * @deprecated this is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
- *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
+ *   directly. IF you use this, bear in mind that if removeProperties is true,
+ *   newProperties MUST represent ALL the properties that the entity will
  *   have after the patch. Any properties not specified in newProperties will be removed.
  */
 export const patchesFromPropertyObjects = ({
   oldProperties,
   newProperties,
+  removeProperties = true,
 }: {
   oldProperties: PropertyObject;
   newProperties: PropertyObjectWithMetadata;
+  removeProperties?: boolean;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
@@ -528,12 +459,14 @@ export const patchesFromPropertyObjects = ({
     }
   }
 
-  for (const key of typedKeys(oldProperties)) {
-    if (typeof newProperties.value[key] === "undefined") {
-      patches.push({
-        op: "remove",
-        path: [key],
-      });
+  if (removeProperties) {
+    for (const key of typedKeys(oldProperties)) {
+      if (typeof newProperties.value[key] === "undefined") {
+        patches.push({
+          op: "remove",
+          path: [key],
+        });
+      }
     }
   }
 
@@ -1401,6 +1334,52 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
+export const queryEntities = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: {
+    graphApi: GraphApi;
+    temporalClient?: TemporalClient;
+  },
+  authentication: AuthenticationContext,
+  params: QueryEntitiesRequest,
+): Promise<QueryEntitiesResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  return context.graphApi
+    .queryEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) => new HashEntity(entity)),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      createdByIds: response.createdByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+      typeTitles: response.typeTitles as
+        | Record<VersionedUrl, string>
+        | undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
+    }));
+};
 
 export const serializeQueryEntitiesResponse = <
   PropertyMap extends

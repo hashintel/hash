@@ -323,6 +323,9 @@ macro_rules! body {
     (@type $types:ident; ($($name:ident: $sub:tt),*)) => {
         $types.r#struct([$((stringify!($name), $crate::builder::body!(@type $types; $sub))),*])
     };
+    (@type $types:ident; [List $sub:tt]) => {
+        $types.list($crate::builder::body!(@type $types; $sub))
+    };
     (@type $types:ident; [fn($($args:tt),+) -> $ret:tt]) => {
         $types.closure([$($crate::builder::body!(@type $types; $args)),*], $crate::builder::body!(@type $types; $ret))
     };
@@ -335,6 +338,9 @@ macro_rules! body {
     (@type $types:ident; Null) => {
         $types.null()
     };
+    (@type $types:ident; ?) => {
+        $types.unknown()
+    };
     (@type $types:ident; $other:expr) => {
         $other($types)
     };
@@ -344,6 +350,9 @@ macro_rules! body {
     };
     (@source fn) => {
         $crate::body::Source::Closure(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+    (@source [graph::read::filter]) => {
+        $crate::body::Source::GraphReadFilter(hashql_hir::node::HirId::PLACEHOLDER)
     };
     (@source [ctor $name:expr]) => {
         $crate::body::Source::Ctor($name)

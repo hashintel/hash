@@ -14,60 +14,51 @@ describe("executeTransitions", () => {
       transitionKernelFns: new Map([["t1", () => ({ p2: [{ x: 1.0 }] })]]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0, // No tokens
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 0, // No tokens
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return [[[1.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return [[[1.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
-    expect(result).toBe(frame);
+    expect(result.frame).toBe(frame);
+    expect(result.transitionFired).toBe(false);
   });
 
   it("removes tokens and adds new tokens when a single transition fires", () => {
@@ -118,89 +109,68 @@ describe("executeTransitions", () => {
       ]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 2,
+          count: 0,
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[2.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 0,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[2.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0, 1.5]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // Token should be removed from p1
-    expect(result.places.get("p1")?.count).toBe(1);
-    expect(result.buffer[0]).toBe(1.5); // Second token from p1 remains
+    expect(result.frame.places.p1?.count).toBe(1);
+    expect(result.frame.buffer[0]).toBe(1.5); // Second token from p1 remains
 
     // Token should be added to p2
-    expect(result.places.get("p2")?.count).toBe(1);
-    expect(result.buffer[1]).toBe(2.0); // New token in p2
+    expect(result.frame.places.p2?.count).toBe(1);
+    expect(result.frame.buffer[1]).toBe(2.0); // New token in p2
 
     // Time should be incremented
-    expect(result.time).toBe(0.1);
+    expect(result.frame.time).toBe(0.1);
 
     // Transition that fired should have timeSinceLastFiringMs reset to 0
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
+    expect(result.transitionFired).toBe(true);
   });
 
   it("executes multiple transitions sequentially with proper token removal between each", () => {
@@ -270,125 +240,88 @@ describe("executeTransitions", () => {
       ]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 3, // 3 tokens in p1
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 3, // 3 tokens in p1
+          dimensions: 1,
+        },
+        p2: {
+          offset: 3,
+          count: 0,
+          dimensions: 1,
+        },
+        p3: {
+          offset: 3,
+          count: 0,
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[5.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 3,
-            count: 0,
-            dimensions: 1,
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t2: {
+          instance: {
+            id: "t2",
+            name: "Transition 2",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p3", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[10.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p3",
-          {
-            instance: {
-              id: "p3",
-              name: "Place 3",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 3,
-            count: 0,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[5.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-        [
-          "t2",
-          {
-            instance: {
-              id: "t2",
-              name: "Transition 2",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p3", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[10.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // Both transitions should consume one token from p1 each
     // So p1 should have 1 token remaining
-    expect(result.places.get("p1")?.count).toBe(1);
+    expect(result.frame.places.p1?.count).toBe(1);
 
     // p2 should have 1 token added by t1
-    expect(result.places.get("p2")?.count).toBe(1);
+    expect(result.frame.places.p2?.count).toBe(1);
 
     // p3 should have 1 token added by t2
-    expect(result.places.get("p3")?.count).toBe(1);
+    expect(result.frame.places.p3?.count).toBe(1);
 
     // Both transitions should have their timeSinceLastFiringMs reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
-    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t2?.timeSinceLastFiringMs).toBe(0);
   });
 
   it("handles transitions with multi-dimensional tokens", () => {
@@ -448,83 +381,61 @@ describe("executeTransitions", () => {
       ]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: "type2",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 1,
-            dimensions: 2,
+      places: {
+        p1: {
+          offset: 0,
+          count: 1,
+          dimensions: 2,
+        },
+        p2: {
+          offset: 2,
+          count: 0,
+          dimensions: 2,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[3.0, 4.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: "type2",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 0,
-            dimensions: 2,
-          },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[3.0, 4.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0, 2.0]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // p1 should have no tokens
-    expect(result.places.get("p1")?.count).toBe(0);
+    expect(result.frame.places.p1?.count).toBe(0);
 
     // p2 should have 1 token with values [3.0, 4.0]
-    expect(result.places.get("p2")?.count).toBe(1);
-    expect(result.buffer[0]).toBe(3.0);
-    expect(result.buffer[1]).toBe(4.0);
+    expect(result.frame.places.p2?.count).toBe(1);
+    expect(result.frame.buffer[0]).toBe(3.0);
+    expect(result.frame.buffer[1]).toBe(4.0);
   });
 
   it("updates timeSinceLastFiringMs for transitions that did not fire", () => {
@@ -582,99 +493,74 @@ describe("executeTransitions", () => {
       ]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 2,
+          count: 0,
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[2.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: "type1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 0,
-            dimensions: 1,
+          timeSinceLastFiringMs: 0.5,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t2: {
+          instance: {
+            id: "t2",
+            name: "Transition 2",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 0.001;",
+            transitionKernelCode: "return [[[3.0]]];",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[2.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0.5,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-        [
-          "t2",
-          {
-            instance: {
-              id: "t2",
-              name: "Transition 2",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 0.001;",
-              transitionKernelCode: "return [[[3.0]]];",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0.3,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0.3,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0, 1.5]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // t1 should have fired and timeSinceLastFiringMs reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
 
     // t2 should not have fired and timeSinceLastFiringMs incremented by dt
-    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0.4);
+    expect(result.frame.transitions.t2?.timeSinceLastFiringMs).toBe(0.4);
   });
 });

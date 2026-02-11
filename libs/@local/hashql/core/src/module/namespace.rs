@@ -454,7 +454,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 #[cfg(test)]
 mod tests {
     #![coverage(off)]
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use super::ModuleNamespace;
     use crate::{

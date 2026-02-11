@@ -248,7 +248,7 @@ impl Serialize for PropertyType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]
 pub struct PropertyTypeReference {
@@ -264,7 +264,7 @@ impl From<&VersionedUrl> for &PropertyTypeReference {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(
     untagged,
     expecting = "Expected a data type reference, a property type object, or an array of property \

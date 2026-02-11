@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanDescription,
+  shouldSkipKey,
   transformPropertyKey,
   formatTokensForOutput,
   transformSpacingScale,
@@ -8,6 +9,41 @@ import {
   transformLineHeightReference,
   transformRadiusReference,
 } from "./transforms";
+
+describe("shouldSkipKey", () => {
+  it("always returns true for keys containing -delete", () => {
+    expect(shouldSkipKey("-medium-delete")).toBe(true);
+    expect(shouldSkipKey("-normal-delete")).toBe(true);
+    expect(shouldSkipKey("font-delete")).toBe(true);
+    expect(shouldSkipKey("-medium-delete", true)).toBe(true);
+  });
+
+  it("skips _/- prefixed keys at category level (isInsideValue=false)", () => {
+    expect(shouldSkipKey("_private")).toBe(true);
+    expect(shouldSkipKey("-internal")).toBe(true);
+    expect(shouldSkipKey("_dark")).toBe(true);
+    expect(shouldSkipKey("-1")).toBe(true);
+  });
+
+  it("preserves _/- prefixed keys inside value objects (isInsideValue=true)", () => {
+    expect(shouldSkipKey("_dark", true)).toBe(false);
+    expect(shouldSkipKey("_light", true)).toBe(false);
+    expect(shouldSkipKey("-1", true)).toBe(false);
+  });
+
+  it("returns false for normal keys at any level", () => {
+    expect(shouldSkipKey("default")).toBe(false);
+    expect(shouldSkipKey("hover")).toBe(false);
+    expect(shouldSkipKey("gray")).toBe(false);
+    expect(shouldSkipKey("10")).toBe(false);
+    expect(shouldSkipKey("default", true)).toBe(false);
+  });
+
+  it("returns false for keys with hyphen/underscore not at start", () => {
+    expect(shouldSkipKey("link-hover")).toBe(false);
+    expect(shouldSkipKey("some_value")).toBe(false);
+  });
+});
 
 describe("cleanDescription", () => {
   it("removes leading braced content and newlines", () => {
@@ -109,6 +145,31 @@ describe("transformSpacingScale", () => {
     const result = transformSpacingScale({});
     expect(result).toEqual({});
   });
+
+  it("skips keys containing -delete", () => {
+    const result = transformSpacingScale({
+      "0": { value: 0 },
+      "-medium-delete": { value: 10 },
+      "1": { value: 4 },
+    });
+    expect(result).toEqual({
+      "0": { value: "0px" },
+      "1": { value: "4px" },
+    });
+  });
+
+  it("skips keys starting with _ or - (not inside value objects)", () => {
+    const result = transformSpacingScale({
+      "0": { value: 0 },
+      _internal: { value: 4 },
+      "-private": { value: 8 },
+      "1": { value: 12 },
+    });
+    expect(result).toEqual({
+      "0": { value: "0px" },
+      "1": { value: "12px" },
+    });
+  });
 });
 
 describe("transformRadiusScale", () => {
@@ -138,6 +199,31 @@ describe("transformRadiusScale", () => {
     });
     expect(result).toEqual({
       sm: { value: "{radius.4}" },
+    });
+  });
+
+  it("skips keys containing -delete", () => {
+    const result = transformRadiusScale({
+      "1": { value: 2 },
+      "-normal-delete": { value: 10 },
+      full: { value: 9999 },
+    });
+    expect(result).toEqual({
+      "1": { value: "2px" },
+      full: { value: "9999px" },
+    });
+  });
+
+  it("skips keys starting with _ or - (not inside value objects)", () => {
+    const result = transformRadiusScale({
+      "1": { value: 2 },
+      _internal: { value: 4 },
+      "-private": { value: 6 },
+      full: { value: 9999 },
+    });
+    expect(result).toEqual({
+      "1": { value: "2px" },
+      full: { value: "9999px" },
     });
   });
 });

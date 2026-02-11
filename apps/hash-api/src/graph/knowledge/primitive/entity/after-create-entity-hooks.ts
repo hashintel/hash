@@ -30,7 +30,7 @@ import {
   getMentionedUsersInTextualContent,
   getTextById,
 } from "../../system-types/text";
-import { getUserById } from "../../system-types/user";
+import { getUser } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
 import type {
   AfterCreateEntityHook,
@@ -79,12 +79,18 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
       const pageAuthorAccountId =
         occurredInEntity.entity.metadata.provenance.createdById;
 
-      const pageAuthor = await getUserById(context, authentication, {
-        entityId: entityIdFromComponents(
-          pageAuthorAccountId as WebId,
-          pageAuthorAccountId as string as EntityUuid,
-        ),
+      const pageAuthorEntityId = entityIdFromComponents(
+        pageAuthorAccountId as WebId,
+        pageAuthorAccountId as string as EntityUuid,
+      );
+      const pageAuthor = await getUser(context, authentication, {
+        entityId: pageAuthorEntityId,
       });
+      if (!pageAuthor) {
+        throw new Error(
+          `User with entityId ${pageAuthorEntityId} doesn't exist or cannot be accessed by requesting user.`,
+        );
+      }
 
       const commentAuthor = await getCommentAuthor(context, authentication, {
         commentEntityId: comment.entity.metadata.recordId.entityId,
@@ -216,12 +222,18 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
     { textualContent },
   );
 
-  const triggeredByUser = await getUserById(context, authentication, {
-    entityId: entityIdFromComponents(
-      authentication.actorId as WebId,
-      authentication.actorId as string as EntityUuid,
-    ),
+  const triggeredByUserEntityId = entityIdFromComponents(
+    authentication.actorId as WebId,
+    authentication.actorId as string as EntityUuid,
+  );
+  const triggeredByUser = await getUser(context, authentication, {
+    entityId: triggeredByUserEntityId,
   });
+  if (!triggeredByUser) {
+    throw new Error(
+      `User with entityId ${triggeredByUserEntityId} doesn't exist or cannot be accessed by requesting user.`,
+    );
+  }
 
   await Promise.all([
     ...mentionedUsers

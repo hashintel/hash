@@ -21,7 +21,7 @@ use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
 use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
@@ -163,6 +163,14 @@ pub struct ServerArgs {
     #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
     pub skip_embedding_creation: bool,
 
+    /// Disables filter protection that prevents enumeration attacks on protected properties.
+    ///
+    /// When enabled (protection disabled), queries filtering on protected properties like email
+    /// will not automatically exclude sensitive entity types. This should only be used in
+    /// development/testing environments.
+    #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
+    pub skip_filter_protection: bool,
+
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
@@ -262,6 +270,11 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         PostgresStoreSettings {
             validate_links: !args.skip_link_validation,
             skip_embedding_creation: args.skip_embedding_creation,
+            filter_protection: if args.skip_filter_protection {
+                PropertyProtectionFilterConfig::new()
+            } else {
+                PropertyProtectionFilterConfig::hash_default()
+            },
         },
     )
     .await

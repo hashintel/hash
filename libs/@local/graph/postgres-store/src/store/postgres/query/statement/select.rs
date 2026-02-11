@@ -95,7 +95,10 @@ mod tests {
         data_type::DataTypeQueryPath,
         entity::EntityQueryPath,
         entity_type::EntityTypeQueryPath,
-        filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+        filter::{
+            Filter, FilterExpression, JsonPath, Parameter, PathToken,
+            protection::PropertyProtectionFilterConfig,
+        },
         property_type::PropertyTypeQueryPath,
         query::{NullOrdering, Ordering},
         subgraph::{
@@ -107,7 +110,9 @@ mod tests {
     use postgres_types::ToSql;
     use type_system::{
         knowledge::Entity,
-        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+        ontology::{
+            BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        },
     };
     use uuid::Uuid;
 
@@ -1351,6 +1356,143 @@ mod tests {
                     &Uuid::from(entity_id.web_id),
                     &Uuid::from(entity_id.entity_uuid),
                 ],
+            );
+        }
+    }
+
+    mod property_masking {
+        use super::*;
+
+        #[test]
+        fn single_property_masking() {
+            let config = PropertyProtectionFilterConfig::hash_default();
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            // with_property_masking automatically adds the TypeBaseUrls join
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            let _: usize = compiler.add_selection_path(&EntityQueryPath::Properties(None));
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
+                    (($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
+                    AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2))
+                    THEN ARRAY[$3]::text[]
+                    ELSE ARRAY[]::text[] END))
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+                    ON "entity_editions_0_1_0"."entity_edition_id" =
+                        "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_1_0"
+                    ON "entity_is_of_type_ids_0_1_0"."entity_edition_id" =
+                        "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                "#,
+                &[
+                    &"https://hash.ai/@h/types/entity-type/user/",
+                    &Uuid::nil(),
+                    &"https://hash.ai/@h/types/property-type/email/",
+                ],
+            );
+        }
+
+        #[test]
+        fn multiple_property_masking_with_array_concat() {
+            let mut config = PropertyProtectionFilterConfig::hash_default();
+            // Add second protected property using the same filter as email
+            let phone_url =
+                BaseUrl::new("https://hash.ai/@h/types/property-type/phone/".to_owned())
+                    .expect("valid URL");
+            let email_url =
+                BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+                    .expect("valid URL");
+            config.protect_property(
+                phone_url,
+                config
+                    .property_exclusion_filter(&email_url)
+                    .expect("email should have filter in hash_default config")
+                    .clone(),
+            );
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            let _: usize = compiler.add_selection_path(&EntityQueryPath::Properties(None));
+
+            // Note: HashMap iteration order is non-deterministic, so property order may vary.
+            // We verify the SQL contains both properties with array concatenation.
+            // Parameters are now used instead of hardcoded strings:
+            // For each property: $N = type URL, $N+1 = actor UUID, $N+2 = property URL
+            let (compiled_statement, _) = compiler.compile();
+            let sql = trim_whitespace(&compiled_statement);
+
+            // Verify structure
+            assert!(
+                sql.contains(r#""properties" - ("#),
+                "Should have properties masking with parens for concat: {sql}"
+            );
+            assert!(
+                sql.contains(" || "),
+                "Should have array concatenation: {sql}"
+            );
+
+            // Verify CASE WHEN structure with parameters (two properties = two CASE blocks)
+            assert_eq!(
+                sql.matches("CASE WHEN").count(),
+                2,
+                "Should have two CASE WHEN blocks for two properties: {sql}"
+            );
+
+            // Verify array literals use parameters
+            assert!(
+                sql.contains("ARRAY[$"),
+                "Should use parameters in array literals: {sql}"
+            );
+        }
+
+        #[test]
+        fn sorting_by_property_uses_masked_expression() {
+            let config = PropertyProtectionFilterConfig::hash_default();
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            // Add sorting by email property (which is protected)
+            let email_path = EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                PathToken::Field(Cow::Owned(
+                    "https://hash.ai/@h/types/property-type/email/".to_owned(),
+                )),
+            ])));
+
+            compiler.add_distinct_selection_with_ordering(
+                &email_path,
+                Distinctness::Indistinct,
+                Some((Ordering::Ascending, Some(NullOrdering::Last))),
+            );
+
+            let (compiled_statement, _) = compiler.compile();
+            let sql = trim_whitespace(&compiled_statement);
+
+            // The ORDER BY should use the masked expression, not the raw column
+            // It should contain the CASE WHEN masking in the ORDER BY clause
+            assert!(
+                sql.contains("ORDER BY"),
+                "Should have ORDER BY clause: {sql}"
+            );
+
+            // The ORDER BY expression should include the masking (properties - (CASE WHEN...))
+            // followed by the JSON extraction for email
+            assert!(
+                sql.contains(r#"ORDER BY jsonb_path_query_first(("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
+                "ORDER BY should use masked properties expression: {sql}"
             );
         }
     }

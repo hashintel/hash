@@ -22,8 +22,6 @@ import {
 } from "../../../../state/editor-context";
 
 const glassPanelBaseStyle = css({
-  position: "fixed",
-  zIndex: 999,
   padding: "[4px]",
 });
 
@@ -129,24 +127,26 @@ export const BottomPanel: React.FC = () => {
     [setActiveTab],
   );
 
-  if (!isOpen) {
-    return null;
-  }
-
   // Calculate left position based on left sidebar state
   // Add sidebar padding (12px each side) when sidebar is open
   const leftOffset = isLeftSidebarOpen
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{
+        position: "fixed",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
+        zIndex: 999,
       }}
       contentClassName={panelContainerStyle}
       resizable={{

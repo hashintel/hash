@@ -36,6 +36,30 @@ macro_rules! impl_num {
         $(impl_num!(@impl $num);)*
     };
     (@impl $num:ty) => {
+        impl HasBottom<$num> for SaturatingSemiring {
+            #[inline]
+            fn bottom(&self) -> $num {
+                <$num>::MIN
+            }
+
+            #[inline]
+            fn is_bottom(&self, value: &$num) -> bool {
+                *value == <$num>::MIN
+            }
+        }
+
+        impl HasTop<$num> for SaturatingSemiring {
+            #[inline]
+            fn top(&self) -> $num {
+                <$num>::MAX
+            }
+
+            #[inline]
+            fn is_top(&self, value: &$num) -> bool {
+                *value == <$num>::MAX
+            }
+        }
+
         impl AdditiveMonoid<$num> for SaturatingSemiring {
             #[inline]
             fn zero(&self) -> $num {

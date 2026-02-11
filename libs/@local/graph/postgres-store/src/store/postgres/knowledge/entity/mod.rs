@@ -24,7 +24,10 @@ use hash_graph_store::{
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, Parameter, ParameterList},
+    filter::{
+        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
+        protection::transform_filter,
+    },
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -522,12 +525,39 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks and removes them from responses for non-owners.
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+
+        let protected_filter;
+        let property_protection_filter;
+        let filter_to_use = if should_apply_protection {
+            property_protection_filter = self
+                .settings
+                .filter_protection
+                .to_property_protection_filter(policy_components.actor_id());
+            compiler.with_property_masking(&property_protection_filter);
+
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
+
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
@@ -652,7 +682,9 @@ where
                         FilterExpression::Path {
                             path: EntityTypeQueryPath::OntologyId,
                         },
-                        ParameterList::EntityTypeIds(&type_uuids),
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::EntityTypeIds(&type_uuids),
+                        },
                     );
                     type_compiler
                         .add_filter(&filter)
@@ -1264,8 +1296,16 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let entity_ids: Vec<EntityId> = entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect();
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_uuid, &entities)
+                .start_update_entity_embeddings_workflow(
+                    actor_uuid,
+                    &entity_ids,
+                    self.settings.filter_protection.embedding_exclusions(),
+                )
                 .await
                 .change_context(InsertionError)?;
         }
@@ -1552,7 +1592,15 @@ where
             }
 
             traversal_context
-                .read_traversed_vertices(self, &mut subgraph, request.include_drafts)
+                .read_traversed_vertices(
+                    self,
+                    &mut subgraph,
+                    request.include_drafts,
+                    provider
+                        .policy_components
+                        .as_ref()
+                        .expect("Policy components should be set"),
+                )
                 .await?;
 
             if !request.conversions.is_empty() {
@@ -1689,13 +1737,33 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks in count queries.
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+
+        let protected_filter;
+        let filter_to_use = if should_apply_protection {
+            // Transform filter to protect against email filtering on Users
+            // Note: count_entities has no sorting, so only filter protection applies
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         let temporal_axes = params.temporal_axes.resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         compiler.add_distinct_selection_with_ordering(
@@ -2257,8 +2325,16 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let entity_ids: Vec<EntityId> = entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect();
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_id, &entities)
+                .start_update_entity_embeddings_workflow(
+                    actor_id,
+                    &entity_ids,
+                    self.settings.filter_protection.embedding_exclusions(),
+                )
                 .await
                 .change_context(UpdateError)?;
         }
@@ -2461,7 +2537,9 @@ where
             FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
             },
-            ParameterList::EntityUuids(&entity_uuids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityUuids(&entity_uuids),
+            },
         );
         compiler
             .add_filter(&entity_filter)

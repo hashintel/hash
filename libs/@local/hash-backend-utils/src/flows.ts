@@ -26,6 +26,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
+import type { FileStorageProvider } from "./file-storage.js";
 import {
   getFlowRunFromTemporalWorkflowId,
   getSparseFlowRunFromTemporalWorkflowId,
@@ -49,6 +50,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunId: EntityUuid;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   userAuthentication: { actorId: ActorEntityUuid };
 };
@@ -69,6 +71,7 @@ export async function getFlowRunById({
   flowRunId,
   includeDetails,
   graphApiClient,
+  storageProvider,
   temporalClient,
   userAuthentication,
 }: GetFlowRunByIdFnArgs<boolean>): Promise<SparseFlowRun | FlowRun | null> {
@@ -104,6 +107,7 @@ export async function getFlowRunById({
     return getFlowRunFromTemporalWorkflowId({
       flowRunId: entityUuid,
       name,
+      storageProvider,
       temporalClient,
       temporalWorkflowId,
       webId,
@@ -137,6 +141,7 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
 };
 
@@ -164,6 +169,7 @@ export async function getFlowRuns({
   filters,
   graphApiClient,
   includeDetails,
+  storageProvider,
   temporalClient,
 }: GetFlowRunsFnArgs<boolean>): Promise<SparseFlowRun[] | FlowRun[]> {
   const temporalWorkflowIdToFlowDetails = await queryEntities<FlowRunEntity>(
@@ -245,13 +251,6 @@ export async function getFlowRuns({
     )}"`;
   }
 
-  /**
-   * Order by StartTime DESC so that the latest run for each workflowId comes first.
-   * This allows the `workflowIdToLatestRunTime` logic below to correctly skip older runs
-   * (e.g. from workflow resets) by only recording the first (latest) start time we see.
-   */
-  query += ` ORDER BY StartTime DESC`;
-
   const workflowIterable = temporalClient.workflow.list({ query });
 
   const workflowIdToLatestRunTime: Record<string, string> = {};
@@ -287,6 +286,7 @@ export async function getFlowRuns({
       const runInfo = await getFlowRunFromTemporalWorkflowId({
         flowRunId: flowDetails.flowRunId,
         name: flowDetails.name,
+        storageProvider,
         temporalClient,
         temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,

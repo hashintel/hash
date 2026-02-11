@@ -170,7 +170,7 @@ fn process_line_for_diagnostics(
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
     use std::io::Cursor;
 
     use crate::annotation::{

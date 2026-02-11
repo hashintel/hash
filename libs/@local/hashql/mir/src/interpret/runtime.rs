@@ -21,9 +21,7 @@
 //! 5. Returning the final value when the entry function returns
 
 use alloc::{alloc::Global, borrow::Cow};
-use core::{
-    alloc::Allocator, assert_matches::debug_assert_matches, hint::cold_path, ops::ControlFlow,
-};
+use core::{alloc::Allocator, debug_assert_matches, hint::cold_path, ops::ControlFlow};
 
 use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};

@@ -127,7 +127,7 @@ impl Directive {
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use crate::annotation::directive::{Directive, DirectiveParseError, RunMode};
 

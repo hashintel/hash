@@ -1,4 +1,4 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, Url, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -14,7 +14,7 @@ export const isStorageType = (
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
 export type StorageProviderLookup = Partial<
-  Record<StorageType, FileStorageProvider | UploadableStorageProvider>
+  Record<StorageType, FileStorageProvider>
 >;
 
 /**
@@ -22,20 +22,6 @@ export type StorageProviderLookup = Partial<
  * Even if not currently used for upload, they need to be available for downloads.
  */
 export const storageProviderLookup: StorageProviderLookup = {};
-
-/** Interface describing a generic storage provider
- * used for allowing the download and upload files via presigned request.
- * The storage provider doesn't upload the file itself, instead it returns a URL
- * and form-data fields for the client to upload their file to.
- */
-export interface FileStorageProvider {
-  storageType: StorageType;
-  /**
-   * Presigns a file download request for a client to later download a file
-   * @return {string} The download URL to access the file
-   */
-  presignDownload(params: PresignedDownloadRequest): Promise<string>;
-}
 
 export interface GetFileEntityStorageKeyParams {
   entityId: EntityId;
@@ -47,7 +33,27 @@ export type FileStorageKey = `${
   | `${string}/` // optional path prefix
   | ""}${EntityId}/${string}/${string}`;
 
-export interface UploadableStorageProvider extends FileStorageProvider {
+export interface GetFlowOutputStorageKeyParams {
+  workflowId: string;
+  runId: string;
+  stepId: string;
+  outputName: string;
+}
+
+/**
+ * Interface describing a storage provider for file upload/download operations.
+ * Supports both presigned URLs for client-side operations and direct access
+ * for services with storage credentials.
+ */
+export interface FileStorageProvider {
+  storageType: StorageType;
+
+  /**
+   * Presigns a file download request for a client to later download a file
+   * @return {string} The download URL to access the file
+   */
+  presignDownload(params: PresignedDownloadRequest): Promise<Url>;
+
   /**
    * Presigns a file upload request for a client to later upload a file
    * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage
@@ -81,6 +87,34 @@ export interface UploadableStorageProvider extends FileStorageProvider {
     this: void,
     params: GetFileEntityStorageKeyParams,
   ): FileStorageKey;
+
+  /**
+   * Generate a storage key for flow output payloads.
+   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
+   */
+  getFlowOutputStorageKey(
+    this: void,
+    params: GetFlowOutputStorageKeyParams,
+  ): string;
+
+  /**
+   * Upload data directly to storage without presigning.
+   * Used by workers that have direct storage credentials.
+   */
+  uploadDirect(
+    this: void,
+    params: {
+      key: string;
+      body: string | Buffer;
+      contentType?: string;
+    },
+  ): Promise<void>;
+
+  /**
+   * Download data directly from storage without presigning.
+   * Used by workers that have direct storage credentials.
+   */
+  downloadDirect(this: void, params: { key: string }): Promise<Buffer>;
 }
 
 /** Parameters needed to allow the storage of a file */

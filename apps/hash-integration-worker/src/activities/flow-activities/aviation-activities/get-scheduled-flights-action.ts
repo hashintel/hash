@@ -5,6 +5,10 @@ import {
   type ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
 import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import type { AviationProposedEntity } from "@local/hash-backend-utils/integrations/aviation";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -12,6 +16,7 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
+import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
 
 /**
@@ -59,7 +64,7 @@ export const aviationProposedEntityToFlowProposedEntity = (
 };
 
 /**
- * Fetches scheduled flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
+ * Fetches scheduled arrival flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
  */
 export const getScheduledFlightsAction: IntegrationFlowActionActivity<
   "getScheduledFlights"
@@ -103,6 +108,19 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
       );
     }
 
+    // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+    const { workflowId, runId, stepId } = await getFlowContext();
+
+    const storedRef = await storePayload({
+      storageProvider: getStorageProvider(),
+      workflowId,
+      runId,
+      stepId,
+      outputName: "proposedEntities",
+      kind: "ProposedEntity",
+      value: proposedEntities,
+    });
+
     return {
       code: StatusCode.Ok,
       message: `Generated ${flightCount} flights and ${entities.size - flightCount} related entities for ${airportIcao} on ${date}`,
@@ -113,7 +131,7 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
               outputName: "proposedEntities",
               payload: {
                 kind: "ProposedEntity",
-                value: proposedEntities,
+                value: storedRef,
               },
             },
           ],

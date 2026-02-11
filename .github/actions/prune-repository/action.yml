@@ -10,9 +10,11 @@ runs:
   steps:
     - name: Prune repository
       shell: bash
+      env:
+        INPUT_SCOPE: ${{ inputs.scope }}
       run: |
         # Convert newline-separated input to space-separated arguments
-        SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
+        SCOPES=$(echo "$INPUT_SCOPE" | tr '\n' ' ')
 
         while IFS= read -r scope; do
           # Read all the dependencies for the given scope.
@@ -44,7 +46,7 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-test-server"; then
             SCOPES="$SCOPES @apps/hash-graph"
           fi
-        done <<< "${{ inputs.scope }}"
+        done <<< "$INPUT_SCOPE"
 
         # Deduplicate scopes
         SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')

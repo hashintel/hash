@@ -20,13 +20,6 @@ React component library built with **Panda CSS** and **Ark UI**. Components cons
 - **ds-helpers**: Generates and exports styled-system utilities (`css()`, `cva()`, `token()`, JSX components)
 - **ds-components**: Imports from ds-helpers, wraps Ark UI primitives with styled components
 
-### Reference Implementation
-
-This package aims to follow patterns from **Park UI** (https://park-ui.com), the official Ark UI + Panda CSS integration:
-
-- Park UI preset: `/Users/lunelson/Code/chakra-ui/park-ui/packages/preset`
-- Park UI React components: `/Users/lunelson/Code/chakra-ui/park-ui/components/react`
-
 ## Panda CSS Configuration
 
 ### panda.config.ts
@@ -54,13 +47,13 @@ Key points:
 
 With `strictTokens: true`, you must use the exact token names:
 
-| Token Type | ❌ Invalid | ✅ Valid |
-|------------|-----------|----------|
-| Spacing | `spacing.4`, `"4"` | `default.4`, `compact.4`, `comfortable.4` |
-| Radii | `radius.2`, `md` | `md.2`, `sm.3`, `lg.full`, `component.button.sm` |
-| FontSize | `size.textsm` | `sm`, `xs`, `base`, `lg`, `xl`, `2xl` |
-| LineHeight | `leading.none.textsm` | `none.text-sm`, `normal.text-base` |
-| Arbitrary values | `64px` | `[64px]` |
+| Token Type       | ❌ Invalid             | ✅ Valid                                          |
+| ---------------- | --------------------- | ------------------------------------------------ |
+| Spacing          | `spacing.4`, `"4"`    | `default.4`, `compact.4`, `comfortable.4`        |
+| Radii            | `radius.2`, `md`      | `md.2`, `sm.3`, `lg.full`, `component.button.sm` |
+| FontSize         | `size.textsm`         | `sm`, `xs`, `base`, `lg`, `xl`, `2xl`            |
+| LineHeight       | `leading.none.textsm` | `none.text-sm`, `normal.text-base`               |
+| Arbitrary values | `64px`                | `[64px]`                                         |
 
 The token types are defined in `@hashintel/ds-helpers/types`.
 
@@ -125,14 +118,14 @@ surface.{default,subtle,muted,emphasis,alt,inverted}
 
 When updating components, use this mapping:
 
-| Old (incorrect)          | New (correct)              |
-|--------------------------|----------------------------|
-| `bg.brand.*`             | `bg.accent.*`              |
-| `core.gray.20`           | `gray.20`                  |
-| `core.red.50`            | `red.50`                   |
-| `core.custom.30`         | `accent.30`                |
-| `text.linkhover`         | `text.linkHover`           |
-| `text.semantic.critical` | `text.status.critical`     |
+| Old (incorrect)          | New (correct)          |
+| ------------------------ | ---------------------- |
+| `bg.brand.*`             | `bg.accent.*`          |
+| `core.gray.20`           | `gray.20`              |
+| `core.red.50`            | `red.50`               |
+| `core.custom.30`         | `accent.30`            |
+| `text.linkhover`         | `text.linkHover`       |
+| `text.semantic.critical` | `text.status.critical` |
 
 ## Component Patterns
 
@@ -197,12 +190,12 @@ export const Checkbox = (props) => (
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `yarn storybook` | Start Storybook dev server |
-| `yarn storybook:build` | Build static Storybook |
-| `yarn build` | Build component library with Vite |
-| `yarn lint:tsc` | TypeScript type checking |
+| Script                       | Description                          |
+| ---------------------------- | ------------------------------------ |
+| `yarn storybook`             | Start Storybook dev server           |
+| `yarn storybook:build`       | Build static Storybook               |
+| `yarn build`                 | Build component library with Vite    |
+| `yarn lint:tsc`              | TypeScript type checking             |
 | `yarn panda codegen --clean` | Regenerate styled-system from preset |
 
 ## File Structure

@@ -11,7 +11,7 @@ use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosed
 pub enum ObjectValidationError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum ObjectTypeTag {
     Object,

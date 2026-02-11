@@ -396,7 +396,7 @@ mod tests {
     #![expect(unsafe_code)]
     use alloc::{alloc::Global, vec::Vec};
     use core::mem::MaybeUninit;
-    use std::assert_matches::assert_matches;
+    use std::assert_matches;
 
     use hashql_core::{
         heap::Heap,

@@ -52,7 +52,7 @@ export const flowTypedef = gql`
   scalar ExternalInputRequest
   scalar FlowInputs
   scalar StepInput
-  scalar StepRunOutput
+  scalar ResolvedStepRunOutput
   scalar StepProgressLog
   # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
   # as we need to pass it to FlowDefinition.
@@ -122,7 +122,7 @@ export const flowTypedef = gql`
     """
     Outputs of the step
     """
-    outputs: [StepRunOutput!]
+    outputs: [ResolvedStepRunOutput!]
   }
 
   type FlowRun {
@@ -176,7 +176,7 @@ export const flowTypedef = gql`
     """
     Outputs of the flow run
     """
-    outputs: [StepRunOutput!]
+    outputs: [ResolvedStepRunOutput!]
     """
     Any requests for external input made by steps within the Flow
     """

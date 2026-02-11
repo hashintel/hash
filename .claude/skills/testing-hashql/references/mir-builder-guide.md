@@ -70,6 +70,7 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | `fn` | `Source::Closure` | Regular closures/functions |
 | `thunk` | `Source::Thunk` | Thunk bodies (zero-arg delayed computations) |
 | `[ctor sym::path]` | `Source::Ctor(sym)` | Constructor bodies (always inlined) |
+| `[graph::read::filter]` | `Source::GraphReadFilter` | Graph read filter bodies (never inlined) |
 | `intrinsic` | `Source::Intrinsic` | Intrinsic bodies (never inlined) |
 
 ### Types
@@ -80,9 +81,11 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | `Num` | Number (float) type | `Num` |
 | `Bool` | Boolean type | `Bool` |
 | `Null` | Null type | `Null` |
+| `?` | Unknown type (dynamic) | `?` |
 | `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
 | `(T,)` | Single-element tuple | `(Int,)` |
 | `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
+| `[List T]` | List type (intrinsic) | `[List Int]`, `[List (Int, Bool)]` |
 | `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
 | `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
 
@@ -218,6 +221,22 @@ let body = body!(interner, env; fn@0/0 -> Null {
     },
     bb3() {
         return null;
+    }
+});
+```
+
+### Graph Read Filter
+
+Filter bodies for graph traversal. The first two declared locals become the function arguments (`_0` = env tuple, `_1` = vertex):
+
+```rust
+let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+    decl env: (Int,), vertex: (Int, Int), result: Bool;
+    @proj vertex_field = vertex.0: Int;
+
+    bb0() {
+        result = bin.== vertex_field 42;
+        return result;
     }
 });
 ```

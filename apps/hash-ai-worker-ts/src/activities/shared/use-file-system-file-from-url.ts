@@ -6,8 +6,7 @@ import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -65,11 +64,7 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
 
   const filePath = `${baseFilePath}/${generateUuid()}.pdf`;
 
-  const s3Config = getAwsS3Config();
-
-  const downloadProvider = new AwsS3StorageProvider(s3Config);
-
-  const urlForDownload = await downloadProvider.presignDownload({
+  const urlForDownload = await getStorageProvider().presignDownload({
     entity: fileEntity,
     expiresInSeconds: 60 * 60,
     key: storageKey,

@@ -1,5 +1,5 @@
 #![expect(clippy::min_ident_chars, clippy::unwrap_used)]
-use core::{assert_matches::assert_matches, fmt::Debug, iter};
+use core::{assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,

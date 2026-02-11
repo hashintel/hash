@@ -25,6 +25,7 @@ export const getFlowRunByIdResolver: ResolverFn<
     flowRunId: flowRunId as EntityUuid,
     graphApiClient: context.dataSources.graphApi,
     includeDetails,
+    storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,
     userAuthentication: context.authentication,
   });

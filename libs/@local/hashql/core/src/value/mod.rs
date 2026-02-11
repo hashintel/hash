@@ -155,7 +155,7 @@ impl<'heap> Value<'heap> {
     ///
     /// ```
     /// # #![feature(assert_matches)]
-    /// # use core::assert_matches::assert_matches;
+    /// # use core::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
     ///     value::{FieldAccessError, Integer, Primitive, String, Struct, Tuple, Value},
@@ -212,7 +212,7 @@ impl<'heap> Value<'heap> {
     ///
     /// ```
     /// # #![feature(assert_matches)]
-    /// # use core::assert_matches::assert_matches;
+    /// # use core::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
     ///     value::{Dict, IndexAccessError, Integer, List, Primitive, String, Value},

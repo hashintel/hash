@@ -5,7 +5,9 @@ use core::fmt::{
 use hash_graph_store::filter::PathToken;
 
 use super::ColumnReference;
-use crate::store::postgres::query::{SelectStatement, Table, Transpile, WindowStatement};
+use crate::store::postgres::query::{
+    Condition, SelectStatement, Table, Transpile, WindowStatement,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
@@ -18,6 +20,21 @@ pub enum Function {
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
+    /// Removes keys from a JSONB object.
+    ///
+    /// Transpiles to `{jsonb} - {text_array}` in PostgreSQL.
+    JsonDeleteKeys(Box<Expression>, Box<Expression>),
+    /// Concatenates multiple arrays into one.
+    ///
+    /// Transpiles to `{arr1} || {arr2} || ...` in PostgreSQL.
+    ArrayConcat(Vec<Expression>),
+    /// Creates an array literal with explicit type cast.
+    ///
+    /// Transpiles to `ARRAY[{elements}]::{type}[]` in PostgreSQL.
+    ArrayLiteral {
+        elements: Vec<Expression>,
+        element_type: PostgresType,
+    },
     Lower(Box<Expression>),
     Upper(Box<Expression>),
     Unnest(Box<Expression>),
@@ -25,6 +42,10 @@ pub enum Function {
 }
 
 impl Transpile for Function {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Match-based transpile implementation"
+    )]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Min(expression) => {
@@ -111,6 +132,38 @@ impl Transpile for Function {
                 path.transpile(fmt)?;
                 fmt.write_char(')')
             }
+            Self::JsonDeleteKeys(jsonb, keys) => {
+                fmt.write_char('(')?;
+                jsonb.transpile(fmt)?;
+                fmt.write_str(" - ")?;
+                keys.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::ArrayConcat(arrays) => {
+                fmt.write_char('(')?;
+                for (i, array) in arrays.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(" || ")?;
+                    }
+                    array.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
+            Self::ArrayLiteral {
+                elements,
+                element_type,
+            } => {
+                fmt.write_str("ARRAY[")?;
+                for (i, element) in elements.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    element.transpile(fmt)?;
+                }
+                fmt.write_str("]::")?;
+                element_type.transpile(fmt)?;
+                fmt.write_str("[]")
+            }
         }
     }
 }
@@ -179,6 +232,26 @@ pub enum Expression {
     /// ```
     RowExpansion(Box<Self>),
     Select(Box<SelectStatement>),
+    /// Conditional expression.
+    ///
+    /// Transpiles to `CASE WHEN {cond1} THEN {result1} WHEN {cond2} THEN {result2} ... ELSE
+    /// {else_result} END` in PostgreSQL.
+    CaseWhen {
+        /// List of (condition, result) pairs.
+        conditions: Vec<(Self, Self)>,
+        /// Optional else result if no condition matches.
+        else_result: Option<Box<Self>>,
+    },
+    /// Wraps a [`Condition`] for use in expression contexts.
+    ///
+    /// This allows conditions (which evaluate to boolean) to be used where expressions
+    /// are expected, such as in CASE WHEN conditions.
+    ///
+    /// # Example SQL
+    /// ```sql
+    /// CASE WHEN (a = b AND c != d) THEN 'yes' ELSE 'no' END
+    /// ```
+    Condition(Box<Condition>),
 }
 
 impl Transpile for Expression {
@@ -211,6 +284,28 @@ impl Transpile for Expression {
                 fmt.write_str(".*")
             }
             Self::Select(select) => select.transpile(fmt),
+            Self::CaseWhen {
+                conditions,
+                else_result,
+            } => {
+                fmt.write_str("CASE")?;
+                for (condition, result) in conditions {
+                    fmt.write_str(" WHEN ")?;
+                    condition.transpile(fmt)?;
+                    fmt.write_str(" THEN ")?;
+                    result.transpile(fmt)?;
+                }
+                if let Some(else_expr) = else_result {
+                    fmt.write_str(" ELSE ")?;
+                    else_expr.transpile(fmt)?;
+                }
+                fmt.write_str(" END")
+            }
+            Self::Condition(condition) => {
+                fmt.write_char('(')?;
+                condition.transpile(fmt)?;
+                fmt.write_char(')')
+            }
         }
     }
 }
@@ -258,5 +353,86 @@ mod tests {
             .transpile_to_string(),
             r#"MIN("ontology_ids_1_2_3"."version")"#
         );
+    }
+
+    #[test]
+    fn transpile_case_when() {
+        let case_expr = Expression::CaseWhen {
+            conditions: vec![
+                (
+                    Expression::Constant(Constant::Boolean(true)),
+                    Expression::Constant(Constant::String("yes")),
+                ),
+                (
+                    Expression::Constant(Constant::Boolean(false)),
+                    Expression::Constant(Constant::String("maybe")),
+                ),
+            ],
+            else_result: Some(Box::new(Expression::Constant(Constant::String("no")))),
+        };
+        assert_eq!(
+            case_expr.transpile_to_string(),
+            "CASE WHEN TRUE THEN 'yes' WHEN FALSE THEN 'maybe' ELSE 'no' END"
+        );
+    }
+
+    #[test]
+    fn transpile_case_when_no_else() {
+        let case_expr = Expression::CaseWhen {
+            conditions: vec![(
+                Expression::Constant(Constant::Boolean(true)),
+                Expression::Constant(Constant::String("yes")),
+            )],
+            else_result: None,
+        };
+        assert_eq!(
+            case_expr.transpile_to_string(),
+            "CASE WHEN TRUE THEN 'yes' END"
+        );
+    }
+
+    #[test]
+    fn transpile_json_delete_keys() {
+        let delete_expr = Expression::Function(Function::JsonDeleteKeys(
+            Box::new(Expression::Parameter(1)),
+            Box::new(Expression::Function(Function::ArrayLiteral {
+                elements: vec![
+                    Expression::Constant(Constant::String("email/")),
+                    Expression::Constant(Constant::String("phone/")),
+                ],
+                element_type: PostgresType::Text,
+            })),
+        ));
+        assert_eq!(
+            delete_expr.transpile_to_string(),
+            "($1 - ARRAY['email/', 'phone/']::text[])"
+        );
+    }
+
+    #[test]
+    fn transpile_array_concat() {
+        let concat_expr = Expression::Function(Function::ArrayConcat(vec![
+            Expression::Function(Function::ArrayLiteral {
+                elements: vec![Expression::Constant(Constant::String("a"))],
+                element_type: PostgresType::Text,
+            }),
+            Expression::Function(Function::ArrayLiteral {
+                elements: vec![Expression::Constant(Constant::String("b"))],
+                element_type: PostgresType::Text,
+            }),
+        ]));
+        assert_eq!(
+            concat_expr.transpile_to_string(),
+            "(ARRAY['a']::text[] || ARRAY['b']::text[])"
+        );
+    }
+
+    #[test]
+    fn transpile_empty_array() {
+        let empty_array = Expression::Function(Function::ArrayLiteral {
+            elements: vec![],
+            element_type: PostgresType::Text,
+        });
+        assert_eq!(empty_array.transpile_to_string(), "ARRAY[]::text[]");
     }
 }

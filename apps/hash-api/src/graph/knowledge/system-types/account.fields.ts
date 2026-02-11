@@ -3,7 +3,7 @@ import type {
   PureGraphFunction,
 } from "../../context-types";
 import { getOrgByShortname } from "./org";
-import { getUserByShortname } from "./user";
+import { getUser } from "./user";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -124,7 +124,7 @@ export const shortnameIsTaken: ImpureGraphFunction<
    * @see https://linear.app/hash/issue/H-2989
    */
   return (
-    (await getUserByShortname(ctx, authentication, params)) !== null ||
+    (await getUser(ctx, authentication, params)) !== null ||
     (await getOrgByShortname(ctx, authentication, params)) !== null
   );
 };

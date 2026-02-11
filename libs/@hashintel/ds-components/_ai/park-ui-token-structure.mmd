@@ -1,0 +1,83 @@
+flowchart TB
+    subgraph GlobalAliases["Global Aliases"]
+        fg["fg"]
+        fg --> fgDefault["default → gray.12"]
+        fg --> fgMuted["muted → gray.11"]
+        fg --> fgSubtle["subtle → gray.10"]
+
+        canvas["canvas → gray.1"]
+        border["border → gray.4"]
+        error["error → red.9"]
+        bgSubtle["bg.subtle → gray.2/3"]
+    end
+
+    subgraph ColorPalette["Per-Palette Structure (neutral, blue, red, etc.)"]
+
+        subgraph BaseScale["Base Scale (1-12)"]
+            s1["1 - lightest bg"]
+            s2["2 - subtle bg"]
+            s3["3 - UI element bg"]
+            s4["4 - hovered UI"]
+            s5["5 - active UI"]
+            s6["6 - subtle border"]
+            s7["7 - border/focus"]
+            s8["8 - solid border"]
+            s9["9 - solid bg"]
+            s10["10 - hovered solid"]
+            s11["11 - low-contrast text"]
+            s12["12 - high-contrast text"]
+        end
+
+        subgraph AlphaScale["Alpha Scale (a1-a12)"]
+            a1["a1-a5: transparent overlays"]
+            a6["a6-a8: borders"]
+            a9["a9-a12: text/solid"]
+        end
+
+        subgraph SemanticVariants["Semantic Variants"]
+
+            subgraph Solid["solid"]
+                solidBg["bg.DEFAULT → 9"]
+                solidBgHover["bg.hover → 10"]
+                solidFg["fg → white"]
+            end
+
+            subgraph Subtle["subtle"]
+                subtleBg["bg.DEFAULT → a3"]
+                subtleBgHover["bg.hover → a4"]
+                subtleBgActive["bg.active → a5"]
+                subtleFg["fg → a11"]
+            end
+
+            subgraph Surface["surface"]
+                surfaceBg["bg.DEFAULT → a2"]
+                surfaceBgActive["bg.active → a3"]
+                surfaceBorder["border.DEFAULT → a6"]
+                surfaceBorderHover["border.hover → a7"]
+                surfaceFg["fg → a11"]
+            end
+
+            subgraph Outline["outline"]
+                outlineBgHover["bg.hover → a2"]
+                outlineBgActive["bg.active → a3"]
+                outlineBorder["border.DEFAULT → a7"]
+                outlineFg["fg → a11"]
+            end
+
+            subgraph Plain["plain"]
+                plainBgHover["bg.hover → a3"]
+                plainBgActive["bg.active → a4"]
+                plainFg["fg → a11"]
+            end
+        end
+    end
+
+    subgraph Usage["Recipe Usage Patterns"]
+        cp["colorPalette.{variant}.{property}"]
+        gray["gray.{variant}.{property}"]
+        direct["gray.{1-12} (rare)"]
+    end
+
+    ColorPalette --> cp
+    ColorPalette --> gray
+    BaseScale --> direct

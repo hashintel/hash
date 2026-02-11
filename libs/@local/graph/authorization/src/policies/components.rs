@@ -65,6 +65,7 @@ pub enum MergePolicies {
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
+    is_instance_admin: bool,
     policies: Vec<ResolvedPolicy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
     tracked_entity_types: HashSet<VersionedUrl>,
@@ -83,6 +84,15 @@ impl PolicyComponents {
     #[must_use]
     pub const fn actor_id(&self) -> Option<ActorId> {
         self.actor_id
+    }
+
+    /// Returns `true` if the actor is an instance admin.
+    ///
+    /// Instance admins have elevated privileges, such as bypassing filter protection
+    /// on sensitive properties like email addresses.
+    #[must_use]
+    pub const fn is_instance_admin(&self) -> bool {
+        self.is_instance_admin
     }
 
     /// Returns a reference to the Cedar evaluation context.
@@ -694,6 +704,7 @@ where
 
             let mut policy_components = PolicyComponents {
                 actor_id,
+                is_instance_admin: self.context.is_instance_admin(),
                 policies,
                 tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
                 tracked_entity_types,
@@ -758,6 +769,7 @@ mod tests {
 
         let mut policy_components = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
@@ -811,6 +823,7 @@ mod tests {
 
         let policy_components_without_optimization = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies: policies_without_optimization,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
@@ -838,6 +851,7 @@ mod tests {
 
         let mut policy_components_with_optimization = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies: policies_with_optimization,
             tracked_actions: HashMap::new(),
             tracked_entity_types: HashSet::new(),
@@ -873,6 +887,7 @@ mod tests {
             actor_id: Some(ActorId::User(type_system::principal::actor::UserId::new(
                 Uuid::new_v4(),
             ))),
+            is_instance_admin: false,
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),

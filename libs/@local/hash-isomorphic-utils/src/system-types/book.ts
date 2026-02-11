@@ -19,6 +19,8 @@ import type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  CalendarYearDataType,
+  CalendarYearDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -63,8 +65,6 @@ import type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
-  YearDataType,
-  YearDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -78,6 +78,8 @@ export type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  CalendarYearDataType,
+  CalendarYearDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -122,8 +124,6 @@ export type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
-  YearDataType,
-  YearDataTypeWithMetadata,
 };
 
 /**

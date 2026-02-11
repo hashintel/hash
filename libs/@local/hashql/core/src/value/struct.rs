@@ -143,7 +143,7 @@ impl<'heap> Struct<'heap> {
     ///
     /// ```
     /// # #![feature(assert_matches)]
-    /// # use core::assert_matches::assert_matches;
+    /// # use core::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
     ///     value::{Integer, Primitive, String, Struct, StructError, Value},

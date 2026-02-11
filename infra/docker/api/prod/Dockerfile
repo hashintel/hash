@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:12.10-slim AS mise
+FROM debian:13.3-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -14,7 +14,8 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl https://mise.run | sh && \
+    export MISE_VERSION=2026.1.12 && curl https://mise.run | sh && \
+    mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     eval "$(mise activate bash)" && \

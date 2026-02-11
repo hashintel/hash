@@ -2,6 +2,7 @@ import type http from "node:http";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import {
   getFlowRunEntityById,
   getFlowRuns,
@@ -29,10 +30,12 @@ const inferEntitiesMessageHandler = async ({
   graphApiClient,
   temporalClient,
   message,
+  storageProvider,
   user,
 }: {
   graphApiClient: GraphApi;
   socket: WebSocket;
+  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: DistributiveOmit<InferenceWebsocketClientMessage, "cookie">;
   user: User;
@@ -49,6 +52,7 @@ const inferEntitiesMessageHandler = async ({
         graphApiClient,
         temporalClient,
         message,
+        storageProvider,
         user,
       });
       return;
@@ -67,6 +71,7 @@ const inferEntitiesMessageHandler = async ({
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
         includeDetails: true,
+        storageProvider,
         temporalClient,
       });
 
@@ -112,11 +117,13 @@ export const openInferEntitiesWebSocket = ({
   context,
   httpServer,
   logger,
+  storageProvider,
   temporalClient,
 }: {
   context: ImpureGraphContext;
   httpServer: http.Server;
   logger: Logger;
+  storageProvider: FileStorageProvider;
   temporalClient: Client;
 }) => {
   const wss = new WebSocketServer({
@@ -157,6 +164,7 @@ export const openInferEntitiesWebSocket = ({
         void inferEntitiesMessageHandler({
           graphApiClient: context.graphApi,
           socket,
+          storageProvider,
           temporalClient,
           message,
           user,

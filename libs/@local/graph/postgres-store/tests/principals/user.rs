@@ -1,4 +1,4 @@
-use core::{assert_matches::assert_matches, error::Error};
+use core::{assert_matches, error::Error};
 
 use hash_graph_postgres_store::permissions::PrincipalError;
 use hash_graph_store::account::AccountStore as _;

@@ -8,7 +8,7 @@ use utoipa::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[repr(transparent)]
 pub struct Confidence(

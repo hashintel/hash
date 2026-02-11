@@ -15,59 +15,44 @@ describe("computePossibleTransition", () => {
       transitionKernelFns: new Map([["t1", () => ({ p2: [{ x: 1.0 }] })]]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              differentialEquationId: null,
-              colorId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 1, // Only 1 token available
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 1, // Only 1 token available
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 2 }], // Requires 2 tokens
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return [[[1.0]]];",
+            x: 100,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 2 }], // Requires 2 tokens
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return [[[1.0]]];",
-              x: 100,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0]),
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
 
     // THEN it should return null (transition not enabled)
     expect(result).toBeNull();
@@ -130,76 +115,49 @@ describe("computePossibleTransition", () => {
       ]),
       parameterValues: {},
       dt: 0.1,
+      maxTime: null,
       rngState: 42,
       frames: [],
       currentFrameNumber: 0,
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              differentialEquationId: null,
-              colorId: "type1",
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2, // 2 tokens available
-            dimensions: 1,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2, // 2 tokens available
+          dimensions: 1,
+        },
+        p2: {
+          offset: 2,
+          count: 0,
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
+            outputArcs: [{ placeId: "p2", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return [[[2.0]]];",
+            x: 100,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              differentialEquationId: null,
-              colorId: "type1",
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 2,
-            count: 0,
-            dimensions: 1,
-          },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
-              outputArcs: [{ placeId: "p2", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 10.0;",
-              transitionKernelCode: "return [[[2.0]]];",
-              x: 100,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 1.0,
-            firedInThisFrame: false,
-            firingCount: 0,
-          },
-        ],
-      ]),
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([1.0, 1.5]),
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();

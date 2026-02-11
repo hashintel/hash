@@ -5,6 +5,7 @@ import { z } from "zod";
 import figmaVariables from "./figma-variables.json" with { type: "json" };
 import {
   formatTokensForOutput,
+  shouldSkipKey,
   transformPropertyKey,
   transformSpacingScale,
   transformRadiusScale,
@@ -56,6 +57,10 @@ function generateSpacingTokens(): void {
   const tokens: Record<string, Record<string, { value: string }>> = {};
 
   for (const [scaleName, scale] of Object.entries(parsed)) {
+    // Skip private/internal keys (starting with "-" or "_")
+    if (shouldSkipKey(scaleName)) {
+      continue;
+    }
     // Convert "default" to "DEFAULT" for Panda's nested default token syntax
     const key = transformPropertyKey(camelCase(scaleName));
     tokens[key] = transformSpacingScale(scale);
@@ -122,14 +127,15 @@ function generateTypographyTokens(): void {
   const fonts: Record<string, { value: string }> = {};
   if (parsed.family) {
     for (const [name, { value }] of Object.entries(parsed.family)) {
+      if (shouldSkipKey(name)) continue;
       fonts[camelCase(name)] = { value };
     }
   }
 
-  // Font weights (filter out deprecated entries with "-delete" suffix)
+  // Font weights (filter out deprecated entries)
   const fontWeights: Record<string, { value: number }> = {};
   for (const [name, entry] of Object.entries(parsed.weight)) {
-    if (name.includes("-delete")) continue;
+    if (shouldSkipKey(name)) continue;
     if ("type" in entry && entry.type === "fontWeight") {
       fontWeights[camelCase(name)] = { value: entry.value as number };
     }
@@ -139,6 +145,7 @@ function generateTypographyTokens(): void {
   const fontSizes: Record<string, { value: string }> = {};
   if (parsed.size) {
     for (const [name, { value }] of Object.entries(parsed.size)) {
+      if (shouldSkipKey(name)) continue;
       fontSizes[name] = { value: `${value}px` };
     }
   }
@@ -147,8 +154,10 @@ function generateTypographyTokens(): void {
   const lineHeights: Record<string, Record<string, { value: string }>> = {};
   if (parsed.leading) {
     for (const [category, scales] of Object.entries(parsed.leading)) {
+      if (shouldSkipKey(category)) continue;
       const categoryTokens: Record<string, { value: string }> = {};
       for (const [name, { value }] of Object.entries(scales)) {
+        if (shouldSkipKey(name)) continue;
         categoryTokens[name] = { value: transformLineHeightReference(value) };
       }
       lineHeights[category] = categoryTokens;
@@ -203,6 +212,7 @@ function generateRadiusTokens(): void {
   const coreRadii: Record<string, Record<string, { value: string }>> = {};
   if (parsed.core) {
     for (const [scaleName, scale] of Object.entries(parsed.core)) {
+      if (shouldSkipKey(scaleName)) continue;
       coreRadii[camelCase(scaleName)] = transformRadiusScale(scale);
     }
   }
@@ -211,8 +221,10 @@ function generateRadiusTokens(): void {
   const componentRadii: Record<string, Record<string, { value: string }>> = {};
   if (parsed.component) {
     for (const [componentName, sizes] of Object.entries(parsed.component)) {
+      if (shouldSkipKey(componentName)) continue;
       const sizeTokens: Record<string, { value: string }> = {};
       for (const [size, { value }] of Object.entries(sizes)) {
+        if (shouldSkipKey(size)) continue;
         sizeTokens[camelCase(size)] = {
           value: transformRadiusReference(value),
         };
