@@ -149,6 +149,12 @@ impl TransMatrix {
         self.matrix[Self::offset(from, to)]
     }
 
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, from: TargetId, to: TargetId) -> bool {
+        self.matrix[Self::offset(from, to)].is_some()
+    }
+
     /// Returns a mutable reference to the cost entry for the given transition.
     ///
     /// ```
@@ -274,6 +280,17 @@ impl TransMatrix {
             }
 
             self.matrix[Self::offset(source, target)] = None;
+        }
+    }
+
+    #[inline]
+    pub fn keep(&mut self, sources: TargetBitSet, targets: TargetBitSet) {
+        for source in TargetId::all() {
+            for target in TargetId::all() {
+                if !sources.contains(source) || !targets.contains(target) {
+                    self.matrix[Self::offset(source, target)] = None;
+                }
+            }
         }
     }
 
@@ -424,6 +441,14 @@ impl<A: Allocator> TerminatorCostVec<A> {
             TerminatorKind::Goto(_) | TerminatorKind::GraphRead(_) => 1,
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => 0,
         }
+    }
+
+    pub const fn len(&self) -> usize {
+        self.matrices.len()
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns the transition matrices for all successor edges of `block`.
