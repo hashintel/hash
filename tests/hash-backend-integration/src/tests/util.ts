@@ -102,7 +102,6 @@ export const createTestUser = async (
 
   const identity = await createKratosIdentity({
     traits: {
-      shortname,
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {

@@ -25,11 +25,13 @@ selfservice:
 
     link:
       config:
-        # The URL for verification emails are set through the link method
-        # but we're using the code method, so we disable this method for usage.
+        # The link method is disabled (we use the code method instead).
+        # link.base_url is used by Kratos to construct {{ .VerificationURL }}
+        # in email templates, but our templates extract the flow ID from it
+        # and construct their own link to /verification directly.
         enabled: false
         # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
-        base_url: http://localhost:3000/api/ory
+        base_url: http://localhost:3000
     code:
       config:
         # and make sure to enable the code method.
@@ -83,7 +85,7 @@ selfservice:
     verification:
       use: code
       lifespan: 48h
-      # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
+      # Set through SELFSERVICE_FLOWS_VERIFICATION_UI_URL
       ui_url: http://localhost:3000/verification
       enabled: true
 

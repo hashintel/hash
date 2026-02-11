@@ -5,7 +5,7 @@ import { useMemo } from "react";
 
 import type { Org } from "../../lib/user-and-org";
 import { HouseSolidIcon } from "../../shared/icons/house-solid-icon";
-import { LockRegularIcon } from "../../shared/icons/lock-regular-icon";
+import { LockSolidIcon } from "../../shared/icons/lock-solid-icon";
 import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
@@ -49,7 +49,7 @@ const generateMenuLinks = (
     {
       label: "Security",
       href: "/settings/security",
-      icon: LockRegularIcon,
+      icon: LockSolidIcon,
     },
     {
       label: "Organizations",

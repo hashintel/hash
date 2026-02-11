@@ -4,7 +4,7 @@ import type { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import type { FormEventHandler, FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button } from "../../shared/ui";
 import { AuthHeading } from "./auth-heading";
@@ -14,16 +14,21 @@ import { useKratosErrorHandler } from "./use-kratos-flow-error-handler";
 
 type VerifyEmailStepProps = {
   email: string;
+  /** An error message to display initially (e.g. from a failed auto-verify attempt). */
+  initialError?: string;
   onVerified: () => void | Promise<void>;
 };
 
 export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
   email,
+  initialError,
   onVerified,
 }) => {
   const [flow, setFlow] = useState<VerificationFlow>();
   const [code, setCode] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(
+    initialError,
+  );
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
 
@@ -32,6 +37,14 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
     setFlow,
     setErrorMessage,
   });
+
+  /**
+   * Use a ref so that callbacks don't depend on the identity of
+   * `handleFlowError`, which changes when `authenticatedUser` updates in the
+   * auth context.
+   */
+  const handleFlowErrorRef = useRef(handleFlowError);
+  handleFlowErrorRef.current = handleFlowError;
 
   const extractCodeValue = useCallback((nextFlow: VerificationFlow) => {
     const codeInputNode = nextFlow.ui.nodes.find(
@@ -75,7 +88,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
         setFlow(data);
         extractCodeValue(data);
       })
-      .catch(handleFlowError)
+      .catch((error: AxiosError) => handleFlowErrorRef.current(error))
       .catch((error: AxiosError<VerificationFlow>) => {
         if (error.response?.status === 400) {
           setFlow(error.response.data);
@@ -85,11 +98,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
         return Promise.reject(error);
       })
       .finally(() => setSendingCode(false));
-  }, [email, extractCodeValue, handleFlowError]);
-
-  useEffect(() => {
-    createAndSendVerificationCode();
-  }, [createAndSendVerificationCode]);
+  }, [email, extractCodeValue]);
 
   const codeInputUiNode = useMemo(
     () =>
@@ -109,6 +118,8 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
 
     setVerifyingCode(true);
 
+    let succeeded = false;
+
     void oryKratosClient
       .updateVerificationFlow({
         flow: flow.id,
@@ -120,8 +131,11 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
       })
       .then(async () => {
         await onVerified();
+        succeeded = true;
       })
-      .catch(handleFlowError)
+      .catch(async (error: AxiosError) => {
+        await handleFlowErrorRef.current(error);
+      })
       .catch((error: AxiosError<VerificationFlow>) => {
         if (error.response?.status === 400) {
           setFlow(error.response.data);
@@ -130,8 +144,15 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
 
         return Promise.reject(error);
       })
-      .finally(() => setVerifyingCode(false));
+      .finally(() => {
+        // Only reset on failure – on success, onVerified triggers navigation.
+        if (!succeeded) {
+          setVerifyingCode(false);
+        }
+      });
   };
+
+  const codeSentInSession = !!flow;
 
   return (
     <AuthPaper>
@@ -143,7 +164,9 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           mb: 3,
         }}
       >
-        We've sent a verification code to {email}
+        {codeSentInSession
+          ? `Enter the verification code sent to ${email}`
+          : `We've sent a verification code to ${email}. Click the link in the email to verify, or request a new code below to enter manually.`}
       </Typography>
       <Box
         component="form"
@@ -155,37 +178,52 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           width: "100%",
         }}
       >
-        <TextField
-          label="Verification code"
-          type="text"
-          autoComplete="one-time-code"
-          placeholder="Enter your verification code"
-          value={code}
-          onChange={({ target }) => setCode(target.value)}
-          error={
-            !!codeInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={codeInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-          inputProps={{
-            maxLength: 6,
-            inputMode: "numeric",
-            pattern: "[0-9]{6}",
-          }}
-        />
-        <Button type="submit" disabled={!code || verifyingCode || sendingCode}>
-          {verifyingCode ? "Verifying..." : "Verify"}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={createAndSendVerificationCode}
-          disabled={sendingCode || verifyingCode}
-        >
-          {sendingCode ? "Resending..." : "Resend verification email"}
-        </Button>
+        {codeSentInSession ? (
+          <>
+            <TextField
+              label="Verification code"
+              type="text"
+              autoComplete="one-time-code"
+              placeholder="Enter your verification code"
+              value={code}
+              onChange={({ target }) => setCode(target.value)}
+              error={
+                !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              }
+              helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+                <Typography key={id}>{text}</Typography>
+              ))}
+              required
+              inputProps={{
+                maxLength: 6,
+                inputMode: "numeric",
+                pattern: "[0-9]{6}",
+              }}
+            />
+            <Button
+              type="submit"
+              disabled={!code || verifyingCode || sendingCode}
+            >
+              {verifyingCode ? "Verifying..." : "Verify"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={createAndSendVerificationCode}
+              disabled={sendingCode || verifyingCode}
+            >
+              {sendingCode ? "Resending..." : "Resend verification email"}
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            onClick={createAndSendVerificationCode}
+            disabled={sendingCode}
+          >
+            {sendingCode ? "Sending..." : "Send a new verification code"}
+          </Button>
+        )}
         {flow?.ui.messages?.map(({ id, text }) => (
           <Typography key={id}>{text}</Typography>
         ))}

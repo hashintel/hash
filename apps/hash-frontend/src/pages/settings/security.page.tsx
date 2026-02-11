@@ -457,8 +457,8 @@ const SecurityPage: NextPageWithLayout = () => {
               }}
             />
             <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({ color: palette.gray[70], mb: 1.5 })}
+              variant="regularTextLabels"
+              sx={{ mb: 1.5, display: "block" }}
             >
               Password
             </Typography>
@@ -512,10 +512,7 @@ const SecurityPage: NextPageWithLayout = () => {
           <Divider />
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({ color: palette.gray[70] })}
-            >
+            <Typography variant="regularTextLabels" sx={{ display: "block" }}>
               Two-factor authentication
             </Typography>
 
@@ -607,7 +604,10 @@ const SecurityPage: NextPageWithLayout = () => {
                 onSubmit={handleEnableTotpSubmit}
                 sx={{ display: "flex", flexDirection: "column", gap: 2 }}
               >
-                <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
+                <Typography
+                  variant="smallTextParagraphs"
+                  sx={{ color: ({ palette }) => palette.gray[80] }}
+                >
                   Scan the QR code with your authenticator app, then enter the
                   6-digit code to enable TOTP.
                 </Typography>
@@ -618,35 +618,34 @@ const SecurityPage: NextPageWithLayout = () => {
                     alt="TOTP QR code"
                     data-testid="totp-qr-code"
                     sx={{
-                      width: 220,
-                      height: 220,
+                      width: 180,
+                      height: 180,
                       borderRadius: 1,
                       border: ({ palette }) => `1px solid ${palette.gray[30]}`,
                     }}
                   />
-                ) : (
-                  <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
-                    QR code unavailable. Use the secret key below for manual
-                    setup.
-                  </Typography>
-                )}
+                ) : null}
                 {totpSecretKey ? (
                   <Box>
                     <Typography
-                      variant="smallTextLabels"
+                      variant="smallTextParagraphs"
                       sx={({ palette }) => ({
-                        color: palette.gray[70],
+                        color: palette.gray[80],
                         mb: 0.75,
+                        display: "block",
                       })}
                     >
-                      Secret key (manual setup)
+                      {totpQrCodeDataUri
+                        ? "Alternatively, use the secret key below for manual setup."
+                        : "QR code unavailable. Use the secret key below for manual setup."}
                     </Typography>
                     <Typography
                       component="code"
                       data-testid="totp-secret-key"
                       sx={{
                         display: "inline-block",
-                        p: 1,
+                        py: 1,
+                        px: 2,
                         borderRadius: 1,
                         background: ({ palette }) => palette.gray[20],
                         fontFamily: "monospace",

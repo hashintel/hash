@@ -58,3 +58,19 @@ export const isUserEmailVerified = async (
     identity.verifiable_addresses?.some(({ verified }) => verified) ?? false
   );
 };
+
+/**
+ * Send a verification email using the Kratos self-service verification flow.
+ * Uses the native (non-browser) flow to avoid CSRF token requirements.
+ */
+export const sendVerificationEmail = async (email: string): Promise<void> => {
+  const { data: flow } = await kratosFrontendApi.createNativeVerificationFlow();
+
+  await kratosFrontendApi.updateVerificationFlow({
+    flow: flow.id,
+    updateVerificationFlowBody: {
+      method: "code",
+      email,
+    },
+  });
+};

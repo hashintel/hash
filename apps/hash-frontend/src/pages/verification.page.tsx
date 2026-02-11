@@ -1,180 +1,170 @@
-import { TextField } from "@hashintel/design-system";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import type { VerificationFlow } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
-import {
-  gatherUiNodeValuesFromFlow,
-  oryKratosClient,
-} from "./shared/ory-kratos";
-import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
+import { useAuthInfo } from "./shared/auth-info-context";
+import { AuthLayout } from "./shared/auth-layout";
+import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import { VerifyEmailStep } from "./shared/verify-email-step";
 
-const VerificationPage: NextPageWithLayout = () => {
-  // Get ?flow=... from the URL
+const VerifyEmailPage: NextPageWithLayout = () => {
   const router = useRouter();
-
-  const {
-    return_to: returnTo,
-    flow: flowId,
-    // Refresh means we want to refresh the session. This is needed, for example, when we want to update the password
-    // of a user.
-    refresh,
-    // AAL = Authorization Assurance Level. This implies that we want to upgrade the AAL, meaning that we want
-    // to perform two-factor authentication/verification.
-    aal,
-  } = router.query;
-
-  const [flow, setFlow] = useState<VerificationFlow>();
-  const [code, setCode] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>();
-
-  const { handleFlowError } = useKratosErrorHandler({
-    flowType: "verification",
-    setFlow,
-    setErrorMessage,
-  });
-
-  // This might be confusing, but we want to show the user an option
-  // to sign out if they are performing two-factor authentication!
   const { logout } = useLogoutFlow();
+  const { authenticatedUser, emailVerificationStatusKnown, refetch } =
+    useAuthInfo();
 
-  const extractFlowCodeValue = (flowToSearch: VerificationFlow | undefined) => {
-    const uiCode = flowToSearch?.ui.nodes.find(
-      ({ attributes }) =>
-        isUiNodeInputAttributes(attributes) && attributes.name === "code",
-    );
-    if (uiCode?.attributes && "value" in uiCode.attributes) {
-      setCode(String(uiCode.attributes.value));
-    }
-  };
+  const primaryEmailVerified =
+    authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
+
+  const urlCode =
+    typeof router.query.code === "string" ? router.query.code : undefined;
+  const urlFlowId =
+    typeof router.query.flow === "string" ? router.query.flow : undefined;
+
+  const [autoVerifying, setAutoVerifying] = useState(false);
+  const [autoVerifyError, setAutoVerifyError] = useState<string>();
+  const autoVerifyAttempted = useRef(false);
 
   useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (emailVerificationStatusKnown && !authenticatedUser) {
+      void router.replace("/signin");
+    }
+  }, [authenticatedUser, emailVerificationStatusKnown, router]);
+
+  useEffect(() => {
+    if (authenticatedUser && primaryEmailVerified) {
+      void router.replace("/");
+    }
+  }, [authenticatedUser, primaryEmailVerified, router]);
+
+  /**
+   * When the page is loaded with both `code` and `flow` query params (e.g.
+   * from clicking the verification link in an email), attempt to verify the
+   * email automatically without requiring the user to enter the code.
+   */
+  useEffect(() => {
+    if (
+      !urlCode ||
+      !urlFlowId ||
+      !authenticatedUser ||
+      primaryEmailVerified ||
+      autoVerifyAttempted.current
+    ) {
       return;
     }
 
-    // If ?flow=.. was in the URL, we fetch it
-    if (flowId) {
-      oryKratosClient
-        .getVerificationFlow({ id: String(flowId) })
-        .then(({ data }) => {
-          setFlow(data);
-          extractFlowCodeValue(data);
-        })
-        .catch(handleFlowError);
-      return;
-    }
+    autoVerifyAttempted.current = true;
+    setAutoVerifying(true);
 
-    // Otherwise we initialize it
-    oryKratosClient
-      .createBrowserVerificationFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
+    void oryKratosClient
+      .getVerificationFlow({ id: urlFlowId })
+      .then(({ data: existingFlow }) =>
+        oryKratosClient.updateVerificationFlow({
+          flow: existingFlow.id,
+          updateVerificationFlowBody: {
+            method: "code",
+            code: urlCode,
+            csrf_token: mustGetCsrfTokenFromFlow(existingFlow),
+          },
+        }),
+      )
+      .then(async () => {
+        await refetch();
+        void router.replace("/");
       })
-      .then(({ data }) => {
-        setFlow(data);
-        extractFlowCodeValue(data);
-      })
-      .catch(handleFlowError);
+      .catch((error: AxiosError<VerificationFlow>) => {
+        const errorMessages =
+          error.response?.data.ui.messages
+            ?.filter(({ type }) => type === "error")
+            .map(({ text }) => text) ?? [];
+
+        setAutoVerifyError(
+          errorMessages.length > 0
+            ? errorMessages.join(" ")
+            : "The verification link may have expired. A new code has been sent to your email.",
+        );
+        setAutoVerifying(false);
+
+        // Strip the code and flow params from the URL so we don't retry
+        void router.replace("/verification", undefined, { shallow: true });
+      });
   }, [
-    flowId,
+    urlCode,
+    urlFlowId,
+    authenticatedUser,
+    primaryEmailVerified,
+    refetch,
     router,
-    router.isReady,
-    aal,
-    refresh,
-    returnTo,
-    flow,
-    handleFlowError,
   ]);
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
+  if (!authenticatedUser || primaryEmailVerified) {
+    return null;
+  }
 
-    if (!flow) {
-      return;
-    }
-
-    void router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
-      // their data when they reload the page.
-      .push(`/verification`, { query: { flow: flow.id } }, { shallow: true });
-
-    oryKratosClient
-      .updateVerificationFlow({
-        flow: String(flow.id),
-        updateVerificationFlowBody: {
-          ...gatherUiNodeValuesFromFlow<"verification">(flow),
-          method: "code",
-          code,
-        },
-      })
-      .then(({ data }) => {
-        // Form submission was successful, show the message to the user!
-        setFlow(data);
-        void router.push("/");
-      })
-      .catch(handleFlowError);
-  };
-
-  const codeInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "code",
-  );
-
-  return (
-    <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
-        Account verification
-      </Typography>
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
+  if (autoVerifying) {
+    return (
+      <AuthLayout
         sx={{
           display: "flex",
-          flexDirection: "column",
-          maxWidth: 500,
-          "> *": {
-            marginTop: 1,
-          },
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        <TextField
-          label="Verification code"
-          type="text"
-          autoComplete="off"
-          placeholder="Enter your verification code"
-          value={code}
-          onChange={({ target }) => setCode(target.value)}
-          error={
-            !!codeInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={codeInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-        />
-        <Button type="submit">Verify account</Button>
-        {flow?.ui.messages?.map(({ text, id }) => (
-          <Typography key={id}>{text}</Typography>
-        ))}
-        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <CircularProgress size={32} />
+          <Typography
+            sx={{ fontSize: 16, color: ({ palette }) => palette.gray[70] }}
+          >
+            Verifying your email...
+          </Typography>
+        </Box>
+      </AuthLayout>
+    );
+  }
 
-        <Button variant="secondary" onClick={logout}>
-          Log out
-        </Button>
+  return (
+    <AuthLayout
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Box sx={{ maxWidth: 600 }}>
+        <VerifyEmailStep
+          email={authenticatedUser.emails[0]?.address ?? ""}
+          initialError={autoVerifyError}
+          onVerified={async () => {
+            await refetch();
+            void router.push("/");
+          }}
+        />
       </Box>
-    </Container>
+      <Button
+        variant="secondary"
+        onClick={logout}
+        size="small"
+        sx={{ position: "absolute", bottom: 24, right: 24 }}
+      >
+        Log out
+      </Button>
+    </AuthLayout>
   );
 };
 
-VerificationPage.getLayout = getPlainLayout;
+VerifyEmailPage.getLayout = getPlainLayout;
 
-export default VerificationPage;
+export default VerifyEmailPage;

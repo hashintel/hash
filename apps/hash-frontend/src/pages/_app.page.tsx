@@ -73,7 +73,7 @@ type AppProps = {
 } & AppInitialProps &
   NextAppProps;
 
-const unverifiedUserPermittedPagePathnames = ["/verify-email", "/verification"];
+const unverifiedUserPermittedPagePathnames = ["/verification"];
 
 const App: FunctionComponent<AppProps> = ({
   Component,
@@ -116,7 +116,7 @@ const App: FunctionComponent<AppProps> = ({
       return;
     }
 
-    void router.replace("/verify-email");
+    void router.replace("/verification");
   }, [router, userMustVerifyEmail]);
 
   useEffect(() => {
@@ -259,7 +259,7 @@ const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
   "/signin",
   "/signup",
-  "/verify-email",
+  "/verification",
   "/recovery",
   "/",
 ];
@@ -359,10 +359,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   const primaryEmailVerified = await getPrimaryEmailVerificationStatus(cookie);
 
-  if (primaryEmailVerified === false && pathname !== "/verify-email") {
-    redirectInGetInitialProps({ appContext, location: "/verify-email" });
+  if (primaryEmailVerified === false) {
+    if (!unverifiedUserPermittedPagePathnames.includes(pathname)) {
+      redirectInGetInitialProps({ appContext, location: "/verification" });
+    }
+
     return { initialAuthenticatedUserSubgraph, user };
-  } else if (primaryEmailVerified === true && pathname === "/verify-email") {
+  }
+
+  if (primaryEmailVerified === true && pathname === "/verification") {
     redirectInGetInitialProps({ appContext, location: "/" });
     return { initialAuthenticatedUserSubgraph, user };
   }
