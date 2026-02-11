@@ -7,13 +7,10 @@ import type { FormEventHandler, FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../shared/ui";
-import { AuthHeading } from "../shared/auth-heading";
-import { AuthPaper } from "../shared/auth-paper";
-import {
-  mustGetCsrfTokenFromFlow,
-  oryKratosClient,
-} from "../shared/ory-kratos";
-import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
+import { AuthHeading } from "./auth-heading";
+import { AuthPaper } from "./auth-paper";
+import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./ory-kratos";
+import { useKratosErrorHandler } from "./use-kratos-flow-error-handler";
 
 type VerifyEmailStepProps = {
   email: string;

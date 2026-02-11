@@ -25,13 +25,13 @@ import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
+import { VerifyEmailStep } from "./shared/verify-email-step";
 import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
 import type { AccountSetupFormData } from "./signup.page/account-setup-form";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";
-import { VerifyEmailStep } from "./signup.page/verify-email-step";
 
 const LoginButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -122,6 +122,7 @@ const SignupPage: NextPageWithLayout = () => {
       if (errors && errors.length > 0) {
         const { message } = parseGraphQLError([...errors]);
         setErrorMessage(message);
+        return;
       }
 
       if (invitation) {
