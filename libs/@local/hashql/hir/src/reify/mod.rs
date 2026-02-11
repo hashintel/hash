@@ -715,10 +715,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn if_expr_then_some(&mut self, node: Node<'heap>) -> Node<'heap> {
-        let some_some = self.make_qualified_path(
-            node.span,
-            &[sym::lexical::core, sym::lexical::option, sym::lexical::Some],
-        );
+        let some_some = self.make_qualified_path(node.span, &[sym::core, sym::option, sym::Some]);
 
         let node = NodeData {
             id: self.context.counter.hir.next(),
@@ -737,10 +734,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn if_expr_else_none(&mut self, span: SpanId) -> Node<'heap> {
-        let none_path = self.make_qualified_path(
-            span,
-            &[sym::lexical::core, sym::lexical::option, sym::lexical::None],
-        );
+        let none_path = self.make_qualified_path(span, &[sym::core, sym::option, sym::None]);
 
         let node = NodeData {
             id: self.context.counter.hir.next(),

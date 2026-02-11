@@ -1,4 +1,4 @@
-use hashql_core::{heap::Heap, id::IdCounter, module::ModuleRegistry, symbol::SymbolTable};
+use hashql_core::{heap::Heap, id::IdCounter, module::ModuleRegistry, symbol::SymbolLookup};
 
 use crate::{
     intern::Interner,
@@ -6,18 +6,18 @@ use crate::{
     node::{HirId, r#let::VarId},
 };
 
-pub type BinderSymbolTable<'heap> = SymbolTable<'heap, VarId>;
+pub type BinderSymbolLookup<'heap> = SymbolLookup<'heap, VarId>;
 
 #[derive(Debug)]
 pub struct SymbolRegistry<'heap> {
-    pub binder: BinderSymbolTable<'heap>,
+    pub binder: BinderSymbolLookup<'heap>,
 }
 
 impl SymbolRegistry<'_> {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            binder: BinderSymbolTable::dense(),
+            binder: BinderSymbolLookup::dense(),
         }
     }
 }

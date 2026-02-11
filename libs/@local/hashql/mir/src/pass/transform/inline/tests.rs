@@ -534,7 +534,7 @@ fn analysis_directives_by_source() {
 
     let mut ctor_body = closure_body.clone();
     ctor_body.id = DefId::new(1);
-    ctor_body.source = Source::Ctor(sym::lexical::Some);
+    ctor_body.source = Source::Ctor(sym::Some);
 
     let mut intrinsic_body = closure_body.clone();
     intrinsic_body.id = DefId::new(2);

@@ -1,0 +1,488 @@
+//! Compact symbol representation using tagged pointers.
+//!
+//! This module provides [`Repr`], a single-word representation for symbols that can be either:
+//!
+//! - **Runtime symbols**: Heap-allocated on a bump allocator with inline string data
+//! - **Constant symbols**: Indices into a static string table, encoded directly in pointer bits
+//!
+//! # Design Goals
+//!
+//! - **Compact**: `Repr` is exactly one pointer in size (8 bytes on 64-bit)
+//! - **Niche optimization**: `Option<Repr>` is also one pointer in size
+//! - **Efficient**: Symbols are frequently created but rarely accessed
+//!
+//! # Tagged Pointer Scheme
+//!
+//! Uses the lowest bit as a discriminant tag (possible because allocations are 2-byte aligned):
+//!
+//! - Bit 0 = `0`: Runtime symbol (pointer to [`RuntimeRepr`] allocation)
+//! - Bit 0 = `1`: Constant symbol (index shifted left by 1, `OR`ed with tag)
+//!
+//! # Provenance
+//!
+//! Runtime symbols store a [`NonNull<RuntimeRepr>`] rather than a reference to preserve
+//! full allocation provenance. Creating `&RuntimeRepr` would narrow provenance to just the
+//! header, causing undefined behavior when accessing the trailing inline bytes under strict
+//! provenance / Stacked Borrows.
+#![expect(unsafe_code)]
+
+use alloc::alloc::handle_alloc_error;
+use core::{
+    alloc::{AllocError, Layout},
+    mem,
+    num::NonZero,
+    ptr::{self, NonNull},
+};
+
+use super::sym::SYMBOLS;
+use crate::heap::BumpAllocator;
+
+/// Header for a runtime-allocated symbol with inline string data.
+///
+/// # Memory Layout
+///
+/// ```text
+/// ┌──────────────┬──────────────────────┐
+/// │ len: usize   │ data: [u8; len]      │
+/// └──────────────┴──────────────────────┘
+/// ```
+///
+/// The `data` field is a zero-sized array marker; actual bytes are allocated
+/// immediately after the header. The struct uses `#[repr(C)]` to guarantee
+/// this layout.
+///
+/// # Provenance
+///
+/// References to this type (`&RuntimeSymbol`) only have provenance for the header,
+/// not the trailing bytes. All access must go through [`NonNull<RuntimeSymbol>`]
+/// to preserve full allocation provenance.
+#[repr(C, align(2))]
+pub(crate) struct RuntimeRepr {
+    len: usize,
+    data: [u8; 0],
+}
+
+impl RuntimeRepr {
+    /// Computes the allocation layout for a runtime symbol with `len` bytes of data.
+    #[inline]
+    fn layout(len: usize) -> Layout {
+        Layout::from_size_align(
+            size_of::<Self>().checked_add(len).expect("overflow"),
+            mem::align_of::<Self>(),
+        )
+        .expect("invalid RuntimeSymbol layout")
+    }
+
+    /// Allocates a runtime symbol containing `value` on the given allocator.
+    ///
+    /// Returns a [`NonNull`] pointer with provenance for the entire allocation,
+    /// including the trailing string bytes.
+    ///
+    /// # Panics
+    ///
+    /// Panics if allocation fails.
+    pub(crate) fn alloc<A: BumpAllocator>(alloc: &A, value: &str) -> NonNull<Self> {
+        let Ok(value) = Self::try_alloc(alloc, value) else {
+            handle_alloc_error(Self::layout(value.len()))
+        };
+
+        value
+    }
+
+    /// Attempts to allocate a runtime symbol containing `value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the allocator cannot satisfy the request.
+    fn try_alloc<A: BumpAllocator>(alloc: &A, value: &str) -> Result<NonNull<Self>, AllocError> {
+        let len = value.len();
+
+        let layout = Self::layout(value.len());
+
+        let ptr = alloc.allocate(layout)?.cast::<Self>();
+
+        // SAFETY: `ptr` points to a freshly allocated block of `layout` size.
+        // We write `len` to the header and copy `len` bytes of string data
+        // immediately after the header, which fits within the allocation.
+        unsafe {
+            ptr.cast::<usize>().write(len);
+
+            let buf = ptr.add(1).cast::<u8>();
+            ptr::copy_nonoverlapping(value.as_ptr(), buf.as_ptr(), len);
+        }
+
+        Ok(ptr)
+    }
+
+    /// Returns a pointer to the inline string data.
+    ///
+    /// This performs pointer arithmetic without dereferencing, so it is safe.
+    /// The returned pointer has provenance for the trailing bytes if `this`
+    /// has provenance for the full allocation.
+    #[inline]
+    const fn data_ptr(this: NonNull<Self>) -> NonNull<u8> {
+        // SAFETY: `this` points to a valid `RuntimeSymbol` allocation, which
+        // always has at least `size_of::<Self>()` bytes. Adding 1 moves past
+        // the header to the inline data region.
+        unsafe { this.add(1) }.cast()
+    }
+
+    /// Reads the length of the inline string data.
+    ///
+    /// # Safety
+    ///
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
+    /// - The allocation must remain live for the duration of this call.
+    #[inline]
+    const unsafe fn len(this: NonNull<Self>) -> usize {
+        // SAFETY: Caller guarantees `this` points to a valid, initialized allocation.
+        unsafe { this.cast::<usize>().read() }
+    }
+
+    /// Returns the inline data as a byte slice.
+    ///
+    /// # Safety
+    ///
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
+    /// - The allocation must remain live for the lifetime `'a`.
+    /// - The returned slice must not be mutated for the lifetime `'a`.
+    #[inline]
+    const unsafe fn as_bytes<'a>(this: NonNull<Self>) -> &'a [u8] {
+        // SAFETY: Caller guarantees `this` is valid and the allocation outlives `'a`.
+        // `data_ptr` returns a pointer to the inline bytes, and `len` returns the count.
+        unsafe { core::slice::from_raw_parts(Self::data_ptr(this).as_ptr(), Self::len(this)) }
+    }
+
+    /// Returns the inline data as a string slice.
+    ///
+    /// # Safety
+    ///
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
+    /// - The allocation must remain live for the lifetime `'a`.
+    /// - The returned string must not be mutated for the lifetime `'a`.
+    #[inline]
+    const unsafe fn as_str<'a>(this: NonNull<Self>) -> &'a str {
+        // SAFETY: Caller guarantees `this` is valid and the allocation outlives `'a`.
+        // The bytes are valid UTF-8 because they were copied from a `&str` in `try_alloc`.
+        unsafe { core::str::from_raw_parts(Self::data_ptr(this).as_ptr(), Self::len(this)) }
+    }
+}
+
+/// A constant symbol represented as an index into [`SYMBOLS`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct ConstantRepr(usize);
+
+impl ConstantRepr {
+    #[inline]
+    pub(crate) const fn new_unchecked(index: usize) -> Self {
+        Self(index)
+    }
+
+    /// Returns the string value without bounds checking.
+    ///
+    /// # Safety
+    ///
+    /// The index must be within bounds of [`SYMBOLS`].
+    #[inline]
+    pub(super) unsafe fn as_str_unchecked(self) -> &'static str {
+        // SAFETY: Caller guarantees the index is in bounds.
+        unsafe { SYMBOLS.get_unchecked(self.0) }
+    }
+
+    /// Returns the byte slice for this constant symbol without bounds checking.
+    ///
+    /// # Safety
+    ///
+    /// The index must be within bounds of [`SYMBOLS`].
+    #[inline]
+    pub(super) unsafe fn as_bytes_unchecked(self) -> &'static [u8] {
+        // SAFETY: Constant symbols return &'static str, which coerces to &'static [u8].
+        unsafe { self.as_str_unchecked().as_bytes() }
+    }
+}
+
+/// A compact, single-word representation for symbols.
+///
+/// Uses a tagged pointer to distinguish between runtime and constant symbols:
+///
+/// - **Runtime** (tag = 0): Pointer to a [`RuntimeRepr`] allocation
+/// - **Constant** (tag = 1): Index into [`SYMBOLS`] encoded in the pointer bits
+///
+/// # Size
+///
+/// `Repr` is exactly one pointer in size. Thanks to [`NonNull`], `Option<Repr>`
+/// is also one pointer in size (niche optimization).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Repr {
+    ptr: NonNull<u8>,
+}
+
+// SAFETY: while NonNull (for niche optimization), the pointer itself is only accessed via `*const`
+// ptr and never modified. The underlying data is Send + Sync.
+unsafe impl Send for Repr {}
+// SAFETY: while NonNull (for niche optimization), the pointer itself is only accessed via `*const`
+// ptr and never modified. The underlying data is Send + Sync.
+unsafe impl Sync for Repr {}
+
+impl Repr {
+    /// Minimum alignment for runtime symbol allocations.
+    ///
+    /// Must be at least 2 to ensure the lowest bit is always 0 for valid pointers.
+    const MIN_ALIGN: usize = 2;
+    /// Tag value for constant symbols (bit 0 = 1).
+    const TAG_CONSTANT: usize = 0b1;
+    /// Bitmask for extracting the tag from a pointer address.
+    const TAG_MASK: usize = 0b1;
+    /// Tag value for runtime symbols (bit 0 = 0).
+    const TAG_RUNTIME: usize = 0b0;
+    /// Number of bits used for the tag (determines how much to shift indices).
+    const TAG_SHIFT: u32 = 1;
+
+    /// Returns the tag value (0 for runtime, 1 for constant).
+    #[inline]
+    fn tag(self) -> usize {
+        self.ptr.addr().get() & Self::TAG_MASK
+    }
+
+    /// Extracts the runtime symbol pointer.
+    ///
+    /// # Safety
+    ///
+    /// - `self` must have been created via [`Repr::runtime`].
+    /// - The underlying allocation must still be live.
+    #[inline]
+    unsafe fn as_runtime(self) -> NonNull<RuntimeRepr> {
+        debug_assert!(self.tag() == Self::TAG_RUNTIME);
+
+        self.ptr
+            .map_addr(|addr| {
+                // SAFETY: Runtime symbols are aligned to at least MIN_ALIGN (2), so the
+                // lowest bit is always 0. Masking it off preserves a valid, non-zero address.
+                unsafe { NonZero::new_unchecked(addr.get() & !Self::TAG_MASK) }
+            })
+            .cast::<RuntimeRepr>()
+    }
+
+    /// Extracts the constant symbol index.
+    ///
+    /// # Safety
+    ///
+    /// - `self` must have been created via [`Repr::constant`].
+    #[inline]
+    unsafe fn as_constant(self) -> ConstantRepr {
+        debug_assert!(self.tag() == Self::TAG_CONSTANT);
+
+        let addr = self.ptr.addr().get();
+        ConstantRepr((addr & !Self::TAG_MASK) >> Self::TAG_SHIFT)
+    }
+
+    #[inline]
+    pub(super) fn try_as_constant_symbol(self) -> Option<ConstantRepr> {
+        if self.tag() != Self::TAG_CONSTANT {
+            return None;
+        }
+
+        // SAFETY: We have just verified that the tag is constant.
+        Some(unsafe { self.as_constant() })
+    }
+
+    /// Returns the string content of this symbol.
+    ///
+    /// # Safety
+    ///
+    /// - For runtime symbols: the allocation must remain live for lifetime `'str`.
+    /// - The returned string must not be mutated for lifetime `'str`.
+    #[inline]
+    pub(crate) unsafe fn as_str<'str>(self) -> &'str str {
+        if self.tag() == Self::TAG_RUNTIME {
+            // SAFETY: Caller guarantees the allocation is live for 'str.
+            unsafe { RuntimeRepr::as_str(self.as_runtime()) }
+        } else {
+            // SAFETY: Constant symbols return &'static str, which coerces to &'str.
+            unsafe { self.as_constant().as_str_unchecked() }
+        }
+    }
+
+    /// Returns the byte content of this symbol.
+    ///
+    /// # Safety
+    ///
+    /// - For runtime symbols: the allocation must remain live for lifetime `'str`.
+    /// - The returned bytes must not be mutated for lifetime `'str`.
+    #[inline]
+    pub(crate) unsafe fn as_bytes<'str>(self) -> &'str [u8] {
+        if self.tag() == Self::TAG_RUNTIME {
+            // SAFETY: Caller guarantees the allocation is live for 'str.
+            unsafe { RuntimeRepr::as_bytes(self.as_runtime()) }
+        } else {
+            // SAFETY: Constant symbols return &'static str, which coerces to &'str.
+            unsafe { self.as_constant().as_bytes_unchecked() }
+        }
+    }
+
+    /// Creates a `Repr` for a constant symbol.
+    ///
+    /// The index is encoded directly in the pointer bits (shifted to make room for the tag).
+    #[inline]
+    pub(crate) const fn constant(constant: ConstantRepr) -> Self {
+        const {
+            assert!(
+                Self::TAG_CONSTANT != 0,
+                "Constant symbol tag must be non-zero"
+            );
+        }
+
+        debug_assert!(
+            (constant.0 << Self::TAG_SHIFT >> Self::TAG_SHIFT) == constant.0,
+            "constant has set the top most bit"
+        );
+        debug_assert!(constant.0 < SYMBOLS.len(), "constant is out of range");
+
+        let addr = (constant.0 << Self::TAG_SHIFT) | Self::TAG_CONSTANT;
+        let ptr = ptr::without_provenance_mut(addr);
+
+        Self {
+            // SAFETY: TAG_CONSTANT is non-zero, therefore `addr` is non-null.
+            ptr: unsafe { NonNull::new_unchecked(ptr) },
+        }
+    }
+
+    /// Creates a `Repr` for a runtime symbol.
+    ///
+    /// The pointer is stored directly with its tag bit set to 0 (which is a no-op
+    /// since runtime allocations are already aligned).
+    #[inline]
+    pub(crate) fn runtime(symbol: NonNull<RuntimeRepr>) -> Self {
+        const {
+            assert!(align_of::<RuntimeRepr>() >= Self::MIN_ALIGN);
+        }
+
+        let ptr = symbol.map_addr(|addr| addr | Self::TAG_RUNTIME).cast();
+
+        Self { ptr }
+    }
+}
+
+const _: () = {
+    assert!(size_of::<Repr>() == size_of::<*const ()>());
+    assert!(size_of::<Option<Repr>>() == size_of::<*const ()>());
+    assert!(align_of::<RuntimeRepr>() >= Repr::MIN_ALIGN);
+};
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::non_ascii_literal)]
+
+    use super::{ConstantRepr, Repr, RuntimeRepr, SYMBOLS};
+    use crate::heap::Scratch;
+
+    #[test]
+    fn constant_symbol_first_entry() {
+        let constant = ConstantRepr(0);
+        let repr = Repr::constant(constant);
+
+        // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
+        assert_eq!(unsafe { repr.as_str() }, SYMBOLS[0]);
+    }
+
+    #[test]
+    fn constant_symbol_first_entry_unchecked() {
+        let constant = ConstantRepr(0);
+
+        // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
+        assert_eq!(unsafe { constant.as_str_unchecked() }, SYMBOLS[0]);
+    }
+
+    #[test]
+    fn constant_symbol_second_entry() {
+        let constant = ConstantRepr(1);
+        let repr = Repr::constant(constant);
+
+        // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
+        assert_eq!(unsafe { repr.as_str() }, SYMBOLS[1]);
+    }
+
+    #[test]
+    fn runtime_symbol_empty_string() {
+        let heap = Scratch::new();
+        let symbol = RuntimeRepr::alloc(&heap, "");
+        let repr = Repr::runtime(symbol);
+
+        // SAFETY: `heap` is live for the duration of this assertion.
+        assert_eq!(unsafe { repr.as_str() }, "");
+    }
+
+    #[test]
+    fn runtime_symbol_simple_string() {
+        let heap = Scratch::new();
+        let symbol = RuntimeRepr::alloc(&heap, "hello");
+        let repr = Repr::runtime(symbol);
+
+        // SAFETY: `heap` is live for the duration of this assertion.
+        assert_eq!(unsafe { repr.as_str() }, "hello");
+    }
+
+    #[test]
+    fn runtime_symbol_unicode() {
+        let heap = Scratch::new();
+        let symbol = RuntimeRepr::alloc(&heap, "日本語 🎉 émojis");
+        let repr = Repr::runtime(symbol);
+
+        // SAFETY: `heap` is live for the duration of this assertion.
+        assert_eq!(unsafe { repr.as_str() }, "日本語 🎉 émojis");
+    }
+
+    #[test]
+    fn runtime_symbol_long_string() {
+        let heap = Scratch::new();
+        let long_string = "a".repeat(10_000);
+        let symbol = RuntimeRepr::alloc(&heap, &long_string);
+        let repr = Repr::runtime(symbol);
+
+        // SAFETY: `heap` is live for the duration of this assertion.
+        assert_eq!(unsafe { repr.as_str() }, long_string);
+    }
+
+    #[test]
+    fn multiple_runtime_symbols() {
+        let heap = Scratch::new();
+
+        let symbol1 = RuntimeRepr::alloc(&heap, "first");
+        let symbol2 = RuntimeRepr::alloc(&heap, "second");
+        let symbol3 = RuntimeRepr::alloc(&heap, "third");
+
+        let repr1 = Repr::runtime(symbol1);
+        let repr2 = Repr::runtime(symbol2);
+        let repr3 = Repr::runtime(symbol3);
+
+        // SAFETY: `heap` is live for the duration of these assertions.
+        assert_eq!(unsafe { repr1.as_str() }, "first");
+        // SAFETY: `heap` is live for the duration of these assertions.
+        assert_eq!(unsafe { repr2.as_str() }, "second");
+        // SAFETY: `heap` is live for the duration of these assertions.
+        assert_eq!(unsafe { repr3.as_str() }, "third");
+    }
+
+    #[test]
+    fn tag_distinguishes_constant_from_runtime() {
+        let heap = Scratch::new();
+
+        let constant = Repr::constant(ConstantRepr(0));
+        let runtime = Repr::runtime(RuntimeRepr::alloc(&heap, "test"));
+
+        assert_eq!(constant.tag(), Repr::TAG_CONSTANT);
+        assert_eq!(runtime.tag(), Repr::TAG_RUNTIME);
+    }
+
+    #[test]
+    fn runtime_symbol_stores_correct_length() {
+        let heap = Scratch::new();
+        let symbol = RuntimeRepr::alloc(&heap, "hello");
+
+        // SAFETY: `symbol` points to a valid allocation and `heap` is live.
+        unsafe {
+            assert_eq!(RuntimeRepr::len(symbol), 5);
+            assert_eq!(RuntimeRepr::as_str(symbol).len(), 5);
+        }
+    }
+}

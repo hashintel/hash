@@ -32,9 +32,9 @@ impl UnOp {
     #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
-            Self::Not => sym::symbol::exclamation_mark,
+            Self::Not => sym::symbol::exclamation,
             Self::BitNot => sym::symbol::tilde,
-            Self::Neg => sym::symbol::sub,
+            Self::Neg => sym::symbol::minus,
         }
     }
 }
