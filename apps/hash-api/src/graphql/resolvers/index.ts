@@ -119,17 +119,12 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Mutation: Required<MutationResolvers>;
 } = {
   Query: {
-    // Logged in and signed up users only,
-    getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
-    // Logged in users only
-    me: loggedInMiddleware(meResolver),
-    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
-    // Admins
-    getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
-    // Any user
+    /** Any user, including anonymous */
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,
-    // Ontology
+    hashInstanceSettings: hashInstanceSettingsResolver,
+
+    /** Any user – type fetching */
     queryDataTypes: queryDataTypesResolver,
     queryDataTypeSubgraph: queryDataTypeSubgraphResolver,
     findDataTypeConversionTargets: findDataTypeConversionTargetsResolver,
@@ -138,10 +133,20 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypes: queryEntityTypesResolver,
     queryEntityTypeSubgraph: queryEntityTypeSubgraphResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,
-    // Knowledge
+
+    /** Logged in users (who may not have completed signup) */
+    me: loggedInMiddleware(meResolver),
+    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
+    hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
+
+    /** Logged in and signed up users */
+    getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(
+      getBlockProtocolBlocksResolver,
+    ),
+    getUsageRecords: loggedInAndSignedUpMiddleware(getUsageRecordsResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
-    getEntityDiffs: getEntityDiffsResolver,
+    getEntityDiffs: loggedInAndSignedUpMiddleware(getEntityDiffsResolver),
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
@@ -150,37 +155,46 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
         "`getEntityAuthorizationRelationships` is not implemented",
       );
     }),
-    countEntities: countEntitiesResolver,
-    queryEntities: queryEntitiesResolver,
-    queryEntitySubgraph: queryEntitySubgraphResolver,
-    hashInstanceSettings: hashInstanceSettingsResolver,
+    countEntities: loggedInAndSignedUpMiddleware(countEntitiesResolver),
+    queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
+    queryEntitySubgraph: loggedInAndSignedUpMiddleware(
+      queryEntitySubgraphResolver,
+    ),
     getMyPendingInvitations: loggedInAndSignedUpMiddleware(
       getMyPendingInvitationsResolver,
     ),
-    getPendingInvitationByEntityId: getPendingInvitationByEntityIdResolver,
-    // Integration
+    getPendingInvitationByEntityId: loggedInAndSignedUpMiddleware(
+      getPendingInvitationByEntityIdResolver,
+    ),
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
-    checkUserPermissionsOnEntityType: checkUserPermissionsOnEntityTypeResolver,
-    checkUserPermissionsOnDataType: checkUserPermissionsOnDataTypeResolver,
-    hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
-    // Generation
-    generateInverse: loggedInMiddleware(generateInverseResolver),
-    generatePlural: loggedInMiddleware(generatePluralResolver),
+    checkUserPermissionsOnEntityType: loggedInAndSignedUpMiddleware(
+      checkUserPermissionsOnEntityTypeResolver,
+    ),
+    checkUserPermissionsOnDataType: loggedInAndSignedUpMiddleware(
+      checkUserPermissionsOnDataTypeResolver,
+    ),
+
+    generateInverse: loggedInAndSignedUpMiddleware(generateInverseResolver),
+    generatePlural: loggedInAndSignedUpMiddleware(generatePluralResolver),
     isGenerationAvailable: isGenerationAvailableResolver,
-    validateEntity: validateEntityResolver,
+    validateEntity: loggedInAndSignedUpMiddleware(validateEntityResolver),
   },
 
   Mutation: {
-    // Logged in and signed up users only
+    /** Logged in users (who may not have completed signup) */
+    submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
+
+    /** Logged in and signed up users */
     updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
       updateBlockCollectionContents,
     ),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
+
     // Ontology
     createPropertyType: loggedInAndSignedUpMiddleware(
       createPropertyTypeResolver,
@@ -205,12 +219,13 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     unarchiveEntityType: loggedInAndSignedUpMiddleware(
       unarchiveEntityTypeResolver,
     ),
+
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
-    updateEntity: loggedInMiddleware(updateEntityResolver),
-    updateEntities: loggedInMiddleware(updateEntitiesResolver),
-    archiveEntity: loggedInMiddleware(archiveEntityResolver),
-    archiveEntities: loggedInMiddleware(archiveEntitiesResolver),
+    updateEntity: loggedInAndSignedUpMiddleware(updateEntityResolver),
+    updateEntities: loggedInAndSignedUpMiddleware(updateEntitiesResolver),
+    archiveEntity: loggedInAndSignedUpMiddleware(archiveEntityResolver),
+    archiveEntities: loggedInAndSignedUpMiddleware(archiveEntitiesResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),
     setParentPage: loggedInAndSignedUpMiddleware(setParentPageResolver),
     updatePage: loggedInAndSignedUpMiddleware(updatePageResolver),
@@ -228,8 +243,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       declineOrgInvitationResolver,
     ),
     removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
-
-    submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
     addEntityOwner: loggedInAndSignedUpMiddleware(() => {
       throw new Error("`addEntityOwner` is not implemented");
