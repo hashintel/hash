@@ -3,7 +3,7 @@ use crate::{
     graph::{DirectedGraph, Predecessors},
     id::{
         HasId as _, Id,
-        bit_vec::{DenseBitSet, SparseBitMatrix},
+        bit_vec::{RowRef, SparseBitMatrix},
     },
 };
 
@@ -142,8 +142,8 @@ where
 /// The dominance frontier of a single node.
 ///
 /// This is a view into the frontier data, providing iteration and query methods.
-pub struct DominanceFrontier<'a, N> {
-    inner: Option<&'a DenseBitSet<N>>,
+pub struct DominanceFrontier<'set, N> {
+    inner: Option<RowRef<'set, N>>,
 }
 
 impl<N> DominanceFrontier<'_, N>
@@ -151,30 +151,34 @@ where
     N: Id,
 {
     /// Returns `true` if the dominance frontier is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
-        self.inner.is_none_or(DenseBitSet::is_empty)
+        self.inner.as_ref().is_none_or(RowRef::is_empty)
     }
 
     /// Returns the number of nodes in this dominance frontier.
+    #[inline]
     pub fn count(&self) -> usize {
-        self.inner.map_or(0, DenseBitSet::count)
+        self.inner.as_ref().map_or(0, RowRef::count)
     }
 
     /// Returns `true` if `frontier_node` is in this dominance frontier.
     ///
     /// This indicates that the node's dominance "ends" at `frontier_node`.
+    #[inline]
     pub fn contains(&self, frontier_node: N) -> bool {
         self.inner.is_some_and(|set| set.contains(frontier_node))
     }
 
     /// Returns an iterator over the nodes in this dominance frontier.
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = N> {
         self.into_iter()
     }
 
     /// Returns the underlying [`DenseBitSet`] if the frontier is non-empty.
     #[must_use]
-    pub const fn as_inner(&self) -> Option<&DenseBitSet<N>> {
+    pub const fn as_inner(&self) -> Option<RowRef<'_, N>> {
         self.inner
     }
 }
