@@ -1,6 +1,9 @@
+use proptest::{prop_assert, prop_assert_eq, test_runner::Config};
+use test_strategy::proptest;
+
 use super::{BitMatrix, RowRef, SparseBitMatrix};
 use crate::{
-    id::{Id as _, bit_vec::DenseBitSet},
+    id::{Id as _, bit_vec, bit_vec::DenseBitSet},
     newtype,
 };
 
@@ -603,4 +606,535 @@ fn sparse_row_returns_row_ref() {
 
     let cols: Vec<usize> = row.iter().map(TestId::as_usize).collect();
     assert_eq!(cols, [10, 50]);
+}
+
+// =============================================================================
+// Zero-size matrices
+// =============================================================================
+
+#[test]
+fn dense_zero_rows() {
+    let matrix: BitMatrix<TestId, TestId> = BitMatrix::new(0, 100);
+    assert_eq!(matrix.row_domain_size(), 0);
+    assert_eq!(matrix.col_domain_size(), 100);
+    assert_eq!(matrix.rows().count(), 0);
+}
+
+#[test]
+fn dense_zero_cols() {
+    let matrix: BitMatrix<TestId, TestId> = BitMatrix::new(10, 0);
+    assert_eq!(matrix.row_domain_size(), 10);
+    assert_eq!(matrix.col_domain_size(), 0);
+    assert!(matrix.is_empty_row(TestId::from_usize(0)));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 0);
+    assert_eq!(matrix.iter_row(TestId::from_usize(0)).count(), 0);
+}
+
+#[test]
+fn dense_zero_both() {
+    let matrix: BitMatrix<TestId, TestId> = BitMatrix::new(0, 0);
+    assert_eq!(matrix.rows().count(), 0);
+}
+
+#[test]
+fn sparse_zero_cols() {
+    let matrix: SparseBitMatrix<TestId, TestId> = SparseBitMatrix::new(0);
+    assert_eq!(matrix.col_domain_size(), 0);
+    assert_eq!(matrix.allocated_rows(), 0);
+    assert!(matrix.is_empty_row(TestId::from_usize(0)));
+}
+
+// =============================================================================
+// Word boundary sizes (64, 128)
+// =============================================================================
+
+#[test]
+fn dense_insert_all_word_boundary_64() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(2, 64);
+    matrix.insert_all_into_row(TestId::from_usize(0));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 64);
+    assert_eq!(matrix.count_row(TestId::from_usize(1)), 0);
+}
+
+#[test]
+fn dense_insert_all_word_boundary_128() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(2, 128);
+    matrix.insert_all_into_row(TestId::from_usize(0));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 128);
+    assert_eq!(matrix.count_row(TestId::from_usize(1)), 0);
+}
+
+#[test]
+fn dense_insert_all_non_boundary_65() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(2, 65);
+    matrix.insert_all_into_row(TestId::from_usize(0));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 65);
+    assert_eq!(matrix.count_row(TestId::from_usize(1)), 0);
+}
+
+#[test]
+fn dense_word_boundary_bits() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(2, 129);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(63));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(64));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(127));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(128));
+
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(63)));
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(64)));
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(127)));
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(128)));
+    assert!(!matrix.contains(TestId::from_usize(0), TestId::from_usize(62)));
+    assert!(!matrix.contains(TestId::from_usize(0), TestId::from_usize(65)));
+
+    let cols: Vec<usize> = matrix
+        .iter_row(TestId::from_usize(0))
+        .map(TestId::as_usize)
+        .collect();
+    assert_eq!(cols, [63, 64, 127, 128]);
+}
+
+// =============================================================================
+// Dense BitMatrix::clear (whole matrix)
+// =============================================================================
+
+#[test]
+fn dense_clear_all() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(10, 100);
+    for row in 0..10 {
+        for col in (0..100).step_by(7) {
+            matrix.insert(TestId::from_usize(row), TestId::from_usize(col));
+        }
+    }
+    matrix.clear();
+    for row in 0..10 {
+        assert!(matrix.is_empty_row(TestId::from_usize(row)));
+        assert_eq!(matrix.count_row(TestId::from_usize(row)), 0);
+    }
+}
+
+// =============================================================================
+// Dense bitwise_rows when read == write
+// =============================================================================
+
+#[test]
+fn dense_union_rows_self() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(10));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(20));
+
+    assert!(!matrix.union_rows(TestId::from_usize(0), TestId::from_usize(0)));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 2);
+}
+
+#[test]
+fn dense_subtract_rows_self() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(10));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(20));
+
+    assert!(matrix.subtract_rows(TestId::from_usize(0), TestId::from_usize(0)));
+    assert!(matrix.is_empty_row(TestId::from_usize(0)));
+}
+
+#[test]
+fn dense_intersect_rows_mut_self() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(10));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(20));
+
+    assert!(!matrix.intersect_rows_mut(TestId::from_usize(0), TestId::from_usize(0)));
+    assert_eq!(matrix.count_row(TestId::from_usize(0)), 2);
+}
+
+// =============================================================================
+// Sparse intersect_rows self-intersect
+// =============================================================================
+
+#[test]
+fn sparse_intersect_rows_self() {
+    let mut matrix: SparseBitMatrix<TestId, TestId> = SparseBitMatrix::new(100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(10));
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(20));
+
+    assert!(!matrix.intersect_rows(TestId::from_usize(0), TestId::from_usize(0)));
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(10)));
+    assert!(matrix.contains(TestId::from_usize(0), TestId::from_usize(20)));
+}
+
+// =============================================================================
+// from_row_n with 0 rows
+// =============================================================================
+
+#[test]
+fn dense_from_row_n_zero() {
+    let row = DenseBitSet::new_empty(100);
+    let matrix: BitMatrix<TestId, TestId> = BitMatrix::from_row_n(&row, 0);
+    assert_eq!(matrix.row_domain_size(), 0);
+    assert_eq!(matrix.col_domain_size(), 100);
+    assert_eq!(matrix.rows().count(), 0);
+}
+
+// =============================================================================
+// Sparse remove on unallocated row
+// =============================================================================
+
+#[test]
+fn sparse_remove_unallocated_row() {
+    let mut matrix: SparseBitMatrix<TestId, TestId> = SparseBitMatrix::new(100);
+    assert!(!matrix.remove(TestId::from_usize(5), TestId::from_usize(10)));
+}
+
+// =============================================================================
+// Sparse remove out-of-bounds col (should_panic)
+// =============================================================================
+
+#[test]
+#[should_panic]
+fn sparse_remove_col_out_of_bounds() {
+    let mut matrix: SparseBitMatrix<TestId, TestId> = SparseBitMatrix::new(100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(10));
+    matrix.remove(TestId::from_usize(0), TestId::from_usize(100));
+}
+
+// =============================================================================
+// Dense out-of-bounds panics
+// =============================================================================
+
+#[test]
+#[should_panic]
+fn dense_insert_row_out_of_bounds() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    matrix.insert(TestId::from_usize(5), TestId::from_usize(0));
+}
+
+#[test]
+#[should_panic]
+fn dense_insert_col_out_of_bounds() {
+    let mut matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    matrix.insert(TestId::from_usize(0), TestId::from_usize(100));
+}
+
+#[test]
+#[should_panic]
+fn dense_contains_row_out_of_bounds() {
+    let matrix: BitMatrix<TestId, TestId> = BitMatrix::new(5, 100);
+    let _contained = matrix.contains(TestId::from_usize(5), TestId::from_usize(0));
+}
+
+// =============================================================================
+// Property-based tests
+// =============================================================================
+
+#[derive(Debug, Clone)]
+enum DenseOp {
+    Insert(usize, usize),
+    Contains(usize, usize),
+    UnionRows(usize, usize),
+    InsertAllIntoRow(usize),
+    CountRow(usize),
+}
+
+fn arbitrary_dense_ops(
+    rows: usize,
+    cols: usize,
+    count: usize,
+) -> impl proptest::strategy::Strategy<Value = Vec<DenseOp>> {
+    use proptest::prelude::*;
+
+    prop::collection::vec(
+        prop_oneof![
+            (0..rows, 0..cols).prop_map(|(row, col)| DenseOp::Insert(row, col)),
+            (0..rows, 0..cols).prop_map(|(row, col)| DenseOp::Contains(row, col)),
+            (0..rows, 0..rows).prop_map(|(read, write)| DenseOp::UnionRows(read, write)),
+            (0..rows).prop_map(DenseOp::InsertAllIntoRow),
+            (0..rows).prop_map(DenseOp::CountRow),
+        ],
+        1..=count,
+    )
+}
+
+#[proptest(
+    if cfg!(miri) {
+        Config { failure_persistence: None, cases: 20, ..Config::default() }
+    } else {
+        Config::default()
+    }
+)]
+fn dense_old_vs_new_equivalence(
+    #[strategy(3..=32_usize)] rows: usize,
+    #[strategy(1..=200_usize)] cols: usize,
+    #[strategy(arbitrary_dense_ops(#rows, #cols, 200))] ops: Vec<DenseOp>,
+) {
+    let mut old_matrix = bit_vec::BitMatrix::<TestId, TestId>::new(rows, cols);
+    let mut new_matrix = BitMatrix::<TestId, TestId>::new(rows, cols);
+
+    for op in &ops {
+        match *op {
+            DenseOp::Insert(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let old_changed = old_matrix.insert(row, col);
+                let new_changed = new_matrix.insert(row, col);
+                assert_eq!(
+                    old_changed, new_changed,
+                    "insert({row:?}, {col:?}) changed mismatch"
+                );
+            }
+            DenseOp::Contains(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let old_val = old_matrix.contains(row, col);
+                let new_val = new_matrix.contains(row, col);
+                assert_eq!(old_val, new_val, "contains({row:?}, {col:?}) mismatch");
+            }
+            DenseOp::UnionRows(read, write) => {
+                let read = TestId::from_usize(read);
+                let write = TestId::from_usize(write);
+                let old_changed = old_matrix.union_rows(read, write);
+                let new_changed = new_matrix.union_rows(read, write);
+                assert_eq!(
+                    old_changed, new_changed,
+                    "union_rows({read:?}, {write:?}) changed mismatch"
+                );
+            }
+            DenseOp::InsertAllIntoRow(row) => {
+                let row = TestId::from_usize(row);
+                old_matrix.insert_all_into_row(row);
+                new_matrix.insert_all_into_row(row);
+            }
+            DenseOp::CountRow(row) => {
+                let row = TestId::from_usize(row);
+                let old_count = old_matrix.count(row);
+                let new_count = new_matrix.count_row(row);
+                assert_eq!(old_count, new_count, "count_row({row:?}) mismatch");
+            }
+        }
+    }
+
+    // Final full comparison
+    for row in 0..rows {
+        for col in 0..cols {
+            let row = TestId::from_usize(row);
+            let col = TestId::from_usize(col);
+            assert_eq!(
+                old_matrix.contains(row, col),
+                new_matrix.contains(row, col),
+                "final mismatch at ({row:?}, {col:?})"
+            );
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum SparseOp {
+    Insert(usize, usize),
+    Remove(usize, usize),
+    Contains(usize, usize),
+    UnionRows(usize, usize),
+}
+
+fn arbitrary_sparse_ops(
+    rows: usize,
+    cols: usize,
+    count: usize,
+) -> impl proptest::strategy::Strategy<Value = Vec<SparseOp>> {
+    use proptest::prelude::*;
+
+    prop::collection::vec(
+        prop_oneof![
+            (0..rows, 0..cols).prop_map(|(row, col)| SparseOp::Insert(row, col)),
+            (0..rows, 0..cols).prop_map(|(row, col)| SparseOp::Remove(row, col)),
+            (0..rows, 0..cols).prop_map(|(row, col)| SparseOp::Contains(row, col)),
+            (0..rows, 0..rows).prop_map(|(read, write)| SparseOp::UnionRows(read, write)),
+        ],
+        1..=count,
+    )
+}
+
+#[proptest(
+    if cfg!(miri) {
+        Config { failure_persistence: None, cases: 20, ..Config::default() }
+    } else {
+        Config::default()
+    }
+)]
+fn sparse_old_vs_new_equivalence(
+    #[strategy(3..=32_usize)] rows: usize,
+    #[strategy(1..=200_usize)] cols: usize,
+    #[strategy(arbitrary_sparse_ops(#rows, #cols, 200))] ops: Vec<SparseOp>,
+) {
+    let mut old_matrix = bit_vec::SparseBitMatrix::<TestId, TestId>::new(cols);
+    let mut new_matrix = SparseBitMatrix::<TestId, TestId>::new(cols);
+
+    for op in &ops {
+        match *op {
+            SparseOp::Insert(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let old_changed = old_matrix.insert(row, col);
+                let new_changed = new_matrix.insert(row, col);
+                assert_eq!(
+                    old_changed, new_changed,
+                    "insert({row:?}, {col:?}) changed mismatch"
+                );
+            }
+            SparseOp::Remove(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let old_changed = old_matrix.remove(row, col);
+                let new_changed = new_matrix.remove(row, col);
+                assert_eq!(
+                    old_changed, new_changed,
+                    "remove({row:?}, {col:?}) changed mismatch"
+                );
+            }
+            SparseOp::Contains(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let old_val = old_matrix.contains(row, col);
+                let new_val = new_matrix.contains(row, col);
+                assert_eq!(old_val, new_val, "contains({row:?}, {col:?}) mismatch");
+            }
+            SparseOp::UnionRows(read, write) => {
+                let read = TestId::from_usize(read);
+                let write = TestId::from_usize(write);
+                let old_changed = old_matrix.union_rows(read, write);
+                let new_changed = new_matrix.union_rows(read, write);
+                assert_eq!(
+                    old_changed, new_changed,
+                    "union_rows({read:?}, {write:?}) changed mismatch"
+                );
+            }
+        }
+    }
+
+    // Final full comparison
+    for row in 0..rows {
+        for col in 0..cols {
+            let row = TestId::from_usize(row);
+            let col = TestId::from_usize(col);
+            assert_eq!(
+                old_matrix.contains(row, col),
+                new_matrix.contains(row, col),
+                "final mismatch at ({row:?}, {col:?})"
+            );
+        }
+    }
+}
+
+#[proptest(
+    if cfg!(miri) {
+        Config { failure_persistence: None, cases: 20, ..Config::default() }
+    } else {
+        Config::default()
+    }
+)]
+fn dense_vs_sparse_equivalence(
+    #[strategy(3..=32_usize)] rows: usize,
+    #[strategy(1..=200_usize)] cols: usize,
+    #[strategy(arbitrary_sparse_ops(#rows, #cols, 200))] ops: Vec<SparseOp>,
+) {
+    let mut dense = BitMatrix::<TestId, TestId>::new(rows, cols);
+    let mut sparse = SparseBitMatrix::<TestId, TestId>::new(cols);
+
+    for op in &ops {
+        match *op {
+            SparseOp::Insert(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let dense_changed = dense.insert(row, col);
+                let sparse_changed = sparse.insert(row, col);
+                assert_eq!(
+                    dense_changed, sparse_changed,
+                    "insert({row:?}, {col:?}) changed mismatch"
+                );
+            }
+            SparseOp::Remove(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let dense_changed = dense.remove(row, col);
+                let sparse_changed = sparse.remove(row, col);
+                assert_eq!(
+                    dense_changed, sparse_changed,
+                    "remove({row:?}, {col:?}) changed mismatch"
+                );
+            }
+            SparseOp::Contains(row, col) => {
+                let row = TestId::from_usize(row);
+                let col = TestId::from_usize(col);
+                let dense_val = dense.contains(row, col);
+                let sparse_val = sparse.contains(row, col);
+                assert_eq!(dense_val, sparse_val, "contains({row:?}, {col:?}) mismatch");
+            }
+            SparseOp::UnionRows(read, write) => {
+                let read = TestId::from_usize(read);
+                let write = TestId::from_usize(write);
+                // Dense union_rows requires both rows to exist (they always do).
+                // Sparse union_rows is a no-op if read is unallocated.
+                // We can only compare when both impls agree on semantics.
+                dense.union_rows(read, write);
+                sparse.union_rows(read, write);
+            }
+        }
+    }
+
+    // Final full comparison
+    for row in 0..rows {
+        for col in 0..cols {
+            let row = TestId::from_usize(row);
+            let col = TestId::from_usize(col);
+            assert_eq!(
+                dense.contains(row, col),
+                sparse.contains(row, col),
+                "final mismatch at ({row:?}, {col:?})"
+            );
+        }
+    }
+}
+
+#[proptest(
+    if cfg!(miri) {
+        Config { failure_persistence: None, cases: 20, ..Config::default() }
+    } else {
+        Config::default()
+    }
+)]
+fn dense_excess_bits_invariant(
+    #[strategy(1..=32_usize)] rows: usize,
+    #[strategy(1..=200_usize)] cols: usize,
+    #[strategy(arbitrary_dense_ops(#rows, #cols, 100))] ops: Vec<DenseOp>,
+) {
+    let mut matrix = BitMatrix::<TestId, TestId>::new(rows, cols);
+
+    for op in &ops {
+        match *op {
+            DenseOp::Insert(row, col) => {
+                matrix.insert(TestId::from_usize(row), TestId::from_usize(col));
+            }
+            DenseOp::UnionRows(read, write) => {
+                matrix.union_rows(TestId::from_usize(read), TestId::from_usize(write));
+            }
+            DenseOp::InsertAllIntoRow(row) => {
+                matrix.insert_all_into_row(TestId::from_usize(row));
+            }
+            _ => {}
+        }
+    }
+
+    let excess_bits = cols % 64;
+    if excess_bits != 0 {
+        let mask = !0_u64 << excess_bits;
+        let words = matrix.words();
+        let words_per_row = (cols + 63) / 64;
+
+        for row in 0..rows {
+            let last_word_index = (row + 1) * words_per_row - 1;
+            let last_word = words[last_word_index];
+            assert!(
+                last_word & mask == 0,
+                "row {row}: excess bits set in last word: {last_word:#066b}, mask: {mask:#066b}"
+            );
+        }
+    }
 }
