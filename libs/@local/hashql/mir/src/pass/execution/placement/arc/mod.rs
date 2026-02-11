@@ -1,4 +1,7 @@
-use core::alloc::Allocator;
+#[cfg(test)]
+mod tests;
+
+use core::{alloc::Allocator, cmp};
 
 use hashql_core::{
     graph::{Predecessors as _, Successors as _},
@@ -29,6 +32,8 @@ impl<A: Allocator> PairWorkQueue<A> {
     }
 
     fn enqueue(&mut self, source: BasicBlockId, target: BasicBlockId) -> bool {
+        let [source, target] = cmp::minmax(source, target); // canonical ordering
+
         if !self.set.insert(source, target) {
             return false;
         }
@@ -47,7 +52,7 @@ impl<A: Allocator> PairWorkQueue<A> {
     }
 }
 
-struct PlacementContext<'ctx, A: Allocator> {
+pub(super) struct PlacementContext<'ctx, A: Allocator> {
     blocks: &'ctx mut BasicBlockSlice<TargetBitSet>,
     statements: &'ctx StatementCostVec<A>,
     terminators: &'ctx mut TerminatorCostVec<A>,
@@ -56,37 +61,45 @@ struct PlacementContext<'ctx, A: Allocator> {
 fn arc_reduce<'heap, A: Allocator>(
     body: &Body<'heap>,
     ctx: &mut PlacementContext<'_, A>,
-    source: BasicBlockId,
-    target: BasicBlockId,
+    x: BasicBlockId,
+    y: BasicBlockId,
 ) -> bool {
     // for each vx in D(x):
-    //  find a value vy in D(y) such that vx and vy satisfy the constraint satisfy the constraint
-    // R2(x, y)  if there is no such vy { D(x) := D(x) - vx; changed := true }
+    //   find a value vy in D(y) such that vx and vy satisfy the constraint R2(x, y)
+    //   if there is no such vy { D(x) := D(x) - vx; changed := true }
+    //
+    // The constraint between x and y may come from CFG edges in either direction:
+    //  - forward edges x → y: M[(t_x, t_y)] must be valid
+    //  - reverse edges y → x: M[(t_y, t_x)] must be valid
+    // A supporting t_y must satisfy *all* edges simultaneously.
     let mut changed = false;
 
-    // for must see if for *every* edge between source and target the relationship holds with
-    // *any* backend on the other side, and that backend *must* be the same
-    let source_edges = ctx.terminators.of(source);
+    for t_x in &ctx.blocks[x] {
+        let has_support = ctx.blocks[y].iter().any(|t_y| {
+            let x_matrices = ctx.terminators.of(x);
+            let y_matrices = ctx.terminators.of(y);
 
-    // We can just intersect with the targets to get the thing we want.
-    let applicable_matrices = body.basic_blocks[source]
-        .terminator
-        .kind
-        .successor_blocks()
-        .enumerate()
-        .filter_map(|(index, terminator_target)| (terminator_target == target).then_some(index));
+            let forward_ok = body.basic_blocks[x]
+                .terminator
+                .kind
+                .successor_blocks()
+                .enumerate()
+                .filter_map(|(index, successor)| (successor == y).then_some(index))
+                .all(|index| x_matrices[index].contains(t_x, t_y));
 
-    // For each source_backend, find if there is *any* target backend (inside of the set) that is
-    // part of *every* matrix.
-    for source_backend in &ctx.blocks[source] {
-        let has_backend = ctx.blocks[target].iter().any(|target_backend| {
-            applicable_matrices
-                .clone()
-                .all(|matrix| source_edges[matrix].contains(source_backend, target_backend))
+            let reverse_ok = body.basic_blocks[y]
+                .terminator
+                .kind
+                .successor_blocks()
+                .enumerate()
+                .filter_map(|(index, successor)| (successor == x).then_some(index))
+                .all(|index| y_matrices[index].contains(t_y, t_x));
+
+            forward_ok && reverse_ok
         });
 
-        if !has_backend {
-            ctx.blocks[source].remove(source_backend);
+        if !has_support {
+            ctx.blocks[x].remove(t_x);
             changed = true;
         }
     }
@@ -94,8 +107,7 @@ fn arc_reduce<'heap, A: Allocator>(
     changed
 }
 
-// Implementation of AC-3
-fn arc_consistency<'heap, A: Allocator, B: Allocator>(
+pub(super) fn arc_consistency<'heap, A: Allocator, B: Allocator>(
     body: &Body<'heap>,
     mut ctx: PlacementContext<'_, A>,
     alloc: &B,
@@ -111,6 +123,7 @@ fn arc_consistency<'heap, A: Allocator, B: Allocator>(
     for (target, pred) in body.basic_blocks.all_predecessors().iter_enumerated() {
         for &source in pred {
             queue.enqueue(source, target);
+            queue.enqueue(target, source);
         }
     }
 
@@ -119,20 +132,27 @@ fn arc_consistency<'heap, A: Allocator, B: Allocator>(
             continue;
         }
 
-        // notify everyone "around" use
+        debug_assert!(
+            !ctx.blocks[source].is_empty(),
+            "AC-3: block {source:?} domain emptied — Interpreter guarantee violated"
+        );
+
+        // notify everyone "around" us
         for successor in body.basic_blocks.successors(source) {
             if successor == target {
                 continue;
             }
 
-            queue.enqueue(source, successor);
+            // (z, x) there exists a relation R2(x, z)
+            queue.enqueue(successor, source);
         }
 
-        for predecessor in body.basic_blocks.predecessors(target) {
-            if predecessor == source {
+        for predecessor in body.basic_blocks.predecessors(source) {
+            if predecessor == target {
                 continue;
             }
 
+            // (z, x) there exists a relation R2(z, x)
             queue.enqueue(predecessor, source);
         }
     }
