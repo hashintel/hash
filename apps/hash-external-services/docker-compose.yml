@@ -81,7 +81,7 @@ services:
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       LOG_LEVEL: debug
       LOG_FORMAT: text
-      LOG_LEAK_SENSITIVE_DATA: true
+      LOG_LEAK_SENSITIVE_VALUES: true
 
     command: serve --dev --watch-courier
     read_only: true
