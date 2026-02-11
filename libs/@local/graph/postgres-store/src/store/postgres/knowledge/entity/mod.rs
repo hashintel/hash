@@ -1829,10 +1829,6 @@ where
         .await
     }
 
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "The connection is required to borrow the client"
-    )]
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
     async fn patch_entity(

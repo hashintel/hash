@@ -52,10 +52,6 @@ struct DatastoreEntitiesMetadata {
 }
 
 #[expect(clippy::too_many_lines)]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "transaction is committed which consumes the object"
-)]
 async fn seed_db(
     account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper,

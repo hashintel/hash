@@ -289,10 +289,9 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             TemporalClientConfig::new(
                 Url::from_str(&format!("{host}:{port}")).change_context(GraphError)?,
             )
-            .change_context(GraphError)?
             .await
-            .map(Some)
             .change_context(GraphError)
+            .map(Some)
         } else {
             Ok(None)
         }

@@ -104,7 +104,7 @@ impl SeedConfig {
 }
 
 /// Seeds realistic benchmark data according to config.
-#[expect(clippy::significant_drop_tightening, clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub async fn seed_benchmark_data(
     store: &mut PostgresStore<impl AsClient>,
     system_actor_id: ActorId,

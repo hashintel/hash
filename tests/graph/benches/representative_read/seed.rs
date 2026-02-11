@@ -122,10 +122,6 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
 #[expect(clippy::too_many_lines)]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "transaction is committed which consumes the object"
-)]
 pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
