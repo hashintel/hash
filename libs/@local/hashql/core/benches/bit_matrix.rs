@@ -5,7 +5,10 @@ use codspeed_criterion_compat::{
     BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use hashql_core::{
-    id::{Id as _, bit_vec::matrix},
+    id::{
+        Id as _,
+        bit_vec::{BitMatrix, SparseBitMatrix},
+    },
     newtype,
 };
 
@@ -24,7 +27,7 @@ fn dense_insert(criterion: &mut Criterion) {
             &size,
             |bencher, &size| {
                 bencher.iter_batched(
-                    || matrix::BitMatrix::<BenchId, BenchId>::new(size, size),
+                    || BitMatrix::<BenchId, BenchId>::new(size, size),
                     |mut matrix| {
                         for row in 0..size {
                             for col in (0..size).step_by(7) {
@@ -46,7 +49,7 @@ fn dense_contains(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("bit_matrix/dense/contains");
 
     for &size in &[64, 200, 1000] {
-        let mut matrix = matrix::BitMatrix::<BenchId, BenchId>::new(size, size);
+        let mut matrix = BitMatrix::<BenchId, BenchId>::new(size, size);
         for row in 0..size {
             for col in (0..size).step_by(3) {
                 matrix.insert(BenchId::from_usize(row), BenchId::from_usize(col));
@@ -85,7 +88,7 @@ fn dense_union_rows(criterion: &mut Criterion) {
             |bencher, &size| {
                 bencher.iter_batched(
                     || {
-                        let mut matrix = matrix::BitMatrix::<BenchId, BenchId>::new(size, size);
+                        let mut matrix = BitMatrix::<BenchId, BenchId>::new(size, size);
                         for col in (0..size).step_by(3) {
                             matrix.insert(BenchId::from_usize(0), BenchId::from_usize(col));
                         }
@@ -116,7 +119,7 @@ fn dense_transitive_closure(criterion: &mut Criterion) {
             |bencher, &size| {
                 bencher.iter_batched(
                     || {
-                        let mut matrix = matrix::BitMatrix::<BenchId, BenchId>::new(size, size);
+                        let mut matrix = BitMatrix::<BenchId, BenchId>::new(size, size);
                         for index in 0..size - 1 {
                             matrix
                                 .insert(BenchId::from_usize(index), BenchId::from_usize(index + 1));
@@ -140,7 +143,7 @@ fn dense_row_iter(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("bit_matrix/dense/iter_row");
 
     for &size in &[64, 200, 1000] {
-        let mut matrix = matrix::BitMatrix::<BenchId, BenchId>::new(size, size);
+        let mut matrix = BitMatrix::<BenchId, BenchId>::new(size, size);
         for col in (0..size).step_by(5) {
             matrix.insert(BenchId::from_usize(0), BenchId::from_usize(col));
         }
@@ -176,7 +179,7 @@ fn sparse_insert(criterion: &mut Criterion) {
             &size,
             |bencher, &size| {
                 bencher.iter_batched(
-                    || matrix::SparseBitMatrix::<BenchId, BenchId>::new(size),
+                    || SparseBitMatrix::<BenchId, BenchId>::new(size),
                     |mut matrix| {
                         for row in 0..size {
                             for col in (0..size).step_by(7) {
@@ -204,7 +207,7 @@ fn sparse_union_rows(criterion: &mut Criterion) {
             |bencher, &size| {
                 bencher.iter_batched(
                     || {
-                        let mut matrix = matrix::SparseBitMatrix::<BenchId, BenchId>::new(size);
+                        let mut matrix = SparseBitMatrix::<BenchId, BenchId>::new(size);
                         for col in (0..size).step_by(3) {
                             matrix.insert(BenchId::from_usize(0), BenchId::from_usize(col));
                         }
@@ -238,7 +241,7 @@ fn sparse_clear_reuse(criterion: &mut Criterion) {
             |bencher, &size| {
                 bencher.iter_batched(
                     || {
-                        let mut matrix = matrix::SparseBitMatrix::<BenchId, BenchId>::new(size);
+                        let mut matrix = SparseBitMatrix::<BenchId, BenchId>::new(size);
                         for row in 0..size {
                             matrix.insert(BenchId::from_usize(row), BenchId::from_usize(0));
                         }
