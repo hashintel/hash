@@ -1,11 +1,68 @@
-Hi,
-
-Please verify your HASH account access by entering the following code:<br />
-{{ .VerificationCode }}<br />
-
-or by clicking the link below:<br />
-<a href="{{ .VerificationURL }}" target="_blank">{{ .VerificationURL }}</a><br />
-
-The link is valid for 48 hours. If you were not expecting this email, please ignore it.
-
-HASH
+{{- $flowId := .VerificationURL | regexFind "flow=[^&]+" | trimPrefix "flow=" -}}
+{{- $parsed := urlParse .VerificationURL -}}
+{{- $verifyLink := printf "%s://%s/verification?code=%s&flow=%s" $parsed.scheme $parsed.host .VerificationCode $flowId -}}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f5f7; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e4e9; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 0 32px;">
+              <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: #1a1c23; line-height: 1.3;">
+                Verify your email address
+              </h1>
+              <p style="margin: 0 0 24px 0; font-size: 15px; color: #6b7280; line-height: 1.5;">
+                Enter the code below in HASH to verify your email address.
+              </p>
+            </td>
+          </tr>
+          <!-- Code -->
+          <tr>
+            <td style="padding: 0 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f5f7; border-radius: 8px;">
+                <tr>
+                  <td align="center" style="padding: 20px;">
+                    <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1a1c23; font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;">{{ .VerificationCode }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Button -->
+          <tr>
+            <td style="padding: 24px 32px 0 32px;">
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
+                Or click the button below to verify automatically:
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="border-radius: 6px; background-color: #0775e3;">
+                    <a href="{{ $verifyLink }}" target="_blank" style="display: inline-block; padding: 12px 24px; font-size: 15px; font-weight: 500; color: #ffffff; text-decoration: none;">
+                      Verify email address
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px 32px 32px;">
+              <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">
+                This code expires in 48 hours. If you didn't create a HASH account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

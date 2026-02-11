@@ -1,13 +1,13 @@
-Hi,
+{{- $flowId := .VerificationURL | regexFind "flow=[^&]+" | trimPrefix "flow=" -}}
+{{- $parsed := urlParse .VerificationURL -}}
+{{- $verifyLink := printf "%s://%s/verification?code=%s&flow=%s" $parsed.scheme $parsed.host .VerificationCode $flowId -}}
+Verify your email address
 
-Please verify your HASH account access by entering the following code:
+Enter this code in HASH to verify your email address:
 
 {{ .VerificationCode }}
 
-Alternatively, you can click the link below, or copy and paste it into your web browser:
+Or open this link to verify automatically:
+{{ $verifyLink }}
 
-{{ .VerificationURL }}
-
-This link is valid for 48 hours. If you were not expecting this email, please ignore it.
-
-HASH
+This code expires in 48 hours. If you didn't create a HASH account, you can safely ignore this email.
