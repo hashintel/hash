@@ -421,7 +421,7 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     }
 
     #[inline]
-    fn words_per_row(&self) -> usize {
+    const fn words_per_row(&self) -> usize {
         num_words(self.col_domain_size)
     }
 
@@ -834,7 +834,7 @@ impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
             self.backing[start..start + self.words_per_row].fill(0);
             offset
         } else {
-            debug_assert!(self.backing.len() <= u32::MAX as usize);
+            debug_assert!(u32::try_from(self.backing.len()).is_ok());
             let offset = self.backing.len() as u32;
             self.backing
                 .resize(self.backing.len() + self.words_per_row, 0);
@@ -905,6 +905,10 @@ impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
     /// Clears the cell at `(row, col)`. Returns `true` if the matrix changed.
     ///
     /// Has no effect if the row is unallocated.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `col` is out of bounds.
     #[inline]
     pub fn remove(&mut self, row: R, col: C) -> bool {
         assert!(col.as_usize() < self.col_domain_size);
