@@ -27,10 +27,7 @@ use super::GrowableBitSet;
 use crate::{
     id::{
         Id as _,
-        bit_vec::{
-            BitMatrix, BitRelations as _, Chunk, ChunkedBitSet, DenseBitSet, SparseBitMatrix,
-            WORD_BITS,
-        },
+        bit_vec::{BitRelations as _, Chunk, ChunkedBitSet, DenseBitSet, WORD_BITS},
     },
     newtype,
 };
