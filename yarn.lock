@@ -36074,7 +36074,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lop@npm:^0.4.1":
+"lop@npm:^0.4.2":
   version: 0.4.2
   resolution: "lop@npm:0.4.2"
   dependencies:
@@ -36349,8 +36349,8 @@ __metadata:
   linkType: hard
 
 "mammoth@npm:^1.7.2":
-  version: 1.8.0
-  resolution: "mammoth@npm:1.8.0"
+  version: 1.11.0
+  resolution: "mammoth@npm:1.11.0"
   dependencies:
     "@xmldom/xmldom": "npm:^0.8.6"
     argparse: "npm:~1.0.3"
@@ -36358,13 +36358,13 @@ __metadata:
     bluebird: "npm:~3.4.0"
     dingbat-to-unicode: "npm:^1.0.1"
     jszip: "npm:^3.7.1"
-    lop: "npm:^0.4.1"
+    lop: "npm:^0.4.2"
     path-is-absolute: "npm:^1.0.0"
     underscore: "npm:^1.13.1"
     xmlbuilder: "npm:^10.0.0"
   bin:
     mammoth: bin/mammoth
-  checksum: 10c0/1c0e86a4ddb824e92cc4cc39dcaade5663d90373d480cfa27dee8f64ff84600fb1a0a152ed1008fbd8f731b477ea5e4b44d1daf10c049ee2698310585e66edba
+  checksum: 10c0/20fa5b902a9ec3ed4b86d247f45cf08e9dedb22ad175a156839e921280211b40fbd9db4cabdeb25368fe1fc038dd385deaddfa997e1779e45d663790f80fdff7
   languageName: node
   linkType: hard
 
