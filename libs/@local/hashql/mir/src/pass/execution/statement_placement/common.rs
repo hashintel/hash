@@ -21,8 +21,8 @@ use crate::{
         terminator::TerminatorKind,
     },
     context::MirContext,
-    pass::analysis::{
-        dataflow::{
+    pass::{
+        analysis::dataflow::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },

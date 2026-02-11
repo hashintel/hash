@@ -31,6 +31,7 @@ use crate::{
 };
 
 pub mod analysis;
+pub mod execution;
 pub mod transform;
 
 /// Extracts the simple type name from a fully qualified type path.

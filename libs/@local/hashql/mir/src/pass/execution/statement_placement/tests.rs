@@ -21,7 +21,7 @@ use crate::{
     intern::Interner,
     pass::{
         Changed, TransformPass as _,
-        analysis::execution::{
+        execution::{
             cost::{StatementCostVec, TraversalCostVec},
             statement_placement::{EmbeddingStatementPlacement, PostgresStatementPlacement},
         },
