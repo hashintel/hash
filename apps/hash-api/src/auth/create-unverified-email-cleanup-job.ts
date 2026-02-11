@@ -13,8 +13,13 @@ import { getUserFromEntity } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { deleteKratosIdentity, kratosIdentityApi } from "./ory-kratos";
 
-const DEFAULT_ROLLOUT_AT = new Date("2026-02-10T00:00:00.000Z");
-const DEFAULT_RELEASE_TTL_HOURS = 24 * 14;
+/**
+ * Identities created before this date are excluded from cleanup, preventing
+ * retroactive deletion of accounts that existed before email verification
+ * was introduced.
+ */
+const DEFAULT_ROLLOUT_AT = new Date("2026-02-13T00:00:00.000Z");
+const DEFAULT_RELEASE_TTL_HOURS = 24 * 7;
 const DEFAULT_SWEEP_INTERVAL_MINUTES = 60;
 
 const parsePositiveIntegerEnv = (
@@ -65,13 +70,13 @@ const parseIdentityCreatedAt = (identity: Identity): Date | undefined => {
   return createdAt;
 };
 
-const isPrimaryEmailVerified = (
-  identity: Identity,
-  fallbackPrimaryEmailAddress: string,
-): boolean => {
+const isPrimaryEmailVerified = (identity: Identity): boolean => {
   const identityTraits = identity.traits as { emails?: string[] };
-  const primaryEmailAddress =
-    identityTraits.emails?.[0] ?? fallbackPrimaryEmailAddress;
+  const primaryEmailAddress = identityTraits.emails?.[0];
+
+  if (!primaryEmailAddress) {
+    return false;
+  }
 
   return (
     identity.verifiable_addresses?.find(
@@ -156,18 +161,26 @@ export const createUnverifiedEmailCleanupJob = ({
           continue;
         }
 
-        if (isPrimaryEmailVerified(identity, user.emails[0]!)) {
+        const primaryEmail = user.emails[0];
+        if (!primaryEmail) {
+          logger.warn(
+            `User ${user.accountId} (${user.kratosIdentityId}) has no email addresses, skipping`,
+          );
           continue;
         }
 
-        await Promise.all([
-          user.entity.archive(
-            context.graphApi,
-            authentication,
-            context.provenance,
-          ),
-          deleteKratosIdentity({ kratosIdentityId: user.kratosIdentityId }),
-        ]);
+        if (isPrimaryEmailVerified(identity)) {
+          continue;
+        }
+
+        await user.entity.archive(
+          context.graphApi,
+          authentication,
+          context.provenance,
+        );
+        await deleteKratosIdentity({
+          kratosIdentityId: user.kratosIdentityId,
+        });
 
         releasedEmailCount += 1;
       } catch (error) {
@@ -185,27 +198,24 @@ export const createUnverifiedEmailCleanupJob = ({
   };
 
   let interval: NodeJS.Timeout | undefined;
+  let inFlightCleanup: Promise<void> | undefined;
 
   return {
     start: async () => {
       logger.info(
-        [
-          "Starting unverified-email cleanup job",
-          `(rolloutAt=${rolloutAt.toISOString()}`,
-          `ttlHours=${releaseTtlHours}`,
-          `intervalMinutes=${sweepIntervalMinutes})`,
-        ].join(" "),
+        `Starting unverified-email cleanup job (rolloutAt=${rolloutAt.toISOString()}, ttlHours=${releaseTtlHours}, intervalMinutes=${sweepIntervalMinutes})`,
       );
 
       await cleanupUnverifiedUsers();
       interval = setInterval(() => {
-        void cleanupUnverifiedUsers();
+        inFlightCleanup = cleanupUnverifiedUsers();
       }, sweepIntervalMs);
     },
     stop: async () => {
       if (interval) {
         clearInterval(interval);
       }
+      await inFlightCleanup;
     },
   };
 };
