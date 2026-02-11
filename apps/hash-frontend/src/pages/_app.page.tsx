@@ -98,10 +98,12 @@ const App: FunctionComponent<AppProps> = ({
 
   const primaryEmailVerified =
     authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
+
   const userMustVerifyEmail =
     !!authenticatedUser &&
     emailVerificationStatusKnown &&
     !primaryEmailVerified;
+
   const awaitingEmailVerificationStatus =
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
 

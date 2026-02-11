@@ -18,8 +18,6 @@ import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
-const EMPTY_ORGS: Org[] = [];
-
 /**
  * Retrieves a specific set of organizations, with their avatars and members populated
  */
@@ -101,7 +99,7 @@ export const useOrgsWithLinks = ({
 
   const orgs = useMemo(() => {
     if (orgAccountGroupIds?.length === 0) {
-      return EMPTY_ORGS;
+      return [];
     }
 
     if (!queryEntitySubgraphResponse) {

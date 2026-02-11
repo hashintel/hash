@@ -95,23 +95,14 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       .map((linkEntity) => new HashLinkEntity<IsMemberOf>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
-  const isAuthenticatedUserPrimaryEmailVerified = verifiableAddresses.some(
-    ({ verified }) => verified,
-  );
-
-  const skipExtraAuthenticatedUserQueries =
-    !!authenticatedUserSubgraph &&
-    (!emailVerificationStatusKnown || !isAuthenticatedUserPrimaryEmailVerified);
-
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
-    orgAccountGroupIds: skipExtraAuthenticatedUserQueries
-      ? []
-      : (userMemberOfLinks?.map(
-          (link) =>
-            extractEntityUuidFromEntityId(
-              link.linkData.rightEntityId,
-            ) as string as ActorGroupEntityUuid,
-        ) ?? []),
+    orgAccountGroupIds:
+      userMemberOfLinks?.map(
+        (link) =>
+          extractEntityUuidFromEntityId(
+            link.linkData.rightEntityId,
+          ) as string as ActorGroupEntityUuid,
+      ) ?? [],
   });
 
   const constructUserValue = useCallback(
@@ -144,9 +135,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const apolloClient = useApolloClient();
 
-  const { isUserAdmin: isInstanceAdmin } = useHashInstance({
-    skip: skipExtraAuthenticatedUserQueries,
-  });
+  const { isUserAdmin: isInstanceAdmin } = useHashInstance();
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
