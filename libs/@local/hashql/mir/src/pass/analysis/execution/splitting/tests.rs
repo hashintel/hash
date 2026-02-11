@@ -3,7 +3,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    assert_matches::assert_matches,
+    assert_matches,
     fmt::{self, Display},
 };
 use std::{io::Write as _, path::PathBuf};

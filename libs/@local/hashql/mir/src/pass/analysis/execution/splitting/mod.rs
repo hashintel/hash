@@ -229,10 +229,8 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
         let mut ptr = start.statements.len() - 1;
 
         let mut runs = 0;
-        loop {
-            let [remaining @ .., recipient] = rest else {
-                break;
-            };
+
+        while let [remaining @ .., recipient] = rest {
             while supported(&costs, ptr) == current {
                 ptr -= 1;
             }
