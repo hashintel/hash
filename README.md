@@ -1,9 +1,10 @@
-[app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [create an account]: https://app.hash.ai/signup?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [running your own instance]: https://hash.dev/docs/get-started/setup#local-hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [sign in]: https://app.hash.ai/signin?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[use cases]: https://hash.ai/cases?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -37,11 +38,9 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
 <details>
-  <summary> &nbsp; 🚀 <strong>Quick-start (<5 mins):</strong> use the hosted app</summary>
+  <summary> &nbsp; <strong>Option 1.</strong> Use <a href="https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root">hash.ai</a> — <em>recommended (quick-start: <5 mins)</em> 🚀</summary>
 
 ### Create an account
-
-The only current "officially supported" way of trying HASH right now is by signing up for and using the hosted platform at [app.hash.ai]
 
 [Create an account] to get started.
 
@@ -56,13 +55,15 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 </details>
 
 <details>
-  <summary> &nbsp; Running HASH locally</summary>
+  <summary> &nbsp; <strong>Option 2.</strong> Run HASH locally</summary>
 
 ### Running HASH locally
 
-**Running HASH locally is not yet officially supported.** We plan on publishing a comprehensive guide to [running your own instance] of HASH shortly (2025Q2). In the meantime, you may try the instructions below.
+**Running HASH locally is not yet officially supported.** In the meantime, use [hash.ai] or try the experimental instructions below. These instructions will be replaced with a comprehensive guide to setting up and [running your own instance] in due course.
 
 #### Experimental instructions
+
+##### Running the app
 
 1. Make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
@@ -173,7 +174,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
 ##### Running the browser plugin
 
-If you need to run the browser plugin locally, see the `README.md` in the `apps/plugin-browser` directory.
+If you need to run the browser plugin locally, see [the `README.md`](https://github.com/hashintel/hash/tree/main/apps/plugin-browser#readme) in the `apps/plugin-browser` directory.
 
 ##### Resetting the local database
 
@@ -211,7 +212,7 @@ Transactional emails templates are located in the following locations:
 </details>
 
 <details>
-  <summary> &nbsp; Deploying HASH to the cloud</summary>
+  <summary> &nbsp; <strong>Option 3.</strong> Deploying HASH to the cloud</summary>
 
 ### Deploying HASH to the cloud
 
@@ -221,7 +222,7 @@ Transactional emails templates are located in the following locations:
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-**Coming soon:** we'll be collecting examples in the _[Awesome HASH]_ repository.
+Discover ways to use HASH by browsing the [use cases] directory, or check out the _[Awesome HASH]_ repository for more inspiration.
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
@@ -364,7 +365,7 @@ If the service should report metrics to a StatsD server, the following variables
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
-We're also [hiring] for a number of key roles. We don't accept applications for engineering roles like a normal company might, but exclusively headhunt (using HASH as a tool to help us find the best people). Contributing to our public monorepo, even in a small way, is one way of _guaranteeing_ you end up on our radar as every PR is reviewed by a human, as well as AI.
+We're also [hiring] for a number of key roles. We generally don't accept applications for engineering roles like a normal company might, preferring to headhunt (using HASH as a tool to help us find the best people)... but contributing to our public monorepo, even in a small way, is one way of _guaranteeing_ you end up on our radar as every PR is reviewed by a human, as well as AI.
 
 We also provide repo-specific [example configuration files](/.config/_examples) you can use for popular IDEs, including [VSCode](/.config/_examples/vscode) or [Zed](/.config/_examples/zed).
 

@@ -1,5 +1,5 @@
-[applicable open-source license]: https://hash.ai/legal/developers/license-open?utm_medium=organic&utm_source=github_license_hash-license
-[hash global terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
+[applicable open-source license]: https://hash.ai/legal/developers/license-determination?utm_medium=organic&utm_source=github_license_hash-license
+[terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
 [hash developer docs]: https://hash.dev/docs?utm_medium=organic&utm_source=github_license_hash-license
 [hash product]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_license_hash-license
 [hash subscription agreement]: https://hash.ai/legal?utm_medium=organic&utm_source=github_license_hash-license
@@ -7,7 +7,7 @@
 
 # HASH License
 
-_Version 1.2_
+_Version 1.3_
 _Copyright © 2019–, HASH &lt;[https://hash.dev/license]&gt;_
 
 ### 1. Definitions
@@ -15,17 +15,17 @@ _Copyright © 2019–, HASH &lt;[https://hash.dev/license]&gt;_
 "**HASH**" shall mean _HASH, Inc._, its affiliates, subsidiaries, and any legal
 successors.
 
-"**HASH-O**" shall mean the "Open" version of the [HASH product] described in the
-[HASH Developer Docs] available at `https://hash.dev/docs`.
+"**Open-Source Edition**" shall mean the "open" version of the [HASH product]
+described in the [HASH Developer Docs] available at `https://hash.dev/docs`.
 
-"**HASH-O License**" shall mean the [applicable open-source license] available directly
-at or via `https://hash.dev/license`.
+"**Open-Source License**" shall mean the [applicable open-source license] available
+directly at or via `https://hash.dev/license`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
 for the correct number of user seats and instances as defined in the [HASH
 Subscription Agreement], linked to from `https://hash.ai/legal`.
 
-"**HASH Terms**" shall mean the [HASH Global Terms of Service], available at
+"**HASH Terms**" shall mean the HASH [Terms of Service], available at
 `https://hash.ai/legal/terms`.
 
 “**Legal Entity**” shall mean the union of the acting entity and all other entities
@@ -76,11 +76,11 @@ functionality in the software, and you may not remove or obscure any
 functionality in the software that is protected by the license key.
 
 **2.6.** This License applies only to the part of this Software that is not
-distributed as part of HASH-O. Any part of this Software distributed as part of
-HASH-O or is served client-side as an image, font, cascading stylesheet (CSS),
-file which produces or is compiled, arranged, augmented, or combined into
-client-side JavaScript, in whole or in part, is copyrighted under the HASH-O
-License.
+distributed as part of the Open-Source Edition. Any part of this Software
+distributed as part of the Open-Source Edition or is served client-side as an
+image, font, cascading stylesheet (CSS), file which produces or is compiled,
+arranged, augmented, or combined into client-side JavaScript, in whole or in
+part, is copyrighted under the Open-Source License.
 
 **2.7.** For all third party components incorporated into the Software, those
 components are licensed under the original license provided by the owner of the
