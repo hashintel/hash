@@ -59,7 +59,11 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   }, [blockProperties, sourceUrl]);
 
   const sendMessage = useCallback(
-    (message: MessageFromBlockFramer, origin = window.location.origin) =>
+    // The sandbox iframe has no `allow-same-origin`, so its origin is opaque
+    // ("null"). We must use "*" as targetOrigin because there is no specific
+    // origin to target. Security is maintained because we check `source` on
+    // incoming messages (see msgHandler below).
+    (message: MessageFromBlockFramer, origin = "*") =>
       frameRef.current?.contentWindow?.postMessage(message, origin),
     [],
   );

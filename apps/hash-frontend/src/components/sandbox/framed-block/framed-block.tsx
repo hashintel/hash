@@ -1,7 +1,7 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
 
 import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@blockprotocol/type-system";
 import type * as Sentry from "@sentry/react";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,9 +23,9 @@ export const FramedBlock: FunctionComponent = () => {
 
   const initialData = properties ? JSON.parse(properties) : undefined;
 
-  const [blockProperties, setBlockProperties] = useState<
-    HashEntity | undefined
-  >(initialData);
+  const [blockProperties, setBlockProperties] = useState<Entity | undefined>(
+    initialData,
+  );
 
   const _beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
@@ -39,16 +39,17 @@ export const FramedBlock: FunctionComponent = () => {
 
   useEffect(() => {
     const msgHandler = (event: MessageEvent<MessageFromBlockFramer>) => {
-      // Only accept messages from the parent window's origin.
-      // The sandbox iframe is served from the same Next.js app, so the
-      // parent origin matches our own. This prevents cross-origin injection.
-      if (event.origin !== window.location.origin) {
+      // Only accept messages from the parent window. We use source checking
+      // rather than origin checking because this iframe is sandboxed without
+      // `allow-same-origin`, giving it an opaque origin ("null") — so
+      // `window.location.origin` is "null" and origin comparison is unusable.
+      if (event.source !== window.parent) {
         return;
       }
 
       switch (event.data.type) {
         case "newData":
-          setBlockProperties(event.data.payload as HashEntity);
+          setBlockProperties(event.data.payload as Entity);
           break;
         case "response":
           settlePromiseFromResponse(event.data);
