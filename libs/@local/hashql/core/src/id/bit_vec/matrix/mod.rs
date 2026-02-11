@@ -38,7 +38,7 @@ mod tests;
 ///
 /// Obtained via [`BitMatrix::row`] or [`SparseBitMatrix::row`].
 #[derive(Clone, Copy)]
-pub struct RowRef<'a, C: Id> {
+pub struct RowRef<'a, C> {
     words: &'a [Word],
     col_domain_size: usize,
     marker: PhantomData<C>,
@@ -161,7 +161,7 @@ impl<'a, C: Id> IntoIterator for RowRef<'a, C> {
 /// operations against other rows or [`DenseBitSet`]s.
 ///
 /// Obtained via [`BitMatrix::row_mut`].
-pub struct RowMut<'a, C: Id> {
+pub struct RowMut<'a, C> {
     words: &'a mut [Word],
     col_domain_size: usize,
     marker: PhantomData<C>,
@@ -347,7 +347,7 @@ impl<'a, C: Id> IntoIterator for &'a RowMut<'a, C> {
 /// or bump allocators. Use [`new`](Self::new) for the global allocator, or
 /// [`new_in`](Self::new_in) for a custom one.
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct BitMatrix<R: Id, C: Id, A: Allocator = Global> {
+pub struct BitMatrix<R, C, A: Allocator = Global> {
     row_domain_size: usize,
     col_domain_size: usize,
     words: Vec<Word, A>,
@@ -771,7 +771,7 @@ struct RowSlot {
 /// Use `SparseBitMatrix` when most rows are expected to be empty. If the majority of
 /// rows will be populated, [`BitMatrix`] is more efficient (no per-row indirection).
 #[derive(Clone)]
-pub struct SparseBitMatrix<R: Id, C: Id, A: Allocator = Global> {
+pub struct SparseBitMatrix<R, C, A: Allocator = Global> {
     col_domain_size: usize,
     words_per_row: usize,
 
@@ -796,11 +796,14 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     }
 }
 
-impl<R: Id, C: Id, A: Allocator + Clone> SparseBitMatrix<R, C, A> {
+impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     /// Creates a new sparse matrix with the given column domain size, using `alloc`.
     #[inline]
     #[must_use]
-    pub fn new_in(col_domain_size: usize, alloc: A) -> Self {
+    pub fn new_in(col_domain_size: usize, alloc: A) -> Self
+    where
+        A: Clone,
+    {
         let words_per_row = num_words(col_domain_size);
 
         Self {
