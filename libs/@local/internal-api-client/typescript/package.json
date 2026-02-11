@@ -12,7 +12,7 @@
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {
-    "axios": "1.12.2"
+    "axios": "1.13.5"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "2.25.0",

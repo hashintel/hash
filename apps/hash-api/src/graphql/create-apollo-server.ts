@@ -153,9 +153,8 @@ export const createApolloServer = async ({
     schema: combinedSchema,
     cache: new KeyvAdapter(cache),
     logger: logger.child({ service: "graphql" }),
-    // @todo: we may want to disable introspection at some point for production
-    introspection: true,
-    includeStacktraceInErrorResponses: true, // required for stack traces to be captured
+    introspection: !isProdEnv,
+    includeStacktraceInErrorResponses: !isProdEnv,
     plugins: [
       isProdEnv
         ? ApolloServerPluginLandingPageProductionDefault({ footer: false })
