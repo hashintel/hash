@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:12.10-slim AS mise
+FROM debian:13.3-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 

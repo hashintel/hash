@@ -162,7 +162,7 @@ services:
 
   # Mimir - Metrics Storage
   mimir:
-    image: grafana/mimir:2.16.1
+    image: grafana/mimir:3.0.2
     volumes:
       - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
       - mimir_data:/data
