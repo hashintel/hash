@@ -50,6 +50,7 @@ pub use self::finite::{FiniteBitIter, FiniteBitSet};
 use super::{Id, IdVec};
 
 mod finite;
+pub mod matrix;
 #[cfg(test)]
 mod tests;
 
