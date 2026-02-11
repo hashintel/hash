@@ -3,15 +3,27 @@ use core::iter;
 use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink};
 use hashql_diagnostics::{
-    Label,
+    Diagnostic, DiagnosticCategory, Label, Source, Sources,
     category::canonical_category_name,
-    diagnostic::{BoxedDiagnostic, Message},
+    diagnostic::{
+        BoxedDiagnostic, Message,
+        render::{ColorDepth, Format, RenderOptions},
+    },
     source::{DiagnosticSpan, SourceSpan},
 };
 use line_index::{LineCol, LineIndex};
 
-use super::{TrialError, render_diagnostic};
 use crate::annotation::diagnostic::DiagnosticAnnotation;
+
+#[derive(Debug, Clone, derive_more::Display)]
+pub(crate) enum AnnotationError {
+    #[display("unexpected diagnostic:\n{_0}")]
+    UnexpectedDiagnostic(String),
+    #[display("unfulfilled annotation: {_0:?} did not match any emitted diagnostics")]
+    UnfulfilledAnnotation(DiagnosticAnnotation),
+}
+
+impl core::error::Error for AnnotationError {}
 
 fn filter_labels<'label, S, R>(
     resolver: &mut R,
@@ -38,16 +50,36 @@ where
     })
 }
 
+fn render_diagnostic<C, S, R>(
+    source: &str,
+    resolver: &mut R,
+    diagnostic: &Diagnostic<C, S>,
+) -> String
+where
+    C: DiagnosticCategory,
+    S: DiagnosticSpan<R>,
+{
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
+
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
+
+    diagnostic.render(options, resolver)
+}
+
 pub(crate) fn verify_annotations<S, R>(
     source: &str,
     resolver: &mut R,
     line_index: &LineIndex,
     diagnostics: &[BoxedDiagnostic<'static, S>],
     annotations: &[DiagnosticAnnotation],
-    sink: &mut ReportSink<TrialError>,
-) where
+) -> Result<(), Report<[AnnotationError]>>
+where
     S: DiagnosticSpan<R>,
 {
+    let mut sink = ReportSink::new();
+
     // We cannot clone diagnostics here, because of the fact that they are not `Clone` due to
     // the `dyn Trait`.
     let mut visited = vec![false; diagnostics.len()];
@@ -116,9 +148,10 @@ pub(crate) fn verify_annotations<S, R>(
             .collect();
 
         if matches.is_empty() {
-            sink.append(Report::new(TrialError::UnfulfilledAnnotation(
+            sink.append(Report::new(AnnotationError::UnfulfilledAnnotation(
                 annotation.clone(),
             )));
+
             continue;
         }
 
@@ -135,8 +168,12 @@ pub(crate) fn verify_annotations<S, R>(
 
     for diagnostic in unmatched {
         let diagnostic = render_diagnostic(source, resolver, diagnostic);
-        sink.append(Report::new(TrialError::UnexpectedDiagnostic(diagnostic)));
+        sink.append(Report::new(AnnotationError::UnexpectedDiagnostic(
+            diagnostic,
+        )));
     }
+
+    sink.finish()
 }
 
 #[cfg(test)]
@@ -146,7 +183,6 @@ mod tests {
         fmt::{self, Debug, Display},
     };
 
-    use error_stack::ReportSink;
     use hashql_diagnostics::{
         Diagnostic, Label,
         category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -234,20 +270,7 @@ mod tests {
             make_annotation("error", Some(2), Severity::Error), // matches line2
         ];
 
-        let mut sink = ReportSink::<TrialError>::new();
-
-        verify_annotations(
-            source,
-            &mut (),
-            &line_index,
-            &diagnostics,
-            &annotations,
-            &mut sink,
-        );
-
-        let result = sink.finish();
-
-        println!("{result:?}");
+        let result = verify_annotations(source, &mut (), &line_index, &diagnostics, &annotations);
 
         // Test should pass - no errors reported
         assert!(result.is_ok(), "Expected no errors");
@@ -269,23 +292,14 @@ mod tests {
             make_annotation("warning", Some(2), Severity::Warning), // doesn't match
         ];
 
-        let mut sink = ReportSink::<TrialError>::new();
+        let result = verify_annotations(source, &mut (), &line_index, &diagnostics, &annotations);
+        let report = result.expect_err("should have errored out");
 
-        verify_annotations(
-            source,
-            &mut (),
-            &line_index,
-            &diagnostics,
-            &annotations,
-            &mut sink,
-        );
-
-        let report = sink.finish().expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
 
         assert_eq!(context.len(), 2, "Expected one error");
-        assert_matches!(&context[0], TrialError::UnexpectedDiagnostic(_));
-        assert_matches!(&context[1], TrialError::UnfulfilledAnnotation(_));
+        assert_matches!(&context[0], AnnotationError::UnexpectedDiagnostic(_));
+        assert_matches!(&context[1], AnnotationError::UnfulfilledAnnotation(_));
     }
 
     #[test]
@@ -303,22 +317,12 @@ mod tests {
         // No annotations - should report the diagnostic as unexpected
         let annotations = vec![];
 
-        let mut sink = ReportSink::<TrialError>::new();
-
-        verify_annotations(
-            source,
-            &mut (),
-            &line_index,
-            &diagnostics,
-            &annotations,
-            &mut sink,
-        );
-
-        let report = sink.finish().expect_err("should have errored out");
+        let result = verify_annotations(source, &mut (), &line_index, &diagnostics, &annotations);
+        let report = result.expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
 
         assert_eq!(context.len(), 1, "Expected one error");
-        assert_matches!(&context[0], TrialError::UnexpectedDiagnostic(_));
+        assert_matches!(&context[0], AnnotationError::UnexpectedDiagnostic(_));
     }
 
     #[test]
@@ -335,22 +339,12 @@ mod tests {
             make_annotation("error", Some(1), Severity::Error), // matches first diagnostic
         ];
 
-        let mut sink = ReportSink::<TrialError>::new();
-
-        verify_annotations(
-            source,
-            &mut (),
-            &line_index,
-            &diagnostics,
-            &annotations,
-            &mut sink,
-        );
-
-        let report = sink.finish().expect_err("should have errored out");
+        let result = verify_annotations(source, &mut (), &line_index, &diagnostics, &annotations);
+        let report = result.expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
 
         assert_eq!(context.len(), 1, "Expected one error");
-        assert_matches!(&context[0], TrialError::UnexpectedDiagnostic(_));
+        assert_matches!(&context[0], AnnotationError::UnexpectedDiagnostic(_));
     }
 
     #[test]
@@ -374,23 +368,12 @@ mod tests {
             make_annotation("error", Some(1), Severity::Error), // matches both diagnostics
         ];
 
-        let mut sink = ReportSink::<TrialError>::new();
-
-        verify_annotations(
-            source,
-            &mut (),
-            &line_index,
-            &diagnostics,
-            &annotations,
-            &mut sink,
-        );
-
-        // Should report one of the diagnostics as unexpected
-        let report = sink.finish().expect_err("should have errored out");
+        let result = verify_annotations(source, &mut (), &line_index, &diagnostics, &annotations);
+        let report = result.expect_err("should have errored out");
         let contexts: Vec<_> = report.current_contexts().collect();
 
         assert_eq!(contexts.len(), 1, "Expected one error");
-        assert_matches!(&contexts[0], TrialError::UnexpectedDiagnostic(diagnostic) if diagnostic.contains("another error in line1"));
+        assert_matches!(&contexts[0], AnnotationError::UnexpectedDiagnostic(diagnostic) if diagnostic.contains("another error in line1"));
     }
 
     #[test]
