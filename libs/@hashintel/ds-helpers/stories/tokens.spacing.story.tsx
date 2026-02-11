@@ -3,6 +3,7 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { UtilityValues } from "../styled-system/types/prop-type";
 import type { SpacingToken } from "./_types";
 
 const steps: readonly SpacingToken[] = [
@@ -51,7 +52,7 @@ const SpacingBar = ({ step }: { step: string }) => {
   );
 };
 
-const DensityColumn = ({ density }: { density: string }) => (
+const DensityColumn = ({ density }: { density: UtilityValues["density"] }) => (
   <VStack gap="0" alignItems="flex-start" className={css({ density })}>
     <span
       className={css({

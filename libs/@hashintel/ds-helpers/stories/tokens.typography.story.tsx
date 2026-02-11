@@ -3,6 +3,7 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { UtilityValues } from "../styled-system/types/prop-type";
 import type { TextStyle, Leading, FontWeightToken } from "./_types";
 
 const textStyles: readonly TextStyle[] = [
@@ -55,7 +56,6 @@ const sampleText = (style: TextStyle) => {
 };
 
 type TextStyleName = TextStyle;
-type LeadingName = Leading;
 
 const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
   <HStack gap="4" alignItems="baseline">
@@ -129,9 +129,9 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   </HStack>
 );
 
-export const Typography: Story<{ leadingFactor: string }> = ({
-  leadingFactor,
-}) => (
+export const Typography: Story<{
+  leadingFactor: UtilityValues["leading"];
+}> = ({ leadingFactor }) => (
   <div className={css({ leading: leadingFactor })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>

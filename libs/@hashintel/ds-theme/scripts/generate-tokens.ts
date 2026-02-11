@@ -14,23 +14,6 @@ import {
 const OUTPUT_DIR = "src/theme/tokens";
 
 // ============================================================================
-// FIGMA VARIABLE TYPES - Literal types for known Figma export structure
-// ============================================================================
-
-/** Known resolved types from Figma Variables Plugin */
-const resolvedTypeSchema = z.enum(["FLOAT", "STRING", "COLOR"]);
-
-/** Known variable types from Figma Variables Plugin */
-const variableTypeSchema = z.enum([
-  "spacing",
-  "fontSize",
-  "fontWeight",
-  "fontFamily",
-  "lineHeight",
-  "color",
-]);
-
-// ============================================================================
 // SPACING TOKENS
 // ============================================================================
 

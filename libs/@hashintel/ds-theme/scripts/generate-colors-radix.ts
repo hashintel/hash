@@ -57,9 +57,9 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 function toHex(color: Color): string {
-  const r = clamp(Math.round(color.srgb.r * 255), 0, 255);
-  const g = clamp(Math.round(color.srgb.g * 255), 0, 255);
-  const b = clamp(Math.round(color.srgb.b * 255), 0, 255);
+  const r = clamp(Math.round((color.srgb.r ?? 0) * 255), 0, 255);
+  const g = clamp(Math.round((color.srgb.g ?? 0) * 255), 0, 255);
+  const b = clamp(Math.round((color.srgb.b ?? 0) * 255), 0, 255);
   const a = clamp(color.alpha, 0, 1);
   const rr = r.toString(16).padStart(2, "0");
   const gg = g.toString(16).padStart(2, "0");
@@ -74,9 +74,9 @@ function toHex(color: Color): string {
 }
 
 function toRgba(color: Color): string {
-  const r = clamp(Math.round(color.srgb.r * 255), 0, 255);
-  const g = clamp(Math.round(color.srgb.g * 255), 0, 255);
-  const b = clamp(Math.round(color.srgb.b * 255), 0, 255);
+  const r = clamp(Math.round((color.srgb.r ?? 0) * 255), 0, 255);
+  const g = clamp(Math.round((color.srgb.g ?? 0) * 255), 0, 255);
+  const b = clamp(Math.round((color.srgb.b ?? 0) * 255), 0, 255);
   const a = clamp(Math.round(color.alpha * 1000) / 1000, 0, 1);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
@@ -192,12 +192,13 @@ function getColorTokens(color: string): {
       const scale = (radixColors as Record<string, Record<string, string>>)[
         key
       ];
+      if (!scale) return;
       const target = key.includes("Dark") ? dark : light;
 
       Object.keys(scale).forEach((scaleKey) => {
         // Extract just the number or "a" + number from keys like "gray1", "grayA1"
         const tokenName = scaleKey.replace(color, "").toLowerCase();
-        target[tokenName] = scale[scaleKey];
+        target[tokenName] = scale[scaleKey]!;
       });
     });
 

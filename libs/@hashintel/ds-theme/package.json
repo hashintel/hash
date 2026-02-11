@@ -44,7 +44,7 @@
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "lint:tsc": "tsc --noEmit",
+    "lint:tsc": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json",
     "prepare": "turbo run build",
     "test:unit": "vitest run"
   },

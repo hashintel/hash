@@ -5,16 +5,24 @@
     "exactOptionalPropertyTypes": false,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "lib": ["es2023", "DOM"],
+    "lib": [
+      "es2023",
+      "DOM"
+    ],
     "module": "preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
+    "noPropertyAccessFromIndexSignature": false,
     "resolveJsonModule": true,
     "target": "esnext",
-    "types": [],
+    "types": [
+      "node"
+    ],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["node_modules", ".build"],
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": ["stories", "tests", ".ladle", "styled-system/**/*.d.ts"]
+  "include": [
+    "./**/*.ts"
+  ]
 }
+

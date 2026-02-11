@@ -9,6 +9,9 @@
       "dependsOn": ["build"],
       "outputs": [".build/ladle/**"]
     },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
     "dev": {
       "dependsOn": ["^dev"],
       "cache": false,

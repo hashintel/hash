@@ -2,7 +2,7 @@ import type { Story } from "@ladle/react";
 import { ThemeState, useLadleContext } from "@ladle/react";
 import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
-import { VStack, HStack, Box } from "../styled-system/jsx";
+import { VStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 import figmaGray from "./figma-gray-reference.json";
 import type { SolidStep } from "./_types";

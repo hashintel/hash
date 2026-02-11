@@ -100,9 +100,9 @@ function transformTokenReference(ref: string): string {
     return ref;
   }
 
-  const parts = match[1].split(".");
+  const parts = match[1]!.split(".");
   // Convert the color name (first part) from kebab-case to camelCase
-  const colorName = camelCase(parts[0]);
+  const colorName = camelCase(parts[0]!);
   const rest = parts.slice(1).join(".");
 
   return `{colors.${colorName}.${rest}}`;

@@ -3,6 +3,7 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { UtilityValues } from "../styled-system/types/prop-type";
 
 const steps = [
   "xs",
@@ -55,7 +56,9 @@ const RadiusSwatch = ({ step }: { step: string }) => {
   );
 };
 
-const SwatchGrid = ({ roundness }: { roundness?: string }) => (
+const SwatchGrid = ({
+  roundness,
+}: { roundness?: UtilityValues["roundness"] }) => (
   <div
     className={css({
       display: "grid",
@@ -71,7 +74,9 @@ const SwatchGrid = ({ roundness }: { roundness?: string }) => (
   </div>
 );
 
-const ComponentDemo = ({ roundness }: { roundness: string }) => {
+const ComponentDemo = ({
+  roundness,
+}: { roundness: UtilityValues["roundness"] }) => {
   const items = [
     { label: "Badge", radius: "sm" as const, w: "56px", h: "24px" },
     { label: "Input", radius: "md" as const, w: "120px", h: "36px" },
@@ -109,7 +114,9 @@ const ComponentDemo = ({ roundness }: { roundness: string }) => {
   );
 };
 
-export const Radii: Story<{ roundness: string }> = ({ roundness }) => (
+export const Radii: Story<{ roundness: UtilityValues["roundness"] }> = ({
+  roundness,
+}) => (
   <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">
