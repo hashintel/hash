@@ -9,7 +9,7 @@
 
 use core::fmt;
 
-pub use self::error::{ConfigError, ConnectionError, WorkflowError};
+pub use self::error::{ConnectionError, WorkflowError};
 
 mod ai;
 mod error;
