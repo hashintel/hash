@@ -23,6 +23,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -137,6 +138,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const { isUserAdmin: isInstanceAdmin } = useHashInstance();
 
+  /**
+   * Use a ref to avoid `fetchAuthenticatedUser` depending on the identity of `constructUserValue`,
+   * which changes whenever `resolvedOrgs` or `userMemberOfLinks` change.
+   */
+  const constructUserValueRef = useRef(constructUserValue);
+  constructUserValueRef.current = constructUserValue;
+
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
       /**
@@ -196,9 +204,12 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         kratosSessionResult.session?.identity?.verifiable_addresses ?? [];
 
       return {
-        authenticatedUser: constructUserValue(subgraph, newVerifiableAddresses),
+        authenticatedUser: constructUserValueRef.current(
+          subgraph,
+          newVerifiableAddresses,
+        ),
       };
-    }, [constructUserValue, apolloClient]);
+    }, [apolloClient]);
 
   useEffect(() => {
     void fetchAuthenticatedUser();
