@@ -266,6 +266,16 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         }
     }
 
+    pub fn with_capacity_in(num_nodes: usize, num_edges: usize, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        Self {
+            nodes: IdVec::with_capacity_in(num_nodes, alloc.clone()),
+            edges: IdVec::with_capacity_in(num_edges, alloc),
+        }
+    }
+
     /// Adds a new node to the graph with the given data.
     ///
     /// Returns the [`NodeId`] of the newly created node. The node starts with
