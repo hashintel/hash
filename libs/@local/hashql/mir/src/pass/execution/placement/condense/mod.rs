@@ -55,7 +55,7 @@ pub struct Condense<'ctx, A: Allocator> {
 }
 
 impl<'ctx, A: Allocator> Condense<'ctx, A> {
-    fn run_in<'heap, B>(&self, body: &Body<'heap>, alloc: B)
+    fn run_in<B>(&self, body: &Body<'_>, alloc: B)
     where
         B: Allocator + Clone,
     {
@@ -86,15 +86,26 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         unimplemented!()
     }
 
-    fn solve_trivial<'heap, B: Allocator>(
+    fn solve_trivial<B: Allocator>(
         &self,
-        body: &Body<'heap>,
+        body: &Body<'_>,
         context: &CondenseContext<'_, B>,
         block: BasicBlockId,
         region: &Node<PlacementRegion<'_>>,
-    ) {
-        let mut best_target = TargetId::Interpreter;
-        // TODO: should probably be something else
+    ) -> Option<TargetId> {
+        // TODO: we could just keep a heap (or basically just a slice) of targets, if we need to
+        // backtrack, we just pop the last (or rotate), and then try again. The problem is that the
+        // backtrack could go on for *a long* time, if that one doesn't fit, we'd need to go up one
+        // more, try again there, etc. It would be possible, but is recursive in nature, basically
+        // a: *whoops* I am all out of options, let me just ask the parent to choose a new
+        // one. The parent goes like: oh look these are the ones I have. Fuck, let's try this one.
+        // Oh fuck, I am all out of options, rewind once more.
+        // That could work for backtracking, and is likely what we need. We need a similar approach
+        // for CSP anyway, and we can do that easily with pre-allocated stacks. Actually, why? We
+        // have a bump alloc, we can just alloc into the bump allow and do it that way. *way*
+        // easier. We just assign a slice to each node, and then re-use it.
+
+        let mut best_target = None;
         let mut best_cost = Cost::MAX;
 
         'target: for target in &self.targets[block] {
@@ -123,7 +134,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
                     };
 
                     // Add the transition cost to the total cost
-                    cost += trans_cost;
+                    cost = cost.saturating_add(trans_cost);
                 }
             }
 
@@ -152,31 +163,31 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
                     for (potential_target, potential_target_cost) in
                         edge.data.matrix.outgoing(target)
                     {
-                        // TODO: sum should be saturating_sum
-                        let target_cost = potential_target_cost
-                            + self.statements[potential_target]
+                        let target_cost = potential_target_cost.saturating_add(
+                            self.statements[potential_target]
                                 .sum(edge.data.target)
-                                .unwrap_or(Cost::MAX);
+                                .unwrap_or(Cost::MAX),
+                        );
 
                         min_cost = min_cost.min(target_cost);
                     }
 
-                    cost += min_cost;
+                    cost = cost.saturating_add(min_cost);
                 }
             }
 
             if cost < best_cost {
                 best_cost = cost;
-                best_target = target;
+                best_target = Some(target);
             }
         }
 
-        todo!()
+        best_target
     }
 
-    fn run_forwards_loop<'heap, B: Allocator>(
+    fn run_forwards_loop<B: Allocator>(
         &self,
-        body: &Body<'heap>,
+        body: &Body<'_>,
         context: &mut CondenseContext<'_, B>,
     ) {
         // Now that we have all the edges we must do a forwards and backwards sweep, scc gives us
@@ -188,7 +199,13 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
             let is_trivial = region.data.members.len() == 1;
 
             if is_trivial {
-                todo!()
+                let Some(target) =
+                    self.solve_trivial(body, context, region.data.members[0], region)
+                else {
+                    todo!("do we need to backtrack? or do we just default to interpreter?");
+                };
+
+                context.targets[region.data.members[0]] = Some(target);
             } else {
                 todo!("solve CSP")
             }

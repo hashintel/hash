@@ -756,7 +756,7 @@ impl<A: Allocator> TerminatorPlacement<A> {
                 return Cost::MAX;
             };
 
-            total = total.saturating_add(size_estimate.as_u32());
+            total = total.saturating_add(Cost::new_saturating(size_estimate.as_u32()));
         }
 
         total
