@@ -119,7 +119,7 @@ const toggleButtonStyle = css({
   justifyContent: "center",
   padding: "1",
   background: "[rgba(255, 255, 255, 0.5)]",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   cursor: "pointer",
   flexShrink: 0,
   width: "[28px]",

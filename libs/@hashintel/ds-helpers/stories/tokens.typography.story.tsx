@@ -3,8 +3,10 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { UtilityValues } from "../styled-system/types/prop-type";
+import type { TextStyle, Leading, FontWeightToken } from "./_types";
 
-const fontSizeOrder = [
+const textStyles: readonly TextStyle[] = [
   "xs",
   "sm",
   "base",
@@ -13,35 +15,94 @@ const fontSizeOrder = [
   "2xl",
   "3xl",
   "4xl",
-] as const;
-const fontWeightEntries = [
+];
+const leadingValues: readonly Leading[] = ["tight", "normal", "loose"];
+const fontWeightEntries: readonly { name: FontWeightToken; value: number }[] = [
   { name: "normal", value: 400 },
   { name: "medium", value: 500 },
   { name: "semibold", value: 600 },
-] as const;
+];
 
 const labelStyles = css({
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
+  color: "fg.muted",
   minWidth: "[60px]",
 });
 
 const valueStyles = css({
-  fontSize: "xs",
-  color: "text.disabled",
+  textStyle: "xs",
+  color: "fg.muted",
   minWidth: "[50px]",
 });
 
 const sectionTitleStyles = css({
-  fontSize: "lg",
+  textStyle: "lg",
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
-  borderColor: "border.neutral.subtle",
+  borderColor: "bd.subtle",
   pb: "2",
   mb: "4",
   width: "[100%]",
 });
+
+const baseText =
+  "The quick brown fox jumps over the lazy dog. This sentence continues so that the text wraps across multiple lines, making differences in line height clearly visible.";
+
+const sampleText = (style: TextStyle) => {
+  const idx = textStyles.indexOf(style);
+  const repeat = Math.max(1, textStyles.length - idx);
+  return Array.from({ length: repeat }, () => baseText).join(" ");
+};
+
+type TextStyleName = TextStyle;
+
+const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
+  <HStack gap="4" alignItems="baseline">
+    <span className={labelStyles}>{style}</span>
+    <span className={css({ textStyle: style })}>
+      The quick brown fox jumps over the lazy dog
+    </span>
+  </HStack>
+);
+
+const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
+  <VStack gap="2" alignItems="flex-start" width="[100%]">
+    <span
+      className={css({
+        textStyle: "sm",
+        fontWeight: "semibold",
+        color: "fg.heading",
+      })}
+    >
+      textStyle: {style}
+    </span>
+    <HStack gap="6" alignItems="flex-start" width="[100%]">
+      {leadingValues.map((leading) => (
+        <VStack
+          key={leading}
+          gap="1"
+          alignItems="flex-start"
+          flex="1"
+          minWidth="0"
+        >
+          <span className={valueStyles}>
+            textStyle: {style} / leading: {leading}
+          </span>
+          <div
+            className={css({
+              textStyle: style,
+              leading,
+              maxWidth: "[100%]",
+            })}
+          >
+            {sampleText(style)}
+          </div>
+        </VStack>
+      ))}
+    </HStack>
+  </VStack>
+);
 
 const FontFamilyDemo = ({
   name,
@@ -58,19 +119,6 @@ const FontFamilyDemo = ({
   </HStack>
 );
 
-const FontSizeDemo = ({ size }: { size: string }) => {
-  const tokenPath = `fontSizes.${size}` as Token;
-  const value = token(tokenPath);
-
-  return (
-    <HStack gap="4" alignItems="baseline">
-      <span className={labelStyles}>{size}</span>
-      <span className={valueStyles}>{value}</span>
-      <span style={{ fontSize: value }}>The quick brown fox</span>
-    </HStack>
-  );
-};
-
 const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
@@ -81,97 +129,61 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   </HStack>
 );
 
-const LineHeightDemo = ({
-  category,
-  size,
-}: { category: string; size: string }) => {
-  const tokenPath = `lineHeights.${category}.${size}` as Token;
-  const value = token(tokenPath);
-  const fontSize = size.replace("text-", "");
+export const Typography: Story<{
+  leadingFactor: UtilityValues["leading"];
+}> = ({ leadingFactor }) => (
+  <div className={css({ leading: leadingFactor })}>
+    <VStack gap="8" alignItems="flex-start" p="6">
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
+        Typography
+      </h1>
 
-  return (
-    <HStack gap="4" alignItems="flex-start">
-      <span className={labelStyles}>{size}</span>
-      <span className={valueStyles}>{value}</span>
-      <div
-        className={css({
-          bg: "blue.00",
-          maxWidth: "[400px]",
-        })}
-        style={{
-          fontSize: token(`fontSizes.${fontSize}` as Token),
-          lineHeight: value,
-        }}
-      >
-        Multi-line text demo showing the line height value. This text wraps to
-        show spacing.
-      </div>
-    </HStack>
-  );
-};
-
-export const Typography: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Typography Tokens
-    </h1>
-
-    <VStack gap="4" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Font Families</h2>
-      <FontFamilyDemo name="display" tokenPath="fonts.display" />
-      <FontFamilyDemo name="body" tokenPath="fonts.body" />
-    </VStack>
-
-    <VStack gap="4" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Font Sizes</h2>
-      {fontSizeOrder.map((size) => (
-        <FontSizeDemo key={size} size={size} />
-      ))}
-    </VStack>
-
-    <VStack gap="4" alignItems="flex-start" width="[100%]">
-      <h2 className={sectionTitleStyles}>Font Weights</h2>
-      {fontWeightEntries.map(({ name, value }) => (
-        <FontWeightDemo key={name} name={name} value={value} />
-      ))}
-    </VStack>
-
-    <HStack gap="12" alignItems="flex-start" width="[100%]">
-      <VStack gap="4" alignItems="flex-start" flex="1">
-        <h2 className={sectionTitleStyles}>Line Heights: None (Tight)</h2>
-        <p
-          className={css({
-            fontSize: "xs",
-            color: "text.tertiary",
-            mb: "2",
-          })}
-        >
-          Line height equals font size — for single-line text
-        </p>
-        {["text-xs", "text-sm", "text-base", "text-lg", "text-3xl"].map(
-          (size) => (
-            <LineHeightDemo key={size} category="none" size={size} />
-          ),
-        )}
-      </VStack>
-
-      <VStack gap="4" alignItems="flex-start" flex="1">
-        <h2 className={sectionTitleStyles}>Line Heights: Normal</h2>
-        <p
-          className={css({
-            fontSize: "xs",
-            color: "text.tertiary",
-            mb: "2",
-          })}
-        >
-          Comfortable line height for multi-line text
-        </p>
-        {["text-xs", "text-sm", "text-base", "text-lg"].map((size) => (
-          <LineHeightDemo key={size} category="normal" size={size} />
+      <VStack gap="4" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Text Styles</h2>
+        {textStyles.map((style) => (
+          <TextStyleDemo key={style} style={style} />
         ))}
       </VStack>
-    </HStack>
-  </VStack>
+
+      <VStack gap="6" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Leading Variants</h2>
+        <p
+          className={css({
+            textStyle: "xs",
+            color: "fg.muted",
+            mb: "2",
+          })}
+        >
+          Each text style shown at tight (×0.9), normal (×1), and loose (×1.1)
+          leading factor
+        </p>
+        {textStyles.map((style) => (
+          <LeadingComparisonRow key={style} style={style} />
+        ))}
+      </VStack>
+
+      <VStack gap="4" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Font Families</h2>
+        <FontFamilyDemo name="display" tokenPath="fonts.display" />
+        <FontFamilyDemo name="body" tokenPath="fonts.body" />
+        <FontFamilyDemo name="mono" tokenPath="fonts.mono" />
+      </VStack>
+
+      <VStack gap="4" alignItems="flex-start" width="[100%]">
+        <h2 className={sectionTitleStyles}>Font Weights</h2>
+        {fontWeightEntries.map(({ name, value }) => (
+          <FontWeightDemo key={name} name={name} value={value} />
+        ))}
+      </VStack>
+    </VStack>
+  </div>
 );
 
 Typography.storyName = "Typography";
+Typography.argTypes = {
+  leadingFactor: {
+    options: ["tight", "normal", "loose"],
+    control: { type: "select" },
+    defaultValue: "normal",
+  },
+};

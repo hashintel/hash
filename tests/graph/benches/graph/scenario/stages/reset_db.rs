@@ -61,11 +61,6 @@ pub struct ResetDbResult {
 }
 
 impl ResetDbStage {
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "We intentionally scope connection and store for clarity; merging acquire+store \
-                  would borrow a temporary and trigger E0716"
-    )]
     pub async fn execute(
         &self,
         runner: &mut Runner,

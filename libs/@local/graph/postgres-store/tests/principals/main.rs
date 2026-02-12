@@ -2,7 +2,7 @@
     // Library Features
     assert_matches,
 )]
-#![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
+#![expect(clippy::panic_in_result_fn)]
 
 extern crate alloc;
 

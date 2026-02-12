@@ -7,10 +7,6 @@
     clippy::missing_errors_doc,
     clippy::unwrap_used
 )]
-#![expect(
-    clippy::significant_drop_tightening,
-    reason = "This should be enabled but it's currently too noisy"
-)]
 
 extern crate alloc;
 

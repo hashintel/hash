@@ -36,10 +36,6 @@ use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};
 
 const DB_NAME: &str = "entity_scale";
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "transaction is committed which consumes the object"
-)]
 #[expect(clippy::too_many_lines)]
 async fn seed_db(
     account_id: ActorEntityUuid,

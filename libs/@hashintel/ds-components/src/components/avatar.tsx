@@ -46,9 +46,9 @@ const avatarRootRecipe = cva({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: "0",
-    backgroundColor: "border.neutral.muted",
+    backgroundColor: "bd.solid",
     border: "1px solid",
-    borderColor: "border.neutral.subtle",
+    borderColor: "bd.subtle",
     overflow: "hidden",
   },
   variants: {
@@ -84,20 +84,20 @@ const avatarRootRecipe = cva({
     },
     shape: {
       circle: {
-        borderRadius: "md.full",
+        borderRadius: "full",
       },
       square: {},
     },
   },
   compoundVariants: [
     // Square border radius by size
-    { shape: "square", size: "16", css: { borderRadius: "md.2" } },
-    { shape: "square", size: "20", css: { borderRadius: "md.2" } },
-    { shape: "square", size: "24", css: { borderRadius: "md.3" } },
-    { shape: "square", size: "32", css: { borderRadius: "md.4" } },
-    { shape: "square", size: "40", css: { borderRadius: "md.5" } },
-    { shape: "square", size: "48", css: { borderRadius: "md.6" } },
-    { shape: "square", size: "64", css: { borderRadius: "md.7" } },
+    { shape: "square", size: "16", css: { borderRadius: "sm" } },
+    { shape: "square", size: "20", css: { borderRadius: "sm" } },
+    { shape: "square", size: "24", css: { borderRadius: "md" } },
+    { shape: "square", size: "32", css: { borderRadius: "md" } },
+    { shape: "square", size: "40", css: { borderRadius: "lg" } },
+    { shape: "square", size: "48", css: { borderRadius: "xl" } },
+    { shape: "square", size: "64", css: { borderRadius: "2xl" } },
   ],
   defaultVariants: {
     size: "32",
@@ -124,7 +124,7 @@ const avatarFallbackRecipe = cva({
     width: "[100%]",
     height: "[100%]",
     fontWeight: "medium",
-    color: "text.primary",
+    color: "fg.heading",
     textAlign: "center",
   },
   variants: {
@@ -229,37 +229,37 @@ const avatarIndicatorRootRecipe = cva({
     },
     colorScheme: {
       red: {
-        backgroundColor: "red.50",
+        backgroundColor: "red.s50",
       },
       orange: {
-        backgroundColor: "orange.50",
+        backgroundColor: "orange.s50",
       },
       yellow: {
-        backgroundColor: "yellow.50",
+        backgroundColor: "yellow.s50",
       },
       green: {
-        backgroundColor: "green.50",
+        backgroundColor: "green.s50",
       },
       blue: {
-        backgroundColor: "blue.50",
+        backgroundColor: "blue.s50",
       },
       purple: {
-        backgroundColor: "purple.50",
+        backgroundColor: "purple.s50",
       },
       pink: {
-        backgroundColor: "pink.50",
+        backgroundColor: "pink.s50",
       },
       gray: {
-        backgroundColor: "gray.50",
+        backgroundColor: "neutral.s50",
       },
       white: {
-        backgroundColor: "surface",
+        backgroundColor: "bg.surface",
       },
     },
     squared: {
       true: {},
       false: {
-        borderRadius: "md.full",
+        borderRadius: "full",
       },
     },
   },
@@ -270,8 +270,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "16",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.1",
+        borderColor: "bd.solid",
+        borderRadius: "xs",
       },
     },
     {
@@ -279,8 +279,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "20",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.1",
+        borderColor: "bd.solid",
+        borderRadius: "xs",
       },
     },
     {
@@ -288,8 +288,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "24",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.1",
+        borderColor: "bd.solid",
+        borderRadius: "xs",
       },
     },
     {
@@ -297,8 +297,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "32",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.1",
+        borderColor: "bd.solid",
+        borderRadius: "xs",
       },
     },
     {
@@ -306,8 +306,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "40",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.2",
+        borderColor: "bd.solid",
+        borderRadius: "sm",
       },
     },
     {
@@ -315,8 +315,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "48",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.2",
+        borderColor: "bd.solid",
+        borderRadius: "sm",
       },
     },
     {
@@ -324,8 +324,8 @@ const avatarIndicatorRootRecipe = cva({
       size: "64",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral",
-        borderRadius: "md.3",
+        borderColor: "bd.solid",
+        borderRadius: "md",
       },
     },
   ],

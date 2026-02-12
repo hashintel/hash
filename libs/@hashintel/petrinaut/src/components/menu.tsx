@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 const menuContentStyle = css({
   background: "[white]",
   borderRadius: "[6px]",
-  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
   border: "1px solid",
-  borderColor: "gray.20",
+  borderColor: "neutral.s20",
   minWidth: "[180px]",
   zIndex: "[1001]",
   padding: "[7px]",
@@ -16,9 +16,9 @@ const menuContentStyle = css({
 const submenuContentStyle = css({
   background: "[white]",
   borderRadius: "[6px]",
-  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
   border: "1px solid",
-  borderColor: "gray.20",
+  borderColor: "neutral.s20",
   minWidth: "[180px]",
   zIndex: "[1002]",
   padding: "[7px]",
@@ -28,14 +28,14 @@ const triggerItemStyle = css({
   fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[1px]",
-  color: "gray.90",
+  color: "neutral.s90",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   paddingBlock: "[4px]",
   paddingInline: "[7px]",
   _hover: {
-    backgroundColor: "gray.10",
+    backgroundColor: "neutral.s10",
   },
 });
 
@@ -47,11 +47,11 @@ const itemStyle = css({
   fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[3px]",
-  color: "gray.90",
+  color: "neutral.s90",
   paddingBlock: "[4px]",
   paddingInline: "[7px]",
   _hover: {
-    backgroundColor: "gray.10",
+    backgroundColor: "neutral.s10",
   },
   _disabled: {
     cursor: "not-allowed",

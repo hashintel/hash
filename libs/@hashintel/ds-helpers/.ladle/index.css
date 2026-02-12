@@ -221,14 +221,23 @@
 }
 
 :root {
-  /* colors */
-  --ladle-bg-color-primary: var(--colors-gray-00) !important;
-  --ladle-bg-color-secondary: var(--colors-gray-20) !important;
-  --ladle-color-primary: var(--colors-gray-95) !important;
-  --ladle-color-secondary: var(--colors-gray-90) !important;
-  --ladle-color-hover: var(--colors-gray-70) !important;
-  --ladle-color-accent: var(--colors-blue-70);
-  --ladle-blueprint: var(--colors-blue-50);
+  /* fonts - Fontsource variable fonts */
+  --font-inter: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter-tight: "Inter Tight Variable", "Inter Tight", ui-sans-serif,
+    system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono Variable", "Geist Mono", ui-monospace,
+    SFMono-Regular, monospace;
+  --global-font-body: var(--font-inter);
+  --global-font-mono: var(--font-geist-mono);
+
+  /* colors - using radix-based semantic tokens */
+  --ladle-bg-color-primary: var(--colors-neutral-s00) !important;
+  --ladle-bg-color-secondary: var(--colors-neutral-s20) !important;
+  --ladle-color-primary: var(--colors-neutral-s120) !important;
+  --ladle-color-secondary: var(--colors-neutral-s110) !important;
+  --ladle-color-hover: var(--colors-neutral-s90) !important;
+  --ladle-color-accent: var(--colors-blue-s90);
+  --ladle-blueprint: var(--colors-blue-s60);
 
   /* dimensions */
   --ladle-ring-size: 64px;
@@ -241,5 +250,19 @@
 }
 
 .ladle-main {
-  color: var(--colors-text-primary);
+  color: var(--colors-fg-body);
+  background-color: var(--colors-neutral-s00);
+}
+
+/* Light mode (default) */
+:root,
+.light,
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Dark mode */
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
 }

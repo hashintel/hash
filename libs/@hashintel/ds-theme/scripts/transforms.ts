@@ -88,46 +88,12 @@ export function transformSpacingScale(
 }
 
 /**
- * Transform radius scale values to Panda token format.
- * Handles numeric values (with px suffix), 9999 as pill radius, and reference strings.
- * Skips keys containing "-delete" (Figma deleted items).
- */
-export function transformRadiusScale(
-  scale: Record<string, { value: number | string }>,
-): Record<string, { value: string }> {
-  return Object.fromEntries(
-    Object.entries(scale)
-      .filter(([step]) => !shouldSkipKey(step))
-      .map(([step, { value }]) => {
-        const tokenValue =
-          typeof value === "string"
-            ? value
-            : value === 9999
-              ? "9999px"
-              : `${value}px`;
-        return [step, { value: tokenValue }];
-      }),
-  );
-}
-
-/**
  * Transform a line height reference from Figma format to Panda format.
  * Converts "{size.3xl}" to "{fontSizes.3xl}".
  */
 export function transformLineHeightReference(value: number | string): string {
   if (typeof value === "string") {
     return value.replace(/\{size\.([^}]+)\}/g, "{fontSizes.$1}");
-  }
-  return `${value}px`;
-}
-
-/**
- * Transform a component radius reference from Figma format to Panda format.
- * Converts "{radius.4}" to "{radii.md.4}".
- */
-export function transformRadiusReference(value: number | string): string {
-  if (typeof value === "string") {
-    return value.replace(/\{radius\.(\d+)\}/g, "{radii.md.$1}");
   }
   return `${value}px`;
 }

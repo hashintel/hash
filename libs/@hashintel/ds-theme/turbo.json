@@ -3,10 +3,15 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["codegen"],
       "outputs": ["dist/**"]
     },
     "codegen": {
       "outputs": ["src/theme/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

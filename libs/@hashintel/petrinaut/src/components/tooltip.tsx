@@ -6,9 +6,9 @@ import { SvgIcon, Tooltip as MuiTooltip } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
 const tooltipContentStyle = css({
-  backgroundColor: "gray.90",
-  color: "gray.10",
-  borderRadius: "md.6",
+  backgroundColor: "neutral.s90",
+  color: "neutral.s10",
+  borderRadius: "xl",
   fontSize: "[13px]",
   zIndex: "[10000]",
   boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",

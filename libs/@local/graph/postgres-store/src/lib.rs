@@ -18,7 +18,6 @@
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
     unreachable_pub,
-    clippy::significant_drop_tightening,
     reason = "This should be enabled but it's currently too noisy"
 )]
 

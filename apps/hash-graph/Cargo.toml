@@ -44,7 +44,7 @@ tarpc = { workspace = true, features = [
     "tcp",
 ] }
 time = { workspace = true }
-tokio = { workspace = true, features = ["signal"] }
+tokio = { workspace = true, features = ["signal", "io-std"] }
 tokio-postgres = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }

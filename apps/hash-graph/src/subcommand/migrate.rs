@@ -19,10 +19,6 @@ pub struct MigrateArgs {
     pub pool_config: DatabasePoolConfig,
 }
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "False positive. The only remaining statement is `Ok(())`."
-)]
 #[tracing::instrument(level = "info", skip(args))]
 pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(

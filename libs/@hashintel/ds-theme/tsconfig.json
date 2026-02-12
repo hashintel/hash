@@ -14,7 +14,7 @@
     "types": [],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["node_modules", "dist", ".build"],
+  "exclude": ["node_modules", "dist"],
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": ["src", "styled-system/**/*.d.ts"]
+  "include": ["src"]
 }

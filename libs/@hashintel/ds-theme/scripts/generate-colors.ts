@@ -11,6 +11,11 @@ import {
 
 const OUTPUT_DIR = "src/theme/colors";
 
+/**
+ * DEPRECATED: This script reads Figma exports and will be removed once the
+ * token pipeline is fully migrated. Prefer `generate-colors-radix.ts`.
+ */
+
 /** Light/dark mode color pair as exported by Figma. */
 const colorModeValueSchema = z
   .object({
@@ -95,9 +100,9 @@ function transformTokenReference(ref: string): string {
     return ref;
   }
 
-  const parts = match[1].split(".");
+  const parts = match[1]!.split(".");
   // Convert the color name (first part) from kebab-case to camelCase
-  const colorName = camelCase(parts[0]);
+  const colorName = camelCase(parts[0]!);
   const rest = parts.slice(1).join(".");
 
   return `{colors.${colorName}.${rest}}`;

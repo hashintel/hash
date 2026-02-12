@@ -3,7 +3,6 @@ volumes:
   hash-vault-data:
   logs:
 
-
 services:
   postgres:
     build:
@@ -33,7 +32,8 @@ services:
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     shm_size: 1GB
     healthcheck:
-      test: [ "CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}" ]
+      test:
+        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
       interval: 2s
       timeout: 2s
       retries: 5
@@ -42,10 +42,6 @@ services:
   kratos-migrate:
     build:
       context: ./kratos
-      args:
-        ENV: dev
-        SECRET: "${KRATOS_API_KEY}"
-        API_CALLBACK_URL: "http://host.docker.internal:5001/kratos-after-registration"
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,10 +55,6 @@ services:
   kratos:
     build:
       context: ./kratos
-      args:
-        ENV: dev
-        SECRET: "${KRATOS_API_KEY}"
-        API_CALLBACK_URL: "http://host.docker.internal:5001/kratos-after-registration"
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,10 +62,27 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     environment:
-      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
-      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
-      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      SECRETS_COOKIE: "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
+      SECRETS_CIPHER: "32-LONG-SECRET-NOT-SECURE-AT-ALL"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}"
+      SERVE_PUBLIC_BASE_URL: "http://localhost:4433"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "http://localhost:3000/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "http://localhost:3000"
+      SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL: "http://localhost:3000/api/ory"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "http://localhost:3000/error"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "http://localhost:3000/signin"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "http://localhost:3000/signin"
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "http://localhost:3000/signup"
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: "http://host.docker.internal:5001/kratos-after-registration"
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY}"
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "http://localhost:3000/verification"
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: "http://localhost:3000/recovery"
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: "http://localhost:3000/change-password"
+      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+      LOG_LEAK_SENSITIVE_VALUES: true
+
     command: serve --dev --watch-courier
     read_only: true
     security_opt:
@@ -136,13 +145,13 @@ services:
       - no-new-privileges:true
 
   redis:
-    image: redis:6.2
+    image: redis:8.6
     read_only: true
     deploy:
       restart_policy:
         condition: on-failure
     healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 2s
       timeout: 2s
       retries: 5
@@ -186,7 +195,17 @@ services:
       temporal-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: [ "CMD", "temporal", "workflow", "list", "--namespace", "HASH", "--address", "temporal:7233" ]
+      test:
+        [
+          "CMD",
+          "temporal",
+          "workflow",
+          "list",
+          "--namespace",
+          "HASH",
+          "--address",
+          "temporal:7233",
+        ]
       interval: 10s
       timeout: 2s
       retries: 10
@@ -252,7 +271,7 @@ services:
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
     healthcheck:
-      test: [ "CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080" ]
+      test: ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
       interval: 2s
       timeout: 2s
       retries: 10

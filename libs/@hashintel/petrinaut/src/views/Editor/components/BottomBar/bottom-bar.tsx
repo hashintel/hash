@@ -33,7 +33,7 @@ const toolbarContainerStyle = css({
 });
 
 const dividerStyle = css({
-  background: "gray.20",
+  background: "neutral.s20",
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",

@@ -181,9 +181,9 @@ fg → a11
 ### Global Aliases
 
 ```
-fg.default → gray.12
-fg.muted → gray.11
-fg.subtle → gray.10
+fg.heading → gray.12 (formerly fg.default / bare "fg")
+fg.body → gray.11 (formerly fg.muted)
+fg.muted → gray.10 (formerly fg.subtle)
 canvas → gray.1
 border → gray.4
 error → red.9

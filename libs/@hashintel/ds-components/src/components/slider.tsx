@@ -65,7 +65,7 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             fontSize: "sm",
             fontWeight: "medium",
-            color: "gray.90",
+            color: "neutral.s90",
           })}
         >
           {label}
@@ -76,7 +76,7 @@ export const Slider: React.FC<SliderProps> = ({
         <BaseSlider.ValueText
           className={css({
             fontSize: "xs",
-            color: "gray.60",
+            color: "neutral.s60",
           })}
         />
       )}
@@ -94,16 +94,16 @@ export const Slider: React.FC<SliderProps> = ({
             position: "relative",
             height: "[4px]",
             alignItems: "center",
-            borderRadius: "md.full",
-            backgroundColor: "gray.40",
+            borderRadius: "full",
+            backgroundColor: "neutral.s40",
           })}
         >
           <BaseSlider.Range
             className={css({
               top: "[0px]",
               bottom: "[0px]",
-              backgroundColor: "blue.70",
-              borderRadius: "md.full",
+              backgroundColor: "blue.s70",
+              borderRadius: "full",
             })}
           />
         </BaseSlider.Track>
@@ -113,7 +113,7 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             outline: "none",
             "& > div": {
-              backgroundColor: "blue.70",
+              backgroundColor: "blue.s70",
               transformOrigin: "center",
               transition:
                 "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease]",

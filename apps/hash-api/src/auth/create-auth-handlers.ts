@@ -3,6 +3,7 @@ import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { Session } from "@ory/kratos-client";
+import * as Sentry from "@sentry/node";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
@@ -65,15 +66,14 @@ const kratosAfterRegistrationHookHandler =
         res.status(200).end();
       } catch (error) {
         // The kratos hook can interrupt creation on 4xx and 5xx responses.
-        // We pass context as an error to not leak any kratos implementation details.
 
+        Sentry.captureException(error);
         res.status(400).send(
           JSON.stringify({
             messages: [
               {
                 type: "error",
                 error: "Error creating user",
-                context: error,
               },
             ],
           }),
