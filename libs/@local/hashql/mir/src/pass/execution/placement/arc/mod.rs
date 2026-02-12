@@ -78,14 +78,17 @@ use crate::{
 /// enqueued, preventing redundant re-examination.
 struct PairWorkQueue<A: Allocator> {
     queue: Vec<(BasicBlockId, BasicBlockId), A>,
-    set: BitMatrix<BasicBlockId, BasicBlockId>,
+    set: BitMatrix<BasicBlockId, BasicBlockId, A>,
 }
 
 impl<A: Allocator> PairWorkQueue<A> {
-    fn new_in(domain_size: usize, alloc: A) -> Self {
+    fn new_in(domain_size: usize, alloc: A) -> Self
+    where
+        A: Clone,
+    {
         Self {
-            queue: Vec::with_capacity_in(domain_size * 2, alloc),
-            set: BitMatrix::new(domain_size, domain_size),
+            queue: Vec::with_capacity_in(domain_size * 2, alloc.clone()),
+            set: BitMatrix::new_in(domain_size, domain_size, alloc),
         }
     }
 
@@ -160,7 +163,7 @@ impl<A: Allocator> ArcConsistency<'_, A> {
     }
 
     /// Enforces arc consistency over all CFG edges, then prunes the transition matrices.
-    pub(crate) fn run_in<B: Allocator>(&mut self, body: &Body<'_>, alloc: B) {
+    pub(crate) fn run_in<B: Allocator + Clone>(&mut self, body: &Body<'_>, alloc: B) {
         let mut queue = PairWorkQueue::new_in(body.basic_blocks.len(), alloc);
 
         // Seed: for each CFG edge, enqueue both arc directions.

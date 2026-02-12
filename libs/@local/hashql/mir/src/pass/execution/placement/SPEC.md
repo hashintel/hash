@@ -91,22 +91,51 @@ Each SCC becomes a **super block** in the condensation DAG:
 
 #### Super Block Interface
 
-The super block is parameterized by **fixed edges** (constraints from assigned neighbors outside the SCC) and **free edges** (internal edges resolved by the CSP). The exit block targets are _outputs_ of the CSP, not inputs.
+Each super block has a set of **boundary edges** connecting it to the rest of the condensation DAG. A boundary edge records:
 
-In the forward pass, entry block domains are narrowed by assigned predecessors. In the backward pass, both entry and exit block domains are narrowed by assigned predecessors and successors respectively.
+- The block inside the SCC that the edge touches.
+- The CFG source block of the edge (needed to look up the `TransMatrix`).
+- The edge index into `TerminatorCostVec::of(source_block)`.
+- The direction: whether the external neighbor is the source (incoming) or the SCC block is the source (outgoing).
+
+```
+BoundaryEdge:
+    scc_block: BasicBlockId
+    source_block: BasicBlockId   // CFG source of the edge
+    edge_index: usize            // index into terminators.of(source_block)
+    direction: Incoming | Outgoing
+```
+
+The boundary edge topology is static per SCC (computed once after Tarjan). What changes between the forward and backward passes is which external neighbors have been assigned targets.
+
+**Boundary context** passed to the CSP solver pairs the static edges with dynamic neighbor assignments:
+
+```
+BoundaryContext:
+    edges: [BoundaryEdge]
+    neighbor_targets: [Option<TargetId>]   // parallel to edges
+```
+
+When `neighbor_targets[i]` is `Some(t)`, the CSP:
+
+1. **Narrows the domain** of `edges[i].scc_block` to targets compatible with `t` via the edge's `TransMatrix`.
+2. **Includes boundary edge cost** in the objective: looking up `TransMatrix[(t, t_scc)]` for incoming edges, `TransMatrix[(t_scc, t)]` for outgoing edges.
+
+When `neighbor_targets[i]` is `None`, the edge does not constrain the domain or contribute a concrete cost term. The forward pass uses a heuristic (cheapest compatible target of the unassigned successor) for value ordering only.
+
+**Caching:** results are cached keyed by the raw `neighbor_targets` tuple — the sequence of `Option<TargetId>` values for each boundary edge. This is exact: different neighbor assignments that happen to induce the same domain narrowing but different boundary edge costs produce different cache keys, avoiding incorrect cost reuse.
 
 ```
 SuperBlock:
     blocks: Vec<BasicBlockId>
-    cache: Map<BoundaryDomains, (Cost, InternalAssignment)>
+    boundary_edges: Vec<BoundaryEdge>
+    cache: Map<Vec<Option<TargetId>>, CspSolution>
 
-    fn evaluate(&mut self, boundary_domains: BoundaryDomains) -> (Cost, InternalAssignment):
-        cache.entry(boundary_domains).or_insert_with(||
-            solve_csp(self.blocks, boundary_domains, ...)
+    fn solve(&mut self, neighbor_targets: &[Option<TargetId>], ...) -> CspSolution:
+        cache.entry(neighbor_targets).or_insert_with(||
+            solve_csp(self.blocks, self.boundary_edges, neighbor_targets, ...)
         )
 ```
-
-The cache is keyed by the induced per-boundary-block domain bitsets (intersection of constraints from assigned neighbors), not raw predecessor target tuples. This canonicalizes equivalent configurations.
 
 #### CSP Solver (within an SCC)
 
@@ -114,7 +143,7 @@ For a non-trivial SCC with N blocks and K candidate targets per block (post-prun
 
 **Variables:** one per block, each assigned a `TargetId`.
 
-**Domains:** pruned `TargetBitSet` per block, further narrowed by fixed boundary edges.
+**Domains:** pruned `TargetBitSet` per block, further narrowed by assigned boundary neighbors. For each boundary edge with a known neighbor target, the `scc_block`'s domain is intersected with the set of targets reachable via that edge's `TransMatrix`.
 
 **Constraints:** for each internal edge `(u → v)`, `TransMatrix[(source_target, dest_target)]` must be `Some(_)`.
 
@@ -122,7 +151,7 @@ For a non-trivial SCC with N blocks and K candidate targets per block (post-prun
 
 - Sum of block statement costs for all blocks in the SCC.
 - Sum of internal edge transition costs.
-- Sum of boundary edge transition costs for fixed neighbors (incoming edges from assigned predecessors, outgoing edges to assigned successors when available in backward pass).
+- Sum of boundary edge transition costs for assigned neighbors: for each boundary edge with a known `neighbor_target`, the transition cost through the edge's `TransMatrix` for the chosen `scc_block` target.
 
 **Algorithm:** backtracking search with:
 
@@ -156,8 +185,8 @@ search(depth, assignment, domains, cost_so_far, best):
                 restore snapshot
                 continue to next target
 
-        edge_costs = sum of transition costs to/from assigned neighbors
-                   + sum of boundary edge costs to/from fixed external neighbors
+        edge_costs = sum of transition costs to/from assigned internal neighbors
+                   + sum of boundary edge costs to/from assigned external neighbors
         lower_bound = sum of cheapest target per remaining unassigned block
                     + sum of min valid transition cost per unassigned edge
         if best.is_some() and cost_so_far + block_cost + edge_costs + lower_bound >= best.cost:
@@ -202,9 +231,10 @@ for super_block in topological_order:
 
         assignment[block] = best_target
     else:
-        narrow entry block domains based on assigned predecessors
-        solve CSP (boundary edge costs to predecessors included in objective)
-        exit targets determined by CSP solution
+        fill neighbor_targets: Some(t) for incoming boundary edges (predecessors assigned),
+                               None for outgoing boundary edges (successors unassigned)
+        solve CSP with boundary context
+        all internal assignments (including exit block targets) determined by CSP solution
 ```
 
 #### Backward Pass (reverse topological order, sinks first)
@@ -229,12 +259,11 @@ for super_block in reverse_topological_order:
                 assignment[block] = target
                 current = target
     else:
-        narrow entry domains based on assigned predecessors
-        narrow exit domains based on assigned successors
-        re-solve CSP with both ends constrained
+        fill neighbor_targets: Some(t) for all boundary edges
+            (both predecessors and successors are now assigned)
+        re-solve CSP with fully populated boundary context
 
-        Δ = (new_internal_cost - old_internal_cost)
-          + Δ on all boundary edges (based on entry/exit target changes)
+        Δ = new total cost (internal + boundary) - old total cost
 
         if Δ < 0:
             update assignment with new CSP solution
@@ -276,7 +305,7 @@ TransMatrix ───────┘
 2. **Monotonic pruning**: arc consistency only removes targets, never adds. Domains converge.
 3. **Monotonic refinement**: each backward pass iteration only switches assignments when total cost strictly decreases. Convergence is guaranteed.
 4. **SCC locality**: backtracking is scoped to individual SCCs. The DAG-level refinement uses greedy assignment with local repair, not exponential search.
-5. **Edge cost accounting**: internal SCC edges are charged inside the CSP. Boundary edges are charged at the DAG level. No double-counting.
+5. **Edge cost accounting**: internal SCC edges are charged inside the CSP. Boundary edges with assigned neighbors are also charged inside the CSP (via the boundary context). No double-counting: each edge is accounted for exactly once.
 6. **Self-loop handling**: single-block self-loops are non-trivial SCCs and go through the CSP path, consistent with terminator placement's loop detection.
 
 ## Future Enhancements
