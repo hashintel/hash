@@ -66,11 +66,21 @@ impl Cost {
     /// assert!(Cost::new(100).is_some());
     /// assert!(Cost::new(u32::MAX).is_none()); // Reserved for niche
     /// ```
+    #[inline]
     #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
         match core::num::niche_types::U32NotAllOnes::new(value) {
             Some(cost) => Some(Self(cost)),
             None => None,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn new_saturating(value: u32) -> Self {
+        match Self::new(value) {
+            Some(cost) => cost,
+            None => Self::MAX,
         }
     }
 
@@ -109,36 +119,10 @@ impl Cost {
     /// ```
     #[inline]
     #[must_use]
-    pub fn saturating_add(self, other: u32) -> Self {
+    pub const fn saturating_add(self, other: Self) -> Self {
         let raw = self.0.as_inner();
 
-        Self::new(raw.saturating_add(other)).unwrap_or(Self::MAX)
-    }
-}
-
-impl Add<Self> for Cost {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Self::Output {
-        let value = self.0.as_inner() + rhs.0.as_inner();
-        Self::new_panic(value)
-    }
-}
-
-impl AddAssign<Self> for Cost {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-forward_ref_binop!(impl Add<Self>::add for Cost);
-forward_ref_op_assign!(impl AddAssign<Self>::add_assign for Cost);
-
-impl Sum<Cost> for Option<Cost> {
-    fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
-        Cost::new(iter.fold(0, |acc, cost| acc + cost.0.as_inner()))
+        Self::new_saturating(raw.saturating_add(other.0.as_inner()))
     }
 }
 
@@ -297,7 +281,10 @@ impl<A: Allocator> StatementCostVec<A> {
     }
 
     pub fn sum(&self, block: BasicBlockId) -> Option<Cost> {
-        self.of(block).iter().copied().flatten().sum()
+        self.of(block)
+            .iter()
+            .copied()
+            .try_fold(Cost::MIN, |acc, value| Some(acc.saturating_add(value?)))
     }
 
     /// Returns a reference to the allocator used by this cost vector.
