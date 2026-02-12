@@ -46,8 +46,14 @@ import {
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+import {
+  enabledFeatureFlagsPropertyBaseUrl,
+  shortnamePropertyBaseUrl,
+} from "@local/hash-graph-sdk/user-entity-restrictions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
 
@@ -476,6 +482,23 @@ export const updateEntity = async <
   const { graphApi } = context;
   const { actorId } = authentication;
 
+  /**
+   * The SDK's patch method auto-enforces the base user property whitelist.
+   * Here we extend it with properties that have special authorization
+   * (validated by the before-update hook which runs above).
+   *
+   * - enabledFeatureFlags: the hook checks admin privileges
+   * - shortname: the hook allows it only for incomplete users (first-time signup)
+   */
+  const additionalAllowedUrls = new Set([enabledFeatureFlagsPropertyBaseUrl]);
+
+  const { shortname } = simplifyProperties<UserProperties>(
+    entity.properties as UserProperties,
+  );
+  if (!shortname) {
+    additionalAllowedUrls.add(shortnamePropertyBaseUrl);
+  }
+
   const updatedEntity = await entity.patch(
     graphApi,
     { actorId },
@@ -485,6 +508,7 @@ export const updateEntity = async <
       propertyPatches,
       provenance: context.provenance,
       archived: params.archived,
+      additionalAllowedPropertyBaseUrls: additionalAllowedUrls,
     },
   );
 

@@ -1,10 +1,15 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, BaseUrl } from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
 import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import {
+  enabledFeatureFlagsPropertyBaseUrl,
+  shortnamePropertyBaseUrl,
+  userSelfUpdatablePropertyBaseUrls,
+} from "@local/hash-graph-sdk/user-entity-restrictions";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { GraphQLError } from "graphql";
 
@@ -21,6 +26,17 @@ import {
 } from "../../../system-types/account.fields";
 import { getUserFromEntity } from "../../../system-types/user";
 import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
+
+/**
+ * Properties that have special handling in this hook beyond the general whitelist.
+ * These are NOT freely user-editable, but have specific conditions under which they can be updated.
+ * - shortname: can be set once during account signup (immutable after)
+ * - enabledFeatureFlags: can only be changed by instance admins
+ */
+const speciallyHandledPropertyBaseUrls: ReadonlySet<BaseUrl> = new Set([
+  shortnamePropertyBaseUrl,
+  enabledFeatureFlagsPropertyBaseUrl,
+]);
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
@@ -55,6 +71,24 @@ const validateAccountShortname = async (
 export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback =
   async ({ previousEntity, propertyPatches, context, authentication }) => {
     const user = getUserFromEntity({ entity: previousEntity });
+
+    /**
+     * Block any property patches that aren't in the whitelist and don't have special handling.
+     * This is a defense-in-depth check – the Entity SDK's patch method also enforces
+     * allowed properties, but this hook guards the Node API path as well.
+     */
+    for (const patch of propertyPatches) {
+      const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+      if (
+        targetBaseUrl !== undefined &&
+        !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
+        !speciallyHandledPropertyBaseUrls.has(targetBaseUrl)
+      ) {
+        throw Error.badUserInput(
+          `Cannot update property '${targetBaseUrl}' on a user entity`,
+        );
+      }
+    }
 
     const isShortnameRemoved = isValueRemovedByPatches<UserProperties>({
       baseUrl: "https://hash.ai/@h/types/property-type/shortname/",
