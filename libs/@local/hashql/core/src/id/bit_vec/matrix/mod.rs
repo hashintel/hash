@@ -21,7 +21,7 @@ use super::{
     BitIter, DenseBitSet, WORD_BITS, Word, bitwise, clear_excess_bits_in_final_word, count_ones,
     num_words, word_index_and_mask,
 };
-use crate::id::Id;
+use crate::id::{Id, IdVec};
 
 #[cfg(test)]
 mod tests;
@@ -38,8 +38,8 @@ mod tests;
 ///
 /// Obtained via [`BitMatrix::row`] or [`SparseBitMatrix::row`].
 #[derive(Clone, Copy)]
-pub struct RowRef<'a, C> {
-    words: &'a [Word],
+pub struct RowRef<'set, C> {
+    words: &'set [Word],
     col_domain_size: usize,
     marker: PhantomData<C>,
 }
@@ -130,8 +130,8 @@ impl<C: Id> fmt::Debug for RowRef<'_, C> {
     }
 }
 
-impl<'a, C: Id> IntoIterator for &RowRef<'a, C> {
-    type IntoIter = BitIter<'a, C>;
+impl<'set, C: Id> IntoIterator for &RowRef<'set, C> {
+    type IntoIter = BitIter<'set, C>;
     type Item = C;
 
     #[inline]
@@ -161,15 +161,15 @@ impl<'a, C: Id> IntoIterator for RowRef<'a, C> {
 /// operations against other rows or [`DenseBitSet`]s.
 ///
 /// Obtained via [`BitMatrix::row_mut`].
-pub struct RowMut<'a, C> {
-    words: &'a mut [Word],
+pub struct RowMut<'set, C> {
+    words: &'set mut [Word],
     col_domain_size: usize,
     marker: PhantomData<C>,
 }
 
-impl<'a, C: Id> RowMut<'a, C> {
+impl<'set, C: Id> RowMut<'set, C> {
     #[inline]
-    const fn new(words: &'a mut [Word], col_domain_size: usize) -> Self {
+    const fn new(words: &'set mut [Word], col_domain_size: usize) -> Self {
         Self {
             words,
             col_domain_size,
@@ -312,8 +312,8 @@ impl<C: Id> fmt::Debug for RowMut<'_, C> {
     }
 }
 
-impl<'a, C: Id> IntoIterator for &'a RowMut<'a, C> {
-    type IntoIter = BitIter<'a, C>;
+impl<'row, C: Id> IntoIterator for &'row RowMut<'_, C> {
+    type IntoIter = BitIter<'row, C>;
     type Item = C;
 
     #[inline]
@@ -351,7 +351,7 @@ pub struct BitMatrix<R, C, A: Allocator = Global> {
     row_domain_size: usize,
     col_domain_size: usize,
     words: Vec<Word, A>,
-    marker: PhantomData<fn(R, C)>,
+    marker: PhantomData<(R, C)>,
 }
 
 impl<R: Id, C: Id> BitMatrix<R, C> {
@@ -685,9 +685,13 @@ impl<T: Id, A: Allocator> BitMatrix<T, T, A> {
     ///
     /// Runs in O(n³/w) time where n is the domain size and w is the word size (64),
     /// achieving a 64× speedup over the scalar version through bitwise parallelism.
+    ///
+    /// # Panics
+    ///
+    /// If the matrix is not square.
     pub fn transitive_closure(&mut self) {
+        assert_eq!(self.row_domain_size, self.col_domain_size);
         let size = self.row_domain_size;
-        debug_assert_eq!(size, self.col_domain_size);
 
         for pivot in 0..size {
             let pivot_id = T::from_usize(pivot);
@@ -773,18 +777,17 @@ struct RowSlot {
 #[derive(Clone)]
 pub struct SparseBitMatrix<R, C, A: Allocator = Global> {
     col_domain_size: usize,
-    words_per_row: usize,
 
     /// Shared backing buffer for all row data.
     backing: Vec<Word, A>,
 
     /// Maps row index → slot (or `None` if unallocated).
-    index: Vec<Option<RowSlot>, A>,
+    index: IdVec<R, Option<RowSlot>, A>,
 
     /// Free-list of word offsets for reuse by newly activated rows.
     free_slots: Vec<u32, A>,
 
-    marker: PhantomData<fn(R, C)>,
+    marker: PhantomData<(R, C)>,
 }
 
 impl<R: Id, C: Id> SparseBitMatrix<R, C> {
@@ -804,29 +807,24 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     where
         A: Clone,
     {
-        let words_per_row = num_words(col_domain_size);
-
         Self {
             col_domain_size,
-            words_per_row,
             backing: Vec::new_in(alloc.clone()),
-            index: Vec::new_in(alloc.clone()),
+            index: IdVec::new_in(alloc.clone()),
             free_slots: Vec::new_in(alloc),
             marker: PhantomData,
         }
     }
 
+    #[inline]
+    const fn words_per_row(&self) -> usize {
+        num_words(self.col_domain_size)
+    }
+
     /// Ensures `row` has an allocated slot, returning the word offset.
     #[inline]
     fn ensure_row(&mut self, row: R) -> u32 {
-        let row_idx = row.as_usize();
-
-        // Extend the index if needed.
-        if row_idx >= self.index.len() {
-            self.index.resize(row_idx + 1, None);
-        }
-
-        if let Some(slot) = self.index[row_idx] {
+        if let Some(slot) = self.index.lookup(row) {
             return slot.offset;
         }
 
@@ -834,34 +832,37 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         let offset = if let Some(offset) = self.free_slots.pop() {
             // Reuse a freed slot — zero it.
             let start = offset as usize;
-            self.backing[start..start + self.words_per_row].fill(0);
+            let words_per_row = self.words_per_row();
+            self.backing[start..start + words_per_row].fill(0);
             offset
         } else {
             debug_assert!(u32::try_from(self.backing.len()).is_ok());
+
             let offset = self.backing.len() as u32;
             self.backing
-                .resize(self.backing.len() + self.words_per_row, 0);
+                .resize(self.backing.len() + self.words_per_row(), 0);
             offset
         };
 
-        self.index[row_idx] = Some(RowSlot { offset });
+        self.index.insert(row, RowSlot { offset });
         offset
     }
 
     /// Returns the word slice for an allocated row, or `None`.
     #[inline]
     fn row_words(&self, row: R) -> Option<&[Word]> {
-        let slot = self.index.get(row.as_usize())?.as_ref()?;
+        let slot = self.index.lookup(row)?;
         let start = slot.offset as usize;
-        Some(&self.backing[start..start + self.words_per_row])
+        Some(&self.backing[start..start + self.words_per_row()])
     }
 
     /// Returns the mutable word slice for an allocated row, or `None`.
     #[inline]
     fn row_words_mut(&mut self, row: R) -> Option<&mut [Word]> {
-        let slot = self.index.get(row.as_usize())?.as_ref()?;
+        let slot = self.index.lookup(row)?;
         let start = slot.offset as usize;
-        Some(&mut self.backing[start..start + self.words_per_row])
+        let words_per_row = self.words_per_row();
+        Some(&mut self.backing[start..start + words_per_row])
     }
 
     /// Returns an immutable view of `row`, or `None` if the row is unallocated.
@@ -937,10 +938,9 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     /// Clears all bits in `row` and returns its slot to the free-list.
     #[inline]
     pub fn clear_row(&mut self, row: R) {
-        let row_idx = row.as_usize();
-        if let Some(Some(slot)) = self.index.get(row_idx) {
+        if let Some(slot) = self.index.lookup(row) {
             self.free_slots.push(slot.offset);
-            self.index[row_idx] = None;
+            self.index.remove(row);
         }
     }
 
@@ -958,7 +958,8 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     #[inline]
     pub fn insert_all_into_row(&mut self, row: R) {
         let offset = self.ensure_row(row) as usize;
-        let words = &mut self.backing[offset..offset + self.words_per_row];
+        let words_per_row = self.words_per_row();
+        let words = &mut self.backing[offset..offset + words_per_row];
         words.fill(!0);
         clear_excess_bits_in_final_word(self.col_domain_size, words);
     }
@@ -974,18 +975,14 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
             return false;
         }
 
-        let Some(read_offset) = self
-            .index
-            .get(read.as_usize())
-            .and_then(|slot| slot.map(|slot| slot.offset as usize))
-        else {
+        let Some(read_offset) = self.index.lookup(read).map(|slot| slot.offset as usize) else {
             return false;
         };
 
         let write_offset = self.ensure_row(write) as usize;
 
         let mut changed: Word = 0;
-        for offset in 0..self.words_per_row {
+        for offset in 0..self.words_per_row() {
             let old = self.backing[write_offset + offset];
             let new = old | self.backing[read_offset + offset];
             self.backing[write_offset + offset] = new;
@@ -1006,18 +1003,14 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         }
 
         let (Some(read_offset), Some(write_offset)) = (
-            self.index
-                .get(read.as_usize())
-                .and_then(|slot| slot.map(|slot| slot.offset as usize)),
-            self.index
-                .get(write.as_usize())
-                .and_then(|slot| slot.map(|slot| slot.offset as usize)),
+            self.index.lookup(read).map(|slot| slot.offset as usize),
+            self.index.lookup(write).map(|slot| slot.offset as usize),
         ) else {
             return false;
         };
 
         let mut changed: Word = 0;
-        for offset in 0..self.words_per_row {
+        for offset in 0..self.words_per_row() {
             let old = self.backing[write_offset + offset];
             let new = old & !self.backing[read_offset + offset];
             self.backing[write_offset + offset] = new;
@@ -1035,19 +1028,11 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
             return false;
         }
 
-        let Some(write_offset) = self
-            .index
-            .get(write.as_usize())
-            .and_then(|slot| slot.map(|slot| slot.offset as usize))
-        else {
+        let Some(write_offset) = self.index.lookup(write).map(|slot| slot.offset as usize) else {
             return false;
         };
 
-        let Some(read_offset) = self
-            .index
-            .get(read.as_usize())
-            .and_then(|slot| slot.map(|slot| slot.offset as usize))
-        else {
+        let Some(read_offset) = self.index.lookup(read).map(|slot| slot.offset as usize) else {
             // read is empty → write becomes empty
             let was_nonempty = self.row(write).is_some_and(|row_ref| !row_ref.is_empty());
             if was_nonempty {
@@ -1057,7 +1042,7 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         };
 
         let mut changed: Word = 0;
-        for offset in 0..self.words_per_row {
+        for offset in 0..self.words_per_row() {
             let old = self.backing[write_offset + offset];
             let new = old & self.backing[read_offset + offset];
             self.backing[write_offset + offset] = new;
@@ -1073,8 +1058,10 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     pub fn union_row_with(&mut self, row: R, other: &DenseBitSet<C>) -> bool {
         debug_assert_eq!(other.domain_size(), self.col_domain_size);
         let offset = self.ensure_row(row) as usize;
+        let words_per_row = self.words_per_row();
+
         bitwise(
-            &mut self.backing[offset..offset + self.words_per_row],
+            &mut self.backing[offset..offset + words_per_row],
             &other.words,
             |lhs, rhs| lhs | rhs,
         )
