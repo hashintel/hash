@@ -3,100 +3,114 @@ import { css } from "../styled-system/css";
 import { token } from "../styled-system/tokens";
 import { VStack, HStack } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
+import type { UtilityValues } from "../styled-system/types/prop-type";
+import type { SpacingToken } from "./_types";
 
-const scales = ["default", "compact", "comfortable"] as const;
-const steps = [
-  "0",
+const steps: readonly SpacingToken[] = [
+  "0.5",
   "1",
+  "1.5",
   "2",
   "3",
   "4",
   "5",
   "6",
-  "7",
   "8",
-  "9",
   "10",
-  "11",
   "12",
-] as const;
+  "16",
+  "20",
+  "24",
+];
 
-const stepLabelStyles = css({
-  fontSize: "xs",
+const densityLevels = ["compact", "normal", "comfortable"] as const;
+
+const labelStyles = css({
+  textStyle: "xs",
   fontWeight: "medium",
-  color: "text.tertiary",
-  width: "[24px]",
+  color: "fg.muted",
+  fontFamily: "mono",
   textAlign: "right",
+  width: "[28px]",
+  flexShrink: "0",
 });
 
-const valueStyles = css({
-  fontSize: "xs",
-  color: "text.disabled",
-  minWidth: "[40px]",
-});
-
-const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
-  // For default scale, use just the step number (Panda's DEFAULT pattern)
-  const tokenPath =
-    scale === "default"
-      ? (`spacing.${step}` as Token)
-      : (`spacing.${scale}.${step}` as Token);
+const SpacingBar = ({ step }: { step: string }) => {
+  const tokenPath = `spacing.${step}` as Token;
   const value = token(tokenPath);
 
   return (
-    <HStack gap="4" alignItems="center">
-      <span className={stepLabelStyles}>{step}</span>
-      <div
-        className={css({
-          height: "[16px]",
-          bg: "blue.50",
-          borderRadius: "md.2",
-          transition: "[width_0.2s]",
-        })}
-        style={{ width: value }}
-      />
-      <span className={valueStyles}>{value}</span>
-    </HStack>
+    <div
+      className={css({
+        height: "[12px]",
+        bg: "blue.s90",
+        borderRadius: "xs",
+        transition: "[width_0.2s]",
+      })}
+      style={{ width: value }}
+    />
   );
 };
 
-const ScaleColumn = ({ scale }: { scale: string }) => (
-  <VStack gap="1" alignItems="flex-start">
+const DensityColumn = ({ density }: { density: UtilityValues["density"] }) => (
+  <VStack gap="0" alignItems="flex-start" className={css({ density })}>
     <span
       className={css({
-        fontSize: "sm",
+        textStyle: "xs",
         fontWeight: "semibold",
-        mb: "2",
-        textTransform: "capitalize",
+        textTransform: "uppercase",
+        letterSpacing: "[0.05em]",
+        fontFamily: "mono",
+        mb: "3",
+        ps: "[32px]",
       })}
     >
-      {scale}
+      {density}
     </span>
     {steps.map((step) => (
-      <SpacingBar key={step} scale={scale} step={step} />
+      <HStack key={step} gap="1" alignItems="center" py="0.5">
+        <span className={labelStyles}>{step}</span>
+        <SpacingBar step={step} />
+      </HStack>
     ))}
   </VStack>
 );
 
 export const Spacing: Story = () => (
-  <VStack gap="6" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Spacing Tokens
-    </h1>
-    <p
-      className={css({
-        fontSize: "sm",
-        color: "text.secondary",
-        maxWidth: "[600px]",
-      })}
-    >
-      Spacing scales for different density modes. Default is the base scale,
-      compact reduces spacing for dense UIs, and comfortable increases spacing
-      for more relaxed layouts.
-    </p>
-    <HStack gap="12" alignItems="flex-start">
-      {scales.map((scale) => (
-        <ScaleColumn key={scale} scale={scale} />
+  <VStack gap="8" alignItems="flex-start" p="6">
+    <VStack gap="2" alignItems="flex-start">
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
+        Spacing Tokens
+      </h1>
+      <p
+        className={css({
+          textStyle: "sm",
+          color: "fg.body",
+          maxWidth: "[640px]",
+        })}
+      >
+        Spacing values from the Panda/Tailwind scale (1 = 0.25rem = 4px),
+        multiplied by{" "}
+        <code
+          className={css({
+            fontFamily: "mono",
+            textStyle: "xs",
+            bg: "neutral.s20",
+            px: "1",
+            py: "0.5",
+            borderRadius: "xs",
+          })}
+        >
+          --density-factor
+        </code>
+        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable (×1.25
+        = 5px/unit).
+      </p>
+    </VStack>
+
+    <HStack gap="8" alignItems="flex-start" flexWrap="wrap">
+      {densityLevels.map((density) => (
+        <DensityColumn key={density} density={density} />
       ))}
     </HStack>
   </VStack>

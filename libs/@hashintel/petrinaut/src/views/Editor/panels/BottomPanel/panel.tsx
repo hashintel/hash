@@ -53,12 +53,12 @@ const closeButtonStyle = css({
   border: "none",
   borderRadius: "[5px]",
   background: "[transparent]",
-  color: "gray.50",
+  color: "neutral.s50",
   cursor: "pointer",
   transition: "[all 0.15s ease]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-    color: "gray.80",
+    color: "neutral.s80",
   },
 });
 

@@ -10,7 +10,7 @@ const iconButtonStyle = cva({
     padding: "0",
     border: "none",
     background: "[transparent]",
-    borderRadius: "md.4",
+    borderRadius: "md",
     cursor: "pointer",
     transition: "[all 0.15s ease]",
   },
@@ -34,17 +34,17 @@ const iconButtonStyle = cva({
     },
     variant: {
       default: {
-        color: "gray.60",
+        color: "neutral.s60",
         _hover: {
-          color: "gray.80",
+          color: "neutral.s80",
           backgroundColor: "[rgba(0, 0, 0, 0.05)]",
         },
       },
       danger: {
-        color: "gray.60",
+        color: "neutral.s60",
         _hover: {
-          color: "red.60",
-          backgroundColor: "red.10",
+          color: "red.s60",
+          backgroundColor: "red.s10",
         },
       },
     },
@@ -53,7 +53,7 @@ const iconButtonStyle = cva({
         opacity: "[0.5]",
         cursor: "not-allowed",
         _hover: {
-          color: "gray.60",
+          color: "neutral.s60",
           backgroundColor: "[transparent]",
         },
       },
@@ -71,7 +71,7 @@ const iconButtonStyle = cva({
       isDisabled: true,
       css: {
         _hover: {
-          color: "gray.60",
+          color: "neutral.s60",
           backgroundColor: "[transparent]",
         },
       },

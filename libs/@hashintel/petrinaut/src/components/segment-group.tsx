@@ -6,7 +6,7 @@ import { withTooltip } from "./hoc/with-tooltip";
 const containerStyle = cva({
   base: {
     display: "flex",
-    backgroundColor: "gray.20",
+    backgroundColor: "neutral.s20",
     gap: "1",
     position: "relative",
   },
@@ -37,7 +37,7 @@ const containerStyle = cva({
 
 const indicatorStyle = cva({
   base: {
-    backgroundColor: "gray.90",
+    backgroundColor: "neutral.s90",
     position: "absolute",
     transition: "[all 0.2s ease]",
     width: "var(--width)",
@@ -71,18 +71,18 @@ const itemStyle = cva({
   },
   variants: {
     isSelected: {
-      true: { color: "gray.10" },
-      false: { color: "gray.70" },
+      true: { color: "neutral.s10" },
+      false: { color: "neutral.s70" },
     },
     size: {
       md: {
         fontSize: "[13px]",
-        borderRadius: "md.6",
+        borderRadius: "xl",
         padding: "[4px 8px]",
       },
       sm: {
         fontSize: "[11px]",
-        borderRadius: "md.4",
+        borderRadius: "md",
         padding: "[1px 8px]",
       },
     },

@@ -36,7 +36,7 @@ const sectionToggleButtonStyle = css({
   background: "[transparent]",
   border: "none",
   padding: "1",
-  borderRadius: "md.4",
+  borderRadius: "md",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
   },

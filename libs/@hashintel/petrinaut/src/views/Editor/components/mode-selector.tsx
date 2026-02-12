@@ -12,7 +12,7 @@ export interface ModeSelectorProps {
 const refractiveContainerStyle = css({
   borderRadius: "[12px]",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
-  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
 });
 
 const segmentRootStyle = css({
@@ -70,7 +70,7 @@ const segmentItemTextStyle = cva({
         color: "[white]",
       },
       false: {
-        color: "gray.70",
+        color: "neutral.s70",
       },
     },
   },

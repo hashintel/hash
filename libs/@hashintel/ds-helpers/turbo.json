@@ -3,20 +3,20 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["^build"],
+      "outputs": ["styled-system/**"]
+    },
+    "build:ladle": {
+      "dependsOn": ["build"],
       "outputs": [".build/ladle/**"]
     },
-    "codegen": {
-      "outputs": ["styled-system/**"]
+    "lint:tsc": {
+      "dependsOn": ["build"]
     },
     "dev": {
       "cache": false,
-      "dependsOn": ["^build"],
-      "persistent": true
-    },
-    "test": {
-      "dependsOn": ["build"],
-      "outputs": ["playwright-report/**"]
+      "persistent": true,
+      "with": ["@hashintel/ds-theme#dev"]
     }
   }
 }

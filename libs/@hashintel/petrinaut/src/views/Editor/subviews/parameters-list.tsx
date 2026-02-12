@@ -14,24 +14,24 @@ const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "md.1",
+  borderRadius: "xs",
   cursor: "pointer",
   fontSize: "[16px]",
-  color: "gray.60",
+  color: "neutral.s60",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "gray.90",
+    color: "neutral.s90",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.4]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "gray.60",
+      color: "neutral.s60",
     },
   },
 });
@@ -86,15 +86,15 @@ const actionsContainerStyle = css({
 const inputStyle = css({
   padding: "[2px 6px]",
   fontSize: "[12px]",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   border: "1px solid",
-  borderColor: "gray.30",
+  borderColor: "neutral.s30",
   backgroundColor: "[white]",
   width: "[80px]",
   textAlign: "right",
   _focus: {
     outline: "none",
-    borderColor: "blue.50",
+    borderColor: "blue.s50",
   },
 });
 
@@ -103,10 +103,10 @@ const deleteButtonStyle = css({
   alignItems: "center",
   justifyContent: "center",
   padding: "1",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   cursor: "pointer",
   fontSize: "[14px]",
-  color: "gray.50",
+  color: "neutral.s50",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
@@ -120,7 +120,7 @@ const deleteButtonStyle = css({
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "gray.50",
+      color: "neutral.s50",
     },
   },
 });

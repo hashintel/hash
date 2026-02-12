@@ -3,17 +3,17 @@ import { css } from "@hashintel/ds-helpers/css";
 const floatingTitleInputStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
-  color: "gray.90",
+  color: "neutral.s90",
   minWidth: "[200px]",
-  borderRadius: "md.2",
+  borderRadius: "sm",
   padding: "[4px 8px]",
   _focus: {
     outline: "2px solid",
-    outlineColor: "blue.60",
+    outlineColor: "blue.s60",
     outlineOffset: "[0px]",
   },
   _placeholder: {
-    color: "gray.50",
+    color: "neutral.s50",
   },
 });
 

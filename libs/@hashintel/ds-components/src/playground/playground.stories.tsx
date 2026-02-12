@@ -40,20 +40,20 @@ const Playground = () => {
       cursor: "pointer",
       transition: "all",
       transitionDuration: "200ms",
-      backgroundColor: isSelected ? "blue.60" : undefined,
+      backgroundColor: isSelected ? "blue.s60" : undefined,
       _hover: {
         transform: "scale(1.05)",
-        backgroundColor: isSelected ? "blue.70" : "[rgba(255,255,255,0.2)]",
+        backgroundColor: isSelected ? "blue.s70" : "[rgba(255,255,255,0.2)]",
       },
       _active: {
         transform: "scale(0.95)",
-        backgroundColor: isSelected ? "blue.80" : "[rgba(255,255,255,0.3)]",
+        backgroundColor: isSelected ? "blue.s80" : "[rgba(255,255,255,0.3)]",
       },
     });
 
   const getIconStyle = (isSelected: boolean) =>
     css({
-      color: isSelected ? "text.inverted" : "text.primary",
+      color: isSelected ? "bg.solid.fg" : "fg.heading",
       textShadow: isSelected
         ? undefined
         : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",
@@ -127,7 +127,7 @@ const Playground = () => {
                     flexDirection: "column",
                     gap: "5",
                     alignItems: "center",
-                    backgroundColor: "gray.20/40",
+                    backgroundColor: "neutral.s20/40",
                     pointerEvents: "auto",
                   })}
                   style={{
@@ -179,7 +179,7 @@ const Playground = () => {
                       onValueChange={setCurrentPage}
                       className={css({
                         color: "[rgba(0,0,0,0.8)]",
-                        backgroundColor: "gray.30",
+                        backgroundColor: "neutral.s30",
                         marginBottom: "5",
                       })}
                     />
@@ -384,7 +384,7 @@ const Playground = () => {
                     <Button
                       className={css({
                         backgroundColor: "[rgba(0,0,0,0.8)]",
-                        color: "text.inverted",
+                        color: "bg.solid.fg",
                       })}
                       onClick={() => setSelectedButton("select")}
                     >

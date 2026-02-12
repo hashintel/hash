@@ -18,16 +18,16 @@ const nodeRowStyle = cva({
     alignItems: "center",
     gap: "[6px]",
     padding: "[4px 9px]",
-    borderRadius: "md.4",
+    borderRadius: "md",
     cursor: "default",
     transition: "[all 0.15s ease]",
   },
   variants: {
     isSelected: {
       true: {
-        backgroundColor: "blue.20",
+        backgroundColor: "blue.s20",
         _hover: {
-          backgroundColor: "blue.30",
+          backgroundColor: "blue.s30",
         },
       },
       false: {

@@ -65,7 +65,7 @@ const dynamicsIconStyle = css({
   alignItems: "center",
   gap: "4",
   justifyContent: "center",
-  color: "blue.60",
+  color: "blue.s60",
   fontSize: "[18px]",
 });
 
