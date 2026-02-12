@@ -104,6 +104,7 @@ export const createTestUser = async (
     traits: {
       emails: [`${shortname}@example.com`],
     },
+    verifyEmails: true,
   }).catch((err) => {
     logger.error(
       `Error when creating Kratos Identity, ${shortname}: ${

@@ -71,6 +71,7 @@ describe("User model class", () => {
       traits: {
         emails: ["test-user@example.com"],
       },
+      verifyEmails: true,
     });
 
     createdUser = await createUser(graphContext, authentication, {
@@ -210,6 +211,7 @@ describe("User model class", () => {
       traits: {
         emails: [allowListedEmail],
       },
+      verifyEmails: true,
     });
 
     incompleteUser = await createUser(graphContext, authentication, {
