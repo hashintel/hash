@@ -176,7 +176,7 @@ where
         self.into_iter()
     }
 
-    /// Returns the underlying [`DenseBitSet`] if the frontier is non-empty.
+    /// Returns the underlying [`RowRef`] if the frontier is non-empty.
     #[must_use]
     pub const fn as_inner(&self) -> Option<RowRef<'_, N>> {
         self.inner
