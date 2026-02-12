@@ -346,6 +346,18 @@ impl TransMatrix {
             (from, to, cost)
         })
     }
+
+    pub fn outgoing(&self, target: TargetId) -> impl Iterator<Item = (TargetId, Cost)> {
+        self.iter()
+            .filter_map(|(from, to, cost)| cost.map(|cost| (from, to, cost)))
+            .filter_map(move |(from, to, cost)| (target == from).then_some((to, cost)))
+    }
+
+    pub fn incoming(&self, target: TargetId) -> impl Iterator<Item = (TargetId, Cost)> {
+        self.iter()
+            .filter_map(|(from, to, cost)| cost.map(|cost| (from, to, cost)))
+            .filter_map(move |(from, to, cost)| (target == to).then_some((from, cost)))
+    }
 }
 
 impl Default for TransMatrix {

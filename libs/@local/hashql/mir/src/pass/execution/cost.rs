@@ -6,8 +6,9 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    fmt, iter,
-    ops::{Index, IndexMut},
+    fmt,
+    iter::{self, Sum},
+    ops::{Add, AddAssign, Index, IndexMut},
 };
 
 use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
@@ -20,6 +21,7 @@ use crate::{
         local::{Local, LocalVec},
         location::Location,
     },
+    macros::{forward_ref_binop, forward_ref_op_assign},
     pass::transform::Traversals,
 };
 
@@ -46,6 +48,10 @@ impl Cost {
     /// assert_eq!(Cost::MAX, Cost::new(u32::MAX - 1).unwrap());
     /// ```
     pub const MAX: Self = match core::num::niche_types::U32NotAllOnes::new(0xFFFF_FFFE) {
+        Some(cost) => Self(cost),
+        None => unreachable!(),
+    };
+    pub const MIN: Self = match core::num::niche_types::U32NotAllOnes::new(0) {
         Some(cost) => Self(cost),
         None => unreachable!(),
     };
@@ -107,6 +113,32 @@ impl Cost {
         let raw = self.0.as_inner();
 
         Self::new(raw.saturating_add(other)).unwrap_or(Self::MAX)
+    }
+}
+
+impl Add<Self> for Cost {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        let value = self.0.as_inner() + rhs.0.as_inner();
+        Self::new_panic(value)
+    }
+}
+
+impl AddAssign<Self> for Cost {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+forward_ref_binop!(impl Add<Self>::add for Cost);
+forward_ref_op_assign!(impl AddAssign<Self>::add_assign for Cost);
+
+impl Sum<Cost> for Option<Cost> {
+    fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
+        Cost::new(iter.fold(0, |acc, cost| acc + cost.0.as_inner()))
     }
 }
 
@@ -262,6 +294,10 @@ impl<A: Allocator> StatementCostVec<A> {
         let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
 
         &self.costs[range]
+    }
+
+    pub fn sum(&self, block: BasicBlockId) -> Option<Cost> {
+        self.of(block).iter().copied().flatten().sum()
     }
 
     /// Returns a reference to the allocator used by this cost vector.
