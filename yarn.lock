@@ -474,7 +474,7 @@ __metadata:
     "@opentelemetry/sdk-trace-base": "npm:2.2.0"
     "@opentelemetry/sdk-trace-node": "npm:2.2.0"
     "@ory/client": "npm:1.22.7"
-    "@ory/hydra-client": "npm:2.2.1"
+    "@ory/hydra-client": "npm:25.4.0"
     "@ory/kratos-client": "npm:25.4.0"
     "@rudderstack/rudder-sdk-node": "npm:2.1.10"
     "@sentry/node": "npm:10.27.0"
@@ -12853,12 +12853,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/hydra-client@npm:2.2.1":
-  version: 2.2.1
-  resolution: "@ory/hydra-client@npm:2.2.1"
+"@ory/hydra-client@npm:25.4.0":
+  version: 25.4.0
+  resolution: "@ory/hydra-client@npm:25.4.0"
   dependencies:
     axios: "npm:^1.6.1"
-  checksum: 10c0/c6e2879b0fb3869200f5412b72fb0410666f21af306a814cacfc20dc7d625fdc459a165adfa3032c997677d0017ed71c024809c31d4aa14f94c9b9c5a67558ef
+  checksum: 10c0/b2822ea383726af72138f46a389092586a980596f88512387f0c07cafe4dd44b8d918cc735911b7cf57e1cdea54ca568f44f95b32031b350e9c52230b1272789
   languageName: node
   linkType: hard
 
