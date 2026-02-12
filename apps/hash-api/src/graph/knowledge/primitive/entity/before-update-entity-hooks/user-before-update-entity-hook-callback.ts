@@ -143,7 +143,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
 
     const isIncompleteUser = !user.isAccountSignupComplete;
 
-    if (isIncompleteUser && updatedShortname && updatedDisplayName) {
+    if (isIncompleteUser && (updatedShortname || updatedDisplayName)) {
       /**
        * If the user doesn't have access to the HASH instance,
        * we need to forbid them from completing account signup
@@ -152,6 +152,12 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       if (!(await userHasAccessToHash(context, authentication, user))) {
         throw Error.forbidden(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
+        );
+      }
+
+      if (!updatedShortname || !updatedDisplayName) {
+        throw Error.badUserInput(
+          "You must set both shortname and display name to complete account signup.",
         );
       }
 
