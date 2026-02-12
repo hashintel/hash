@@ -68,7 +68,7 @@ services:
       SERVE_PUBLIC_BASE_URL: "http://localhost:4433"
       SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "http://localhost:3000/"
       SELFSERVICE_ALLOWED_RETURN_URLS: "http://localhost:3000"
-      SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL: "http://localhost:3000/api/ory"
+      SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL: "http://localhost:3000"
       SELFSERVICE_FLOWS_ERROR_UI_URL: "http://localhost:3000/error"
       SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "http://localhost:3000/signin"
       SELFSERVICE_FLOWS_LOGIN_UI_URL: "http://localhost:3000/signin"
@@ -77,7 +77,7 @@ services:
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY}"
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "http://localhost:3000/verification"
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: "http://localhost:3000/recovery"
-      SELFSERVICE_FLOWS_SETTINGS_UI_URL: "http://localhost:3000/change-password"
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: "http://localhost:3000/settings/security"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       LOG_LEVEL: debug
       LOG_FORMAT: text
