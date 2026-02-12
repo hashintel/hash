@@ -3,11 +3,11 @@ import { resetDb } from "./shared/reset-db";
 import { expect, type Page, test } from "./shared/runtime";
 import { generateTotpCode } from "./shared/totp-utils";
 
-const createUserAndCompleteSignup = async (page: Page) => {
-  const randomSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
-  const email = `mfa-${randomSuffix}@example.com`;
+const createUserAndCompleteSignup = async (
+  page: Page,
+  { email, shortname }: { email: string; shortname: string },
+) => {
   const password = "some-complex-pw-1ab2";
-  const shortname = `mfa${randomSuffix}`.slice(0, 24);
 
   const registrationFlowReady = page.waitForResponse(
     (response) =>
@@ -113,7 +113,10 @@ test.beforeEach(async () => {
 });
 
 test("user can enable TOTP", async ({ page }) => {
-  await createUserAndCompleteSignup(page);
+  await createUserAndCompleteSignup(page, {
+    email: "mfa-enable-totp@example.com",
+    shortname: "mfa-enable-totp",
+  });
 
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
@@ -121,7 +124,10 @@ test("user can enable TOTP", async ({ page }) => {
 });
 
 test("user with TOTP is prompted for code at login", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page);
+  const credentials = await createUserAndCompleteSignup(page, {
+    email: "mfa-totp-login@example.com",
+    shortname: "mfa-totp-login",
+  });
   const { secret } = await enableTotpForCurrentUser(page);
 
   await page.context().clearCookies();
@@ -142,7 +148,10 @@ test("user with TOTP is prompted for code at login", async ({ page }) => {
 });
 
 test("user can use backup code instead of TOTP", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page);
+  const credentials = await createUserAndCompleteSignup(page, {
+    email: "mfa-backup-code@example.com",
+    shortname: "mfa-backup-code",
+  });
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
   expect(backupCodes.length).toBeGreaterThan(0);
@@ -162,7 +171,10 @@ test("user can use backup code instead of TOTP", async ({ page }) => {
 });
 
 test("user can disable TOTP", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page);
+  const credentials = await createUserAndCompleteSignup(page, {
+    email: "mfa-disable-totp@example.com",
+    shortname: "mfa-disable-totp",
+  });
   const { secret } = await enableTotpForCurrentUser(page);
 
   await page.goto("/settings/security");
@@ -188,7 +200,10 @@ test("user can disable TOTP", async ({ page }) => {
 });
 
 test("wrong TOTP code shows error at login", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page);
+  const credentials = await createUserAndCompleteSignup(page, {
+    email: "mfa-wrong-code@example.com",
+    shortname: "mfa-wrong-code",
+  });
   await enableTotpForCurrentUser(page);
 
   await page.context().clearCookies();

@@ -1,4 +1,3 @@
-import { useLazyQuery } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import type { RegistrationFlow } from "@ory/client";
@@ -6,11 +5,9 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import type { FormEventHandler, FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
-import type { HasAccessToHashQuery } from "../../graphql/api-types.gen";
-import { hasAccessToHashQuery } from "../../graphql/queries/user.queries";
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
@@ -64,8 +61,14 @@ export const SignupRegistrationForm: FunctionComponent = () => {
     setErrorMessage,
   });
 
-  const [checkUserAccess] =
-    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery);
+  /**
+   * Use a ref so the flow-init useEffect doesn't depend on the identity of
+   * `handleFlowError`, which changes when `authenticatedUser` updates in the
+   * auth context. Without this, the effect re-fires after registration and
+   * tries to create/fetch a flow that has already been consumed.
+   */
+  const handleFlowErrorRef = useRef(handleFlowError);
+  handleFlowErrorRef.current = handleFlowError;
 
   // Get ?flow=... from the URL
   const { flow: flowId, return_to: returnTo } = router.query;
@@ -83,7 +86,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
         .getRegistrationFlow({ id: String(flowId) })
         // We received the flow - let's use its data and render the form!
         .then(({ data }) => setFlow(data))
-        .catch(handleFlowError);
+        .catch((error) => handleFlowErrorRef.current(error));
       return;
     }
 
@@ -93,8 +96,8 @@ export const SignupRegistrationForm: FunctionComponent = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => setFlow(data))
-      .catch(handleFlowError);
-  }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
+      .catch((error) => handleFlowErrorRef.current(error));
+  }, [flowId, router, router.isReady, returnTo, flow]);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
@@ -133,15 +136,31 @@ export const SignupRegistrationForm: FunctionComponent = () => {
               method: "password",
             },
           })
-          .then(async () => {
-            const hasAccessToHash = await checkUserAccess().then(
-              ({ data }) => data?.hasAccessToHash,
+          .then(async ({ data: registrationResponse }) => {
+            // Extract the verification flow ID from Ory's continue_with so
+            // the verify-email step can reuse the flow Kratos already created
+            // (and already sent an email for) instead of creating a new one.
+            const verificationFlowId = registrationResponse.continue_with?.find(
+              (
+                action,
+              ): action is {
+                action: "show_verification_ui";
+                flow: { id: string; url: string; verifiable_address: string };
+              } => action.action === "show_verification_ui",
+            )?.flow.id;
+
+            // Clear the consumed registration flow ID from the URL and
+            // persist the verification flow ID as a query param so it
+            // survives the component remount that occurs when _app.page.tsx
+            // switches from the full to the minimal provider tree.
+            await router.replace(
+              {
+                pathname: "/signup",
+                query: verificationFlowId ? { verificationFlowId } : undefined,
+              },
+              undefined,
+              { shallow: true },
             );
-            if (!hasAccessToHash) {
-              await refetch();
-              void router.push("/");
-              return;
-            }
 
             // If the user has successfully logged in and has access to complete signup,
             // refetch the authenticated user which should transition the user to the next step of the signup flow.

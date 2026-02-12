@@ -17,12 +17,19 @@ type VerifyEmailStepProps = {
   email: string;
   /** An error message to display initially (e.g. from a failed auto-verify attempt). */
   initialError?: string;
+  /**
+   * An existing verification flow ID (e.g. from Ory's `continue_with` after
+   * registration). If provided, the flow is fetched on mount so the code input
+   * is shown immediately without sending an additional email.
+   */
+  initialVerificationFlowId?: string;
   onVerified: () => void | Promise<void>;
 };
 
 export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
   email,
   initialError,
+  initialVerificationFlowId,
   onVerified,
 }) => {
   const [flow, setFlow] = useState<VerificationFlow>();
@@ -46,6 +53,12 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
    */
   const handleFlowErrorRef = useRef(handleFlowError);
   handleFlowErrorRef.current = handleFlowError;
+
+  /**
+   * The active flow ID – either from a flow we created in this session, or
+   * passed in from the registration response's `continue_with`.
+   */
+  const activeFlowId = flow?.id ?? initialVerificationFlowId;
 
   const extractCodeValue = useCallback((nextFlow: VerificationFlow) => {
     const codeInputNode = nextFlow.ui.nodes.find(
@@ -110,47 +123,64 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
     [flow],
   );
 
+  const submitCode = useCallback(
+    (codeToSubmit: string) => {
+      if (!activeFlowId || !codeToSubmit) {
+        return;
+      }
+
+      setVerifyingCode(true);
+
+      let succeeded = false;
+
+      const getFlowForSubmission = flow
+        ? Promise.resolve(flow)
+        : oryKratosClient
+            .getVerificationFlow({ id: activeFlowId })
+            .then(({ data }) => {
+              setFlow(data);
+              return data;
+            });
+
+      void getFlowForSubmission
+        .then((resolvedFlow) =>
+          oryKratosClient.updateVerificationFlow({
+            flow: resolvedFlow.id,
+            updateVerificationFlowBody: {
+              method: "code",
+              code: codeToSubmit,
+              csrf_token: mustGetCsrfTokenFromFlow(resolvedFlow),
+            },
+          }),
+        )
+        .then(async () => {
+          await onVerified();
+          succeeded = true;
+        })
+        .catch(async (error: AxiosError) => {
+          await handleFlowErrorRef.current(error);
+        })
+        .catch((error: AxiosError<VerificationFlow>) => {
+          if (error.response?.status === 400) {
+            setFlow(error.response.data);
+            return;
+          }
+
+          return Promise.reject(error);
+        })
+        .finally(() => {
+          // Only reset on failure – on success, onVerified triggers navigation.
+          if (!succeeded) {
+            setVerifyingCode(false);
+          }
+        });
+    },
+    [activeFlowId, flow, onVerified],
+  );
+
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
-
-    if (!flow || !code) {
-      return;
-    }
-
-    setVerifyingCode(true);
-
-    let succeeded = false;
-
-    void oryKratosClient
-      .updateVerificationFlow({
-        flow: flow.id,
-        updateVerificationFlowBody: {
-          method: "code",
-          code,
-          csrf_token: mustGetCsrfTokenFromFlow(flow),
-        },
-      })
-      .then(async () => {
-        await onVerified();
-        succeeded = true;
-      })
-      .catch(async (error: AxiosError) => {
-        await handleFlowErrorRef.current(error);
-      })
-      .catch((error: AxiosError<VerificationFlow>) => {
-        if (error.response?.status === 400) {
-          setFlow(error.response.data);
-          return;
-        }
-
-        return Promise.reject(error);
-      })
-      .finally(() => {
-        // Only reset on failure – on success, onVerified triggers navigation.
-        if (!succeeded) {
-          setVerifyingCode(false);
-        }
-      });
+    submitCode(code);
   };
 
   return (
@@ -163,9 +193,15 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           mb: 3,
         }}
       >
-        {flow
-          ? `Enter the verification code sent to ${email}`
-          : `We've sent a verification code to ${email}. Click the link in the email to verify instantly, or request a new code below to enter manually.`}
+        {activeFlowId ? (
+          `Enter the verification code sent to ${email}`
+        ) : (
+          <>
+            We've sent a verification code to <strong>{email}</strong>. Click
+            the link in the email to verify instantly, or request a new code
+            below to enter manually.
+          </>
+        )}
       </Typography>
       <Box
         component="form"
@@ -177,7 +213,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           width: "100%",
         }}
       >
-        {flow ? (
+        {activeFlowId ? (
           <>
             <TextField
               label="Verification code"
@@ -185,7 +221,14 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
               autoComplete="one-time-code"
               placeholder="Enter your verification code"
               value={code}
-              onChange={({ target }) => setCode(target.value)}
+              onChange={({ target }) => {
+                const value = target.value;
+                setCode(value);
+
+                if (/^\d{6}$/.test(value)) {
+                  submitCode(value);
+                }
+              }}
               error={
                 !!codeInputUiNode?.messages.find(({ type }) => type === "error")
               }
@@ -237,12 +280,12 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
             textAlign: "center",
           }}
         >
-          Dev mode: check{" "}
+          <strong>[DEV]</strong> check{" "}
           <a
             href="http://localhost:4436"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "inherit" }}
+            style={{ color: "inherit", fontWeight: 700 }}
           >
             MailSlurper (localhost:4436)
           </a>{" "}

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
@@ -70,12 +70,13 @@ const SignupPage: NextPageWithLayout = () => {
   const { authenticatedUser, refetch: refetchAuthenticatedUser } =
     useAuthInfo();
 
-  const { data: userHasAccessToHashData } = useQuery<HasAccessToHashQuery>(
-    hasAccessToHashQuery,
-    {
-      skip: !authenticatedUser,
-    },
-  );
+  const userHasVerifiedEmail =
+    authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
+
+  const [fetchHasAccess, { data: userHasAccessToHashData }] =
+    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+      fetchPolicy: "network-only",
+    });
 
   const { invitationId } = router.query;
 
@@ -146,8 +147,10 @@ const SignupPage: NextPageWithLayout = () => {
     ],
   );
 
-  const userHasVerifiedEmail =
-    authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
+  const verificationFlowId =
+    typeof router.query.verificationFlowId === "string"
+      ? router.query.verificationFlowId
+      : undefined;
 
   return (
     <AuthLayout
@@ -177,18 +180,27 @@ const SignupPage: NextPageWithLayout = () => {
               invitation={invitation}
               onAccept={() => setShowInvitationStep(false)}
             />
-          ) : authenticatedUser && userHasAccessToHashData?.hasAccessToHash ? (
+          ) : authenticatedUser ? (
             userHasVerifiedEmail ? (
-              <AccountSetupForm
-                onSubmit={handleAccountSetupSubmit}
-                loading={updateUserLoading}
-                errorMessage={errorMessage}
-              />
+              userHasAccessToHashData?.hasAccessToHash ? (
+                <AccountSetupForm
+                  onSubmit={handleAccountSetupSubmit}
+                  loading={updateUserLoading}
+                  errorMessage={errorMessage}
+                />
+              ) : null
             ) : (
               <VerifyEmailStep
                 email={authenticatedUser.emails[0]?.address ?? ""}
+                initialVerificationFlowId={verificationFlowId}
                 onVerified={async () => {
                   await refetchAuthenticatedUser();
+
+                  const { data } = await fetchHasAccess();
+
+                  if (!data?.hasAccessToHash) {
+                    void router.replace("/");
+                  }
                 }}
               />
             )

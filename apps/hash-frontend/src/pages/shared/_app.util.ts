@@ -10,14 +10,14 @@ export type AppPage<P = Record<string, unknown>, IP = P> = NextComponentType<
 
 /**
  * Redirect during getInitialProps. Server-side, this sends an HTTP 307.
- * Client-side, this is a no-op — callers should return a `redirectTo` field
- * from getInitialProps so the component can handle it via useEffect, avoiding
- * calling router.push during an active route transition (which stalls NProgress).
+ * Client-side, returns the redirect location so the caller can pass it as a
+ * prop – the component then handles it via useEffect, avoiding calling
+ * router.push during an active route transition (which stalls NProgress).
  */
 export const redirectInGetInitialProps = (params: {
   appContext: AppContext;
   location: string;
-}) => {
+}): string | undefined => {
   const {
     appContext: {
       ctx: { res },
@@ -33,5 +33,6 @@ export const redirectInGetInitialProps = (params: {
     res.writeHead(307, { Location: location });
     res.end();
   }
-  // On client-side, do nothing. The component handles redirects via useEffect.
+
+  // On client-side, return the location for the component to handle.
 };

@@ -57,16 +57,23 @@ const extractBackupCodesFromFlow = (flow: SettingsFlow): string[] => {
     return [];
   }
 
-  const normalizedText = codesText
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/?[^>]+>/g, "");
-
-  const regexMatches = normalizedText.match(/[A-Z0-9]{4}(?:-[A-Z0-9]{4})+/gi);
+  // Extract backup codes directly by pattern rather than stripping HTML first.
+  // Kratos may return codes in an HTML-formatted string (with <br> tags, etc.),
+  // but we only care about the alphanumeric code values themselves.
+  const regexMatches = codesText.match(/[A-Z0-9]{4}(?:-[A-Z0-9]{4})+/gi);
   if (regexMatches?.length) {
     return regexMatches;
   }
 
-  return normalizedText
+  // Fallback: replace <br> with newlines, then use DOMParser to safely extract
+  // plain text. DOMParser creates an inert document — no scripts execute, no
+  // resources load, and no event handlers fire, unlike innerHTML on a live element.
+  // The data comes from Kratos in any case.
+  const withNewlines = codesText.replace(/<br\s*\/?>/gi, "\n");
+  const parsed = new DOMParser().parseFromString(withNewlines, "text/html");
+  const plainText = parsed.body.textContent;
+
+  return plainText
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);

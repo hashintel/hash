@@ -43,6 +43,12 @@ const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
 
+/**
+ * Email addresses that are permitted to sign up in a test environment.
+ * See USER_EMAIL_ALLOW_LIST in .env.local
+ */
+const allowListedEmail = "charlie@example.com";
+
 describe("User model class", () => {
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({
@@ -202,12 +208,12 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["incomplete-user@example.com"],
+        emails: [allowListedEmail],
       },
     });
 
     incompleteUser = await createUser(graphContext, authentication, {
-      emails: ["incomplete-user@example.com"],
+      emails: [allowListedEmail],
       kratosIdentityId: identity.id,
     });
 

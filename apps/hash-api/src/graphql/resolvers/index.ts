@@ -123,6 +123,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,
     hashInstanceSettings: hashInstanceSettingsResolver,
+    hasAccessToHash: hasAccessToHashResolver,
 
     /** Any user – type fetching */
     queryDataTypes: queryDataTypesResolver,
@@ -137,7 +138,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     /** Logged in users (who may not have completed signup) */
     me: loggedInMiddleware(meResolver),
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
-    hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
 
     /** Logged in and signed up users */
     getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(
@@ -187,6 +187,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Mutation: {
     /** Logged in users (who may not have completed signup) */
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
+    /** The resolver itself gates updates to only the user entity if they haven't completed signup */
+    updateEntity: loggedInMiddleware(updateEntityResolver),
 
     /** Logged in and signed up users */
     updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
@@ -222,7 +224,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
-    updateEntity: loggedInAndSignedUpMiddleware(updateEntityResolver),
     updateEntities: loggedInAndSignedUpMiddleware(updateEntitiesResolver),
     archiveEntity: loggedInAndSignedUpMiddleware(archiveEntityResolver),
     archiveEntities: loggedInAndSignedUpMiddleware(archiveEntitiesResolver),

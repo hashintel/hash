@@ -419,7 +419,7 @@ const SigninPage: NextPageWithLayout = () => {
                   </Button>
                   <Button
                     type="button"
-                    variant="tertiary_quiet"
+                    variant="tertiary"
                     data-testid="signin-aal2-toggle-method-button"
                     onClick={() => {
                       setUseLookupSecretInput((currentValue) => !currentValue);
@@ -495,7 +495,14 @@ const SigninPage: NextPageWithLayout = () => {
                 />
               </>
             )}
-            {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+            {errorMessage ? (
+              <Typography
+                sx={{ color: ({ palette }) => palette.red[70] }}
+                variant="smallTextParagraphs"
+              >
+                {errorMessage}
+              </Typography>
+            ) : null}
             {flow?.ui.messages?.map(({ text, id }) => (
               <Typography key={id}>{text}</Typography>
             ))}

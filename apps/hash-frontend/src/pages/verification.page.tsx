@@ -34,8 +34,7 @@ const LogoutButton = styled((props: ButtonProps) => (
 const VerifyEmailPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { logout } = useLogoutFlow();
-  const { authenticatedUser, emailVerificationStatusKnown, refetch } =
-    useAuthInfo();
+  const { authenticatedUser, refetch } = useAuthInfo();
 
   const primaryEmailVerified =
     authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
@@ -48,18 +47,6 @@ const VerifyEmailPage: NextPageWithLayout = () => {
   const [autoVerifying, setAutoVerifying] = useState(false);
   const [autoVerifyError, setAutoVerifyError] = useState<string>();
   const autoVerifyAttempted = useRef(false);
-
-  useEffect(() => {
-    if (emailVerificationStatusKnown && !authenticatedUser) {
-      void router.replace("/signin");
-    }
-  }, [authenticatedUser, emailVerificationStatusKnown, router]);
-
-  useEffect(() => {
-    if (authenticatedUser && primaryEmailVerified) {
-      void router.replace("/");
-    }
-  }, [authenticatedUser, primaryEmailVerified, router]);
 
   /**
    * When the page is loaded with both `code` and `flow` query params (e.g.

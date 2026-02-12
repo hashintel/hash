@@ -113,7 +113,7 @@ export const NotificationCountContextProvider: FunctionComponent<
           includeDrafts: false,
         },
       },
-      skip: !authenticatedUser,
+      skip: !authenticatedUser?.accountSignupComplete,
       fetchPolicy: "network-only",
     },
   );

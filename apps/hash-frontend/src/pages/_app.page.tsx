@@ -64,9 +64,8 @@ const clientSideEmotionCache = createEmotionCache();
 
 type AppInitialProps = {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
-  /** Set when getInitialProps determines a client-side redirect is needed. */
-  redirectTo?: string;
   user?: MinimalUser;
+  redirectTo?: string;
 };
 
 type AppProps = {
@@ -77,11 +76,33 @@ type AppProps = {
 
 const unverifiedUserPermittedPagePathnames = ["/verification", "/signup"];
 
-const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
+const globalStyles = (
+  <GlobalStyles
+    styles={{
+      /**
+       * @see https://mui.com/material-ui/react-text-field/#performance
+       */
+      "@keyframes mui-auto-fill": { from: { display: "block" } },
+      "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
+      /* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */
+      /* @todo remove when inline styles are replaced with MUI styles */
+      "@keyframes spin": {
+        from: {
+          transform: "rotate(0deg)",
+        },
+        to: {
+          transform: "rotate(360deg)",
+        },
+      },
+    }}
+  />
+);
+
+const App: FunctionComponent<AppProps> = ({
   Component,
   pageProps,
-  redirectTo,
   emotionCache = clientSideEmotionCache,
+  redirectTo,
 }) => {
   // Helps prevent tree mismatch between server and client on initial render
   const [ssr, setSsr] = useState(true);
@@ -99,39 +120,20 @@ const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
   const { aal2Required, authenticatedUser, emailVerificationStatusKnown } =
     useAuthInfo();
 
-  const primaryEmailVerified =
-    authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
-
-  const userMustVerifyEmail =
-    !!authenticatedUser &&
-    emailVerificationStatusKnown &&
-    !primaryEmailVerified;
-
   const awaitingEmailVerificationStatus =
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
 
   /**
-   * Handle client-side redirects determined by getInitialProps. These are
-   * deferred to useEffect so they don't conflict with the in-progress route
-   * transition (which would stall the NProgress bar).
+   * Handle client-side redirects that were determined in getInitialProps.
+   * On the server these are HTTP 307s; on the client getInitialProps returns
+   * a `redirectTo` prop instead, and this effect performs the navigation after
+   * the current route transition completes (avoiding NProgress stalls).
    */
   useEffect(() => {
-    if (redirectTo && router.isReady) {
+    if (redirectTo) {
       void router.replace(redirectTo);
     }
   }, [redirectTo, router]);
-
-  useEffect(() => {
-    if (
-      !router.isReady ||
-      !userMustVerifyEmail ||
-      unverifiedUserPermittedPagePathnames.includes(router.pathname)
-    ) {
-      return;
-    }
-
-    void router.replace("/verification");
-  }, [router, userMustVerifyEmail]);
 
   useEffect(() => {
     setSentryUser({ authenticatedUser });
@@ -141,47 +143,12 @@ const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
-  if (ssr || !router.isReady || awaitingEmailVerificationStatus) {
+  // We also gate on `redirectTo` so the page doesn't flash before navigating.
+  if (ssr || !router.isReady || awaitingEmailVerificationStatus || redirectTo) {
     return <Suspense />; // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
-
-  if (
-    userMustVerifyEmail &&
-    !unverifiedUserPermittedPagePathnames.includes(router.pathname)
-  ) {
-    return <Suspense />;
-  }
-
-  if (userMustVerifyEmail) {
-    return (
-      <Suspense>
-        <CacheProvider value={emotionCache}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <KeyboardShortcutsContextProvider>
-              {getLayout(<Component {...pageProps} />)}
-            </KeyboardShortcutsContextProvider>
-          </ThemeProvider>
-        </CacheProvider>
-        <GlobalStyles
-          styles={{
-            "@keyframes mui-auto-fill": { from: { display: "block" } },
-            "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
-            "@keyframes spin": {
-              from: {
-                transform: "rotate(0deg)",
-              },
-              to: {
-                transform: "rotate(360deg)",
-              },
-            },
-          }}
-        />
-      </Suspense>
-    );
-  }
 
   return (
     <Suspense>
@@ -228,25 +195,7 @@ const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
           </RoutePageInfoProvider>
         </ThemeProvider>
       </CacheProvider>
-      <GlobalStyles
-        styles={{
-          /**
-           * @see https://mui.com/material-ui/react-text-field/#performance
-           */
-          "@keyframes mui-auto-fill": { from: { display: "block" } },
-          "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
-          /* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */
-          /* @todo remove when inline styles are replaced with MUI styles */
-          "@keyframes spin": {
-            from: {
-              transform: "rotate(0deg)",
-            },
-            to: {
-              transform: "rotate(360deg)",
-            },
-          },
-        }}
-      />
+      {globalStyles}
     </Suspense>
   );
 };
@@ -254,7 +203,7 @@ const App: FunctionComponent<AppProps & { redirectTo?: string }> = ({
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUserSubgraph, redirectTo, user } = props;
+  const { initialAuthenticatedUserSubgraph, user } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -262,7 +211,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
         initialAuthenticatedUserSubgraph={initialAuthenticatedUserSubgraph}
         key={user?.accountId}
       >
-        <App {...props} redirectTo={redirectTo} />
+        <App {...props} />
       </AuthInfoProvider>
     </ApolloProvider>
   );
@@ -351,31 +300,24 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
 
-  /**
-   * Helper: on server-side, performs an HTTP 307 redirect. On client-side,
-   * returns a redirectTo field so the component can handle it via useEffect
-   * (avoids calling router.push during an active transition, which stalls NProgress).
-   */
-  const redirect = (location: string): AppInitialProps => {
-    redirectInGetInitialProps({ appContext, location });
-    return { redirectTo: req ? undefined : location };
-  };
-
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {
+    let redirectTo: string | undefined;
+
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the sign in page
-      return redirect(
-        `/signin${
+      redirectTo = redirectInGetInitialProps({
+        appContext,
+        location: `/signin${
           ["", "/", "/404"].includes(pathname)
             ? ""
             : `?return_to=${req?.url ?? asPath}`
         }`,
-      );
+      });
     }
 
-    return {};
+    return { redirectTo };
   }
 
   const user = constructMinimalUser({ userEntity });
@@ -383,24 +325,27 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const primaryEmailVerified = await getPrimaryEmailVerificationStatus(cookie);
 
   if (primaryEmailVerified === false) {
+    let redirectTo: string | undefined;
+
     if (!unverifiedUserPermittedPagePathnames.includes(pathname)) {
-      return {
-        initialAuthenticatedUserSubgraph,
-        user,
-        ...redirect("/verification"),
-      };
+      redirectTo = redirectInGetInitialProps({
+        appContext,
+        location: "/verification",
+      });
     }
 
-    return { initialAuthenticatedUserSubgraph, user };
+    return { initialAuthenticatedUserSubgraph, user, redirectTo };
   }
 
   if (primaryEmailVerified === true && pathname === "/verification") {
-    return {
-      initialAuthenticatedUserSubgraph,
-      user,
-      ...redirect("/"),
-    };
+    const redirectTo = redirectInGetInitialProps({
+      appContext,
+      location: "/",
+    });
+    return { initialAuthenticatedUserSubgraph, user, redirectTo };
   }
+
+  let redirectTo: string | undefined;
 
   // If the user is logged in but hasn't completed signup...
   if (!user.accountSignupComplete) {
@@ -414,61 +359,60 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     // ...if they have access to HASH but aren't on the signup page...
     if (hasAccessToHash && !pathname.startsWith("/signup")) {
       // ...then redirect them to the signup page.
-      return {
-        initialAuthenticatedUserSubgraph,
-        user,
-        ...redirect("/signup"),
-      };
+      redirectTo = redirectInGetInitialProps({
+        appContext,
+        location: "/signup",
+      });
       // ...if they don't have access to HASH but aren't on the home page...
     } else if (!hasAccessToHash && pathname !== "/") {
       // ...then redirect them to the home page.
-      return {
-        initialAuthenticatedUserSubgraph,
-        user,
-        ...redirect("/"),
-      };
+      redirectTo = redirectInGetInitialProps({
+        appContext,
+        location: "/",
+      });
     }
   } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
     /**
      * If the user has completed signup and is on a page they shouldn't be on
      * (e.g. /signup), then redirect them to the home page.
      */
-    return {
-      initialAuthenticatedUserSubgraph,
-      user,
-      ...redirect("/"),
-    };
+    redirectTo = redirectInGetInitialProps({
+      appContext,
+      location: "/",
+    });
   }
 
   // For each feature flag...
-  for (const featureFlag of featureFlags) {
-    /**
-     * ...if the user has not enabled the feature flag,
-     * and the page is a hidden pathname for that feature flag...
-     */
-    if (
-      !user.enabledFeatureFlags.includes(featureFlag) &&
-      featureFlagHiddenPathnames[featureFlag].includes(pathname)
-    ) {
-      const isUserAdmin = await apolloClient
-        .query<GetHashInstanceSettingsQueryQuery>({
-          query: getHashInstanceSettings,
-          context: { headers: { cookie } },
-        })
-        .then(({ data }) => !!data.hashInstanceSettings?.isUserAdmin);
+  if (!redirectTo) {
+    for (const featureFlag of featureFlags) {
+      /**
+       * ...if the user has not enabled the feature flag,
+       * and the page is a hidden pathname for that feature flag...
+       */
+      if (
+        !user.enabledFeatureFlags.includes(featureFlag) &&
+        featureFlagHiddenPathnames[featureFlag].includes(pathname)
+      ) {
+        const isUserAdmin = await apolloClient
+          .query<GetHashInstanceSettingsQueryQuery>({
+            query: getHashInstanceSettings,
+            context: { headers: { cookie } },
+          })
+          .then(({ data }) => !!data.hashInstanceSettings?.isUserAdmin);
 
-      if (!isUserAdmin) {
-        // ...then redirect them to the home page instead.
-        return {
-          initialAuthenticatedUserSubgraph,
-          user,
-          ...redirect("/"),
-        };
+        if (!isUserAdmin) {
+          // ...then redirect them to the home page instead.
+          redirectTo = redirectInGetInitialProps({
+            appContext,
+            location: "/",
+          });
+          break;
+        }
       }
     }
   }
 
-  return { initialAuthenticatedUserSubgraph, user };
+  return { initialAuthenticatedUserSubgraph, user, redirectTo };
 };
 
 export default AppWithTypeSystemContextProvider;
