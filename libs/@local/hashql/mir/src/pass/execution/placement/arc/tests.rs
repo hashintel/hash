@@ -84,7 +84,7 @@ fn already_consistent_no_pruning() {
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = full_matrix();
 
-    let before = domains.clone();
+    let before = domains;
     run_ac3(&body, &mut domains, &mut terminators);
 
     assert_eq!(domains, before);

@@ -219,7 +219,8 @@ where
     where
         A: Clone,
     {
-        self.members_in(Global)
+        let allocator = self.data.nodes.allocator().clone();
+        self.members_in(allocator)
     }
 
     #[expect(unsafe_code, clippy::debug_assert_with_mut_call)]
