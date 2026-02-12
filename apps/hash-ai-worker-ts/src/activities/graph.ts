@@ -7,16 +7,15 @@ import {
 import type {
   ActorEntityUuid,
   DataTypeWithMetadata,
+  EntityId,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   EntityQueryCursor,
   GraphApi,
   UpdateDataTypeEmbeddingParams,
-  UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
@@ -56,6 +55,7 @@ import {
   type SerializedQueryEntityTypeSubgraphResponse,
   serializeQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
+import * as actor from "@local/hash-graph-sdk/principal/actor";
 import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   queryPropertyTypes,
@@ -68,7 +68,10 @@ import {
 } from "@local/hash-graph-sdk/property-type";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export type EntityQueryResponse = {
   subgraph: SerializedSubgraph<SerializedEntityRootType>;
@@ -80,17 +83,43 @@ export const createGraphActivities = ({
 }: {
   graphApiClient: GraphApi;
 }) => ({
-  async getUserAccountIds(): Promise<ActorEntityUuid[]> {
-    return queryEntities(
-      { graphApi: graphApiClient },
+  async getSystemMachineIds(params: {
+    cursor?: EntityQueryCursor;
+    limit?: number;
+  }): Promise<{
+    machineIds: EntityId[];
+    cursor?: EntityQueryCursor | null;
+  }> {
+    const systemMachine = await actor.getMachineByIdentifier(
+      graphApiClient,
       { actorId: publicUserAccountId },
+      "h",
+    );
+    if (!systemMachine) {
+      throw new Error("System machine not found");
+    }
+
+    const { entities, cursor } = await queryEntities(
+      { graphApi: graphApiClient },
+      { actorId: systemMachine.id },
       {
         filter: {
           all: [
             {
               equal: [
                 { path: ["type", "baseUrl"] },
-                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+                { parameter: systemEntityTypes.machine.entityTypeBaseUrl },
+              ],
+            },
+            {
+              startsWith: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: "system-" },
               ],
             },
           ],
@@ -98,15 +127,15 @@ export const createGraphActivities = ({
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
+        cursor: params.cursor,
+        limit: params.limit,
       },
-    ).then(({ entities }) =>
-      entities.map((entity) => {
-        const entity_uuid = extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId,
-        );
-        return entity_uuid as ActorEntityUuid;
-      }),
     );
+
+    return {
+      machineIds: entities.map((entity) => entity.metadata.recordId.entityId),
+      cursor,
+    };
   },
 
   async queryDataTypes(params: {
@@ -248,24 +277,6 @@ export const createGraphActivities = ({
         embedding: params.embedding,
         reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
-      })
-      .then((response) => response.data);
-  },
-
-  async updateEntityEmbeddings(
-    params: {
-      authentication: {
-        actorId: ActorEntityUuid;
-      };
-    } & UpdateEntityEmbeddingsParams,
-  ): Promise<void> {
-    await graphApiClient
-      .updateEntityEmbeddings(params.authentication.actorId, {
-        entityId: params.entityId,
-        embeddings: params.embeddings,
-        reset: params.reset,
-        updatedAtTransactionTime: params.updatedAtTransactionTime,
-        updatedAtDecisionTime: params.updatedAtDecisionTime,
       })
       .then((response) => response.data);
   },
