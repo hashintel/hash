@@ -45,7 +45,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
             />
           </Button>
         }
-        heading={<>Organizations</>}
+        heading="Organizations"
         ref={topRef}
       >
         {authenticatedUser.memberOf.length > 0 ? (

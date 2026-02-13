@@ -46,6 +46,7 @@ import type {
   ServiceAccount,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
+import type { VerifiableIdentityAddress } from "@ory/client";
 
 import type { UserPreferences } from "../shared/use-user-preferences";
 
@@ -364,6 +365,7 @@ export const constructUser = (params: {
   subgraph: Subgraph<EntityRootType<HashEntity>>;
   resolvedOrgs?: Org[];
   userEntity: Entity<UserEntity>;
+  verifiableAddresses?: VerifiableIdentityAddress[];
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
@@ -372,11 +374,10 @@ export const constructUser = (params: {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
   const primaryEmailAddress = email?.[0] ?? "";
 
-  // @todo implement email verification
-  // const isPrimaryEmailAddressVerified =
-  //   params.kratosSession.identity.verifiable_addresses?.find(
-  //     ({ value }) => value === primaryEmailAddress,
-  //   )?.verified === true;
+  const isPrimaryEmailAddressVerified =
+    params.verifiableAddresses?.find(
+      ({ value }) => value === primaryEmailAddress,
+    )?.verified === true;
 
   const minimalUser = constructMinimalUser({ userEntity });
 
@@ -552,7 +553,7 @@ export const constructUser = (params: {
     emails: [
       {
         address: primaryEmailAddress,
-        verified: false,
+        verified: isPrimaryEmailAddressVerified,
         primary: true,
       },
     ],

@@ -18,6 +18,8 @@ import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
+const emptyOrgsArray: Org[] = [];
+
 /**
  * Retrieves a specific set of organizations, with their avatars and members populated
  */
@@ -98,6 +100,10 @@ export const useOrgsWithLinks = ({
   const { queryEntitySubgraph: queryEntitySubgraphResponse } = data ?? {};
 
   const orgs = useMemo(() => {
+    if (orgAccountGroupIds?.length === 0) {
+      return emptyOrgsArray;
+    }
+
     if (!queryEntitySubgraphResponse) {
       return undefined;
     }
@@ -114,11 +120,11 @@ export const useOrgsWithLinks = ({
       }
       return constructOrg({ subgraph, orgEntity });
     });
-  }, [queryEntitySubgraphResponse]);
+  }, [orgAccountGroupIds, queryEntitySubgraphResponse]);
 
   return {
     loading,
-    orgs: orgAccountGroupIds && orgAccountGroupIds.length === 0 ? [] : orgs,
+    orgs,
     refetch,
   };
 };

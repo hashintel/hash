@@ -1,48 +1,66 @@
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
+import {
+  completeSignup,
+  registerUser,
+  verifyEmailOnPage,
+} from "./shared/signup-utils";
 
 test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can sign up", async ({ page }) => {
-  await page.goto("/");
+const allowlistedEmail = "charlie@example.com";
 
-  await page.click("text=Sign in");
+test("allowlisted user can verify email and complete signup", async ({
+  page,
+}) => {
+  const { email, emailDispatchTimestamp } = await registerUser(page, {
+    email: allowlistedEmail,
+  });
 
-  await page.waitForURL("**/signin");
+  await verifyEmailOnPage(page, {
+    email,
+    afterTimestamp: emailDispatchTimestamp,
+  });
 
-  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
-  await expect(page.locator("text=Create a free account")).toBeVisible();
+  const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
+  const shortname = `signup${uniqueSuffix}`.slice(0, 24);
 
-  await page.click("text=Create a free account");
+  await completeSignup(page, { shortname, displayName: "New User" });
+});
 
-  await page.waitForURL("**/signup");
+test("waitlisted user is redirected to waitlist after signup", async ({
+  page,
+}) => {
+  const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
+  const waitlistedEmail = `signup-${uniqueSuffix}@example.com`;
 
-  const randomNumber = Math.floor(Math.random() * 10_000)
-    .toString()
-    .padEnd(4, "0"); // shortnames must be at least 4 characters
+  const { emailDispatchTimestamp } = await registerUser(page, {
+    email: waitlistedEmail,
+  });
 
-  await page.fill(
-    '[placeholder="Enter your email address"]',
-    `${randomNumber}@example.com`,
-  );
-
-  await page.fill('[type="password"]', "some-complex-pw-1ab2");
-
-  await page.click("text=Sign up");
-
-  await expect(
-    page.locator("text=Thanks for confirming your account"),
-  ).toBeVisible();
-
-  await page.fill('[placeholder="example"]', randomNumber.toString());
-
-  await page.fill('[placeholder="Jonathan Smith"]', "New User");
-
-  await page.click("text=Continue");
+  // Waitlisted users must also verify their email before proceeding
+  await verifyEmailOnPage(page, {
+    email: waitlistedEmail,
+    afterTimestamp: emailDispatchTimestamp,
+  });
 
   await page.waitForURL("/");
+  await expect(
+    page.getByText("on the waitlist", { exact: false }),
+  ).toBeVisible();
 
-  await expect(page.locator("text=Get support")).toBeVisible();
+  await page.goto("/settings/security");
+  await page.waitForURL("/");
+  await expect(
+    page.getByText("on the waitlist", { exact: false }),
+  ).toBeVisible();
+
+  await page.goto("/signup");
+  await page.waitForURL("/");
+
+  await expect(
+    page.getByText("on the waitlist", { exact: false }),
+  ).toBeVisible();
 });

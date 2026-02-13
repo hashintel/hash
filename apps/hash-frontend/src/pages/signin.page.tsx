@@ -44,7 +44,7 @@ const SignupButton = styled((props: ButtonProps) => (
 const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { refetch } = useAuthInfo();
+  const { aal2Required, refetch } = useAuthInfo();
   const { updateActiveWorkspaceWebId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
@@ -105,6 +105,9 @@ const SigninPage: NextPageWithLayout = () => {
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [totpCode, setTotpCode] = useState<string>("");
+  const [lookupSecret, setLookupSecret] = useState<string>("");
+  const [useLookupSecretInput, setUseLookupSecretInput] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const { handleFlowError } = useKratosErrorHandler({
@@ -149,71 +152,14 @@ const SigninPage: NextPageWithLayout = () => {
     handleFlowError,
   ]);
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-
-    if (!flow) {
-      throw new Error(
-        "No sign in flow available – please try clearing your cookies.",
-      );
-    }
-
-    if (!email || !password) {
-      return;
-    }
-
-    const csrf_token = mustGetCsrfTokenFromFlow(flow);
-
-    void router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
-      // their data when they reload the page.
-      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
-      .then(() =>
-        oryKratosClient
-          .updateLoginFlow({
-            flow: String(flow.id),
-            updateLoginFlowBody: {
-              csrf_token,
-              method: "password",
-              identifier: email,
-              password,
-            },
-          })
-          // We logged in successfully! Let's redirect the user.
-          .then(async () => {
-            // Otherwise, redirect the user to their workspace.
-            const { authenticatedUser } = await refetch();
-
-            if (!authenticatedUser) {
-              throw new Error(
-                "Could not fetch authenticated user after logging in.",
-              );
-            }
-
-            updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
-
-            void router.push(returnTo ?? flow.return_to ?? "/");
-          })
-          .catch(handleFlowError)
-          .catch((err: AxiosError<LoginFlow>) => {
-            // If the previous handler did not catch the error it's most likely a form validation error
-            if (err.response?.status === 400) {
-              // Yup, it is!
-              setFlow(err.response.data);
-              return;
-            }
-
-            if (err.response?.status === 429) {
-              // This is a rate limiting error
-              setErrorMessage("Too many attempts, please try again shortly.");
-              return;
-            }
-
-            // This is an unexpected error, throw it so that it's reported
-            return Promise.reject(err);
-          }),
-      );
-  };
+  const isAal2Flow = useMemo(
+    () =>
+      flow?.requested_aal === "aal2" ||
+      flow?.ui.nodes.some(({ group }) =>
+        ["totp", "lookup_secret"].includes(group),
+      ) === true,
+    [flow],
+  );
 
   const emailInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
@@ -225,6 +171,148 @@ const SigninPage: NextPageWithLayout = () => {
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
+
+  const totpInputUiNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "totp_code",
+  );
+
+  const lookupSecretInputUiNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) &&
+      attributes.name === "lookup_secret",
+  );
+
+  const handleValidationError = (err: AxiosError<LoginFlow>) => {
+    if (err.response?.status === 400) {
+      setFlow(err.response.data);
+      return;
+    }
+
+    if (err.response?.status === 429) {
+      setErrorMessage("Too many attempts, please try again shortly.");
+      return;
+    }
+
+    return Promise.reject(err);
+  };
+
+  const completeSignin = async (activeFlow: LoginFlow) => {
+    const { authenticatedUser } = await refetch();
+
+    if (!authenticatedUser) {
+      if (aal2Required) {
+        void router.push("/signin?aal=aal2");
+        return;
+      }
+
+      throw new Error("Could not fetch authenticated user after logging in.");
+    }
+
+    updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+    void router.push(returnTo ?? activeFlow.return_to ?? "/");
+  };
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
+
+    if (!flow) {
+      throw new Error(
+        "No sign in flow available – please try clearing your cookies.",
+      );
+    }
+
+    if (!isAal2Flow && (!email || !password)) {
+      return;
+    }
+
+    if (isAal2Flow && !useLookupSecretInput && !totpCode) {
+      return;
+    }
+
+    if (isAal2Flow && useLookupSecretInput && !lookupSecret) {
+      return;
+    }
+
+    const csrf_token = mustGetCsrfTokenFromFlow(flow);
+
+    const updateLoginFlowBody = isAal2Flow
+      ? useLookupSecretInput
+        ? {
+            csrf_token,
+            method: "lookup_secret" as const,
+            lookup_secret: lookupSecret,
+          }
+        : {
+            csrf_token,
+            method: "totp" as const,
+            totp_code: totpCode,
+          }
+      : {
+          csrf_token,
+          method: "password" as const,
+          identifier: email,
+          password,
+        };
+
+    setErrorMessage(undefined);
+
+    void router
+      // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
+      // their data when they reload the page.
+      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
+      .then(() =>
+        oryKratosClient
+          .updateLoginFlow({
+            flow: String(flow.id),
+            updateLoginFlowBody,
+          })
+          // We logged in successfully! Let's redirect the user.
+          .then(async ({ data: loginResponse }) => {
+            if (!isAal2Flow) {
+              const redirectAction = loginResponse.continue_with?.find(
+                (
+                  action,
+                ): action is {
+                  action: "redirect_browser_to";
+                  redirect_browser_to: string;
+                } =>
+                  action.action === "redirect_browser_to" &&
+                  "redirect_browser_to" in action &&
+                  typeof action.redirect_browser_to === "string",
+              );
+
+              if (redirectAction?.redirect_browser_to) {
+                void router.push(redirectAction.redirect_browser_to);
+                return;
+              }
+
+              try {
+                await oryKratosClient.toSession();
+              } catch (error) {
+                const maybeAal2Error = error as AxiosError<{
+                  redirect_browser_to?: string;
+                }>;
+
+                if (maybeAal2Error.response?.status === 403) {
+                  const redirectTo =
+                    maybeAal2Error.response.data.redirect_browser_to ??
+                    "/signin?aal=aal2";
+
+                  void router.push(redirectTo);
+                  return;
+                }
+
+                throw error;
+              }
+            }
+
+            await completeSignin(flow);
+          })
+          .catch(handleFlowError)
+          .catch(handleValidationError),
+      );
+  };
 
   const { userSelfRegistrationIsEnabled } = hashInstance?.properties ?? {};
 
@@ -259,7 +347,11 @@ const SigninPage: NextPageWithLayout = () => {
             maxWidth: 600,
           }}
         >
-          <AuthHeading>Sign in to your account</AuthHeading>
+          <AuthHeading>
+            {isAal2Flow
+              ? "Enter your authentication code"
+              : "Sign in to your account"}
+          </AuthHeading>
           <Box
             component="form"
             onSubmit={handleSubmit}
@@ -270,66 +362,147 @@ const SigninPage: NextPageWithLayout = () => {
               gap: 1,
             }}
           >
-            <TextField
-              label="Email address"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="Enter your email address"
-              value={email}
-              onChange={({ target }) => setEmail(target.value)}
-              error={
-                !!emailInputUiNode?.messages.find(
-                  ({ type }) => type === "error",
-                )
-              }
-              helperText={emailInputUiNode?.messages.map(({ id, text }) => (
-                <Typography key={id}>{text}</Typography>
-              ))}
-              required
-              inputProps={{ "data-1p-ignore": false }}
-            />
-            <TextField
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={({ target }) => setPassword(target.value)}
-              error={
-                !!passwordInputUiNode?.messages.find(
-                  ({ type }) => type === "error",
-                )
-              }
-              helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
-                <Typography key={id}>{text}</Typography>
-              ))}
-              required
-              inputProps={{ "data-1p-ignore": false }}
-              // eslint-disable-next-line react/jsx-no-duplicate-props
-              InputProps={{
-                endAdornment: (
-                  <Button
-                    type="submit"
-                    variant="tertiary_quiet"
-                    sx={{
-                      /** @todo: replace this with a blue from the design system */
-                      color: "#2482FF",
-                      "&:hover": {
-                        color: "#2482FF",
-                      },
-                      [` .${buttonClasses.endIcon} svg`]: {
-                        color: "#2482FF",
-                      },
-                    }}
-                    endIcon={<ArrowTurnDownLeftRegularIcon />}
-                  >
-                    Submit
+            {isAal2Flow ? (
+              <>
+                <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
+                  Open your authenticator app and enter the code to continue.
+                </Typography>
+                <TextField
+                  label={
+                    useLookupSecretInput ? "Backup code" : "Authenticator code"
+                  }
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder={
+                    useLookupSecretInput
+                      ? "Enter your backup code"
+                      : "Enter your authentication code"
+                  }
+                  value={useLookupSecretInput ? lookupSecret : totpCode}
+                  inputProps={{
+                    "data-1p-ignore": false,
+                    "data-testid": "signin-aal2-code-input",
+                  }}
+                  onChange={({ target }) => {
+                    if (useLookupSecretInput) {
+                      setLookupSecret(target.value);
+                    } else {
+                      setTotpCode(target.value);
+                    }
+                  }}
+                  error={
+                    !!(useLookupSecretInput
+                      ? lookupSecretInputUiNode?.messages.find(
+                          ({ type }) => type === "error",
+                        )
+                      : totpInputUiNode?.messages.find(
+                          ({ type }) => type === "error",
+                        ))
+                  }
+                  helperText={
+                    useLookupSecretInput
+                      ? lookupSecretInputUiNode?.messages.map(
+                          ({ id, text }) => (
+                            <Typography key={id}>{text}</Typography>
+                          ),
+                        )
+                      : totpInputUiNode?.messages.map(({ id, text }) => (
+                          <Typography key={id}>{text}</Typography>
+                        ))
+                  }
+                  required
+                />
+                <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                  <Button type="submit" data-testid="signin-aal2-submit-button">
+                    Verify and continue
                   </Button>
-                ),
-              }}
-            />
-            {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+                  <Button
+                    type="button"
+                    variant="tertiary"
+                    data-testid="signin-aal2-toggle-method-button"
+                    onClick={() => {
+                      setUseLookupSecretInput((currentValue) => !currentValue);
+                      setErrorMessage(undefined);
+                    }}
+                  >
+                    {useLookupSecretInput
+                      ? "Use an authenticator code instead"
+                      : "Use a backup code instead"}
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <>
+                <TextField
+                  label="Email address"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={({ target }) => setEmail(target.value)}
+                  error={
+                    !!emailInputUiNode?.messages.find(
+                      ({ type }) => type === "error",
+                    )
+                  }
+                  helperText={emailInputUiNode?.messages.map(({ id, text }) => (
+                    <Typography key={id}>{text}</Typography>
+                  ))}
+                  required
+                  inputProps={{ "data-1p-ignore": false }}
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={({ target }) => setPassword(target.value)}
+                  error={
+                    !!passwordInputUiNode?.messages.find(
+                      ({ type }) => type === "error",
+                    )
+                  }
+                  helperText={passwordInputUiNode?.messages.map(
+                    ({ id, text }) => <Typography key={id}>{text}</Typography>,
+                  )}
+                  required
+                  inputProps={{ "data-1p-ignore": false }}
+                  // eslint-disable-next-line react/jsx-no-duplicate-props
+                  InputProps={{
+                    endAdornment: (
+                      <Button
+                        type="submit"
+                        variant="tertiary_quiet"
+                        sx={{
+                          /** @todo: replace this with a blue from the design system */
+                          color: "#2482FF",
+                          "&:hover": {
+                            color: "#2482FF",
+                          },
+                          [` .${buttonClasses.endIcon} svg`]: {
+                            color: "#2482FF",
+                          },
+                        }}
+                        endIcon={<ArrowTurnDownLeftRegularIcon />}
+                      >
+                        Submit
+                      </Button>
+                    ),
+                  }}
+                />
+              </>
+            )}
+            {errorMessage ? (
+              <Typography
+                sx={{ color: ({ palette }) => palette.red[70] }}
+                variant="smallTextParagraphs"
+              >
+                {errorMessage}
+              </Typography>
+            ) : null}
             {flow?.ui.messages?.map(({ text, id }) => (
               <Typography key={id}>{text}</Typography>
             ))}

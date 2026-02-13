@@ -13,6 +13,8 @@ serve:
 session:
   # Let sessions live for 3 years
   lifespan: 26280h # 24 h * 365 days * 3 years
+  whoami:
+    required_aal: highest_available
 
 selfservice:
   # Set `default_browser_return_url` through the `SELFSERVICE_DEFAULT_BROWSER_RETURN_URL` environment variable
@@ -24,14 +26,22 @@ selfservice:
 
     link:
       config:
-        # The URL for verification emails are set through the link method
-        # but we're using the code method, so we disable this method for usage.
+        # The link method is disabled (we use the code method instead).
+        # link.base_url is used by Kratos to construct {{ .VerificationURL }}
+        # in email templates, but our templates extract the flow ID from it
+        # and construct their own link to /verification directly.
         enabled: false
         # Set `base_url` through the `SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL` environment variable
     code:
       config:
         # and make sure to enable the code method.
         enabled: true
+    totp:
+      config:
+        issuer: HASH
+      enabled: true
+    lookup_secret:
+      enabled: true
 
   flows:
     error:
@@ -68,6 +78,7 @@ selfservice:
                     name: KRATOS_API_KEY
                     # Set `value` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE` environment variable
                     in: header
+            - hook: show_verification_ui
             - hook: session
 
     verification:

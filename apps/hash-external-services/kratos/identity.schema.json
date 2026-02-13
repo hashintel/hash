@@ -20,21 +20,13 @@
               "credentials": {
                 "password": {
                   "identifier": true
+                },
+                "totp": {
+                  "account_name": true
                 }
               },
               "verification": { "via": "email" },
               "recovery": { "via": "email" }
-            }
-          }
-        },
-        "shortname": {
-          "type": "string",
-          "title": "Shortname",
-          "ory.sh/kratos": {
-            "credentials": {
-              "password": {
-                "identifier": true
-              }
             }
           }
         }

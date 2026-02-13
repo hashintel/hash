@@ -53,6 +53,7 @@ import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
+// import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
 import {
   oauthConsentRequestHandler,
@@ -78,7 +79,13 @@ import {
   GRAPHQL_PATH,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
+import {
+  isDevEnv,
+  isProdEnv,
+  isStatsDEnabled,
+  isTestEnv,
+  port,
+} from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -94,8 +101,8 @@ const httpServer = http.createServer(app);
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
-  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 30, // 30 seconds
-  limit: 10, // Limit each IP to 10 requests every 30 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 10, // 10 seconds
+  limit: 12, // Limit each IP to 12 requests every 10 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 };
@@ -814,6 +821,7 @@ const main = async () => {
 
   // Start the Apollo GraphQL server.
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
+
   app.use(
     GRAPHQL_PATH,
     cors<cors.CorsRequest>(CORS_CONFIG),
@@ -832,6 +840,21 @@ const main = async () => {
       resolve();
     });
   });
+
+  if (!isTestEnv) {
+    /**
+     * H-6218 – introduce this after optimising the query and doing more testing
+     */
+    // const unverifiedEmailCleanupJob = createUnverifiedEmailCleanupJob({
+    //   context: machineActorContext,
+    //   logger,
+    // });
+    // await unverifiedEmailCleanupJob.start();
+    // shutdown.addCleanup(
+    //   "Unverified email cleanup job",
+    //   unverifiedEmailCleanupJob.stop,
+    // );
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (realtimeSyncEnabled && enabledIntegrations.linear) {

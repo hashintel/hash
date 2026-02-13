@@ -66,7 +66,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
       },
       pollInterval,
       fetchPolicy: "network-only",
-      skip: !authenticatedUser,
+      skip: !authenticatedUser?.accountSignupComplete,
     },
   );
 

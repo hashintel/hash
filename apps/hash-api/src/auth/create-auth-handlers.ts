@@ -13,7 +13,7 @@ import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
 import type { KratosUserIdentity } from "./ory-kratos";
-import { kratosFrontendApi } from "./ory-kratos";
+import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
@@ -106,6 +106,7 @@ export const getUserAndSession = async ({
   logger: Logger;
   sessionToken?: string;
 }): Promise<{
+  primaryEmailVerified?: boolean;
   session?: Session;
   user?: User;
 }> => {
@@ -118,9 +119,11 @@ export const getUserAndSession = async ({
     })
     .then(({ data }) => data)
     .catch((err: AxiosError) => {
-      // 403 on toSession means that we need to request 2FA
       if (err.response && err.response.status === 403) {
-        /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
+        logger.debug(
+          "Session requires AAL2 but only has AAL1. Treating as unauthenticated.",
+        );
+        return undefined;
       }
       logger.debug(
         `Kratos response error: Could not fetch session, got: [${
@@ -139,6 +142,13 @@ export const getUserAndSession = async ({
 
     const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
 
+    const primaryEmailAddress = traits.emails[0];
+
+    const primaryEmailVerified =
+      identity.verifiable_addresses?.find(
+        ({ value }) => value === primaryEmailAddress,
+      )?.verified === true;
+
     const user = await getUser(context, authentication, {
       kratosIdentityId,
       emails: traits.emails,
@@ -150,7 +160,7 @@ export const getUserAndSession = async ({
       );
     }
 
-    return { session: kratosSession, user };
+    return { primaryEmailVerified, session: kratosSession, user };
   }
 
   return {};
@@ -185,6 +195,9 @@ export const createAuthMiddleware = (params: {
           },
         );
         if (user) {
+          req.primaryEmailVerified = await isUserEmailVerified(
+            user.kratosIdentityId,
+          );
           req.user = user;
           next();
           return;
@@ -192,35 +205,15 @@ export const createAuthMiddleware = (params: {
       }
     }
 
-    const { session, user } = await getUserAndSession({
+    const { primaryEmailVerified, session, user } = await getUserAndSession({
       context,
       cookie: req.header("cookie"),
       logger,
       sessionToken: accessOrSessionToken,
     });
-
-    const kratosSession = await kratosFrontendApi
-      .toSession({
-        cookie: req.header("cookie"),
-        xSessionToken: accessOrSessionToken,
-      })
-      .then(({ data }) => data)
-      .catch((err: AxiosError) => {
-        // 403 on toSession means that we need to request 2FA
-        if (err.response && err.response.status === 403) {
-          /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
-        }
-        logger.debug(
-          `Kratos response error: Could not fetch session, got: [${
-            err.response?.status
-          }] ${JSON.stringify(err.response?.data)}`,
-        );
-        return undefined;
-      });
-
-    if (kratosSession) {
+    if (session) {
+      req.primaryEmailVerified = primaryEmailVerified;
       req.session = session;
-
       req.user = user;
     }
 

@@ -46,8 +46,12 @@ if (process.env.USER_EMAIL_ALLOW_LIST) {
 export const userHasAccessToHash = async (
   context: ImpureGraphContext,
   authentication: AuthenticationContext,
-  user: User,
+  user: User | null,
 ) => {
+  if (!user) {
+    return false;
+  }
+
   if (!userEmailAllowList) {
     return true;
   }

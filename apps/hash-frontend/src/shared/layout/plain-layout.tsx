@@ -33,7 +33,10 @@ export const PlainLayout: FunctionComponent<{
 
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthInfo();
+  const { authenticatedUser, emailVerificationStatusKnown } = useAuthInfo();
+
+  const primaryEmailVerified =
+    authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
 
   return (
     <>
@@ -53,7 +56,11 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
-      {authenticatedUser?.accountSignupComplete ? <CommandBar /> : null}
+      {authenticatedUser?.accountSignupComplete &&
+      emailVerificationStatusKnown &&
+      primaryEmailVerified ? (
+        <CommandBar />
+      ) : null}
       {children}
     </>
   );

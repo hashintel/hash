@@ -13,6 +13,7 @@ import {
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { GraphQLError } from "graphql";
 
+import { isUserEmailVerified } from "../../../../../auth/ory-kratos";
 import * as Error from "../../../../../graphql/error";
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
@@ -186,6 +187,12 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       if (!(await userHasAccessToHash(context, authentication, user))) {
         throw Error.forbidden(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
+        );
+      }
+
+      if (!(await isUserEmailVerified(user.kratosIdentityId))) {
+        throw Error.forbidden(
+          "You must verify your email address before completing account setup.",
         );
       }
 
