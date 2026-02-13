@@ -3562,7 +3562,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "temporalio-client",
- "temporalio-common",
+ "temporalio-common 0.1.0 (git+https://github.com/temporalio/sdk-core?rev=231e21c)",
  "thiserror 2.0.18",
  "type-system",
  "url",
@@ -8366,7 +8366,7 @@ dependencies = [
 [[package]]
 name = "temporalio-client"
 version = "0.1.0"
-source = "git+https://github.com/temporalio/sdk-core?rev=231e21c#231e21cadb8004197a5b1dba2ecb1313596cc34c"
+source = "git+https://github.com/temporalio/sdk-core?rev=fb14d9c3cf4e9e6d0894fd9bb2985dbf6d6de1fe#fb14d9c3cf4e9e6d0894fd9bb2985dbf6d6de1fe"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8385,7 +8385,7 @@ dependencies = [
  "parking_lot",
  "rand 0.9.2",
  "slotmap",
- "temporalio-common",
+ "temporalio-common 0.1.0 (git+https://github.com/temporalio/sdk-core?rev=fb14d9c3cf4e9e6d0894fd9bb2985dbf6d6de1fe)",
  "thiserror 2.0.18",
  "tokio",
  "tonic 0.14.3",
@@ -8399,6 +8399,31 @@ dependencies = [
 name = "temporalio-common"
 version = "0.1.0"
 source = "git+https://github.com/temporalio/sdk-core?rev=231e21c#231e21cadb8004197a5b1dba2ecb1313596cc34c"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "bon",
+ "derive_more",
+ "prost 0.14.3",
+ "prost-wkt",
+ "prost-wkt-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tonic 0.14.3",
+ "tonic-prost",
+ "tonic-prost-build",
+ "tracing",
+ "tracing-core",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "temporalio-common"
+version = "0.1.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=fb14d9c3cf4e9e6d0894fd9bb2985dbf6d6de1fe#fb14d9c3cf4e9e6d0894fd9bb2985dbf6d6de1fe"
 dependencies = [
  "anyhow",
  "async-trait",
