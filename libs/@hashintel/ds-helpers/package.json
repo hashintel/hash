@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-helpers",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "HASH PandaCSS Styled System",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -69,7 +69,7 @@
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
-    "@hashintel/ds-theme": "0.0.3",
+    "@hashintel/ds-theme": "0.1.0",
     "@ladle/react": "5.1.1",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.4.3",
