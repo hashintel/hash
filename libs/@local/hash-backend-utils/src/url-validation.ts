@@ -244,14 +244,18 @@ export const validateExternalUrlWithDnsCheck = async (
     return syncResult;
   }
 
-  // Resolve DNS and check the resulting IP
+  // Resolve DNS for all addresses and check each one. A hostname may have
+  // multiple A/AAAA records, and checking only one would leave a gap if
+  // another record points to a private/reserved IP.
   try {
-    const { address } = await lookup(bareHostname);
-    if (isPrivateIp(address)) {
-      return {
-        valid: false,
-        reason: `Hostname "${url.hostname}" resolves to private/reserved IP "${address}"`,
-      };
+    const addresses = await lookup(bareHostname, { all: true });
+    for (const { address } of addresses) {
+      if (isPrivateIp(address)) {
+        return {
+          valid: false,
+          reason: `Hostname "${url.hostname}" resolves to private/reserved IP "${address}"`,
+        };
+      }
     }
   } catch (error) {
     return {
