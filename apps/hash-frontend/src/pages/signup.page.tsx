@@ -1,9 +1,9 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import type {
@@ -73,11 +73,21 @@ const SignupPage: NextPageWithLayout = () => {
   const userHasVerifiedEmail =
     authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
 
-  const { data: userHasAccessToHashData, refetch: refetchHasAccess } =
-    useQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+  const [fetchHasAccess, { data: userHasAccessToHashData }] =
+    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
       fetchPolicy: "network-only",
-      skip: !userHasVerifiedEmail,
     });
+
+  /**
+   * Eagerly fetch access when the user already has a verified email on mount
+   * (e.g. page refresh after verification). The lazy query in `onVerified`
+   * handles the in-session verification flow.
+   */
+  useEffect(() => {
+    if (userHasVerifiedEmail && !userHasAccessToHashData) {
+      void fetchHasAccess();
+    }
+  }, [userHasVerifiedEmail, userHasAccessToHashData, fetchHasAccess]);
 
   const { invitationId } = router.query;
 
@@ -197,9 +207,9 @@ const SignupPage: NextPageWithLayout = () => {
                 onVerified={async () => {
                   await refetchAuthenticatedUser();
 
-                  const { data } = await refetchHasAccess();
+                  const { data } = await fetchHasAccess();
 
-                  if (!data.hasAccessToHash) {
+                  if (!data?.hasAccessToHash) {
                     void router.replace("/");
                   }
                 }}
