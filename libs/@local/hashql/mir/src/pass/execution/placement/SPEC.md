@@ -12,10 +12,8 @@ It produces a final `TargetId` assignment for every basic block.
 
 ## Preconditions
 
-1. The Interpreter target is present in every block's `TargetBitSet`, including empty blocks.
-2. For every edge matrix `M`, `M[(Interpreter, Interpreter)] = Some(Cost(0))`.
-3. These two properties guarantee that a feasible assignment always exists.
-4. Single-block self-loops are treated as non-trivial SCCs (consistent with terminator placement's `is_in_loop` when `successor_id == block_id`).
+1. Single-block self-loops are treated as non-trivial SCCs (consistent with terminator placement's `is_in_loop` when `successor_id == block_id`).
+2. Feasibility is **not** guaranteed by construction. There is no assumption that an always-available interpreter target exists. When no valid assignment can be found, the algorithm backtracks (see Phase 3a). If all possibilities are exhausted, a diagnostic is emitted.
 
 ## Cost Model
 
@@ -63,10 +61,8 @@ while queue is not empty:
             for each edge (w, u) or (u, w) where w != v:
                 queue.push(edge)
 
-    // safety net: should never trigger due to Interpreter guarantee
     if targets[u].is_empty():
-        emit diagnostic
-        targets[u].insert(Interpreter)
+        emit diagnostic  // no valid assignment exists for this block
 ```
 
 **Properties:**
@@ -74,7 +70,7 @@ while queue is not empty:
 - Domains only shrink, so the algorithm terminates.
 - Each edge is re-examined at most O(K) times (where K is the number of targets), since each re-enqueue is caused by a domain shrinking, and domains can shrink at most K times.
 - Total complexity: O(E · K²) where E is the number of CFG edges — efficient even with many targets.
-- The Interpreter guarantee means domains should never empty — the diagnostic is a safety net. In debug builds, treat empty domains as hard internal errors.
+- An empty domain means no valid assignment exists for that block. This is a hard error — emit a diagnostic.
 - After pruning, every surviving target in a block has at least one valid transition partner across each incident edge (but not necessarily the _assigned_ partner).
 - Unreachable blocks (not reachable from entry) are still pruned but diagnostics for empty domains on unreachable blocks should be suppressed or downgraded.
 
@@ -206,36 +202,97 @@ search(depth, assignment, domains, cost_so_far, best):
 
 Operates on the condensation DAG of super blocks.
 
-#### Forward Pass (topological order, sources first)
+#### Forward Pass (MRV ordering with backtracking)
 
-For each super block, assign targets considering only already-assigned predecessors. Use a heuristic for unassigned successors (assume each picks its cheapest target).
+The forward pass processes super blocks using **dynamic MRV ordering**: at each step, pick the unassigned super block whose blocks have the smallest remaining target domains. Break ties by highest constraint degree (most unassigned neighbors / boundary edges).
+
+Each block maintains a **`TargetHeap`**: a sorted list of candidate targets ordered by estimated cost. The heap supports `pop()` to consume the current best and advance to the next candidate.
+
+The forward pass maintains an **assignment stack**: a log of `(super_block, assignment)` entries in the order they were processed. This stack drives backtracking.
 
 ```
-for super_block in topological_order:
-    if trivial:
-        best_target = None
-        best_cost = infinity
+assignment_stack = []
 
-        for target in targets[block]:
-            if any assigned predecessor p has incompatible transition:
-                continue
+while unassigned super blocks remain:
+    super_block = pick unassigned super block by MRV
+        (smallest remaining domain, break ties by constraint degree)
 
-            cost = block_cost[target][block]
-                 + Σ transition costs from assigned predecessors
-                 + Σ estimated transition costs to unassigned successors
-                     (assume each successor picks its cheapest target)
+    if trivial (single block, no self-loop):
+        heap = estimate_costs(block, assigned_neighbors)
+        elem = heap.pop()
 
-            if cost < best_cost:
-                best_cost = cost
-                best_target = target
+        if elem is None:
+            backtrack(assignment_stack)  // no valid target — see below
+            continue
 
-        assignment[block] = best_target
-    else:
-        fill neighbor_targets: Some(t) for incoming boundary edges (predecessors assigned),
-                               None for outgoing boundary edges (successors unassigned)
+        assignment[block] = elem.target
+        options[block] = heap  // save remaining heap for backtracking
+        assignment_stack.push(super_block)
+
+    else (non-trivial SCC):
+        fill neighbor_targets from assigned boundary neighbors
         solve CSP with boundary context
-        all internal assignments (including exit block targets) determined by CSP solution
+        assignment_stack.push(super_block)
 ```
+
+##### Backtracking
+
+When a super block has no valid target (its `TargetHeap` is exhausted, or CSP finds no solution), the algorithm backtracks:
+
+1. **Trivial super block**: walk back up the assignment stack to find a super block that can change its assignment (its `TargetHeap` has remaining entries). Pop the next target from that heap. Undo all assignments downstream of it (truncate the stack). Resume the forward pass from the new state — MRV will re-evaluate ordering for remaining super blocks, which may produce a different order than the original pass. This is correct and desirable: the constraint landscape has changed.
+
+2. **Non-trivial SCC**: when the CSP fails or a downstream failure propagates back into an SCC, use **least-delta perturbation** to choose which member to change:
+   - For each member block in the SCC, peek at its `TargetHeap` to see the next candidate target.
+   - Compute the **delta** between the current target and the next target for each member. This delta is intrinsic to the target pair (cost difference), not a speculative evaluation of downstream impact.
+   - Pick the member with the **smallest delta** — the one where switching causes the least local disruption.
+   - Pop that member's next target and re-solve the SCC's internal CSP with the updated assignment.
+   - If the SCC's `TargetHeap`s are all exhausted, propagate the backtrack further up the assignment stack.
+
+```
+backtrack(assignment_stack):
+    while assignment_stack is not empty:
+        super_block = assignment_stack.pop()
+
+        if trivial:
+            block = super_block.block
+            elem = options[block].pop()
+
+            if elem is Some:
+                assignment[block] = elem.target
+                // undo all assignments that were made after this point
+                // (already removed from stack by the pop loop)
+                assignment_stack.push(super_block)
+                return  // resume forward pass with MRV re-evaluation
+
+        else (non-trivial SCC):
+            // find member with smallest current→next delta
+            best_member = None
+            best_delta = infinity
+
+            for member in super_block.members:
+                if options[member].is_empty():
+                    continue
+
+                next = options[member].peek()
+                delta = next.cost - current_cost[member]
+
+                if delta < best_delta:
+                    best_delta = delta
+                    best_member = member
+
+            if best_member is Some:
+                options[best_member].pop()
+                // re-solve SCC CSP with updated member target
+                assignment_stack.push(super_block)
+                return  // resume forward pass
+
+    // all possibilities exhausted — no valid placement exists
+    emit diagnostic
+```
+
+**Termination**: each backtrack step pops from a finite `TargetHeap`. Pops are monotonic (targets are consumed, never re-added). Upward propagation eventually exhausts all heaps or finds a valid assignment.
+
+**MRV on replay**: after backtracking, the forward pass re-evaluates MRV for remaining unassigned super blocks. The ordering may differ from the original pass because domains have changed. This is a feature: MRV adapts to the new constraint landscape after perturbation, making better choices than a stale static order would.
 
 #### Backward Pass (reverse topological order, sinks first)
 
@@ -271,6 +328,9 @@ for super_block in reverse_topological_order:
 
 **Properties:**
 
+- The forward pass uses MRV to process the most constrained super blocks first, catching infeasibility early and reducing backtracking depth.
+- Backtracking via TargetHeap pops ensures systematic exploration without revisiting states.
+- Least-delta perturbation within SCCs minimizes the blast radius of changes, making it more likely that downstream assignments survive.
 - The backward pass sees successor assignments that the forward pass couldn't, allowing it to correct suboptimal choices at join points.
 - Arc consistency pruning guarantees that targets surviving in a block's domain are structurally compatible — the backward pass only checks against concrete assignments.
 - Strict `Δ < 0` switching with "prefer current on ties" prevents oscillation: total cost monotonically decreases and is bounded below, so iterative forward-backward converges.
@@ -290,8 +350,8 @@ TransMatrix ───────┘
   Phase 2: SCC Decomposition (Tarjan)
         │  (condensation DAG of super blocks)
         ▼
-  Phase 3a: Forward Pass (topological)
-        │  (initial assignments)
+  Phase 3a: Forward Pass (MRV ordering + backtracking)
+        │  (initial assignments via TargetHeap)
         ▼
   Phase 3b: Backward Pass (reverse topological)
         │  (refined assignments)
@@ -301,12 +361,12 @@ TransMatrix ───────┘
 
 ## Invariants
 
-1. **Interpreter fallback**: every block's domain always contains `Interpreter`. Every edge has a valid `Interpreter → Interpreter` transition with zero cost. This guarantees feasibility at every stage.
-2. **Monotonic pruning**: arc consistency only removes targets, never adds. Domains converge.
-3. **Monotonic refinement**: each backward pass iteration only switches assignments when total cost strictly decreases. Convergence is guaranteed.
-4. **SCC locality**: backtracking is scoped to individual SCCs. The DAG-level refinement uses greedy assignment with local repair, not exponential search.
-5. **Edge cost accounting**: internal SCC edges are charged inside the CSP. Boundary edges with assigned neighbors are also charged inside the CSP (via the boundary context). No double-counting: each edge is accounted for exactly once.
-6. **Self-loop handling**: single-block self-loops are non-trivial SCCs and go through the CSP path, consistent with terminator placement's loop detection.
+1. **Monotonic pruning**: arc consistency only removes targets, never adds. Domains converge.
+2. **Monotonic refinement**: each backward pass iteration only switches assignments when total cost strictly decreases. Convergence is guaranteed.
+3. **SCC locality**: backtracking is scoped to individual SCCs. The DAG-level refinement uses greedy assignment with local repair, not exponential search.
+4. **Edge cost accounting**: internal SCC edges are charged inside the CSP. Boundary edges with assigned neighbors are also charged inside the CSP (via the boundary context). No double-counting: each edge is accounted for exactly once.
+5. **Self-loop handling**: single-block self-loops are non-trivial SCCs and go through the CSP path, consistent with terminator placement's loop detection.
+6. **Backtracking termination**: TargetHeap pops are monotonic (targets are consumed, never re-added). Upward propagation through the condensation DAG eventually exhausts the search space or finds a solution. The combination of finite heaps and monotonic consumption guarantees termination.
 
 ## Future Enhancements
 
