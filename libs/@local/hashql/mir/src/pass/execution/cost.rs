@@ -132,6 +132,117 @@ impl fmt::Display for Cost {
     }
 }
 
+/// Approximate execution cost as a floating-point value.
+///
+/// Guarantees the inner value is never NaN, which makes the type totally ordered ([`Eq`] +
+/// [`Ord`]). Used when exact integer costs are unnecessary or when operations like averaging,
+/// weighting, or normalization produce fractional results. Supports accumulation via [`Add`],
+/// [`AddAssign`], and [`Sum`].
+///
+/// Created from a [`Cost`] via [`From`]:
+///
+/// ```
+/// # use hashql_mir::pass::execution::{Cost, ApproxCost};
+/// let cost = Cost::new(42).unwrap();
+/// let approx = ApproxCost::from(cost);
+/// ```
+#[derive(Debug, Clone, Copy)]
+#[repr(transparent)]
+pub struct ApproxCost(f32);
+
+impl ApproxCost {
+    /// An approximate cost of zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Creates an approximate cost from an `f32`, returning `None` if the value is NaN.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::ApproxCost;
+    /// assert!(ApproxCost::new(1.5).is_some());
+    /// assert!(ApproxCost::new(f32::NAN).is_none());
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f32) -> Option<Self> {
+        if value.is_nan() {
+            None
+        } else {
+            Some(Self(value))
+        }
+    }
+
+    /// Returns the inner `f32` value.
+    #[inline]
+    #[must_use]
+    pub const fn as_f32(self) -> f32 {
+        self.0
+    }
+}
+
+impl Eq for ApproxCost {}
+
+impl PartialEq for ApproxCost {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Ord for ApproxCost {
+    #[inline]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+
+impl PartialOrd for ApproxCost {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl From<Cost> for ApproxCost {
+    #[inline]
+    fn from(cost: Cost) -> Self {
+        #[expect(clippy::cast_precision_loss)]
+        Self(cost.0.as_inner() as f32)
+    }
+}
+
+impl fmt::Display for ApproxCost {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Add for ApproxCost {
+    type Output = Self;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Self) -> Self {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl AddAssign for ApproxCost {
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
+
+forward_ref_binop!(impl Add<Self>::add for ApproxCost);
+forward_ref_op_assign!(impl AddAssign<Self>::add_assign for ApproxCost);
+
+impl Sum for ApproxCost {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, Add::add)
+    }
+}
+
 /// Sparse cost map for traversal locals.
 ///
 /// Traversals are locals that require data fetching from a backend (e.g., entity field access).
