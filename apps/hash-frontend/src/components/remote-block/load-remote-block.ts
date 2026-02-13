@@ -51,8 +51,12 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
      */
     const exports = {};
     const module = { exports };
-    // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
-    const func = new Function("require", "module", "exports", source);
+    // const func = new Function("require", "module", "exports", "source");
+    /**
+     * @todo H-6216 – restore ability to load arbitrary untrusted blocks when returning to block feature development
+     */
+    // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval -- source code is empty, won't do anything, blocks are feature-flagged and not in use
+    const func = new Function("require", "module", "exports", "");
     // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     func(requires, module, exports);
