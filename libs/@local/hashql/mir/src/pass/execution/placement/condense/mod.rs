@@ -1,5 +1,6 @@
-use core::mem::MaybeUninit;
-use std::alloc::Allocator;
+mod estimate;
+
+use core::alloc::Allocator;
 
 use hashql_core::{
     graph::{
@@ -10,7 +11,7 @@ use hashql_core::{
         },
         linked::Node,
     },
-    id::{self, HasId, Id, IdVec},
+    id::{self, HasId, Id},
 };
 
 use crate::{
@@ -18,7 +19,6 @@ use crate::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice},
     },
-    def::DefIdSlice,
     pass::execution::{
         Cost, StatementCostVec,
         target::{TargetArray, TargetBitSet, TargetId},

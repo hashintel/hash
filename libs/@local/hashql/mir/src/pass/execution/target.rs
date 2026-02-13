@@ -16,7 +16,7 @@ pub enum TargetId {
 
 impl TargetId {
     pub const VARIANT_COUNT: usize = mem::variant_count::<Self>();
-    const VARIANT_COUNT_U8: u8 = match u8::try_from(Self::VARIANT_COUNT) {
+    pub const VARIANT_COUNT_U8: u8 = match u8::try_from(Self::VARIANT_COUNT) {
         Ok(count) => count,
         Err(_) => unreachable!(),
     };
