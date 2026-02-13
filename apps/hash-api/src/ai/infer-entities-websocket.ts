@@ -211,7 +211,7 @@ export const openInferEntitiesWebSocket = ({
           return { user: null };
         });
 
-        authenticatedUser = user;
+        authenticatedUser = user ?? null;
       }
 
       activeConnectionsByIp.set(ipAddress, activeConnections + 1);
