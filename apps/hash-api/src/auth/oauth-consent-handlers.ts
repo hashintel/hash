@@ -20,7 +20,12 @@ function parseCookieValue(
   for (const part of cookieHeader.split(";")) {
     const trimmed = part.trim();
     if (trimmed.startsWith(`${name}=`)) {
-      return decodeURIComponent(trimmed.slice(name.length + 1));
+      try {
+        return decodeURIComponent(trimmed.slice(name.length + 1));
+      } catch {
+        // Malformed percent-encoding in the cookie value — treat as missing.
+        return undefined;
+      }
     }
   }
   return undefined;
