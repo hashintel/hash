@@ -153,16 +153,17 @@ struct Component<A> {
 }
 
 #[derive(Copy, Clone)]
-pub struct SliceMembers<'alloc, N, S> {
+pub struct MembersRef<'alloc, N, S> {
     offsets: &'alloc IdSlice<S, usize>,
     nodes: &'alloc [N],
 }
 
-impl<'alloc, N, S> SliceMembers<'alloc, N, S>
+impl<'alloc, N, S> MembersRef<'alloc, N, S>
 where
     S: Id,
 {
     #[inline]
+    #[must_use]
     pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator + 'alloc {
         // Offsets is 1 longer than the number of SCCs
         self.offsets.ids().take(self.offsets.len() - 1)
@@ -186,8 +187,8 @@ where
     S: Id,
 {
     #[inline]
-    pub const fn as_slice(&self) -> SliceMembers<'_, N, S> {
-        SliceMembers {
+    pub const fn as_slice(&self) -> MembersRef<'_, N, S> {
+        MembersRef {
             offsets: &self.offsets,
             nodes: &self.nodes,
         }
@@ -252,8 +253,7 @@ where
     where
         A: Clone,
     {
-        let allocator = self.data.nodes.allocator().clone();
-        self.members_in(allocator)
+        self.members_in(self.alloc.clone())
     }
 
     #[expect(unsafe_code)]
@@ -362,7 +362,11 @@ where
     M: Metadata<N, S>,
     A: BumpAllocator,
 {
-    pub fn members_in_bump<B: Allocator>(&self, scratch: B) -> SliceMembers<'alloc, N, S> {
+    pub fn bump_members(&self) -> MembersRef<'alloc, N, S> {
+        self.bump_members_in(self.alloc)
+    }
+
+    pub fn bump_members_in<B: Allocator>(&self, scratch: B) -> MembersRef<'alloc, N, S> {
         let num_sccs = self.data.components.len();
         let num_nodes = self.data.nodes.len();
 
@@ -371,7 +375,7 @@ where
 
         let (nodes, offsets) = self.members_in_impl(scratch, nodes, offsets);
 
-        SliceMembers { offsets, nodes }
+        MembersRef { offsets, nodes }
     }
 }
 

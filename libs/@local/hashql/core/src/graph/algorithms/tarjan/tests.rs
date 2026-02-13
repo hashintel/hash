@@ -8,6 +8,7 @@
 //! You may use, copy, modify, and distribute this file under the terms of the
 //! GNU Affero General Public License, Version 3.0, as part of this project,
 //! provided that all original notices are preserved.
+use alloc::vec::Vec;
 use core::cmp;
 
 use super::{Metadata, StronglyConnectedComponents};
@@ -15,6 +16,7 @@ use crate::{
     graph::{
         DirectedGraph as _, NodeId, Successors as _, algorithms::tarjan::Tarjan, tests::TestGraph,
     },
+    heap::Scratch,
     id::Id as _,
     newtype,
 };
@@ -539,4 +541,268 @@ fn members_empty() {
     let members = sccs.members();
     assert_eq!(members.offsets.len(), 1); // Just the sentinel
     assert!(members.nodes.is_empty());
+}
+
+/// Tests that a single node with a self-loop forms one SCC containing that node.
+#[test]
+fn self_loop_single_node() {
+    let graph = TestGraph::new(&[(0, 0)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 1);
+    assert_eq!(sccs.scc(n!(0)), s!(0));
+    assert_successors(&sccs, s!(0), &[]);
+}
+
+/// Tests that multiple disconnected nodes each form their own SCC with no successors.
+/// Uses self-loops to register nodes in `TestGraph` without creating cross-node edges.
+#[test]
+fn disconnected_components() {
+    let graph = TestGraph::new(&[(0, 0), (1, 1), (2, 2), (3, 3)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 4);
+
+    for node in 0..4 {
+        let scc = sccs.scc(n!(node));
+        assert_successors(&sccs, scc, &[]);
+    }
+
+    // All nodes are in different SCCs
+    let scc_ids: Vec<_> = (0..4).map(|node| sccs.scc(n!(node))).collect();
+    for (index, &scc_a) in scc_ids.iter().enumerate() {
+        for &scc_b in &scc_ids[index + 1..] {
+            assert_ne!(scc_a, scc_b);
+        }
+    }
+}
+
+/// Tests two disjoint cycles that should produce exactly 2 SCCs with no successors between them.
+#[test]
+fn two_disjoint_cycles() {
+    // Cycle A: 0 → 1 → 2 → 0
+    // Cycle B: 3 → 4 → 5 → 3
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 2);
+
+    // All nodes in cycle A share the same SCC
+    let scc_a = sccs.scc(n!(0));
+    assert_eq!(sccs.scc(n!(1)), scc_a);
+    assert_eq!(sccs.scc(n!(2)), scc_a);
+
+    // All nodes in cycle B share the same SCC
+    let scc_b = sccs.scc(n!(3));
+    assert_eq!(sccs.scc(n!(4)), scc_b);
+    assert_eq!(sccs.scc(n!(5)), scc_b);
+
+    // The two SCCs are distinct
+    assert_ne!(scc_a, scc_b);
+
+    // Neither SCC has successors (no cross-edges)
+    assert_successors(&sccs, scc_a, &[]);
+    assert_successors(&sccs, scc_b, &[]);
+}
+
+/// Tests a chain of SCCs where each SCC has a cross-edge to the next.
+/// Cycle {0,1} → Cycle {2,3} → Cycle {4,5}.
+/// Verifies SCC count, membership, and successor relationships.
+#[test]
+fn chain_of_sccs() {
+    let graph = TestGraph::new(&[
+        // Cycle {0, 1}
+        (0, 1),
+        (1, 0),
+        // Cross-edge from cycle {0,1} to cycle {2,3}
+        (1, 2),
+        // Cycle {2, 3}
+        (2, 3),
+        (3, 2),
+        // Cross-edge from cycle {2,3} to cycle {4,5}
+        (3, 4),
+        // Cycle {4, 5}
+        (4, 5),
+        (5, 4),
+    ]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 3);
+
+    // Verify membership
+    let scc_01 = sccs.scc(n!(0));
+    assert_eq!(sccs.scc(n!(1)), scc_01);
+
+    let scc_23 = sccs.scc(n!(2));
+    assert_eq!(sccs.scc(n!(3)), scc_23);
+
+    let scc_45 = sccs.scc(n!(4));
+    assert_eq!(sccs.scc(n!(5)), scc_45);
+
+    // All three are distinct
+    assert_ne!(scc_01, scc_23);
+    assert_ne!(scc_23, scc_45);
+    assert_ne!(scc_01, scc_45);
+
+    // Successor chain: scc_01 → scc_23 → scc_45
+    assert_successors(&sccs, scc_01, &[scc_23]);
+    assert_successors(&sccs, scc_23, &[scc_45]);
+    assert_successors(&sccs, scc_45, &[]);
+}
+
+/// Tests that `members().sccs()` returns the correct set of SCC IDs and that iterating all
+/// members covers every node exactly once.
+#[test]
+fn members_sccs_iterator() {
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 0), (3, 4), (4, 3), (5, 3)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    let members = sccs.members();
+
+    // Collect all SCC IDs from the iterator
+    let scc_ids: Vec<_> = members.sccs().collect();
+    assert_eq!(scc_ids.len(), sccs.node_count());
+
+    // Every node should appear in exactly one SCC's member list
+    let mut all_nodes: Vec<NodeId> = Vec::new();
+    for scc_id in &scc_ids {
+        let scc_members = members.of(*scc_id);
+        assert!(!scc_members.is_empty());
+        all_nodes.extend_from_slice(scc_members);
+    }
+
+    all_nodes.sort();
+    assert_eq!(all_nodes, vec![n!(0), n!(1), n!(2), n!(3), n!(4), n!(5)]);
+}
+
+/// Tests that the condensation graph produced by Tarjan's algorithm is a DAG: no SCC is
+/// reachable from itself through the successor edges.
+#[test]
+fn condensation_is_dag() {
+    // A graph with multiple interleaved cycles and cross-edges
+    let graph = TestGraph::new(&[
+        // Cycle {0, 1, 2}
+        (0, 1),
+        (1, 2),
+        (2, 0),
+        // Cross-edge to cycle {3, 4}
+        (2, 3),
+        // Cycle {3, 4}
+        (3, 4),
+        (4, 3),
+        // Cross-edge to lone node 5
+        (4, 5),
+        // Cross-edge to cycle {6, 7}
+        (5, 6),
+        // Cycle {6, 7}
+        (6, 7),
+        (7, 6),
+    ]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    // For each SCC, verify that none of its successors is itself and that no SCC can reach
+    // itself by following successor edges (BFS/DFS reachability check).
+    let scc_count = sccs.node_count();
+    for scc_index in 0..scc_count {
+        let scc = SccId::from_usize(scc_index);
+
+        // No self-loop in the condensation
+        for successor in sccs.successors(scc) {
+            assert_ne!(
+                scc, successor,
+                "condensation has self-loop at SCC {scc_index}"
+            );
+        }
+
+        // BFS to check that `scc` is not reachable from itself
+        let mut visited = vec![false; scc_count];
+        let mut queue: Vec<SccId> = sccs.successors(scc).collect();
+        while let Some(current) = queue.pop() {
+            assert_ne!(
+                current, scc,
+                "SCC {scc_index} is reachable from itself — condensation is not a DAG"
+            );
+            if !visited[current.as_usize()] {
+                visited[current.as_usize()] = true;
+                queue.extend(sccs.successors(current));
+            }
+        }
+    }
+}
+
+/// Tests that `bump_members_in` correctly returns nodes for each SCC in a simple DAG,
+/// verifying no UB in the bump allocation and `MaybeUninit` initialization paths.
+#[test]
+fn bump_members_simple_dag() {
+    let bump = Scratch::new();
+    let scratch = Scratch::new();
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 3)]);
+    let sccs: StronglyConnectedComponents<NodeId, SccId, (), &Scratch> =
+        Tarjan::new_in(&graph, &bump).run();
+
+    let members = sccs.bump_members_in(&scratch);
+
+    for node_index in 0..4 {
+        let scc = sccs.scc(n!(node_index));
+        let scc_members = members.of(scc);
+        assert_eq!(scc_members.len(), 1);
+        assert_eq!(scc_members[0], n!(node_index));
+    }
+}
+
+/// Tests that `bump_members_in` correctly returns all nodes in a single large SCC,
+/// verifying the unsafe initialization covers every slot exactly once.
+#[test]
+fn bump_members_single_scc() {
+    let bump = Scratch::new();
+    let scratch = Scratch::new();
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (1, 3), (2, 0), (3, 2)]);
+    let sccs: StronglyConnectedComponents<NodeId, SccId, (), &Scratch> =
+        Tarjan::new_in(&graph, &bump).run();
+
+    let members = sccs.bump_members_in(&scratch);
+    let scc = sccs.scc(n!(0));
+
+    let mut scc_members: Vec<_> = members.of(scc).to_vec();
+    scc_members.sort();
+
+    assert_eq!(scc_members, vec![n!(0), n!(1), n!(2), n!(3)]);
+}
+
+/// Tests that `bump_members_in` correctly partitions nodes across multiple SCCs.
+#[test]
+fn bump_members_multiple_sccs() {
+    let bump = Scratch::new();
+    let scratch = Scratch::new();
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 1), (3, 2)]);
+    let sccs: StronglyConnectedComponents<NodeId, SccId, (), &Scratch> =
+        Tarjan::new_in(&graph, &bump).run();
+
+    let members = sccs.bump_members_in(&scratch);
+
+    let scc_1_2 = sccs.scc(n!(1));
+    assert_eq!(sccs.scc(n!(2)), scc_1_2);
+
+    let mut members_1_2: Vec<_> = members.of(scc_1_2).to_vec();
+    members_1_2.sort();
+    assert_eq!(members_1_2, vec![n!(1), n!(2)]);
+
+    let scc_0 = sccs.scc(n!(0));
+    let scc_3 = sccs.scc(n!(3));
+
+    assert_eq!(members.of(scc_0), &[n!(0)]);
+    assert_eq!(members.of(scc_3), &[n!(3)]);
+}
+
+/// Tests that `bump_members_in` works correctly on an empty graph.
+#[test]
+fn bump_members_empty() {
+    let bump = Scratch::new();
+    let scratch = Scratch::new();
+    let graph = TestGraph::new(&[]);
+    let sccs: StronglyConnectedComponents<NodeId, SccId, (), &Scratch> =
+        Tarjan::new_in(&graph, &bump).run();
+
+    let members = sccs.bump_members_in(&scratch);
+    assert!(members.sccs().next().is_none());
 }
