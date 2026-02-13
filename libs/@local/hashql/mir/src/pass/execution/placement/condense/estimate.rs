@@ -2,19 +2,16 @@ use core::{alloc::Allocator, cmp};
 
 use hashql_core::{
     graph::{
-        Predecessors, Successors,
+        Predecessors as _, Successors as _,
         linked::{Edge, Node},
     },
-    id::{HasId, Id},
+    id::HasId as _,
 };
 
 use super::{BoundaryEdge, Condense, CondenseContext, PlacementRegion};
 use crate::{
     body::{Body, basic_block::BasicBlockId},
-    pass::execution::{
-        ApproxCost, Cost,
-        target::{TargetArray, TargetId},
-    },
+    pass::execution::{ApproxCost, Cost, target::TargetId},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -105,21 +102,24 @@ pub(crate) struct CostEstimationConfig {
 }
 
 impl CostEstimationConfig {
-    pub const TRIVIAL: Self = Self {
+    pub(crate) const LOOP: Self = Self {
+        boundary_multiplier: 0.5,
+    };
+    pub(crate) const TRIVIAL: Self = Self {
         boundary_multiplier: 1.0,
     };
 }
 
-pub(crate) struct CostEstimation<'ctx, 'parent, 'scc, A: Allocator, B: Allocator> {
+pub(crate) struct CostEstimation<'ctx, 'parent, 'scc, 'alloc, A: Allocator, B: Allocator> {
     pub config: CostEstimationConfig,
 
     pub condense: &'ctx Condense<'parent, A>,
-    pub context: &'ctx CondenseContext<'scc, B>,
+    pub context: &'ctx CondenseContext<'scc, 'alloc, B>,
 
     pub region: &'ctx Node<PlacementRegion<'scc>>,
 }
 
-impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
+impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, '_, A, B> {
     fn transition_cost(
         &self,
         source: Option<TargetId>,
@@ -222,7 +222,7 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
                 .context
                 .graph
                 .incoming_edges(self.region.id())
-                .filter(|edge| edge.data.source == pred && edge.data.target == self.block);
+                .filter(|edge| edge.data.source == pred && edge.data.target == block);
 
             let pred_target = self.context.targets[pred];
 
