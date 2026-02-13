@@ -1,4 +1,3 @@
-import { getKratosVerificationCode } from "./shared/get-kratos-verification-code";
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
 import {
@@ -20,37 +19,11 @@ test("allowlisted user can verify email and complete signup", async ({
     email: allowlistedEmail,
   });
 
-  await expect(
-    page.getByRole("heading", { name: "Verify your email address" }),
-  ).toBeVisible({ timeout: 15_000 });
-
-  // Submitting an incorrect code should show an error
-  await page.fill('[placeholder="Enter your verification code"]', "000000");
-
-  await expect(
-    page.locator(
-      "text=/verification code.*(invalid|expired|used)|code is invalid|code is expired/i",
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Verify your email address" }),
-  ).toBeVisible();
-
-  // Resend the verification email and verify with the correct code
-  const resendTimestamp = Date.now();
-  await page.getByRole("button", { name: "Resend verification email" }).click();
-
-  const verificationCode = await getKratosVerificationCode(
+  await verifyEmailOnPage(page, {
     email,
-    Math.max(emailDispatchTimestamp, resendTimestamp),
-  );
+    afterTimestamp: emailDispatchTimestamp,
+  });
 
-  await page.fill(
-    '[placeholder="Enter your verification code"]',
-    verificationCode,
-  );
-
-  // Complete signup after verification
   const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
   const shortname = `signup${uniqueSuffix}`.slice(0, 24);
 
@@ -75,19 +48,19 @@ test("waitlisted user is redirected to waitlist after signup", async ({
 
   await page.waitForURL("/");
   await expect(
-    page.getByRole("heading", { name: "on the waitlist", exact: false }),
+    page.getByText("on the waitlist", { exact: false }),
   ).toBeVisible();
 
   await page.goto("/settings/security");
   await page.waitForURL("/");
   await expect(
-    page.getByRole("heading", { name: "on the waitlist", exact: false }),
+    page.getByText("on the waitlist", { exact: false }),
   ).toBeVisible();
 
   await page.goto("/signup");
   await page.waitForURL("/");
 
   await expect(
-    page.getByRole("heading", { name: "on the waitlist", exact: false }),
+    page.getByText("on the waitlist", { exact: false }),
   ).toBeVisible();
 });

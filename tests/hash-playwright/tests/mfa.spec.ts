@@ -1,7 +1,7 @@
 import { resetDb } from "./shared/reset-db";
 import { expect, type Page, test } from "./shared/runtime";
 import { createUserAndCompleteSignup } from "./shared/signup-utils";
-import { generateTotpCode } from "./shared/totp-utils";
+import { generateTotpCode, waitForFreshTotpWindow } from "./shared/totp-utils";
 
 const enableTotpForCurrentUser = async (page: Page) => {
   await page.goto("/settings/security");
@@ -16,6 +16,7 @@ const enableTotpForCurrentUser = async (page: Page) => {
     throw new Error("Could not read TOTP secret key from settings page.");
   }
 
+  await waitForFreshTotpWindow();
   await page.fill(
     '[placeholder="Enter your 6-digit code"]',
     generateTotpCode(secret),
@@ -81,6 +82,7 @@ test("user with TOTP is prompted for code at login", async ({ page }) => {
     page.locator("text=Enter your authentication code"),
   ).toBeVisible();
 
+  await waitForFreshTotpWindow();
   await page.fill(
     '[data-testid="signin-aal2-code-input"]',
     generateTotpCode(secret),
@@ -122,6 +124,7 @@ test("user can disable TOTP", async ({ page }) => {
 
   await page.goto("/settings/security");
   await page.click('[data-testid="disable-totp-button"]');
+  await waitForFreshTotpWindow();
   await page.fill(
     '[placeholder="Enter a current code to disable"]',
     generateTotpCode(secret),

@@ -55,3 +55,17 @@ export const generateTotpCode = (
 
   return (binaryCode % 1_000_000).toString().padStart(6, "0");
 };
+
+/**
+ * If fewer than `bufferMs` remain in the current 30-second TOTP window,
+ * wait for the next window so the generated code has enough validity time.
+ */
+export const waitForFreshTotpWindow = async (bufferMs = 5_000) => {
+  const secondsIntoWindow = (Date.now() / 1_000) % 30;
+  const msRemaining = (30 - secondsIntoWindow) * 1_000;
+  if (msRemaining < bufferMs) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, msRemaining + 200);
+    });
+  }
+};
