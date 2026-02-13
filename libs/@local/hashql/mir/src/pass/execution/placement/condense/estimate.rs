@@ -20,6 +20,13 @@ pub(crate) struct HeapElement {
     pub cost: ApproxCost,
 }
 
+impl HeapElement {
+    pub(crate) const EMPTY: Self = Self {
+        target: TargetId::Interpreter,
+        cost: ApproxCost::ZERO,
+    };
+}
+
 impl PartialEq for HeapElement {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
@@ -227,7 +234,9 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
             let pred_target = self.context.targets[pred];
 
             for edge in edges {
-                let Some(trans_cost) = self.transition_cost(pred_target, Some(target), edge) else {
+                let Some(trans_cost) =
+                    self.transition_cost(pred_target.map(|elem| elem.target), Some(target), edge)
+                else {
                     // Transition to this backend is not possible from this predecessor to the
                     // chosen target
                     return None;
@@ -253,7 +262,9 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
             let succ_target = self.context.targets[succ];
 
             for edge in edges {
-                let Some(trans_cost) = self.transition_cost(Some(target), succ_target, edge) else {
+                let Some(trans_cost) =
+                    self.transition_cost(Some(target), succ_target.map(|elem| elem.target), edge)
+                else {
                     // Transition to this backend is not possible from this chosen target to the
                     // successor
                     return None;

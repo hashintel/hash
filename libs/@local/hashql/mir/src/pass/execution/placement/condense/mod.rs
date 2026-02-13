@@ -15,7 +15,10 @@ use hashql_core::{
     id::{self, Id as _},
 };
 
-use self::estimate::{CostEstimation, CostEstimationConfig, TargetHeap};
+use self::{
+    estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
+    nested::PlacementBlock,
+};
 use crate::{
     body::{
         Body,
@@ -23,17 +26,33 @@ use crate::{
     },
     pass::execution::{
         StatementCostVec,
-        target::{TargetArray, TargetBitSet, TargetId},
+        target::{TargetArray, TargetBitSet},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },
 };
 
 id::newtype!(struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
+struct PlacementRegionScratch<'alloc> {
+    front: &'alloc mut [PlacementBlock],
+    back: &'alloc mut [PlacementBlock],
+}
+
 pub struct PlacementRegion<'alloc> {
     id: PlacementRegionId,
     members: &'alloc [BasicBlockId],
-    ordering: &'alloc mut [BasicBlockId],
+
+    scratch: Option<PlacementRegionScratch<'alloc>>,
+}
+
+impl<'alloc> PlacementRegion<'alloc> {
+    fn take_scratch(&mut self) -> PlacementRegionScratch<'alloc> {
+        self.scratch.take().expect("should have a scratch attached")
+    }
+
+    fn insert_scratch(&mut self, scratch: PlacementRegionScratch<'alloc>) {
+        self.scratch = Some(scratch)
+    }
 }
 
 pub struct BoundaryEdge {
@@ -49,7 +68,7 @@ struct CondenseContext<'alloc, A: Allocator> {
     graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc A>,
 
     options: &'alloc mut BasicBlockSlice<TargetHeap>,
-    targets: &'alloc mut BasicBlockSlice<Option<TargetId>>,
+    targets: &'alloc mut BasicBlockSlice<Option<HeapElement>>,
 
     alloc: &'alloc A,
 }
@@ -73,7 +92,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         // able to switch and backup easily between iterations.
         let targets = {
             let uninit = alloc.allocate_slice_uninit(body.basic_blocks.len());
-            BasicBlockSlice::from_raw_mut(uninit.write_filled(None::<TargetId>))
+            BasicBlockSlice::from_raw_mut(uninit.write_filled(None))
         };
 
         let options = {
@@ -141,7 +160,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
                         todo!("rewind");
                     };
 
-                    context.targets[block] = Some(elem.target);
+                    context.targets[block] = Some(elem);
                     context.options[block] = heap;
                 }
                 _ => {
@@ -155,12 +174,29 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
 
     fn fill_graph<B: BumpAllocator>(&self, body: &Body<'_>, context: &mut CondenseContext<'_, B>) {
         for scc in context.scc.iter_nodes() {
+            let members = context.scc_members.of(scc);
+            let mut scratch = None;
+
+            if members.len() > 1 {
+                // non trivial placement group requires a scratch space
+                let len = members.len();
+
+                scratch = Some(PlacementRegionScratch {
+                    front: context
+                        .alloc
+                        .allocate_slice_uninit(len)
+                        .write_filled(PlacementBlock::PLACEHOLDER),
+                    back: context
+                        .alloc
+                        .allocate_slice_uninit(len)
+                        .write_filled(PlacementBlock::PLACEHOLDER),
+                })
+            }
+
             let id = context.graph.add_node(PlacementRegion {
                 id: scc,
                 members: context.scc_members.of(scc),
-                ordering: context
-                    .alloc
-                    .allocate_slice_copy(context.scc_members.of(scc)),
+                scratch,
             });
             debug_assert_eq!(scc.as_usize(), id.as_usize());
         }
