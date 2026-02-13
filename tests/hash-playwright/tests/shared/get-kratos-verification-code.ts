@@ -28,6 +28,20 @@ const extractVerificationCode = (emailBody: string): string | undefined =>
   emailBody.match(/following code:\s*(?:<br\s*\/?>\s*)?(\d{6})/is)?.[1] ??
   emailBody.match(/\b(\d{6})\b/)?.[1];
 
+/**
+ * Matches the email subject for verification emails.
+ * Handles both the Kratos default subject and the custom HASH template subject.
+ */
+const isVerificationSubject = (subject?: string): boolean => {
+  if (!subject) {
+    return false;
+  }
+  return (
+    subject === "Please verify your email address" ||
+    subject.startsWith("Your HASH verification code:")
+  );
+};
+
 export const getKratosVerificationCode = async (
   emailAddress: string,
   afterTimestamp?: number,
@@ -59,7 +73,7 @@ export const getKratosVerificationCode = async (
               : undefined;
 
             return (
-              mailItem.subject === "Please verify your email address" &&
+              isVerificationSubject(mailItem.subject) &&
               extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
               (!afterTimestamp ||
                 (typeof sentTimestamp === "number" &&

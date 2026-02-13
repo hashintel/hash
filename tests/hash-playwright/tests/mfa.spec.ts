@@ -1,64 +1,7 @@
-import { getKratosVerificationCode } from "./shared/get-kratos-verification-code";
 import { resetDb } from "./shared/reset-db";
 import { expect, type Page, test } from "./shared/runtime";
+import { createUserAndCompleteSignup } from "./shared/signup-utils";
 import { generateTotpCode } from "./shared/totp-utils";
-
-const createUserAndCompleteSignup = async (
-  page: Page,
-  { email, shortname }: { email: string; shortname: string },
-) => {
-  const password = "some-complex-pw-1ab2";
-
-  const registrationFlowReady = page.waitForResponse(
-    (response) =>
-      response.request().method() === "GET" &&
-      response.url().includes("/auth/self-service/registration/browser"),
-    { timeout: 15_000 },
-  );
-
-  await page.goto("/signup");
-  await registrationFlowReady;
-  await page.fill('[placeholder="Enter your email address"]', email);
-  await page.fill('[type="password"]', password);
-
-  const emailDispatchTimestamp = Date.now();
-  const registrationSubmitComplete = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().includes("/auth/self-service/registration"),
-    { timeout: 15_000 },
-  );
-  await page.getByRole("button", { name: "Sign up" }).click();
-  await registrationSubmitComplete;
-
-  await expect(page.locator("text=Verify your email address")).toBeVisible({
-    timeout: 15_000,
-  });
-
-  const verificationCode = await getKratosVerificationCode(
-    email,
-    emailDispatchTimestamp,
-  );
-
-  await page.fill(
-    '[placeholder="Enter your verification code"]',
-    verificationCode,
-  );
-  await page.getByRole("button", { name: "Verify" }).click();
-
-  await expect(
-    page.locator("text=Thanks for confirming your account"),
-  ).toBeVisible();
-
-  await page.fill('[placeholder="example"]', shortname);
-  await page.fill('[placeholder="Jonathan Smith"]', "MFA User");
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  await page.waitForURL("/");
-  await expect(page.locator("text=Get support")).toBeVisible();
-
-  return { email, password };
-};
 
 const enableTotpForCurrentUser = async (page: Page) => {
   await page.goto("/settings/security");
