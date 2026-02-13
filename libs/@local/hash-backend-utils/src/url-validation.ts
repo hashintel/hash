@@ -89,10 +89,20 @@ const isPrivateIPv6 = (ip: string): boolean => {
     return true;
   }
 
-  // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
-  const v4Mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (v4Mapped?.[1]) {
-    return isPrivateIPv4(v4Mapped[1]);
+  // IPv4-mapped IPv6 in dotted-quad form (e.g. ::ffff:127.0.0.1)
+  const v4MappedDotted = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (v4MappedDotted?.[1]) {
+    return isPrivateIPv4(v4MappedDotted[1]);
+  }
+
+  // IPv4-mapped IPv6 in hex-pair form (e.g. ::ffff:7f00:1 == ::ffff:127.0.0.1)
+  // The last two 16-bit groups encode the IPv4 address: high.low → a.b.c.d
+  const v4MappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (v4MappedHex?.[1] != null && v4MappedHex[2] != null) {
+    const high = parseInt(v4MappedHex[1], 16);
+    const low = parseInt(v4MappedHex[2], 16);
+    const ipv4 = `${Math.floor(high / 256)}.${high % 256}.${Math.floor(low / 256)}.${low % 256}`;
+    return isPrivateIPv4(ipv4);
   }
 
   // Expand the first group to check prefix bits
