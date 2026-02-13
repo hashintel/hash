@@ -398,13 +398,16 @@ where
         .await
         .map_err(report_to_response)?;
 
+    let params = QueryPropertyTypeSubgraphParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+    params
+        .validate()
+        .map_err(Report::new)
+        .map_err(report_to_response)?;
+
     let response = store
-        .query_property_type_subgraph(
-            actor_id,
-            QueryPropertyTypeSubgraphParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
-        )
+        .query_property_type_subgraph(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(|response| {

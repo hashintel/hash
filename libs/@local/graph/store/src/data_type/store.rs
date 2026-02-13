@@ -26,7 +26,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, MAX_TRAVERSAL_PATHS, SubgraphTraversalParams,
+            SubgraphTraversalValidationError, TraversalDepthError, TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -63,6 +66,43 @@ pub enum QueryDataTypeSubgraphParams<'a> {
 }
 
 impl<'a> QueryDataTypeSubgraphParams<'a> {
+    /// Validates traversal paths and resolve depths against their limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SubgraphTraversalValidationError`] if any limit is exceeded.
+    pub fn validate(&self) -> Result<(), SubgraphTraversalValidationError> {
+        let path_count = match self {
+            Self::Paths {
+                traversal_paths, ..
+            } => {
+                for path in traversal_paths {
+                    path.validate()?;
+                }
+                traversal_paths.len()
+            }
+            Self::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+                ..
+            } => {
+                for path in traversal_paths {
+                    path.validate()?;
+                }
+                graph_resolve_depths.validate()?;
+                traversal_paths.len()
+            }
+        };
+        if path_count > MAX_TRAVERSAL_PATHS {
+            return Err(TraversalDepthError::TooManyPaths {
+                actual: path_count,
+                max: MAX_TRAVERSAL_PATHS,
+            }
+            .into());
+        }
+        Ok(())
+    }
+
     #[must_use]
     pub const fn request(&self) -> &QueryDataTypesParams<'a> {
         match self {

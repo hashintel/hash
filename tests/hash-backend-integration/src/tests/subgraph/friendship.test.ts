@@ -443,10 +443,10 @@ describe("Ontology queries", () => {
       constrainsPropertiesOn: 255,
     },
     {
-      constrainsLinksOn: 255,
+      constrainsLinksOn: 4,
     },
     {
-      constrainsLinkDestinationsOn: 255,
+      constrainsLinkDestinationsOn: 4,
     },
   ])("read entity types %#", async (resolve_depths) => {
     const { subgraph } = await queryEntityTypeSubgraph(
@@ -546,6 +546,42 @@ it("archives/unarchives entity types", async () => {
     request,
   );
   expect(nonEmptyEntityTypes.length).toEqual(1);
+});
+
+describe("Validation limits", () => {
+  it("rejects excessive link resolve depth", async () => {
+    await expect(
+      queryEntityTypeSubgraph(graphContext.graphApi, authentication, {
+        filter: { all: [] },
+        graphResolveDepths: { constrainsLinksOn: 5 },
+        traversalPaths: [],
+        temporalAxes: fullDecisionTimeAxis,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects excessive link destination resolve depth", async () => {
+    await expect(
+      queryEntityTypeSubgraph(graphContext.graphApi, authentication, {
+        filter: { all: [] },
+        graphResolveDepths: { constrainsLinkDestinationsOn: 5 },
+        traversalPaths: [],
+        temporalAxes: fullDecisionTimeAxis,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects too many traversal paths", async () => {
+    const paths = Array.from({ length: 11 }, () => ({ edges: [] }));
+    await expect(
+      queryEntityTypeSubgraph(graphContext.graphApi, authentication, {
+        filter: { all: [] },
+        graphResolveDepths: {},
+        traversalPaths: paths,
+        temporalAxes: fullDecisionTimeAxis,
+      }),
+    ).rejects.toThrow();
+  });
 });
 
 describe("Simple queries", () => {

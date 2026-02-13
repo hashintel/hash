@@ -106,8 +106,8 @@ export const gptQueryTypes: RequestHandler<
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
           ...almostFullOntologyResolveDepths,
-          constrainsLinkDestinationsOn: 255,
-          constrainsLinksOn: 255,
+          constrainsLinkDestinationsOn: 4,
+          constrainsLinksOn: 4,
         },
         traversalPaths: [],
       },

@@ -620,13 +620,16 @@ where
         .await
         .map_err(report_to_response)?;
 
+    let params = QueryEntityTypeSubgraphParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+    params
+        .validate()
+        .map_err(Report::new)
+        .map_err(report_to_response)?;
+
     let response = store
-        .query_entity_type_subgraph(
-            actor_id,
-            QueryEntityTypeSubgraphParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
-        )
+        .query_entity_type_subgraph(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(|response| {

@@ -24,7 +24,7 @@ export const getSubgraphFromFilter = async ({
       isOfType: true,
       inheritsFrom: 255,
       constrainsPropertiesOn: 255,
-      constrainsLinksOn: 255,
+      constrainsLinksOn: 4,
     },
     traversalPaths,
     temporalAxes: currentTimeInstantTemporalAxes,

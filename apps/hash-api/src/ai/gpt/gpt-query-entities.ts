@@ -225,12 +225,12 @@ export const gptQueryEntities: RequestHandler<
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
         ...almostFullOntologyResolveDepths,
-        constrainsLinkDestinationsOn: 255,
-        constrainsLinksOn: 255,
+        constrainsLinkDestinationsOn: 4,
+        constrainsLinksOn: 4,
       },
       traversalPaths: [
         {
-          edges: Array(Math.min(depth, 10))
+          edges: Array(Math.min(depth, 5))
             .fill([
               { kind: "has-left-entity", direction: "incoming" },
               { kind: "has-right-entity", direction: "outgoing" },
@@ -238,7 +238,7 @@ export const gptQueryEntities: RequestHandler<
             .flat(),
         },
         {
-          edges: Array(Math.min(depth, 10))
+          edges: Array(Math.min(depth, 5))
             .fill([
               { kind: "has-right-entity", direction: "incoming" },
               { kind: "has-left-entity", direction: "outgoing" },

@@ -13,12 +13,14 @@ use std::collections::{HashMap, HashSet};
 pub use self::{
     edge::{EdgeDirection, OutwardEdge},
     kind::{
-        EdgeKind, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind,
+        EdgeKind, GraphResolveDepths, KnowledgeGraphEdgeKind, MAX_LINK_RESOLVE_DEPTH,
+        MAX_ONTOLOGY_RESOLVE_DEPTH, OntologyEdgeKind, ResolveDepthExceededError, SharedEdgeKind,
     },
     traversal::{
         BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeKind, EntityTraversalPath,
-        SubgraphTraversalParams, TraversalEdge, TraversalEdgeKind, TraversalPath,
-        TraversalPathConversionError,
+        MAX_ENTITY_TRAVERSAL_EDGES, MAX_TRAVERSAL_EDGES, MAX_TRAVERSAL_PATHS,
+        SubgraphTraversalParams, SubgraphTraversalValidationError, TraversalDepthError,
+        TraversalEdge, TraversalEdgeKind, TraversalPath, TraversalPathConversionError,
     },
 };
 use crate::subgraph::{
