@@ -61,7 +61,6 @@ export const verifyEmailOnPage = async (
     '[placeholder="Enter your verification code"]',
     verificationCode,
   );
-  await page.getByRole("button", { name: "Verify" }).click();
 };
 
 /**

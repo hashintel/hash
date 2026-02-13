@@ -26,7 +26,6 @@ test("allowlisted user can verify email and complete signup", async ({
 
   // Submitting an incorrect code should show an error
   await page.fill('[placeholder="Enter your verification code"]', "000000");
-  await page.getByRole("button", { name: "Verify" }).click();
 
   await expect(
     page.locator(
@@ -50,7 +49,6 @@ test("allowlisted user can verify email and complete signup", async ({
     '[placeholder="Enter your verification code"]',
     verificationCode,
   );
-  await page.getByRole("button", { name: "Verify" }).click();
 
   // Complete signup after verification
   const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
