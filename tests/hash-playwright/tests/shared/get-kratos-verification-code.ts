@@ -50,6 +50,7 @@ export const getKratosVerificationCode = async (
   const pollIntervalMs = 250;
   let elapsed = 0;
   let lastError: unknown;
+  let lastMailItems: MailslurperMailItem[] | undefined;
 
   while (elapsed < maxWaitMs) {
     try {
@@ -64,6 +65,8 @@ export const getKratosVerificationCode = async (
       const data = (await response.json()) as {
         mailItems?: MailslurperMailItem[];
       };
+
+      lastMailItems = data.mailItems;
 
       const matchingMailItems =
         data.mailItems
@@ -107,7 +110,39 @@ export const getKratosVerificationCode = async (
   const lastErrorMessage =
     lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
 
+  // Build diagnostic summary from the last poll to help debug failures.
+  const allItems = lastMailItems ?? [];
+  const toTargetAddress = allItems.filter((item) =>
+    extractToAddresses(item.toAddresses).includes(emailAddress),
+  );
+  const verificationToTarget = toTargetAddress.filter((item) =>
+    isVerificationSubject(item.subject),
+  );
+  const timestampFilteredOut =
+    afterTimestamp !== undefined
+      ? verificationToTarget.filter((item) => {
+          const sent = item.dateSent
+            ? new Date(item.dateSent).getTime()
+            : undefined;
+          return typeof sent === "number" && sent < afterTimestamp;
+        })
+      : [];
+
+  const diagnostics = [
+    `Total emails in mailslurper: ${allItems.length}`,
+    `Emails to ${emailAddress}: ${toTargetAddress.length}`,
+    `Verification emails to ${emailAddress}: ${verificationToTarget.length}`,
+    afterTimestamp !== undefined
+      ? `Filtered out by timestamp (sent before ${new Date(afterTimestamp).toISOString()}): ${timestampFilteredOut.length}`
+      : null,
+    toTargetAddress.length > 0
+      ? `Subjects to target: ${toTargetAddress.map((item) => JSON.stringify(item.subject)).join(", ")}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+
   throw new Error(
-    `No verification email found for ${emailAddress} within ${maxWaitMs}ms.${lastErrorMessage}`,
+    `No verification email found for ${emailAddress} within ${maxWaitMs}ms.${lastErrorMessage} [${diagnostics}]`,
   );
 };
