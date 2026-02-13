@@ -53,7 +53,7 @@ import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
-import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
+// import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
 import {
   oauthConsentRequestHandler,
