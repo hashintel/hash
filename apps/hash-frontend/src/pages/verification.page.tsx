@@ -34,7 +34,8 @@ const LogoutButton = styled((props: ButtonProps) => (
 const VerifyEmailPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { logout } = useLogoutFlow();
-  const { authenticatedUser, refetch } = useAuthInfo();
+  const { authenticatedUser, emailVerificationStatusKnown, refetch } =
+    useAuthInfo();
 
   const primaryEmailVerified =
     authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
@@ -47,6 +48,32 @@ const VerifyEmailPage: NextPageWithLayout = () => {
   const [autoVerifying, setAutoVerifying] = useState(false);
   const [autoVerifyError, setAutoVerifyError] = useState<string>();
   const autoVerifyAttempted = useRef(false);
+
+  /**
+   * If the user isn't signed in, redirect them to the sign-in page and
+   * preserve the verification query params so they can complete verification
+   * after authenticating.
+   *
+   * We wait for `emailVerificationStatusKnown` so we don't redirect while
+   * the auth info is still loading (where `authenticatedUser` is also
+   * `undefined`).
+   */
+  useEffect(() => {
+    if (!authenticatedUser && emailVerificationStatusKnown && router.isReady) {
+      const returnTo = `/verification${
+        urlCode && urlFlowId
+          ? `?code=${encodeURIComponent(urlCode)}&flow=${encodeURIComponent(urlFlowId)}`
+          : ""
+      }`;
+      void router.replace(`/signin?return_to=${encodeURIComponent(returnTo)}`);
+    }
+  }, [
+    authenticatedUser,
+    emailVerificationStatusKnown,
+    router,
+    urlCode,
+    urlFlowId,
+  ]);
 
   /**
    * When the page is loaded with both `code` and `flow` query params (e.g.
@@ -102,16 +129,19 @@ const VerifyEmailPage: NextPageWithLayout = () => {
           void router.replace("/verification", undefined, { shallow: true });
         }
       })
-      .catch((error: AxiosError<VerificationFlow>) => {
+      .catch((error: AxiosError) => {
+        const flowData = error.response?.data as
+          | Partial<VerificationFlow>
+          | undefined;
         const errorMessages =
-          error.response?.data.ui.messages
+          flowData?.ui?.messages
             ?.filter(({ type }) => type === "error")
             .map(({ text }) => text) ?? [];
 
         setAutoVerifyError(
           errorMessages.length > 0
             ? errorMessages.join(" ")
-            : "The verification link may have expired. A new code has been sent to your email.",
+            : "There was an issue using the verification code. You can try again or send a new code.",
         );
         setAutoVerifying(false);
 
@@ -127,7 +157,13 @@ const VerifyEmailPage: NextPageWithLayout = () => {
     router,
   ]);
 
-  if (!authenticatedUser || primaryEmailVerified) {
+  if (primaryEmailVerified) {
+    return null;
+  }
+
+  if (!authenticatedUser) {
+    // The useEffect above will redirect to /signin – return null while that
+    // navigation is in progress to avoid flashing the verified-user UI.
     return null;
   }
 

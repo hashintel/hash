@@ -35,4 +35,5 @@ export const redirectInGetInitialProps = (params: {
   }
 
   // On client-side, return the location for the component to handle.
+  return location;
 };
