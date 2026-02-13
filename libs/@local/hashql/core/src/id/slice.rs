@@ -273,7 +273,8 @@ where
     /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
     /// really are in an initialized state. Calling this when the content is not yet fully
     /// initialized causes immediate undefined behavior.
-    pub unsafe fn assume_init_mut(&mut self) -> &mut IdSlice<I, T> {
+    pub const unsafe fn assume_init_mut(&mut self) -> &mut IdSlice<I, T> {
+        // SAFETY: The caller must ensure that all elements are initialized.
         IdSlice::from_raw_mut(unsafe { self.raw.assume_init_mut() })
     }
 
@@ -284,7 +285,8 @@ where
     /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
     /// really are in an initialized state. Calling this when the content is not yet fully
     /// initialized causes immediate undefined behavior.
-    pub unsafe fn assume_init_ref(&self) -> &IdSlice<I, T> {
+    pub const unsafe fn assume_init_ref(&self) -> &IdSlice<I, T> {
+        // SAFETY: The caller must ensure that all elements are initialized.
         IdSlice::from_raw(unsafe { self.raw.assume_init_ref() })
     }
 }
