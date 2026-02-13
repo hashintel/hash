@@ -30,7 +30,7 @@ inputs:
     description: Name of the image within the registry
     required: true
   IMAGE_TAG:
-    description: Name of the image within the registry
+    description: Tag of the image within the registry
     required: false
     default: latest
   DOCKERFILE_LOCATION:
