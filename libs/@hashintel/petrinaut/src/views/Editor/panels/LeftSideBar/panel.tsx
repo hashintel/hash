@@ -20,7 +20,7 @@ import { HamburgerMenu } from "./hamburger-menu";
 
 const outerContainerStyle = cva({
   base: {
-    position: "fixed",
+    position: "absolute",
     zIndex: 1000,
     display: "flex",
   },

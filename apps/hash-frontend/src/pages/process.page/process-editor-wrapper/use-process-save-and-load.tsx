@@ -2,23 +2,15 @@ import { useMutation } from "@apollo/client";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
-  PropertyPatchOperation,
 } from "@blockprotocol/type-system";
-import type {
-  PetriNetDefinitionObject,
-  TransitionNodeType,
-} from "@hashintel/petrinaut-old";
+import type { SDCPN } from "@hashintel/petrinaut";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
   systemEntityTypes,
-  systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  PetriNetPropertiesWithMetadata,
-  SubProcessOfPropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/petrinet";
+import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 import {
   type Dispatch,
   type SetStateAction,
@@ -28,66 +20,44 @@ import {
 } from "react";
 
 import type {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import {
-  archiveEntityMutation,
   createEntityMutation,
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
-import { updateSubProcessDefinitionForParentPlaces } from "./use-process-save-and-load/update-sub-process-nodes";
+import {
+  convertSDCPNToPetriNetDefinitionObject,
+  type PetriNetDefinitionObject,
+} from "./convert-net-formats";
 import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
 } from "./use-process-save-and-load/use-persisted-nets";
 
-const areSetsEquivalent = (a: Set<string>, b: Set<string>) => {
-  if (a.size !== b.size) {
-    return false;
-  }
-
-  return a.isSubsetOf(b);
-};
-
 export type PersistedNet = {
   entityId: EntityId;
   title: string;
-  definition: PetriNetDefinitionObject;
-  parentNet: { parentNetId: EntityId; title: string } | null;
-  childNetLinksByNodeIdAndChildNetId: {
-    [nodeId: string]: {
-      [childNetId: string]: {
-        linkEntityId: EntityId;
-      };
-    };
-  };
+  definition: SDCPN;
   userEditable: boolean;
 };
 
 type UseProcessSaveAndLoadParams = {
-  parentNet: { parentNetId: EntityId; title: string } | null;
-  petriNet: PetriNetDefinitionObject;
+  petriNet: SDCPN;
   selectedNetId: EntityId | null;
-  setParentNet: Dispatch<
-    SetStateAction<{ parentNetId: EntityId; title: string } | null>
-  >;
-  setPetriNet: Dispatch<SetStateAction<PetriNetDefinitionObject>>;
+  setPetriNet: Dispatch<SetStateAction<SDCPN>>;
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
   setTitle: Dispatch<SetStateAction<string>>;
   title: string;
 };
 
 export const useProcessSaveAndLoad = ({
-  parentNet,
   petriNet,
   selectedNetId,
-  setParentNet,
   setSelectedNetId,
   setPetriNet,
   setTitle,
@@ -120,11 +90,6 @@ export const useProcessSaveAndLoad = ({
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
-
   const persistedNet = useMemo(() => {
     return persistedNets.find((net) => net.entityId === selectedNetId);
   }, [persistedNets, selectedNetId]);
@@ -138,57 +103,66 @@ export const useProcessSaveAndLoad = ({
       return true;
     }
 
-    if (parentNet?.parentNetId !== persistedNet.parentNet?.parentNetId) {
-      return true;
-    }
-
-    if (petriNet.arcs.length !== persistedNet.definition.arcs.length) {
-      return true;
-    }
-
-    if (petriNet.nodes.length !== persistedNet.definition.nodes.length) {
+    if (petriNet.places.length !== persistedNet.definition.places.length) {
       return true;
     }
 
     if (
-      petriNet.tokenTypes.length !== persistedNet.definition.tokenTypes.length
+      petriNet.transitions.length !== persistedNet.definition.transitions.length
+    ) {
+      return true;
+    }
+
+    if (petriNet.types.length !== persistedNet.definition.types.length) {
+      return true;
+    }
+
+    if (
+      JSON.stringify(petriNet.places) !==
+      JSON.stringify(persistedNet.definition.places)
     ) {
       return true;
     }
 
     if (
-      JSON.stringify(petriNet.arcs.map(({ selected: _, ...arc }) => arc)) !==
-      JSON.stringify(persistedNet.definition.arcs)
+      JSON.stringify(petriNet.transitions) !==
+      JSON.stringify(persistedNet.definition.transitions)
     ) {
       return true;
     }
 
     if (
-      JSON.stringify(petriNet.nodes) !==
-      JSON.stringify(persistedNet.definition.nodes)
+      JSON.stringify(petriNet.types) !==
+      JSON.stringify(persistedNet.definition.types)
     ) {
       return true;
     }
 
     if (
-      JSON.stringify(petriNet.tokenTypes) !==
-      JSON.stringify(persistedNet.definition.tokenTypes)
+      JSON.stringify(petriNet.differentialEquations) !==
+      JSON.stringify(persistedNet.definition.differentialEquations)
+    ) {
+      return true;
+    }
+
+    if (
+      JSON.stringify(petriNet.parameters) !==
+      JSON.stringify(persistedNet.definition.parameters)
     ) {
       return true;
     }
 
     return false;
-  }, [petriNet, persistedNet, title, parentNet]);
+  }, [petriNet, persistedNet, title]);
 
   const loadPersistedNet = useCallback(
     (net: PersistedNet) => {
       setSelectedNetId(net.entityId);
-      setParentNet(net.parentNet);
       setPetriNet(net.definition);
       setTitle(net.title);
       setUserEditable(net.userEditable);
     },
-    [setParentNet, setPetriNet, setSelectedNetId, setTitle, setUserEditable],
+    [setPetriNet, setSelectedNetId, setTitle, setUserEditable],
   );
 
   const refetchPersistedNets = useCallback(
@@ -219,6 +193,10 @@ export const useProcessSaveAndLoad = ({
 
     setPersistPending(true);
 
+    // Convert SDCPN to old format for persistence (backward compatibility)
+    const oldFormatDefinition: PetriNetDefinitionObject =
+      convertSDCPNToPetriNetDefinitionObject(petriNet);
+
     let persistedEntityId = selectedNetId;
 
     if (selectedNetId) {
@@ -232,17 +210,12 @@ export const useProcessSaveAndLoad = ({
                 path: [
                   systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
                 ],
+                // @ts-expect-error -- PetriNetDefinitionObject not assignable to PropertyWithMetadata
                 property: {
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                   },
-                  // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
-                  // @todo fix this
-                  value: {
-                    arcs: petriNet.arcs,
-                    nodes: petriNet.nodes,
-                    tokenTypes: petriNet.tokenTypes,
-                  } satisfies PetriNetDefinitionObject,
+                  value: oldFormatDefinition,
                 },
               },
               {
@@ -270,11 +243,7 @@ export const useProcessSaveAndLoad = ({
                 metadata: {
                   dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                 },
-                value: {
-                  arcs: petriNet.arcs,
-                  nodes: petriNet.nodes,
-                  tokenTypes: petriNet.tokenTypes,
-                } satisfies PetriNetDefinitionObject,
+                value: oldFormatDefinition,
               },
               "https://hash.ai/@h/types/property-type/title/": {
                 metadata: {
@@ -300,297 +269,6 @@ export const useProcessSaveAndLoad = ({
       throw new Error("Somehow no entityId available after persisting net");
     }
 
-    /**
-     * If we have to make changes to places in a linked sub-process, we will need this.
-     * and it's cheaper to build it once here rather than finding labels repeatedly as and when we need them.
-     * There shouldn't be many places, so it doesn't really matter if we don't end up needing it.
-     */
-    const placeLabelsById: Record<string, string> = {};
-    for (const node of petriNet.nodes) {
-      if (node.data.type === "place") {
-        placeLabelsById[node.id] = node.data.label;
-      }
-    }
-
-    /**
-     * Handle sub-process changes. For any sub-process changed on a transition:
-     * 1. Archive the previous sub-process, if there was one
-     * 2. Create a new link to the new sub-process, if there is one
-     */
-    for (const node of petriNet.nodes) {
-      if (node.data.type !== "transition") {
-        continue;
-      }
-
-      const previousTransition = persistedNet?.definition.nodes.find(
-        (transition): transition is TransitionNodeType =>
-          transition.data.type === "transition" && transition.id === node.id,
-      );
-
-      const previousChildNetReference = previousTransition?.data.childNet;
-
-      const oldChildNetId = previousChildNetReference?.childNetId;
-      const newChildNetId = node.data.childNet?.childNetId;
-
-      const childNetIdentityHasChanged = oldChildNetId !== newChildNetId;
-
-      const existingLinkEntityId = oldChildNetId
-        ? persistedNet?.childNetLinksByNodeIdAndChildNetId[node.id]?.[
-            oldChildNetId
-          ]?.linkEntityId
-        : null;
-
-      /**
-       * Archive the link to the previous sub-process, if it has changed.
-       */
-      if (
-        childNetIdentityHasChanged &&
-        existingLinkEntityId &&
-        previousChildNetReference
-      ) {
-        await archiveEntity({
-          variables: { entityId: existingLinkEntityId },
-        });
-
-        const previousChildNet = persistedNets.find(
-          (net) => net.entityId === previousChildNetReference.childNetId,
-        );
-
-        if (!previousChildNet) {
-          throw new Error(
-            `Sub-process ${previousChildNetReference.childNetId} not found`,
-          );
-        }
-
-        /**
-         * Get the new nodes for the sub-process, with any links to parent places removed.
-         */
-        const updatedChildNetNodes = updateSubProcessDefinitionForParentPlaces({
-          subProcessNet: previousChildNet,
-          inputPlaceLabelById: {},
-          outputPlaceLabelById: {},
-        });
-
-        if (updatedChildNetNodes) {
-          await updateEntity({
-            variables: {
-              entityUpdate: {
-                entityId: previousChildNet.entityId,
-                propertyPatches: [
-                  {
-                    op: "replace",
-                    path: [
-                      systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
-                    ],
-                    property: {
-                      // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
-                      // @todo fix this
-                      value: {
-                        ...previousChildNet.definition,
-                        nodes: updatedChildNetNodes,
-                      } satisfies PetriNetDefinitionObject,
-                      metadata: {
-                        dataTypeId: blockProtocolDataTypes.object.dataTypeId,
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          });
-        }
-      }
-
-      const childNetDefinition = persistedNets.find(
-        (net) => net.entityId === newChildNetId,
-      );
-
-      if (newChildNetId && !childNetDefinition) {
-        throw new Error(`Sub-process ${newChildNetId} not found`);
-      }
-
-      /**
-       * Create the link from the sub-process to the parent process, if it has changed.
-       */
-      if (childNetIdentityHasChanged && newChildNetId && node.data.childNet) {
-        await createEntity({
-          variables: {
-            entityTypeIds: [
-              systemLinkEntityTypes.subProcessOf.linkEntityTypeId,
-            ],
-            linkData: {
-              leftEntityId: newChildNetId as EntityId,
-              rightEntityId: persistedEntityId,
-            },
-            properties: {
-              value: {
-                "https://hash.ai/@h/types/property-type/transition-id/": {
-                  metadata: {
-                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  },
-                  value: node.id,
-                },
-                "https://hash.ai/@h/types/property-type/input-place-id/": {
-                  value: node.data.childNet.inputPlaceIds.map((id) => ({
-                    metadata: {
-                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                    },
-                    value: id,
-                  })),
-                },
-                "https://hash.ai/@h/types/property-type/output-place-id/": {
-                  value: node.data.childNet.outputPlaceIds.map((id) => ({
-                    metadata: {
-                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                    },
-                    value: id,
-                  })),
-                },
-              },
-            } satisfies SubProcessOfPropertiesWithMetadata as PropertyObjectWithMetadata,
-            webId: activeWorkspaceWebId,
-          },
-        });
-      }
-
-      if (!node.data.childNet || !childNetDefinition) {
-        /**
-         * If there is no linked sub-process now, we are done for this transition node.
-         */
-        continue;
-      }
-
-      /**
-       * If there is a linked sub-process, we need to check if the selected input or output places for the parent transition node have changed,
-       * so that we can make sure they are represented in the sub-process.
-       */
-      const childNetInputPlaceIdsChanged = !areSetsEquivalent(
-        new Set<string>(node.data.childNet.inputPlaceIds),
-        new Set<string>(previousTransition?.data.childNet?.inputPlaceIds ?? []),
-      );
-
-      const childNetOutputPlaceIdsChanged = !areSetsEquivalent(
-        new Set<string>(node.data.childNet.outputPlaceIds),
-        new Set<string>(
-          previousTransition?.data.childNet?.outputPlaceIds ?? [],
-        ),
-      );
-
-      if (childNetInputPlaceIdsChanged || childNetOutputPlaceIdsChanged) {
-        if (existingLinkEntityId) {
-          /**
-           * If we already have a link, we need to update the existing link entity to represent the new input and output places.
-           */
-          const propertyPatches: PropertyPatchOperation[] = [];
-
-          if (childNetInputPlaceIdsChanged) {
-            propertyPatches.push({
-              op: "replace",
-              path: [systemPropertyTypes.inputPlaceId.propertyTypeBaseUrl],
-              property: {
-                value: node.data.childNet.inputPlaceIds.map((id) => ({
-                  metadata: {
-                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  },
-                  value: id,
-                })),
-              },
-            });
-          }
-
-          if (childNetOutputPlaceIdsChanged) {
-            propertyPatches.push({
-              op: "replace",
-              path: [systemPropertyTypes.outputPlaceId.propertyTypeBaseUrl],
-              property: {
-                value: node.data.childNet.outputPlaceIds.map((id) => ({
-                  metadata: {
-                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  },
-                  value: id,
-                })),
-              },
-            });
-          }
-
-          await updateEntity({
-            variables: {
-              entityUpdate: {
-                entityId: existingLinkEntityId,
-                propertyPatches,
-              },
-            },
-          });
-        }
-
-        /**
-         * Now we need to ensure that the input and output places in the parent process are represented in the sub-process.
-         */
-        const inputPlaceLabelById: Record<string, string> = {};
-        const outputPlaceLabelById: Record<string, string> = {};
-
-        for (const placeId of node.data.childNet.inputPlaceIds) {
-          const label = placeLabelsById[placeId];
-
-          if (!label) {
-            throw new Error(`Place ${placeId} not found when looking up label`);
-          }
-
-          inputPlaceLabelById[placeId] = label;
-        }
-
-        for (const placeId of node.data.childNet.outputPlaceIds) {
-          const label = placeLabelsById[placeId];
-
-          if (!label) {
-            throw new Error(`Place ${placeId} not found when looking up label`);
-          }
-
-          outputPlaceLabelById[placeId] = label;
-        }
-
-        const newNodes = updateSubProcessDefinitionForParentPlaces({
-          subProcessNet: childNetDefinition,
-          inputPlaceLabelById,
-          outputPlaceLabelById,
-        });
-
-        if (!newNodes) {
-          /**
-           * No changes to the sub-process necessary.
-           */
-          continue;
-        }
-
-        await updateEntity({
-          variables: {
-            entityUpdate: {
-              entityId: childNetDefinition.entityId,
-              propertyPatches: [
-                {
-                  op: "replace",
-                  path: [
-                    systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
-                  ],
-                  property: {
-                    // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
-                    // @todo fix this
-                    value: {
-                      ...childNetDefinition.definition,
-                      nodes: newNodes,
-                    } satisfies PetriNetDefinitionObject,
-                    metadata: {
-                      dataTypeId: blockProtocolDataTypes.object.dataTypeId,
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        });
-      }
-    }
-
     await refetchPersistedNets({ updatedEntityId: persistedEntityId });
     setSelectedNetId(persistedEntityId);
     setUserEditable(true);
@@ -598,14 +276,8 @@ export const useProcessSaveAndLoad = ({
     setPersistPending(false);
   }, [
     activeWorkspaceWebId,
-    archiveEntity,
     createEntity,
-    persistedNet?.definition.nodes,
-    persistedNet?.childNetLinksByNodeIdAndChildNetId,
-    persistedNets,
-    petriNet.arcs,
-    petriNet.nodes,
-    petriNet.tokenTypes,
+    petriNet,
     refetchPersistedNets,
     selectedNetId,
     setSelectedNetId,

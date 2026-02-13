@@ -40,7 +40,7 @@ const dividerStyle = css({
 });
 
 const bottomBarPositionStyle = css({
-  position: "fixed",
+  position: "absolute",
   left: "[50%]",
   transform: "translateX(-50%)",
   zIndex: 1000,

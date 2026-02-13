@@ -1,5 +1,6 @@
 @layer reset, base, tokens, recipes, utilities;
 
 .petrinaut-root {
+  position: relative;
   background-color: #fafafa;
 }
