@@ -30,9 +30,9 @@ use crate::{
 
 id::newtype!(struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
-pub struct PlacementRegion<'scc> {
+pub struct PlacementRegion<'alloc> {
     id: PlacementRegionId,
-    members: &'scc [BasicBlockId],
+    members: &'alloc [BasicBlockId],
 }
 
 pub struct BoundaryEdge {
@@ -41,11 +41,11 @@ pub struct BoundaryEdge {
     matrix: TransMatrix,
 }
 
-struct CondenseContext<'scc, 'alloc, A: Allocator> {
-    scc: &'scc StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc A>,
-    scc_members: &'scc Members<BasicBlockId, PlacementRegionId, &'alloc A>,
+struct CondenseContext<'alloc, A: Allocator> {
+    scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc A>,
+    scc_members: Members<BasicBlockId, PlacementRegionId, &'alloc A>,
 
-    graph: LinkedGraph<PlacementRegion<'scc>, BoundaryEdge, &'alloc A>,
+    graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc A>,
 
     options: &'alloc mut BasicBlockSlice<TargetHeap>,
     targets: &'alloc mut BasicBlockSlice<Option<TargetId>>,
