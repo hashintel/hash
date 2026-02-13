@@ -46,11 +46,19 @@ workspace = true
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
+criterion                 = { workspace = true }
 insta                     = { workspace = true }
 proptest                  = { workspace = true }
 rstest                    = { workspace = true }
 test-strategy             = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+perf-event = { workspace = true }
+
 [[bench]]
 name    = "type_system"
+harness = false
+
+[[bench]]
+name    = "linked_graph"
 harness = false
