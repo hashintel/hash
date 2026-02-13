@@ -303,9 +303,6 @@ jobs:
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
-
-          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
-
           cp .env.local .env.test.local
           yarn external-services:test up --wait
 
