@@ -123,34 +123,39 @@ export type InferEntitiesReturn = Status<{
   usage: InferenceTokenUsage[];
 }>;
 
-export type AutomaticInferenceWebsocketRequestMessage = {
-  cookie: string;
+type WebSocketMessageAuth = {
+  /**
+   * Optional fallback for clients (e.g. browser extensions) that cannot rely on
+   * upgrade-request cookies being available on the WebSocket handshake.
+   */
+  cookie?: string;
+};
+
+export type AutomaticInferenceWebsocketRequestMessage = WebSocketMessageAuth & {
   type: "automatic-inference-request";
   payload: AutomaticInferenceArguments;
   requestUuid: string;
 };
 
-export type ManualInferenceWebsocketRequestMessage = {
-  cookie: string;
+export type ManualInferenceWebsocketRequestMessage = WebSocketMessageAuth & {
   type: "manual-inference-request";
   payload: ManualInferenceArguments;
   requestUuid: string;
 };
 
-export type CancelInferEntitiesWebsocketRequestMessage = {
-  cookie: string;
-  flowRunId: string;
-  type: "cancel-inference-request";
-  requestUuid: string;
-};
+export type CancelInferEntitiesWebsocketRequestMessage =
+  WebSocketMessageAuth & {
+    flowRunId: string;
+    type: "cancel-inference-request";
+    requestUuid: string;
+  };
 
-export type CheckForExternalInputRequestsWebsocketRequestMessage = {
-  cookie: string;
-  type: "check-for-external-input-requests";
-};
+export type CheckForExternalInputRequestsWebsocketRequestMessage =
+  WebSocketMessageAuth & {
+    type: "check-for-external-input-requests";
+  };
 
-export type ExternalInputWebsocketResponseMessage = {
-  cookie: string;
+export type ExternalInputWebsocketResponseMessage = WebSocketMessageAuth & {
   workflowId: string;
   type: "external-input-response";
   payload: DistributiveOmit<ExternalInputResponseSignal, "resolvedBy">;

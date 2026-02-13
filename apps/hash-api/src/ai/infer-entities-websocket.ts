@@ -1,7 +1,6 @@
 import type http from "node:http";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import {
   getFlowRunEntityById,
@@ -37,7 +36,7 @@ const inferEntitiesMessageHandler = async ({
   socket: WebSocket;
   storageProvider: FileStorageProvider;
   temporalClient: Client;
-  message: DistributiveOmit<InferenceWebsocketClientMessage, "cookie">;
+  message: InferenceWebsocketClientMessage;
   user: User;
 }) => {
   switch (message.type) {
@@ -113,6 +112,64 @@ const inferEntitiesMessageHandler = async ({
   socket.send(`Unrecognized message '${JSON.stringify(message)}'`);
 };
 
+const MAX_CONNECTIONS_PER_IP = 10;
+const MAX_MESSAGES_PER_MINUTE = 120;
+const UNAUTHENTICATED_CONNECTION_TIMEOUT_MS = 5_000;
+
+const activeConnectionsByIp = new Map<string, number>();
+
+const hasValidOptionalCookie = (message: Record<string, unknown>): boolean =>
+  typeof message.cookie === "undefined" || typeof message.cookie === "string";
+
+const isInferenceWebsocketClientMessage = (
+  value: unknown,
+): value is InferenceWebsocketClientMessage => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const message = value as Record<string, unknown>;
+
+  switch (message.type) {
+    case "automatic-inference-request":
+    case "manual-inference-request":
+      return (
+        typeof message.payload === "object" &&
+        message.payload !== null &&
+        typeof message.requestUuid === "string" &&
+        hasValidOptionalCookie(message)
+      );
+    case "cancel-inference-request":
+      return (
+        typeof message.flowRunId === "string" &&
+        typeof message.requestUuid === "string" &&
+        hasValidOptionalCookie(message)
+      );
+    case "check-for-external-input-requests":
+      return hasValidOptionalCookie(message);
+    case "external-input-response":
+      return (
+        typeof message.workflowId === "string" &&
+        typeof message.payload === "object" &&
+        message.payload !== null &&
+        hasValidOptionalCookie(message)
+      );
+    default:
+      return false;
+  }
+};
+
+const decrementActiveConnectionCount = (ipAddress: string): void => {
+  const activeConnections = activeConnectionsByIp.get(ipAddress);
+
+  if (!activeConnections || activeConnections <= 1) {
+    activeConnectionsByIp.delete(ipAddress);
+    return;
+  }
+
+  activeConnectionsByIp.set(ipAddress, activeConnections - 1);
+};
+
 export const openInferEntitiesWebSocket = ({
   context,
   httpServer,
@@ -130,46 +187,134 @@ export const openInferEntitiesWebSocket = ({
     server: httpServer,
   });
 
-  wss.on("connection", (socket) => {
-    socket.on(
-      "message",
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (rawMessage) => {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
-        if (rawMessage.toString() === "ping") {
-          return;
-        }
+  wss.on("connection", (socket, request) => {
+    const ipAddress = request.socket.remoteAddress ?? "unknown";
+    const activeConnections = activeConnectionsByIp.get(ipAddress) ?? 0;
 
-        const parsedMessage = JSON.parse(
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
-          rawMessage.toString(),
-        ) as InferenceWebsocketClientMessage; // @todo validate this
+    if (activeConnections >= MAX_CONNECTIONS_PER_IP) {
+      socket.send("Too many active connections");
+      socket.close(1013, "Too many active connections");
+      return;
+    }
 
-        const { cookie, ...message } = parsedMessage;
+    void (async () => {
+      let authenticatedUser: User | null = null;
 
+      const upgradeCookie = request.headers.cookie;
+
+      if (upgradeCookie) {
         const { user } = await getUserAndSession({
           context,
-          cookie,
+          cookie: upgradeCookie,
           logger,
         }).catch(() => {
           return { user: null };
         });
 
-        if (!user) {
-          socket.send("Unauthenticated");
-          socket.close();
-          return;
-        }
+        authenticatedUser = user;
+      }
 
-        void inferEntitiesMessageHandler({
-          graphApiClient: context.graphApi,
-          socket,
-          storageProvider,
-          temporalClient,
-          message,
-          user,
-        });
-      },
-    );
+      activeConnectionsByIp.set(ipAddress, activeConnections + 1);
+
+      socket.once("close", () => {
+        decrementActiveConnectionCount(ipAddress);
+      });
+
+      let messageCount = 0;
+      let messageWindowStart = Date.now();
+
+      const unauthenticatedTimeout = setTimeout(() => {
+        if (!authenticatedUser) {
+          socket.send("Unauthenticated");
+          socket.close(1008, "Unauthenticated");
+        }
+      }, UNAUTHENTICATED_CONNECTION_TIMEOUT_MS);
+
+      socket.once("close", () => {
+        clearTimeout(unauthenticatedTimeout);
+      });
+
+      socket.on(
+        "message",
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        async (rawMessage) => {
+          const now = Date.now();
+
+          if (now - messageWindowStart >= 60_000) {
+            messageWindowStart = now;
+            messageCount = 0;
+          }
+
+          messageCount += 1;
+
+          if (messageCount > MAX_MESSAGES_PER_MINUTE) {
+            socket.send("Rate limit exceeded");
+            socket.close(1008, "Rate limit exceeded");
+            return;
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
+          if (rawMessage.toString() === "ping") {
+            return;
+          }
+
+          let parsedMessage: unknown;
+
+          try {
+            parsedMessage = JSON.parse(
+              // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
+              rawMessage.toString(),
+            );
+          } catch {
+            socket.send("Invalid JSON");
+            socket.close(1003, "Invalid JSON");
+            return;
+          }
+
+          if (!isInferenceWebsocketClientMessage(parsedMessage)) {
+            socket.send("Invalid message shape");
+            socket.close(1003, "Invalid message shape");
+            return;
+          }
+
+          if (!authenticatedUser) {
+            const { cookie } = parsedMessage;
+
+            if (!cookie) {
+              socket.send("Unauthenticated");
+              socket.close(1008, "Unauthenticated");
+              return;
+            }
+
+            const { user } = await getUserAndSession({
+              context,
+              cookie,
+              logger,
+            }).catch(() => {
+              return { user: null };
+            });
+
+            if (!user) {
+              socket.send("Unauthenticated");
+              socket.close(1008, "Unauthenticated");
+              return;
+            }
+
+            authenticatedUser = user;
+          }
+
+          const user = authenticatedUser;
+
+          void inferEntitiesMessageHandler({
+            graphApiClient: context.graphApi,
+            socket,
+            storageProvider,
+            temporalClient,
+            message: parsedMessage,
+            user,
+          });
+        },
+      );
+    })();
   });
 };
