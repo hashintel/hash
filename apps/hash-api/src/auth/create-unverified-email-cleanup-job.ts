@@ -18,7 +18,7 @@ import { deleteKratosIdentity, kratosIdentityApi } from "./ory-kratos";
  * retroactive deletion of accounts that existed before email verification
  * was introduced.
  */
-const DEFAULT_ROLLOUT_AT = new Date("2026-02-13T00:00:00.000Z");
+const DEFAULT_ROLLOUT_AT = new Date("2026-02-14T00:00:00.000Z");
 const DEFAULT_RELEASE_TTL_HOURS = 24 * 7;
 const DEFAULT_SWEEP_INTERVAL_MINUTES = 60;
 

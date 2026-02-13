@@ -842,17 +842,18 @@ const main = async () => {
   });
 
   if (!isTestEnv) {
-    const unverifiedEmailCleanupJob = createUnverifiedEmailCleanupJob({
-      context: machineActorContext,
-      logger,
-    });
-
-    await unverifiedEmailCleanupJob.start();
-
-    shutdown.addCleanup(
-      "Unverified email cleanup job",
-      unverifiedEmailCleanupJob.stop,
-    );
+    /**
+     * H-6218 – introduce this after optimising the query and doing more testing
+     */
+    // const unverifiedEmailCleanupJob = createUnverifiedEmailCleanupJob({
+    //   context: machineActorContext,
+    //   logger,
+    // });
+    // await unverifiedEmailCleanupJob.start();
+    // shutdown.addCleanup(
+    //   "Unverified email cleanup job",
+    //   unverifiedEmailCleanupJob.stop,
+    // );
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
