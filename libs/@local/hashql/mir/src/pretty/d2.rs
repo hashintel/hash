@@ -7,17 +7,26 @@ use std::io;
 use bstr::ByteSlice as _;
 use hashql_core::{pretty::RenderFormat, r#type::TypeFormatter};
 
-use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat, text::HighlightBody};
+use super::{
+    DataFlowLookup, FormatPart, SourceLookup, TextFormat,
+    text::{HighlightBody, TextFormatOptions},
+};
 use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
+        location::Location,
         terminator::{Goto, GraphRead, SwitchInt, TerminatorKind},
     },
     def::{DefId, DefIdSlice},
     pretty::text::{Signature, SignatureOptions, TargetParams, TerminatorHead},
 };
 
+/// A double buffer used for HTML escaping during D2 output generation.
+///
+/// This buffer uses a front/back swap pattern to efficiently perform multiple
+/// string replacements (escaping `&`, `<`, `>`, and newlines) without repeated
+/// allocations.
 #[derive(Debug, Default)]
 pub struct D2Buffer {
     front: Vec<u8>,
@@ -93,21 +102,25 @@ where
 
     fn format_text_unescaped<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
-        TextFormat {
+        let mut text = TextFormatOptions {
             writer: &mut self.writer,
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
+            annotations: (),
         }
-        .format_part(value)
+        .build();
+
+        text.format_part(value)?;
+        text.flush()
     }
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
         const REPLACEMENTS: [(u8, &[u8]); 4] = [
@@ -119,13 +132,17 @@ where
         ];
         self.buffer.clear();
 
-        TextFormat {
+        let mut text = TextFormatOptions {
             writer: &mut self.buffer.front,
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
+            annotations: (),
         }
-        .format_part(value)?;
+        .build();
+
+        text.format_part(value)?;
+        text.flush()?;
 
         self.buffer.back.reserve(self.buffer.front.len());
 
@@ -151,7 +168,7 @@ where
         aux: impl IntoIterator<Item: Display>,
     ) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
         let valign = if valign_bottom { "bottom" } else { "top" };
@@ -365,7 +382,18 @@ where
 
         for (index, statement) in block.statements.iter().enumerate() {
             let aux = self.dataflow.on_statement(def_id, block_id, index);
-            self.write_row(false, index, statement, aux)?;
+            self.write_row(
+                false,
+                index,
+                (
+                    Location {
+                        block: block_id,
+                        statement_index: index + 1,
+                    },
+                    statement,
+                ),
+                aux,
+            )?;
         }
 
         self.write_row(

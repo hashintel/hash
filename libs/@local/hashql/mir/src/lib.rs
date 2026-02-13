@@ -11,6 +11,7 @@
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
     never_type,
+    const_trait_impl,
 
     // Library Features
     allocator_api,
@@ -29,6 +30,8 @@
     step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
+    temporary_niche_types,
+    const_convert
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;

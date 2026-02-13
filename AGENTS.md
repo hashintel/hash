@@ -84,7 +84,7 @@ For Rust packages, you can add features as needed with `--all-features`, specifi
 
 CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:
 
-- @.config/agents/rules/*.md
+- .config/agents/rules/*.md
 
 Instructions:
 
