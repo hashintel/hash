@@ -110,16 +110,16 @@ impl CostEstimationConfig {
     };
 }
 
-pub(crate) struct CostEstimation<'ctx, 'parent, 'scc, 'alloc, A: Allocator, B: Allocator> {
+pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, A: Allocator, B: Allocator> {
     pub config: CostEstimationConfig,
 
     pub condense: &'ctx Condense<'parent, A>,
-    pub context: &'ctx CondenseContext<'scc, 'alloc, B>,
+    pub context: &'ctx CondenseContext<'alloc, B>,
 
-    pub region: &'ctx Node<PlacementRegion<'scc>>,
+    pub region: &'ctx Node<PlacementRegion<'alloc>>,
 }
 
-impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, '_, A, B> {
+impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
     fn transition_cost(
         &self,
         source: Option<TargetId>,

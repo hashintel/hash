@@ -5,14 +5,14 @@ use core::alloc::Allocator;
 
 use hashql_core::{
     graph::{
-        DirectedGraph, LinkedGraph, NodeId,
+        DirectedGraph as _, LinkedGraph, NodeId,
         algorithms::{
             Tarjan,
-            tarjan::{Members, StronglyConnectedComponents},
+            tarjan::{MembersRef, StronglyConnectedComponents},
         },
     },
     heap::BumpAllocator,
-    id::{self, Id},
+    id::{self, Id as _},
 };
 
 use self::estimate::{CostEstimation, CostEstimationConfig, TargetHeap};
@@ -33,6 +33,7 @@ id::newtype!(struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 pub struct PlacementRegion<'alloc> {
     id: PlacementRegionId,
     members: &'alloc [BasicBlockId],
+    ordering: &'alloc mut [BasicBlockId],
 }
 
 pub struct BoundaryEdge {
@@ -43,7 +44,7 @@ pub struct BoundaryEdge {
 
 struct CondenseContext<'alloc, A: Allocator> {
     scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc A>,
-    scc_members: Members<BasicBlockId, PlacementRegionId, &'alloc A>,
+    scc_members: MembersRef<'alloc, BasicBlockId, PlacementRegionId>,
 
     graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc A>,
 
@@ -66,7 +67,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         B: BumpAllocator,
     {
         let scc = Tarjan::new_in(&body.basic_blocks, alloc).run();
-        let scc_members = scc.members();
+        let scc_members = scc.bump_members();
 
         // We use a backup slice, instead of directly operating on the target set, so that we're
         // able to switch and backup easily between iterations.
@@ -80,10 +81,12 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
             BasicBlockSlice::from_raw_mut(uninit.write_filled(TargetHeap::new()))
         };
 
+        let graph = LinkedGraph::with_capacity_in(scc.node_count(), self.terminators.len(), alloc);
+
         let mut context = CondenseContext {
-            scc: &scc,
-            scc_members: &scc_members,
-            graph: LinkedGraph::with_capacity_in(scc.node_count(), self.terminators.len(), alloc),
+            scc,
+            scc_members,
+            graph,
             options,
             targets,
             alloc,
@@ -97,7 +100,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
     fn run_forwards_loop<B: BumpAllocator>(
         &self,
         body: &Body<'_>,
-        context: &mut CondenseContext<'_, '_, B>,
+        context: &mut CondenseContext<'_, B>,
     ) {
         // TODO: when re-computing the CSP we would shrimply take our queue that we have created
         // (need bump alloc for that), and then just change the first, and do that until the first
@@ -150,11 +153,14 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         }
     }
 
-    fn fill_graph<B: Allocator>(&self, body: &Body<'_>, context: &mut CondenseContext<'_, '_, B>) {
+    fn fill_graph<B: BumpAllocator>(&self, body: &Body<'_>, context: &mut CondenseContext<'_, B>) {
         for scc in context.scc.iter_nodes() {
             let id = context.graph.add_node(PlacementRegion {
                 id: scc,
                 members: context.scc_members.of(scc),
+                ordering: context
+                    .alloc
+                    .allocate_slice_copy(context.scc_members.of(scc)),
             });
             debug_assert_eq!(scc.as_usize(), id.as_usize());
         }
