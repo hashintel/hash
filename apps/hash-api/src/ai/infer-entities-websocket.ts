@@ -197,6 +197,16 @@ export const openInferEntitiesWebSocket = ({
       return;
     }
 
+    // Increment count and register close listener synchronously, before any
+    // async work, to avoid race conditions with concurrent connections from
+    // the same IP and to prevent leaked counts if the socket closes during
+    // authentication.
+    activeConnectionsByIp.set(ipAddress, activeConnections + 1);
+
+    socket.once("close", () => {
+      decrementActiveConnectionCount(ipAddress);
+    });
+
     void (async () => {
       let authenticatedUser: User | null = null;
 
@@ -213,12 +223,6 @@ export const openInferEntitiesWebSocket = ({
 
         authenticatedUser = user ?? null;
       }
-
-      activeConnectionsByIp.set(ipAddress, activeConnections + 1);
-
-      socket.once("close", () => {
-        decrementActiveConnectionCount(ipAddress);
-      });
 
       let messageCount = 0;
       let messageWindowStart = Date.now();
