@@ -122,6 +122,9 @@ export const completeUserRegistration = async (params: {
         },
       },
     ],
+    additionalAllowedPropertyBaseUrls: new Set([
+      systemPropertyTypes.shortname.propertyTypeBaseUrl,
+    ]),
     provenance: {
       actorType: "machine",
       origin: {

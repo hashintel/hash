@@ -41,6 +41,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   isArrayMetadata,
   isBaseUrl,
   isObjectMetadata,
@@ -89,6 +90,10 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeGraphVertices,
 } from "./subgraph.js";
+import {
+  userEntityTypeBaseUrl,
+  userSelfUpdatablePropertyBaseUrls,
+} from "./user-entity-restrictions.js";
 import type { EntityValidationReport } from "./validation.js";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
@@ -175,6 +180,17 @@ export type PatchEntityParameters = Omit<
 > & {
   propertyPatches?: PropertyPatchOperation[];
   provenance: ProvidedEntityEditionProvenance;
+  /**
+   * Additional property base URLs to allow when patching user entities,
+   * beyond those in the default {@link userSelfUpdatablePropertyBaseUrls} set.
+   *
+   * This is useful for properties that are conditionally updatable, such as:
+   * - shortname (set once during account signup)
+   * - enabledFeatureFlags (requires instance admin privileges)
+   *
+   * For non-user entities, this parameter has no effect.
+   */
+  additionalAllowedPropertyBaseUrls?: ReadonlySet<BaseUrl>;
 };
 
 export type DiffEntityInput = Subtype<
@@ -1147,7 +1163,12 @@ export class HashEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
+    {
+      entityTypeIds,
+      propertyPatches,
+      additionalAllowedPropertyBaseUrls,
+      ...params
+    }: PatchEntityParameters,
     /**
      * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
      *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
@@ -1159,6 +1180,27 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
+    if (propertyPatches) {
+      const isUserEntity = this.metadata.entityTypeIds.some(
+        (id) => extractBaseUrl(id) === userEntityTypeBaseUrl,
+      );
+
+      if (isUserEntity) {
+        for (const patch of propertyPatches) {
+          const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (
+            targetBaseUrl !== undefined &&
+            !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
+            !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
+          ) {
+            throw new Error(
+              `Property patch targeting '${targetBaseUrl}' is not allowed on a user entity. Allowed properties: ${[...userSelfUpdatablePropertyBaseUrls, ...(additionalAllowedPropertyBaseUrls ?? [])].join(", ")}`,
+            );
+          }
+        }
+      }
+    }
+
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
@@ -1318,8 +1360,34 @@ export class HashLinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
+    {
+      entityTypeIds,
+      propertyPatches,
+      additionalAllowedPropertyBaseUrls,
+      ...params
+    }: PatchEntityParameters,
   ): Promise<this> {
+    if (propertyPatches) {
+      const isUserEntity = this.metadata.entityTypeIds.some((id) =>
+        id.startsWith(userEntityTypeBaseUrl as string),
+      );
+
+      if (isUserEntity) {
+        for (const patch of propertyPatches) {
+          const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (
+            targetBaseUrl !== undefined &&
+            !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
+            !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
+          ) {
+            throw new Error(
+              `Property patch targeting '${targetBaseUrl}' is not allowed on a user entity. Allowed properties: ${[...userSelfUpdatablePropertyBaseUrls, ...(additionalAllowedPropertyBaseUrls ?? [])].join(", ")}`,
+            );
+          }
+        }
+      }
+    }
+
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,

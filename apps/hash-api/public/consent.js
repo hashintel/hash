@@ -8,10 +8,12 @@ function submitConsentForm(submitValue) {
   }
 
   var challenge = document.querySelector('input[name="challenge"]').value;
+  var csrfToken = document.querySelector('input[name="csrfToken"]').value;
   var data = {
     grant_scope: grantScopeValues,
     submit: submitValue,
     challenge: challenge,
+    csrfToken: csrfToken,
   };
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "/oauth2/consent");

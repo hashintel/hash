@@ -11,6 +11,7 @@ import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
+import { validateExternalUrl } from "@local/hash-backend-utils/url-validation";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -300,6 +301,13 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   true
 > = async (ctx, authentication, params) => {
   const { description, displayName: providedDisplayName, url } = params;
+
+  const urlValidation = validateExternalUrl(url);
+  if (!urlValidation.valid) {
+    throw new Error(
+      `The provided URL is not permitted: ${urlValidation.reason}`,
+    );
+  }
 
   const filename = normalizeWhitespace(url.split("/").pop()!);
 

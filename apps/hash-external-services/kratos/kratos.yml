@@ -83,7 +83,12 @@ selfservice:
 
     settings:
       # Set `ui_url` through the `SELFSERVICE_FLOWS_SETTINGS_UI_URL` environment variable
-      {}
+      after:
+        password:
+          hooks:
+            # Revoke all other sessions whenever a password is changed.
+            # This prevents previously stolen session tokens from remaining valid.
+            - hook: revoke_active_sessions
 
 # Cookies must be configured through environment variables
 # Set `path` through the `COOKIES_PATH` environment variable

@@ -6,6 +6,7 @@
             <p><strong>{{client.client_name}}</strong> wants access to your HASH graph.</p>
 
             <input name="challenge" type="hidden" value="{{challenge}}" />
+            <input name="csrfToken" type="hidden" value="{{csrfToken}}" />
 
             <div class="consent-scopes-heading">Scopes requested</div>
             {{#each requested_scope as |scope|}}

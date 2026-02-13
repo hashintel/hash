@@ -25,6 +25,7 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
+import { validateExternalUrlWithDnsCheck } from "@local/hash-backend-utils/url-validation";
 import {
   HashEntity,
   mergePropertyObjectAndMetadata,
@@ -157,6 +158,16 @@ export const createFileEntityFromUrl = async (params: {
 
   const { userAuthentication, webId, flowEntityId, stepId } =
     await getFlowContext();
+
+  const urlValidation = await validateExternalUrlWithDnsCheck(originalUrl);
+  if (!urlValidation.valid) {
+    const message = `The provided URL is not permitted: ${urlValidation.reason}`;
+    logger.error(message);
+    return {
+      status: "error-downloading-file",
+      message,
+    };
+  }
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
