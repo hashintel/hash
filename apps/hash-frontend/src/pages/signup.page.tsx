@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
@@ -73,9 +73,10 @@ const SignupPage: NextPageWithLayout = () => {
   const userHasVerifiedEmail =
     authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
 
-  const [fetchHasAccess, { data: userHasAccessToHashData }] =
-    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+  const { data: userHasAccessToHashData, refetch: refetchHasAccess } =
+    useQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
       fetchPolicy: "network-only",
+      skip: !userHasVerifiedEmail,
     });
 
   const { invitationId } = router.query;
@@ -196,9 +197,9 @@ const SignupPage: NextPageWithLayout = () => {
                 onVerified={async () => {
                   await refetchAuthenticatedUser();
 
-                  const { data } = await fetchHasAccess();
+                  const { data } = await refetchHasAccess();
 
-                  if (!data?.hasAccessToHash) {
+                  if (!data.hasAccessToHash) {
                     void router.replace("/");
                   }
                 }}
