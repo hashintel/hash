@@ -124,6 +124,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     embedCode,
     hashInstanceSettings: hashInstanceSettingsResolver,
     hasAccessToHash: hasAccessToHashResolver,
+    getPendingInvitationByEntityId: getPendingInvitationByEntityIdResolver,
 
     /** Any user – type fetching */
     queryDataTypes: queryDataTypesResolver,
@@ -163,9 +164,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getMyPendingInvitations: loggedInAndSignedUpMiddleware(
       getMyPendingInvitationsResolver,
     ),
-    getPendingInvitationByEntityId: loggedInAndSignedUpMiddleware(
-      getPendingInvitationByEntityIdResolver,
-    ),
+
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
