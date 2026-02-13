@@ -11,9 +11,10 @@ use hashql_core::{
         },
         linked::Node,
     },
-    id::{self, HasId, Id},
+    id::{self, HasId, Id, IdVec},
 };
 
+use self::estimate::{CostEstimation, CostEstimationConfig, TargetHeap};
 use crate::{
     body::{
         Body,
@@ -44,7 +45,11 @@ struct CondenseContext<'scc, A: Allocator> {
     scc_members: &'scc Members<BasicBlockId, PlacementRegionId, A>,
 
     graph: LinkedGraph<PlacementRegion<'scc>, BoundaryEdge, A>,
+
+    options: Box<BasicBlockSlice<TargetHeap>, A>,
     targets: Box<BasicBlockSlice<Option<TargetId>>, A>,
+
+    alloc: A,
 }
 
 pub struct Condense<'ctx, A: Allocator> {
@@ -74,11 +79,27 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
             BasicBlockSlice::from_boxed_slice(boxed)
         };
 
+        #[expect(unsafe_code)]
+        let options = {
+            let mut uninit = Box::new_uninit_slice_in(body.basic_blocks.len(), alloc.clone());
+            uninit.write_filled(TargetHeap::new());
+
+            // SAFETY: The slice is fully initialized
+            let boxed = unsafe { uninit.assume_init() };
+            BasicBlockSlice::from_boxed_slice(boxed)
+        };
+
         let mut context = CondenseContext {
             scc: &scc,
             scc_members: &scc_members,
-            graph: LinkedGraph::with_capacity_in(scc.node_count(), self.terminators.len(), alloc),
+            graph: LinkedGraph::with_capacity_in(
+                scc.node_count(),
+                self.terminators.len(),
+                alloc.clone(),
+            ),
+            options,
             targets,
+            alloc,
         };
 
         self.fill_graph(body, &mut context);
@@ -86,106 +107,7 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         unimplemented!()
     }
 
-    fn solve_trivial<B: Allocator>(
-        &self,
-        body: &Body<'_>,
-        context: &CondenseContext<'_, B>,
-        block: BasicBlockId,
-        region: &Node<PlacementRegion<'_>>,
-    ) -> Option<TargetId> {
-        // TODO: we could just keep a heap (or basically just a slice) of targets, if we need to
-        // backtrack, we just pop the last (or rotate), and then try again. The problem is that the
-        // backtrack could go on for *a long* time, if that one doesn't fit, we'd need to go up one
-        // more, try again there, etc. It would be possible, but is recursive in nature, basically
-        // a: *whoops* I am all out of options, let me just ask the parent to choose a new
-        // one. The parent goes like: oh look these are the ones I have. Fuck, let's try this one.
-        // Oh fuck, I am all out of options, rewind once more.
-        // That could work for backtracking, and is likely what we need. We need a similar approach
-        // for CSP anyway, and we can do that easily with pre-allocated stacks. Actually, why? We
-        // have a bump alloc, we can just alloc into the bump allow and do it that way. *way*
-        // easier. We just assign a slice to each node, and then re-use it.
-
-        let mut best_target = None;
-        let mut best_cost = Cost::MAX;
-
-        'target: for target in &self.targets[block] {
-            let Some(mut cost) = self.statements[target].sum(block) else {
-                unreachable!("The target has been deemed as reachable in a previous iteration")
-            };
-
-            // If any assigned predecessor p has incompatible transition
-            for pred in body.basic_blocks.predecessors(block) {
-                let Some(chosen_target) = context.targets[pred] else {
-                    // This specific predecessor has not been fixed yet, and is therefore not
-                    // considered.
-                    continue;
-                };
-
-                // Find all the edges from the chosen target
-                let edges = context
-                    .graph
-                    .incoming_edges(region.id())
-                    .filter(|edge| edge.data.source == pred && edge.data.target == block);
-
-                for edge in edges {
-                    let Some(trans_cost) = edge.data.matrix.get(chosen_target, target) else {
-                        // Transition to this backend is not possible
-                        continue 'target;
-                    };
-
-                    // Add the transition cost to the total cost
-                    cost = cost.saturating_add(trans_cost);
-                }
-            }
-
-            // Find the cost of the (unassigned) successors, they fill choose the smallest target
-            // possible (taking transition cost into account)
-            for succ in body.basic_blocks.successors(block) {
-                let mut edges = context
-                    .graph
-                    .outgoing_edges(region.id())
-                    .filter(|edge| edge.data.source == block && edge.data.target == succ);
-
-                if let Some(chosen_target) = context.targets[succ] {
-                    // Check if the successor is even compatible, if not than this is a non-starter
-                    if !edges.all(|edge| edge.data.matrix.contains(target, chosen_target)) {
-                        continue 'target;
-                    }
-
-                    // The target has already chosen, and therefore does not need to be considered
-                    continue;
-                }
-
-                // There is no target, add the cost of the smallest possible transition to the
-                // overall cost.
-                for edge in edges {
-                    let mut min_cost = Cost::MAX;
-                    for (potential_target, potential_target_cost) in
-                        edge.data.matrix.outgoing(target)
-                    {
-                        let target_cost = potential_target_cost.saturating_add(
-                            self.statements[potential_target]
-                                .sum(edge.data.target)
-                                .unwrap_or(Cost::MAX),
-                        );
-
-                        min_cost = min_cost.min(target_cost);
-                    }
-
-                    cost = cost.saturating_add(min_cost);
-                }
-            }
-
-            if cost < best_cost {
-                best_cost = cost;
-                best_target = Some(target);
-            }
-        }
-
-        best_target
-    }
-
-    fn run_forwards_loop<B: Allocator>(
+    fn run_forwards_loop<B: Allocator + Clone>(
         &self,
         body: &Body<'_>,
         context: &mut CondenseContext<'_, B>,
@@ -193,22 +115,44 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         // Now that we have all the edges we must do a forwards and backwards sweep, scc gives us
         // the reverse topological order, meaning that the forwards is simply the backwards
         // traversal of the scc.
-        // forward pass:
-        for region_id in context.scc.iter_nodes().rev() {
+
+        // TODO: we can probably re-use this buffer
+        let mut regions = Vec::with_capacity_in(context.scc.node_count(), context.alloc.clone());
+        context.scc.iter_nodes().collect_into(&mut regions);
+
+        debug_assert!(!regions.is_empty()); // there is always at least one region because the start block exists
+        let mut ptr = 0;
+
+        while ptr < regions.len() {
+            let region_id = regions[ptr];
             let region = &context.graph[NodeId::new(region_id.as_usize())];
-            let is_trivial = region.data.members.len() == 1;
 
-            if is_trivial {
-                let Some(target) =
-                    self.solve_trivial(body, context, region.data.members[0], region)
-                else {
-                    todo!("do we need to backtrack? or do we just default to interpreter?");
-                };
+            match region.data.members {
+                [] => unreachable!("empty region"),
+                &[block] => {
+                    // trivial
+                    let mut heap = CostEstimation {
+                        config: CostEstimationConfig::TRIVIAL,
+                        condense: self,
+                        context,
+                        region,
+                    }
+                    .run(body, block);
 
-                context.targets[region.data.members[0]] = Some(target);
-            } else {
-                todo!("solve CSP")
+                    let Some(elem) = heap.pop() else {
+                        // TODO: rewind, because it's not possible, must take CSP into account
+                        todo!("rewind");
+                    };
+
+                    context.targets[block] = Some(elem.target);
+                    context.options[block] = heap;
+                }
+                _ => {
+                    todo!("solve CSP")
+                }
             }
+
+            ptr += 1;
         }
     }
 

@@ -8,8 +8,9 @@ use core::{
     alloc::Allocator,
     fmt,
     iter::{self, Sum},
-    ops::{Add, AddAssign, Index, IndexMut},
+    ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
 };
+use std::f32;
 
 use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
@@ -124,6 +125,13 @@ impl Cost {
 
         Self::new_saturating(raw.saturating_add(other.0.as_inner()))
     }
+
+    #[expect(clippy::cast_precision_loss)]
+    #[inline]
+    #[must_use]
+    pub const fn as_approx(self) -> ApproxCost {
+        ApproxCost(self.0.as_inner() as f32)
+    }
 }
 
 impl fmt::Display for Cost {
@@ -151,6 +159,7 @@ impl fmt::Display for Cost {
 pub struct ApproxCost(f32);
 
 impl ApproxCost {
+    pub const INF: Self = Self(f32::INFINITY);
     /// An approximate cost of zero.
     pub const ZERO: Self = Self(0.0);
 
@@ -216,29 +225,73 @@ impl fmt::Display for ApproxCost {
     }
 }
 
-impl Add for ApproxCost {
+impl Add<Self> for ApproxCost {
     type Output = Self;
 
     #[inline]
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Self) -> Self {
-        Self(self.0 + rhs.0)
+        Self::new(self.0 + rhs.0).expect("Operation on two NotNan resulted in NaN")
     }
 }
 
-impl AddAssign for ApproxCost {
+impl Mul<f32> for ApproxCost {
+    type Output = Self;
+
     #[inline]
     #[expect(clippy::float_arithmetic)]
+    fn mul(self, rhs: f32) -> Self {
+        Self::new(self.0 * rhs).expect("Operation resulted in NaN")
+    }
+}
+
+impl Add<Cost> for ApproxCost {
+    type Output = Self;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+    fn add(self, rhs: Cost) -> Self {
+        Self(self.0 + rhs.0.as_inner() as f32)
+    }
+}
+
+impl AddAssign<Self> for ApproxCost {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
+        *self = *self + rhs;
+    }
+}
+
+impl AddAssign<Cost> for ApproxCost {
+    #[inline]
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+    fn add_assign(&mut self, rhs: Cost) {
+        self.0 += rhs.0.as_inner() as f32;
+    }
+}
+
+impl MulAssign<f32> for ApproxCost {
+    #[inline]
+    fn mul_assign(&mut self, rhs: f32) {
+        *self = *self * rhs;
     }
 }
 
 forward_ref_binop!(impl Add<Self>::add for ApproxCost);
+forward_ref_binop!(impl Add<Cost>::add for ApproxCost);
+forward_ref_binop!(impl Mul<f32>::mul for ApproxCost);
 forward_ref_op_assign!(impl AddAssign<Self>::add_assign for ApproxCost);
+forward_ref_op_assign!(impl AddAssign<Cost>::add_assign for ApproxCost);
+forward_ref_op_assign!(impl MulAssign<f32>::mul_assign for ApproxCost);
 
 impl Sum for ApproxCost {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, Add::add)
+    }
+}
+
+impl Sum<Cost> for ApproxCost {
+    fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
         iter.fold(Self::ZERO, Add::add)
     }
 }
@@ -396,6 +449,10 @@ impl<A: Allocator> StatementCostVec<A> {
             .iter()
             .copied()
             .try_fold(Cost::MIN, |acc, value| Some(acc.saturating_add(value?)))
+    }
+
+    pub fn sum_approx(&self, block: BasicBlockId) -> ApproxCost {
+        self.of(block).iter().copied().flatten().sum()
     }
 
     /// Returns a reference to the allocator used by this cost vector.
