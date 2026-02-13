@@ -153,9 +153,15 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
             },
           }),
         )
-        .then(async () => {
-          await onVerified();
-          succeeded = true;
+        .then(async ({ data: updatedFlow }) => {
+          if (updatedFlow.state === "passed_challenge") {
+            await onVerified();
+            succeeded = true;
+          } else {
+            // Kratos returns 200 even when the code is invalid – the error
+            // details are inside the flow's `ui.messages` / node messages.
+            setFlow(updatedFlow);
+          }
         })
         .catch(async (error: AxiosError) => {
           await handleFlowErrorRef.current(error);
@@ -266,8 +272,17 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
             {sendingCode ? "Sending..." : "Send a new verification code"}
           </Button>
         )}
-        {flow?.ui.messages?.map(({ id, text }) => (
-          <Typography key={id}>{text}</Typography>
+        {flow?.ui.messages?.map(({ id, text, type }) => (
+          <Typography
+            key={id}
+            sx={{
+              fontSize: 14,
+              color: ({ palette }) =>
+                type === "error" ? palette.error.main : palette.gray[70],
+            }}
+          >
+            {text}
+          </Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
       </Box>

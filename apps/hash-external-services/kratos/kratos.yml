@@ -78,6 +78,7 @@ selfservice:
                     name: KRATOS_API_KEY
                     # Set `value` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE` environment variable
                     in: header
+            - hook: show_verification_ui
             - hook: session
 
     verification:

@@ -79,9 +79,28 @@ const VerifyEmailPage: NextPageWithLayout = () => {
           },
         }),
       )
-      .then(async () => {
-        await refetch();
-        void router.replace("/");
+      .then(async ({ data: updatedFlow }) => {
+        if (updatedFlow.state === "passed_challenge") {
+          await refetch();
+          void router.replace("/");
+        } else {
+          // Kratos returns 200 even when the code is invalid – extract error
+          // messages from the flow body.
+          const errorMessages =
+            updatedFlow.ui.messages
+              ?.filter(({ type }) => type === "error")
+              .map(({ text }) => text) ?? [];
+
+          setAutoVerifyError(
+            errorMessages.length > 0
+              ? errorMessages.join(" ")
+              : "The verification code was not accepted. Please try again.",
+          );
+          setAutoVerifying(false);
+
+          // Strip the code and flow params from the URL so we don't retry
+          void router.replace("/verification", undefined, { shallow: true });
+        }
       })
       .catch((error: AxiosError<VerificationFlow>) => {
         const errorMessages =
