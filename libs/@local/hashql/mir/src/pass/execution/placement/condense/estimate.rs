@@ -123,12 +123,18 @@ impl CostEstimationConfig {
     };
 }
 
-pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
+pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, F, A: Allocator, S: BumpAllocator> {
     pub config: CostEstimationConfig,
     pub condense: &'ctx Condense<'parent, 'alloc, A, S>,
+    pub determine_target: F,
 }
 
-impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
+impl<F, A, S> CostEstimation<'_, '_, '_, F, A, S>
+where
+    F: Fn(BasicBlockId) -> Option<HeapElement>,
+    A: Allocator,
+    S: BumpAllocator,
+{
     fn transition_cost(
         &self,
         source: Option<TargetId>,
@@ -239,7 +245,7 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
                 .incoming_edges(NodeId::from_usize(region.as_usize()))
                 .filter(|edge| edge.data.source == pred && edge.data.target == block);
 
-            let pred_target = self.condense.targets[pred];
+            let pred_target = (self.determine_target)(pred);
 
             for edge in edges {
                 let Some(trans_cost) =
@@ -271,7 +277,7 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
                 .outgoing_edges(NodeId::from_usize(region.as_usize()))
                 .filter(|edge| edge.data.source == block && edge.data.target == succ);
 
-            let succ_target = self.condense.targets[succ];
+            let succ_target = (self.determine_target)(succ);
 
             for edge in edges {
                 let Some(trans_cost) =
