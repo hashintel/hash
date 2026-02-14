@@ -1,7 +1,7 @@
 mod csp;
 mod estimate;
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, mem};
 
 use hashql_core::{
     graph::{
@@ -17,7 +17,7 @@ use hashql_core::{
 
 use self::{
     csp::PlacementBlock,
-    estimate::{HeapElement, TargetHeap},
+    estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
 };
 use crate::{
     body::{
@@ -50,6 +50,7 @@ struct CyclicPlacementRegion<'alloc> {
 enum PlacementRegionKind<'alloc> {
     Trivial(TrivialPlacementRegion),
     Cyclic(CyclicPlacementRegion<'alloc>),
+    Unassigned,
 }
 
 #[derive(Debug)]
@@ -149,32 +150,35 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
         while ptr < regions.len() {
             let region_id = regions[ptr];
             let region = &mut self.graph[NodeId::new(region_id.as_usize())];
+            let kind = mem::replace(&mut region.data.kind, PlacementRegionKind::Unassigned);
 
-            match &mut region.data.kind {
-                &mut PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
-                    // let mut heap = CostEstimation {
-                    //     config: CostEstimationConfig::TRIVIAL,
-                    //     condense: self,
+            match kind {
+                PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
+                    let mut heap = CostEstimation {
+                        config: CostEstimationConfig::TRIVIAL,
+                        condense: self,
+                    }
+                    .run(body, region_id, block);
 
-                    //     region,
-                    // }
-                    // .run(body, block);
+                    let Some(elem) = heap.pop() else {
+                        // TODO: rewind, because it's not possible, must take CSP into account
+                        todo!("rewind");
+                    };
 
-                    // let Some(elem) = heap.pop() else {
-                    //     // TODO: rewind, because it's not possible, must take CSP into account
-                    //     todo!("rewind");
-                    // };
-
-                    // self.targets[block] = Some(elem);
-                    // self.options[block] = heap;
-                    todo!("borrowchk")
+                    self.targets[block] = Some(elem);
+                    self.options[block] = heap;
                 }
                 PlacementRegionKind::Cyclic(CyclicPlacementRegion {
                     members,
                     blocks,
                     scratch,
                 }) => todo!("solve CSP"),
+                PlacementRegionKind::Unassigned => {
+                    panic!("previous iteration has not returned this node into the graph")
+                }
             }
+
+            self.graph[NodeId::new(region_id.as_usize())].data.kind = kind;
 
             ptr += 1;
         }
