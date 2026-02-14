@@ -1,4 +1,5 @@
 use core::alloc::Allocator;
+use std::f32;
 
 use hashql_core::{
     graph::{Predecessors as _, Successors as _},
@@ -39,14 +40,14 @@ impl PlacementBlock {
     };
 }
 
-struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
-    condense: &'ctx mut Condense<'parent, 'alloc, A, S>,
+pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
+    pub condense: &'ctx mut Condense<'parent, 'alloc, A, S>,
 
-    id: PlacementRegionId,
-    region: CyclicPlacementRegion<'alloc>,
+    pub id: PlacementRegionId,
+    pub region: CyclicPlacementRegion<'alloc>,
 
-    fixed: DenseBitSet<BasicBlockId>,
-    depth: usize,
+    pub fixed: DenseBitSet<BasicBlockId>,
+    pub depth: usize,
 }
 
 impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'alloc, A, S> {
@@ -159,6 +160,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
 
     fn rollback(&mut self, body: &Body<'_>) -> bool {
         // Rollback to a previous version (or terminate in case that we can't find something else)
+        // TODO: I think the logic here is wrong
         while self.depth > 0 {
             self.depth -= 1;
 
@@ -174,12 +176,8 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
         false
     }
 
-    fn solve(&mut self, body: &Body<'_>) -> bool {
+    fn run(&mut self, body: &Body<'_>) -> bool {
         let members = self.region.members.len();
-        self.seed();
-
-        self.depth = 0;
-        self.fixed = DenseBitSet::new_empty(body.basic_blocks.len());
 
         while self.depth < members {
             let (offset, next) = self.mrv(body);
@@ -215,5 +213,45 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
         }
 
         true
+    }
+
+    pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
+        self.seed();
+
+        self.depth = 0;
+        self.fixed = DenseBitSet::new_empty(body.basic_blocks.len());
+
+        self.run(body)
+    }
+
+    pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {
+        // Unlike the trivial backend, we do not fully rollback, instead we check for the target
+        // that has the smallest delta, and use that to re-compute the cost of the condense.
+        let mut min_diff = f32::INFINITY;
+        let mut best_depth = 0;
+
+        for (depth, placement) in self.region.blocks.iter().enumerate() {
+            let Some(next) = placement.heap.peek() else {
+                continue; // cannot choose an alternative
+            };
+
+            let diff = placement.target.cost.delta(next.cost);
+
+            if diff < min_diff {
+                min_diff = diff;
+                best_depth = depth;
+            }
+        }
+
+        self.depth = best_depth + 1;
+
+        // We start *after* the best choice we've just chosen
+        let block = &mut self.region.blocks[best_depth];
+        let next_elem = block.heap.pop().expect("loop just verified it's correct");
+        block.target = next_elem;
+
+        self.replay_narrowing(body);
+
+        self.run(body)
     }
 }
