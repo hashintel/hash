@@ -229,6 +229,10 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
         let mut cost = self.condense.data.statements[target].sum_approx(block);
 
         for pred in body.basic_blocks.predecessors(block) {
+            if pred == block {
+                continue; // self-loop: both sides share the same target, cost is always 0
+            }
+
             let edges = self
                 .condense
                 .graph
@@ -257,6 +261,10 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
         }
 
         for succ in body.basic_blocks.successors(block) {
+            if succ == block {
+                continue; // self-loop: both sides share the same target, cost is always 0
+            }
+
             let edges = self
                 .condense
                 .graph

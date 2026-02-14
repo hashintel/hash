@@ -12,7 +12,7 @@ It produces a final `TargetId` assignment for every basic block.
 
 ## Preconditions
 
-1. Single-block self-loops are treated as non-trivial SCCs (consistent with terminator placement's `is_in_loop` when `successor_id == block_id`).
+1. Single-block self-loops are treated as trivial placement regions (see Implementation Notes: Self-Loop Blocks).
 2. Feasibility is **not** guaranteed by construction. There is no assumption that an always-available interpreter target exists. When no valid assignment can be found, the algorithm backtracks (see Phase 3a). If all possibilities are exhausted, a diagnostic is emitted.
 
 ## Cost Model
@@ -365,8 +365,63 @@ TransMatrix ───────┘
 2. **Monotonic refinement**: each backward pass iteration only switches assignments when total cost strictly decreases. Convergence is guaranteed.
 3. **SCC locality**: backtracking is scoped to individual SCCs. The DAG-level refinement uses greedy assignment with local repair, not exponential search.
 4. **Edge cost accounting**: internal SCC edges are charged inside the CSP. Boundary edges with assigned neighbors are also charged inside the CSP (via the boundary context). No double-counting: each edge is accounted for exactly once.
-5. **Self-loop handling**: single-block self-loops are non-trivial SCCs and go through the CSP path, consistent with terminator placement's loop detection.
+5. **Self-loop handling**: single-block self-loops are trivial placement regions. Cost estimation skips self-loop edges (the transition cost is always 0 for same-target self-loops). See Implementation Notes.
 6. **Backtracking termination**: TargetHeap pops are monotonic (targets are consumed, never re-added). Upward propagation through the condensation DAG eventually exhausts the search space or finds a solution. The combination of finite heaps and monotonic consumption guarantees termination.
+
+## Implementation Notes
+
+The spec describes the algorithm's intent and correctness properties. The implementation deviates in several deliberate ways for performance and simplicity. This section documents design decisions discovered during implementation review.
+
+### Graph Topology
+
+The implementation uses a single `LinkedGraph` for the condensation, where all CFG edges are stored — including intra-SCC edges as self-edges on the SCC node. The `edge.source() != edge.target()` check distinguishes boundary edges from internal ones. This avoids maintaining a separate boundary-edge list per SCC while still allowing cost estimation to weight internal vs boundary edges differently (via `boundary_multiplier`).
+
+### Self-Loop Blocks
+
+Single-block self-loops are classified as **trivial** placement regions, not cyclic. This is correct because cost estimation skips self-loop edges entirely: a block assigned to target T always self-loops at cost `M[(T, T)] = 0`. Including the self-loop in cost estimation would allow the heuristic to consider cross-target transitions (e.g. A→B) that can never occur on a self-loop, artificially inflating costs for some targets.
+
+### Cost Estimation: Deliberate Double-Counting
+
+Edge transition costs are counted from **both sides**: when estimating a block's target cost, both incoming predecessor edges and outgoing successor edges contribute. This intentionally double-counts edge costs relative to the spec's "charge each edge once" model.
+
+The rationale: at SwitchInt joins, a block may have multiple incoming edges with different transition cost profiles. Counting from both sides gives each edge influence over the block's target choice proportional to how expensive it is. Without control-flow frequency information, this is a reasonable "expected cost" heuristic. The alternative (charge once) would require choosing which side "owns" the edge, losing information.
+
+This means the cost estimation is a **value-ordering heuristic**, not an exact objective. The `HeapElement` stores `ApproxCost` for delta comparisons during backtracking, not for absolute cost accounting.
+
+### CSP: Local Tree Exploration Instead of Branch-and-Bound
+
+The CSP solver uses depth-first backtracking with forward checking (domain narrowing) rather than maintaining an explicit cost bound. Pruning comes from domains emptying during narrowing, not from comparing `cost_so_far + lower_bound >= best_cost`. This saves memory (no need to track the best complete solution or compute per-step lower bounds) and is effective when domains are small post-AC-3 (K ≈ 2–3).
+
+### CSP: Forward Checking Is Bidirectional
+
+After assigning block B to target T, domains are narrowed for **both** successors and predecessors:
+
+- Outgoing edge `(B → N)`: keep `t_n` where `M[(T, t_n)]` exists.
+- Incoming edge `(N → B)`: keep `t_n` where `M[(t_n, T)]` exists.
+
+The predecessor direction is essential — without it, the CSP can assign targets to predecessor blocks that have no valid transition to B's chosen target.
+
+### CSP: Rollback Semantics
+
+When backtracking to depth `d` and choosing a new target for block at index `d`:
+
+1. Pop the next element from the block's `TargetHeap`.
+2. Set `depth = d + 1` so the changed block is included in the fixed prefix.
+3. Replay narrowing: reset domains for all blocks after `depth`, then re-propagate constraints from the entire fixed prefix.
+
+The heap must be persisted into `PlacementBlock.heap` immediately after the first pop during assignment, or rollback has no alternatives to try.
+
+### MRV Tie-Breaking
+
+MRV tie-breaking uses **highest constraint degree** — the number of neighbors that are either already fixed or outside the SCC (boundary neighbors). This picks the most constrained block, which is more likely to fail early and trigger backtracking before wasting work on less constrained blocks.
+
+### CSP Caching
+
+The spec describes caching CSP results keyed by `neighbor_targets`. The implementation omits this: cost estimation already provides partial caching effects through the heap ordering, and the added complexity of maintaining a cache keyed by boundary context tuples is not justified for typical SCC sizes.
+
+### Forward Pass: Fixed Topological Order
+
+The forward pass processes super blocks in the topological order produced by Tarjan, not in dynamic MRV order across regions. MRV is used **within** the CSP (for variable ordering inside an SCC), but region processing order is static. This simplifies the assignment stack and avoids the cost of recomputing region-level MRV after each assignment.
 
 ## Future Enhancements
 
