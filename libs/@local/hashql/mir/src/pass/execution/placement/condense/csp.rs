@@ -68,34 +68,32 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
         let mut current_offset = 0;
         let mut current_block = BasicBlockId::PLACEHOLDER;
         let mut current_domain_size = usize::MAX;
-        let mut current_unfixed_degree = usize::MAX;
+        let mut current_constraint_degree = 0;
 
         for (index, block) in applicable.iter().enumerate() {
-            // We know that these are *not* fixed
             let domain_size = block.possible.len();
 
-            // Find the amount of neighbours that are currently *not* fixed, only considers internal
-            // edges
-            // TODO: we're double counting here in case of a SwitchInt, should be fine though? / is
-            // correct?
-            let unfixed_degree = body
+            // Count constrained neighbors (fixed or boundary), not unfixed ones. Higher means
+            // more constrained — spec says highest constraint degree breaks MRV ties.
+            let constraint_degree = body
                 .basic_blocks
                 .predecessors(block.id)
                 .chain(body.basic_blocks.successors(block.id))
                 .filter(|&neighbour| {
-                    !self.fixed.contains(neighbour)
-                        && neighbour != block.id
-                        && self.region.members.contains(&neighbour)
+                    neighbour != block.id
+                        && (self.fixed.contains(neighbour)
+                            || !self.region.members.contains(&neighbour))
                 })
                 .count();
 
             if domain_size < current_domain_size
-                || (domain_size == current_domain_size && unfixed_degree < current_unfixed_degree)
+                || (domain_size == current_domain_size
+                    && constraint_degree > current_constraint_degree)
             {
                 current_offset = index;
                 current_block = block.id;
                 current_domain_size = domain_size;
-                current_unfixed_degree = unfixed_degree;
+                current_constraint_degree = constraint_degree;
             }
         }
 
@@ -110,15 +108,15 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
         block: BasicBlockId,
         target: TargetId,
     ) {
+        // Narrow successors: for edge (block → succ), keep targets t_s where M[(target, t_s)]
+        // exists.
         let matrices = data.terminators.of(block);
         let successors = body.basic_blocks.successors(block);
         debug_assert_eq!(successors.len(), matrices.len());
 
         for (succ, matrix) in successors.zip(matrices) {
-            // restrict non-fixed backends to our set of available blocks. We only do this in
-            // case that it isn't fixed.
-            let Some(remaining) = blocks.iter_mut().find(|block| block.id == succ) else {
-                continue; // has already been fixed
+            let Some(remaining) = blocks.iter_mut().find(|candidate| candidate.id == succ) else {
+                continue; // already fixed
             };
 
             let mut available = TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
@@ -126,9 +124,31 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
                 available.insert(outgoing);
             }
 
-            // Ensure that we narrow the set of available backends from the ones that we have
-            // received.
             remaining.possible.intersect(&available);
+        }
+
+        // Narrow predecessors: for edge (pred → block), keep targets t_p where M[(t_p, target)]
+        // exists. The matrix lives at terminators.of(pred), indexed by pred's successor slot.
+        for pred in body.basic_blocks.predecessors(block) {
+            let Some(remaining) = blocks.iter_mut().find(|candidate| candidate.id == pred) else {
+                continue; // already fixed
+            };
+
+            let pred_matrices = data.terminators.of(pred);
+            let pred_successors = body.basic_blocks.successors(pred);
+
+            for (succ, matrix) in pred_successors.zip(pred_matrices) {
+                if succ != block {
+                    continue;
+                }
+
+                let mut available = TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
+                for (incoming, _) in matrix.incoming(target) {
+                    available.insert(incoming);
+                }
+
+                remaining.possible.intersect(&available);
+            }
         }
     }
 
@@ -159,15 +179,16 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
     }
 
     fn rollback(&mut self, body: &Body<'_>) -> bool {
-        // Rollback to a previous version (or terminate in case that we can't find something else)
-        // TODO: I think the logic here is wrong
         while self.depth > 0 {
             self.depth -= 1;
 
             let block = &mut self.region.blocks[self.depth];
-            if let Some(heap) = block.heap.pop() {
-                block.target = heap;
+            if let Some(next) = block.heap.pop() {
+                block.target = next;
 
+                // depth points at the block we just changed; move past it so
+                // replay_narrowing treats it as fixed and propagates its new target.
+                self.depth += 1;
                 self.replay_narrowing(body);
                 return true;
             }
@@ -205,6 +226,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
 
             self.narrow(body, next, elem.target);
             self.region.blocks[self.depth].target = elem;
+            self.region.blocks[self.depth].heap = heap;
             self.depth += 1;
         }
 
@@ -225,31 +247,34 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
     }
 
     pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {
-        // Unlike the trivial backend, we do not fully rollback, instead we check for the target
-        // that has the smallest delta, and use that to re-compute the cost of the condense.
+        // Least-delta perturbation: find the member whose next heap alternative has the smallest
+        // cost delta from its current assignment, and switch it.
         let mut min_diff = f32::INFINITY;
-        let mut best_depth = 0;
+        let mut best_depth = None;
 
         for (depth, placement) in self.region.blocks.iter().enumerate() {
             let Some(next) = placement.heap.peek() else {
-                continue; // cannot choose an alternative
+                continue;
             };
 
             let diff = placement.target.cost.delta(next.cost);
 
             if diff < min_diff {
                 min_diff = diff;
-                best_depth = depth;
+                best_depth = Some(depth);
             }
         }
 
-        self.depth = best_depth + 1;
+        let Some(best_depth) = best_depth else {
+            return false; // all heaps exhausted, no perturbation possible
+        };
 
-        // We start *after* the best choice we've just chosen
         let block = &mut self.region.blocks[best_depth];
-        let next_elem = block.heap.pop().expect("loop just verified it's correct");
+        let next_elem = block.heap.pop().expect("loop just verified peek() is Some");
         block.target = next_elem;
 
+        // Resume after the perturbed block
+        self.depth = best_depth + 1;
         self.replay_narrowing(body);
 
         self.run(body)
