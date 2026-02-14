@@ -12,11 +12,11 @@ use hashql_core::{
         },
     },
     heap::BumpAllocator,
-    id::{self, Id as _},
+    id::{self, Id as _, bit_vec::DenseBitSet},
 };
 
 use self::{
-    csp::PlacementBlock,
+    csp::{ConstraintSatisfaction, PlacementBlock},
     estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
 };
 use crate::{
@@ -152,8 +152,8 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
             let region = &mut self.graph[NodeId::new(region_id.as_usize())];
             let kind = mem::replace(&mut region.data.kind, PlacementRegionKind::Unassigned);
 
-            match kind {
-                PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
+            let kind = match kind {
+                kind @ PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
                     let mut heap = CostEstimation {
                         config: CostEstimationConfig::TRIVIAL,
                         condense: self,
@@ -167,16 +167,30 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
 
                     self.targets[block] = Some(elem);
                     self.options[block] = heap;
+
+                    kind
                 }
-                PlacementRegionKind::Cyclic(CyclicPlacementRegion {
-                    members,
-                    blocks,
-                    scratch,
-                }) => todo!("solve CSP"),
+                PlacementRegionKind::Cyclic(cyclic) => {
+                    let mut csp = ConstraintSatisfaction {
+                        condense: self,
+                        id: region_id,
+                        region: cyclic,
+                        fixed: DenseBitSet::new_empty(0), // reset on run
+                        depth: 0,
+                    };
+
+                    if !csp.solve(body) {
+                        // TODO: wasn't able to find a solution
+                        todo!("rewind")
+                    }
+
+                    // CSP automatically flushes, so we don't need to
+                    PlacementRegionKind::Cyclic(csp.region)
+                }
                 PlacementRegionKind::Unassigned => {
                     panic!("previous iteration has not returned this node into the graph")
                 }
-            }
+            };
 
             self.graph[NodeId::new(region_id.as_usize())].data.kind = kind;
 

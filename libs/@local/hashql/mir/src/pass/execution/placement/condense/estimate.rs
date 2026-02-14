@@ -82,6 +82,14 @@ impl TargetHeap {
         self.index = 0;
     }
 
+    pub(crate) const fn peek(&self) -> Option<&HeapElement> {
+        if self.index >= self.length {
+            return None;
+        }
+
+        Some(&self.targets[self.index as usize])
+    }
+
     pub(crate) const fn pop(&mut self) -> Option<HeapElement> {
         if self.index >= self.length {
             return None;
