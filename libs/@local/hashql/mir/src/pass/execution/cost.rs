@@ -187,6 +187,20 @@ impl ApproxCost {
         self.0
     }
 
+    /// Returns `true` if the cost is infinite.
+    #[inline]
+    #[must_use]
+    pub const fn is_infinite(self) -> bool {
+        self.0.is_infinite()
+    }
+
+    /// Returns `true` if the cost is finite.
+    #[inline]
+    #[must_use]
+    pub const fn is_finite(self) -> bool {
+        self.0.is_finite()
+    }
+
     pub const fn delta(self, other: Self) -> f32 {
         (self.0 - other.0).abs()
     }

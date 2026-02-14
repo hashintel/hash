@@ -422,10 +422,11 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 let mut placement = [PlacementBlock::PLACEHOLDER; BNB_CUTOFF];
                 placement[..members].copy_from_slice(&*self.region.blocks);
 
-                let _ = solutions[needle..].shift_right([Solution {
+                solutions[needle..].rotate_right(1);
+                solutions[needle] = Solution {
                     cost: total,
                     placement,
-                }]);
+                };
             }
 
             return;
@@ -435,7 +436,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.fixed.insert(next);
         self.region.blocks.swap(self.depth, self.depth + offset);
 
-        let mut heap = CostEstimation {
+        let heap = CostEstimation {
             config: CostEstimationConfig::LOOP,
             solver: self.solver,
             determine_target: |block| {
@@ -461,7 +462,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
         while let Some(elem) = self.region.blocks[self.depth].heap.pop() {
             let delta = self.assignment_cost(body, next, elem.target);
-            if delta == ApproxCost::INF {
+            if delta.is_infinite() {
                 continue;
             }
 
@@ -553,7 +554,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         let solution = mem::replace(&mut solutions[0], Solution::new());
         solutions.rotate_left(1); // add the next solution to the front
 
-        if solution.cost.as_f32().is_infinite() {
+        if solution.cost.is_infinite() {
             return false;
         }
 
@@ -566,7 +567,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
         if let Some(solutions) = self.region.solutions.as_mut()
-            && solutions[0].cost.as_f32().is_finite()
+            && solutions[0].cost.is_finite()
         {
             let solution = mem::replace(&mut solutions[0], Solution::new());
             solutions.rotate_left(1);
