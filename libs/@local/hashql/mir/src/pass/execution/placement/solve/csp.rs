@@ -1,4 +1,4 @@
-use core::{alloc::Allocator, cmp};
+use core::{alloc::Allocator, cmp, mem};
 use std::f32;
 
 use hashql_core::{
@@ -9,7 +9,6 @@ use hashql_core::{
 
 use super::{
     PlacementContext, PlacementRegionId, PlacementSolver,
-    condensation::CyclicPlacementRegion,
     estimate::{HeapElement, TargetHeap},
 };
 use crate::{
@@ -23,6 +22,7 @@ use crate::{
 
 /// Maximum SCC size for branch-and-bound. Larger SCCs fall back to greedy.
 const BNB_CUTOFF: usize = 12;
+const RETAIN_SOLUTIONS: usize = 3;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementBlock {
@@ -45,6 +45,39 @@ impl PlacementBlock {
     };
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct Solution {
+    cost: ApproxCost,
+    placement: [PlacementBlock; BNB_CUTOFF],
+}
+
+impl Solution {
+    pub(crate) const fn new() -> Self {
+        Self {
+            cost: ApproxCost::INF,
+            placement: [PlacementBlock::PLACEHOLDER; BNB_CUTOFF],
+        }
+    }
+}
+
+type Solutions = [Solution];
+
+#[derive(Debug)]
+pub(crate) struct CyclicPlacementRegion<'alloc> {
+    pub members: &'alloc [BasicBlockId],
+
+    pub blocks: &'alloc mut [PlacementBlock],
+    pub fixed: DenseBitSet<BasicBlockId>,
+
+    pub solutions: Option<&'alloc mut Solutions>,
+}
+
+impl<'alloc> CyclicPlacementRegion<'alloc> {
+    pub(crate) fn find_block(&self, block: BasicBlockId) -> Option<&PlacementBlock> {
+        self.blocks.iter().find(|placement| placement.id == block)
+    }
+}
+
 pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
     pub solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
 
@@ -54,8 +87,6 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     depth: usize,
 
     // Branch-and-bound state (only used when members.len() <= BNB_CUTOFF)
-    best_solution: [HeapElement; BNB_CUTOFF],
-    best_cost: ApproxCost,
     cost_deltas: [ApproxCost; BNB_CUTOFF],
     cost_so_far: ApproxCost,
 }
@@ -73,8 +104,6 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             id,
             region,
             depth: 0,
-            best_solution: [HeapElement::EMPTY; BNB_CUTOFF],
-            best_cost: ApproxCost::INF,
             cost_deltas: [ApproxCost::ZERO; BNB_CUTOFF],
             cost_so_far: ApproxCost::ZERO,
         }
@@ -380,17 +409,23 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         bound
     }
 
-    fn run_bnb(&mut self, body: &Body<'_>) {
+    fn run_bnb(&mut self, body: &Body<'_>, solutions: &mut Solutions) {
         let members = self.region.members.len();
 
         if self.depth == members {
             // Complete assignment — check if it improves best
             let total = self.cost_so_far;
-            if total < self.best_cost {
-                self.best_cost = total;
-                for index in 0..members {
-                    self.best_solution[index] = self.region.blocks[index].target;
-                }
+
+            // Move anything out by one, from the position, and shift our element in.
+            // TODO: this won't work
+            if let Some(needle) = solutions.iter().position(|solution| solution.cost > total) {
+                let mut placement = [PlacementBlock::PLACEHOLDER; BNB_CUTOFF];
+                placement[..members].copy_from_slice(&*self.region.blocks);
+
+                let _ = solutions[needle..].shift_right([Solution {
+                    cost: total,
+                    placement,
+                }]);
             }
 
             return;
@@ -415,6 +450,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             },
         }
         .run(body, self.id, next);
+        self.region.blocks[self.depth].heap = heap;
 
         // Save state for restoration
         let saved_depth = self.depth;
@@ -423,7 +459,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             saved_domains[index] = block.possible;
         }
 
-        while let Some(elem) = heap.pop() {
+        while let Some(elem) = self.region.blocks[self.depth].heap.pop() {
             let delta = self.assignment_cost(body, next, elem.target);
             if delta == ApproxCost::INF {
                 continue;
@@ -452,8 +488,10 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             if feasible {
                 // Pruning check
                 let lb = self.lower_bound(body);
-                if self.cost_so_far + lb < self.best_cost {
-                    self.run_bnb(body);
+
+                let best_cost = solutions[0].cost;
+                if self.cost_so_far + lb < best_cost {
+                    self.run_bnb(body, solutions);
                 }
             }
 
@@ -478,6 +516,18 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.fixed.remove(next);
     }
 
+    fn apply_solution(&mut self, solution: Solution) {
+        let members = self.region.members.len();
+        self.region
+            .blocks
+            .copy_from_slice(&solution.placement[..members]);
+        self.depth = members;
+
+        for block in &mut *self.region.blocks {
+            self.region.fixed.insert(block.id);
+        }
+    }
+
     pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
@@ -486,31 +536,47 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.depth = 0;
         self.region.fixed.clear();
 
-        if self.region.members.len() <= BNB_CUTOFF {
-            self.best_cost = ApproxCost::INF;
-            self.cost_so_far = ApproxCost::ZERO;
-
-            self.run_bnb(body);
-
-            if self.best_cost < ApproxCost::INF {
-                // Apply the best solution
-                let members = self.region.members.len();
-                for index in 0..members {
-                    self.region.blocks[index].target = self.best_solution[index];
-                    self.region.fixed.insert(self.region.blocks[index].id);
-                }
-                self.depth = members;
-                true
-            } else {
-                false
-            }
-        } else {
-            self.run(body)
+        if self.region.members.len() > BNB_CUTOFF {
+            return self.run(body);
         }
+
+        self.cost_so_far = ApproxCost::ZERO;
+
+        let solutions = self
+            .solver
+            .alloc
+            .allocate_slice_uninit(RETAIN_SOLUTIONS)
+            .write_filled(Solution::new());
+
+        self.run_bnb(body, solutions);
+
+        let solution = mem::replace(&mut solutions[0], Solution::new());
+        solutions.rotate_left(1); // add the next solution to the front
+
+        if solution.cost.as_f32().is_infinite() {
+            return false;
+        }
+
+        self.region.solutions = Some(solutions);
+        self.apply_solution(solution);
+        true
     }
 
-    pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {
+    pub(crate) fn retry(&mut self, body: &Body<'_>) -> bool {
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
+
+        if let Some(solutions) = self.region.solutions.as_mut()
+            && solutions[0].cost.as_f32().is_finite()
+        {
+            let solution = mem::replace(&mut solutions[0], Solution::new());
+            solutions.rotate_left(1);
+
+            self.apply_solution(solution);
+            return true;
+        }
+
+        // We have evaluated all the solutions, and none of the top K are feasible, therefore we go
+        // back to greedy search.
 
         // Least-delta perturbation: find the member whose next heap alternative has the smallest
         // cost delta from its current assignment, and switch it.
