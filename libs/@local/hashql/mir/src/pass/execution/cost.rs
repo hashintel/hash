@@ -186,6 +186,10 @@ impl ApproxCost {
     pub const fn as_f32(self) -> f32 {
         self.0
     }
+
+    pub const fn delta(self, other: Self) -> f32 {
+        (self.0 - other.0).abs()
+    }
 }
 
 impl Eq for ApproxCost {}
