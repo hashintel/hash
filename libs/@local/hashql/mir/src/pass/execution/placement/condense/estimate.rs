@@ -1,15 +1,12 @@
 use core::{alloc::Allocator, cmp};
 
 use hashql_core::{
-    graph::{
-        Predecessors as _, Successors as _,
-        linked::{Edge, Node},
-    },
+    graph::{NodeId, Predecessors as _, Successors as _, linked::Edge},
     heap::BumpAllocator,
-    id::HasId as _,
+    id::{HasId as _, Id},
 };
 
-use super::{BoundaryEdge, Condense, PlacementRegion};
+use super::{BoundaryEdge, Condense, PlacementRegionId};
 use crate::{
     body::{Body, basic_block::BasicBlockId},
     pass::execution::{ApproxCost, Cost, target::TargetId},
@@ -120,10 +117,7 @@ impl CostEstimationConfig {
 
 pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
     pub config: CostEstimationConfig,
-
     pub condense: &'ctx Condense<'parent, 'alloc, A, S>,
-
-    pub region: &'ctx Node<PlacementRegion<'alloc>>,
 }
 
 impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
@@ -208,6 +202,7 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
     fn estimate_target(
         &self,
         body: &Body<'_>,
+        region: PlacementRegionId,
         block: BasicBlockId,
         target: TargetId,
     ) -> Option<ApproxCost> {
@@ -229,7 +224,7 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
             let edges = self
                 .condense
                 .graph
-                .incoming_edges(self.region.id())
+                .incoming_edges(NodeId::from_usize(region.as_usize()))
                 .filter(|edge| edge.data.source == pred && edge.data.target == block);
 
             let pred_target = self.condense.targets[pred];
@@ -257,7 +252,7 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
             let edges = self
                 .condense
                 .graph
-                .outgoing_edges(self.region.id())
+                .outgoing_edges(NodeId::from_usize(region.as_usize()))
                 .filter(|edge| edge.data.source == block && edge.data.target == succ);
 
             let succ_target = self.condense.targets[succ];
@@ -284,11 +279,16 @@ impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
         Some(cost)
     }
 
-    pub(crate) fn run(&self, body: &Body<'_>, block: BasicBlockId) -> TargetHeap {
+    pub(crate) fn run(
+        &self,
+        body: &Body<'_>,
+        region: PlacementRegionId,
+        block: BasicBlockId,
+    ) -> TargetHeap {
         let mut heap = TargetHeap::new();
 
         for target in &self.condense.data.assignment[block] {
-            if let Some(cost) = self.estimate_target(body, block, target) {
+            if let Some(cost) = self.estimate_target(body, region, block, target) {
                 heap.insert(target, cost);
             }
         }

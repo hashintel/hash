@@ -2,11 +2,12 @@ use std::alloc::Allocator;
 
 use hashql_core::{
     graph::{Predecessors, Successors, linked::Node},
+    heap::BumpAllocator,
     id::bit_vec::{BitRelations, DenseBitSet},
 };
 
 use super::{
-    CondenseData, CyclicPlacementRegion, PlacementRegion, PlacementRegionId,
+    Condense, CondenseData, CyclicPlacementRegion, PlacementRegion, PlacementRegionId,
     estimate::{HeapElement, TargetHeap},
 };
 use crate::{
@@ -38,10 +39,8 @@ impl PlacementBlock {
     };
 }
 
-struct ConstraintSatisfaction<'ctx, 'alloc, A: Allocator> {
-    data: CondenseData<'ctx, A>,
-
-    assignment: &'alloc [PlacementBlock],
+struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
+    condense: &'ctx mut Condense<'parent, 'alloc, A, S>,
 
     id: PlacementRegionId,
     region: CyclicPlacementRegion<'alloc>,
@@ -50,14 +49,14 @@ struct ConstraintSatisfaction<'ctx, 'alloc, A: Allocator> {
     depth: usize,
 }
 
-impl<'alloc, A: Allocator> ConstraintSatisfaction<'_, 'alloc, A> {
+impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'alloc, A, S> {
     fn seed(&mut self) {
         for (index, &member) in self.region.members.iter().enumerate() {
             self.region.blocks[index] = PlacementBlock {
                 id: member,
                 heap: TargetHeap::new(),
                 target: HeapElement::EMPTY,
-                possible: self.data.assignment[member],
+                possible: self.condense.data.assignment[member],
             }
         }
     }
@@ -103,7 +102,79 @@ impl<'alloc, A: Allocator> ConstraintSatisfaction<'_, 'alloc, A> {
         (current_offset, current_block)
     }
 
-    fn solve(&mut self, body: &Body<'_>, node: &mut Node<PlacementRegion<'alloc>>) {
+    fn narrow_impl(
+        data: &CondenseData<'_, A>,
+        blocks: &mut [PlacementBlock],
+        body: &Body<'_>,
+        block: BasicBlockId,
+        target: TargetId,
+    ) {
+        let matrices = data.terminators.of(block);
+        let successors = body.basic_blocks.successors(block);
+        debug_assert_eq!(successors.len(), matrices.len());
+
+        for (succ, matrix) in successors.zip(matrices) {
+            // restrict non-fixed backends to our set of available blocks. We only do this in
+            // case that it isn't fixed.
+            let Some(remaining) = blocks.iter_mut().find(|block| block.id == succ) else {
+                continue; // has already been fixed
+            };
+
+            let mut available = TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
+            for (outgoing, _) in matrix.outgoing(target) {
+                available.insert(outgoing);
+            }
+
+            // Ensure that we narrow the set of available backends from the ones that we have
+            // received.
+            remaining.possible.intersect(&available);
+        }
+    }
+
+    fn narrow(&mut self, body: &Body<'_>, block: BasicBlockId, target: TargetId) {
+        Self::narrow_impl(&self.condense.data, self.region.blocks, body, block, target);
+    }
+
+    fn replay_narrowing(&mut self, body: &Body<'_>) {
+        // Reset the items after the depth, to the new items
+        for block in &mut self.region.blocks[self.depth..] {
+            block.possible = self.condense.data.assignment[block.id];
+        }
+
+        self.fixed.clear();
+        let (fixed, flex) = self.region.blocks.split_at_mut(self.depth);
+
+        for fixed in fixed {
+            self.fixed.insert(fixed.id);
+
+            Self::narrow_impl(
+                &self.condense.data,
+                flex,
+                body,
+                fixed.id,
+                fixed.target.target,
+            );
+        }
+    }
+
+    fn rollback(&mut self, body: &Body<'_>) -> bool {
+        // Rollback to a previous version (or terminate in case that we can't find something else)
+        while self.depth > 0 {
+            self.depth -= 1;
+
+            let block = &mut self.region.blocks[self.depth];
+            if let Some(heap) = block.heap.pop() {
+                block.target = heap;
+
+                self.replay_narrowing(body);
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn solve(&mut self, body: &Body<'_>) -> bool {
         let members = self.region.members.len();
         self.seed();
 
@@ -117,56 +188,32 @@ impl<'alloc, A: Allocator> ConstraintSatisfaction<'_, 'alloc, A> {
             // move the block into position
             self.region.blocks.swap(self.depth, self.depth + offset);
 
-            // TODO: must use the block targets that we have supplied, aka take a closure (Actually
-            // do we? I mean does not really matter, because they are the same, we just
-            // pre-narrow in our case for MRV to work).
+            // `CostEstimation` takes the set of availability from inside of the condense. This is
+            // fine, because the restriction we set is a by definition a mirror and only used for
+            // MRV to work.
             let mut heap = CostEstimation {
                 config: CostEstimationConfig::LOOP,
-                condense,
-                context,
-                region: node,
+                condense: self.condense,
             }
-            .run(body, next);
+            .run(body, self.id, next);
 
             let Some(elem) = heap.pop() else {
-                todo!(
-                    "needs to backtrack, in which case what we're doing after this needs to be \
-                     done again. We need to replay *all* that go up to the backtracked point to \
-                     be valid."
-                );
-            };
-
-            // Narrow the set of possible targets, this is not needed for correctness, because cost
-            // estimation already does this for us as well, but allows for MRV to work.
-            let matrices = self.data.terminators.of(next);
-            let successors = body.basic_blocks.successors(next);
-            debug_assert_eq!(successors.len(), matrices.len());
-
-            for (succ, matrix) in successors.zip(matrices) {
-                let mut available = TargetBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
-                for (outgoing, _) in matrix.outgoing(elem.target) {
-                    available.insert(outgoing);
+                if !self.rollback(body) {
+                    return false;
                 }
 
-                // TODO: find the block in our list of *not yet* placed blocks,
-                let Some(remaining) = self.region.blocks[self.depth..]
-                    .iter_mut()
-                    .find(|block| block.id == succ)
-                else {
-                    continue; // has already been fixed
-                };
+                continue;
+            };
 
-                // Ensure that we narrow the set of available backends from the ones that we have
-                // received.
-                remaining.possible.intersect(&available);
-            }
-
+            self.narrow(body, next, elem.target);
             self.region.blocks[self.depth].target = elem;
             self.depth += 1;
         }
 
-        // TODO: flush the result
+        for block in &*self.region.blocks {
+            self.condense.targets[block.id] = Some(block.target);
+        }
 
-        todo!()
+        true
     }
 }
