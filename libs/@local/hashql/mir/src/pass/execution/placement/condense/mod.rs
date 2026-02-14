@@ -150,6 +150,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
                     let mut heap = CostEstimation {
                         config: CostEstimationConfig::TRIVIAL,
                         condense: self,
+                        determine_target: |block| self.targets[block],
                     }
                     .run(body, region_id, block);
 
@@ -168,7 +169,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
                         condense: self,
                         id: region_id,
                         region: cyclic,
-                        fixed: DenseBitSet::new_empty(0), // reset on run
+                        fixed: DenseBitSet::new_empty(body.basic_blocks.len()),
                         depth: 0,
                     };
 
@@ -177,7 +178,10 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
                         todo!("rewind")
                     }
 
-                    // CSP automatically flushes, so we don't need to
+                    for block in &*csp.region.blocks {
+                        csp.condense.targets[block.id] = Some(block.target);
+                    }
+
                     PlacementRegionKind::Cyclic(csp.region)
                 }
                 PlacementRegionKind::Unassigned => {

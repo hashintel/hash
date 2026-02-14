@@ -21,10 +21,10 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementBlock {
-    id: BasicBlockId,
+    pub id: BasicBlockId,
     heap: TargetHeap,
 
-    target: HeapElement,
+    pub target: HeapElement,
     possible: TargetBitSet,
 }
 
@@ -50,7 +50,7 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     pub depth: usize,
 }
 
-impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'alloc, A, S> {
+impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
     fn seed(&mut self) {
         for (index, &member) in self.region.members.iter().enumerate() {
             self.region.blocks[index] = PlacementBlock {
@@ -213,6 +213,18 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
             let mut heap = CostEstimation {
                 config: CostEstimationConfig::LOOP,
                 condense: self.condense,
+                determine_target: |block| {
+                    if let Some(member) = self
+                        .region
+                        .blocks
+                        .iter()
+                        .find(|placement| placement.id == block)
+                    {
+                        self.fixed.contains(member.id).then_some(member.target)
+                    } else {
+                        self.condense.targets[block]
+                    }
+                },
             }
             .run(body, self.id, next);
 
@@ -230,23 +242,23 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
             self.depth += 1;
         }
 
-        for block in &*self.region.blocks {
-            self.condense.targets[block.id] = Some(block.target);
-        }
-
         true
     }
 
     pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
+        debug_assert_eq!(self.fixed.domain_size(), body.basic_blocks.len());
+
         self.seed();
 
         self.depth = 0;
-        self.fixed = DenseBitSet::new_empty(body.basic_blocks.len());
+        self.fixed.clear();
 
         self.run(body)
     }
 
     pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {
+        debug_assert_eq!(self.fixed.domain_size(), body.basic_blocks.len());
+
         // Least-delta perturbation: find the member whose next heap alternative has the smallest
         // cost delta from its current assignment, and switch it.
         let mut min_diff = f32::INFINITY;
