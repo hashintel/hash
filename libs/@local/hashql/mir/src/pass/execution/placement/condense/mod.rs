@@ -284,19 +284,20 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
 
                     let region = csp.region;
 
-                    let estimator = CostEstimation {
+                    let prev_estimator = CostEstimation {
                         config: CostEstimationConfig::LOOP,
                         condense: self,
                         determine_target: |block: BasicBlockId| self.targets[block],
                     };
 
-                    // because we might have a *completely* different interior layout, we must
-                    // compare the total cost
+                    // Both sides must use the same cost basis (fully concrete assignments) for
+                    // a fair comparison. The CSP's stored HeapElement costs were computed with
+                    // partially-assigned neighbors, so we re-estimate both sides here.
                     let prev_total_cost: ApproxCost = region
                         .members
                         .iter()
                         .map(|&id| {
-                            estimator
+                            prev_estimator
                                 .estimate(
                                     body,
                                     region_id,
@@ -309,8 +310,38 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
                         })
                         .sum();
 
-                    let next_total_cost: ApproxCost =
-                        region.blocks.iter().map(|block| block.target.cost).sum();
+                    let next_estimator = CostEstimation {
+                        config: CostEstimationConfig::LOOP,
+                        condense: self,
+                        determine_target: |block: BasicBlockId| {
+                            // Resolve SCC members from the candidate solution, everything else
+                            // from committed state.
+                            if let Some(placement) = region.blocks.iter().find(|pb| pb.id == block)
+                            {
+                                Some(placement.target)
+                            } else {
+                                self.targets[block]
+                            }
+                        },
+                    };
+
+                    let next_total_cost: ApproxCost = region
+                        .members
+                        .iter()
+                        .map(|&id| {
+                            let target = region
+                                .blocks
+                                .iter()
+                                .find(|pb| pb.id == id)
+                                .expect("every member must appear in blocks")
+                                .target
+                                .target;
+
+                            next_estimator
+                                .estimate(body, region_id, id, target)
+                                .expect("CSP produced a valid solution")
+                        })
+                        .sum();
 
                     if prev_total_cost > next_total_cost {
                         for block in &*region.blocks {

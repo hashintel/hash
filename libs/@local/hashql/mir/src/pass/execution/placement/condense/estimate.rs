@@ -188,27 +188,10 @@ where
             }
             (Some(source), Some(target)) => edge.data.matrix.get(source, target),
             (None, None) => {
-                let mut current_minimum = ApproxCost::INF;
-                let mut minimum_transition_cost = None;
-
-                for (source, target, cost) in edge.data.matrix.iter() {
-                    let &Some(cost) = cost else {
-                        continue;
-                    };
-
-                    let mut block_cost =
-                        self.condense.data.statements[source].sum_approx(edge.data.source);
-                    block_cost +=
-                        self.condense.data.statements[target].sum_approx(edge.data.target);
-                    block_cost += cost;
-
-                    if block_cost < current_minimum {
-                        current_minimum = block_cost;
-                        minimum_transition_cost = Some(cost);
-                    }
-                }
-
-                minimum_transition_cost
+                unreachable!(
+                    "estimate_target always supplies the current block's target; both sides \
+                     cannot be None"
+                )
             }
         }
     }
