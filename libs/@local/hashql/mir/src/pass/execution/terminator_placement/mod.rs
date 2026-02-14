@@ -396,6 +396,7 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
 /// [`SwitchInt`]: TerminatorKind::SwitchInt
 /// [`Return`]: TerminatorKind::Return
 /// [`Unreachable`]: TerminatorKind::Unreachable
+#[derive(Debug)]
 pub struct TerminatorCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     matrices: Vec<TransMatrix, A>,

@@ -5,10 +5,11 @@ use hashql_core::{
         Predecessors as _, Successors as _,
         linked::{Edge, Node},
     },
+    heap::BumpAllocator,
     id::HasId as _,
 };
 
-use super::{BoundaryEdge, Condense, CondenseContext, PlacementRegion};
+use super::{BoundaryEdge, Condense, PlacementRegion};
 use crate::{
     body::{Body, basic_block::BasicBlockId},
     pass::execution::{ApproxCost, Cost, target::TargetId},
@@ -117,16 +118,15 @@ impl CostEstimationConfig {
     };
 }
 
-pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, A: Allocator, B: Allocator> {
+pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
     pub config: CostEstimationConfig,
 
-    pub condense: &'ctx Condense<'parent, A>,
-    pub context: &'ctx CondenseContext<'alloc, B>,
+    pub condense: &'ctx Condense<'parent, 'alloc, A, S>,
 
     pub region: &'ctx Node<PlacementRegion<'alloc>>,
 }
 
-impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
+impl<A: Allocator, S: BumpAllocator> CostEstimation<'_, '_, '_, A, S> {
     fn transition_cost(
         &self,
         source: Option<TargetId>,
@@ -139,13 +139,13 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for target in &self.condense.targets[edge.data.target] {
+                for target in &self.condense.data.assignment[edge.data.target] {
                     let Some(cost) = edge.data.matrix.get(source, target) else {
                         continue;
                     };
 
                     let mut block_cost =
-                        self.condense.statements[target].sum_approx(edge.data.target);
+                        self.condense.data.statements[target].sum_approx(edge.data.target);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -161,13 +161,13 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for source in &self.condense.targets[edge.data.source] {
+                for source in &self.condense.data.assignment[edge.data.source] {
                     let Some(cost) = edge.data.matrix.get(source, target) else {
                         continue;
                     };
 
                     let mut block_cost =
-                        self.condense.statements[source].sum_approx(edge.data.source);
+                        self.condense.data.statements[source].sum_approx(edge.data.source);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -189,8 +189,9 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
                     };
 
                     let mut block_cost =
-                        self.condense.statements[source].sum_approx(edge.data.source);
-                    block_cost += self.condense.statements[target].sum_approx(edge.data.target);
+                        self.condense.data.statements[source].sum_approx(edge.data.source);
+                    block_cost +=
+                        self.condense.data.statements[target].sum_approx(edge.data.target);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -222,16 +223,16 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
         // Statements outside of the current placement region get a penalty via a multiplier. For
         // scc operations this is 1, whereas inside of a node this may be lower, to account for the
         // fact that the cost inside of a node is more important than the transition cost.
-        let mut cost = self.condense.statements[target].sum_approx(block);
+        let mut cost = self.condense.data.statements[target].sum_approx(block);
 
         for pred in body.basic_blocks.predecessors(block) {
             let edges = self
-                .context
+                .condense
                 .graph
                 .incoming_edges(self.region.id())
                 .filter(|edge| edge.data.source == pred && edge.data.target == block);
 
-            let pred_target = self.context.targets[pred];
+            let pred_target = self.condense.targets[pred];
 
             for edge in edges {
                 let Some(trans_cost) =
@@ -254,12 +255,12 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
 
         for succ in body.basic_blocks.successors(block) {
             let edges = self
-                .context
+                .condense
                 .graph
                 .outgoing_edges(self.region.id())
                 .filter(|edge| edge.data.source == block && edge.data.target == succ);
 
-            let succ_target = self.context.targets[succ];
+            let succ_target = self.condense.targets[succ];
 
             for edge in edges {
                 let Some(trans_cost) =
@@ -286,7 +287,7 @@ impl<A: Allocator, B: Allocator> CostEstimation<'_, '_, '_, A, B> {
     pub(crate) fn run(&self, body: &Body<'_>, block: BasicBlockId) -> TargetHeap {
         let mut heap = TargetHeap::new();
 
-        for target in &self.condense.targets[block] {
+        for target in &self.condense.data.assignment[block] {
             if let Some(cost) = self.estimate_target(body, block, target) {
                 heap.insert(target, cost);
             }

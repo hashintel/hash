@@ -1,5 +1,5 @@
+mod csp;
 mod estimate;
-mod nested;
 
 use core::alloc::Allocator;
 
@@ -16,8 +16,8 @@ use hashql_core::{
 };
 
 use self::{
-    estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
-    nested::PlacementBlock,
+    csp::PlacementBlock,
+    estimate::{HeapElement, TargetHeap},
 };
 use crate::{
     body::{
@@ -33,57 +33,49 @@ use crate::{
 
 id::newtype!(struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
-struct PlacementRegionScratch<'alloc> {
-    front: &'alloc mut [PlacementBlock],
-    back: &'alloc mut [PlacementBlock],
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct TrivialPlacementRegion {
+    block: BasicBlockId,
 }
 
-pub struct PlacementRegion<'alloc> {
-    id: PlacementRegionId,
+#[derive(Debug)]
+struct CyclicPlacementRegion<'alloc> {
     members: &'alloc [BasicBlockId],
 
-    scratch: Option<PlacementRegionScratch<'alloc>>,
+    blocks: &'alloc mut [PlacementBlock],
+    scratch: &'alloc mut [PlacementBlock],
 }
 
-impl<'alloc> PlacementRegion<'alloc> {
-    fn take_scratch(&mut self) -> PlacementRegionScratch<'alloc> {
-        self.scratch.take().expect("should have a scratch attached")
-    }
-
-    fn insert_scratch(&mut self, scratch: PlacementRegionScratch<'alloc>) {
-        self.scratch = Some(scratch)
-    }
+#[derive(Debug)]
+enum PlacementRegionKind<'alloc> {
+    Trivial(TrivialPlacementRegion),
+    Cyclic(CyclicPlacementRegion<'alloc>),
 }
 
+#[derive(Debug)]
+struct PlacementRegion<'alloc> {
+    id: PlacementRegionId,
+    kind: PlacementRegionKind<'alloc>,
+}
+
+#[derive(Debug)]
 pub struct BoundaryEdge {
     source: BasicBlockId,
     target: BasicBlockId,
     matrix: TransMatrix,
 }
 
-struct CondenseContext<'alloc, A: Allocator> {
-    scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc A>,
-    scc_members: MembersRef<'alloc, BasicBlockId, PlacementRegionId>,
-
-    graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc A>,
-
-    options: &'alloc mut BasicBlockSlice<TargetHeap>,
-    targets: &'alloc mut BasicBlockSlice<Option<HeapElement>>,
-
-    alloc: &'alloc A,
-}
-
-pub struct Condense<'ctx, A: Allocator> {
-    pub targets: &'ctx BasicBlockSlice<TargetBitSet>,
-
+#[derive(Debug, Copy, Clone)]
+pub struct CondenseData<'ctx, A: Allocator> {
+    pub assignment: &'ctx BasicBlockSlice<TargetBitSet>,
     pub statements: &'ctx TargetArray<StatementCostVec<A>>,
     pub terminators: &'ctx TerminatorCostVec<A>,
 }
 
-impl<'ctx, A: Allocator> Condense<'ctx, A> {
-    fn run_in<'alloc, B>(&self, body: &Body<'_>, alloc: &'alloc B)
+impl<'ctx, A: Allocator> CondenseData<'ctx, A> {
+    fn run_in<'alloc, S>(self, body: &Body<'_>, alloc: &'alloc S) -> Condense<'ctx, 'alloc, A, S>
     where
-        B: BumpAllocator,
+        S: BumpAllocator,
     {
         let scc = Tarjan::new_in(&body.basic_blocks, alloc).run();
         let scc_members = scc.bump_members();
@@ -102,25 +94,40 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
 
         let graph = LinkedGraph::with_capacity_in(scc.node_count(), self.terminators.len(), alloc);
 
-        let mut context = CondenseContext {
+        Condense {
+            data: self,
             scc,
             scc_members,
             graph,
             options,
             targets,
             alloc,
-        };
+        }
+    }
+}
 
-        self.fill_graph(body, &mut context);
+pub struct Condense<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
+    data: CondenseData<'ctx, A>,
+
+    scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc S>,
+    scc_members: MembersRef<'alloc, BasicBlockId, PlacementRegionId>,
+
+    graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc S>,
+
+    options: &'alloc mut BasicBlockSlice<TargetHeap>,
+    targets: &'alloc mut BasicBlockSlice<Option<HeapElement>>,
+
+    alloc: &'alloc S,
+}
+
+impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> {
+    fn run(&mut self, body: &Body<'_>) {
+        self.fill_graph(body);
 
         unimplemented!()
     }
 
-    fn run_forwards_loop<B: BumpAllocator>(
-        &self,
-        body: &Body<'_>,
-        context: &mut CondenseContext<'_, B>,
-    ) {
+    fn run_forwards_loop<B: BumpAllocator>(&mut self, body: &Body<'_>) {
         // TODO: when re-computing the CSP we would shrimply take our queue that we have created
         // (need bump alloc for that), and then just change the first, and do that until the first
         // is completely exhausted (we need to re-compute anyway). A bit of a brute-force but I
@@ -133,81 +140,84 @@ impl<'ctx, A: Allocator> Condense<'ctx, A> {
         // traversal of the scc.
 
         // TODO: we can probably re-use this buffer
-        let mut regions = Vec::with_capacity_in(context.scc.node_count(), context.alloc);
-        context.scc.iter_nodes().collect_into(&mut regions);
+        let mut regions = Vec::with_capacity_in(self.scc.node_count(), self.alloc);
+        self.scc.iter_nodes().collect_into(&mut regions);
 
         debug_assert!(!regions.is_empty()); // there is always at least one region because the start block exists
         let mut ptr = 0;
 
         while ptr < regions.len() {
             let region_id = regions[ptr];
-            let region = &context.graph[NodeId::new(region_id.as_usize())];
+            let region = &mut self.graph[NodeId::new(region_id.as_usize())];
 
-            match region.data.members {
-                [] => unreachable!("empty region"),
-                &[block] => {
-                    // trivial
-                    let mut heap = CostEstimation {
-                        config: CostEstimationConfig::TRIVIAL,
-                        condense: self,
-                        context,
-                        region,
-                    }
-                    .run(body, block);
+            match &mut region.data.kind {
+                &mut PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
+                    // let mut heap = CostEstimation {
+                    //     config: CostEstimationConfig::TRIVIAL,
+                    //     condense: self,
 
-                    let Some(elem) = heap.pop() else {
-                        // TODO: rewind, because it's not possible, must take CSP into account
-                        todo!("rewind");
-                    };
+                    //     region,
+                    // }
+                    // .run(body, block);
 
-                    context.targets[block] = Some(elem);
-                    context.options[block] = heap;
+                    // let Some(elem) = heap.pop() else {
+                    //     // TODO: rewind, because it's not possible, must take CSP into account
+                    //     todo!("rewind");
+                    // };
+
+                    // self.targets[block] = Some(elem);
+                    // self.options[block] = heap;
+                    todo!("borrowchk")
                 }
-                _ => {
-                    todo!("solve CSP")
-                }
+                PlacementRegionKind::Cyclic(CyclicPlacementRegion {
+                    members,
+                    blocks,
+                    scratch,
+                }) => todo!("solve CSP"),
             }
 
             ptr += 1;
         }
     }
 
-    fn fill_graph<B: BumpAllocator>(&self, body: &Body<'_>, context: &mut CondenseContext<'_, B>) {
-        for scc in context.scc.iter_nodes() {
-            let members = context.scc_members.of(scc);
-            let mut scratch = None;
+    fn fill_graph(&mut self, body: &Body<'_>) {
+        for scc in self.scc.iter_nodes() {
+            let members = self.scc_members.of(scc);
 
-            if members.len() > 1 {
-                // non trivial placement group requires a scratch space
-                let len = members.len();
+            let kind = match members {
+                [] => unreachable!(),
+                &[member] => PlacementRegionKind::Trivial(TrivialPlacementRegion { block: member }),
+                members => {
+                    let len = members.len();
 
-                scratch = Some(PlacementRegionScratch {
-                    front: context
+                    let blocks = self
                         .alloc
                         .allocate_slice_uninit(len)
-                        .write_filled(PlacementBlock::PLACEHOLDER),
-                    back: context
+                        .write_filled(PlacementBlock::PLACEHOLDER);
+                    let scratch = self
                         .alloc
                         .allocate_slice_uninit(len)
-                        .write_filled(PlacementBlock::PLACEHOLDER),
-                })
-            }
+                        .write_filled(PlacementBlock::PLACEHOLDER);
 
-            let id = context.graph.add_node(PlacementRegion {
-                id: scc,
-                members: context.scc_members.of(scc),
-                scratch,
-            });
+                    PlacementRegionKind::Cyclic(CyclicPlacementRegion {
+                        members,
+                        blocks,
+                        scratch,
+                    })
+                }
+            };
+
+            let id = self.graph.add_node(PlacementRegion { id: scc, kind });
             debug_assert_eq!(scc.as_usize(), id.as_usize());
         }
 
         for (source, source_block) in body.basic_blocks.iter_enumerated() {
-            let matrices = self.terminators.of(source);
+            let matrices = self.data.terminators.of(source);
             for (index, target) in source_block.terminator.kind.successor_blocks().enumerate() {
-                let source_scc = context.scc.scc(source);
-                let target_scc = context.scc.scc(target);
+                let source_scc = self.scc.scc(source);
+                let target_scc = self.scc.scc(target);
 
-                context.graph.add_edge(
+                self.graph.add_edge(
                     NodeId::from_usize(source_scc.as_usize()),
                     NodeId::from_usize(target_scc.as_usize()),
                     BoundaryEdge {
