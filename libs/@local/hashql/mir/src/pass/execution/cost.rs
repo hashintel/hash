@@ -351,8 +351,7 @@ impl<A: Allocator> IntoIterator for &TraversalCostVec<A> {
 /// Stores the execution cost for every statement, indexed by [`Location`]. A `None` cost
 /// indicates the target cannot execute that statement. The execution planner compares costs
 /// across targets to determine the optimal execution strategy.
-///
-/// Internally uses a flattened representation with per-block offsets for efficient indexing.
+#[derive(Debug)]
 pub struct StatementCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     costs: Vec<Option<Cost>, A>,
