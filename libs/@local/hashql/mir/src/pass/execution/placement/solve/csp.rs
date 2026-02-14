@@ -490,8 +490,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 // Pruning check
                 let lb = self.lower_bound(body);
 
-                let best_cost = solutions[0].cost;
-                if self.cost_so_far + lb < best_cost {
+                let worst_retained = solutions[RETAIN_SOLUTIONS - 1].cost;
+                if self.cost_so_far + lb < worst_retained {
                     self.run_bnb(body, solutions);
                 }
             }

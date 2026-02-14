@@ -388,9 +388,32 @@ The rationale: at SwitchInt joins, a block may have multiple incoming edges with
 
 This means the cost estimation is a **value-ordering heuristic**, not an exact objective. The `HeapElement` stores `ApproxCost` for delta comparisons during backtracking, not for absolute cost accounting.
 
-### CSP: Local Tree Exploration Instead of Branch-and-Bound
+### CSP: Branch-and-Bound for Small SCCs
 
-The CSP solver uses depth-first backtracking with forward checking (domain narrowing) rather than maintaining an explicit cost bound. Pruning comes from domains emptying during narrowing, not from comparing `cost_so_far + lower_bound >= best_cost`. This saves memory (no need to track the best complete solution or compute per-step lower bounds) and is effective when domains are small post-AC-3 (K ≈ 2–3).
+For SCCs with N ≤ 12 blocks, the CSP solver uses branch-and-bound instead of greedy depth-first search. Larger SCCs fall back to the greedy solver with forward checking.
+
+**Cost tracking:** Each assignment at depth `d` computes an incremental cost via `CostEstimation::estimate` and stores it in a per-depth delta array. `cost_so_far` is the sum of deltas for the fixed prefix. On backtrack, `cost_so_far` is recomputed from the deltas (immune to float drift).
+
+**Lower bound:** Per unassigned block: minimum statement cost over remaining domain. Per unassigned outgoing edge (source unfixed): minimum valid transition cost over compatible domain pairs. This captures both block and edge contributions but only considers edges whose source is unfixed — edges from fixed to unfixed blocks are already partially accounted for in `cost_so_far` via the heuristic estimator.
+
+**Pruning:** `cost_so_far + lower_bound >= worst_retained_cost` prunes the branch. The bound compares against the **worst** of the K retained solutions, not the best — this ensures the search continues exploring until all K slots are filled with finite solutions.
+
+**Ranked solutions:** The search retains the top K (default 3) complete solutions, sorted by cost. Insertion uses `rotate_right(1)` to maintain sorted order. Solutions store full `PlacementBlock` arrays (including block IDs and heaps built during search), making them independent of MRV-induced block permutations.
+
+**Admissibility:** The cost model is not admissible in the classical BnB sense — `CostEstimation::estimate` is a heuristic (double-counts edges, uses optimistic assumptions for unfixed neighbors). This means pruning can theoretically discard a path that leads to a better solution under an exact objective. In practice, with K ≈ 2–3 post-AC-3 and N ≤ 12, the search space is small enough that this is acceptable. Retaining multiple solutions provides a safety net.
+
+### CSP: Greedy Solver (Large SCCs)
+
+For SCCs with N > 12, the CSP uses greedy depth-first backtracking with forward checking (domain narrowing). Pruning comes from domains emptying during narrowing, not from cost bounds. This avoids the overhead of tracking multiple solutions and computing lower bounds for large search spaces where BnB provides diminishing returns.
+
+### CSP: DAG-Level Backtracking (`retry`)
+
+When the DAG-level solver needs a cyclic region to produce a different assignment (via `rewind`), the CSP's `retry` method is called:
+
+1. **Ranked solutions first:** If the BnB solver retained alternative solutions, `retry` applies the next-best ranked solution. Solutions are consumed in order (best first) until exhausted.
+2. **Greedy fallback:** Once all ranked solutions are exhausted, `retry` falls back to least-delta perturbation — finds the block whose next heap alternative has the smallest cost delta, switches it, and greedy-completes the rest.
+
+The heaps persisted during BnB search are valid for greedy fallback because they represent the next-best alternatives at each decision point along the MRV path that produced the solution. Perturbation at depth `d` undoes everything after `d` and re-solves, which is consistent with the heap's original context.
 
 ### CSP: Forward Checking Is Bidirectional
 
