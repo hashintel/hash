@@ -1,13 +1,13 @@
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
 use hashql_core::{
-    graph::{Predecessors, Successors, linked::Node},
+    graph::{Predecessors as _, Successors as _},
     heap::BumpAllocator,
-    id::bit_vec::{BitRelations, DenseBitSet},
+    id::bit_vec::{BitRelations as _, DenseBitSet},
 };
 
 use super::{
-    Condense, CondenseData, CyclicPlacementRegion, PlacementRegion, PlacementRegionId,
+    Condense, CondenseData, CyclicPlacementRegion, PlacementRegionId,
     estimate::{HeapElement, TargetHeap},
 };
 use crate::{
@@ -35,7 +35,7 @@ impl PlacementBlock {
         // The chosen target (undefined if not fixed yet)
         target: HeapElement::EMPTY,
         // The remaining possibilities (in case chosen this is just the same as the chosen target)
-        possible: TargetBitSet::new_empty(TargetId::VARIANT_COUNT as u32),
+        possible: TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32),
     };
 }
 
@@ -61,7 +61,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, 'all
         }
     }
 
-    fn mrv(&mut self, body: &Body<'_>) -> (usize, BasicBlockId) {
+    fn mrv(&self, body: &Body<'_>) -> (usize, BasicBlockId) {
         let applicable = &self.region.blocks[self.depth..];
 
         let mut current_offset = 0;
