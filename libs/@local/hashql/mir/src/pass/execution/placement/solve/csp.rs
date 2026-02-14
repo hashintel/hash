@@ -8,13 +8,14 @@ use hashql_core::{
 };
 
 use super::{
-    Condense, CondenseData, CyclicPlacementRegion, PlacementRegionId,
+    PlacementContext, PlacementRegionId, PlacementSolver,
+    condensation::CyclicPlacementRegion,
     estimate::{HeapElement, TargetHeap},
 };
 use crate::{
     body::{Body, basic_block::BasicBlockId},
     pass::execution::{
-        placement::condense::estimate::{CostEstimation, CostEstimationConfig},
+        placement::solve::estimate::{CostEstimation, CostEstimationConfig},
         target::{TargetBitSet, TargetId},
     },
 };
@@ -41,7 +42,7 @@ impl PlacementBlock {
 }
 
 pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
-    pub condense: &'ctx mut Condense<'parent, 'alloc, A, S>,
+    pub solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
 
     pub id: PlacementRegionId,
     pub region: CyclicPlacementRegion<'alloc>,
@@ -56,7 +57,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
                 id: member,
                 heap: TargetHeap::new(),
                 target: HeapElement::EMPTY,
-                possible: self.condense.data.assignment[member],
+                possible: self.solver.data.assignment[member],
             }
         }
     }
@@ -101,7 +102,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
     }
 
     fn narrow_impl(
-        data: &CondenseData<'_, A>,
+        data: &PlacementContext<'_, A>,
         blocks: &mut [PlacementBlock],
         body: &Body<'_>,
         block: BasicBlockId,
@@ -152,13 +153,13 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
     }
 
     fn narrow(&mut self, body: &Body<'_>, block: BasicBlockId, target: TargetId) {
-        Self::narrow_impl(&self.condense.data, self.region.blocks, body, block, target);
+        Self::narrow_impl(&self.solver.data, self.region.blocks, body, block, target);
     }
 
     fn replay_narrowing(&mut self, body: &Body<'_>) {
         // Reset the items after the depth, to the new items
         for block in &mut self.region.blocks[self.depth..] {
-            block.possible = self.condense.data.assignment[block.id];
+            block.possible = self.solver.data.assignment[block.id];
         }
 
         self.region.fixed.clear();
@@ -167,13 +168,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
         for fixed in fixed {
             self.region.fixed.insert(fixed.id);
 
-            Self::narrow_impl(
-                &self.condense.data,
-                flex,
-                body,
-                fixed.id,
-                fixed.target.target,
-            );
+            Self::narrow_impl(&self.solver.data, flex, body, fixed.id, fixed.target.target);
         }
     }
 
@@ -211,7 +206,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
             // MRV to work.
             let mut heap = CostEstimation {
                 config: CostEstimationConfig::LOOP,
-                condense: self.condense,
+                solver: self.solver,
                 determine_target: |block| {
                     if let Some(member) = self
                         .region
@@ -224,7 +219,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
                             .contains(member.id)
                             .then_some(member.target)
                     } else {
-                        self.condense.targets[block]
+                        self.solver.targets[block]
                     }
                 },
             }
