@@ -1,5 +1,7 @@
-use core::ops::{Index, IndexMut};
-use std::alloc::Allocator;
+use core::{
+    alloc::Allocator,
+    ops::{Index, IndexMut},
+};
 
 use hashql_core::{
     graph::{
@@ -13,7 +15,10 @@ use hashql_core::{
     id::{HasId, Id as _, bit_vec::DenseBitSet},
 };
 
-use super::{PlacementRegionId, csp::PlacementBlock};
+use super::{
+    PlacementRegionId,
+    csp::{CyclicPlacementRegion, PlacementBlock},
+};
 use crate::{
     body::{Body, basic_block::BasicBlockId},
     pass::execution::terminator_placement::{TerminatorCostVec, TransMatrix},
@@ -22,20 +27,6 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TrivialPlacementRegion {
     pub block: BasicBlockId,
-}
-
-#[derive(Debug)]
-pub(crate) struct CyclicPlacementRegion<'alloc> {
-    pub members: &'alloc [BasicBlockId],
-
-    pub blocks: &'alloc mut [PlacementBlock],
-    pub fixed: DenseBitSet<BasicBlockId>,
-}
-
-impl<'alloc> CyclicPlacementRegion<'alloc> {
-    pub(crate) fn find_block(&self, block: BasicBlockId) -> Option<&PlacementBlock> {
-        self.blocks.iter().find(|placement| placement.id == block)
-    }
 }
 
 #[derive(Debug)]
@@ -148,6 +139,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
                         members,
                         blocks,
                         fixed: DenseBitSet::new_empty(body.basic_blocks.len()),
+                        solutions: None,
                     })
                 }
             };

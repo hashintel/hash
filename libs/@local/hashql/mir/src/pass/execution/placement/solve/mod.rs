@@ -2,29 +2,17 @@ mod condensation;
 mod csp;
 mod estimate;
 
-use core::{
-    alloc::Allocator,
-    mem,
-    ops::{ControlFlow, IndexMut},
-};
+use core::{alloc::Allocator, mem};
 
 use hashql_core::{
-    graph::{
-        DirectedGraph as _, LinkedGraph, NodeId,
-        algorithms::{
-            Tarjan,
-            tarjan::{MembersRef, StronglyConnectedComponents},
-        },
-    },
+    graph::DirectedGraph as _,
     heap::{BumpAllocator, Heap},
-    id::{self, Id as _, bit_vec::DenseBitSet},
+    id,
 };
 
 use self::{
-    condensation::{
-        Condensation, CyclicPlacementRegion, PlacementRegionKind, TrivialPlacementRegion,
-    },
-    csp::ConstraintSatisfaction,
+    condensation::{Condensation, PlacementRegionKind, TrivialPlacementRegion},
+    csp::{ConstraintSatisfaction, CyclicPlacementRegion},
     estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
 };
 use crate::{
@@ -160,7 +148,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc,
                 PlacementRegionKind::Cyclic(cyclic) => {
                     let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
 
-                    if csp.next(body) {
+                    if csp.retry(body) {
                         // Found a perturbation — flush the new assignments, and resume.
                         for block in &*csp.region.blocks {
                             csp.solver.targets[block.id] = Some(block.target);
