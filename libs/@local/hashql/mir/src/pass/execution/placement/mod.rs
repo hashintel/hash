@@ -1,2 +1,2 @@
 mod arc;
-mod condense;
+mod solve;
