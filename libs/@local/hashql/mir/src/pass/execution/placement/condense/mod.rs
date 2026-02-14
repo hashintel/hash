@@ -129,13 +129,6 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> Condense<'ctx, 'alloc, A, S> 
     }
 
     fn run_forwards_loop<B: BumpAllocator>(&mut self, body: &Body<'_>) {
-        // TODO: when re-computing the CSP we would shrimply take our queue that we have created
-        // (need bump alloc for that), and then just change the first, and do that until the first
-        // is completely exhausted (we need to re-compute anyway). A bit of a brute-force but I
-        // don't see a better way.
-        // NO WAIT, we just choose a mutation that has the lowest cost, and then re-compute the
-        // branch.
-
         // Now that we have all the edges we must do a forwards and backwards sweep, scc gives us
         // the reverse topological order, meaning that the forwards is simply the backwards
         // traversal of the scc.
