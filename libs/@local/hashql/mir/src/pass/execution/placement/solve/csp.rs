@@ -543,11 +543,16 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
         self.cost_so_far = ApproxCost::ZERO;
 
-        let solutions = self
-            .solver
-            .alloc
-            .allocate_slice_uninit(RETAIN_SOLUTIONS)
-            .write_filled(Solution::new());
+        let solutions = if let Some(solutions) = self.region.solutions.take() {
+            // We can re-use the old solutions array, skipping an allocation
+            solutions.fill(Solution::new());
+            solutions
+        } else {
+            self.solver
+                .alloc
+                .allocate_slice_uninit(RETAIN_SOLUTIONS)
+                .write_filled(Solution::new())
+        };
 
         self.run_bnb(body, solutions);
 
