@@ -1,4 +1,4 @@
-use core::alloc::Allocator;
+use core::{alloc::Allocator, cmp};
 use std::f32;
 
 use hashql_core::{
@@ -15,10 +15,14 @@ use super::{
 use crate::{
     body::{Body, basic_block::BasicBlockId},
     pass::execution::{
+        ApproxCost, Cost,
         placement::solve::estimate::{CostEstimation, CostEstimationConfig},
         target::{TargetBitSet, TargetId},
     },
 };
+
+/// Maximum SCC size for branch-and-bound. Larger SCCs fall back to greedy.
+const BNB_CUTOFF: usize = 12;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementBlock {
@@ -47,10 +51,35 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     pub id: PlacementRegionId,
     pub region: CyclicPlacementRegion<'alloc>,
 
-    pub depth: usize,
+    depth: usize,
+
+    // Branch-and-bound state (only used when members.len() <= BNB_CUTOFF)
+    best_solution: [HeapElement; BNB_CUTOFF],
+    best_cost: ApproxCost,
+    cost_deltas: [ApproxCost; BNB_CUTOFF],
+    cost_so_far: ApproxCost,
 }
 
-impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
+impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
+    ConstraintSatisfaction<'ctx, 'parent, 'alloc, A, S>
+{
+    pub(crate) const fn new(
+        solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
+        id: PlacementRegionId,
+        region: CyclicPlacementRegion<'alloc>,
+    ) -> Self {
+        Self {
+            solver,
+            id,
+            region,
+            depth: 0,
+            best_solution: [HeapElement::EMPTY; BNB_CUTOFF],
+            best_cost: ApproxCost::INF,
+            cost_deltas: [ApproxCost::ZERO; BNB_CUTOFF],
+            cost_so_far: ApproxCost::ZERO,
+        }
+    }
+
     fn seed(&mut self) {
         for (index, &member) in self.region.members.iter().enumerate() {
             self.region.blocks[index] = PlacementBlock {
@@ -208,12 +237,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
                 config: CostEstimationConfig::LOOP,
                 solver: self.solver,
                 determine_target: |block| {
-                    if let Some(member) = self
-                        .region
-                        .blocks
-                        .iter()
-                        .find(|placement| placement.id == block)
-                    {
+                    if let Some(member) = self.region.find_block(block) {
                         self.region
                             .fixed
                             .contains(member.id)
@@ -242,6 +266,218 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
         true
     }
 
+    fn assignment_cost(
+        &self,
+        body: &Body<'_>,
+        block: BasicBlockId,
+        target: TargetId,
+    ) -> ApproxCost {
+        let estimator = CostEstimation {
+            config: CostEstimationConfig::LOOP,
+            solver: self.solver,
+            determine_target: |block| {
+                self.region.find_block(block).map_or_else(
+                    || self.solver.targets[block],
+                    |member| {
+                        self.region
+                            .fixed
+                            .contains(member.id)
+                            .then_some(member.target)
+                    },
+                )
+            },
+        };
+
+        estimator
+            .estimate(body, self.id, block, target)
+            .unwrap_or(ApproxCost::INF)
+    }
+
+    fn lower_bound(&self, body: &Body<'_>) -> ApproxCost {
+        let unfixed = &self.region.blocks[self.depth..];
+        let mut bound = ApproxCost::ZERO;
+
+        // Per-unassigned-block: minimum statement cost over remaining domain
+        for block in unfixed {
+            let mut min_stmt = ApproxCost::INF;
+
+            for target in &block.possible {
+                min_stmt = cmp::min(
+                    min_stmt,
+                    self.solver.data.statements[target].sum_approx(block.id),
+                );
+            }
+
+            if min_stmt < ApproxCost::INF {
+                bound += min_stmt;
+            }
+        }
+
+        // Per-unassigned-edge: minimum valid transition cost over compatible domain pairs.
+        // An edge is "unassigned" if at least one endpoint is unfixed.
+        for block in unfixed {
+            let matrices = self.solver.data.terminators.of(block.id);
+            let successors = body.basic_blocks.successors(block.id);
+            debug_assert_eq!(matrices.len(), successors.len());
+
+            for (succ, matrix) in successors.zip(matrices) {
+                if succ == block.id {
+                    continue; // self-loop
+                }
+
+                // Find the successor's domain — either from the unfixed set or it's fixed
+                let succ_domain: Option<TargetBitSet> = unfixed
+                    .iter()
+                    .find(|placement| placement.id == succ)
+                    .map(|placement| placement.possible);
+
+                #[expect(clippy::option_if_let_else, reason = "readability")]
+                let min_trans = if let Some(succ_possible) = succ_domain {
+                    // Both endpoints involve an unfixed block — min over all compatible pairs
+                    block
+                        .possible
+                        .iter()
+                        .flat_map(|source_target| matrix.outgoing(source_target))
+                        .filter_map(|(dest_target, cost)| {
+                            succ_possible
+                                .contains(dest_target)
+                                .then_some(cost.as_approx())
+                        })
+                        .min()
+                        .unwrap_or(ApproxCost::INF)
+                } else {
+                    // Successor is fixed (or external) — min over block's domain
+                    let succ_target = self
+                        .region
+                        .find_block(succ)
+                        .and_then(|placement| {
+                            self.region
+                                .fixed
+                                .contains(placement.id)
+                                .then_some(placement.target.target)
+                        })
+                        .or_else(|| self.solver.targets[succ].map(|elem| elem.target));
+
+                    if let Some(succ_target) = succ_target {
+                        block
+                            .possible
+                            .iter()
+                            .filter_map(|source_target| matrix.get(source_target, succ_target))
+                            .map(Cost::as_approx)
+                            .min()
+                            .unwrap_or(ApproxCost::INF)
+                    } else {
+                        ApproxCost::INF
+                    }
+                };
+
+                if min_trans < ApproxCost::INF {
+                    bound += min_trans;
+                }
+            }
+        }
+
+        bound
+    }
+
+    fn run_bnb(&mut self, body: &Body<'_>) {
+        let members = self.region.members.len();
+
+        if self.depth == members {
+            // Complete assignment — check if it improves best
+            let total = self.cost_so_far;
+            if total < self.best_cost {
+                self.best_cost = total;
+                for index in 0..members {
+                    self.best_solution[index] = self.region.blocks[index].target;
+                }
+            }
+
+            return;
+        }
+
+        let (offset, next) = self.mrv(body);
+        self.region.fixed.insert(next);
+        self.region.blocks.swap(self.depth, self.depth + offset);
+
+        let mut heap = CostEstimation {
+            config: CostEstimationConfig::LOOP,
+            solver: self.solver,
+            determine_target: |block| {
+                if let Some(member) = self.region.find_block(block) {
+                    self.region
+                        .fixed
+                        .contains(member.id)
+                        .then_some(member.target)
+                } else {
+                    self.solver.targets[block]
+                }
+            },
+        }
+        .run(body, self.id, next);
+
+        // Save state for restoration
+        let saved_depth = self.depth;
+        let mut saved_domains = [TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32); BNB_CUTOFF];
+        for (index, block) in self.region.blocks[self.depth..].iter().enumerate() {
+            saved_domains[index] = block.possible;
+        }
+
+        while let Some(elem) = heap.pop() {
+            let delta = self.assignment_cost(body, next, elem.target);
+            if delta == ApproxCost::INF {
+                continue;
+            }
+
+            // Apply assignment
+            self.region.blocks[self.depth].target = elem;
+            self.depth = saved_depth + 1;
+            self.cost_deltas[saved_depth] = delta;
+            self.cost_so_far += delta;
+
+            // Forward-check: narrow domains
+            Self::narrow_impl(
+                &self.solver.data,
+                &mut self.region.blocks[self.depth..],
+                body,
+                next,
+                elem.target,
+            );
+
+            // Check if any domain emptied
+            let feasible = self.region.blocks[self.depth..]
+                .iter()
+                .all(|block| !block.possible.is_empty());
+
+            if feasible {
+                // Pruning check
+                let lb = self.lower_bound(body);
+                if self.cost_so_far + lb < self.best_cost {
+                    self.run_bnb(body);
+                }
+            }
+
+            // Restore cost to what it was before this assignment
+            self.cost_so_far = {
+                let mut restored = ApproxCost::ZERO;
+                for index in 0..saved_depth {
+                    restored += self.cost_deltas[index];
+                }
+                restored
+            };
+
+            // Restore domains
+            self.depth = saved_depth;
+            for (index, block) in self.region.blocks[self.depth..].iter_mut().enumerate() {
+                block.possible = saved_domains[index];
+            }
+        }
+
+        // Undo MRV swap and fixed-set insertion
+        self.region.blocks.swap(self.depth, self.depth + offset);
+        self.region.fixed.remove(next);
+    }
+
     pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
@@ -250,7 +486,27 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
         self.depth = 0;
         self.region.fixed.clear();
 
-        self.run(body)
+        if self.region.members.len() <= BNB_CUTOFF {
+            self.best_cost = ApproxCost::INF;
+            self.cost_so_far = ApproxCost::ZERO;
+
+            self.run_bnb(body);
+
+            if self.best_cost < ApproxCost::INF {
+                // Apply the best solution
+                let members = self.region.members.len();
+                for index in 0..members {
+                    self.region.blocks[index].target = self.best_solution[index];
+                    self.region.fixed.insert(self.region.blocks[index].id);
+                }
+                self.depth = members;
+                true
+            } else {
+                false
+            }
+        } else {
+            self.run(body)
+        }
     }
 
     pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {

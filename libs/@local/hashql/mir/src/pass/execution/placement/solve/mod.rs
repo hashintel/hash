@@ -158,12 +158,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc,
                     self.condensation[region_id].kind = kind;
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
-                    let mut csp = ConstraintSatisfaction {
-                        solver: self,
-                        id: region_id,
-                        region: cyclic,
-                        depth: 0,
-                    };
+                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
 
                     if csp.next(body) {
                         // Found a perturbation — flush the new assignments, and resume.
@@ -229,12 +224,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc,
                     kind
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
-                    let mut csp = ConstraintSatisfaction {
-                        solver: self,
-                        id: region_id,
-                        region: cyclic,
-                        depth: 0,
-                    };
+                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
 
                     if !csp.solve(body) {
                         let region = PlacementRegionKind::Cyclic(csp.region);
@@ -336,13 +326,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc,
         region_id: PlacementRegionId,
         cyclic: CyclicPlacementRegion<'alloc>,
     ) -> PlacementRegionKind<'alloc> {
-        let mut csp = ConstraintSatisfaction {
-            solver: self,
-            id: region_id,
-            region: cyclic,
-            depth: 0,
-        };
-
+        let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
         if !csp.solve(body) {
             // Nothing to do, we already have a valid solution
             return PlacementRegionKind::Cyclic(csp.region);
