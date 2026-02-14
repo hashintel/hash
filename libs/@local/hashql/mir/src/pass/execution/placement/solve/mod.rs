@@ -314,6 +314,7 @@ impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc,
         region_id: PlacementRegionId,
         cyclic: CyclicPlacementRegion<'alloc>,
     ) -> PlacementRegionKind<'alloc> {
+        // Even in BnB we need to re-run, because the external cost estimations may have changed.
         let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
         if !csp.solve(body) {
             // Nothing to do, we already have a valid solution
