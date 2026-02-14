@@ -317,4 +317,14 @@ where
 
         heap
     }
+
+    pub(crate) fn estimate(
+        &self,
+        body: &Body<'_>,
+        region: PlacementRegionId,
+        block: BasicBlockId,
+        target: TargetId,
+    ) -> Option<ApproxCost> {
+        self.estimate_target(body, region, block, target)
+    }
 }

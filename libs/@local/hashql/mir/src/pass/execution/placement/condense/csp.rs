@@ -46,7 +46,6 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     pub id: PlacementRegionId,
     pub region: CyclicPlacementRegion<'alloc>,
 
-    pub fixed: DenseBitSet<BasicBlockId>,
     pub depth: usize,
 }
 
@@ -81,7 +80,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
                 .chain(body.basic_blocks.successors(block.id))
                 .filter(|&neighbour| {
                     neighbour != block.id
-                        && (self.fixed.contains(neighbour)
+                        && (self.region.fixed.contains(neighbour)
                             || !self.region.members.contains(&neighbour))
                 })
                 .count();
@@ -162,11 +161,11 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
             block.possible = self.condense.data.assignment[block.id];
         }
 
-        self.fixed.clear();
+        self.region.fixed.clear();
         let (fixed, flex) = self.region.blocks.split_at_mut(self.depth);
 
         for fixed in fixed {
-            self.fixed.insert(fixed.id);
+            self.region.fixed.insert(fixed.id);
 
             Self::narrow_impl(
                 &self.condense.data,
@@ -202,7 +201,7 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
 
         while self.depth < members {
             let (offset, next) = self.mrv(body);
-            self.fixed.insert(next);
+            self.region.fixed.insert(next);
 
             // move the block into position
             self.region.blocks.swap(self.depth, self.depth + offset);
@@ -220,7 +219,10 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
                         .iter()
                         .find(|placement| placement.id == block)
                     {
-                        self.fixed.contains(member.id).then_some(member.target)
+                        self.region
+                            .fixed
+                            .contains(member.id)
+                            .then_some(member.target)
                     } else {
                         self.condense.targets[block]
                     }
@@ -246,18 +248,18 @@ impl<A: Allocator, S: BumpAllocator> ConstraintSatisfaction<'_, '_, '_, A, S> {
     }
 
     pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
-        debug_assert_eq!(self.fixed.domain_size(), body.basic_blocks.len());
+        debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
         self.seed();
 
         self.depth = 0;
-        self.fixed.clear();
+        self.region.fixed.clear();
 
         self.run(body)
     }
 
     pub(crate) fn next(&mut self, body: &Body<'_>) -> bool {
-        debug_assert_eq!(self.fixed.domain_size(), body.basic_blocks.len());
+        debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
         // Least-delta perturbation: find the member whose next heap alternative has the smallest
         // cost delta from its current assignment, and switch it.
