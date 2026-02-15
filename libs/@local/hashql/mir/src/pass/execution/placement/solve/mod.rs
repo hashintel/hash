@@ -1,7 +1,3 @@
-mod condensation;
-mod csp;
-mod estimate;
-
 use core::{alloc::Allocator, mem};
 
 use hashql_core::{
@@ -26,6 +22,12 @@ use crate::{
         terminator_placement::TerminatorCostVec,
     },
 };
+
+mod condensation;
+mod csp;
+mod estimate;
+#[cfg(test)]
+mod tests;
 
 id::newtype!(pub(crate) struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
