@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::time::Duration;
 use std::{collections::HashMap, io};
 
@@ -6,6 +7,7 @@ use futures::{StreamExt as _, TryStreamExt as _, stream};
 use include_dir::{Dir, DirEntry, include_dir};
 use reqwest::{
     Client,
+    dns::{Addrs, Name, Resolve, Resolving},
     header::{ACCEPT, USER_AGENT},
 };
 use reqwest_middleware::ClientBuilder;
@@ -15,6 +17,34 @@ use time::OffsetDateTime;
 use type_system::ontology::VersionedUrl;
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
+
+/// DNS resolver that only allows globally routable addresses to prevent SSRF attacks.
+///
+/// Uses [`IpAddr::is_global`] to filter out private, loopback, link-local, and other non-routable
+/// addresses after DNS resolution. Since filtering happens inside the resolver, the resolved
+/// addresses are used directly for the connection, preventing DNS rebinding attacks.
+struct SsrfSafeResolver;
+
+impl Resolve for SsrfSafeResolver {
+    fn resolve(&self, name: Name) -> Resolving {
+        Box::pin(async move {
+            let addrs: Vec<_> = tokio::net::lookup_host((name.as_str(), 0))
+                .await?
+                .filter(|addr| addr.ip().is_global())
+                .collect();
+
+            if addrs.is_empty() {
+                return Err(format!(
+                    "DNS resolution for `{}` blocked: no globally routable addresses found",
+                    name.as_str()
+                )
+                .into());
+            }
+
+            Ok(Box::new(addrs.into_iter()) as Addrs)
+        })
+    }
+}
 
 #[derive(Clone)]
 pub struct FetchServer {
@@ -67,7 +97,11 @@ impl Fetcher for FetchServer {
             FetcherError::PredefinedTypes(format!("Error loading predefined types: {err:?}"))
         })?;
 
-        let client = ClientBuilder::new(Client::new())
+        let client = Client::builder()
+            .dns_resolver(Arc::new(SsrfSafeResolver))
+            .build()
+            .map_err(|err| FetcherError::Network(format!("Error building HTTP client: {err:?}")))?;
+        let client = ClientBuilder::new(client)
             .with(TracingMiddleware::default())
             .build();
         let predefined_types = &self.predefined_types;
@@ -105,5 +139,28 @@ impl Fetcher for FetchServer {
             .buffer_unordered(self.buffer_size)
             .try_collect()
             .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn ssrf_resolver_blocks_localhost() {
+        let resolver = SsrfSafeResolver;
+        let result = resolver
+            .resolve("localhost".parse().expect("valid name"))
+            .await;
+        assert!(result.is_err(), "localhost should be blocked");
+    }
+
+    #[tokio::test]
+    async fn ssrf_resolver_allows_public_domain() {
+        let resolver = SsrfSafeResolver;
+        let result = resolver
+            .resolve("example.com".parse().expect("valid name"))
+            .await;
+        assert!(result.is_ok(), "example.com should be allowed");
     }
 }
