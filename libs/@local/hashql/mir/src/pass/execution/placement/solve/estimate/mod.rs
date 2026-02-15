@@ -12,6 +12,9 @@ use crate::{
     pass::execution::{ApproxCost, Cost, target::TargetId},
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct HeapElement {
     pub target: TargetId,

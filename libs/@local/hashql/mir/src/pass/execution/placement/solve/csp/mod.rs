@@ -20,6 +20,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Maximum SCC size for branch-and-bound. Larger SCCs fall back to greedy.
 const BNB_CUTOFF: usize = 12;
 const RETAIN_SOLUTIONS: usize = 3;
