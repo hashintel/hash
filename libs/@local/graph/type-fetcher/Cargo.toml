@@ -37,6 +37,7 @@ serde                 = { workspace = true, features = ["derive"] }
 simple-mermaid        = { workspace = true }
 tracing               = { workspace = true }
 tracing-opentelemetry = { workspace = true }
+url                   = { workspace = true }
 
 [lints]
 workspace = true
