@@ -21,36 +21,21 @@ env:
   ARTIFACTS_ECR_ROLE_ARN: arn:aws:iam::469596578827:role/h-artifacts-euc1-ecr-push
   ARTIFACTS_AWS_REGION: eu-central-1
 
-  STAGING_AWS_REGION: eu-central-1
-  STAGING_APP_CLUSTER_NAME: h-stage-euc1-app
-  STAGING_APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
-  STAGING_APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
-  STAGING_APP_GRAPH_TEST_SERVICE_NAME: h-stage-euc1-app-graph-test
-  STAGING_APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
-  STAGING_APP_API_SERVICE_NAME: h-stage-euc1-app-api
-  STAGING_WORKER_CLUSTER_NAME: h-stage-euc1-worker
-  STAGING_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-worker-deploy
-  STAGING_WORKER_AI_TS_SERVICE_NAME: h-stage-euc1-worker-ai-ts
-  STAGING_WORKER_INTEGRATION_SERVICE_NAME: h-stage-euc1-worker-integration
-  STAGING_AUTH_CLUSTER_NAME: h-stage-euc1-auth
-  STAGING_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-auth-deploy
-  STAGING_AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
-  STAGING_AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
-
-  PRODUCTION_AWS_REGION: eu-central-1
-  PRODUCTION_APP_CLUSTER_NAME: h-prod-euc1-app
-  PRODUCTION_APP_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-app-deploy
-  PRODUCTION_APP_GRAPH_SERVICE_NAME: h-prod-euc1-app-graph
-  PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME: h-prod-euc1-app-type-fetcher
-  PRODUCTION_APP_API_SERVICE_NAME: h-prod-euc1-app-api
-  PRODUCTION_WORKER_CLUSTER_NAME: h-prod-euc1-worker
-  PRODUCTION_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-worker-deploy
-  PRODUCTION_WORKER_AI_TS_SERVICE_NAME: h-prod-euc1-worker-ai-ts
-  PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME: h-prod-euc1-worker-integration
-  PRODUCTION_AUTH_CLUSTER_NAME: h-prod-euc1-auth
-  PRODUCTION_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-auth-deploy
-  PRODUCTION_AUTH_KRATOS_SERVICE_NAME: h-prod-euc1-auth-kratos
-  PRODUCTION_AUTH_HYDRA_SERVICE_NAME: h-prod-euc1-auth-hydra
+  AWS_REGION: eu-central-1
+  APP_CLUSTER_NAME: h-stage-euc1-app
+  APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
+  APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
+  APP_GRAPH_TEST_SERVICE_NAME: h-stage-euc1-app-graph-test
+  APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
+  APP_API_SERVICE_NAME: h-stage-euc1-app-api
+  WORKER_CLUSTER_NAME: h-stage-euc1-worker
+  WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-worker-deploy
+  WORKER_AI_TS_SERVICE_NAME: h-stage-euc1-worker-ai-ts
+  WORKER_INTEGRATION_SERVICE_NAME: h-stage-euc1-worker-integration
+  AUTH_CLUSTER_NAME: h-stage-euc1-auth
+  AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-auth-deploy
+  AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
+  AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
 
 name: HASH backend deployment
 jobs:
@@ -91,6 +76,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/graph
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENABLE_TEST_SERVER=yes
@@ -132,6 +118,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/api
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
 
   build-kratos:
@@ -171,6 +158,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/kratos
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
 
   build-hydra:
@@ -210,6 +198,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/hydra
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
@@ -251,6 +240,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/ai-worker-ts
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
@@ -292,6 +282,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/integration-worker
+          IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
 
   deploy-graph:
@@ -326,10 +317,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy graph-test staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -337,10 +328,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_TEST_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_TEST_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy type-fetcher staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -348,32 +339,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_APP_TYPE_FETCHER_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy graph production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_GRAPH_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy type-fetcher production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.APP_TYPE_FETCHER_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
   deploy-app:
     name: Deploy HASH app images
@@ -411,10 +380,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_APP_API_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.APP_API_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy kratos staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -422,10 +391,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_KRATOS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_AUTH_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.AUTH_KRATOS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.AUTH_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy hydra staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -433,43 +402,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_HYDRA_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_AUTH_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy API production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_API_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy kratos production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_KRATOS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_AUTH_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy hydra production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_HYDRA_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_AUTH_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.AUTH_HYDRA_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.AUTH_DEPLOY_ROLE_ARN }}
 
   deploy-workers:
     name: Deploy HASH worker images
@@ -506,10 +442,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_WORKER_AI_TS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_WORKER_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.WORKER_AI_TS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.WORKER_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy Integration staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -517,32 +453,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.STAGING_WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.STAGING_WORKER_INTEGRATION_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_WORKER_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy AI-TS production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_WORKER_AI_TS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_WORKER_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy Integration production service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_WORKER_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.WORKER_INTEGRATION_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.WORKER_DEPLOY_ROLE_ARN }}
 
   notify-slack:
     name: Notify Slack on failure
