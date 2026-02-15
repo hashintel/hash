@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::time::Duration;
+use core::{net::IpAddr, time::Duration};
 use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
@@ -15,17 +15,42 @@ use reqwest_tracing::TracingMiddleware;
 use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::ontology::VersionedUrl;
+use url::Url;
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 
-/// DNS resolver that only allows globally routable addresses to prevent SSRF attacks.
+/// SSRF protection that ensures only globally routable addresses are reachable.
 ///
-/// Uses [`IpAddr::is_global`] to filter out private, loopback, link-local, and other non-routable
-/// addresses after DNS resolution. Since filtering happens inside the resolver, the resolved
-/// addresses are used directly for the connection, preventing DNS rebinding attacks.
+/// Provides two layers of protection:
+/// - As a DNS [`Resolve`]r: filters resolved addresses using [`IpAddr::is_global`], which also
+///   prevents DNS rebinding attacks since filtering happens inside the resolver itself.
+/// - Via [`reject_ip_literal`](Self::reject_ip_literal): blocks URLs with non-global IP-literal
+///   hosts (e.g. `http://127.0.0.1/...`), which bypass DNS resolution entirely.
 ///
 /// [`IpAddr::is_global`]: core::net::IpAddr::is_global
 struct SsrfSafeResolver;
+
+impl SsrfSafeResolver {
+    /// Rejects URLs whose host is a non-global IP literal.
+    ///
+    /// DNS resolution is not triggered for IP-literal hosts, so the [`Resolve`] implementation
+    /// cannot catch them. This method must be called before each request to close that gap.
+    fn reject_ip_literal(url: &Url) -> Result<(), FetcherError> {
+        let ip = match url.host() {
+            Some(url::Host::Ipv4(addr)) => IpAddr::V4(addr),
+            Some(url::Host::Ipv6(addr)) => IpAddr::V6(addr),
+            Some(url::Host::Domain(_)) | None => return Ok(()),
+        };
+
+        if !ip.is_global() {
+            return Err(FetcherError::Network(format!(
+                "Request to `{url}` blocked: host address {ip} is not globally routable"
+            )));
+        }
+
+        Ok(())
+    }
+}
 
 impl Resolve for SsrfSafeResolver {
     fn resolve(&self, name: Name) -> Resolving {
@@ -114,8 +139,10 @@ impl Fetcher for FetchServer {
                     let ontology_type = if let Some(ontology_type) = predefined_types.get(&url) {
                         ontology_type.clone()
                     } else {
+                        let request_url = url.to_url();
+                        SsrfSafeResolver::reject_ip_literal(&request_url)?;
                         client
-                            .get(url.to_url())
+                            .get(request_url)
                             .header(ACCEPT, "application/json")
                             .header(USER_AGENT, "HASH Graph")
                             .timeout(Duration::from_secs(10))
@@ -164,5 +191,59 @@ mod tests {
             .resolve("example.com".parse().expect("valid name"))
             .await;
         assert!(result.is_ok(), "example.com should be allowed");
+    }
+
+    #[test]
+    fn rejects_ipv4_loopback_literal() {
+        let url = Url::parse("http://127.0.0.1/types/v/1").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
+            "127.0.0.1 should be blocked"
+        );
+    }
+
+    #[test]
+    fn rejects_ipv4_private_literal() {
+        let url = Url::parse("http://10.0.0.1/types/v/1").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
+            "10.0.0.1 should be blocked"
+        );
+    }
+
+    #[test]
+    fn rejects_ipv4_link_local_literal() {
+        let url = Url::parse("http://169.254.169.254/latest/meta-data/").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
+            "169.254.169.254 (AWS metadata) should be blocked"
+        );
+    }
+
+    #[test]
+    fn rejects_ipv6_loopback_literal() {
+        let url = Url::parse("http://[::1]/types/v/1").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
+            "::1 should be blocked"
+        );
+    }
+
+    #[test]
+    fn allows_global_ipv4_literal() {
+        let url = Url::parse("http://93.184.215.14/types/v/1").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_ok(),
+            "93.184.215.14 (example.com) should be allowed"
+        );
+    }
+
+    #[test]
+    fn allows_domain_host() {
+        let url = Url::parse("https://example.com/types/v/1").expect("valid URL");
+        assert!(
+            SsrfSafeResolver::reject_ip_literal(&url).is_ok(),
+            "domain hosts should always pass IP-literal check"
+        );
     }
 }
