@@ -9,6 +9,7 @@ use reqwest::{
     Client,
     dns::{Addrs, Name, Resolve, Resolving},
     header::{ACCEPT, USER_AGENT},
+    redirect,
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -21,34 +22,60 @@ use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 
 /// SSRF protection that ensures only globally routable addresses are reachable.
 ///
-/// Provides two layers of protection:
-/// - As a DNS [`Resolve`]r: filters resolved addresses using [`IpAddr::is_global`], which also
-///   prevents DNS rebinding attacks since filtering happens inside the resolver itself.
+/// Provides three layers of protection, all using [`IpAddr::is_global`] for validation:
+/// - As a DNS [`Resolve`]r: filters resolved addresses, which also prevents DNS rebinding attacks
+///   since filtering happens inside the resolver itself.
 /// - Via [`reject_ip_literal`](Self::reject_ip_literal): blocks URLs with non-global IP-literal
 ///   hosts (e.g. `http://127.0.0.1/...`), which bypass DNS resolution entirely.
+/// - Via [`redirect_policy`](Self::redirect_policy): blocks redirects to non-global IP literals,
+///   preventing SSRF through redirect chains.
 ///
 /// [`IpAddr::is_global`]: core::net::IpAddr::is_global
 struct SsrfSafeResolver;
 
 impl SsrfSafeResolver {
+    /// Returns the non-global IP if the URL host is an IP literal that is not globally routable.
+    ///
+    /// Returns `None` for domain hosts (handled by the [`Resolve`] implementation) and for
+    /// globally routable IP addresses.
+    fn non_global_ip_literal(url: &Url) -> Option<IpAddr> {
+        let ip = match url.host()? {
+            url::Host::Ipv4(addr) => IpAddr::V4(addr),
+            url::Host::Ipv6(addr) => IpAddr::V6(addr),
+            url::Host::Domain(_) => return None,
+        };
+
+        (!ip.is_global()).then_some(ip)
+    }
+
     /// Rejects URLs whose host is a non-global IP literal.
     ///
     /// DNS resolution is not triggered for IP-literal hosts, so the [`Resolve`] implementation
     /// cannot catch them. This method must be called before each request to close that gap.
     fn reject_ip_literal(url: &Url) -> Result<(), FetcherError> {
-        let ip = match url.host() {
-            Some(url::Host::Ipv4(addr)) => IpAddr::V4(addr),
-            Some(url::Host::Ipv6(addr)) => IpAddr::V6(addr),
-            Some(url::Host::Domain(_)) | None => return Ok(()),
-        };
-
-        if !ip.is_global() {
+        if let Some(ip) = Self::non_global_ip_literal(url) {
             return Err(FetcherError::Network(format!(
                 "Request to `{url}` blocked: host address {ip} is not globally routable"
             )));
         }
-
         Ok(())
+    }
+
+    /// Creates a redirect policy that blocks redirects to non-global IP literals.
+    ///
+    /// This prevents SSRF via redirect chains where an attacker-controlled domain redirects to a
+    /// private IP (e.g. `http://169.254.169.254/`). Domain-based redirect targets are allowed
+    /// since they will be validated by the [`Resolve`] implementation on connection.
+    fn redirect_policy() -> redirect::Policy {
+        redirect::Policy::custom(|attempt| {
+            if let Some(ip) = Self::non_global_ip_literal(attempt.url()) {
+                let url = attempt.url().clone();
+                return attempt.error(format!(
+                    "Redirect to `{url}` blocked: host address {ip} is not globally routable"
+                ));
+            }
+            redirect::Policy::default().redirect(attempt)
+        })
     }
 }
 
@@ -126,6 +153,7 @@ impl Fetcher for FetchServer {
 
         let client = Client::builder()
             .dns_resolver(Arc::new(SsrfSafeResolver))
+            .redirect(SsrfSafeResolver::redirect_policy())
             .build()
             .map_err(|err| FetcherError::Network(format!("Error building HTTP client: {err:?}")))?;
         let client = ClientBuilder::new(client)
