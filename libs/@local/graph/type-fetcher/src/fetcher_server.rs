@@ -23,6 +23,8 @@ use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 /// Uses [`IpAddr::is_global`] to filter out private, loopback, link-local, and other non-routable
 /// addresses after DNS resolution. Since filtering happens inside the resolver, the resolved
 /// addresses are used directly for the connection, preventing DNS rebinding attacks.
+///
+/// [`IpAddr::is_global`]: core::net::IpAddr::is_global
 struct SsrfSafeResolver;
 
 impl Resolve for SsrfSafeResolver {
