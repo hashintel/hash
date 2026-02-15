@@ -8,7 +8,7 @@ use hashql_core::{
 };
 
 use super::{
-    PlacementContext, PlacementRegionId, PlacementSolver,
+    PlacementRegionId, PlacementSolver, PlacementSolverContext,
     estimate::{HeapElement, TargetHeap},
 };
 use crate::{
@@ -75,7 +75,7 @@ pub(crate) struct CyclicPlacementRegion<'alloc> {
     pub solutions: Option<&'alloc mut Solutions>,
 }
 
-impl<'alloc> CyclicPlacementRegion<'alloc> {
+impl CyclicPlacementRegion<'_> {
     pub(crate) fn find_block(&self, block: BasicBlockId) -> Option<&PlacementBlock> {
         self.blocks.iter().find(|placement| placement.id == block)
     }
@@ -87,7 +87,7 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     pub id: PlacementRegionId,
     pub region: CyclicPlacementRegion<'alloc>,
 
-    depth: usize,
+    pub depth: usize,
 
     // Branch-and-bound state (only used when members.len() <= BNB_CUTOFF)
     cost_deltas: [ApproxCost; BNB_CUTOFF],
@@ -163,7 +163,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     }
 
     fn narrow_impl(
-        data: &PlacementContext<'_, A>,
+        data: &PlacementSolverContext<'_, A>,
         blocks: &mut [PlacementBlock],
         body: &Body<'_>,
         block: BasicBlockId,
@@ -520,7 +520,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.fixed.remove(next);
     }
 
-    fn apply_solution(&mut self, solution: Solution) {
+    fn apply_solution(&mut self, solution: &Solution) {
         let members = self.region.members.len();
         self.region
             .blocks
@@ -567,7 +567,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
 
         self.region.solutions = Some(solutions);
-        self.apply_solution(solution);
+        self.apply_solution(&solution);
         true
     }
 
@@ -580,7 +580,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             let solution = mem::replace(&mut solutions[0], Solution::new());
             solutions.rotate_left(1);
 
-            self.apply_solution(solution);
+            self.apply_solution(&solution);
             return true;
         }
 
@@ -597,7 +597,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 continue;
             };
 
-            let diff = placement.target.cost.delta(next.cost);
+            let diff = placement.target.cost.abs_diff(next.cost);
 
             if diff < min_diff {
                 min_diff = diff;

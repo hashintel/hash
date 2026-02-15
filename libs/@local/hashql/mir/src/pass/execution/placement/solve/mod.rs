@@ -32,14 +32,14 @@ mod tests;
 id::newtype!(pub(crate) struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
 #[derive(Debug, Copy, Clone)]
-pub struct PlacementContext<'ctx, A: Allocator> {
+pub struct PlacementSolverContext<'ctx, A: Allocator> {
     pub assignment: &'ctx BasicBlockSlice<TargetBitSet>,
     pub statements: &'ctx TargetArray<StatementCostVec<A>>,
     pub terminators: &'ctx TerminatorCostVec<A>,
 }
 
-impl<'ctx, A: Allocator> PlacementContext<'ctx, A> {
-    fn run_in<'alloc, S>(
+impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
+    pub fn build_in<'alloc, S>(
         self,
         body: &Body<'_>,
         alloc: &'alloc S,
@@ -73,7 +73,7 @@ impl<'ctx, A: Allocator> PlacementContext<'ctx, A> {
 }
 
 pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
-    data: PlacementContext<'ctx, A>,
+    data: PlacementSolverContext<'ctx, A>,
 
     condensation: Condensation<'alloc, S>,
 
@@ -83,8 +83,8 @@ pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
     alloc: &'alloc S,
 }
 
-impl<'ctx, 'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'ctx, 'alloc, A, S> {
-    fn run<'heap>(&mut self, body: &Body<'heap>) -> BasicBlockVec<TargetId, &'heap Heap> {
+impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
+    pub fn run<'heap>(&mut self, body: &Body<'heap>) -> BasicBlockVec<TargetId, &'heap Heap> {
         let mut regions = Vec::with_capacity_in(self.condensation.node_count(), self.alloc);
         self.condensation
             .reverse_topological_order()

@@ -201,7 +201,11 @@ impl ApproxCost {
         self.0.is_finite()
     }
 
-    pub const fn delta(self, other: Self) -> f32 {
+    /// Compute the absolute difference between this cost and another.
+    #[inline]
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub const fn abs_diff(self, other: Self) -> f32 {
         (self.0 - other.0).abs()
     }
 }
