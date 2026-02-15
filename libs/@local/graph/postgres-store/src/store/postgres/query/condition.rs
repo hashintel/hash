@@ -127,21 +127,26 @@ impl Transpile for Condition {
                 rhs.transpile(fmt)
             }
             Self::StartsWith(lhs, rhs) => {
+                fmt.write_str("starts_with(")?;
                 lhs.transpile(fmt)?;
-                fmt.write_str(" LIKE ")?;
+                fmt.write_str(", ")?;
                 rhs.transpile(fmt)?;
-                fmt.write_str(" || '%'")
+                fmt.write_char(')')
             }
             Self::EndsWith(lhs, rhs) => {
+                fmt.write_str("right(")?;
                 lhs.transpile(fmt)?;
-                fmt.write_str(" LIKE '%' || ")?;
+                fmt.write_str(", length(")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(")) = ")?;
                 rhs.transpile(fmt)
             }
             Self::ContainsSegment(lhs, rhs) => {
+                fmt.write_str("strpos(")?;
                 lhs.transpile(fmt)?;
-                fmt.write_str(" LIKE '%' || ")?;
+                fmt.write_str(", ")?;
                 rhs.transpile(fmt)?;
-                fmt.write_str(" || '%'")
+                fmt.write_str(") > 0")
             }
         }
     }
@@ -326,6 +331,57 @@ mod tests {
             ))),
             r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+        );
+    }
+
+    #[test]
+    fn transpile_starts_with_condition() {
+        test_condition(
+            &Filter::StartsWith(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("foo")),
+                    convert: None,
+                },
+            ),
+            r#"starts_with("data_types_0_1_0"."schema"->>'title', $1)"#,
+            &[&"foo"],
+        );
+    }
+
+    #[test]
+    fn transpile_ends_with_condition() {
+        test_condition(
+            &Filter::EndsWith(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("bar")),
+                    convert: None,
+                },
+            ),
+            r#"right("data_types_0_1_0"."schema"->>'title', length($1)) = $1"#,
+            &[&"bar"],
+        );
+    }
+
+    #[test]
+    fn transpile_contains_segment_condition() {
+        test_condition(
+            &Filter::ContainsSegment(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("baz")),
+                    convert: None,
+                },
+            ),
+            r#"strpos("data_types_0_1_0"."schema"->>'title', $1) > 0"#,
+            &[&"baz"],
         );
     }
 
