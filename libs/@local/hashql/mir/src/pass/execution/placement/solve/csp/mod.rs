@@ -252,7 +252,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         false
     }
 
-    fn run(&mut self, body: &Body<'_>) -> bool {
+    fn run_greedy(&mut self, body: &Body<'_>) -> bool {
         let members = self.region.members.len();
 
         while self.depth < members {
@@ -412,7 +412,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         bound
     }
 
-    fn run_bnb(&mut self, body: &Body<'_>, solutions: &mut Solutions) {
+    fn run_branch(&mut self, body: &Body<'_>, solutions: &mut Solutions) {
         let members = self.region.members.len();
 
         if self.depth == members {
@@ -495,7 +495,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
                 let worst_retained = solutions[RETAIN_SOLUTIONS - 1].cost;
                 if self.cost_so_far + lb < worst_retained {
-                    self.run_bnb(body, solutions);
+                    self.run_branch(body, solutions);
                 }
             }
 
@@ -541,7 +541,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.fixed.clear();
 
         if self.region.members.len() > BNB_CUTOFF {
-            return self.run(body);
+            return self.run_greedy(body);
         }
 
         self.cost_so_far = ApproxCost::ZERO;
@@ -557,7 +557,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 .write_filled(Solution::new())
         };
 
-        self.run_bnb(body, solutions);
+        self.run_branch(body, solutions);
 
         let solution = mem::replace(&mut solutions[0], Solution::new());
         solutions.rotate_left(1); // add the next solution to the front
@@ -617,6 +617,6 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.depth = best_depth + 1;
         self.replay_narrowing(body);
 
-        self.run(body)
+        self.run_greedy(body)
     }
 }

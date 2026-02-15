@@ -46,6 +46,10 @@ fn take_cyclic<'alloc>(
 
 // --- Group 3: Forward Checking / narrow() ---
 
+/// Assigns a single block and verifies that direct successors' domains are narrowed.
+///
+/// Only targets reachable via a valid transition from the assigned target remain
+/// in the successor's domain. Non-adjacent blocks are unaffected.
 #[test]
 fn narrow_restricts_successor_domain() {
     let heap = Heap::new();
@@ -93,6 +97,10 @@ fn narrow_restricts_successor_domain() {
     assert_eq!(bb2.possible, all_targets());
 }
 
+/// Assigns a single block and verifies that direct predecessors' domains are narrowed.
+///
+/// Only targets that can validly transition *to* the assigned target remain in
+/// the predecessor's domain. Non-adjacent blocks are unaffected.
 #[test]
 fn narrow_restricts_predecessor_domain() {
     let heap = Heap::new();
@@ -142,6 +150,10 @@ fn narrow_restricts_predecessor_domain() {
     assert_eq!(bb1.possible, all_targets());
 }
 
+/// Narrowing empties a successor's domain when no valid transition exists.
+///
+/// bb0=I and bb1's domain is {P}, but the transition matrix has no I→P entry.
+/// The resulting empty domain signals infeasibility to the solver.
 #[test]
 fn narrow_to_empty_domain() {
     let heap = Heap::new();
@@ -186,6 +198,10 @@ fn narrow_to_empty_domain() {
     assert!(bb1.possible.is_empty());
 }
 
+/// Successive narrowing steps intersect their constraints on a shared neighbor.
+///
+/// Fixing bb0=I restricts bb2 to {I, P}, then fixing bb1=P further restricts
+/// bb2 to {P}. Verifies that narrowing intersects rather than replaces domains.
 #[test]
 fn narrow_multiple_edges_intersect() {
     let heap = Heap::new();
@@ -246,6 +262,10 @@ fn narrow_multiple_edges_intersect() {
     assert_eq!(bb2_after_second.possible, target_set(&[P]));
 }
 
+/// Changing a fixed block's target resets unfixed domains and re-narrows from scratch.
+///
+/// After switching bb0 from I to P, `replay_narrowing` restores original domains
+/// for all unfixed blocks and re-propagates constraints from the entire fixed prefix.
 #[test]
 fn replay_narrowing_resets_then_repropagates() {
     let heap = Heap::new();
@@ -309,6 +329,10 @@ fn replay_narrowing_resets_then_repropagates() {
 
 // --- Group 4: Lower Bound ---
 
+/// Lower bound sums the minimum statement cost across each unfixed block's domain.
+///
+/// With zero transition costs, the bound reduces to the sum of per-block minimum
+/// statement costs: min(10, 20) + min(5, 15) = 15.
 #[test]
 fn lower_bound_min_statement_cost_per_block() {
     let heap = Heap::new();
@@ -367,6 +391,10 @@ fn lower_bound_min_statement_cost_per_block() {
     assert_eq!(lb, cost!(15).as_approx());
 }
 
+/// Lower bound includes the minimum valid transition cost for each inter-block edge.
+///
+/// With zero statement costs, the bound is determined by the cheapest compatible
+/// transition across each edge between unfixed blocks.
 #[test]
 fn lower_bound_min_transition_cost_per_edge() {
     let heap = Heap::new();
@@ -421,6 +449,10 @@ fn lower_bound_min_transition_cost_per_edge() {
     assert_eq!(lb, cost!(3).as_approx());
 }
 
+/// Self-loop edges are excluded from the lower bound calculation.
+///
+/// A self-loop is always a same-target transition (cost 0 by definition), so the
+/// expensive I→P=100 on the self-loop edge must not inflate the bound.
 #[test]
 fn lower_bound_skips_self_loop_edges() {
     let heap = Heap::new();
@@ -468,6 +500,10 @@ fn lower_bound_skips_self_loop_edges() {
     assert_eq!(lb, ApproxCost::ZERO);
 }
 
+/// Lower bound uses a fixed neighbor's concrete target instead of minimizing over its domain.
+///
+/// When bb2 is fixed to P, the edge bb1→bb2 evaluates transitions against P
+/// specifically, not the minimum over all of bb2's original domain.
 #[test]
 fn lower_bound_fixed_successor_uses_concrete_target() {
     let heap = Heap::new();
@@ -494,7 +530,7 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0)];
-        bb(1): [I->P = 10, I->I = 99];
+        bb(1): [I->P = 10, I->I = 0];
         bb(2): [
             diagonal(0);
             diagonal(0)
@@ -518,12 +554,16 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
 
     let lb = csp.lower_bound(&body);
     // bb1 is unfixed, domain = {I}. Edge bb1→bb2: bb2 fixed with target P.
-    // Only bb1 candidate: I→P=10 (the concrete target P is used, not the full domain).
-    // If the successor weren't fixed, min over {I}×{all} would include I→I=0.
+    // Only bb1 candidate: I→P=10 (concrete target P used, not the full domain).
+    // Same-target I→I is always 0 (TransMatrix forces same-target to 0).
     // Total = 0 (stmts) + 10 (bb1→bb2) = 10
     assert_eq!(lb, cost!(10).as_approx());
 }
 
+/// Lower bound is zero when all blocks in the region are fixed.
+///
+/// With no unfixed blocks remaining, there are no statement or transition costs
+/// to estimate. The bound is zero regardless of the cost model.
 #[test]
 fn lower_bound_all_fixed_returns_zero() {
     let heap = Heap::new();
@@ -574,6 +614,10 @@ fn lower_bound_all_fixed_returns_zero() {
 
 // --- Group 5: MRV Selection ---
 
+/// MRV selects the unfixed block with the smallest remaining domain.
+///
+/// Among three unfixed blocks with domain sizes 3, 1, and 2, the block with
+/// domain size 1 is selected for earliest failure detection.
 #[test]
 fn mrv_selects_smallest_domain() {
     let heap = Heap::new();
@@ -623,6 +667,10 @@ fn mrv_selects_smallest_domain() {
     assert_eq!(block_id, bb(1));
 }
 
+/// MRV breaks domain-size ties by highest constraint degree.
+///
+/// All three blocks have domain size 2, but bb0 has the most fixed/boundary
+/// neighbors. Selecting the most constrained block promotes early pruning.
 #[test]
 fn mrv_tiebreak_by_constraint_degree() {
     let heap = Heap::new();
@@ -671,6 +719,10 @@ fn mrv_tiebreak_by_constraint_degree() {
     assert_eq!(block_id, bb(0));
 }
 
+/// MRV only considers blocks at index ≥ depth, ignoring already-fixed blocks.
+///
+/// bb0 is fixed at depth 0. Among the remaining unfixed blocks, bb2 has the
+/// smallest domain (size 2 vs bb1's size 3) and is selected.
 #[test]
 fn mrv_skips_fixed_blocks() {
     let heap = Heap::new();
@@ -724,6 +776,10 @@ fn mrv_skips_fixed_blocks() {
 
 // --- Group 6: CSP Greedy Solver ---
 
+/// Greedy solver assigns both blocks in a 2-block SCC to the cheapest same-target.
+///
+/// Both blocks prefer P (statement cost 3 vs 8). Same-target transitions cost 0,
+/// so greedy converges on all-P without rollback.
 #[test]
 fn greedy_solves_two_block_loop() {
     let heap = Heap::new();
@@ -767,13 +823,18 @@ fn greedy_solves_two_block_loop() {
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
-    assert!(csp.solve(&body));
+    csp.seed();
+    assert!(csp.run_greedy(&body));
     // Both should be P (3+3+0 = 6 < 8+8+0 = 16)
     for block in &*csp.region.blocks {
         assert_eq!(block.target.target, P);
     }
 }
 
+/// Greedy solver recovers from a constraint violation via rollback.
+///
+/// The initial greedy choice leads to an empty domain for a successor. Rollback
+/// to the previous decision point finds an alternative (bb1=I, bb2=P).
 #[test]
 fn greedy_rollback_finds_alternative() {
     let heap = Heap::new();
@@ -817,7 +878,8 @@ fn greedy_rollback_finds_alternative() {
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
-    assert!(csp.solve(&body));
+    csp.seed();
+    assert!(csp.run_greedy(&body));
     let bb1_target = csp
         .region
         .find_block(bb(1))
@@ -834,6 +896,10 @@ fn greedy_rollback_finds_alternative() {
     assert_eq!(bb1_target, I); // forced by I→P constraint
 }
 
+/// Greedy solver returns false when no feasible assignment exists.
+///
+/// bb0's domain is {I} and bb1's domain is {P}, but the transition matrix has
+/// no I→P or P→I entries. All paths lead to empty domains.
 #[test]
 fn greedy_fails_when_infeasible() {
     let heap = Heap::new();
@@ -870,11 +936,16 @@ fn greedy_fails_when_infeasible() {
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
-    assert!(!csp.solve(&body));
+    csp.seed();
+    assert!(!csp.run_greedy(&body));
 }
 
 // --- Group 7: CSP Branch-and-Bound ---
 
+/// BnB finds the globally optimal assignment that greedy would miss.
+///
+/// Greedy picks locally cheap bb0=P (cost 2), but this forces expensive cross-target
+/// transitions (20 each). BnB explores all branches and finds all-I (cost 12 vs 44).
 #[test]
 fn bnb_finds_optimal() {
     let heap = Heap::new();
@@ -933,6 +1004,10 @@ fn bnb_finds_optimal() {
     }
 }
 
+/// BnB retains multiple solutions in non-decreasing cost order for retry.
+///
+/// With diagonal-only transitions, only same-target assignments are valid:
+/// (I,I)=10, (P,P)=20, (E,E)=30. All three are retained and ranked by cost.
 #[test]
 fn bnb_retains_ranked_solutions() {
     let heap = Heap::new();
@@ -960,7 +1035,7 @@ fn bnb_retains_ranked_solutions() {
     terminators! { terminators;
         bb(0): [
             diagonal(0);
-            complete(1)
+            diagonal(0)
         ];
         bb(1): [diagonal(0)]
     }
@@ -984,7 +1059,7 @@ fn bnb_retains_ranked_solutions() {
 
     // Ranked alternatives should be retained for retry()
     let solutions = csp.region.solutions.as_ref().expect("solutions missing");
-    // Next best is (P,P) = 10+10 = 20, so at least one alternative must be finite
+    // Only same-target assignments valid: (I,I)=10, (P,P)=20, (E,E)=30
     assert!(solutions[0].cost.is_finite());
     // Solutions must be in non-decreasing cost order
     for window in solutions.windows(2) {
@@ -997,6 +1072,11 @@ fn bnb_retains_ranked_solutions() {
     }
 }
 
+/// BnB pruning does not discard the optimal solution in a 4-block SCC.
+///
+/// Cross-target transitions cost 100, making any mixed assignment far worse than
+/// all-same-target (cost 4). Verifies pruning correctly eliminates suboptimal
+/// branches without cutting the optimal one.
 #[test]
 fn bnb_pruning_preserves_optimal() {
     let heap = Heap::new();
@@ -1057,6 +1137,10 @@ fn bnb_pruning_preserves_optimal() {
 
 // --- Group 8: retry() ---
 
+/// After `solve()` applies the optimal assignment, `retry()` returns the next-best.
+///
+/// solve() picks (I,I) with cost 2. retry() returns (P,P) with cost 4. The
+/// retry cost must be ≥ the original, and the assignment must differ.
 #[test]
 fn retry_returns_ranked_solutions_in_order() {
     let heap = Heap::new();
@@ -1125,6 +1209,10 @@ fn retry_returns_ranked_solutions_in_order() {
     );
 }
 
+/// Retry exhausts all ranked solutions and returns false when none remain.
+///
+/// Only two valid assignments exist: (I,I) and (P,P). solve() takes the first,
+/// retry() takes the second, and a third retry() returns false.
 #[test]
 fn retry_exhausts_then_perturbs() {
     let heap = Heap::new();

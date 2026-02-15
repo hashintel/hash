@@ -108,16 +108,6 @@ impl Cost {
     }
 
     /// Adds `other` to this cost, saturating at [`Cost::MAX`] on overflow.
-    ///
-    /// ```
-    /// # use hashql_mir::pass::execution::Cost;
-    /// let cost = Cost::new(100).unwrap();
-    /// assert_eq!(cost.saturating_add(50), Cost::new(150).unwrap());
-    ///
-    /// // Saturates at MAX instead of overflowing
-    /// let large = Cost::new(u32::MAX - 10).unwrap();
-    /// assert_eq!(large.saturating_add(100), Cost::MAX);
-    /// ```
     #[inline]
     #[must_use]
     pub const fn saturating_add(self, other: Self) -> Self {

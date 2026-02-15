@@ -168,6 +168,10 @@ pub(crate) fn fix_block(
     csp.depth = depth + 1;
 }
 
+/// Verifies that every block receives a valid target assignment after the forward pass.
+///
+/// Diamond CFG with all transitions allowed at uniform cost. The specific target
+/// chosen is unimportant; the contract is that no block remains unassigned.
 #[test]
 fn forward_pass_assigns_all_blocks() {
     let heap = Heap::new();
@@ -219,114 +223,35 @@ fn forward_pass_assigns_all_blocks() {
     }
 }
 
+/// Verifies the backward pass corrects a suboptimal forward assignment.
+///
+/// Forward picks bb1=P because bb3 is unassigned and the heuristic sees cheap P→P.
+/// After bb2=I with diagonal-only forces bb3=I, backward re-evaluates bb1 with
+/// bb3=I known and corrects bb1 from P to I.
 #[test]
 fn backward_pass_improves_suboptimal_forward() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
+    // Diamond: bb0 → bb1, bb0 → bb2, bb1 → bb3, bb2 → bb3. Four trivial SCCs.
+    //
+    // Forward processes in topological order: bb0, then bb1 and bb2 (one before
+    // the other), then bb3. When estimating bb1, bb3 is unassigned so the
+    // heuristic considers bb3's full domain {I,P}. The P→P=0 transition makes
+    // bb1=P look cheap. But bb3 ultimately gets I (because bb2=I with diagonal-
+    // only forces bb3=I after backward). Backward then re-evaluates bb1 with
+    // bb3=I known and sees P→I=50, correcting bb1 to I.
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+        decl cond: Bool, x: Int;
 
         bb0() {
-            x = load 0;
-            goto bb1();
+            cond = load true;
+            if cond then bb1() else bb2();
         },
         bb1() {
             x = load 0;
-            goto bb2();
-        },
-        bb2() {
-            return x;
-        }
-    });
-
-    let domains = [target_set(&[I]), target_set(&[I, P]), target_set(&[I])];
-
-    let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
-
-    stmt_costs! { statements;
-        bb(1): I = 10, P = 2
-    }
-
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators! { terminators;
-        bb(0): [I->I = 0, I->P = 0];
-        bb(1): [I->I = 0, P->I = 50]
-    }
-
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
-
-    // Forward: bb0=I (forced). bb1 picks P (stmt cost 2 < 10). bb2=I (forced).
-    // Backward: bb1 reconsiders with bb2=I known. P cost = 2+50=52 vs I cost = 10+0=10.
-    // Switches to I.
-    assert_eq!(result[bb(0)], I);
-    assert_eq!(result[bb(1)], I);
-    assert_eq!(result[bb(2)], I);
-}
-
-#[test]
-fn rewind_backtracks_across_trivial_regions() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
-
-        bb0() {
-            x = load 0;
-            goto bb1();
-        },
-        bb1() {
-            x = load 0;
-            goto bb2();
-        },
-        bb2() {
-            return x;
-        }
-    });
-
-    let domains = [target_set(&[I, P]), target_set(&[I, P]), target_set(&[P])];
-
-    let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
-
-    stmt_costs! { statements;
-        bb(0): I = 1, P = 5;
-        bb(1): I = 5, P = 1
-    }
-
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators! { terminators;
-        bb(0): [complete(1)];
-        bb(1): [I->P = 0]
-    }
-
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
-
-    // bb1 must be I (only I→P exists to reach bb2=P)
-    assert_eq!(result[bb(1)], I);
-    assert_eq!(result[bb(2)], P);
-}
-
-#[test]
-fn rewind_clears_downstream_assignments() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
-
-        bb0() {
-            x = load 0;
-            goto bb1();
-        },
-        bb1() {
-            x = load 0;
-            goto bb2();
+            goto bb3();
         },
         bb2() {
             x = load 0;
@@ -337,36 +262,206 @@ fn rewind_clears_downstream_assignments() {
         }
     });
 
+    let ip = target_set(&[I, P]);
+    // bb0 forced to I; bb1/bb2/bb3 have both targets
+    let domains = [target_set(&[I]), ip, ip, ip];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    // bb1: P is locally cheaper. bb2: I is locally cheaper (forces bb3 toward I).
+    stmt_costs! { statements;
+        bb(1): I = 10, P = 2;
+        bb(2): I = 1, P = 50
+    }
+
+    // bb0: arm0=bb2(else), arm1=bb1(then). All transitions at cost 0.
+    // bb1→bb3: P→P=0 (cheap), P→I=50 (expensive), I→I=0.
+    // bb2→bb3: same-target only (diagonal).
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [
+            complete(0);
+            complete(0)
+        ];
+        bb(1): [diagonal(0), P->I = 50];
+        bb(2): [diagonal(0)]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], I);
+    // bb2 picks I (stmt 1 vs 50). bb2→bb3 diagonal-only forces bb3=I.
+    assert_eq!(result[bb(2)], I);
+    assert_eq!(result[bb(3)], I);
+    // Forward heuristic for bb1=P with bb3 unassigned: P→P=0, P→I=50.
+    //   min block_cost: P→P with stmt_bb3_P(1)+0=1 → transition=0. Total: 2+0+0=2
+    // Forward heuristic for bb1=I: I→I=0, stmt_bb3_I(1)+0=1 → transition=0.
+    //   Total: 10+0+0=10. Forward picks P.
+    // Backward with bb3=I known: bb1=P: 2+0+50=52. bb1=I: 10+0+0=10.
+    // Backward corrects bb1 to I.
+    assert_eq!(result[bb(1)], I);
+}
+
+/// Verifies that forward rewind resolves a join point with conflicting predecessors.
+///
+/// bb1→bb3 allows only diagonal transitions and bb2→bb3 allows only swaps. When
+/// both predecessors pick the same target, no assignment for bb3 satisfies both
+/// edges simultaneously, forcing the forward pass to rewind and retry.
+#[test]
+fn rewind_triggers_on_join_with_conflicting_predecessors() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Diamond: bb0 → bb1, bb0 → bb2, bb1 → bb3, bb2 → bb3.
+    // bb1→bb3 is same-target only (diagonal). bb2→bb3 is swap only (I→P, P→I).
+    // Forward picks I for both bb1 and bb2 (cheaper stmt). Then bb3:
+    //   bb3=I: bb1→bb3 I→I ok, bb2→bb3 I→I missing → infeasible
+    //   bb3=P: bb1→bb3 I→P missing → infeasible
+    // bb3 heap empty → rewind flips bb2 (or bb1) to resolve the conflict.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            x = load 0;
+            goto bb3();
+        },
+        bb2() {
+            x = load 0;
+            goto bb3();
+        },
+        bb3() {
+            return x;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    // bb0 forced to I; bb1, bb2, bb3 can be I or P
+    let domains = [target_set(&[I]), ip, ip, ip];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    // Bias bb1 and bb2 to pick I initially
+    stmt_costs! { statements;
+        bb(1): I = 0, P = 10;
+        bb(2): I = 0, P = 10
+    }
+
+    // bb0: arm0=bb2(else), arm1=bb1(then). All transitions allowed.
+    // bb1→bb3: same-target only. bb2→bb3: swap only.
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [
+            complete(0);
+            complete(0)
+        ];
+        bb(1): [diagonal(0)];
+        bb(2): [I->P = 0, P->I = 0]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], I);
+    // Only consistent solutions: (bb1=I, bb2=P, bb3=I) or (bb1=P, bb2=I, bb3=P)
+    match result[bb(3)] {
+        target if target == I => {
+            assert_eq!(result[bb(1)], I);
+            assert_eq!(result[bb(2)], P);
+        }
+        target if target == P => {
+            assert_eq!(result[bb(1)], P);
+            assert_eq!(result[bb(2)], I);
+        }
+        other => panic!("bb3 must be I or P, got {other:?}"),
+    }
+}
+
+/// Verifies that rewind skips regions with no alternative targets.
+///
+/// bb2 has a single-target domain {I}, so it offers no alternatives. When bb3
+/// becomes infeasible, rewind must skip the exhausted bb2 and flip bb1 instead.
+#[test]
+fn rewind_skips_exhausted_region() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0 → bb1, bb1 → bb2 (then), bb1 → bb3 (else), bb2 → bb3.
+    // bb1→bb3 (arm0) is swap only: I→P, P→I. bb1→bb2 (arm1) allows I→I, P→I.
+    // bb2→bb3 allows only I→I. bb2 domain = {I} (single target, no alternatives).
+    //
+    // Forward: bb0=I (forced). bb1 picks I (cheaper stmt).
+    //   bb2=I (forced domain). bb3 estimation: from bb1=I (bb1→bb3: I→P only,
+    //   need I→I for bb3=I → missing) and from bb2=I (I→I → ok for bb3=I).
+    //   bb3=I: bb1→bb3 I→I missing → infeasible.
+    //   bb3=P: bb2→bb3 I→P missing → infeasible.
+    //   bb3 heap empty → rewind.
+    // Rewind: bb2 has no alternatives (domain {I}) → skip. bb1 has alternative P.
+    //   bb1=P, resume. bb2=I (re-estimated). bb3: bb1→bb3 P→I ok, bb2→bb3 I→I ok.
+    //   bb3=I succeeds.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
+
+        bb0() {
+            x = load 0;
+            goto bb1();
+        },
+        bb1() {
+            cond = load true;
+            if cond then bb2() else bb3();
+        },
+        bb2() {
+            x = load 0;
+            goto bb3();
+        },
+        bb3() {
+            return x;
+        }
+    });
+
+    // bb1: arm0=bb3(else), arm1=bb2(then)
     let domains = [
+        target_set(&[I]),
         target_set(&[I, P]),
+        target_set(&[I]),
         target_set(&[I, P]),
-        target_set(&[I, P]),
-        target_set(&[P]),
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
-        bb(0): I = 5, P = 1;
-        bb(1): I = 5, P = 1;
-        bb(2): I = 5, P = 1
+        bb(1): I = 0, P = 10
     }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
-        bb(0): [complete(1)];
-        bb(1): [complete(1)];
-        bb(2): [I->P = 0]
+        bb(0): [complete(0)];
+        bb(1): [
+            I->P = 0, P->I = 0;
+            I->I = 0, P->I = 0
+        ];
+        bb(2): [I->I = 0]
     }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
-    // bb2 must switch to I (only I→P reaches bb3=P), bb3=P
+    assert_eq!(result[bb(0)], I);
+    assert_eq!(result[bb(1)], P);
     assert_eq!(result[bb(2)], I);
-    assert_eq!(result[bb(3)], P);
+    assert_eq!(result[bb(3)], I);
 }
 
+/// Verifies the trivial region fast path picks the cheapest target by statement cost.
+///
+/// Single block with a return terminator and no edges. The solver should select
+/// the target with the lowest per-statement cost without consulting any neighbors.
 #[test]
 fn single_block_trivial_region() {
     let heap = Heap::new();
@@ -398,6 +493,10 @@ fn single_block_trivial_region() {
     assert_eq!(result[bb(0)], P);
 }
 
+/// Verifies the solver handles cyclic and trivial regions together.
+///
+/// bb1↔bb2 form a 2-block SCC with bb0 and bb3 as trivial boundary regions.
+/// The forward and backward passes must process both region kinds correctly.
 #[test]
 fn cyclic_region_in_forward_backward() {
     let heap = Heap::new();
@@ -454,9 +553,9 @@ fn cyclic_region_in_forward_backward() {
 
     assert_eq!(result[bb(0)], I);
     assert_eq!(result[bb(3)], I);
-    // SCC {bb1, bb2}: all-I = stmt 6 + boundary 0 = 6
-    //                  all-P = stmt 2 + boundary(I→P=5 + P→I=5) = 12
-    // Solver should pick I for both
+    // SCC {bb1, bb2}: all-I feasible (stmt 6 + boundary 0 = 6).
+    // all-P infeasible: bb2→bb1 backedge (arm1) lacks P→P transition.
+    // Solver picks I for both.
     assert_eq!(result[bb(1)], I);
     assert_eq!(result[bb(2)], I);
 }

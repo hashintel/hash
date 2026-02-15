@@ -24,6 +24,10 @@ const I: TargetId = TargetId::Interpreter;
 const P: TargetId = TargetId::Postgres;
 const E: TargetId = TargetId::Embedding;
 
+/// Verifies that pop returns elements in ascending cost order.
+///
+/// Elements inserted in arbitrary order must be retrieved cheapest-first,
+/// since every value-ordering decision in the solver depends on this invariant.
 #[test]
 fn heap_insert_maintains_sorted_order() {
     let mut heap = TargetHeap::new();
@@ -44,6 +48,10 @@ fn heap_insert_maintains_sorted_order() {
     assert_eq!(third.cost, cost!(30).as_approx());
 }
 
+/// Verifies that popping beyond the heap's contents returns `None`.
+///
+/// After all elements are consumed, `pop()` must return `None` and both
+/// `is_empty()` and `len()` must reflect the empty state.
 #[test]
 fn heap_pop_exhaustion() {
     let mut heap = TargetHeap::new();
@@ -63,6 +71,10 @@ fn heap_pop_exhaustion() {
     assert_eq!(heap.len(), 0);
 }
 
+/// Verifies that `peek()` returns the minimum element without advancing the internal index.
+///
+/// Repeated peeks must return the same element, and a subsequent `pop()` must
+/// still yield that element. The heap length must not change until `pop()`.
 #[test]
 fn heap_peek_does_not_consume() {
     let mut heap = TargetHeap::new();
@@ -86,6 +98,10 @@ fn heap_peek_does_not_consume() {
     assert!(heap.peek().is_none());
 }
 
+/// Verifies that `reset()` makes the heap empty regardless of prior state.
+///
+/// After insertions and partial consumption, `reset()` must restore the heap
+/// to its initial empty state.
 #[test]
 fn heap_reset_clears_state() {
     let mut heap = TargetHeap::new();
@@ -100,6 +116,10 @@ fn heap_reset_clears_state() {
     assert!(heap.pop().is_none());
 }
 
+/// Verifies that elements with equal costs are both retained and returned.
+///
+/// Tie-breaking order between equal-cost elements is unspecified, but both
+/// must be present in the output.
 #[test]
 fn heap_equal_cost_elements() {
     let mut heap = TargetHeap::new();
@@ -121,6 +141,11 @@ fn heap_equal_cost_elements() {
 
 // --- CostEstimation tests ---
 
+/// Verifies that self-loop edges do not contribute to cost estimation.
+///
+/// A block's self-loop always transitions to itself (cost 0), so the estimator
+/// must skip edges where `pred == block` or `succ == block`. An expensive
+/// cross-target transition on the self-loop arm must not inflate the cost.
 #[test]
 fn self_loop_edges_excluded_from_cost() {
     let heap = Heap::new();
@@ -151,8 +176,8 @@ fn self_loop_edges_excluded_from_cost() {
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
-            diagonal(0), I->P = 100, P->I = 100;
-            I->I = 0, P->I = 0
+            I->I = 0, P->I = 0;
+            diagonal(0), I->P = 100, P->I = 100
         ]
     }
 
@@ -181,6 +206,11 @@ fn self_loop_edges_excluded_from_cost() {
     assert_eq!(cost, Some(cost!(5).as_approx()));
 }
 
+/// Verifies that the boundary multiplier scales cross-region transition costs.
+///
+/// With `TRIVIAL` (multiplier 1.0) the full transition cost applies, while
+/// `LOOP` (multiplier 0.5) halves it. This allows the backward pass to
+/// discount boundary edges inside cyclic regions.
 #[test]
 fn boundary_multiplier_applied_to_cross_region_edges() {
     let heap = Heap::new();
@@ -255,6 +285,11 @@ fn boundary_multiplier_applied_to_cross_region_edges() {
     assert_eq!(loop_cost, Some(cost!(20).as_approx()));
 }
 
+/// Verifies that estimation returns `None` when no valid transition exists.
+///
+/// If a neighbor is fixed at a target with no matrix entry leading to the
+/// candidate target, the transition is infeasible and the estimate must
+/// return `None` to signal domain pruning.
 #[test]
 fn infeasible_transition_returns_none() {
     let heap = Heap::new();
@@ -309,6 +344,11 @@ fn infeasible_transition_returns_none() {
     assert_eq!(cost, None);
 }
 
+/// Verifies that unassigned neighbors use the heuristic minimum over their domain.
+///
+/// When a neighbor has no committed target, the estimator picks the cheapest
+/// `(statement_cost + transition_cost)` combination across the neighbor's
+/// domain to produce an optimistic lower bound.
 #[test]
 fn unassigned_neighbor_uses_heuristic_minimum() {
     let heap = Heap::new();
