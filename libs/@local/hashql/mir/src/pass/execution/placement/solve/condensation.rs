@@ -203,7 +203,7 @@ impl<'alloc, S: BumpAllocator> DirectedGraph for Condensation<'alloc, S> {
     }
 }
 
-impl<'alloc, S: BumpAllocator> IndexMut<PlacementRegionId> for Condensation<'alloc, S> {
+impl<S: BumpAllocator> IndexMut<PlacementRegionId> for Condensation<'_, S> {
     fn index_mut(&mut self, index: PlacementRegionId) -> &mut Self::Output {
         &mut self.graph[NodeId::new(index.as_usize())].data
     }

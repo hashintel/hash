@@ -1,12 +1,17 @@
 #![expect(clippy::min_ident_chars)]
 
+use core::alloc::Allocator;
+
 use hashql_core::{
-    heap::Heap,
+    heap::{BumpAllocator, Heap},
     id::{IdArray, bit_vec::FiniteBitSet},
     r#type::environment::Environment,
 };
 
-use super::PlacementContext;
+use super::{
+    PlacementRegionId, PlacementSolver, PlacementSolverContext, condensation::PlacementRegionKind,
+    csp::ConstraintSatisfaction,
+};
 use crate::{
     body::{
         Body,
@@ -16,14 +21,75 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
+        ApproxCost, Cost, StatementCostVec,
         target::{TargetArray, TargetBitSet, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },
 };
 
+macro_rules! stmt_costs {
+    {$stmts:expr; $(bb($block:literal): $($target:ident = $cost:expr),+);+ $(;)?} => {
+        $($(
+            $stmts[$target][Location {
+                block: bb($block),
+                statement_index: 1,
+            }] = Some(cost!($cost));
+        )+)+
+    };
+}
+
+pub(crate) use stmt_costs;
+
+pub(crate) fn set_diagonal_matrix(matrix: &mut TransMatrix, cost: Cost) {
+    for target in TargetId::all() {
+        matrix.insert(target, target, cost);
+    }
+}
+
+pub(crate) fn set_complete_matrix(matrix: &mut TransMatrix, cost: Cost) {
+    for source in TargetId::all() {
+        for target in TargetId::all() {
+            matrix.insert(source, target, cost);
+        }
+    }
+}
+
+macro_rules! terminators {
+    { $term:expr; $(bb($block:literal): [$($arms:tt)*]);+ $(;)? } => {
+        $(
+            terminators!(@entry $term; $block; 0; $($arms)*);
+        )*
+    };
+    (@entry $term:expr; $block:literal; $depth:expr;) => {};
+    (@entry $term:expr; $block:literal; $depth:expr; $($arms:tt)+) => {
+        let mut matrix = TransMatrix::new();
+        terminators!(@impl $term; $block; matrix; $depth; , $($arms)*);
+    };
+    (@impl $term:expr; $block:literal; $matrix:ident; $depth:expr;) => {
+        $term.of_mut(bb($block))[$depth] = $matrix;
+    };
+    (@impl $term:expr; $block:literal; $matrix:ident; $depth:expr; ; $($rest:tt)*) => {
+        $term.of_mut(bb($block))[$depth] = $matrix;
+        terminators!(@entry $term; $block; $depth + 1; $($rest)*);
+    };
+    (@impl $term:expr; $block:literal; $matrix:ident; $depth:expr; , $source:ident -> $target:ident = $cost:literal $($rest:tt)*) => {
+        $matrix.insert($source, $target, cost!($cost));
+        terminators!(@impl $term; $block; $matrix; $depth; $($rest)*);
+    };
+    (@impl $term:expr; $block:literal; $matrix:ident; $depth:expr; , diagonal($cost:literal) $($rest:tt)*) => {
+        $crate::pass::execution::placement::solve::tests::set_diagonal_matrix(&mut $matrix, cost!($cost));
+        terminators!(@impl $term; $block; $matrix; $depth; $($rest)*);
+    };
+    (@impl $term:expr; $block:literal; $matrix:ident; $depth:expr; , complete($cost:literal) $($rest:tt)*) => {
+        $crate::pass::execution::placement::solve::tests::set_complete_matrix(&mut $matrix, cost!($cost));
+        terminators!(@impl $term; $block; $matrix; $depth; $($rest)*);
+    };
+}
+
+pub(crate) use terminators;
+
 pub(crate) fn target_set(targets: &[TargetId]) -> TargetBitSet {
-    let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
+    let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
     for &target in targets {
         set.insert(target);
     }
@@ -42,23 +108,8 @@ pub(crate) fn bb(index: u32) -> BasicBlockId {
     BasicBlockId::new(index)
 }
 
-pub(crate) fn full_matrix() -> TransMatrix {
-    let mut matrix = TransMatrix::new();
-    for source in TargetId::all() {
-        for dest in TargetId::all() {
-            matrix.insert(source, dest, cost!(1));
-        }
-    }
-    matrix
-}
-
-pub(crate) fn same_target_matrix() -> TransMatrix {
-    let mut matrix = TransMatrix::new();
-    for target in TargetId::all() {
-        matrix.insert(target, target, cost!(0));
-    }
-    matrix
-}
+const I: TargetId = TargetId::Interpreter;
+const P: TargetId = TargetId::Postgres;
 
 pub(crate) fn run_solver<'heap>(
     body: &Body<'heap>,
@@ -68,13 +119,53 @@ pub(crate) fn run_solver<'heap>(
     terminators: &TerminatorCostVec<&'heap Heap>,
 ) -> BasicBlockVec<TargetId, &'heap Heap> {
     let assignment = BasicBlockSlice::from_raw(domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements,
         terminators,
     };
-    let mut solver = data.run_in(body, heap);
+    let mut solver = data.build_in(body, heap);
     solver.run(body)
+}
+
+pub(crate) fn find_region_of(
+    solver: &PlacementSolver<'_, '_, impl Allocator, impl BumpAllocator>,
+    block: BasicBlockId,
+) -> PlacementRegionId {
+    for region_id in solver.condensation.reverse_topological_order() {
+        match &solver.condensation[region_id].kind {
+            PlacementRegionKind::Trivial(trivial) if trivial.block == block => {
+                return region_id;
+            }
+            PlacementRegionKind::Cyclic(cyclic) => {
+                if cyclic.members.contains(&block) {
+                    return region_id;
+                }
+            }
+            PlacementRegionKind::Trivial(_) | PlacementRegionKind::Unassigned => {}
+        }
+    }
+
+    panic!("no region found for {block:?}");
+}
+
+pub(crate) fn fix_block(
+    csp: &mut ConstraintSatisfaction<'_, '_, '_, impl Allocator, impl BumpAllocator>,
+    block: BasicBlockId,
+    target: TargetId,
+) {
+    let depth = csp.depth;
+    let idx = csp.region.blocks[depth..]
+        .iter()
+        .position(|placement| placement.id == block)
+        .expect("block not found in unfixed region");
+    csp.region.blocks.swap(depth, depth + idx);
+    csp.region.blocks[depth].target = super::estimate::HeapElement {
+        target,
+        cost: ApproxCost::ZERO,
+    };
+    csp.region.fixed.insert(block);
+    csp.depth = depth + 1;
 }
 
 #[test]
@@ -102,28 +193,27 @@ fn forward_pass_assigns_all_blocks() {
         }
     });
 
-    let ip = target_set(&[TargetId::Interpreter, TargetId::Postgres]);
+    let ip = target_set(&[I, P]);
     let domains = [ip, ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    // bb0 → bb1 (arm 0), bb0 → bb2 (arm 1)
-    let bb0_edges = terminators.of_mut(bb(0));
-    bb0_edges[0] = full_matrix();
-    bb0_edges[1] = full_matrix();
-    // bb1 → bb3
-    terminators.of_mut(bb(1))[0] = full_matrix();
-    // bb2 → bb3
-    terminators.of_mut(bb(2))[0] = full_matrix();
+    terminators! { terminators;
+        bb(0): [
+            complete(1);
+            complete(1)
+        ];
+        bb(1): [complete(1)];
+        bb(2): [complete(1)]
+    }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
     for block_id in 0..4_u32 {
         let target = result[bb(block_id)];
         assert!(
-            target == TargetId::Interpreter || target == TargetId::Postgres,
+            target == I || target == P,
             "bb{block_id} should be assigned a valid target, got {target:?}",
         );
     }
@@ -151,39 +241,19 @@ fn backward_pass_improves_suboptimal_forward() {
         }
     });
 
-    let domains = [
-        target_set(&[TargetId::Interpreter]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter]),
-    ];
+    let domains = [target_set(&[I]), target_set(&[I, P]), target_set(&[I])];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // bb1 statement costs: Interpreter=10, Postgres=2
-    statements[TargetId::Interpreter][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[TargetId::Postgres][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(2));
+    stmt_costs! { statements;
+        bb(1): I = 10, P = 2
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: I→I=0, I→P=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
-    }
-    // bb1 → bb2: I→I=0, P→I=50
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(50));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [I->I = 0, I->P = 0];
+        bb(1): [I->I = 0, P->I = 50]
     }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
@@ -191,9 +261,9 @@ fn backward_pass_improves_suboptimal_forward() {
     // Forward: bb0=I (forced). bb1 picks P (stmt cost 2 < 10). bb2=I (forced).
     // Backward: bb1 reconsiders with bb2=I known. P cost = 2+50=52 vs I cost = 10+0=10.
     // Switches to I.
-    assert_eq!(result[bb(0)], TargetId::Interpreter);
-    assert_eq!(result[bb(1)], TargetId::Interpreter);
-    assert_eq!(result[bb(2)], TargetId::Interpreter);
+    assert_eq!(result[bb(0)], I);
+    assert_eq!(result[bb(1)], I);
+    assert_eq!(result[bb(2)], I);
 }
 
 #[test]
@@ -218,50 +288,27 @@ fn rewind_backtracks_across_trivial_regions() {
         }
     });
 
-    let domains = [
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Postgres]),
-    ];
+    let domains = [target_set(&[I, P]), target_set(&[I, P]), target_set(&[P])];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // bb0: I=1, P=5 → prefer I
-    statements[TargetId::Interpreter][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[TargetId::Postgres][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(5));
-
-    // bb1: I=5, P=1 → prefer P initially
-    statements[TargetId::Interpreter][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(5));
-    statements[TargetId::Postgres][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(1));
+    stmt_costs! { statements;
+        bb(0): I = 1, P = 5;
+        bb(1): I = 5, P = 1
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: all transitions allowed at cost 0
-    terminators.of_mut(bb(0))[0] = full_matrix();
-    // bb1 → bb2: only I→P allowed (P→P disallowed)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(0));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [I->P = 0]
     }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
     // bb1 must be I (only I→P exists to reach bb2=P)
-    assert_eq!(result[bb(1)], TargetId::Interpreter);
-    assert_eq!(result[bb(2)], TargetId::Postgres);
+    assert_eq!(result[bb(1)], I);
+    assert_eq!(result[bb(2)], P);
 }
 
 #[test]
@@ -291,44 +338,33 @@ fn rewind_clears_downstream_assignments() {
     });
 
     let domains = [
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Postgres]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[P]),
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // Make P cheaper so initial picks are P
-    for block_idx in 0..3_u32 {
-        statements[TargetId::Interpreter][Location {
-            block: bb(block_idx),
-            statement_index: 1,
-        }] = Some(cost!(5));
-        statements[TargetId::Postgres][Location {
-            block: bb(block_idx),
-            statement_index: 1,
-        }] = Some(cost!(1));
+    stmt_costs! { statements;
+        bb(0): I = 5, P = 1;
+        bb(1): I = 5, P = 1;
+        bb(2): I = 5, P = 1
     }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: all allowed
-    terminators.of_mut(bb(0))[0] = full_matrix();
-    // bb1 → bb2: all allowed
-    terminators.of_mut(bb(1))[0] = full_matrix();
-    // bb2 → bb3: only I→P allowed (P→P disallowed)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(0));
-        terminators.of_mut(bb(2))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [complete(1)];
+        bb(2): [I->P = 0]
     }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
     // bb2 must switch to I (only I→P reaches bb3=P), bb3=P
-    assert_eq!(result[bb(2)], TargetId::Interpreter);
-    assert_eq!(result[bb(3)], TargetId::Postgres);
+    assert_eq!(result[bb(2)], I);
+    assert_eq!(result[bb(3)], P);
 }
 
 #[test]
@@ -346,26 +382,20 @@ fn single_block_trivial_region() {
         }
     });
 
-    let domains = [target_set(&[TargetId::Interpreter, TargetId::Postgres])];
+    let domains = [target_set(&[I, P])];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // I=10, P=5 → P is cheaper
-    statements[TargetId::Interpreter][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[TargetId::Postgres][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(5));
+    stmt_costs! { statements;
+        bb(0): I = 10, P = 5
+    }
 
     let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
-    assert_eq!(result[bb(0)], TargetId::Postgres);
+    assert_eq!(result[bb(0)], P);
 }
 
 #[test]
@@ -396,74 +426,37 @@ fn cyclic_region_in_forward_backward() {
     });
 
     let domains = [
-        target_set(&[TargetId::Interpreter]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter]),
+        target_set(&[I]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // bb1: I=3, P=1; bb2: I=3, P=1
-    statements[TargetId::Interpreter][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(3));
-    statements[TargetId::Postgres][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[TargetId::Interpreter][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(3));
-    statements[TargetId::Postgres][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(1));
+    stmt_costs! { statements;
+        bb(1): I = 3, P = 1;
+        bb(2): I = 3, P = 1
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: I→I=0, I→P=5
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(5));
-        terminators.of_mut(bb(0))[0] = matrix;
-    }
-    // bb1 → bb2: I→I=0, P→P=0, I→P=5, P→I=5
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
-        matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(5));
-        matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(5));
-        terminators.of_mut(bb(1))[0] = matrix;
-    }
-    // bb2 → bb1 (arm 0), bb2 → bb3 (arm 1)
-    {
-        let mut back_matrix = TransMatrix::new();
-        back_matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        back_matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
-        back_matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(5));
-        back_matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(5));
-
-        let mut exit_matrix = TransMatrix::new();
-        exit_matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
-        exit_matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(5));
-
-        let bb2_edges = terminators.of_mut(bb(2));
-        bb2_edges[0] = back_matrix;
-        bb2_edges[1] = exit_matrix;
+    terminators! { terminators;
+        bb(0): [I->I = 0, I->P = 5];
+        bb(1): [diagonal(0), I->P = 5, P->I = 5];
+        bb(2): [
+            diagonal(0), I->P = 5, P->I = 5;
+            I->I = 0, P->I = 5
+        ]
     }
 
     let result = run_solver(&body, &heap, &domains, &statements, &terminators);
 
-    assert_eq!(result[bb(0)], TargetId::Interpreter);
-    assert_eq!(result[bb(3)], TargetId::Interpreter);
+    assert_eq!(result[bb(0)], I);
+    assert_eq!(result[bb(3)], I);
     // SCC {bb1, bb2}: all-I = stmt 6 + boundary 0 = 6
     //                  all-P = stmt 2 + boundary(I→P=5 + P→I=5) = 12
     // Solver should pick I for both
-    assert_eq!(result[bb(1)], TargetId::Interpreter);
-    assert_eq!(result[bb(2)], TargetId::Interpreter);
+    assert_eq!(result[bb(1)], I);
+    assert_eq!(result[bb(2)], I);
 }

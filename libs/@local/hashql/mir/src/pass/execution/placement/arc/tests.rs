@@ -1,5 +1,5 @@
 //! Tests for AC-3 arc consistency pruning.
-#![expect(clippy::min_ident_chars)]
+#![expect(clippy::min_ident_chars, clippy::missing_asserts_for_indexing)]
 
 use alloc::alloc::Global;
 

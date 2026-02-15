@@ -1,9 +1,8 @@
 use core::{alloc::Allocator, cmp};
 
 use hashql_core::{
-    graph::{NodeId, Predecessors as _, Successors as _, linked::Edge},
+    graph::{Predecessors as _, Successors as _},
     heap::BumpAllocator,
-    id::Id,
 };
 
 use super::{PlacementRegionId, PlacementSolver, condensation::BoundaryEdge};

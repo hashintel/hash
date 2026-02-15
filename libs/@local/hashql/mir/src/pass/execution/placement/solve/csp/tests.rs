@@ -12,11 +12,10 @@ use crate::{
     pass::execution::{
         ApproxCost, StatementCostVec,
         placement::solve::{
-            PlacementContext, PlacementRegionId,
+            PlacementRegionId, PlacementSolverContext,
             condensation::PlacementRegionKind,
             csp::ConstraintSatisfaction,
-            estimate::HeapElement,
-            tests::{all_targets, bb, full_matrix, same_target_matrix, target_set},
+            tests::{all_targets, bb, fix_block, stmt_costs, target_set, terminators},
         },
         target::{TargetArray, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
@@ -65,49 +64,32 @@ fn narrow_restricts_successor_domain() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    // bb0→bb1: only I→I and I→P (nothing from P or E as source)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [I->I = 0, I->P = 0];
+        bb(1): [complete(1)];
+        bb(2): [
+            complete(1);
+            complete(1)
+        ]
     }
-    terminators.of_mut(bb(1))[0] = full_matrix(); // bb1→bb2
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = full_matrix(); // bb2→bb0
-    bb2_edges[1] = full_matrix(); // bb2→bb3
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
-    // Find and assign bb0 = I
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
     csp.narrow(&body, bb(0), I);
 
-    let bb1 = csp.region.blocks.iter().find(|b| b.id == bb(1)).unwrap();
+    let bb1 = csp.region.find_block(bb(1)).expect("bb1 not found");
     assert_eq!(bb1.possible, target_set(&[I, P]));
-    let bb2 = csp.region.blocks.iter().find(|b| b.id == bb(2)).unwrap();
+    let bb2 = csp.region.find_block(bb(2)).expect("bb2 not found");
     assert_eq!(bb2.possible, all_targets());
 }
 
@@ -129,51 +111,34 @@ fn narrow_restricts_predecessor_domain() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    terminators.of_mut(bb(0))[0] = full_matrix(); // bb0→bb1
-    terminators.of_mut(bb(1))[0] = full_matrix(); // bb1→bb2
-
-    // bb2: `if cond then bb0() else bb3()` → succs = [bb3(arm0), bb0(arm1)]
-    // bb2→bb0 (arm 1): only I→I and P→I (no E→I)
-    terminators.of_mut(bb(2))[0] = full_matrix(); // bb2→bb3
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, I, cost!(0));
-        terminators.of_mut(bb(2))[1] = matrix;
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [complete(1)];
+        bb(2): [
+            complete(1);
+            I->I = 0, P->I = 0
+        ]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
     csp.narrow(&body, bb(0), I);
 
     // bb2 is predecessor of bb0. Edge bb2→bb0 only has I→I and P→I.
     // For bb0=I: incoming(I) = {I, P}. So bb2 narrowed to {I, P} (E removed).
-    let bb2 = csp.region.blocks.iter().find(|b| b.id == bb(2)).unwrap();
+    let bb2 = csp.region.find_block(bb(2)).expect("bb2 not found");
     assert_eq!(bb2.possible, target_set(&[I, P]));
-    let bb1 = csp.region.blocks.iter().find(|b| b.id == bb(1)).unwrap();
+    let bb1 = csp.region.find_block(bb(1)).expect("bb1 not found");
     assert_eq!(bb1.possible, all_targets());
 }
 
@@ -194,45 +159,30 @@ fn narrow_to_empty_domain() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    // bb0: `if cond then bb1() else bb2()` → succs = [bb2(arm0), bb1(arm1)]
-    // bb0→bb1 (arm 1): only I→I (no I→P)
-    terminators.of_mut(bb(0))[0] = full_matrix(); // bb0→bb2
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        terminators.of_mut(bb(0))[1] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            complete(1);
+            I->I = 0
+        ];
+        bb(1): [complete(1)]
     }
-    terminators.of_mut(bb(1))[0] = full_matrix(); // bb1→bb0
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
     csp.narrow(&body, bb(0), I);
 
     // bb1 had domain {P}, but I→P not in matrix → bb1.possible = empty
-    let bb1 = csp.region.blocks.iter().find(|b| b.id == bb(1)).unwrap();
+    let bb1 = csp.region.find_block(bb(1)).expect("bb1 not found");
     assert!(bb1.possible.is_empty());
 }
 
@@ -255,77 +205,44 @@ fn narrow_multiple_edges_intersect() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    // bb0: `if cond then bb1() else bb2()` → succs = [bb2(arm0), bb1(arm1)]
-    // bb0→bb2 (arm 0): only I→I and I→P (so source I targets {I, P})
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            I->I = 0, I->P = 0;
+            complete(1)
+        ];
+        bb(1): [P->P = 0, P->E = 0];
+        bb(2): [
+            complete(1);
+            complete(1)
+        ]
     }
-    // bb0→bb1 (arm 1): full matrix
-    terminators.of_mut(bb(0))[1] = full_matrix();
-    // bb1→bb2 (arm 0): only P→P and P→E (so source P targets {P, E})
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(P, E, cost!(0));
-        terminators.of_mut(bb(1))[0] = matrix;
-    }
-    // bb2: `if cond then bb0() else bb3()` → succs = [bb3(arm0), bb0(arm1)]
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = full_matrix(); // bb2→bb3
-    bb2_edges[1] = full_matrix(); // bb2→bb0
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Assign bb0 = I and narrow
-    let idx0 = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx0);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
     csp.narrow(&body, bb(0), I);
 
     // bb2 narrowed by bb0→bb2: outgoing(I) = {I, P} → bb2 ∩ {I,P} = {I,P}
-    let bb2_after_first = csp.region.blocks.iter().find(|b| b.id == bb(2)).unwrap();
+    let bb2_after_first = csp.region.find_block(bb(2)).expect("bb2 not found");
     assert!(bb2_after_first.possible.contains(I));
     assert!(bb2_after_first.possible.contains(P));
 
     // Assign bb1 = P and narrow
-    let idx1 = csp.region.blocks[csp.depth..]
-        .iter()
-        .position(|b| b.id == bb(1))
-        .unwrap();
-    csp.region.blocks.swap(csp.depth, csp.depth + idx1);
-    csp.region.blocks[csp.depth].target = HeapElement {
-        target: P,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(1));
-    csp.depth = 2;
+    fix_block(&mut csp, bb(1), P);
     csp.narrow(&body, bb(1), P);
 
     // bb2 further narrowed by bb1→bb2: outgoing(P) = {P, E} → {I,P} ∩ {P,E} = {P}
-    let bb2_after_second = csp.region.blocks.iter().find(|b| b.id == bb(2)).unwrap();
+    let bb2_after_second = csp.region.find_block(bb(2)).expect("bb2 not found");
     assert_eq!(bb2_after_second.possible, target_set(&[P]));
 }
 
@@ -347,63 +264,46 @@ fn replay_narrowing_resets_then_repropagates() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-
-    // bb0→bb1: I→I=0, I→P=0 for source I; P→E=0 for source P
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(0));
-        matrix.insert(P, E, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [I->I = 0, I->P = 0, P->E = 0];
+        bb(1): [complete(1)];
+        bb(2): [
+            complete(1);
+            complete(1)
+        ]
     }
-    terminators.of_mut(bb(1))[0] = full_matrix();
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = full_matrix();
-    bb2_edges[1] = full_matrix();
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Step 1: assign bb0 = I, narrow
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
     csp.narrow(&body, bb(0), I);
 
-    let bb1 = csp.region.blocks.iter().find(|b| b.id == bb(1)).unwrap();
+    let bb1 = csp.region.find_block(bb(1)).expect("bb1 not found");
     assert_eq!(bb1.possible, target_set(&[I, P]));
 
     // Step 2: change bb0 to P, replay
-    csp.region.blocks[0].target = HeapElement {
+    csp.region.blocks[0].target = super::super::estimate::HeapElement {
         target: P,
-        cost: ApproxCost::ZERO,
+        cost: crate::pass::execution::ApproxCost::ZERO,
     };
     csp.depth = 1;
     csp.replay_narrowing(&body);
 
     // After replay: bb1 gets P→E only → {E}
-    let bb1 = csp.region.blocks.iter().find(|b| b.id == bb(1)).unwrap();
+    let bb1 = csp.region.find_block(bb(1)).expect("bb1 not found");
     assert_eq!(bb1.possible, target_set(&[E]));
     // bb2 should be reset to original domain (no direct constraint from bb0)
-    let bb2 = csp.region.blocks.iter().find(|b| b.id == bb(2)).unwrap();
+    let bb2 = csp.region.find_block(bb(2)).expect("bb2 not found");
     assert_eq!(bb2.possible, all_targets());
 }
 
@@ -433,55 +333,34 @@ fn lower_bound_min_statement_cost_per_block() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // bb1: I=10, P=20; bb2: I=5, P=15
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(20));
-    statements[I][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(5));
-    statements[P][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(15));
+    stmt_costs! { statements;
+        bb(1): I = 10, P = 20;
+        bb(2): I = 5, P = 15
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = same_target_matrix(); // bb0→bb1
-    terminators.of_mut(bb(1))[0] = same_target_matrix(); // bb1→bb2
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = same_target_matrix(); // bb2→bb0
-    bb2_edges[1] = same_target_matrix(); // bb2→bb3
+    terminators! { terminators;
+        bb(0): [diagonal(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [
+            diagonal(0);
+            diagonal(0)
+        ]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Fix bb0 at depth 0
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
 
     let lb = csp.lower_bound(&body);
     // min(10,20) + min(5,15) = 10 + 5 = 15
@@ -512,59 +391,33 @@ fn lower_bound_min_transition_cost_per_edge() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = same_target_matrix();
-    // bb1→bb2: I→I=5, I→P=10, P→I=8, P→P=3
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(5));
-        matrix.insert(I, P, cost!(10));
-        matrix.insert(P, I, cost!(8));
-        matrix.insert(P, P, cost!(3));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [diagonal(0)];
+        bb(1): [I->P = 10, P->I = 3];
+        bb(2): [
+            diagonal(0);
+            diagonal(0)
+        ]
     }
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = same_target_matrix();
-    bb2_edges[1] = same_target_matrix();
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
 
-    eprintln!("=== lower_bound_min_transition debug ===");
-    eprintln!("depth={}", csp.depth);
-    for (idx, block) in csp.region.blocks.iter().enumerate() {
-        eprintln!(
-            "  blocks[{idx}]: id={:?} possible={:?} target={:?}",
-            block.id, block.possible, block.target
-        );
-    }
-    eprintln!("fixed: {:?}", csp.region.fixed);
     let lb = csp.lower_bound(&body);
-    eprintln!("lb = {lb:?}");
-    // stmt costs = 0. Edge bb1→bb2: min over all compatible pairs = 3 (P→P).
-    // bb2→bb0: bb0 is fixed (I), min over bb2's domain: min(I→I=0, P→I=0) = 0.
-    // Total = 0 (stmts) + 3 (bb1→bb2) + 0 (bb2→bb0) = 3
+    // stmt costs = 0. Edge bb1→bb2: min over compatible pairs in {I,P}×{I,P}:
+    // I→P=10, P→I=3 (no same-target entries in this matrix). min = 3.
+    // bb2→bb0: bb0 fixed(I), min(I→I=0, P→I=0) from same_target_matrix = 0.
+    // Total = 0 + 3 + 0 = 3
     assert_eq!(lb, cost!(3).as_approx());
 }
 
@@ -587,26 +440,24 @@ fn lower_bound_skips_self_loop_edges() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0→bb0 (arm 0): I→P=100
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, P, cost!(100));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0);
+            I->P = 100
+        ];
+        bb(1): [
+            diagonal(0);
+            diagonal(0)
+        ]
     }
-    // bb0→bb1 (arm 1): all=0
-    terminators.of_mut(bb(0))[1] = same_target_matrix();
-    // bb1→bb0 (arm 0): all=0
-    terminators.of_mut(bb(1))[0] = same_target_matrix();
-    // bb1→bb2 (arm 1): all=0
-    terminators.of_mut(bb(1))[1] = same_target_matrix();
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
@@ -633,7 +484,7 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
 
     let domains = [
         all_targets(),
-        target_set(&[I, P]),
+        target_set(&[I]),
         all_targets(),
         all_targets(),
     ];
@@ -641,62 +492,36 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = same_target_matrix();
-    // bb1→bb2: I→P=10, P→P=5, I→I=1, P→I=2
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, P, cost!(10));
-        matrix.insert(P, P, cost!(5));
-        matrix.insert(I, I, cost!(1));
-        matrix.insert(P, I, cost!(2));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [diagonal(0)];
+        bb(1): [I->P = 10, I->I = 99];
+        bb(2): [
+            diagonal(0);
+            diagonal(0)
+        ]
     }
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = same_target_matrix();
-    bb2_edges[1] = same_target_matrix();
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Fix bb0 and bb2 (target=P), leaving bb1 unfixed
-    let idx0 = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx0);
-    csp.region.blocks[0].target = HeapElement {
-        target: P,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    let idx2 = csp.region.blocks[1..]
-        .iter()
-        .position(|b| b.id == bb(2))
-        .unwrap();
-    csp.region.blocks.swap(1, 1 + idx2);
-    csp.region.blocks[1].target = HeapElement {
-        target: P,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(2));
-    csp.depth = 2;
+    fix_block(&mut csp, bb(0), P);
+    fix_block(&mut csp, bb(2), P);
 
     let lb = csp.lower_bound(&body);
-    // bb1 is unfixed. Edge bb1→bb2: bb2 fixed with target P.
-    // min over bb1's domain {I,P}: min(I→P=10, P→P=5) = 5.
-    // Edge bb0→bb1: bb0 fixed. Not unfixed edge → not counted in lb.
-    // (lower_bound only iterates unfixed blocks' outgoing edges)
-    assert_eq!(lb, cost!(5).as_approx());
+    // bb1 is unfixed, domain = {I}. Edge bb1→bb2: bb2 fixed with target P.
+    // Only bb1 candidate: I→P=10 (the concrete target P is used, not the full domain).
+    // If the successor weren't fixed, min over {I}×{all} would include I→I=0.
+    // Total = 0 (stmts) + 10 (bb1→bb2) = 10
+    assert_eq!(lb, cost!(10).as_approx());
 }
 
 #[test]
@@ -715,60 +540,34 @@ fn lower_bound_all_fixed_returns_zero() {
     let domains = [target_set(&[I, P]), target_set(&[I, P]), all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(5));
+    stmt_costs! { statements;
+        bb(0): I = 10;
+        bb(1): I = 5
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0→bb1: I→I=3
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(3));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            I->I = 3;
+            complete(1)
+        ];
+        bb(1): [complete(1)]
     }
-    terminators.of_mut(bb(0))[1] = full_matrix();
-    terminators.of_mut(bb(1))[0] = full_matrix();
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Fix both blocks
-    let idx0 = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx0);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    let idx1 = csp.region.blocks[1..]
-        .iter()
-        .position(|b| b.id == bb(1))
-        .unwrap();
-    csp.region.blocks.swap(1, 1 + idx1);
-    csp.region.blocks[1].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(1));
-    csp.depth = 2;
+    fix_block(&mut csp, bb(0), I);
+    fix_block(&mut csp, bb(1), I);
 
     assert_eq!(csp.lower_bound(&body), ApproxCost::ZERO);
 }
@@ -798,19 +597,22 @@ fn mrv_selects_smallest_domain() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = full_matrix();
-    terminators.of_mut(bb(1))[0] = full_matrix();
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = full_matrix();
-    bb2_edges[1] = full_matrix();
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [complete(1)];
+        bb(2): [
+            complete(1);
+            complete(1)
+        ]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
@@ -841,20 +643,23 @@ fn mrv_tiebreak_by_constraint_degree() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    let bb0_edges = terminators.of_mut(bb(0));
-    bb0_edges[0] = full_matrix(); // bb0→bb1
-    bb0_edges[1] = full_matrix(); // bb0→bb2
-    bb0_edges[2] = full_matrix(); // bb0→bb3
-    terminators.of_mut(bb(1))[0] = full_matrix(); // bb1→bb0
-    terminators.of_mut(bb(2))[0] = full_matrix(); // bb2→bb0
+    terminators! { terminators;
+        bb(0): [
+            complete(1);
+            complete(1);
+            complete(1)
+        ];
+        bb(1): [complete(1)];
+        bb(2): [complete(1)]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
@@ -889,37 +694,28 @@ fn mrv_skips_fixed_blocks() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = full_matrix();
-    terminators.of_mut(bb(1))[0] = full_matrix();
-    let bb2_edges = terminators.of_mut(bb(2));
-    bb2_edges[0] = full_matrix();
-    bb2_edges[1] = full_matrix();
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [complete(1)];
+        bb(2): [
+            complete(1);
+            complete(1)
+        ]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
     csp.seed();
 
     // Fix bb0 at position 0
-    let idx = csp
-        .region
-        .blocks
-        .iter()
-        .position(|b| b.id == bb(0))
-        .unwrap();
-    csp.region.blocks.swap(0, idx);
-    csp.region.blocks[0].target = HeapElement {
-        target: I,
-        cost: ApproxCost::ZERO,
-    };
-    csp.region.fixed.insert(bb(0));
-    csp.depth = 1;
+    fix_block(&mut csp, bb(0), I);
 
     let (_offset, block_id) = csp.mrv(&body);
     // bb0 is fixed (at depth 0). Among unfixed: bb1 domain=3, bb2 domain=2.
@@ -947,45 +743,27 @@ fn greedy_solves_two_block_loop() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // bb0: I=8, P=3; bb1: I=8, P=3
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(8));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(3));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(8));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(3));
+    stmt_costs! { statements;
+        bb(0): I = 8, P = 3;
+        bb(1): I = 8, P = 3
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // All edges: I→I=0, P→P=0, I→P=5, P→I=5
-    let transition_matrix = {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(I, P, cost!(5));
-        matrix.insert(P, I, cost!(5));
-        matrix
-    };
-    terminators.of_mut(bb(0))[0] = transition_matrix; // bb0→bb1
-    let bb1_edges = terminators.of_mut(bb(1));
-    bb1_edges[0] = transition_matrix; // bb1→bb0
-    bb1_edges[1] = transition_matrix; // bb1→bb2
+    terminators! { terminators;
+        bb(0): [diagonal(0), I->P = 5, P->I = 5];
+        bb(1): [
+            diagonal(0), I->P = 5, P->I = 5;
+            diagonal(0), I->P = 5, P->I = 5
+        ]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
@@ -1020,47 +798,36 @@ fn greedy_rollback_finds_alternative() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = full_matrix(); // bb0→bb1: all allowed
-    // bb1→bb2: only I→P=0 (P→P disallowed)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, P, cost!(0));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [complete(1)];
+        bb(1): [I->P = 0];
+        bb(2): [
+            P->I = 0, P->P = 0;
+            complete(1)
+        ]
     }
-    // bb2→bb0: P→I=0, P→P=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(P, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        terminators.of_mut(bb(2))[0] = matrix;
-    }
-    terminators.of_mut(bb(2))[1] = full_matrix(); // bb2→bb3
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
     assert!(csp.solve(&body));
     let bb1_target = csp
         .region
-        .blocks
-        .iter()
-        .find(|b| b.id == bb(1))
-        .unwrap()
+        .find_block(bb(1))
+        .expect("bb1 not found")
         .target
         .target;
     let bb2_target = csp
         .region
-        .blocks
-        .iter()
-        .find(|b| b.id == bb(2))
-        .unwrap()
+        .find_block(bb(2))
+        .expect("bb2 not found")
         .target
         .target;
     assert_eq!(bb2_target, P);
@@ -1085,27 +852,21 @@ fn greedy_fails_when_infeasible() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0→bb1 (arm 0): only I→I (no I→P)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
-    }
-    terminators.of_mut(bb(0))[1] = full_matrix(); // bb0→bb2
-    // bb1→bb0: only P→P (no P→I)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(P, P, cost!(0));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            I->I = 0;
+            complete(1)
+        ];
+        bb(1): [P->P = 0]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
@@ -1135,70 +896,41 @@ fn bnb_finds_optimal() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // bb0: I=10, P=2; bb1: I=1, P=50; bb2: I=1, P=50
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(2));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(50));
-    statements[I][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(2),
-        statement_index: 1,
-    }] = Some(cost!(50));
+    stmt_costs! { statements;
+        bb(0): I = 10, P = 2;
+        bb(1): I = 1, P = 50;
+        bb(2): I = 1, P = 50
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // TransMatrix: I→I=0, P→P=0, P→I=20, I→P=20
-    let transition_matrix = {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(P, I, cost!(20));
-        matrix.insert(I, P, cost!(20));
-        matrix
-    };
-    let bb0_edges = terminators.of_mut(bb(0));
-    bb0_edges[0] = transition_matrix; // bb0→bb1
-    bb0_edges[1] = transition_matrix; // bb0→bb2
-    bb0_edges[2] = transition_matrix; // bb0→bb3
-    terminators.of_mut(bb(1))[0] = transition_matrix; // bb1→bb0
-    terminators.of_mut(bb(2))[0] = transition_matrix; // bb2→bb0
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0), I->P = 20, P->I = 20;
+            diagonal(0), I->P = 20, P->I = 20;
+            diagonal(0), I->P = 20, P->I = 20
+        ];
+        bb(1): [diagonal(0), I->P = 20, P->I = 20];
+        bb(2): [diagonal(0), I->P = 20, P->I = 20]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
     assert!(csp.solve(&body));
-    // Optimal: all-I = 10+1+1+0+0 = 12. Greedy picks bb0=P(2) → suboptimal.
-    // BnB should find bb0=I.
-    let bb0_target = csp
-        .region
-        .blocks
-        .iter()
-        .find(|b| b.id == bb(0))
-        .unwrap()
-        .target
-        .target;
-    assert_eq!(bb0_target, I);
+    // all-I = stmt(10+1+1) + trans(0) = 12
+    // all-P = stmt(2+50+50) + trans(0) = 102
+    // bb0=P,rest=I = stmt(2+1+1) + trans(P→I=20 + P→I=20) = 44
+    // BnB must find all-I as optimal.
+    for block in &*csp.region.blocks {
+        assert_eq!(block.target.target, I);
+    }
 }
 
 #[test]
@@ -1219,52 +951,50 @@ fn bnb_retains_ranked_solutions() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // bb0: I=5, P=10, E=15; bb1: I=5, P=10, E=15
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(5));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[E][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(15));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(5));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(10));
-    statements[E][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(15));
+    stmt_costs! { statements;
+        bb(0): I = 5, P = 10, E = 15;
+        bb(1): I = 5, P = 10, E = 15
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    terminators.of_mut(bb(0))[0] = same_target_matrix(); // bb0→bb1
-    terminators.of_mut(bb(0))[1] = full_matrix(); // bb0→bb2
-    terminators.of_mut(bb(1))[0] = same_target_matrix(); // bb1→bb0
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0);
+            complete(1)
+        ];
+        bb(1): [diagonal(0)]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
     assert!(csp.solve(&body));
-    // After solve(), solutions should be retained
-    assert!(csp.region.solutions.is_some());
-    let solutions = csp.region.solutions.as_ref().unwrap();
-    // At least one alternative should have finite cost
-    assert!(solutions.iter().any(|sol| sol.cost.is_finite()));
+
+    // solve() should apply the optimal solution: (I,I) = 5+5 = 10
+    for block in &*csp.region.blocks {
+        assert_eq!(block.target.target, I);
+    }
+
+    // Ranked alternatives should be retained for retry()
+    let solutions = csp.region.solutions.as_ref().expect("solutions missing");
+    // Next best is (P,P) = 10+10 = 20, so at least one alternative must be finite
+    assert!(solutions[0].cost.is_finite());
+    // Solutions must be in non-decreasing cost order
+    for window in solutions.windows(2) {
+        assert!(
+            window[0].cost <= window[1].cost,
+            "solutions not ranked: {:?} > {:?}",
+            window[0].cost,
+            window[1].cost,
+        );
+    }
 }
 
 #[test]
@@ -1289,41 +1019,31 @@ fn bnb_pruning_preserves_optimal() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // All blocks: I=1, P=1
-    for block_idx in 0..4_u32 {
-        statements[I][Location {
-            block: bb(block_idx),
-            statement_index: 1,
-        }] = Some(cost!(1));
-        statements[P][Location {
-            block: bb(block_idx),
-            statement_index: 1,
-        }] = Some(cost!(1));
+    stmt_costs! { statements;
+        bb(0): I = 1, P = 1;
+        bb(1): I = 1, P = 1;
+        bb(2): I = 1, P = 1;
+        bb(3): I = 1, P = 1
     }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // TransMatrix: I→I=0, P→P=0, I→P=100, P→I=100
-    let transition_matrix = {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(I, P, cost!(100));
-        matrix.insert(P, I, cost!(100));
-        matrix
-    };
-    terminators.of_mut(bb(0))[0] = transition_matrix;
-    terminators.of_mut(bb(1))[0] = transition_matrix;
-    terminators.of_mut(bb(2))[0] = transition_matrix;
-    let bb3_edges = terminators.of_mut(bb(3));
-    bb3_edges[0] = transition_matrix;
-    bb3_edges[1] = transition_matrix;
+    terminators! { terminators;
+        bb(0): [diagonal(0), I->P = 100, P->I = 100];
+        bb(1): [diagonal(0), I->P = 100, P->I = 100];
+        bb(2): [diagonal(0), I->P = 100, P->I = 100];
+        bb(3): [
+            diagonal(0), I->P = 100, P->I = 100;
+            diagonal(0), I->P = 100, P->I = 100
+        ]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
@@ -1356,51 +1076,53 @@ fn retry_returns_ranked_solutions_in_order() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     // bb0: I=1, P=2; bb1: I=1, P=2
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(2));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(2));
+    stmt_costs! { statements;
+        bb(0): I = 1, P = 2;
+        bb(1): I = 1, P = 2
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    let transition_matrix = {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(I, P, cost!(5));
-        matrix.insert(P, I, cost!(5));
-        matrix
-    };
-    terminators.of_mut(bb(0))[0] = transition_matrix; // bb0→bb1
-    terminators.of_mut(bb(0))[1] = transition_matrix; // bb0→bb2
-    terminators.of_mut(bb(1))[0] = transition_matrix; // bb1→bb0
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0), I->P = 5, P->I = 5;
+            diagonal(0), I->P = 5, P->I = 5
+        ];
+        bb(1): [diagonal(0), I->P = 5, P->I = 5]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
     assert!(csp.solve(&body));
-    // solve() consumed the best solution. retry() should give the next.
+
+    // solve() applies optimal: (I,I) = 1+1 = 2
+    let first_bb0 = csp.region.find_block(bb(0)).expect("bb0 not found").target;
+    let first_bb1 = csp.region.find_block(bb(1)).expect("bb1 not found").target;
+    assert_eq!(first_bb0.target, I);
+    assert_eq!(first_bb1.target, I);
+    let first_cost = first_bb0.cost + first_bb1.cost;
+
+    // retry() applies next-best: (P,P) = 2+2 = 4
     assert!(csp.retry(&body));
-    // Second retry should also succeed (we have 3+ solutions for 2-block with 2 targets each)
-    // Costs should be non-decreasing (solutions are ranked)
+    let second_bb0 = csp.region.find_block(bb(0)).expect("bb0 not found").target;
+    let second_bb1 = csp.region.find_block(bb(1)).expect("bb1 not found").target;
+    let second_cost = second_bb0.cost + second_bb1.cost;
+    assert!(
+        second_cost >= first_cost,
+        "retry cost {second_cost:?} < solve cost {first_cost:?}",
+    );
+    // Assignment must differ from the first
+    assert!(
+        second_bb0.target != first_bb0.target || second_bb1.target != first_bb1.target,
+        "retry returned the same assignment as solve",
+    );
 }
 
 #[test]
@@ -1421,42 +1143,42 @@ fn retry_exhausts_then_perturbs() {
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(2));
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(1));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(2));
+    stmt_costs! { statements;
+        bb(0): I = 1, P = 2;
+        bb(1): I = 1, P = 2
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // Only same-target transitions allowed
-    terminators.of_mut(bb(0))[0] = same_target_matrix(); // bb0→bb1
-    terminators.of_mut(bb(0))[1] = same_target_matrix(); // bb0→bb2
-    terminators.of_mut(bb(1))[0] = same_target_matrix(); // bb1→bb0
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0);
+            diagonal(0)
+        ];
+        bb(1): [diagonal(0)]
+    }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let mut solver = data.build_in(&body, &heap);
     let (region_id, region) = take_cyclic(&mut solver);
     let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
 
-    assert!(csp.solve(&body)); // consumes (I,I)
-    assert!(csp.retry(&body)); // consumes (P,P)
-    // Only 2 valid assignments exist. Third retry should eventually fail.
-    // (It may try perturbation first, but heaps are exhausted too)
+    assert!(csp.solve(&body));
+    // Only same-target transitions allowed, so valid assignments are (I,I) and (P,P).
+    // solve() applies the best: (I,I) with cost 1+1 = 2
+    let solve_target = csp.region.blocks[0].target.target;
+    assert_eq!(solve_target, csp.region.blocks[1].target.target);
+
+    assert!(csp.retry(&body));
+    // retry() applies the other: (P,P) with cost 2+2 = 4
+    let retry_target = csp.region.blocks[0].target.target;
+    assert_eq!(retry_target, csp.region.blocks[1].target.target);
+    assert_ne!(retry_target, solve_target);
+
+    // Both valid assignments consumed. No alternatives remain.
     assert!(!csp.retry(&body));
 }

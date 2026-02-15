@@ -1,7 +1,24 @@
 #![expect(clippy::min_ident_chars)]
 
-use super::*;
-use crate::pass::execution::target::TargetId;
+use hashql_core::{heap::Heap, id::IdArray, r#type::environment::Environment};
+
+use super::{
+    super::{
+        PlacementSolverContext,
+        tests::{bb, find_region_of, stmt_costs, target_set, terminators},
+    },
+    *,
+};
+use crate::{
+    body::{basic_block::BasicBlockSlice, location::Location},
+    builder::body,
+    intern::Interner,
+    pass::execution::{
+        StatementCostVec,
+        target::{TargetArray, TargetId},
+        terminator_placement::{TerminatorCostVec, TransMatrix},
+    },
+};
 
 const I: TargetId = TargetId::Interpreter;
 const P: TargetId = TargetId::Postgres;
@@ -14,15 +31,15 @@ fn heap_insert_maintains_sorted_order() {
     heap.insert(I, cost!(10).as_approx());
     heap.insert(E, cost!(20).as_approx());
 
-    let first = heap.pop().unwrap();
+    let first = heap.pop().expect("heap is non-empty");
     assert_eq!(first.target, I);
     assert_eq!(first.cost, cost!(10).as_approx());
 
-    let second = heap.pop().unwrap();
+    let second = heap.pop().expect("heap is non-empty");
     assert_eq!(second.target, E);
     assert_eq!(second.cost, cost!(20).as_approx());
 
-    let third = heap.pop().unwrap();
+    let third = heap.pop().expect("heap is non-empty");
     assert_eq!(third.target, P);
     assert_eq!(third.cost, cost!(30).as_approx());
 }
@@ -33,11 +50,11 @@ fn heap_pop_exhaustion() {
     heap.insert(I, cost!(5).as_approx());
     heap.insert(P, cost!(10).as_approx());
 
-    let first = heap.pop().unwrap();
+    let first = heap.pop().expect("heap is non-empty");
     assert_eq!(first.target, I);
     assert_eq!(first.cost, cost!(5).as_approx());
 
-    let second = heap.pop().unwrap();
+    let second = heap.pop().expect("heap is non-empty");
     assert_eq!(second.target, P);
     assert_eq!(second.cost, cost!(10).as_approx());
 
@@ -53,15 +70,15 @@ fn heap_peek_does_not_consume() {
 
     assert_eq!(heap.len(), 1);
 
-    let peeked = heap.peek().unwrap();
+    let peeked = heap.peek().expect("peeking at non-empty heap");
     assert_eq!(peeked.target, I);
     assert_eq!(peeked.cost, cost!(7).as_approx());
 
-    let peeked_again = heap.peek().unwrap();
+    let peeked_again = heap.peek().expect("peeking at non-empty heap");
     assert_eq!(peeked_again.target, I);
     assert_eq!(peeked_again.cost, cost!(7).as_approx());
 
-    let popped = heap.pop().unwrap();
+    let popped = heap.pop().expect("heap is non-empty");
     assert_eq!(popped.target, I);
     assert_eq!(popped.cost, cost!(7).as_approx());
 
@@ -89,8 +106,8 @@ fn heap_equal_cost_elements() {
     heap.insert(I, cost!(5).as_approx());
     heap.insert(P, cost!(5).as_approx());
 
-    let first = heap.pop().unwrap();
-    let second = heap.pop().unwrap();
+    let first = heap.pop().expect("heap is non-empty");
+    let second = heap.pop().expect("heap is non-empty");
 
     assert_eq!(first.cost, cost!(5).as_approx());
     assert_eq!(second.cost, cost!(5).as_approx());
@@ -103,61 +120,6 @@ fn heap_equal_cost_elements() {
 }
 
 // --- CostEstimation tests ---
-
-use hashql_core::{
-    heap::Heap,
-    id::{IdArray, bit_vec::FiniteBitSet},
-    r#type::environment::Environment,
-};
-
-use super::super::{PlacementContext, condensation::PlacementRegionKind};
-use crate::{
-    body::{basic_block::BasicBlockSlice, location::Location},
-    builder::body,
-    intern::Interner,
-    pass::execution::{
-        StatementCostVec,
-        target::{TargetArray, TargetBitSet},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
-    },
-};
-
-fn target_set(targets: &[TargetId]) -> TargetBitSet {
-    let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
-    for &target in targets {
-        set.insert(target);
-    }
-    set
-}
-
-fn bb(index: u32) -> BasicBlockId {
-    BasicBlockId::new(index)
-}
-
-fn find_region_of(
-    solver: &super::super::PlacementSolver<
-        '_,
-        '_,
-        impl core::alloc::Allocator,
-        impl hashql_core::heap::BumpAllocator,
-    >,
-    block: BasicBlockId,
-) -> super::super::PlacementRegionId {
-    for region_id in solver.condensation.reverse_topological_order() {
-        match &solver.condensation[region_id].kind {
-            PlacementRegionKind::Trivial(trivial) if trivial.block == block => {
-                return region_id;
-            }
-            PlacementRegionKind::Cyclic(cyclic) => {
-                if cyclic.members.contains(&block) {
-                    return region_id;
-                }
-            }
-            _ => {}
-        }
-    }
-    panic!("no region found for {block:?}");
-}
 
 #[test]
 fn self_loop_edges_excluded_from_cost() {
@@ -184,41 +146,23 @@ fn self_loop_edges_excluded_from_cost() {
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // bb0 statement cost: I=5, P=5
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(5));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(5));
+    stmt_costs! { statements; bb(0): I = 5, P = 5 }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb0 (self-loop, arm 0): I→P=100, P→I=100, I→I=0, P→P=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        matrix.insert(I, P, cost!(100));
-        matrix.insert(P, I, cost!(100));
-        terminators.of_mut(bb(0))[0] = matrix;
-    }
-    // bb0 → bb1 (exit edge, arm 1): all transitions cost 0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(P, I, cost!(0));
-        terminators.of_mut(bb(0))[1] = matrix;
+    terminators! { terminators;
+        bb(0): [
+            diagonal(0), I->P = 100, P->I = 100;
+            I->I = 0, P->I = 0
+        ]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let solver = data.build_in(&body, &heap);
     solver.targets[bb(1)] = Some(HeapElement {
         target: I,
         cost: ApproxCost::ZERO,
@@ -267,32 +211,18 @@ fn boundary_multiplier_applied_to_cross_region_edges() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: I→P=20, all others=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(20));
-        matrix.insert(P, I, cost!(0));
-        matrix.insert(P, P, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
-    }
-    // bb1 → bb2: P→I=20, all others=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(0));
-        matrix.insert(P, I, cost!(20));
-        matrix.insert(P, P, cost!(0));
-        terminators.of_mut(bb(1))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [diagonal(0), I->P = 20, P->I = 0];
+        bb(1): [diagonal(0), I->P = 0, P->I = 20]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let solver = data.build_in(&body, &heap);
     solver.targets[bb(0)] = Some(HeapElement {
         target: I,
         cost: ApproxCost::ZERO,
@@ -350,20 +280,17 @@ fn infeasible_transition_returns_none() {
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: only I→I allowed (no P→anything)
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [I->I = 0]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
-    let mut solver = data.run_in(&body, &heap);
+    let solver = data.build_in(&body, &heap);
     solver.targets[bb(0)] = Some(HeapElement {
         target: P,
         cost: ApproxCost::ZERO,
@@ -408,44 +335,24 @@ fn unassigned_neighbor_uses_heuristic_minimum() {
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
 
-    // bb0: I=3, P=7
-    statements[I][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(3));
-    statements[P][Location {
-        block: bb(0),
-        statement_index: 1,
-    }] = Some(cost!(7));
-    // bb1: I=3, P=7
-    statements[I][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(3));
-    statements[P][Location {
-        block: bb(1),
-        statement_index: 1,
-    }] = Some(cost!(7));
+    stmt_costs! { statements;
+        bb(0): I = 3, P = 7;
+        bb(1): I = 3, P = 7
+    }
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
-    // bb0 → bb1: I→I=0, I→P=10, P→I=5, P→P=0
-    {
-        let mut matrix = TransMatrix::new();
-        matrix.insert(I, I, cost!(0));
-        matrix.insert(I, P, cost!(10));
-        matrix.insert(P, I, cost!(5));
-        matrix.insert(P, P, cost!(0));
-        terminators.of_mut(bb(0))[0] = matrix;
+    terminators! { terminators;
+        bb(0): [diagonal(0), I->P = 10, P->I = 5]
     }
 
     let assignment = BasicBlockSlice::from_raw(&domains);
-    let data = PlacementContext {
+    let data = PlacementSolverContext {
         assignment,
         statements: &statements,
         terminators: &terminators,
     };
     // bb0 is NOT assigned — determine_target returns None
-    let solver = data.run_in(&body, &heap);
+    let solver = data.build_in(&body, &heap);
 
     let region_id = find_region_of(&solver, bb(1));
 
