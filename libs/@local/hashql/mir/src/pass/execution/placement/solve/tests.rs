@@ -7,10 +7,11 @@ use hashql_core::{
     id::{IdArray, bit_vec::FiniteBitSet},
     r#type::environment::Environment,
 };
+use hashql_diagnostics::severity::Severity;
 
 use super::{
-    PlacementRegionId, PlacementSolver, PlacementSolverContext, condensation::PlacementRegionKind,
-    csp::ConstraintSatisfaction,
+    PlacementFailure, PlacementRegionId, PlacementSolver, PlacementSolverContext,
+    condensation::PlacementRegionKind, csp::ConstraintSatisfaction,
 };
 use crate::{
     body::{
@@ -19,9 +20,12 @@ use crate::{
         location::Location,
     },
     builder::body,
+    context::MirContext,
+    error::MirDiagnosticCategory,
     intern::Interner,
     pass::execution::{
         ApproxCost, Cost, StatementCostVec,
+        placement::error::PlacementDiagnosticCategory,
         target::{TargetArray, TargetBitSet, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },
@@ -113,19 +117,21 @@ const P: TargetId = TargetId::Postgres;
 
 pub(crate) fn run_solver<'heap>(
     body: &Body<'heap>,
-    heap: &'heap Heap,
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
     domains: &[TargetBitSet],
     statements: &TargetArray<StatementCostVec<&'heap Heap>>,
     terminators: &TerminatorCostVec<&'heap Heap>,
 ) -> BasicBlockVec<TargetId, &'heap Heap> {
+    let mut context = MirContext::new(env, interner);
     let assignment = BasicBlockSlice::from_raw(domains);
     let data = PlacementSolverContext {
         assignment,
         statements,
         terminators,
     };
-    let mut solver = data.build_in(body, heap);
-    solver.run(body)
+    let mut solver = data.build_in(body, env.heap);
+    solver.run(&mut context, body)
 }
 
 pub(crate) fn find_region_of(
@@ -212,7 +218,7 @@ fn forward_pass_assigns_all_blocks() {
         bb(2): [complete(1)]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     for block_id in 0..4_u32 {
         let target = result[bb(block_id)];
@@ -288,7 +294,7 @@ fn backward_pass_improves_suboptimal_forward() {
         bb(2): [diagonal(0)]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     // bb2 picks I (stmt 1 vs 50). bb2→bb3 diagonal-only forces bb3=I.
@@ -365,7 +371,7 @@ fn rewind_triggers_on_join_with_conflicting_predecessors() {
         bb(2): [I->P = 0, P->I = 0]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     // Only consistent solutions: (bb1=I, bb2=P, bb3=I) or (bb1=P, bb2=I, bb3=P)
@@ -450,7 +456,7 @@ fn rewind_skips_exhausted_region() {
         bb(2): [I->I = 0]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     assert_eq!(result[bb(1)], P);
@@ -488,7 +494,7 @@ fn single_block_trivial_region() {
 
     let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], P);
 }
@@ -549,7 +555,7 @@ fn cyclic_region_in_forward_backward() {
         ]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     assert_eq!(result[bb(3)], I);
@@ -640,7 +646,7 @@ fn rewind_retries_cyclic_region() {
         bb(3): [P->I = 0]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     assert_eq!(result[bb(1)], P);
@@ -741,7 +747,7 @@ fn rewind_skips_exhausted_cyclic_region() {
         bb(3): [diagonal(0)]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], P);
     assert_eq!(result[bb(1)], P);
@@ -750,11 +756,12 @@ fn rewind_skips_exhausted_cyclic_region() {
     assert_eq!(result[bb(4)], I);
 }
 
-/// Verifies that `run_forwards_loop` returns `false` when no consistent assignment exists.
+/// Verifies that `run_forwards_loop` returns the failing block when no consistent assignment
+/// exists.
 ///
 /// The constraint system is unsatisfiable: diagonal-only edges force all blocks
 /// to share a target, but a swap-only edge requires the join block to differ
-/// from its predecessor.
+/// from its predecessor. bb3 is the block where all candidates are exhausted.
 #[test]
 fn rewind_exhausts_all_regions() {
     let heap = Heap::new();
@@ -809,7 +816,10 @@ fn rewind_exhausts_all_regions() {
         .reverse_topological_order()
         .rev()
         .collect_into(&mut regions);
-    assert!(!solver.run_forwards_loop(&body, &regions));
+    assert_eq!(
+        solver.run_forwards_loop(&body, &regions),
+        Err(PlacementFailure::Block(bb(3)))
+    );
 }
 
 /// Verifies that the forward pass rewinds when a cyclic region's CSP solver fails.
@@ -868,7 +878,7 @@ fn forward_pass_rewinds_on_cyclic_failure() {
         ]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], P);
     assert_eq!(result[bb(1)], P);
@@ -958,7 +968,7 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
         .reverse_topological_order()
         .rev()
         .collect_into(&mut regions);
-    assert!(solver.run_forwards_loop(&body, &regions));
+    assert_eq!(solver.run_forwards_loop(&body, &regions), Ok(()));
 
     // Record forward-pass SCC assignment (should be all-I)
     let bb1_original = solver.targets[bb(1)].expect("bb1 assigned").target;
@@ -1051,11 +1061,149 @@ fn backward_pass_adopts_better_cyclic_solution() {
         bb(3): [I->I = 0]
     }
 
-    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+    let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
     assert_eq!(result[bb(0)], I);
     assert_eq!(result[bb(1)], I);
     assert_eq!(result[bb(2)], I);
     assert_eq!(result[bb(3)], I);
     assert_eq!(result[bb(4)], I);
+}
+
+/// Verifies that `run` emits an unsatisfiable placement diagnostic when a trivial region
+/// exhausts all candidates and rewind finds no alternatives.
+///
+/// Uses the same unsatisfiable diamond CFG as [`rewind_exhausts_all_regions`] but calls
+/// `solver.run` instead of `run_forwards_loop`, then inspects `context.diagnostics`.
+#[test]
+fn trivial_failure_emits_diagnostic() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Diamond: bb0→bb1(then), bb0→bb2(else), bb1→bb3, bb2→bb3. All trivial SCCs.
+    // bb1→bb3: diagonal only. bb2→bb3: swap only (I→P, P→I).
+    // No assignment for bb3 satisfies both predecessors simultaneously, and
+    // rewind exhausts all alternatives.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            x = load 0;
+            goto bb3();
+        },
+        bb2() {
+            x = load 0;
+            goto bb3();
+        },
+        bb3() {
+            return x;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip, ip, ip, ip];
+
+    let statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [diagonal(0); diagonal(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [I->P = 0, P->I = 0]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+    let mut context = MirContext::new(&env, &interner);
+
+    let _result = solver.run(&mut context, &body);
+
+    assert_eq!(context.diagnostics.len(), 1);
+    let diagnostic = context.diagnostics.iter().next().expect("one diagnostic");
+    assert_eq!(diagnostic.severity, Severity::Bug);
+    assert_eq!(
+        diagnostic.category,
+        MirDiagnosticCategory::Placement(PlacementDiagnosticCategory::UnsatisfiablePlacement),
+    );
+}
+
+/// Verifies that `run` emits an unsatisfiable placement diagnostic when a cyclic region
+/// has no consistent assignment and there are no earlier regions to rewind to.
+///
+/// The SCC {bb0, bb1} has mutually contradictory transition constraints: bb0→bb1
+/// requires (bb0=I, bb1=P) while bb1→bb0 requires (bb1=I, bb0=P). AC-3 detects
+/// domain wipeout immediately. Since the SCC is the first region in topological
+/// order, rewind has nowhere to go.
+#[test]
+fn cyclic_failure_emits_diagnostic() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0 branches to bb1(then) and bb2(else). bb1→bb0 closes the cycle.
+    // bb2 is the exit. SCC = {bb0, bb1}, processed first.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb0();
+        },
+        bb2() {
+            x = load 0;
+            return x;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip, ip, ip];
+
+    let statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    // bb0→bb1 (arm1, then): only I→P — forces bb0=I, bb1=P.
+    // bb1→bb0 (arm0, goto): only I→P — forces bb1=I, bb0=P.
+    // Contradiction: bb1 must be both P and I. AC-3 wipes the domain.
+    // bb0→bb2 (arm0, else): permissive, irrelevant to the SCC.
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [
+            complete(0);
+            I->P = 0
+        ];
+        bb(1): [I->P = 0]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+    let mut context = MirContext::new(&env, &interner);
+
+    let _result = solver.run(&mut context, &body);
+
+    assert_eq!(context.diagnostics.len(), 1);
+    let diagnostic = context.diagnostics.iter().next().expect("one diagnostic");
+    assert_eq!(diagnostic.severity, Severity::Bug);
+    assert_eq!(
+        diagnostic.category,
+        MirDiagnosticCategory::Placement(PlacementDiagnosticCategory::UnsatisfiablePlacement),
+    );
 }
