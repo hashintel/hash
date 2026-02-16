@@ -20,6 +20,8 @@ export const buildCspHeader = (nonce: string): string => {
       `'nonce-${nonce}'`,
       // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
       "'wasm-unsafe-eval'",
+      // Next.js dev mode uses eval() for Fast Refresh / HMR
+      ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
       // Google Identity Services (OAuth sign-in)
       "https://accounts.google.com",
       // Google Picker API (Google Sheets integration)
@@ -43,6 +45,8 @@ export const buildCspHeader = (nonce: string): string => {
       // to presigned S3/R2 URLs on varying domains. `https:` avoids needing to
       // enumerate every possible storage backend domain.
       "https:",
+      // Local S3-compatible storage (MinIO) serves over plain HTTP
+      ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
     "font-src": ["'self'"],
@@ -59,6 +63,10 @@ export const buildCspHeader = (nonce: string): string => {
       "https://edge-config.vercel.com",
       // Vercel toolbar / live preview widget
       "https://vercel.live",
+      // File uploads/downloads use presigned S3/R2 URLs on varying domains.
+      // Production storage is always HTTPS; local MinIO uses plain HTTP.
+      "https:",
+      ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
     "worker-src": [
