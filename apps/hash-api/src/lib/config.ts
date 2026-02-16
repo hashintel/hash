@@ -25,8 +25,8 @@ export const GRAPHQL_PATH = "/graphql";
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
   origin: [
-    /-hashintel\.vercel\.app$/,
-    /\.stage\.hash\.ai$/,
+    /^https:\/\/[a-z\d][a-z\d-]*-hashintel\.vercel\.app$/,
+    /^https:\/\/[a-z\d][a-z\d.-]*\.stage\.hash\.ai$/,
     "https://hash.ai",
     frontendUrl,
   ],

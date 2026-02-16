@@ -1,4 +1,5 @@
 import oEmbedData from "oembed-providers/providers.json";
+import sanitizeHtml from "sanitize-html";
 
 import type {
   Embed,
@@ -8,6 +9,89 @@ import type {
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 import * as Error from "../../error";
+
+/**
+ * Sanitize oEmbed HTML to prevent XSS from third-party providers.
+ *
+ * Allows structural elements needed for embeds (iframes, blockquotes, images)
+ * while stripping scripts and event handlers. Script-dependent embeds (e.g.
+ * Twitter) will degrade to showing their static HTML content.
+ */
+const sanitizeOembedHtml = (html: string): string =>
+  sanitizeHtml(html, {
+    allowedTags: [
+      "iframe",
+      "blockquote",
+      "a",
+      "img",
+      "div",
+      "span",
+      "p",
+      "br",
+      "em",
+      "strong",
+      "figure",
+      "figcaption",
+      "cite",
+      "time",
+    ],
+    allowedAttributes: {
+      iframe: [
+        "src",
+        "width",
+        "height",
+        "frameborder",
+        "allowfullscreen",
+        "allow",
+        "title",
+        "style",
+        "loading",
+        "referrerpolicy",
+      ],
+      blockquote: ["class", "data-*", "cite", "style"],
+      a: ["href", "title", "class", "target", "rel"],
+      img: ["src", "alt", "width", "height", "class", "style", "loading"],
+      div: ["class", "style"],
+      span: ["class", "style"],
+      p: ["class", "style"],
+      time: ["datetime"],
+    },
+    /**
+     * Restrict inline styles to safe layout/sizing properties only.
+     * This prevents CSS-based injection vectors (e.g. `background-image: url(...)`,
+     * `expression(...)`, or `-moz-binding`) while preserving embed layout.
+     */
+    allowedStyles: {
+      "*": {
+        width: [/^\d+(?:px|em|rem|%)$/],
+        "max-width": [/^\d+(?:px|em|rem|%)$/],
+        height: [/^\d+(?:px|em|rem|%)$/],
+        "max-height": [/^\d+(?:px|em|rem|%)$/],
+        "text-align": [/^(?:left|right|center|justify)$/],
+        "vertical-align": [/^(?:top|middle|bottom|baseline)$/],
+        display: [/^(?:block|inline|inline-block|flex|none)$/],
+        margin: [
+          /^[\d.]+(?:px|em|rem|%|auto)(?:\s+[\d.]+(?:px|em|rem|%|auto)){0,3}$/,
+        ],
+        padding: [/^[\d.]+(?:px|em|rem|%)(?:\s+[\d.]+(?:px|em|rem|%)){0,3}$/],
+        border: [/^(?:none|\d+px\s+\w+\s+#?[a-zA-Z0-9]+)$/],
+        "aspect-ratio": [/^[\d.]+\s*\/\s*[\d.]+$/],
+        position: [/^(?:relative|static)$/],
+        overflow: [/^(?:hidden|visible|auto|scroll)$/],
+      },
+    },
+    allowedSchemes: ["https"],
+    allowProtocolRelative: false,
+    transformTags: {
+      a: (tagName, attribs) => ({
+        tagName,
+        attribs: {
+          ...attribs,
+          rel: "noopener noreferrer",
+        },
+      }),
+    },
+  });
 
 oEmbedData.unshift({
   provider_name: "HASH",
@@ -57,7 +141,7 @@ const getOembedEndpoint = (url: string, type?: string) => {
     }
     for (const endpoint of endpoints) {
       const isMatch = !!endpoint.schemes?.find((scheme) =>
-        scheme.split("*").every((substring) => url.search(substring) > -1),
+        scheme.split("*").every((substring) => url.includes(substring)),
       );
 
       if (isMatch) {
@@ -82,9 +166,9 @@ async function getEmbedResponse({
     };
   }
 
-  return await fetch(`${oembedEndpoint}?url=${url}&maxwidth=1000`).then(
-    (response) => response.json(),
-  );
+  return await fetch(
+    `${oembedEndpoint}?url=${encodeURIComponent(url)}&maxwidth=1000`,
+  ).then((response) => response.json());
 }
 
 export const embedCode: ResolverFn<
@@ -115,7 +199,7 @@ export const embedCode: ResolverFn<
   }
 
   return {
-    html,
+    html: html ? sanitizeOembedHtml(html) : html,
     providerName: provider_name,
     height,
     width,

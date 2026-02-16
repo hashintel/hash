@@ -65,12 +65,6 @@ export const createEntityResolver: ResolverFn<
   const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  /**
-   * @todo: prevent callers of this mutation from being able to create restricted
-   * system types (e.g. a `User` or an `Org`)
-   * @see https://linear.app/hash/issue/H-2993
-   */
-
   let entity: Entity;
 
   if (linkData) {
