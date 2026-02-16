@@ -13,6 +13,8 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  * bg — alpha-based layers from transparent (min) through surface/subtle/shaded/strong
  *       up to opaque solid; provides hover/active/disabled for each.
  *       bg.solid.fg provides the contrast text color for solid backgrounds.
+ * canvas — solid-color equivalents of bg, using opaque s* steps instead of alpha a*.
+ *          Use for surfaces that must not blend (popovers, dialogs, dropdowns).
  * fg — text hierarchy from max (strongest) through heading/body/muted/subtle,
  *       plus link.
  * bd — alpha-based borders at three weights: subtle, solid, strong.
@@ -84,6 +86,39 @@ export function createSemanticSet(
         hover: ps("a70"),
         active: ps("a75"),
         disabled: ps("a40"),
+      },
+      solid: bgSolid,
+    },
+    canvas: {
+      min: {
+        DEFAULT: ps("s00"),
+        hover: ps("s05"),
+        active: ps("s10"),
+        disabled: ps("s00"),
+      },
+      surface: {
+        DEFAULT: ps("s10"),
+        hover: ps("s15"),
+        active: ps("s20"),
+        disabled: ps("s05"),
+      },
+      subtle: {
+        DEFAULT: ps("s20"),
+        hover: ps("s30"),
+        active: ps("s40"),
+        disabled: ps("s10"),
+      },
+      shaded: {
+        DEFAULT: ps("s40"),
+        hover: ps("s50"),
+        active: ps("s55"),
+        disabled: ps("s20"),
+      },
+      strong: {
+        DEFAULT: ps("s60"),
+        hover: ps("s70"),
+        active: ps("s75"),
+        disabled: ps("s40"),
       },
       solid: bgSolid,
     },
