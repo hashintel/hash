@@ -256,7 +256,7 @@ impl Heap {
         strings.reserve(TABLES.iter().map(|table| table.len()).sum());
 
         for &table in TABLES {
-            for &symbol in table {
+            for symbol in table {
                 assert!(strings.insert(symbol.as_str()));
             }
         }

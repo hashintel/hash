@@ -38,7 +38,7 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
     /// Creates an integer constant operand.
     #[must_use]
-    pub fn const_int(self, value: i128) -> Operand<'heap> {
+    pub const fn const_int(self, value: i128) -> Operand<'heap> {
         Operand::Constant(Constant::Int(value.into()))
     }
 
@@ -52,7 +52,7 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
     /// Creates a boolean constant operand.
     #[must_use]
-    pub fn const_bool(self, value: bool) -> Operand<'heap> {
+    pub const fn const_bool(self, value: bool) -> Operand<'heap> {
         Operand::Constant(Constant::Int(value.into()))
     }
 

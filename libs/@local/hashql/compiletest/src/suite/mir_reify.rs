@@ -20,7 +20,7 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pretty::{D2Buffer, D2Format, TextFormat},
+    pretty::{D2Buffer, D2Format, TextFormatOptions},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, SuiteDirectives, common::process_status};
@@ -87,12 +87,15 @@ pub(crate) fn mir_format_text<'heap>(
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
 
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer,
         indent: 4,
         sources: bodies,
         types,
-    };
+        annotations: (),
+    }
+    .build();
+
     text_format
         .format(bodies, &[root])
         .expect("should be able to write bodies");

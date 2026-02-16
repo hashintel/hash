@@ -485,7 +485,7 @@ macro_rules! impl_from {
     };
 
     (@impl $ty:ty) => {
-        impl From<$ty> for Int {
+        impl const From<$ty> for Int {
             #[inline]
             fn from(value: $ty) -> Self {
                 Self::from_value_unchecked(i128::from(value))
@@ -498,26 +498,29 @@ impl_from!(bool, u8, u16, u32, u64, i8, i16, i32, i64, i128);
 
 // `usize` and `isize` cannot use the macro because `i128::from()` doesn't accept
 // platform-dependent types.
-impl From<usize> for Int {
+impl const From<usize> for Int {
     #[inline]
     fn from(value: usize) -> Self {
         Self::from_value_unchecked(value as i128)
     }
 }
 
-impl From<isize> for Int {
+impl const From<isize> for Int {
     #[inline]
     fn from(value: isize) -> Self {
         Self::from_value_unchecked(value as i128)
     }
 }
 
-impl TryFrom<u128> for Int {
+impl const TryFrom<u128> for Int {
     type Error = TryFromIntError;
 
     #[inline]
     fn try_from(value: u128) -> Result<Self, Self::Error> {
-        Ok(Self::from_value_unchecked(i128::try_from(value)?))
+        match i128::try_from(value) {
+            Ok(value) => Ok(Self::from_value_unchecked(value)),
+            Err(error) => Err(error),
+        }
     }
 }
 
