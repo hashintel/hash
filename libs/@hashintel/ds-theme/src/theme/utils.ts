@@ -7,53 +7,80 @@
 export type PaletteKind = "normal" | "bright" | "neutral";
 
 /**
+ * Step number at which the foreground contrast color flips.
+ * Below this step: dark text (s125). At or above: light text (s00).
+ * Bright palettes have additional exceptions — see BRIGHT_FLIPBACK_STEPS.
+ */
+const CONTRAST_FLIP_STEP = 80;
+
+/**
+ * Steps in bright palettes where the contrast flips back to dark text,
+ * even though they are at or above CONTRAST_FLIP_STEP.
+ * These steps are vivid/light enough to need dark foreground.
+ */
+const BRIGHT_FLIPBACK_STEPS = [90, 95, 100];
+
+/**
+ * Returns the contrast foreground token for a given step number and palette kind.
+ * - Below CONTRAST_FLIP_STEP → dark text (palette's s125)
+ * - At or above CONTRAST_FLIP_STEP → light text (palette's s00)
+ * - Bright palettes at BRIGHT_FLIPBACK_STEPS → dark text (neutral)
+ */
+function contrastFg(
+  stepNum: number,
+  kind: PaletteKind,
+  ps: (step: string) => { value: string },
+): { value: string | { _light: string; _dark: string } } {
+  if (stepNum < CONTRAST_FLIP_STEP) {
+    return ps("s125");
+  }
+  if (kind === "bright" && BRIGHT_FLIPBACK_STEPS.includes(stepNum)) {
+    return {
+      value: {
+        _light: "{colors.neutral.s120}",
+        _dark: "{colors.neutral.s10}",
+      },
+    };
+  }
+  return ps("s00");
+}
+
+/**
+ * Extracts the numeric part from a step key like "a30" or "s90".
+ */
+function stepNum(step: string): number {
+  return Number(step.replace(/^[as]/, ""));
+}
+
+/**
  * Creates the bg/fg/bd semantic structure referencing a specific palette.
  * The palette must be a valid token path like "colors.blue" or "colors.neutral".
  *
  * bg — alpha-based layers from transparent (min) through surface/subtle/shaded
  *       up to opaque solid; provides hover/active/disabled for each.
- *       bg.solid.fg provides the contrast text color for solid backgrounds.
+ *       Each category includes a .fg contrast text color determined by the
+ *       CONTRAST_FLIP_STEP threshold.
  * bgSolid — solid-color equivalents of bg, using opaque s* steps instead of alpha a*.
  *           Use for surfaces that must not blend (popovers, dialogs, dropdowns).
  * fg — text hierarchy from max (strongest) through heading/body/muted/subtle,
  *       plus link.
  * bd — alpha-based borders at three weights: subtle, solid, strong.
- *
- * The `kind` parameter controls how bg.solid.fg is mapped to ensure proper text
- * contrast on solid backgrounds ("bright" palettes use neutral fg, others use s00).
  */
 export function createSemanticSet(
   palette: string = "neutral",
   kind: PaletteKind = "normal",
 ) {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
+  const cfg = (step: string) => contrastFg(stepNum(step), kind, ps);
 
-  const onSolid =
-    kind === "bright"
-      ? {
-          value: {
-            _light: "{colors.neutral.s120}",
-            _dark: "{colors.neutral.s10}",
-          },
-        }
-      : ps("s00");
-
-  const solidAccent =
-    kind === "neutral"
-      ? {
-          DEFAULT: ps("s125"),
-          hover: ps("s120"),
-          active: ps("s120"),
-          disabled: ps("s60"),
-          fg: onSolid,
-        }
-      : {
-          DEFAULT: ps("s90"),
-          hover: ps("s100"),
-          active: ps("s100"),
-          disabled: ps("s60"),
-          fg: onSolid,
-        };
+  const solidAccentStep = kind === "neutral" ? "s125" : "s90";
+  const solidAccent = {
+    DEFAULT: ps(solidAccentStep),
+    hover: kind === "neutral" ? ps("s120") : ps("s100"),
+    active: kind === "neutral" ? ps("s120") : ps("s100"),
+    disabled: ps("s60"),
+    fg: cfg(solidAccentStep),
+  };
 
   return {
     bg: {
@@ -62,24 +89,28 @@ export function createSemanticSet(
         hover: ps("a05"),
         active: ps("a10"),
         disabled: ps("a00"),
+        fg: cfg("a00"),
       },
       surface: {
         DEFAULT: ps("a10"),
         hover: ps("a15"),
         active: ps("a20"),
         disabled: ps("a05"),
+        fg: cfg("a10"),
       },
       subtle: {
         DEFAULT: ps("a30"),
         hover: ps("a40"),
         active: ps("a50"),
         disabled: ps("a15"),
+        fg: cfg("a30"),
       },
       shaded: {
         DEFAULT: ps("a50"),
         hover: ps("a60"),
         active: ps("a65"),
         disabled: ps("a30"),
+        fg: cfg("a50"),
       },
       solid: solidAccent,
     },
@@ -89,24 +120,28 @@ export function createSemanticSet(
         hover: ps("s05"),
         active: ps("s10"),
         disabled: ps("s00"),
+        fg: cfg("s00"),
       },
       surface: {
         DEFAULT: ps("s10"),
         hover: ps("s15"),
         active: ps("s20"),
         disabled: ps("s05"),
+        fg: cfg("s10"),
       },
       subtle: {
         DEFAULT: ps("s30"),
         hover: ps("s40"),
         active: ps("s50"),
         disabled: ps("s15"),
+        fg: cfg("s30"),
       },
       shaded: {
         DEFAULT: ps("s50"),
         hover: ps("s60"),
         active: ps("s65"),
         disabled: ps("s30"),
+        fg: cfg("s50"),
       },
       solid: solidAccent,
     },

@@ -39,6 +39,28 @@ const COLOR_PALETTES: readonly PaletteName[] = [
   "pink",
 ];
 
+/**
+ * Step number at which swatch label text flips from dark to light.
+ * Mirrors CONTRAST_FLIP_STEP in ds-theme/src/theme/utils.ts.
+ */
+const CONTRAST_FLIP_STEP = 80;
+
+/** Bright palettes where steps 90–100 flip back to dark text. */
+const BRIGHT_PALETTES: readonly string[] = ["orange", "yellow"];
+const BRIGHT_FLIPBACK_STEPS = [90, 95, 100];
+
+function useDarkText(palette: string, step: string): boolean {
+  const num = Number(step.replace(/^[as]/, ""));
+  if (num < CONTRAST_FLIP_STEP) return true;
+  if (
+    BRIGHT_PALETTES.includes(palette) &&
+    BRIGHT_FLIPBACK_STEPS.includes(num)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const SOLID_STEPS: readonly SolidStep[] = [
   "s00",
   "s05",
@@ -142,26 +164,20 @@ const ColorSwatch = ({
 }) => {
   const tokenPath = `colors.${colorName}.${step}` as Token;
   const isAlpha = step.startsWith("a");
+  const dark = useDarkText(colorName, step);
 
   return (
     <div
       className={swatchStyles}
       style={{
         backgroundColor: token(tokenPath),
+        color: dark ? "#000" : "#fff",
         boxShadow: isAlpha
           ? "inset 0 0 0 1px rgba(0,0,0,0.1)"
           : "inset 0 0 0 1px rgba(0,0,0,0.05)",
       }}
     >
-      <span
-        className={css({
-          color: "white",
-          textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]",
-          mixBlendMode: "difference",
-        })}
-      >
-        {step}
-      </span>
+      {step}
     </div>
   );
 };

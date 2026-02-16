@@ -181,10 +181,10 @@ export const ColorLayering: Story = () => {
             maxWidth: "[700px]",
           })}
         >
-          The first four <code className={mono}>bg.*</code> levels (min, surface,
-          subtle, shaded) and all <code className={mono}>bd.*</code> tokens use
-          alpha transparency, allowing them to layer over any surface. Nesting
-          the same level produces progressively darker shading.{" "}
+          The first four <code className={mono}>bg.*</code> levels (min,
+          surface, subtle, shaded) and all <code className={mono}>bd.*</code>{" "}
+          tokens use alpha transparency, allowing them to layer over any
+          surface. Nesting the same level produces progressively darker shading.{" "}
           <code className={mono}>bg.solid</code> is an opaque accent fill. Use{" "}
           <code className={mono}>bgSolid.*</code> for opaque surfaces (popovers,
           dialogs) that must not blend.
