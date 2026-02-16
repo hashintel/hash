@@ -204,6 +204,44 @@ const BorderSwatch = ({
   </VStack>
 );
 
+const FocusRingDemo = () => (
+  <VStack gap="3" alignItems="flex-start">
+    <span className={sectionTitle}>focusRing</span>
+    <HStack gap="3" flexWrap="wrap">
+      {(["outside", "inside", "mixed"] as const).map((variant) => (
+        <button
+          key={variant}
+          type="button"
+          className={css({
+            textStyle: "xs",
+            fontWeight: "medium",
+            px: "4",
+            py: "2",
+            borderRadius: "md",
+            border: "[1px solid]",
+            borderColor: "colorPalette.bd.solid",
+            bg: "colorPalette.bg.surface",
+            color: "colorPalette.fg.body",
+            cursor: "pointer",
+            focusVisibleRing: variant,
+            focusRingColor: "colorPalette.bd.solid",
+          })}
+        >
+          {variant}
+        </button>
+      ))}
+    </HStack>
+    <span
+      className={css({
+        textStyle: "xs",
+        color: "colorPalette.fg.muted",
+      })}
+    >
+      Tab to see focus rings
+    </span>
+  </VStack>
+);
+
 const BdColumn = () => (
   <VStack gap="3" alignItems="flex-start">
     <span className={sectionTitle}>bd.*</span>
@@ -247,7 +285,10 @@ const PaletteSection = ({ palette }: { palette: string }) => (
     <Grid columns={3} gap="6">
       <BgColumn />
       <FgColumn />
-      <BdColumn />
+      <VStack gap="6" alignItems="flex-start">
+        <BdColumn />
+        <FocusRingDemo />
+      </VStack>
     </Grid>
   </Box>
 );
