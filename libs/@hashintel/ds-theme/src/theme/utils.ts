@@ -91,7 +91,7 @@ export function createSemanticSet(
       max: ps("s125"),
       heading: ps("s120"),
       body: {
-        DEFAULT: ps("s110"),
+        DEFAULT: ps("s115"),
         hover: ps("s120"),
         disabled: ps("s90"),
       },
