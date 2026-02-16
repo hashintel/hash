@@ -96,7 +96,7 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
     /// Constructs a [`PlacementSolver`] from this context.
     ///
     /// Allocates working storage (targets and options slices) and builds the
-    /// [`Condensation`] graph from `body`.
+    /// `Condensation` graph from `body`.
     pub fn build_in<'alloc, S>(
         self,
         body: &Body<'_>,

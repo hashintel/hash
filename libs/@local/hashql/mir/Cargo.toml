@@ -19,7 +19,6 @@ hashql-hir         = { workspace = true, public = true }
 # Private third-party dependencies
 anstyle-svg    = { workspace = true }
 bstr           = { workspace = true }
-heapless       = { version = "0.9.2", features = ["nightly"] }
 rpds           = { workspace = true }
 simple-mermaid = { workspace = true }
 
