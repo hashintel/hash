@@ -24,6 +24,8 @@ export const buildCspHeader = (nonce: string): string => {
       "https://accounts.google.com",
       // Google Picker API (Google Sheets integration)
       "https://apis.google.com",
+      // Vercel toolbar / live preview widget
+      "https://vercel.live",
     ],
 
     "style-src": [
@@ -55,6 +57,8 @@ export const buildCspHeader = (nonce: string): string => {
       "https://www.googleapis.com",
       // Vercel Edge Config (maintenance mode check in middleware)
       "https://edge-config.vercel.com",
+      // Vercel toolbar / live preview widget
+      "https://vercel.live",
     ],
 
     "worker-src": [
@@ -69,6 +73,8 @@ export const buildCspHeader = (nonce: string): string => {
       "https://accounts.google.com",
       // Google Picker iframe
       "https://docs.google.com",
+      // Vercel toolbar / live preview widget
+      "https://vercel.live",
     ],
 
     "object-src": ["'none'"],
