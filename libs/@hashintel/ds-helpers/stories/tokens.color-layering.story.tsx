@@ -153,7 +153,7 @@ const MixedLevels = ({ palette }: { palette: PaletteName }) => (
               className={css({
                 textStyle: "xs",
                 fontWeight: "medium",
-                color: "colorPalette.bg.solid.fg",
+                color: "colorPalette.fg.onSolid",
               })}
             >
               bg.solid + bd.strong

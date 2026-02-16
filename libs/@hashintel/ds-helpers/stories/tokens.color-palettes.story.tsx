@@ -46,7 +46,7 @@ const COLOR_PALETTES: readonly PaletteName[] = [
  * Swatch labels always render in a single color (no mode-conditional CSS),
  * so this uses the light-mode threshold for a reasonable default.
  */
-const CONTRAST_FLIP_STEP = 80;
+const CONTRAST_FLIP_STEP = 85;
 
 /** Bright palettes where steps 90–100 flip back to dark text (light mode). */
 const BRIGHT_PALETTES: readonly string[] = ["orange", "yellow"];
