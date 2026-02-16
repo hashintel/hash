@@ -101,6 +101,7 @@
     "prosemirror-model@npm:^1.21.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
     "prosemirror-view@npm:^1.1.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "prosemirror-view@npm:^1.27.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
+    "qs": "6.14.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
