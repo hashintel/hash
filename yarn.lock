@@ -638,7 +638,7 @@ __metadata:
     prismjs: "npm:1.30.0"
     prosemirror-collab: "npm:1.3.0"
     prosemirror-commands: "npm:1.3.1"
-    prosemirror-dev-tools: "npm:3.1.0"
+    prosemirror-dev-tools: "npm:4.3.0"
     prosemirror-inputrules: "npm:1.2.0"
     prosemirror-keymap: "npm:1.2.0"
     prosemirror-model: "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch"
@@ -4817,7 +4817,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.13.10, @babel/runtime@npm:^7.15.4, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.1, @babel/runtime@npm:^7.23.8, @babel/runtime@npm:^7.23.9, @babel/runtime@npm:^7.24.5, @babel/runtime@npm:^7.3.1, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
+"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.13.10, @babel/runtime@npm:^7.15.4, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.1, @babel/runtime@npm:^7.23.8, @babel/runtime@npm:^7.23.9, @babel/runtime@npm:^7.24.5, @babel/runtime@npm:^7.28.6, @babel/runtime@npm:^7.3.1, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
   version: 7.28.6
   resolution: "@babel/runtime@npm:7.28.6"
   checksum: 10c0/358cf2429992ac1c466df1a21c1601d595c46930a13c1d4662fde908d44ee78ec3c183aaff513ecb01ef8c55c3624afe0309eeeb34715672dbfadb7feedb2c0d
@@ -5479,6 +5479,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@compiled/react@npm:^0.19.0":
+  version: 0.19.0
+  resolution: "@compiled/react@npm:0.19.0"
+  dependencies:
+    csstype: "npm:^3.1.3"
+  peerDependencies:
+    react: ">=18.0.0"
+  checksum: 10c0/34a328254ae8f034d45a459c76f6d4941a9e08597bf1856911426d54abddd08caf3d401314237d1b9d9fd60e4f71cdeb12fc00fe6dbc1e73f1d66107bd00450e
+  languageName: node
+  linkType: hard
+
 "@csstools/color-helpers@npm:^6.0.1":
   version: 6.0.1
   resolution: "@csstools/color-helpers@npm:6.0.1"
@@ -5877,19 +5888,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emotion/css@npm:^11.1.3":
-  version: 11.13.5
-  resolution: "@emotion/css@npm:11.13.5"
-  dependencies:
-    "@emotion/babel-plugin": "npm:^11.13.5"
-    "@emotion/cache": "npm:^11.13.5"
-    "@emotion/serialize": "npm:^1.3.3"
-    "@emotion/sheet": "npm:^1.4.0"
-    "@emotion/utils": "npm:^1.4.2"
-  checksum: 10c0/45d444b08c1a9776046786f1ad8b93297d9e0fb79e6a40b73e9f9c5c20a071f83bae2408e7b98fe526fc123774a18b12ae3c8dc5b5883b8169685ee7b8df9463
-  languageName: node
-  linkType: hard
-
 "@emotion/hash@npm:^0.9.2":
   version: 0.9.2
   resolution: "@emotion/hash@npm:0.9.2"
@@ -5913,7 +5911,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emotion/react@npm:11.14.0, @emotion/react@npm:^11.4.0":
+"@emotion/react@npm:11.14.0":
   version: 11.14.0
   resolution: "@emotion/react@npm:11.14.0"
   dependencies:
@@ -5971,7 +5969,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emotion/styled@npm:11.14.1, @emotion/styled@npm:^11.3.0":
+"@emotion/styled@npm:11.14.1":
   version: 11.14.1
   resolution: "@emotion/styled@npm:11.14.1"
   dependencies:
@@ -18152,7 +18150,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash-es@npm:4.17.12":
+"@types/lodash-es@npm:4.17.12, @types/lodash-es@npm:^4.17.12":
   version: 4.17.12
   resolution: "@types/lodash-es@npm:4.17.12"
   dependencies:
@@ -18197,7 +18195,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash@npm:*, @types/lodash@npm:4.17.20, @types/lodash@npm:^4.14.182, @types/lodash@npm:^4.17.13, @types/lodash@npm:^4.17.7":
+"@types/lodash@npm:*, @types/lodash@npm:^4.14.182, @types/lodash@npm:^4.17.0, @types/lodash@npm:^4.17.13, @types/lodash@npm:^4.17.15, @types/lodash@npm:^4.17.7":
+  version: 4.17.23
+  resolution: "@types/lodash@npm:4.17.23"
+  checksum: 10c0/9d9cbfb684e064a2b78aab9e220d398c9c2a7d36bc51a07b184ff382fa043a99b3d00c16c7f109b4eb8614118f4869678dbae7d5c6700ed16fb9340e26cc0bf6
+  languageName: node
+  linkType: hard
+
+"@types/lodash@npm:4.17.20":
   version: 4.17.20
   resolution: "@types/lodash@npm:4.17.20"
   checksum: 10c0/98cdd0faae22cbb8079a01a3bb65aa8f8c41143367486c1cbf5adc83f16c9272a2a5d2c1f541f61d0d73da543c16ee1d21cf2ef86cb93cd0cc0ac3bced6dd88f
@@ -22184,16 +22189,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-runtime@npm:^6.6.1":
-  version: 6.26.0
-  resolution: "babel-runtime@npm:6.26.0"
-  dependencies:
-    core-js: "npm:^2.4.0"
-    regenerator-runtime: "npm:^0.11.0"
-  checksum: 10c0/caa752004936b1463765ed3199c52f6a55d0613b9bed108743d6f13ca532b821d4ea9decc4be1b583193164462b1e3e7eefdfa36b15c72e7daac58dd72c1772f
-  languageName: node
-  linkType: hard
-
 "bail@npm:^2.0.0":
   version: 2.0.2
   resolution: "bail@npm:2.0.2"
@@ -22286,13 +22281,6 @@ __metadata:
   dependencies:
     bare-path: "npm:^3.0.0"
   checksum: 10c0/4fd0046314390a54404519d9db20e130ab3a341ef638d040f9603ae3fa0a1d84f6970357d21c8fc64e6163d1f61fd212cb1cfa4cb537dfead99fb06e3c030b15
-  languageName: node
-  linkType: hard
-
-"base16@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "base16@npm:1.0.0"
-  checksum: 10c0/af1aee7b297d968528ef47c8de2c5274029743e8a4a5f61ec823e36b673781691d124168cb22936c7997f53d89b344c58bf7ecf93eeb148cffa7e3fb4e4b8b18
   languageName: node
   linkType: hard
 
@@ -24320,13 +24308,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"core-js@npm:^2.4.0":
-  version: 2.6.12
-  resolution: "core-js@npm:2.6.12"
-  checksum: 10c0/00128efe427789120a06b819adc94cc72b96955acb331cb71d09287baf9bd37bebd191d91f1ee4939c893a050307ead4faea08876f09115112612b6a05684b63
-  languageName: node
-  linkType: hard
-
 "core-js@npm:^3.27.2":
   version: 3.46.0
   resolution: "core-js@npm:3.46.0"
@@ -24402,16 +24383,6 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/1c1703be4f02a250b1d6ca3267e408ce16abfe8364193891afc94c2d5c060b69611fdc8d97af74b7e6d5d1aac0ab2fb94d6b079573146bc2d756c2484ce5f0ee
-  languageName: node
-  linkType: hard
-
-"create-react-context@npm:^0.1.5":
-  version: 0.1.6
-  resolution: "create-react-context@npm:0.1.6"
-  peerDependencies:
-    prop-types: ^15.0.0
-    react: ^14.0.0 || ^15.0.0 || ^16.0.0
-  checksum: 10c0/5e858c2513e3796098b5ff1592dd5e9f9d09c1e4735c39241a6cd87a5c9be8546d1aca610d69e7511634565b41bee60ebb40055e2ec0cb63074a8859d459424a
   languageName: node
   linkType: hard
 
@@ -32419,6 +32390,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jotai@npm:^2.17.1":
+  version: 2.17.1
+  resolution: "jotai@npm:2.17.1"
+  peerDependencies:
+    "@babel/core": ">=7.0.0"
+    "@babel/template": ">=7.0.0"
+    "@types/react": ">=17.0.0"
+    react: ">=17.0.0"
+  peerDependenciesMeta:
+    "@babel/core":
+      optional: true
+    "@babel/template":
+      optional: true
+    "@types/react":
+      optional: true
+    react:
+      optional: true
+  checksum: 10c0/45e52a77a7d33d0947f3ceafe8930a161e170e1d28e934572a325267fdc0177f766761f06b38b884955f468deb27ebb530646658566ea5bbba68991317fb09a4
+  languageName: node
+  linkType: hard
+
 "js-base64@npm:^2.4.3":
   version: 2.6.4
   resolution: "js-base64@npm:2.6.4"
@@ -33530,13 +33522,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash._getnative@npm:^3.0.0":
-  version: 3.9.1
-  resolution: "lodash._getnative@npm:3.9.1"
-  checksum: 10c0/858cff25fc52353a1e39f44ff87fc1e1e8a85da513818f0caebe50c2795cf5cbce9d71a3e91ec0972bee3b174a74d697a38c6bb16d0b416dcc32322ae152a104
-  languageName: node
-  linkType: hard
-
 "lodash.camelcase@npm:^4.3.0":
   version: 4.3.0
   resolution: "lodash.camelcase@npm:4.3.0"
@@ -33551,13 +33536,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.curry@npm:^4.0.1":
-  version: 4.1.1
-  resolution: "lodash.curry@npm:4.1.1"
-  checksum: 10c0/f0431947dc9236df879fc13eb40c31a2839c958bd0eaa39170a5758c25a7d85d461716a851ab45a175371950b283480615cdd4b07fb0dd1afff7a2914a90696f
-  languageName: node
-  linkType: hard
-
 "lodash.debounce@npm:4.0.8, lodash.debounce@npm:^4.0.8":
   version: 4.0.8
   resolution: "lodash.debounce@npm:4.0.8"
@@ -33565,26 +33543,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.debounce@npm:^3.1.1":
-  version: 3.1.1
-  resolution: "lodash.debounce@npm:3.1.1"
-  dependencies:
-    lodash._getnative: "npm:^3.0.0"
-  checksum: 10c0/807448622e95cefa4f31f06079f63a58fc2c7c5781fa5c58d910d1c5d52019da82dcc4cc846ed4bc0302d290f1de342cec7e84a5224d7d7db1380fca67922b46
-  languageName: node
-  linkType: hard
-
 "lodash.defaults@npm:^4.2.0":
   version: 4.2.0
   resolution: "lodash.defaults@npm:4.2.0"
   checksum: 10c0/d5b77aeb702caa69b17be1358faece33a84497bcca814897383c58b28a2f8dfc381b1d9edbec239f8b425126a3bbe4916223da2a576bb0411c2cefd67df80707
-  languageName: node
-  linkType: hard
-
-"lodash.flow@npm:^3.3.0":
-  version: 3.5.0
-  resolution: "lodash.flow@npm:3.5.0"
-  checksum: 10c0/b3202ddbb79e5aab41719806d0d5ae969f64ae6b59e6bdaaecaa96ec68d6ba429e544017fe0e71ecf5b7ee3cea7b45d43c46b7d67ca159d6cca86fca76c61a31
   languageName: node
   linkType: hard
 
@@ -33890,14 +33852,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^11.0.0, lru-cache@npm:^11.1.0":
-  version: 11.2.4
-  resolution: "lru-cache@npm:11.2.4"
-  checksum: 10c0/4a24f9b17537619f9144d7b8e42cd5a225efdfd7076ebe7b5e7dc02b860a818455201e67fbf000765233fe7e339d3c8229fc815e9b58ee6ede511e07608c19b2
-  languageName: node
-  linkType: hard
-
-"lru-cache@npm:^11.2.1":
+"lru-cache@npm:^11.0.0, lru-cache@npm:^11.1.0, lru-cache@npm:^11.2.1":
   version: 11.2.6
   resolution: "lru-cache@npm:11.2.6"
   checksum: 10c0/73bbffb298760e71b2bfe8ebc16a311c6a60ceddbba919cfedfd8635c2d125fbfb5a39b71818200e67973b11f8d59c5a9e31d6f90722e340e90393663a66e5cd
@@ -35838,10 +35793,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:^2.1.11":
-  version: 2.1.11
-  resolution: "nanoid@npm:2.1.11"
-  checksum: 10c0/8640d17698633ff78b2549ec8d5dffd8f56909bad1cf0da08bf3a4012f98553b1b9f2327a2d7fb3613084f33189a8ab4b889eb4c7939f3f9e242d9fd8ff059d5
+"nanoid@npm:^5.1.6":
+  version: 5.1.6
+  resolution: "nanoid@npm:5.1.6"
+  bin:
+    nanoid: bin/nanoid.js
+  checksum: 10c0/27b5b055ad8332cf4f0f9f6e2a494aa7e5ded89df4cab8c8490d4eabefe72c4423971d2745d22002868b1d50576a5e42b7b05214733b19f576382323282dd26e
   languageName: node
   linkType: hard
 
@@ -38427,27 +38384,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-dev-tools@npm:3.1.0":
-  version: 3.1.0
-  resolution: "prosemirror-dev-tools@npm:3.1.0"
+"prosemirror-dev-tools@npm:4.3.0":
+  version: 4.3.0
+  resolution: "prosemirror-dev-tools@npm:4.3.0"
   dependencies:
-    "@babel/runtime": "npm:^7.0.0"
-    "@emotion/css": "npm:^11.1.3"
-    "@emotion/react": "npm:^11.4.0"
-    "@emotion/styled": "npm:^11.3.0"
+    "@babel/runtime": "npm:^7.28.6"
+    "@compiled/react": "npm:^0.19.0"
     html: "npm:^1.0.0"
-    jsondiffpatch: "npm:^0.4.1"
-    nanoid: "npm:^2.1.11"
-    prop-types: "npm:^15.7.2"
+    jotai: "npm:^2.17.1"
+    jsondiffpatch: "npm:^0.7.3"
+    nanoid: "npm:^5.1.6"
     prosemirror-model: "npm:>=1.0.0"
     prosemirror-state: "npm:>=1.0.0"
-    react-dock: "npm:^0.2.4"
-    react-json-tree: "npm:^0.11.2"
-    unstated: "npm:^2.1.1"
+    react-dock: "npm:^0.8.0"
+    react-json-tree: "npm:^0.20.0"
   peerDependencies:
-    react: ">=16.8.0"
-    react-dom: ">=16.8.0"
-  checksum: 10c0/8423c77d379cf96d066b48ade73527d3bfc0142f84cea2edc46c69a57def937a1f1b1dbd4946c8cdf91d072273c95192d50d3b917bfaed8c5f5460c331be9565
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/90044925ef3ee304da40d8125ef1dd2be76994d6d3ffcd893d3a82e0321a2c5780c3bd5251087809284845d9d155f3584352893bff588d927665756180941d89
   languageName: node
   linkType: hard
 
@@ -38807,13 +38761,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pure-color@npm:^1.2.0":
-  version: 1.3.0
-  resolution: "pure-color@npm:1.3.0"
-  checksum: 10c0/50d0e088ad0349bdd508cddf7c7afbb2d14ba3c047628dbfcfddf467a98f10462caf91f3227172ada88f64afaf761c499ecba0d4053b06926f0f914769be24b9
-  languageName: node
-  linkType: hard
-
 "pure-rand@npm:^6.1.0":
   version: 6.1.0
   resolution: "pure-rand@npm:6.1.0"
@@ -39058,15 +39005,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-base16-styling@npm:^0.5.1":
-  version: 0.5.3
-  resolution: "react-base16-styling@npm:0.5.3"
+"react-base16-styling@npm:^0.10.0":
+  version: 0.10.0
+  resolution: "react-base16-styling@npm:0.10.0"
   dependencies:
-    base16: "npm:^1.0.0"
-    lodash.curry: "npm:^4.0.1"
-    lodash.flow: "npm:^3.3.0"
-    pure-color: "npm:^1.2.0"
-  checksum: 10c0/7a15e86df641231cb460366d9988789884d48e96d37f1464fb29512eea43c00215c698f04a6ed335c13c8be7ddd097a68b0bf36cce2465737110131b78248111
+    "@types/lodash": "npm:^4.17.0"
+    color: "npm:^4.2.3"
+    csstype: "npm:^3.1.3"
+    lodash-es: "npm:^4.17.21"
+  checksum: 10c0/86392f1b33ff04b542496c714937d05fcacffb1ab01a398d7930588b6e69185deb4cae9ac7dcb0f993073f3ae60152f6e50828b79d7da15fa111f54463f8f678
   languageName: node
   linkType: hard
 
@@ -39115,16 +39062,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dock@npm:^0.2.4":
-  version: 0.2.4
-  resolution: "react-dock@npm:0.2.4"
+"react-dock@npm:^0.8.0":
+  version: 0.8.0
+  resolution: "react-dock@npm:0.8.0"
   dependencies:
-    lodash.debounce: "npm:^3.1.1"
-    prop-types: "npm:^15.5.8"
+    "@types/lodash-es": "npm:^4.17.12"
+    lodash-es: "npm:^4.17.21"
   peerDependencies:
-    babel-runtime: ^6.3.13
-    react: ">=0.13.0"
-  checksum: 10c0/8a2e479295b6f63c1bfb51da08a3982a4c479a2557bd7ea9f3eda5739698b390e36d658b57df3240e2590c24501d141861224037284e53fc28469d21318862f1
+    "@types/react": ^16.3.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react: ^16.3.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/0475e40a8893e724fa9eb252972567cf27fdc401590fa093ff105dcd3f1891b25a5cfb817e6b60cc706ce75d48023f012acefe7d855170589595af25d10f7cbf
   languageName: node
   linkType: hard
 
@@ -39239,17 +39186,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-json-tree@npm:^0.11.2":
-  version: 0.11.2
-  resolution: "react-json-tree@npm:0.11.2"
+"react-json-tree@npm:^0.20.0":
+  version: 0.20.0
+  resolution: "react-json-tree@npm:0.20.0"
   dependencies:
-    babel-runtime: "npm:^6.6.1"
-    prop-types: "npm:^15.5.8"
-    react-base16-styling: "npm:^0.5.1"
+    "@types/lodash": "npm:^4.17.15"
+    react-base16-styling: "npm:^0.10.0"
   peerDependencies:
-    react: ^15.0.0 || ^16.0.0
-    react-dom: ^15.0.0 || ^16.0.0
-  checksum: 10c0/62e5fa10e9f09c387c33e82686b411158f1d3f16d146e8cf1c8a40a945805d5a8de19b98b5337d1170e3a6136ca00ab6a9b82a4aa8950cc13500f264043f3e46
+    "@types/react": ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/44b45ff1f4f4417930cf6157f10c7ea6a6229407973dbb99e9594fb6925d31ffcf290fb0c0bfc4df8b45058aba52b5eb5ed760f5c66c040f38bd8de20f5a58a3
   languageName: node
   linkType: hard
 
@@ -39893,13 +39839,6 @@ __metadata:
   version: 1.4.2
   resolution: "regenerate@npm:1.4.2"
   checksum: 10c0/f73c9eba5d398c818edc71d1c6979eaa05af7a808682749dd079f8df2a6d91a9b913db216c2c9b03e0a8ba2bba8701244a93f45211afbff691c32c7b275db1b8
-  languageName: node
-  linkType: hard
-
-"regenerator-runtime@npm:^0.11.0":
-  version: 0.11.1
-  resolution: "regenerator-runtime@npm:0.11.1"
-  checksum: 10c0/69cfa839efcf2d627fe358bf302ab8b24e5f182cb69f13e66f0612d3640d7838aad1e55662135e3ef2c1cc4322315b757626094fab13a48f9a64ab4bdeb8795b
   languageName: node
   linkType: hard
 
@@ -44667,17 +44606,6 @@ __metadata:
   bin:
     unrun: dist/cli.mjs
   checksum: 10c0/abc63e39a0027cc2991e8bc818fbfe77814ac3bd12c5eabe53b841432a028e5c9bec9e204df72cd40805ad147a85a931507d4991556d0bd738fd39e0908f3c72
-  languageName: node
-  linkType: hard
-
-"unstated@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "unstated@npm:2.1.1"
-  dependencies:
-    create-react-context: "npm:^0.1.5"
-  peerDependencies:
-    react: ^15.0.0 || ^16.0.0
-  checksum: 10c0/5d3f151ec74c532eb159d6e929def1d3d6dbcedce4882c3a0cc2f8cdfece135e11f1033e8cffb4c412b33c9b788b3d1837d0941ef30d7d2dd0fb23495ba52279
   languageName: node
   linkType: hard
 
