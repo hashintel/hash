@@ -942,10 +942,10 @@ fn greedy_fails_when_infeasible() {
 
 // --- Group 7: CSP Branch-and-Bound ---
 
-/// BnB finds the globally optimal assignment that greedy would miss.
+/// `BnB` finds the globally optimal assignment that greedy would miss.
 ///
 /// Greedy picks locally cheap bb0=P (cost 2), but this forces expensive cross-target
-/// transitions (20 each). BnB explores all branches and finds all-I (cost 12 vs 44).
+/// transitions (20 each). `BnB` explores all branches and finds all-I (cost 12 vs 44).
 #[test]
 fn bnb_finds_optimal() {
     let heap = Heap::new();
@@ -1004,10 +1004,10 @@ fn bnb_finds_optimal() {
     }
 }
 
-/// BnB retains multiple solutions in non-decreasing cost order for retry.
+/// `BnB` retains multiple solutions in non-decreasing cost order for retry.
 ///
 /// With diagonal-only transitions, only same-target assignments are valid:
-/// (I,I)=10, (P,P)=20, (E,E)=30. All three are retained and ranked by cost.
+/// `(I,I)=10, (P,P)=20, (E,E)=30`. All three are retained and ranked by cost.
 #[test]
 fn bnb_retains_ranked_solutions() {
     let heap = Heap::new();
@@ -1072,7 +1072,7 @@ fn bnb_retains_ranked_solutions() {
     }
 }
 
-/// BnB pruning does not discard the optimal solution in a 4-block SCC.
+/// `BnB` pruning does not discard the optimal solution in a 4-block SCC.
 ///
 /// Cross-target transitions cost 100, making any mixed assignment far worse than
 /// all-same-target (cost 4). Verifies pruning correctly eliminates suboptimal
@@ -1139,7 +1139,7 @@ fn bnb_pruning_preserves_optimal() {
 
 /// After `solve()` applies the optimal assignment, `retry()` returns the next-best.
 ///
-/// solve() picks (I,I) with cost 2. retry() returns (P,P) with cost 4. The
+/// `solve()` picks `(I,I)` with cost 2. `retry()` returns `(P,P)` with cost 4. The
 /// retry cost must be ≥ the original, and the assignment must differ.
 #[test]
 fn retry_returns_ranked_solutions_in_order() {
@@ -1211,8 +1211,8 @@ fn retry_returns_ranked_solutions_in_order() {
 
 /// Retry exhausts all ranked solutions and returns false when none remain.
 ///
-/// Only two valid assignments exist: (I,I) and (P,P). solve() takes the first,
-/// retry() takes the second, and a third retry() returns false.
+/// Only two valid assignments exist: `(I,I)` and `(P,P)`. `solve()` takes the first,
+/// `retry()` takes the second, and a third `retry()` returns false.
 #[test]
 fn retry_exhausts_then_perturbs() {
     let heap = Heap::new();
@@ -1269,4 +1269,157 @@ fn retry_exhausts_then_perturbs() {
 
     // Both valid assignments consumed. No alternatives remain.
     assert!(!csp.retry(&body));
+}
+
+/// Verifies that greedy rollback succeeds when a block's estimation yields an empty heap.
+///
+/// After assigning bb0=I, the successor edge bb1→bb0 has no transition to I,
+/// making all of bb1's targets infeasible. Rollback flips bb0 to P, and the
+/// greedy solver resumes successfully via the `continue` path.
+#[test]
+fn greedy_rollback_on_empty_heap() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // 2-block SCC: bb0↔bb1, bb2 exit
+    // bb0: `if cond then bb1 else bb2` → [bb2(arm0), bb1(arm1)]
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+        bb0() { cond = load true; if cond then bb1() else bb2(); },
+        bb1() { x = load 0; goto bb0(); },
+        bb2() { return x; }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip, ip, all_targets()];
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    // bb0: I=0 (cheap, picked first), P=5 (fallback after rollback)
+    stmt_costs! { statements;
+        bb(0): I = 0, P = 5
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    // arm0 (bb0→bb2): complete (exit edge, always feasible)
+    // arm1 (bb0→bb1): swap-only transitions (I→P, P→I)
+    // bb1→bb0: from I go to P or I
+    terminators! { terminators;
+        bb(0): [
+            complete(0);
+            I->P = 0, P->I = 0
+        ];
+        bb(1): [I->P = 0, I->I = 0]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+    let (region_id, region) = take_cyclic(&mut solver);
+    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+
+    csp.seed();
+    assert!(csp.run_greedy(&body));
+
+    // bb0=I leads to empty heap for bb1 (narrowing intersection empties domain).
+    // Rollback flips bb0 to P, making bb1=I feasible.
+    let bb0_target = csp
+        .region
+        .find_block(bb(0))
+        .expect("bb0 not found")
+        .target
+        .target;
+    let bb1_target = csp
+        .region
+        .find_block(bb(1))
+        .expect("bb1 not found")
+        .target
+        .target;
+    assert_eq!(bb0_target, P);
+    assert_eq!(bb1_target, I);
+}
+
+/// Verifies that `retry()` uses least-delta perturbation after ranked solutions are exhausted.
+///
+/// A 2-block SCC with three targets produces three ranked `BnB` solutions.
+/// After `solve()` and two `retry()` calls consume them, the next `retry()`
+/// falls through to perturbation, which finds a heap alternative and calls
+/// `run_greedy()` to produce a new assignment.
+#[test]
+fn retry_perturbation_after_ranked_exhaustion() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // 2-block SCC: bb0↔bb1, bb2 exit
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+        bb0() { cond = load true; if cond then bb1() else bb2(); },
+        bb1() { x = load 0; goto bb0(); },
+        bb2() { return x; }
+    });
+
+    let domains = [all_targets(), all_targets(), all_targets()];
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    // Distinct costs so BnB ordering is deterministic
+    stmt_costs! { statements;
+        bb(0): I = 0, P = 1, E = 100;
+        bb(1): I = 0, P = 1, E = 100
+    }
+
+    // All transitions allowed → all combinations feasible
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [
+            complete(0);
+            complete(0)
+        ];
+        bb(1): [complete(0)]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+    let (region_id, region) = take_cyclic(&mut solver);
+    let mut csp = ConstraintSatisfaction::new(&mut solver, region_id, region);
+
+    // solve() uses BnB (2 blocks ≤ BNB_CUTOFF=12), applies best solution
+    assert!(csp.solve(&body));
+    let solve_assignment = (
+        csp.region.find_block(bb(0)).expect("bb0").target.target,
+        csp.region.find_block(bb(1)).expect("bb1").target.target,
+    );
+
+    // Consume the two remaining ranked solutions
+    assert!(csp.retry(&body));
+    assert!(csp.retry(&body));
+
+    let pre_perturbation = (
+        csp.region.find_block(bb(0)).expect("bb0").target.target,
+        csp.region.find_block(bb(1)).expect("bb1").target.target,
+    );
+
+    // This retry exhausts ranked solutions → falls through to perturbation
+    assert!(csp.retry(&body));
+
+    let post_perturbation = (
+        csp.region.find_block(bb(0)).expect("bb0").target.target,
+        csp.region.find_block(bb(1)).expect("bb1").target.target,
+    );
+
+    // Perturbation must produce a different assignment than the last ranked one
+    assert_ne!(pre_perturbation, post_perturbation);
+    // All assignments after perturbation must differ from the initial solve
+    assert_ne!(solve_assignment, post_perturbation);
 }
