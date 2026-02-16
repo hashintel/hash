@@ -12,6 +12,7 @@
 //! [`PlacementSolverContext`] provides the shared state needed across both passes.
 
 mod arc;
+pub(crate) mod error;
 mod solve;
 
 pub use self::{

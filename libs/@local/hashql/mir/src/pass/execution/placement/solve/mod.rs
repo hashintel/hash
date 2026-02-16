@@ -17,6 +17,7 @@ use hashql_core::{
     graph::DirectedGraph as _,
     heap::{BumpAllocator, Heap},
     id,
+    span::SpanId,
 };
 
 use self::{
@@ -24,11 +25,13 @@ use self::{
     csp::{ConstraintSatisfaction, CyclicPlacementRegion},
     estimate::{CostEstimation, CostEstimationConfig, HeapElement, TargetHeap},
 };
+use super::error::unsatisfiable_placement;
 use crate::{
     body::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
     },
+    context::MirContext,
     pass::execution::{
         ApproxCost, StatementCostVec,
         target::{TargetArray, TargetBitSet, TargetId},
@@ -44,6 +47,39 @@ mod tests;
 
 // Identifies a placement region in the condensation graph.
 id::newtype!(pub(crate) struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
+
+/// Describes which block or region caused placement failure.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum PlacementFailure<'alloc> {
+    /// A single block has no feasible target.
+    Block(BasicBlockId),
+    /// A cyclic region has no consistent assignment. Contains the SCC member blocks for
+    /// back edge identification in the diagnostic.
+    Cycle(&'alloc [BasicBlockId]),
+}
+
+/// Finds the span of the back edge terminator in a cyclic region.
+///
+/// The back edge is the edge from a higher-numbered block to a lower-numbered block within the
+/// SCC — the edge that closes the cycle. Falls back to the first member's terminator if no
+/// back edge is found (shouldn't happen in a valid SCC).
+fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
+    assert!(!members.is_empty());
+
+    // Find the member whose terminator has a successor that's also a member with a lower ID.
+    // That successor edge is the back edge, and its terminator is the source of the cycle.
+    for &block in members {
+        let terminator = &body.basic_blocks[block].terminator;
+
+        for successor in terminator.kind.successor_blocks() {
+            if successor < block && members.contains(&successor) {
+                return terminator.span;
+            }
+        }
+    }
+
+    body.basic_blocks[members[0]].terminator.span
+}
 
 /// Input data for placement solving.
 ///
@@ -113,29 +149,41 @@ pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
 impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
     /// Runs the forward and backward passes, returning the chosen [`TargetId`] for each basic
     /// block.
-    pub fn run<'heap>(&mut self, body: &Body<'heap>) -> BasicBlockVec<TargetId, &'heap Heap> {
+    pub fn run<'heap>(
+        &mut self,
+        context: &mut MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+    ) -> BasicBlockVec<TargetId, &'heap Heap> {
         let mut regions = Vec::with_capacity_in(self.condensation.node_count(), self.alloc);
         self.condensation
             .reverse_topological_order()
             .rev()
             .collect_into(&mut regions);
 
-        if !self.run_forwards_loop(body, &regions) {
-            todo!("issue diagnostic")
-        }
-        if !self.run_backwards_loop(body, &regions) {
-            todo!("issue diagnostic")
-        }
-
-        // Collect the final assignments into the output vec
-        let mut output =
-            BasicBlockVec::with_capacity_in(body.basic_blocks.len(), *body.local_decls.allocator());
-        for target in &*self.targets {
-            let Some(elem) = target else {
-                unreachable!("all targets must've been assigned")
+        if let Err(failure) = self.run_forwards_loop(body, &regions) {
+            let block_span = match failure {
+                PlacementFailure::Block(block) => body.basic_blocks[block].terminator.span,
+                PlacementFailure::Cycle(members) => back_edge_span(body, members),
             };
 
-            output.push(elem.target);
+            context
+                .diagnostics
+                .push(unsatisfiable_placement(body.span, block_span, &failure));
+        } else {
+            // Only run the backward refinement pass if the forward pass succeeded —
+            // there is nothing to refine when blocks remain unassigned.
+            self.run_backwards_loop(body, &regions);
+        }
+
+        // Collect the final assignments into the output vec. Unassigned blocks (from a
+        // failed forward pass) default to the interpreter — the universal fallback target.
+        let mut output = BasicBlockVec::with_capacity_in(body.basic_blocks.len(), context.heap);
+        for target in &*self.targets {
+            output.push(
+                target
+                    .as_ref()
+                    .map_or(TargetId::Interpreter, |elem| elem.target),
+            );
         }
 
         output
@@ -209,7 +257,13 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
     ///
     /// Trivial regions use [`CostEstimation`] to pick the best target; cyclic regions use
     /// [`ConstraintSatisfaction`]. Failure triggers [`PlacementSolver::rewind`].
-    fn run_forwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) -> bool {
+    ///
+    /// Returns the [`PlacementFailure`] that describes which block or region caused exhaustion.
+    fn run_forwards_loop(
+        &mut self,
+        body: &Body<'_>,
+        regions: &[PlacementRegionId],
+    ) -> Result<(), PlacementFailure<'alloc>> {
         debug_assert!(!regions.is_empty(), "at least the start block must exist");
         let mut ptr = 0;
 
@@ -231,7 +285,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                         self.condensation[region_id].kind = kind;
 
                         let Some(rewound) = self.rewind(body, regions, ptr) else {
-                            return false;
+                            return Err(PlacementFailure::Block(block));
                         };
 
                         ptr = rewound;
@@ -244,6 +298,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                     kind
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
+                    let members = cyclic.members;
                     let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
 
                     if !csp.solve(body) {
@@ -251,7 +306,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                         self.condensation[region_id].kind = region;
 
                         let Some(rewound) = self.rewind(body, regions, ptr) else {
-                            return false;
+                            return Err(PlacementFailure::Cycle(members));
                         };
 
                         ptr = rewound;
@@ -265,7 +320,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                     PlacementRegionKind::Cyclic(csp.region)
                 }
                 PlacementRegionKind::Unassigned => {
-                    panic!("previous iteration has not returned this node into the graph")
+                    unreachable!("previous iteration has not returned this node into the graph")
                 }
             };
 
@@ -274,14 +329,14 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
             ptr += 1;
         }
 
-        true
+        Ok(())
     }
 
     /// Re-evaluates assignments in reverse topological order for refinement.
     ///
     /// Delegates to [`adjust_trivial`](Self::adjust_trivial) and
     /// [`adjust_cyclic`](Self::adjust_cyclic).
-    fn run_backwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) -> bool {
+    fn run_backwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) {
         debug_assert!(!regions.is_empty(), "at least the start block must exist");
         let mut ptr = regions.len();
 
@@ -299,14 +354,12 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                 }
                 PlacementRegionKind::Cyclic(cyclic) => self.adjust_cyclic(body, region_id, cyclic),
                 PlacementRegionKind::Unassigned => {
-                    panic!("previous iteration has not returned this node into the graph")
+                    unreachable!("previous iteration has not returned this node into the graph")
                 }
             };
 
             self.condensation[region_id].kind = kind;
         }
-
-        true
     }
 
     /// Re-evaluates a trivial region's assignment with full boundary context.
