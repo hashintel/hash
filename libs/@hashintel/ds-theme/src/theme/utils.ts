@@ -10,11 +10,11 @@ export type PaletteKind = "normal" | "bright" | "neutral";
  * Creates the bg/fg/bd semantic structure referencing a specific palette.
  * The palette must be a valid token path like "colors.blue" or "colors.neutral".
  *
- * bg — alpha-based layers from transparent (min) through surface/subtle/shaded/strong
+ * bg — alpha-based layers from transparent (min) through surface/subtle/shaded
  *       up to opaque solid; provides hover/active/disabled for each.
  *       bg.solid.fg provides the contrast text color for solid backgrounds.
- * canvas — solid-color equivalents of bg, using opaque s* steps instead of alpha a*.
- *          Use for surfaces that must not blend (popovers, dialogs, dropdowns).
+ * bgSolid — solid-color equivalents of bg, using opaque s* steps instead of alpha a*.
+ *           Use for surfaces that must not blend (popovers, dialogs, dropdowns).
  * fg — text hierarchy from max (strongest) through heading/body/muted/subtle,
  *       plus link.
  * bd — alpha-based borders at three weights: subtle, solid, strong.
@@ -38,7 +38,7 @@ export function createSemanticSet(
         }
       : ps("s00");
 
-  const bgSolid =
+  const solidAccent =
     kind === "neutral"
       ? {
           DEFAULT: ps("s125"),
@@ -70,26 +70,20 @@ export function createSemanticSet(
         disabled: ps("a05"),
       },
       subtle: {
-        DEFAULT: ps("a20"),
-        hover: ps("a30"),
-        active: ps("a40"),
-        disabled: ps("a10"),
+        DEFAULT: ps("a30"),
+        hover: ps("a40"),
+        active: ps("a50"),
+        disabled: ps("a15"),
       },
       shaded: {
-        DEFAULT: ps("a40"),
-        hover: ps("a50"),
-        active: ps("a55"),
-        disabled: ps("a20"),
+        DEFAULT: ps("a50"),
+        hover: ps("a60"),
+        active: ps("a65"),
+        disabled: ps("a30"),
       },
-      strong: {
-        DEFAULT: ps("a60"),
-        hover: ps("a70"),
-        active: ps("a75"),
-        disabled: ps("a40"),
-      },
-      solid: bgSolid,
+      solid: solidAccent,
     },
-    canvas: {
+    bgSolid: {
       min: {
         DEFAULT: ps("s00"),
         hover: ps("s05"),
@@ -103,24 +97,18 @@ export function createSemanticSet(
         disabled: ps("s05"),
       },
       subtle: {
-        DEFAULT: ps("s20"),
-        hover: ps("s30"),
-        active: ps("s40"),
-        disabled: ps("s10"),
+        DEFAULT: ps("s30"),
+        hover: ps("s40"),
+        active: ps("s50"),
+        disabled: ps("s15"),
       },
       shaded: {
-        DEFAULT: ps("s40"),
-        hover: ps("s50"),
-        active: ps("s55"),
-        disabled: ps("s20"),
+        DEFAULT: ps("s50"),
+        hover: ps("s60"),
+        active: ps("s65"),
+        disabled: ps("s30"),
       },
-      strong: {
-        DEFAULT: ps("s60"),
-        hover: ps("s70"),
-        active: ps("s75"),
-        disabled: ps("s40"),
-      },
-      solid: bgSolid,
+      solid: solidAccent,
     },
     fg: {
       max: ps("s125"),

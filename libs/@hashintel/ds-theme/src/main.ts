@@ -269,7 +269,7 @@ export const preset = definePreset({
       // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
       colorPalette: {
         enabled: true,
-        include: ["bg.*", "canvas.*", "fg.*", "bd.*", "status.*"],
+        include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
       },
     },
   },

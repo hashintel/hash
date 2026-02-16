@@ -16,7 +16,7 @@ const COLOR_PALETTES: readonly PaletteName[] = [
   "pink",
 ];
 
-type BgCategory = "min" | "surface" | "subtle" | "shaded" | "strong" | "solid";
+type BgCategory = "min" | "surface" | "subtle" | "shaded" | "solid";
 type BdCategory = "subtle" | "solid" | "strong";
 type StateKey = "DEFAULT" | "hover" | "active" | "disabled";
 
@@ -27,12 +27,21 @@ const bgCategories: {
   desc: string;
   useDarkText: boolean;
 }[] = [
-  { key: "min", desc: "lightest", useDarkText: true },
-  { key: "surface", desc: "surface", useDarkText: true },
-  { key: "subtle", desc: "alpha-based", useDarkText: true },
-  { key: "shaded", desc: "shaded", useDarkText: true },
-  { key: "strong", desc: "strong", useDarkText: false },
-  { key: "solid", desc: "solid", useDarkText: false },
+  { key: "min", desc: "alpha, lightest", useDarkText: true },
+  { key: "surface", desc: "alpha, surface", useDarkText: true },
+  { key: "subtle", desc: "alpha, medium", useDarkText: true },
+  { key: "shaded", desc: "alpha, shaded", useDarkText: true },
+  { key: "solid", desc: "opaque accent", useDarkText: false },
+];
+
+const bgSolidCategories: {
+  key: Exclude<BgCategory, "solid">;
+  desc: string;
+}[] = [
+  { key: "min", desc: "lightest" },
+  { key: "surface", desc: "surface" },
+  { key: "subtle", desc: "subtle" },
+  { key: "shaded", desc: "shaded" },
 ];
 
 const bdCategories: { key: BdCategory; desc: string }[] = [
@@ -126,6 +135,54 @@ const BgColumn = () => (
         </HStack>
       </VStack>
     ))}
+  </VStack>
+);
+
+const BgSolidColumn = () => (
+  <VStack gap="3" alignItems="flex-start">
+    <span className={sectionTitle}>bgSolid.* (opaque surfaces)</span>
+    {bgSolidCategories.map(({ key, desc }) => (
+      <VStack key={key} gap="1" alignItems="flex-start">
+        <span className={categoryLabel}>
+          bgSolid.{key} — {desc}
+        </span>
+        <HStack gap="1" flexWrap="wrap">
+          {states.map((state) => {
+            const tokenPath =
+              state === "DEFAULT"
+                ? `colorPalette.bgSolid.${key}`
+                : `colorPalette.bgSolid.${key}.${state}`;
+            return (
+              <BgSwatch
+                key={state}
+                label={state === "DEFAULT" ? "def" : state}
+                tokenPath={tokenPath}
+                useDarkText
+              />
+            );
+          })}
+        </HStack>
+      </VStack>
+    ))}
+    <VStack gap="1" alignItems="flex-start">
+      <span className={categoryLabel}>bgSolid.solid — opaque accent</span>
+      <HStack gap="1" flexWrap="wrap">
+        {states.map((state) => {
+          const tokenPath =
+            state === "DEFAULT"
+              ? `colorPalette.bgSolid.solid`
+              : `colorPalette.bgSolid.solid.${state}`;
+          return (
+            <BgSwatch
+              key={state}
+              label={state === "DEFAULT" ? "def" : state}
+              tokenPath={tokenPath}
+              useDarkText={false}
+            />
+          );
+        })}
+      </HStack>
+    </VStack>
   </VStack>
 );
 
@@ -282,8 +339,9 @@ const PaletteSection = ({ palette }: { palette: string }) => (
     >
       {palette}
     </h2>
-    <Grid columns={3} gap="6">
+    <Grid columns={2} gap="6">
       <BgColumn />
+      <BgSolidColumn />
       <FgColumn />
       <VStack gap="6" alignItems="flex-start">
         <BdColumn />
@@ -309,6 +367,10 @@ export const ColorVariants: Story = () => (
         Semantic{" "}
         <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           bg.*
+        </code>
+        ,{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
+          bgSolid.*
         </code>
         ,{" "}
         <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
