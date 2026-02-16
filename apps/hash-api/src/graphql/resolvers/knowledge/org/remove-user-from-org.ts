@@ -1,7 +1,7 @@
 import {
   type ActorEntityUuid,
   entityIdFromComponents,
-  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { removeActorGroupMember } from "@local/hash-graph-sdk/principal/actor-group";
@@ -99,7 +99,7 @@ export const removeUserFromOrgResolver: ResolverFn<
 
   await Promise.all([
     removeActorGroupMember(context.graphApi, authentication, {
-      actorId: extractEntityUuidFromEntityId(userEntityId) as ActorEntityUuid,
+      actorId: extractWebIdFromEntityId(userEntityId) as ActorEntityUuid,
       actorGroupId: orgWebId,
     }),
     membershipLink.archive(
