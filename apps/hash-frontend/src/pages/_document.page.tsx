@@ -3,14 +3,20 @@ import { createEmotionCache } from "@hashintel/design-system/theme";
 import NextDocument, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
 
-class Document extends NextDocument {
+type CustomDocumentProps = {
+  nonce?: string;
+};
+
+class Document extends NextDocument<CustomDocumentProps> {
   render() {
+    const { nonce } = this.props;
+
     return (
       <Html lang="en">
-        <Head />
+        <Head nonce={nonce} />
         <body>
           <Main />
-          <NextScript />
+          <NextScript nonce={nonce} />
         </body>
       </Html>
     );
@@ -43,6 +49,8 @@ Document.getInitialProps = async (ctx) => {
   // 2. page.getInitialProps
   // 3. app.render
   // 4. page.render
+
+  const nonce = ctx.req?.headers["x-nonce"];
 
   const originalRenderPage = ctx.renderPage;
 
@@ -77,6 +85,7 @@ Document.getInitialProps = async (ctx) => {
 
   return {
     ...initialProps,
+    nonce,
     // Styles fragment is rendered after the app and page rendering finish.
     styles: [...Children.toArray(initialProps.styles), ...emotionStyleTags],
   };
