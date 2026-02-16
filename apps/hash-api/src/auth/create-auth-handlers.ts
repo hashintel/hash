@@ -1,3 +1,4 @@
+import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
@@ -18,7 +19,7 @@ import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
 const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
-  req.header("KRATOS_API_KEY") === KRATOS_API_KEY;
+  timingSafeCompare(req.header("KRATOS_API_KEY") ?? "", KRATOS_API_KEY);
 
 const kratosAfterRegistrationHookHandler =
   (
