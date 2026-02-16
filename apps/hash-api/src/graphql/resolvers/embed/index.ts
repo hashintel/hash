@@ -1,4 +1,5 @@
 import oEmbedData from "oembed-providers/providers.json";
+import sanitizeHtml from "sanitize-html";
 
 import type {
   Embed,
@@ -8,6 +9,55 @@ import type {
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 import * as Error from "../../error";
+
+/**
+ * Sanitize oEmbed HTML to prevent XSS from third-party providers.
+ *
+ * Allows structural elements needed for embeds (iframes, blockquotes, images)
+ * while stripping scripts and event handlers. Script-dependent embeds (e.g.
+ * Twitter) will degrade to showing their static HTML content.
+ */
+const sanitizeOembedHtml = (html: string): string =>
+  sanitizeHtml(html, {
+    allowedTags: [
+      "iframe",
+      "blockquote",
+      "a",
+      "img",
+      "div",
+      "span",
+      "p",
+      "br",
+      "em",
+      "strong",
+      "figure",
+      "figcaption",
+      "cite",
+      "time",
+    ],
+    allowedAttributes: {
+      iframe: [
+        "src",
+        "width",
+        "height",
+        "frameborder",
+        "allowfullscreen",
+        "allow",
+        "title",
+        "style",
+        "loading",
+        "referrerpolicy",
+      ],
+      blockquote: ["class", "data-*", "cite", "style"],
+      a: ["href", "title", "class", "target", "rel"],
+      img: ["src", "alt", "width", "height", "class", "style", "loading"],
+      div: ["class", "style"],
+      span: ["class", "style"],
+      p: ["class", "style"],
+      time: ["datetime"],
+    },
+    allowedSchemes: ["https"],
+  });
 
 oEmbedData.unshift({
   provider_name: "HASH",
@@ -57,7 +107,7 @@ const getOembedEndpoint = (url: string, type?: string) => {
     }
     for (const endpoint of endpoints) {
       const isMatch = !!endpoint.schemes?.find((scheme) =>
-        scheme.split("*").every((substring) => url.search(substring) > -1),
+        scheme.split("*").every((substring) => url.includes(substring)),
       );
 
       if (isMatch) {
@@ -82,9 +132,9 @@ async function getEmbedResponse({
     };
   }
 
-  return await fetch(`${oembedEndpoint}?url=${url}&maxwidth=1000`).then(
-    (response) => response.json(),
-  );
+  return await fetch(
+    `${oembedEndpoint}?url=${encodeURIComponent(url)}&maxwidth=1000`,
+  ).then((response) => response.json());
 }
 
 export const embedCode: ResolverFn<
@@ -115,7 +165,7 @@ export const embedCode: ResolverFn<
   }
 
   return {
-    html,
+    html: html ? sanitizeOembedHtml(html) : html,
     providerName: provider_name,
     height,
     width,
