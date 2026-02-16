@@ -26,7 +26,7 @@ const applyCspHeaders = (
   response: NextResponse,
   cspHeader: string,
 ): NextResponse => {
-  response.headers.set("Content-Security-Policy-Report-Only", cspHeader);
+  response.headers.set("Content-Security-Policy", cspHeader);
   return response;
 };
 

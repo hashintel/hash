@@ -1,10 +1,6 @@
 /**
  * Content Security Policy configuration for the HASH frontend.
  *
- * Currently deployed as Report-Only. To enforce, change the header name in
- * middleware.page.ts from `Content-Security-Policy-Report-Only` to
- * `Content-Security-Policy`.
- *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
  */
 
