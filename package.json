@@ -92,6 +92,7 @@
     "@types/react": "19.2.7",
     "ai": "5.0.97",
     "blockprotocol@npm:0.0.10": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
+    "canvas": "3.2.0",
     "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch",
     "jsondiffpatch": "0.7.2",
     "prosemirror-model@npm:>=1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
