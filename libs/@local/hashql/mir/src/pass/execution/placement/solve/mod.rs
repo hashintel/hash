@@ -245,7 +245,9 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                     self.condensation[region_id].kind = PlacementRegionKind::Cyclic(csp.region);
                 }
                 PlacementRegionKind::Unassigned => {
-                    panic!("previous iteration has not returned this node into the graph")
+                    unreachable!(
+                        "previous iteration has not returned region {region_id:?} into the graph"
+                    )
                 }
             }
         }
@@ -320,7 +322,9 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                     PlacementRegionKind::Cyclic(csp.region)
                 }
                 PlacementRegionKind::Unassigned => {
-                    unreachable!("previous iteration has not returned this node into the graph")
+                    unreachable!(
+                        "previous iteration has not returned region {region_id:?} into the graph"
+                    )
                 }
             };
 
@@ -354,7 +358,9 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
                 }
                 PlacementRegionKind::Cyclic(cyclic) => self.adjust_cyclic(body, region_id, cyclic),
                 PlacementRegionKind::Unassigned => {
-                    unreachable!("previous iteration has not returned this node into the graph")
+                    unreachable!(
+                        "previous iteration has not returned region {region_id:?} into the graph"
+                    )
                 }
             };
 

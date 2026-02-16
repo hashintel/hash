@@ -106,6 +106,9 @@ pub(crate) struct CyclicPlacementRegion<'alloc> {
 
 impl CyclicPlacementRegion<'_> {
     /// Finds the [`PlacementBlock`] for `block` in the working array.
+    // Linear scan over `blocks`. Fine for typical SCC sizes (3–6 blocks, rarely >12). If
+    // profiling shows this matters, a `BasicBlockId → index` side-table would give O(1) lookup
+    // at the cost of maintaining it across MRV swaps, rollbacks, and solution restoration.
     pub(crate) fn find_block(&self, block: BasicBlockId) -> Option<&PlacementBlock> {
         self.blocks.iter().find(|placement| placement.id == block)
     }
@@ -207,6 +210,11 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     ///
     /// Bidirectional: restricts both successor and predecessor domains based on transition matrix
     /// compatibility.
+    // This propagates from a single assigned block outward — natural for per-assignment narrowing,
+    // but suboptimal when `replay_narrowing` calls it for every fixed block in the prefix. An
+    // inverted approach (iterate unfixed blocks, check which neighbors are fixed via O(1) bitset
+    // lookup) would reduce replay from O(|fixed| · D · |unfixed|) to O(|unfixed| · D), at the
+    // cost of a separate code path that can't share with per-assignment narrowing.
     fn narrow_impl(
         data: &PlacementSolverContext<'_, A>,
         blocks: &mut [PlacementBlock],
