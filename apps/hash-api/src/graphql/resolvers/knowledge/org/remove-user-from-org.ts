@@ -1,4 +1,8 @@
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  type ActorEntityUuid,
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { removeActorGroupMember } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -18,7 +22,7 @@ export const removeUserFromOrgResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationRemoveUserFromOrgArgs
 > = async (_, { orgWebId, userEntityId }, graphQLContext) => {
-  const { authentication, user } = graphQLContext;
+  const { authentication } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
@@ -95,7 +99,7 @@ export const removeUserFromOrgResolver: ResolverFn<
 
   await Promise.all([
     removeActorGroupMember(context.graphApi, authentication, {
-      actorId: user.accountId,
+      actorId: extractEntityUuidFromEntityId(userEntityId) as ActorEntityUuid,
       actorGroupId: orgWebId,
     }),
     membershipLink.archive(
