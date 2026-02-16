@@ -1,3 +1,14 @@
+//! SCC condensation of the CFG into placement regions.
+//!
+//! The condensation groups basic blocks into strongly connected components using Tarjan's
+//! algorithm. Single-block SCCs become [`TrivialPlacementRegion`]s; multi-block SCCs become
+//! [`CyclicPlacementRegion`]s that require constraint satisfaction.
+//!
+//! The resulting condensation graph stores [`BoundaryEdge`]s between [`PlacementRegion`]s, each
+//! carrying a [`TransMatrix`] for transition costs.
+//!
+//! [`TransMatrix`]: crate::pass::execution::terminator_placement::TransMatrix
+
 use core::{
     alloc::Allocator,
     ops::{Index, IndexMut},
@@ -24,18 +35,24 @@ use crate::{
     pass::execution::terminator_placement::{TerminatorCostVec, TransMatrix},
 };
 
+/// A placement region containing a single basic block.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TrivialPlacementRegion {
     pub block: BasicBlockId,
 }
 
+/// Discriminates between trivial and cyclic placement regions.
 #[derive(Debug)]
 pub(crate) enum PlacementRegionKind<'alloc> {
+    /// Single-block region.
     Trivial(TrivialPlacementRegion),
+    /// Multi-block SCC requiring constraint satisfaction.
     Cyclic(CyclicPlacementRegion<'alloc>),
+    /// Temporary sentinel used during forward/backward pass iteration.
     Unassigned,
 }
 
+/// A node in the condensation graph representing one or more basic blocks.
 #[derive(Debug)]
 pub(crate) struct PlacementRegion<'alloc> {
     pub id: PlacementRegionId,
@@ -50,12 +67,18 @@ impl HasId for PlacementRegion<'_> {
     }
 }
 
+/// Identifies a basic block within a specific placement region.
 #[derive(Debug)]
 pub(crate) struct PlacementLocation {
     pub region: PlacementRegionId,
     pub block: BasicBlockId,
 }
 
+/// An edge in the condensation graph connecting two placement regions.
+///
+/// Carries the [`TransMatrix`] encoding valid transitions between source and target blocks.
+///
+/// [`TransMatrix`]: crate::pass::execution::terminator_placement::TransMatrix
 #[derive(Debug)]
 pub(crate) struct BoundaryEdge {
     pub source: PlacementLocation,
@@ -64,6 +87,11 @@ pub(crate) struct BoundaryEdge {
     pub matrix: TransMatrix,
 }
 
+/// Condensation of the CFG into placement regions connected by boundary edges.
+///
+/// Wraps a [`LinkedGraph`] and provides accessors for topological traversal and edge queries.
+///
+/// [`LinkedGraph`]: hashql_core::graph::LinkedGraph
 pub(crate) struct Condensation<'alloc, S: BumpAllocator> {
     scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc S>,
     scc_members: MembersRef<'alloc, BasicBlockId, PlacementRegionId>,
@@ -74,6 +102,7 @@ pub(crate) struct Condensation<'alloc, S: BumpAllocator> {
 }
 
 impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
+    /// Builds the condensation from a [`Body`]'s CFG and terminator transition costs.
     pub(crate) fn new(
         body: &Body<'_>,
         terminators: &TerminatorCostVec<impl Allocator>,
@@ -96,12 +125,14 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
         this
     }
 
+    /// Iterates placement regions in reverse topological order (sinks first).
     pub(crate) fn reverse_topological_order(
         &self,
     ) -> impl ExactSizeIterator<Item = PlacementRegionId> + DoubleEndedIterator {
         self.scc.iter_nodes()
     }
 
+    /// Returns boundary edges whose target is `node`.
     pub(crate) fn incoming_edges(
         &self,
         node: PlacementRegionId,
@@ -111,6 +142,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
             .map(|edge| &edge.data)
     }
 
+    /// Returns boundary edges whose source is `node`.
     pub(crate) fn outgoing_edges(
         &self,
         node: PlacementRegionId,
@@ -120,6 +152,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
             .map(|edge| &edge.data)
     }
 
+    /// Populates the condensation graph with regions and boundary edges.
     fn fill(&mut self, body: &Body<'_>, terminators: &TerminatorCostVec<impl Allocator>) {
         for scc in self.scc.iter_nodes() {
             let members = self.scc_members.of(scc);
