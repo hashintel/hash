@@ -98,24 +98,6 @@ fn heap_peek_does_not_consume() {
     assert!(heap.peek().is_none());
 }
 
-/// Verifies that `reset()` makes the heap empty regardless of prior state.
-///
-/// After insertions and partial consumption, `reset()` must restore the heap
-/// to its initial empty state.
-#[test]
-fn heap_reset_clears_state() {
-    let mut heap = TargetHeap::new();
-    heap.insert(I, cost!(5).as_approx());
-    heap.insert(P, cost!(10).as_approx());
-
-    heap.pop();
-    heap.reset();
-
-    assert!(heap.is_empty());
-    assert_eq!(heap.len(), 0);
-    assert!(heap.pop().is_none());
-}
-
 /// Verifies that elements with equal costs are both retained and returned.
 ///
 /// Tie-breaking order between equal-cost elements is unspecified, but both

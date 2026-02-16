@@ -20,7 +20,7 @@ use crate::{
 };
 
 fn target_set(targets: &[TargetId]) -> TargetBitSet {
-    let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
+    let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
     for &target in targets {
         set.insert(target);
     }

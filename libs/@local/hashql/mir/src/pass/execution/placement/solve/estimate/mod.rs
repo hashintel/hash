@@ -79,11 +79,6 @@ impl TargetHeap {
         self.targets[(self.index as usize)..(self.length as usize)].sort_unstable();
     }
 
-    pub(crate) const fn reset(&mut self) {
-        self.length = 0;
-        self.index = 0;
-    }
-
     pub(crate) const fn peek(&self) -> Option<&HeapElement> {
         if self.index >= self.length {
             return None;
@@ -103,10 +98,12 @@ impl TargetHeap {
         Some(element)
     }
 
+    #[cfg(test)]
     pub(crate) const fn is_empty(&self) -> bool {
         self.index >= self.length
     }
 
+    #[cfg(test)]
     pub(crate) const fn len(&self) -> usize {
         self.length.saturating_sub(self.index) as usize
     }

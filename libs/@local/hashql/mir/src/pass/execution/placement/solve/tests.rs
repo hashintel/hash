@@ -559,3 +559,503 @@ fn cyclic_region_in_forward_backward() {
     assert_eq!(result[bb(1)], I);
     assert_eq!(result[bb(2)], I);
 }
+
+/// Verifies that rewind walks back into a cyclic region and uses `retry()` to find an alternative.
+///
+/// The SCC exit edge is diagonal, so the SCC solver sees both all-I and all-P
+/// as feasible (each can reach some target in bb3's domain). Statement costs
+/// bias the SCC toward all-I. With SCC=all-I, the diagonal exit forces bb3
+/// to match bb2=I, but bb3→bb4 only allows P→I, making bb3 infeasible for
+/// both I (outgoing fails) and P (incoming fails). Rewind reaches the SCC,
+/// `retry()` applies the next-ranked solution (all-P), and bb3=P succeeds.
+#[test]
+fn rewind_retries_cyclic_region() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4
+    // bb0 trivial forced to I. {bb1,bb2} is 2-block SCC. bb3 and bb4 trivial.
+    // The SCC exit bb2→bb3 is diagonal: the SCC solver sees both I and P as
+    // feasible (each matches some target in bb3's domain {I,P}). But when
+    // SCC=all-I, bb3 becomes infeasible:
+    //   bb3=I: diagonal I→I ok, but bb3→bb4 I→I missing (only P→I) → infeasible.
+    //   bb3=P: diagonal I→P missing → infeasible.
+    // Rewind reaches the SCC; retry() picks all-P. With SCC=all-P:
+    //   bb3=P: diagonal P→P ok, bb3→bb4 P→I ok → feasible.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            x = load 0;
+            goto bb1();
+        },
+        bb1() {
+            x = load 0;
+            goto bb2();
+        },
+        bb2() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb3() {
+            x = load 0;
+            goto bb4();
+        },
+        bb4() {
+            return x;
+        }
+    });
+
+    // bb4 forced to I.
+    let domains = [
+        target_set(&[I]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
+    ];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    stmt_costs! { statements;
+        bb(1): I = 0, P = 1;
+        bb(2): I = 0, P = 1
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    // bb2→bb3 (arm0, else): diagonal — forces bb3 to match SCC target.
+    //   SCC solver sees this as feasible for both I and P (each has a matching
+    //   target in bb3's domain {I,P}).
+    // bb2→bb1 (arm1, then): diagonal — forces bb1==bb2 within SCC.
+    // bb3→bb4: only P→I — bb3=I is infeasible (I→I missing).
+    terminators! { terminators;
+        bb(0): [complete(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [
+            diagonal(0);
+            diagonal(0)
+        ];
+        bb(3): [P->I = 0]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], I);
+    assert_eq!(result[bb(1)], P);
+    assert_eq!(result[bb(2)], P);
+    assert_eq!(result[bb(3)], P);
+    assert_eq!(result[bb(4)], I);
+}
+
+/// Verifies that rewind walks past an exhausted cyclic region to find an earlier alternative.
+///
+/// The SCC has single-target domains {P}, so `retry()` fails (no alternative
+/// solutions, no perturbation possible). Rewind continues backward past the
+/// SCC to bb0 which has an alternative target.
+///
+/// bb0 branches to both bb1 (SCC entry) and bb3 (join). bb3 has two
+/// predecessors: bb0 (direct) and bb2 (SCC exit). The bb0→bb3 edge is
+/// swap-only (I→P, P→I) and the bb2→bb3 edge only allows P→I. With bb0=I,
+/// no target for bb3 satisfies both predecessors simultaneously.
+#[test]
+fn rewind_skips_exhausted_cyclic_region() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0 branches: bb0→bb1(then), bb0→bb3(else).
+    // bb1→bb2→bb1(loop), bb2→bb3(exit). bb3→bb4.
+    // bb0 trivial {I,P}. {bb1,bb2} SCC, single-target {P}. bb3 trivial {I,P}.
+    // bb4 trivial {I}.
+    //
+    // bb0→bb3 (arm0): swap only (I→P, P→I).
+    // bb2→bb3 (SCC exit): P→I only.
+    //
+    // With bb0=I (cheaper stmt):
+    //   SCC: all-P (forced). bb3 predecessors: bb0=I, bb2=P.
+    //   bb3=I: bb0→bb3 I→I missing (swap). Infeasible.
+    //   bb3=P: bb0→bb3 I→P ok. bb2→bb3 P→P missing (only P→I). Infeasible.
+    //   bb3 heap empty → rewind.
+    //   SCC: single-target {P}, retry() fails → skip.
+    //   bb0: flip to P.
+    // With bb0=P:
+    //   SCC: all-P (forced). bb3 predecessors: bb0=P, bb2=P.
+    //   bb3=I: bb0→bb3 P→I ok. bb2→bb3 P→I ok. bb3→bb4 I→I ok. Feasible!
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb1() {
+            x = load 0;
+            goto bb2();
+        },
+        bb2() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb3() {
+            x = load 0;
+            goto bb4();
+        },
+        bb4() {
+            return x;
+        }
+    });
+
+    let domains = [
+        target_set(&[I, P]),
+        target_set(&[P]),
+        target_set(&[P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
+    ];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    stmt_costs! { statements;
+        bb(0): I = 0, P = 5
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    // bb0→bb3 (arm0, else): swap only — I→P, P→I.
+    // bb0→bb1 (arm1, then): complete — permissive SCC entry.
+    // SCC internal bb1→bb2: diagonal. bb2→bb1 (arm1, then): diagonal.
+    // SCC exit bb2→bb3 (arm0, else): P→I only.
+    // bb3→bb4: diagonal — same-target only.
+    terminators! { terminators;
+        bb(0): [
+            I->P = 0, P->I = 0;
+            complete(0)
+        ];
+        bb(1): [diagonal(0)];
+        bb(2): [
+            P->I = 0;
+            diagonal(0)
+        ];
+        bb(3): [diagonal(0)]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], P);
+    assert_eq!(result[bb(1)], P);
+    assert_eq!(result[bb(2)], P);
+    assert_eq!(result[bb(3)], I);
+    assert_eq!(result[bb(4)], I);
+}
+
+/// Verifies that `run_forwards_loop` returns `false` when no consistent assignment exists.
+///
+/// The constraint system is unsatisfiable: diagonal-only edges force all blocks
+/// to share a target, but a swap-only edge requires the join block to differ
+/// from its predecessor.
+#[test]
+fn rewind_exhausts_all_regions() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Diamond: bb0→bb1(then), bb0→bb2(else), bb1→bb3, bb2→bb3. All trivial SCCs.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            x = load 0;
+            goto bb3();
+        },
+        bb2() {
+            x = load 0;
+            goto bb3();
+        },
+        bb3() {
+            return x;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip, ip, ip, ip];
+
+    let statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [diagonal(0); diagonal(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [I->P = 0, P->I = 0]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+
+    let mut regions = alloc::vec::Vec::new();
+    solver
+        .condensation
+        .reverse_topological_order()
+        .rev()
+        .collect_into(&mut regions);
+    assert!(!solver.run_forwards_loop(&body, &regions));
+}
+
+/// Verifies that the forward pass rewinds when a cyclic region's CSP solver fails.
+///
+/// With bb0=I, the SCC has no feasible assignment because its only internal
+/// transition requires P. Rewind flips bb0 to P, making the SCC solvable.
+#[test]
+fn forward_pass_rewinds_on_cyclic_failure() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0→bb1→bb2→bb1(loop)/bb2→bb3.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            x = load 0;
+            goto bb1();
+        },
+        bb1() {
+            x = load 0;
+            goto bb2();
+        },
+        bb2() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb3() {
+            return x;
+        }
+    });
+
+    let domains = [
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
+    ];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    stmt_costs! { statements;
+        bb(0): I = 0, P = 5
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    // bb0→bb1 diagonal forces bb1==bb0. SCC internals only allow P.
+    terminators! { terminators;
+        bb(0): [diagonal(0)];
+        bb(1): [P->P = 0];
+        bb(2): [
+            P->I = 0;
+            P->P = 0
+        ]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], P);
+    assert_eq!(result[bb(1)], P);
+    assert_eq!(result[bb(2)], P);
+    assert_eq!(result[bb(3)], I);
+}
+
+/// Verifies that `adjust_cyclic` preserves the existing assignment when re-solving fails.
+///
+/// After the forward pass commits a valid SCC solution, a boundary target is
+/// manually changed to make re-solving impossible. `adjust_cyclic` must detect
+/// the failure and keep the original targets intact.
+#[test]
+fn backward_pass_keeps_assignment_when_csp_fails() {
+    use core::mem;
+
+    use super::estimate::HeapElement;
+
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            x = load 0;
+            goto bb1();
+        },
+        bb1() {
+            x = load 0;
+            goto bb2();
+        },
+        bb2() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb3() {
+            x = load 0;
+            goto bb4();
+        },
+        bb4() {
+            return x;
+        }
+    });
+
+    let domains = [
+        target_set(&[I]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
+    ];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    stmt_costs! { statements;
+        bb(1): I = 0, P = 10;
+        bb(2): I = 0, P = 10
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    // SCC internal diagonal. Exit bb2→bb3(arm0) only to I.
+    terminators! { terminators;
+        bb(0): [complete(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [
+            I->I = 0, P->I = 0;
+            diagonal(0)
+        ];
+        bb(3): [complete(0)]
+    }
+
+    let assignment = BasicBlockSlice::from_raw(&domains);
+    let data = PlacementSolverContext {
+        assignment,
+        statements: &statements,
+        terminators: &terminators,
+    };
+    let mut solver = data.build_in(&body, &heap);
+
+    let mut regions = alloc::vec::Vec::new();
+    solver
+        .condensation
+        .reverse_topological_order()
+        .rev()
+        .collect_into(&mut regions);
+    assert!(solver.run_forwards_loop(&body, &regions));
+
+    // Record forward-pass SCC assignment (should be all-I)
+    let bb1_original = solver.targets[bb(1)].expect("bb1 assigned").target;
+    let bb2_original = solver.targets[bb(2)].expect("bb2 assigned").target;
+    assert_eq!(bb1_original, I);
+    assert_eq!(bb2_original, I);
+
+    // Mutate boundary: force bb3 to P (which breaks SCC re-solve since exit only allows *→I)
+    solver.targets[bb(3)] = Some(HeapElement {
+        target: P,
+        cost: ApproxCost::ZERO,
+    });
+
+    // Extract cyclic region and call adjust_cyclic
+    let scc_region_id = find_region_of(&solver, bb(1));
+    let region = &mut solver.condensation[scc_region_id];
+    let kind = mem::replace(&mut region.kind, PlacementRegionKind::Unassigned);
+    let PlacementRegionKind::Cyclic(cyclic) = kind else {
+        panic!("expected cyclic region for bb1");
+    };
+    let result_kind = solver.adjust_cyclic(&body, scc_region_id, cyclic);
+    solver.condensation[scc_region_id].kind = result_kind;
+
+    // Targets must be unchanged — adjust_cyclic kept the existing assignment
+    assert_eq!(solver.targets[bb(1)].expect("bb1 assigned").target, I);
+    assert_eq!(solver.targets[bb(2)].expect("bb2 assigned").target, I);
+}
+
+/// Verifies that the backward pass adopts a cheaper SCC solution when boundary context improves.
+///
+/// The forward pass picks all-P for the SCC (cheapest statements with unassigned
+/// successor). After the backward pass assigns the successor to I, re-solving
+/// finds all-I is cheaper (avoids the P→I boundary penalty) and adopts it.
+#[test]
+fn backward_pass_adopts_better_cyclic_solution() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            x = load 0;
+            goto bb1();
+        },
+        bb1() {
+            x = load 0;
+            goto bb2();
+        },
+        bb2() {
+            cond = load true;
+            if cond then bb1() else bb3();
+        },
+        bb3() {
+            x = load 0;
+            goto bb4();
+        },
+        bb4() {
+            return x;
+        }
+    });
+
+    let domains = [
+        target_set(&[I]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I, P]),
+        target_set(&[I]),
+    ];
+
+    // SCC stmts: P much cheaper → forward picks all-P.
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+
+    stmt_costs! { statements;
+        bb(1): I = 10, P = 0;
+        bb(2): I = 10, P = 0
+    }
+
+    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    terminators! { terminators;
+        bb(0): [complete(0)];
+        bb(1): [diagonal(0)];
+        bb(2): [
+            I->I = 0, P->P = 0, I->P = 100, P->I = 100;
+            diagonal(0)
+        ];
+        bb(3): [I->I = 0]
+    }
+
+    let result = run_solver(&body, &heap, &domains, &statements, &terminators);
+
+    assert_eq!(result[bb(0)], I);
+    assert_eq!(result[bb(1)], I);
+    assert_eq!(result[bb(2)], I);
+    assert_eq!(result[bb(3)], I);
+    assert_eq!(result[bb(4)], I);
+}
