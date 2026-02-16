@@ -4,7 +4,8 @@ import { Readable } from "node:stream";
 import stream from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 
-import { PDFReader, VectorStoreIndex } from "llamaindex";
+import { PDFReader } from "@llamaindex/readers/pdf";
+import { VectorStoreIndex } from "llamaindex";
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";

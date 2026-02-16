@@ -62,7 +62,7 @@
     "@ory/client": "1.22.7",
     "@ory/hydra-client": "25.4.0",
     "@ory/kratos-client": "25.4.0",
-    "@rudderstack/rudder-sdk-node": "2.1.10",
+    "@rudderstack/rudder-sdk-node": "3.0.3",
     "@sentry/node": "10.27.0",
     "@snowplow/node-tracker": "4.6.8",
     "@temporalio/client": "1.12.1",
