@@ -292,10 +292,13 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         let mut ptr = 0;
 
         while ptr < regions.len() {
-            debug_assert!(
-                self.debug_suffix_unassigned(regions, ptr),
-                "forward invariant violated: regions[ptr..] must be unassigned"
-            );
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    self.debug_suffix_unassigned(regions, ptr),
+                    "forward invariant violated: regions[ptr..] must be unassigned"
+                );
+            }
 
             let region_id = regions[ptr];
             let region = &mut self.condensation[region_id];
