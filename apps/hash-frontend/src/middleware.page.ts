@@ -1,13 +1,44 @@
 import { get } from "@vercel/edge-config";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { buildCspHeader } from "./lib/csp";
 import {
   returnTypeAsJson,
   versionedUrlRegExp,
 } from "./middleware/return-types-as-json";
 import { maintenanceRoute } from "./pages/shared/maintenance";
 
+/**
+ * Generate a cryptographically random nonce for CSP.
+ */
+const generateNonce = (): string => {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+};
+
+/**
+ * Apply CSP headers and the `x-nonce` request header to a response.
+ */
+const applyCspHeaders = (
+  response: NextResponse,
+  cspHeader: string,
+): NextResponse => {
+  response.headers.set("Content-Security-Policy-Report-Only", cspHeader);
+  return response;
+};
+
 export const middleware = async (request: NextRequest) => {
+  const nonce = generateNonce();
+  const cspHeader = buildCspHeader(nonce);
+
+  // Forward the nonce to server-side rendering via a request header so that
+  // _document.page.tsx can read it and apply it to <Head> / <NextScript>.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
   /**
    * 1. Check if the maintenance page should be shown
    */
@@ -22,7 +53,11 @@ export const middleware = async (request: NextRequest) => {
       const isInMaintenanceMode = await get("isInMaintenanceMode");
 
       if (isInMaintenanceMode) {
-        return NextResponse.rewrite(new URL(maintenanceRoute, request.url));
+        const response = NextResponse.rewrite(
+          new URL(maintenanceRoute, request.url),
+          { request: { headers: requestHeaders } },
+        );
+        return applyCspHeaders(response, cspHeader);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -59,6 +94,14 @@ export const middleware = async (request: NextRequest) => {
   ) {
     return returnTypeAsJson(request);
   }
+
+  /**
+   * 3. Default: proceed with CSP headers on all page responses
+   */
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  return applyCspHeaders(response, cspHeader);
 };
 
 export const config = {
