@@ -205,7 +205,7 @@ impl Eq for ApproxCost {}
 impl PartialEq for ApproxCost {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+        self.cmp(other).is_eq()
     }
 }
 
