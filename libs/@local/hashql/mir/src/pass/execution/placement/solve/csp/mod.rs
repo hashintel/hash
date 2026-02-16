@@ -1,3 +1,16 @@
+//! Constraint satisfaction for cyclic placement regions.
+//!
+//! The CSP solver assigns execution targets to blocks within a multi-block SCC. Two strategies are
+//! available:
+//!
+//! - **Branch-and-bound (`BnB`)** for SCCs with ≤[`BNB_CUTOFF`] blocks, retaining the top
+//!   [`RETAIN_SOLUTIONS`] best solutions. On retry, precomputed solutions are tried first before
+//!   falling back to least-delta perturbation + greedy.
+//! - **Greedy with backtracking** for larger SCCs.
+//!
+//! Block ordering uses the MRV (minimum remaining values) heuristic, with highest constraint degree
+//! as tie-breaker. Forward checking narrows domains bidirectionally after each assignment.
+
 use core::{alloc::Allocator, cmp, mem};
 use std::f32;
 
@@ -25,29 +38,39 @@ mod tests;
 
 /// Maximum SCC size for branch-and-bound. Larger SCCs fall back to greedy.
 const BNB_CUTOFF: usize = 12;
+/// Number of ranked solutions retained by branch-and-bound search.
 const RETAIN_SOLUTIONS: usize = 3;
 
+/// A basic block's state during CSP solving.
+///
+/// Tracks the block's ID, chosen target, remaining candidates ([`TargetHeap`]), and narrowed
+/// domain of possible targets.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementBlock {
+    /// The basic block this state belongs to.
     pub id: BasicBlockId,
+    /// Remaining candidate targets, ordered by estimated cost.
     heap: TargetHeap,
 
+    /// The currently chosen target (undefined if not yet fixed).
     pub target: HeapElement,
+    /// The narrowed domain of still-possible targets.
     possible: TargetBitSet,
 }
 
 impl PlacementBlock {
+    /// Sentinel value used to initialize block arrays before [`ConstraintSatisfaction::seed`].
     pub(super) const PLACEHOLDER: Self = Self {
         id: BasicBlockId::PLACEHOLDER,
         heap: TargetHeap::new(),
-
-        // The chosen target (undefined if not fixed yet)
         target: HeapElement::EMPTY,
-        // The remaining possibilities (in case chosen this is just the same as the chosen target)
         possible: TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32),
     };
 }
 
+/// A complete assignment found by branch-and-bound search.
+///
+/// Stores the total cost and a snapshot of all [`PlacementBlock`] assignments.
 #[derive(Debug, Clone)]
 pub(crate) struct Solution {
     cost: ApproxCost,
@@ -55,6 +78,7 @@ pub(crate) struct Solution {
 }
 
 impl Solution {
+    /// Creates a placeholder solution with infinite cost.
     pub(crate) const fn new() -> Self {
         Self {
             cost: ApproxCost::INF,
@@ -65,6 +89,11 @@ impl Solution {
 
 type Solutions = [Solution];
 
+/// State of a cyclic (multi-block SCC) placement region.
+///
+/// `members` is the canonical member list borrowed from the condensation. `blocks` is the mutable
+/// working array reordered by MRV during search. `fixed` tracks which blocks have been assigned,
+/// and `solutions` holds precomputed `BnB` results for [`ConstraintSatisfaction::retry`].
 #[derive(Debug)]
 pub(crate) struct CyclicPlacementRegion<'alloc> {
     pub members: &'alloc [BasicBlockId],
@@ -76,11 +105,15 @@ pub(crate) struct CyclicPlacementRegion<'alloc> {
 }
 
 impl CyclicPlacementRegion<'_> {
+    /// Finds the [`PlacementBlock`] for `block` in the working array.
     pub(crate) fn find_block(&self, block: BasicBlockId) -> Option<&PlacementBlock> {
         self.blocks.iter().find(|placement| placement.id == block)
     }
 }
 
+/// CSP solver for assigning targets within a cyclic placement region.
+///
+/// Borrows the parent [`PlacementSolver`] for cost estimation and target resolution.
 pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
     pub solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
 
@@ -97,6 +130,7 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
 impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     ConstraintSatisfaction<'ctx, 'parent, 'alloc, A, S>
 {
+    /// Creates a new CSP solver for the given cyclic `region`.
     pub(crate) const fn new(
         solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
         id: PlacementRegionId,
@@ -112,6 +146,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
     }
 
+    /// Initializes the working block array from the global domain assignments.
     fn seed(&mut self) {
         for (index, &member) in self.region.members.iter().enumerate() {
             self.region.blocks[index] = PlacementBlock {
@@ -123,6 +158,9 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
     }
 
+    /// Selects the next unassigned block using the MRV heuristic.
+    ///
+    /// Ties are broken by highest constraint degree (count of fixed + boundary neighbors).
     fn mrv(&self, body: &Body<'_>) -> (usize, BasicBlockId) {
         let applicable = &self.region.blocks[self.depth..];
 
@@ -134,8 +172,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         for (index, block) in applicable.iter().enumerate() {
             let domain_size = block.possible.len();
 
-            // Count constrained neighbors (fixed or boundary), not unfixed ones. Higher means
-            // more constrained — spec says highest constraint degree breaks MRV ties.
+            // Count constrained neighbors (fixed or external to the SCC). Higher constraint
+            // degree breaks MRV ties — picks the most constrained block first.
             let constraint_degree = body
                 .basic_blocks
                 .predecessors(block.id)
@@ -158,10 +196,17 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             }
         }
 
-        debug_assert!(current_block != BasicBlockId::PLACEHOLDER); // should never happen, we never call when there are no more remaining
+        debug_assert!(
+            current_block != BasicBlockId::PLACEHOLDER,
+            "mrv called with no unassigned blocks remaining"
+        );
         (current_offset, current_block)
     }
 
+    /// Narrows domains of unfixed blocks after assigning `block` to `target`.
+    ///
+    /// Bidirectional: restricts both successor and predecessor domains based on transition matrix
+    /// compatibility.
     fn narrow_impl(
         data: &PlacementSolverContext<'_, A>,
         blocks: &mut [PlacementBlock],
@@ -177,7 +222,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
         for (succ, matrix) in successors.zip(matrices) {
             let Some(remaining) = blocks.iter_mut().find(|candidate| candidate.id == succ) else {
-                continue; // already fixed
+                continue;
             };
 
             let mut available = TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
@@ -192,7 +237,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         // exists. The matrix lives at terminators.of(pred), indexed by pred's successor slot.
         for pred in body.basic_blocks.predecessors(block) {
             let Some(remaining) = blocks.iter_mut().find(|candidate| candidate.id == pred) else {
-                continue; // already fixed
+                continue;
             };
 
             let pred_matrices = data.terminators.of(pred);
@@ -213,12 +258,16 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
     }
 
+    /// Instance method wrapper for [`narrow_impl`](Self::narrow_impl).
     fn narrow(&mut self, body: &Body<'_>, block: BasicBlockId, target: TargetId) {
         Self::narrow_impl(&self.solver.data, self.region.blocks, body, block, target);
     }
 
+    /// Resets unfixed block domains and replays all narrowing from the fixed prefix.
+    ///
+    /// Used after rollback or perturbation to restore a consistent state.
     fn replay_narrowing(&mut self, body: &Body<'_>) {
-        // Reset the items after the depth, to the new items
+        // Reset unfixed domains to their original AC-3 state
         for block in &mut self.region.blocks[self.depth..] {
             block.possible = self.solver.data.assignment[block.id];
         }
@@ -233,6 +282,10 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
     }
 
+    /// Backtracks through the assignment stack looking for an alternative.
+    ///
+    /// Pops the next candidate from each block's heap, walking backward until one succeeds or all
+    /// are exhausted.
     fn rollback(&mut self, body: &Body<'_>) -> bool {
         while self.depth > 0 {
             self.depth -= 1;
@@ -252,6 +305,10 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         false
     }
 
+    /// Assigns targets greedily using MRV ordering with backtracking.
+    ///
+    /// Uses [`CostEstimation`] to rank candidates and forward checking (narrowing) after each
+    /// assignment.
     fn run_greedy(&mut self, body: &Body<'_>) -> bool {
         let members = self.region.members.len();
 
@@ -259,12 +316,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             let (offset, next) = self.mrv(body);
             self.region.fixed.insert(next);
 
-            // move the block into position
             self.region.blocks.swap(self.depth, self.depth + offset);
-
-            // `CostEstimation` takes the set of availability from inside of the condense. This is
-            // fine, because the restriction we set is a by definition a mirror and only used for
-            // MRV to work.
             let mut heap = CostEstimation {
                 config: CostEstimationConfig::LOOP,
                 solver: self.solver,
@@ -298,6 +350,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         true
     }
 
+    /// Estimates the cost of assigning `block` to `target` within this SCC.
     fn assignment_cost(
         &self,
         body: &Body<'_>,
@@ -325,6 +378,10 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             .unwrap_or(ApproxCost::INF)
     }
 
+    /// Computes a lower bound on the cost of completing the current partial assignment.
+    ///
+    /// Sums minimum statement costs and minimum transition costs over unfixed blocks. Used for
+    /// `BnB` pruning.
     fn lower_bound(&self, body: &Body<'_>) -> ApproxCost {
         let unfixed = &self.region.blocks[self.depth..];
         let mut bound = ApproxCost::ZERO;
@@ -412,6 +469,10 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         bound
     }
 
+    /// Recursive branch-and-bound search over the assignment tree.
+    ///
+    /// Uses MRV ordering, forward checking, and lower-bound pruning against the worst retained
+    /// solution.
     fn run_branch(&mut self, body: &Body<'_>, solutions: &mut Solutions) {
         let members = self.region.members.len();
 
@@ -419,8 +480,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             // Complete assignment — check if it improves best
             let total = self.cost_so_far;
 
-            // Move anything out by one, from the position, and shift our element in.
-            // TODO: this won't work
+            // Insert into the ranked solutions list, shifting worse solutions down
             if let Some(needle) = solutions.iter().position(|solution| solution.cost > total) {
                 let mut placement = [PlacementBlock::PLACEHOLDER; BNB_CUTOFF];
                 placement[..members].copy_from_slice(&*self.region.blocks);
@@ -520,6 +580,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.region.fixed.remove(next);
     }
 
+    /// Applies a precomputed [`Solution`] to the region's working state.
     fn apply_solution(&mut self, solution: &Solution) {
         let members = self.region.members.len();
         self.region
@@ -532,6 +593,9 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         }
     }
 
+    /// Solves the CSP for this cyclic region.
+    ///
+    /// Chooses `BnB` for small SCCs (≤ [`BNB_CUTOFF`]) and greedy for larger ones.
     pub(crate) fn solve(&mut self, body: &Body<'_>) -> bool {
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
@@ -547,7 +611,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.cost_so_far = ApproxCost::ZERO;
 
         let solutions = if let Some(solutions) = self.region.solutions.take() {
-            // We can re-use the old solutions array, skipping an allocation
+            // Re-use the existing allocation from a previous solve
             solutions.fill(Solution::new());
             solutions
         } else {
@@ -560,7 +624,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         self.run_branch(body, solutions);
 
         let solution = mem::replace(&mut solutions[0], Solution::new());
-        solutions.rotate_left(1); // add the next solution to the front
+        solutions.rotate_left(1); // promote the next-best solution to the front
 
         if solution.cost.is_infinite() {
             return false;
@@ -571,6 +635,11 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         true
     }
 
+    /// Attempts an alternative assignment after a previous solution was rejected.
+    ///
+    /// First tries precomputed `BnB` solutions, then falls back to least-delta perturbation
+    /// (swapping the block whose next heap alternative has the smallest cost delta) followed by
+    /// greedy search.
     pub(crate) fn retry(&mut self, body: &Body<'_>) -> bool {
         debug_assert_eq!(self.region.fixed.domain_size(), body.basic_blocks.len());
 
@@ -584,11 +653,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             return true;
         }
 
-        // We have evaluated all the solutions, and none of the top K are feasible, therefore we go
-        // back to greedy search.
-
-        // Least-delta perturbation: find the member whose next heap alternative has the smallest
-        // cost delta from its current assignment, and switch it.
+        // All precomputed solutions exhausted — fall back to least-delta perturbation:
+        // find the block whose next heap alternative has the smallest cost delta and switch it.
         let mut min_diff = f32::INFINITY;
         let mut best_depth = None;
 

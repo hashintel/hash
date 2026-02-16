@@ -1,3 +1,16 @@
+//! Placement solver for assigning execution targets to basic blocks.
+//!
+//! The solver operates on a [`Condensation`] of the CFG into placement regions: trivial
+//! single-block regions and cyclic multi-block SCCs. [`CostEstimation`] ranks candidate targets
+//! for trivial regions, while [`ConstraintSatisfaction`] handles cyclic ones.
+//!
+//! The forward pass processes regions in topological order, the backward pass in reverse for
+//! refinement. When assignment fails, [`PlacementSolver::rewind`] walks backward to find a region
+//! that can change its assignment.
+//!
+//! Entry point: [`PlacementSolverContext::build_in`] constructs a [`PlacementSolver`], then
+//! [`PlacementSolver::run`] executes both passes.
+
 use core::{alloc::Allocator, mem};
 
 use hashql_core::{
@@ -29,8 +42,13 @@ mod estimate;
 #[cfg(test)]
 mod tests;
 
+// Identifies a placement region in the condensation graph.
 id::newtype!(pub(crate) struct PlacementRegionId(u32 is 0..=0xFFFF_FF00));
 
+/// Input data for placement solving.
+///
+/// Bundles the per-block target domains (`assignment`), per-target statement costs
+/// (`statements`), and terminator transition costs (`terminators`).
 #[derive(Debug, Copy, Clone)]
 pub struct PlacementSolverContext<'ctx, A: Allocator> {
     pub assignment: &'ctx BasicBlockSlice<TargetBitSet>,
@@ -39,6 +57,10 @@ pub struct PlacementSolverContext<'ctx, A: Allocator> {
 }
 
 impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
+    /// Constructs a [`PlacementSolver`] from this context.
+    ///
+    /// Allocates working storage (targets and options slices) and builds the
+    /// [`Condensation`] graph from `body`.
     pub fn build_in<'alloc, S>(
         self,
         body: &Body<'_>,
@@ -47,8 +69,8 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
     where
         S: BumpAllocator,
     {
-        // We use a backup slice, instead of directly operating on the target set, so that we're
-        // able to switch and backup easily between iterations.
+        // Separate working slices so rewind can restore previous assignments without
+        // mutating the input.
         let targets = {
             let uninit = alloc.allocate_slice_uninit(body.basic_blocks.len());
             BasicBlockSlice::from_raw_mut(uninit.write_filled(None))
@@ -72,6 +94,11 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
     }
 }
 
+/// Assigns execution targets to basic blocks by solving over the condensation graph.
+///
+/// Uses a two-pass approach: the forward pass assigns targets in topological order, the backward
+/// pass refines them with full boundary context. Rewind-based backtracking recovers from
+/// assignment failures in the forward pass.
 pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
     data: PlacementSolverContext<'ctx, A>,
 
@@ -84,6 +111,8 @@ pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
 }
 
 impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
+    /// Runs the forward and backward passes, returning the chosen [`TargetId`] for each basic
+    /// block.
     pub fn run<'heap>(&mut self, body: &Body<'heap>) -> BasicBlockVec<TargetId, &'heap Heap> {
         let mut regions = Vec::with_capacity_in(self.condensation.node_count(), self.alloc);
         self.condensation
@@ -98,7 +127,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
             todo!("issue diagnostic")
         }
 
-        // flush the result to the actual target slices
+        // Collect the final assignments into the output vec
         let mut output =
             BasicBlockVec::with_capacity_in(body.basic_blocks.len(), *body.local_decls.allocator());
         for target in &*self.targets {
@@ -176,11 +205,12 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         None // all possibilities exhausted
     }
 
+    /// Processes placement regions in topological order, assigning targets greedily.
+    ///
+    /// Trivial regions use [`CostEstimation`] to pick the best target; cyclic regions use
+    /// [`ConstraintSatisfaction`]. Failure triggers [`PlacementSolver::rewind`].
     fn run_forwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) -> bool {
-        // Now that we have all the edges we must do a forwards and backwards sweep, scc gives us
-        // the reverse topological order, meaning that the forwards is simply the backwards
-        // traversal of the scc.
-        debug_assert!(!regions.is_empty()); // there is always at least one region because the start block exists
+        debug_assert!(!regions.is_empty(), "at least the start block must exist");
         let mut ptr = 0;
 
         while ptr < regions.len() {
@@ -247,10 +277,12 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         true
     }
 
+    /// Re-evaluates assignments in reverse topological order for refinement.
+    ///
+    /// Delegates to [`adjust_trivial`](Self::adjust_trivial) and
+    /// [`adjust_cyclic`](Self::adjust_cyclic).
     fn run_backwards_loop(&mut self, body: &Body<'_>, regions: &[PlacementRegionId]) -> bool {
-        // Go through the elements in reverse order, and try to see if there's a better assignment
-        // (the delta between the values is negative)
-        debug_assert!(!regions.is_empty()); // there is always at least one region because the start block exists
+        debug_assert!(!regions.is_empty(), "at least the start block must exist");
         let mut ptr = regions.len();
 
         while ptr > 0 {
@@ -277,6 +309,9 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         true
     }
 
+    /// Re-evaluates a trivial region's assignment with full boundary context.
+    ///
+    /// Replaces the current assignment only if the new best cost is strictly lower.
     fn adjust_trivial(
         &mut self,
         body: &Body<'_>,
@@ -301,7 +336,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         let mut heap = estimator.run(body, region_id, block);
 
         let Some(elem) = heap.pop() else {
-            // Nothing to do, so just don't.
+            // Re-estimation (unlikely) found no viable targets — keep the current assignment
             return;
         };
 
@@ -310,16 +345,21 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         }
     }
 
+    /// Re-evaluates a cyclic region's assignment with full boundary context.
+    ///
+    /// Re-runs [`ConstraintSatisfaction`] and compares the total cost of the old vs new solution,
+    /// keeping whichever is cheaper.
     fn adjust_cyclic(
         &mut self,
         body: &Body<'_>,
         region_id: PlacementRegionId,
         cyclic: CyclicPlacementRegion<'alloc>,
     ) -> PlacementRegionKind<'alloc> {
-        // Even in BnB we need to re-run, because the external cost estimations may have changed.
+        // Re-run with full boundary context — neighbor assignments may have changed since the
+        // forward pass.
         let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
         if !csp.solve(body) {
-            // Nothing to do, we already have a valid solution
+            // New solve found nothing better — keep the forward-pass assignment
             return PlacementRegionKind::Cyclic(csp.region);
         }
 
