@@ -255,6 +255,28 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         None // all possibilities exhausted
     }
 
+    /// Checks that all blocks in `regions[start..]` have no assigned target.
+    ///
+    /// Verifies the forward-pass invariant: at the loop head for index `ptr`, every region in
+    /// the suffix `regions[ptr..]` must be unassigned. This holds because assignments only occur
+    /// on success (after which `ptr` advances past the region), and [`PlacementSolver::rewind`]
+    /// clears every exhausted region it walks through.
+    #[cfg(debug_assertions)]
+    fn debug_suffix_unassigned(&self, regions: &[PlacementRegionId], start: usize) -> bool {
+        regions[start..]
+            .iter()
+            .all(|&id| match &self.condensation[id].kind {
+                PlacementRegionKind::Trivial(TrivialPlacementRegion { block }) => {
+                    self.targets[*block].is_none()
+                }
+                PlacementRegionKind::Cyclic(cyclic) => cyclic
+                    .members
+                    .iter()
+                    .all(|&member| self.targets[member].is_none()),
+                PlacementRegionKind::Unassigned => false,
+            })
+    }
+
     /// Processes placement regions in topological order, assigning targets greedily.
     ///
     /// Trivial regions use [`CostEstimation`] to pick the best target; cyclic regions use
@@ -270,6 +292,11 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
         let mut ptr = 0;
 
         while ptr < regions.len() {
+            debug_assert!(
+                self.debug_suffix_unassigned(regions, ptr),
+                "forward invariant violated: regions[ptr..] must be unassigned"
+            );
+
             let region_id = regions[ptr];
             let region = &mut self.condensation[region_id];
             let kind = mem::replace(&mut region.kind, PlacementRegionKind::Unassigned);
