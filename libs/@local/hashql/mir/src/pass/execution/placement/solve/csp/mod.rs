@@ -268,7 +268,13 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
     /// Instance method wrapper for [`narrow_impl`](Self::narrow_impl).
     fn narrow(&mut self, body: &Body<'_>, block: BasicBlockId, target: TargetId) {
-        Self::narrow_impl(&self.solver.data, self.region.blocks, body, block, target);
+        Self::narrow_impl(
+            &self.solver.data,
+            &mut self.region.blocks[self.depth..],
+            body,
+            block,
+            target,
+        );
     }
 
     /// Resets unfixed block domains and replays all narrowing from the fixed prefix.
