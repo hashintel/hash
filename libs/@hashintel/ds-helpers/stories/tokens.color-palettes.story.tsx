@@ -40,12 +40,15 @@ const COLOR_PALETTES: readonly PaletteName[] = [
 ];
 
 /**
- * Step number at which swatch label text flips from dark to light.
- * Mirrors CONTRAST_FLIP_STEP in ds-theme/src/theme/utils.ts.
+ * Contrast flip thresholds per color mode.
+ * Mirrors CONTRAST_FLIP_STEP_LIGHT / _DARK in ds-theme/src/theme/utils.ts.
+ *
+ * Swatch labels always render in a single color (no mode-conditional CSS),
+ * so this uses the light-mode threshold for a reasonable default.
  */
 const CONTRAST_FLIP_STEP = 80;
 
-/** Bright palettes where steps 90–100 flip back to dark text. */
+/** Bright palettes where steps 90–100 flip back to dark text (light mode). */
 const BRIGHT_PALETTES: readonly string[] = ["orange", "yellow"];
 const BRIGHT_FLIPBACK_STEPS = [90, 95, 100];
 
@@ -59,6 +62,15 @@ function useDarkText(palette: string, step: string): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * Returns the token path for the contrast fg color of a swatch label.
+ * Uses the palette's own s125/s00 which are semantic tokens with _light/_dark
+ * values, so they respond to color mode switching automatically.
+ */
+function swatchFgToken(palette: string, step: string): Token {
+  return `colors.${palette}.${useDarkText(palette, step) ? "s125" : "s00"}` as Token;
 }
 
 const SOLID_STEPS: readonly SolidStep[] = [
@@ -164,14 +176,13 @@ const ColorSwatch = ({
 }) => {
   const tokenPath = `colors.${colorName}.${step}` as Token;
   const isAlpha = step.startsWith("a");
-  const dark = useDarkText(colorName, step);
 
   return (
     <div
       className={swatchStyles}
       style={{
         backgroundColor: token(tokenPath),
-        color: dark ? "#000" : "#fff",
+        color: token(swatchFgToken(colorName, step)),
         boxShadow: isAlpha
           ? "inset 0 0 0 1px rgba(0,0,0,0.1)"
           : "inset 0 0 0 1px rgba(0,0,0,0.05)",
