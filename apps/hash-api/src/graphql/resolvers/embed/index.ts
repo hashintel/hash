@@ -56,7 +56,41 @@ const sanitizeOembedHtml = (html: string): string =>
       p: ["class", "style"],
       time: ["datetime"],
     },
+    /**
+     * Restrict inline styles to safe layout/sizing properties only.
+     * This prevents CSS-based injection vectors (e.g. `background-image: url(...)`,
+     * `expression(...)`, or `-moz-binding`) while preserving embed layout.
+     */
+    allowedStyles: {
+      "*": {
+        width: [/^\d+(?:px|em|rem|%)$/],
+        "max-width": [/^\d+(?:px|em|rem|%)$/],
+        height: [/^\d+(?:px|em|rem|%)$/],
+        "max-height": [/^\d+(?:px|em|rem|%)$/],
+        "text-align": [/^(?:left|right|center|justify)$/],
+        "vertical-align": [/^(?:top|middle|bottom|baseline)$/],
+        display: [/^(?:block|inline|inline-block|flex|none)$/],
+        margin: [
+          /^[\d.]+(?:px|em|rem|%|auto)(?:\s+[\d.]+(?:px|em|rem|%|auto)){0,3}$/,
+        ],
+        padding: [/^[\d.]+(?:px|em|rem|%)(?:\s+[\d.]+(?:px|em|rem|%)){0,3}$/],
+        border: [/^(?:none|\d+px\s+\w+\s+#?[a-zA-Z0-9]+)$/],
+        "aspect-ratio": [/^[\d.]+\s*\/\s*[\d.]+$/],
+        position: [/^(?:relative|static)$/],
+        overflow: [/^(?:hidden|visible|auto|scroll)$/],
+      },
+    },
     allowedSchemes: ["https"],
+    allowProtocolRelative: false,
+    transformTags: {
+      a: (tagName, attribs) => ({
+        tagName,
+        attribs: {
+          ...attribs,
+          rel: "noopener noreferrer",
+        },
+      }),
+    },
   });
 
 oEmbedData.unshift({
