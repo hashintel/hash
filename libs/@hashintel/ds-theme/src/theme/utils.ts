@@ -20,12 +20,9 @@ function fgOnSolid(
   ps: (step: string) => { value: string },
 ): { value: string } | { value: { _light: string; _dark: string } } {
   switch (kind) {
-    case "normal":
-      return { value: { _light: ps("s00").value, _dark: ps("s125").value } };
     case "bright":
-      return {
-        value: { _light: "{colors.neutral.s120}", _dark: ps("s125").value },
-      };
+      return { value: { _dark: ps("s00").value, _light: ps("s125").value } };
+    case "normal":
     case "neutral":
       return ps("s00");
   }

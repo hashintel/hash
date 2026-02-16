@@ -46,31 +46,19 @@ const COLOR_PALETTES: readonly PaletteName[] = [
  * Swatch labels always render in a single color (no mode-conditional CSS),
  * so this uses the light-mode threshold for a reasonable default.
  */
-const CONTRAST_FLIP_STEP = 85;
+const CONTRAST_FLIP_STEP = 90;
 
-/** Bright palettes where steps 90–100 flip back to dark text (light mode). */
-const BRIGHT_PALETTES: readonly string[] = ["orange", "yellow"];
-const BRIGHT_FLIPBACK_STEPS = [90, 95, 100];
+/** Palettes with full saturation background steps (90–100) flip back to dark text (light mode). */
+const FULL_SAT_BG_STEPS = [90, 95, 100];
 
-function useDarkText(palette: string, step: string): boolean {
-  const num = Number(step.replace(/^[as]/, ""));
-  if (num < CONTRAST_FLIP_STEP) return true;
-  if (
-    BRIGHT_PALETTES.includes(palette) &&
-    BRIGHT_FLIPBACK_STEPS.includes(num)
-  ) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * Returns the token path for the contrast fg color of a swatch label.
- * Uses the palette's own s125/s00 which are semantic tokens with _light/_dark
- * values, so they respond to color mode switching automatically.
- */
 function swatchFgToken(palette: string, step: string): Token {
-  return `colors.${palette}.${useDarkText(palette, step) ? "s125" : "s00"}` as Token;
+  const num = Number(step.replace(/^[as]/, ""));
+  if (num < CONTRAST_FLIP_STEP) {
+    return `colors.${palette}.s125` as Token;
+  } else if (FULL_SAT_BG_STEPS.includes(num)) {
+    return `colors.${palette}.fg.onSolid` as Token;
+  }
+  return `colors.${palette}.s00` as Token;
 }
 
 const SOLID_STEPS: readonly SolidStep[] = [
@@ -170,10 +158,7 @@ const aliasStyles = css({
 const ColorSwatch = ({
   colorName,
   step,
-}: {
-  colorName: string;
-  step: string;
-}) => {
+}: { colorName: string; step: string }) => {
   const tokenPath = `colors.${colorName}.${step}` as Token;
   const isAlpha = step.startsWith("a");
 
@@ -196,10 +181,7 @@ const ColorSwatch = ({
 const ColorRow = ({
   name,
   steps,
-}: {
-  name: string;
-  steps: readonly string[];
-}) => {
+}: { name: string; steps: readonly string[] }) => {
   const alias = STATUS_ALIASES[name];
   return (
     <HStack gap="1" alignItems="center">
@@ -216,11 +198,7 @@ const ColorRow = ({
   );
 };
 
-const StepHeaders = ({
-  steps,
-}: {
-  steps: readonly string[];
-}) => (
+const StepHeaders = ({ steps }: { steps: readonly string[] }) => (
   <HStack gap="1" alignItems="center">
     <span className={labelStyles} />
     {steps.map((step) => (
