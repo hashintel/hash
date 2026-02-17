@@ -1,8 +1,7 @@
 import react from "@vitejs/plugin-react";
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { replacePlugin } from "rolldown/plugins";
+import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
-import dts from "vite-plugin-dts";
 
 /**
  * Library build config
@@ -45,7 +44,6 @@ export default defineConfig({
       replacePlugin({
         // Consumer Webpack config seem to `define` `typeof window` to `"object"` by default.
         // This causes crashes in Web Workers, since `window` is not defined there.
-        // To prevent this, we do this resolution on our side.
         "typeof window": '"undefined"',
         // TypeScript's internals reference process, process.versions.pnp, etc.
         "typeof process": "'undefined'",
@@ -78,22 +76,10 @@ export default defineConfig({
       },
     }),
 
-    dts({
-      rollupTypes: true,
-      insertTypesEntry: true,
-      exclude: [
-        "**/*.test.*",
-        "**/*.spec.*",
-        "**/*.stories.*",
-        "playground/**",
-        "stories/**",
-        ".storybook/**",
-        "styled-system/**",
-        "demo-site/**",
-      ],
-      copyDtsFiles: false,
-      outDir: "dist",
-    }),
+    dts({ tsgo: true }).map((plugin) =>
+      // Ensure runs before Vite's native TypeScript transform
+      plugin.name.endsWith("fake-js") ? { ...plugin, enforce: "pre" } : plugin,
+    ),
   ],
 
   experimental: {
