@@ -16,8 +16,8 @@
     "axios": "1.13.5"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/hash-graph-api": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
+    "@rust/hash-graph-api": "workspace:*",
     "@types/node": "22.18.13",
     "fix-esm-import-path": "1.10.3",
     "rimraf": "6.1.2",

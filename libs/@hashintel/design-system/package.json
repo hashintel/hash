@@ -56,7 +56,7 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.2.1",
+    "@blockprotocol/type-system": "workspace:*",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "clsx": "2.1.1",
@@ -67,8 +67,8 @@
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@types/react": "19.2.7",

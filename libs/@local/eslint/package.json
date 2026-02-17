@@ -40,7 +40,7 @@
     "type-fest": "5.3.1"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
     "@types/babel__core": "^7.20.5",
     "@types/node": "22.18.13",
     "rimraf": "6.1.2",
