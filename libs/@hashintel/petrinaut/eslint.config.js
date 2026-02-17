@@ -7,10 +7,10 @@ export default [
       parserOptions: {
         projectService: {
           allowDefaultProject: [
-            "assets.d.ts",
             "panda.config.ts",
             "postcss.config.cjs",
             "vite.config.ts",
+            "vite.site.config.ts",
           ],
         },
         tsconfigRootDir: import.meta.dirname,

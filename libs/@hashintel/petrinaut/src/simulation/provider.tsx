@@ -101,11 +101,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Reinitialize when petriNetId changes
   useEffect(() => {
-    console.log(
-      "[Petrinaut:Debug] SimulationProvider: petriNetId changed to",
-      petriNetId,
-      "- calling reset()",
-    );
     workerActions.reset();
     setStateValues(INITIAL_STATE_VALUES);
   }, [petriNetId, workerActions]);
@@ -160,9 +155,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     // Delegate to worker (maxTime is immutable once set at initialization)
     // Returns a promise that resolves when initialization is complete
-    console.log(
-      "[Petrinaut:Debug] SimulationProvider.initialize() called, delegating to worker",
-    );
     return workerActions.initialize({
       sdcpn,
       initialMarking: currentState.initialMarking,

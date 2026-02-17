@@ -414,10 +414,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   const play: PlaybackContextValue["play"] = async () => {
     const simState = simulationStateRef.current;
-    console.log(
-      "[Petrinaut:Debug] PlaybackProvider.play() called, simState:",
-      simState,
-    );
     const state = stateValuesRef.current;
     const { maxFramesAhead, batchSize } = getPlayModeBackpressure(
       state.playMode,
@@ -425,9 +421,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     // Initialize simulation if not run yet
     if (simState === "NotRun") {
-      console.log(
-        "[Petrinaut:Debug] PlaybackProvider.play() -> calling initialize (simState was NotRun)",
-      );
       await initialize({
         seed: Date.now(),
         dt: dtRef.current,
@@ -436,9 +429,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       });
       // Initialization complete - start simulation
       // The effect will set playbackState to "Playing" when simulation starts running
-      console.log(
-        "[Petrinaut:Debug] PlaybackProvider.play() -> initialization complete, calling runSimulation()",
-      );
       runSimulation();
       return;
     }

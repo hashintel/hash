@@ -1,7 +1,8 @@
 import react from "@vitejs/plugin-react";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { replacePlugin } from "rolldown/plugins";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 import dts from "vite-plugin-dts";
-import { replacePlugin } from "rolldown/plugins";
 
 /**
  * Library build config
