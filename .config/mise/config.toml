@@ -1,5 +1,6 @@
 [env]
-_.file = [".env", ".env.local"]
+TURBO_GLOBAL_WARNING_DISABLED = 1
+_.file                        = [".env", ".env.local"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
