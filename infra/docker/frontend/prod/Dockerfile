@@ -103,8 +103,8 @@ RUN groupadd --system --gid 60000 hash && \
     install -d -m 0775 -o frontend -g hash /log /home/frontend $COREPACK_HOME /usr/local/src/apps/hash-frontend/.next && \
     corepack prepare --activate
 
-ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
-CMD ["start"]
-
 USER frontend:hash
 ENV NODE_ENV=production
+
+ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+CMD ["start"]

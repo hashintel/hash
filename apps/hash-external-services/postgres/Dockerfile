@@ -6,3 +6,5 @@ RUN apk add --no-cache --virtual .build-deps gcc clang19 llvm19 git make musl-de
     && rm -rf pgvector \
     && apk del .build-deps \
     && mkdir -p /etc/postgresql/
+
+USER postgres
