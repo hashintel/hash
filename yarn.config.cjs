@@ -45,8 +45,17 @@ const shouldIgnoreDependency = (dependency) =>
  * @param {Context} context - The Yarn constraint context.
  */
 function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
+  const workspaceIdents = new Set(
+    Yarn.workspaces().map((workspace) => workspace.ident),
+  );
+
   for (const dependency of Yarn.dependencies()) {
     if (shouldIgnoreDependency(dependency)) {
+      continue;
+    }
+
+    // Skip workspace dependencies; enforceProtocols handles them via workspace:*
+    if (workspaceIdents.has(dependency.ident)) {
       continue;
     }
 
@@ -95,8 +104,10 @@ function enforceProtocols({ Yarn }) {
     );
 
     if (workspaceDependency) {
-      // turbo doesn't support the `workspace:` protocol when rewriting lockfiles, leading to inconsistent lockfiles
-      dependency.update(workspaceDependency.manifest.version);
+      // Internal workspace dependencies must use the workspace:* protocol
+      if (dependency.range !== "workspace:*") {
+        dependency.update("workspace:*");
+      }
     }
 
     if (dependency.range.startsWith("file:")) {
