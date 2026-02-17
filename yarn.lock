@@ -7801,6 +7801,7 @@ __metadata:
     react-dom: "npm:19.2.3"
     react-icons: "npm:5.5.0"
     reactflow: "npm:11.11.4"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vite: "npm:8.0.0-beta.14"
     vite-plugin-dts: "npm:4.5.4"
