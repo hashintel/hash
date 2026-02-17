@@ -24,7 +24,7 @@ use hashql_mir::{
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, SuiteDirectives, common::process_status};
-use crate::executor::TrialError;
+use crate::harness::trial::TrialError;
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
@@ -153,6 +153,7 @@ pub(crate) fn mir_spawn_d2() -> (BufWriter<ChildStdin>, JoinHandle<Vec<u8>>) {
         .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()
         .expect("should be able to spawn d2");
 

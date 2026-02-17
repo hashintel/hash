@@ -1,9 +1,10 @@
 use std::io;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum OutputFormat {
+pub(crate) enum OutputFormat {
     #[default]
     Human,
+    Interactive,
     Json,
 }
 

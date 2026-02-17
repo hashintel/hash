@@ -14792,8 +14792,6 @@ __metadata:
   resolution: "@rust/hashql-compiletest@workspace:libs/@local/hashql/compiletest"
   dependencies:
     "@rust/error-stack": "npm:0.6.0"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hashql-ast": "npm:0.0.0-private"
     "@rust/hashql-core": "npm:0.0.0-private"
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
