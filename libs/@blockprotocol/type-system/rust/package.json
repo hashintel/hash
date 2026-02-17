@@ -33,13 +33,13 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-codec": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-codec": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/hash-codegen": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
+    "@rust/hash-codegen": "workspace:*",
     "typescript": "5.9.3"
   }
 }

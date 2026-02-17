@@ -10,10 +10,10 @@
     "test:unit": "mise run test:unit @rust/harpc-net"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/harpc-codec": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private",
-    "@rust/harpc-wire-protocol": "0.0.0-private",
-    "@rust/hash-codec": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/harpc-codec": "workspace:*",
+    "@rust/harpc-types": "workspace:*",
+    "@rust/harpc-wire-protocol": "workspace:*",
+    "@rust/hash-codec": "workspace:*"
   }
 }

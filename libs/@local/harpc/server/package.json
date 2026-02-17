@@ -9,15 +9,15 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/harpc-codec": "0.0.0-private",
-    "@rust/harpc-net": "0.0.0-private",
-    "@rust/harpc-system": "0.0.0-private",
-    "@rust/harpc-tower": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/harpc-codec": "workspace:*",
+    "@rust/harpc-net": "workspace:*",
+    "@rust/harpc-system": "workspace:*",
+    "@rust/harpc-tower": "workspace:*",
+    "@rust/harpc-types": "workspace:*"
   },
   "devDependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/harpc-client": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/harpc-client": "workspace:*"
   }
 }

@@ -9,6 +9,6 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0"
+    "@rust/error-stack": "workspace:*"
   }
 }
