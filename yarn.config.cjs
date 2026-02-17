@@ -16,7 +16,6 @@ const enforcedDevDependencies = {
 };
 
 const ignoredDependencies = [
-  "@blockprotocol/graph",
   "@sentry/webpack-plugin",
   // Petrinaut SDCPN uses multiple packages which are many versions behind in other workspaces
   // To be un-ignored once H-5639 completed
@@ -29,13 +28,25 @@ const ignoredWorkspaces = [];
 const allowedGitDependencies = [];
 
 /**
+ * Whether to ignore a dependency for consistency checks (version alignment).
+ * Skips peerDependencies entirely (they may legitimately differ).
  *
  * @param {Dependency} dependency
  */
-const shouldIgnoreDependency = (dependency) =>
+const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
   dependency.type === "peerDependencies";
+
+/**
+ * Whether to ignore a dependency for protocol enforcement.
+ * Does NOT skip peerDependencies — workspace peers must also use workspace:*.
+ *
+ * @param {Dependency} dependency
+ */
+const shouldIgnoreDependencyForProtocol = (dependency) =>
+  ignoredDependencies.includes(dependency.ident) ||
+  ignoredWorkspaces.includes(dependency.workspace.ident);
 
 /**
  * Enforces consistent dependency versions across all workspaces in the project.
@@ -50,7 +61,7 @@ function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
   );
 
   for (const dependency of Yarn.dependencies()) {
-    if (shouldIgnoreDependency(dependency)) {
+    if (shouldIgnoreDependencyForConsistency(dependency)) {
       continue;
     }
 
@@ -62,7 +73,7 @@ function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
     for (const otherDependency of Yarn.dependencies({
       ident: dependency.ident,
     })) {
-      if (shouldIgnoreDependency(otherDependency)) {
+      if (shouldIgnoreDependencyForConsistency(otherDependency)) {
         continue;
       }
 
@@ -95,7 +106,7 @@ function enforceProtocols({ Yarn }) {
   const workspaces = Yarn.workspaces();
 
   for (const dependency of Yarn.dependencies()) {
-    if (shouldIgnoreDependency(dependency)) {
+    if (shouldIgnoreDependencyForProtocol(dependency)) {
       continue;
     }
 
