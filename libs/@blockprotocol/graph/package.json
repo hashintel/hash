@@ -68,7 +68,7 @@
   "dependencies": {
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/type-system": "0.2.1",
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "json-schema-to-typescript": "15.0.4",
     "lit": "2.8.0",

@@ -62,7 +62,7 @@
     "@temporalio/proto": "1.12.1",
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "axios": "1.13.5",
     "cache-manager": "5.7.6",
