@@ -11,7 +11,7 @@ use guppy::{
     MetadataCommand,
     graph::{DependencyDirection, PackageGraph, PackageMetadata},
 };
-use nodejs_package_json::{PackageJson, VersionProtocol};
+use nodejs_package_json::{PackageJson, VersionProtocol, WorkspaceProtocol};
 use tokio::{fs, process::Command};
 
 #[derive(Debug, Clone, derive_more::Display)]
@@ -383,22 +383,36 @@ fn compute_package_json(
         if dependency.dev_only() {
             dev_dependencies.insert(
                 package_name(dependency.to())?,
-                VersionProtocol::Version(package_version(dependency.to())),
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
             );
         } else {
             dependencies.insert(
                 package_name(dependency.to())?,
-                VersionProtocol::Version(package_version(dependency.to())),
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
             );
         }
     }
 
     let ExtraDependencies { normal, dev } = ExtraDependencies::new(metadata)?;
     for js_dep in normal {
-        dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        if local_yarn_packages.contains(&js_dep.name) {
+            dependencies.insert(
+                js_dep.name,
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
+            );
+        } else {
+            dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        }
     }
     for js_dep in dev {
-        dev_dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        if local_yarn_packages.contains(&js_dep.name) {
+            dev_dependencies.insert(
+                js_dep.name,
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
+            );
+        } else {
+            dev_dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        }
     }
 
     let IgnoreDependencies { normal, dev } = IgnoreDependencies::new(metadata)?;
