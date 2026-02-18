@@ -26,7 +26,7 @@ const tabButtonStyle = cva({
       true: {
         opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-        color: "neutral.s120",
+        color: "neutral.s125",
       },
       false: {
         opacity: "[0.6]",

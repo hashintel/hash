@@ -256,7 +256,7 @@ const speedButtonStyle = cva({
 
 const popoverDividerStyle = css({
   height: "[1px]",
-  backgroundColor: "neutral.s40",
+  backgroundColor: "[transparent]",
   marginTop: "[4px]",
 });
 
