@@ -2,7 +2,7 @@ import type { SDCPN } from "../../../core/types/sdcpn";
 
 /**
  * The closest pair of nodes will be at least this far apart in the output,
- * giving labels room to breathe.
+ * giving labels room to breathe (unless net size is larger than {@link MAX_DIAGRAM_SIZE_CM} cm).
  */
 const MIN_NODE_DISTANCE_CM = 2;
 const MAX_DIAGRAM_SIZE_CM = 50;
@@ -192,7 +192,7 @@ function generateTikZ(sdcpn: SDCPN, title: string): string {
  *
  * Renders places as circles, transitions as filled bars, and arcs as
  * directed edges. Arc weights are labelled when not equal to 1.
- * Visual x/y positions are preserved (scaled to fit ~15 cm).
+ * Visual x/y positions are preserved (scaled to fit ~{@link MAX_DIAGRAM_SIZE_CM} cm).
  */
 export function exportTikZ({
   petriNetDefinition,
@@ -208,7 +208,8 @@ export function exportTikZ({
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${new Date().toISOString()}.tex`;
+
+  link.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${new Date().toISOString().replace(/:/g, "-")}.tex`;
 
   document.body.appendChild(link);
   link.click();
