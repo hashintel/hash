@@ -37,7 +37,7 @@ const containerStyle = cva({
 
 const indicatorStyle = cva({
   base: {
-    backgroundColor: "neutral.s90",
+    backgroundColor: "neutral.s120",
     position: "absolute",
     transition: "[all 0.2s ease]",
     width: "var(--width)",
@@ -72,7 +72,7 @@ const itemStyle = cva({
   variants: {
     isSelected: {
       true: { color: "neutral.s10" },
-      false: { color: "neutral.s70" },
+      false: { color: "neutral.s110" },
     },
     size: {
       md: {

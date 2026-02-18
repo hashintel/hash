@@ -26,15 +26,15 @@ const tabButtonStyle = cva({
       true: {
         opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-        color: "neutral.s90",
+        color: "neutral.s120",
       },
       false: {
         opacity: "[0.6]",
-        color: "neutral.s60",
+        color: "neutral.s105",
         _hover: {
           opacity: "[1]",
           backgroundColor: "[rgba(0, 0, 0, 0.04)]",
-          color: "neutral.s80",
+          color: "neutral.s115",
         },
       },
     },
