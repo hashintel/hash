@@ -13,7 +13,7 @@ const COLOR_PALETTES: readonly PaletteName[] = [
   "purple",
 ];
 
-type BgLevel = "min" | "surface" | "subtle" | "shaded" | "strong" | "solid";
+type BgLevel = "min" | "surface" | "subtle" | "shaded" | "solid";
 type BdLevel = "subtle" | "solid" | "strong";
 
 const BG_LEVELS: readonly BgLevel[] = [
@@ -21,7 +21,6 @@ const BG_LEVELS: readonly BgLevel[] = [
   "surface",
   "subtle",
   "shaded",
-  "strong",
   "solid",
 ];
 
@@ -143,14 +142,22 @@ const MixedLevels = ({ palette }: { palette: PaletteName }) => (
         >
           <span className={caption}>bg.shaded + bd.solid</span>
           <Box
-            bg="colorPalette.bg.strong"
+            bg="colorPalette.bg.solid"
             p="3"
             borderRadius="sm"
             mt="2"
             border="[1px solid]"
             borderColor="colorPalette.bd.strong"
           >
-            <span className={caption}>bg.strong + bd.strong</span>
+            <span
+              className={css({
+                textStyle: "xs",
+                fontWeight: "medium",
+                color: "colorPalette.fg.onSolid",
+              })}
+            >
+              bg.solid + bd.strong
+            </span>
           </Box>
         </Box>
       </Box>
@@ -174,10 +181,13 @@ export const ColorLayering: Story = () => {
             maxWidth: "[700px]",
           })}
         >
-          All <code className={mono}>bg.*</code> and{" "}
-          <code className={mono}>bd.*</code> tokens use alpha transparency,
-          allowing them to layer over any surface. Nesting the same level
-          produces progressively darker shading.
+          The first four <code className={mono}>bg.*</code> levels (min,
+          surface, subtle, shaded) and all <code className={mono}>bd.*</code>{" "}
+          tokens use alpha transparency, allowing them to layer over any
+          surface. Nesting the same level produces progressively darker shading.{" "}
+          <code className={mono}>bg.solid</code> is an opaque accent fill. Use{" "}
+          <code className={mono}>bgSolid.*</code> for opaque surfaces (popovers,
+          dialogs) that must not blend.
         </p>
       </VStack>
 

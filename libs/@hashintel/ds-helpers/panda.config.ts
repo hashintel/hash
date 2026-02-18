@@ -50,6 +50,7 @@ export default defineConfig({
           leading: ["tight", "normal", "loose"],
           roundness: ["none", "sm", "md", "lg", "xl"],
           density: ["compact", "normal", "comfortable"],
+          focusVisibleRing: ["outside", "inside", "mixed"],
         },
       },
     ],
