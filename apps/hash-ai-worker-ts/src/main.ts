@@ -5,7 +5,9 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
-  environment: process.env.SENTRY_ENVIRONMENT || "development",
+  environment:
+    process.env.SENTRY_ENVIRONMENT ||
+    (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
 });
 
