@@ -26,7 +26,7 @@ const frameInfoStyle = css({
   flexDirection: "column",
   alignItems: "center",
   fontSize: "[10px]",
-  color: "neutral.s60",
+  color: "neutral.s105",
   fontWeight: "medium",
   lineHeight: "[1]",
   width: "[90px]",
@@ -37,13 +37,13 @@ const frameInfoStyle = css({
 
 const elapsedTimeStyle = css({
   fontSize: "[9px]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   marginTop: "[2px]",
 });
 
 const frameIndexStyle = css({
   fontSize: "[11px]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   letterSpacing: "[-0.2px]",
   marginTop: "[1px]",
 });
@@ -65,14 +65,14 @@ const sliderStyle = css({
     width: "[12px]",
     height: "[12px]",
     borderRadius: "[50%]",
-    background: "blue.s50",
+    background: "blue.s90",
     cursor: "pointer",
   },
   "&::-moz-range-thumb": {
     width: "[12px]",
     height: "[12px]",
     borderRadius: "[50%]",
-    background: "blue.s50",
+    background: "blue.s90",
     cursor: "pointer",
     border: "none",
   },
@@ -93,7 +93,7 @@ const popoverContainerStyle = css({
 });
 
 const popoverStyle = css({
-  backgroundColor: "neutral.s10",
+  backgroundColor: "neutral.s25",
   borderRadius: "[12px]",
   boxShadow:
     "[0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 20px 25px -5px rgba(0, 0, 0, 0.1)]",
@@ -112,7 +112,7 @@ const popoverHeaderStyle = css({
 const popoverTitleStyle = css({
   fontSize: "[12px]",
   fontWeight: "medium",
-  color: "neutral.s50",
+  color: "neutral.s100",
   textTransform: "uppercase",
   letterSpacing: "[0.48px]",
 });
@@ -124,7 +124,7 @@ const closeButtonStyle = css({
   width: "[24px]",
   height: "[24px]",
   fontSize: "[14px]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   backgroundColor: "[transparent]",
   border: "none",
   borderRadius: "[6px]",
@@ -151,7 +151,7 @@ const sectionCardStyle = css({
 const sectionLabelStyle = css({
   fontSize: "[12px]",
   fontWeight: "medium",
-  color: "neutral.s50",
+  color: "neutral.s100",
   paddingX: "[8px]",
   paddingTop: "[8px]",
   paddingBottom: "[6px]",
@@ -169,7 +169,7 @@ const menuItemStyle = cva({
     borderRadius: "[8px]",
     fontSize: "[14px]",
     fontWeight: "medium",
-    color: "neutral.s90",
+    color: "neutral.s120",
     backgroundColor: "[transparent]",
     border: "none",
     cursor: "pointer",
@@ -201,7 +201,7 @@ const menuItemStyle = cva({
 
 const menuItemIconStyle = css({
   fontSize: "[14px]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   flexShrink: 0,
 });
 
@@ -233,7 +233,7 @@ const speedButtonStyle = cva({
     padding: "[8px]",
     fontSize: "[14px]",
     fontWeight: "medium",
-    color: "neutral.s90",
+    color: "neutral.s120",
     backgroundColor: "[transparent]",
     border: "none",
     borderRadius: "[8px]",
@@ -256,7 +256,7 @@ const speedButtonStyle = cva({
 
 const popoverDividerStyle = css({
   height: "[1px]",
-  backgroundColor: "neutral.s10",
+  backgroundColor: "[transparent]",
   marginTop: "[4px]",
 });
 
@@ -267,7 +267,7 @@ const maxTimeInputStyle = css({
   fontSize: "[13px]",
   fontWeight: "medium",
   textAlign: "right",
-  color: "neutral.s90",
+  color: "neutral.s120",
   backgroundColor: "neutral.s10",
   border: "[1px solid]",
   borderColor: "neutral.s20",
@@ -286,7 +286,7 @@ const maxTimeInputStyle = css({
 });
 
 const toolbarDividerStyle = css({
-  background: "neutral.s20",
+  background: "neutral.s40",
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",
@@ -701,7 +701,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                         <span
                           style={{
                             fontSize: "12px",
-                            color: "var(--colors-neutral-s50)",
+                            color: "var(--colors-neutral-s100)",
                           }}
                         >
                           s

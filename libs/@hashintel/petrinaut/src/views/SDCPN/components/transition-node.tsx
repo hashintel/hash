@@ -27,7 +27,7 @@ const transitionBoxStyle = cva({
     alignItems: "center",
     background: "neutral.s20",
     border: "2px solid",
-    borderColor: "neutral.s50",
+    borderColor: "neutral.s80",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
@@ -35,7 +35,7 @@ const transitionBoxStyle = cva({
     transition: "[outline 0.2s ease, border-color 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor: "neutral.s70",
+      borderColor: "neutral.s100",
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },

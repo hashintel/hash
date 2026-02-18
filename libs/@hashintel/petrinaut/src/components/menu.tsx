@@ -28,7 +28,7 @@ const triggerItemStyle = css({
   fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[1px]",
-  color: "neutral.s90",
+  color: "neutral.s120",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -47,7 +47,7 @@ const itemStyle = css({
   fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[3px]",
-  color: "neutral.s90",
+  color: "neutral.s120",
   paddingBlock: "[4px]",
   paddingInline: "[7px]",
   _hover: {
