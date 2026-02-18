@@ -27,7 +27,7 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@hashintel/design-system": "workspace:*",
     "lowlight": "2.9.0",

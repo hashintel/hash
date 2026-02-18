@@ -21,7 +21,7 @@
   "dependencies": {
     "@apollo/client": "3.10.5",
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/hook": "0.1.8",
     "@blockprotocol/service": "0.1.5",
     "@blockprotocol/type-system": "workspace:*",

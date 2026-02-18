@@ -45,7 +45,7 @@
     "@anthropic-ai/bedrock-sdk": "0.26.3",
     "@anthropic-ai/sdk": "0.74.0",
     "@apps/hash-graph": "workspace:*",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@google-cloud/storage": "7.19.0",
     "@google-cloud/vertexai": "1.10.0",

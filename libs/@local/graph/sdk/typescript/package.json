@@ -23,7 +23,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@local/advanced-types": "workspace:*",
     "@local/harpc-client": "workspace:*",

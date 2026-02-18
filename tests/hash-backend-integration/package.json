@@ -31,7 +31,7 @@
     "@apps/hash-ai-worker-ts": "workspace:*",
     "@apps/hash-graph": "workspace:*",
     "@apps/hash-integration-worker": "workspace:*",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.8",

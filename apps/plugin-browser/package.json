@@ -26,7 +26,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@hashintel/block-design-system": "workspace:*",
     "@hashintel/design-system": "workspace:*",

@@ -33,7 +33,7 @@
     "@aws-sdk/s3-presigned-post": "3.986.0",
     "@aws-sdk/s3-request-presigner": "3.986.0",
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@graphql-tools/schema": "8.5.1",
     "@keyv/redis": "5.1.3",

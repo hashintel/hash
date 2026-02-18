@@ -27,7 +27,7 @@
     "@aws-sdk/credential-provider-node": "3.972.6",
     "@aws-sdk/s3-request-presigner": "3.986.0",
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
     "@linear/sdk": "61.0.0",
     "@local/advanced-types": "workspace:*",

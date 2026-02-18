@@ -25,7 +25,7 @@
     "@apps/hash-api": "workspace:*",
     "@apps/hash-frontend": "workspace:*",
     "@apps/plugin-browser": "workspace:*",
-    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^5.0.3",
     "@local/eslint": "workspace:*",
     "eslint": "9.39.2",
