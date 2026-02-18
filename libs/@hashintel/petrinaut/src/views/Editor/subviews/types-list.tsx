@@ -79,7 +79,7 @@ const deleteButtonStyle = css({
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "neutral.s120",
+      color: "neutral.s90",
     },
   },
 });
