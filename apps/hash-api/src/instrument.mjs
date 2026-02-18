@@ -21,7 +21,8 @@ Sentry.init({
   dsn: sentryDsn,
   enabled: !!sentryDsn,
   environment:
-    process.env.SENTRY_ENVIRONMENT || (isProdEnv ? "production" : "development"),
+    process.env.SENTRY_ENVIRONMENT ||
+    (isProdEnv ? "production" : "development"),
   sendDefaultPii: true,
   tracesSampleRate: isProdEnv ? 1.0 : 0,
 });
