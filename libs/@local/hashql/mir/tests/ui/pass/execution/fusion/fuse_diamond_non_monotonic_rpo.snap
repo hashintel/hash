@@ -1,0 +1,45 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/fusion/tests.rs
+expression: output
+---
+fn {closure@4294967040}() -> Integer {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+    let %4: Integer
+    let %5: Integer
+
+    bb0(): {
+        %0 = 1
+
+        switchInt(%0) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        %1 = 10
+        %4 = 40
+
+        goto -> bb3()
+    }
+
+    bb2(): {
+        %2 = 20
+        %3 = 30
+
+        goto -> bb3()
+    }
+
+    bb3(): {
+        %5 = 99
+
+        return %5
+    }
+}
+
+================= Block Targets ==================
+
+bb0: interpreter
+bb1: postgres
+bb2: interpreter
+bb3: interpreter
