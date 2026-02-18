@@ -55,6 +55,7 @@
     "lint:skill": "yarn agents:skill-management validate",
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "mise run lint:tsc",
+    "lint:workspace-protocol": "yarn workspace @local/repo-chores exe scripts/check-workspace-protocol.ts",
     "lint:yarn-deduplicate": "yarn dedupe --strategy highest --check",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +",
     "start": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-graph --filter @rust/hash-graph-type-fetcher --filter @apps/hash-api --filter @apps/hash-ai-worker-ts --filter @apps/hash-integration-worker --filter @apps/hash-frontend --env-mode=loose",
