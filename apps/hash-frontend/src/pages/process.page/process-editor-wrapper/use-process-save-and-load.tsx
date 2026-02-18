@@ -31,10 +31,6 @@ import {
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import {
-  convertSDCPNToPetriNetDefinitionObject,
-  type PetriNetDefinitionObject,
-} from "./convert-net-formats";
-import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
 } from "./use-process-save-and-load/use-persisted-nets";
@@ -193,10 +189,6 @@ export const useProcessSaveAndLoad = ({
 
     setPersistPending(true);
 
-    // Convert SDCPN to old format for persistence (backward compatibility)
-    const oldFormatDefinition: PetriNetDefinitionObject =
-      convertSDCPNToPetriNetDefinitionObject(petriNet);
-
     let persistedEntityId = selectedNetId;
 
     if (selectedNetId) {
@@ -210,12 +202,11 @@ export const useProcessSaveAndLoad = ({
                 path: [
                   systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
                 ],
-                // @ts-expect-error -- PetriNetDefinitionObject not assignable to PropertyWithMetadata
                 property: {
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                   },
-                  value: oldFormatDefinition,
+                  value: petriNet,
                 },
               },
               {
@@ -243,7 +234,7 @@ export const useProcessSaveAndLoad = ({
                 metadata: {
                   dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                 },
-                value: oldFormatDefinition,
+                value: petriNet,
               },
               "https://hash.ai/@h/types/property-type/title/": {
                 metadata: {

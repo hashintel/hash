@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { SDCPN } from "@hashintel/petrinaut";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -11,12 +12,6 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import {
-  convertPetriNetDefinitionObjectToSDCPN,
-  isOldFormat,
-  isSDCPNFormat,
-  type PetriNetDefinitionObject,
-} from "../convert-net-formats";
 import type { PersistedNet } from "../use-process-save-and-load";
 
 export const getPersistedNetsFromSubgraph = (
@@ -37,20 +32,7 @@ export const getPersistedNetsFromSubgraph = (
         "https://hash.ai/@h/types/property-type/definition-object/"
       ];
 
-    // Convert from old format to SDCPN if needed
-    let definition;
-    if (isOldFormat(rawDefinition)) {
-      definition = convertPetriNetDefinitionObjectToSDCPN(
-        rawDefinition as PetriNetDefinitionObject,
-      );
-    } else if (isSDCPNFormat(rawDefinition)) {
-      definition = rawDefinition;
-    } else {
-      // Fallback: treat as old format and attempt conversion
-      definition = convertPetriNetDefinitionObjectToSDCPN(
-        rawDefinition as PetriNetDefinitionObject,
-      );
-    }
+    const definition = rawDefinition as SDCPN;
 
     const userEditable =
       !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.update;
