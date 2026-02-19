@@ -15,7 +15,7 @@
 //! the XNU kernel. The specific `sysctl` node is noted in each type alias's
 //! documentation.
 //!
-//! # VTable
+//! # `VTable`
 //!
 //! Because the framework is private, symbols are not available at link time.
 //! [`VTable::load`] resolves all function pointers eagerly from a [`LibraryHandle`] at runtime,
@@ -342,11 +342,30 @@ macro_rules! load_sym {
     }};
 }
 
-/// Resolved function pointers for `kperf.framework`.
+/// Eagerly-resolved function pointers for `kperf.framework`.
 ///
-/// All entries are resolved eagerly by [`load`](Self::load) when the framework
-/// is first opened. The functions are thin wrappers around `sysctl` calls into
-/// the XNU kernel.
+/// Each field is a C function pointer obtained via `dlsym` from Apple's private
+/// `kperf.framework`. The framework exposes two subsystems:
+///
+/// - **KPC** (Kernel Performance Counters) — enabling counter classes ([`kpc_set_counting`]),
+///   programming hardware registers ([`kpc_set_config`]), reading per-thread or per-CPU
+///   accumulations ([`kpc_get_thread_counters`], [`kpc_get_cpu_counters`]), and force-acquiring
+///   counters from the Power Manager ([`kpc_force_all_ctrs_set`]).
+///
+/// - **KPERF** (Kernel Performance) — the sampling subsystem that fires actions on timer triggers
+///   ([`kperf_action_samplers_set`], [`kperf_timer_period_set`]), with tick/nanosecond conversion
+///   helpers ([`kperf_ns_to_ticks`], [`kperf_ticks_to_ns`]).
+///
+/// All function pointers are resolved eagerly by [`load`](Self::load) — if any symbol
+/// is missing from the framework, loading fails immediately rather than deferring to
+/// first use. The resolved pointers remain valid for as long as the originating
+/// [`LibraryHandle`] is open.
+///
+/// # Safety
+///
+/// Every field is an `unsafe extern "C" fn`. The caller is responsible for upholding the
+/// preconditions documented on each function pointer type alias — buffer sizes, pointer
+/// validity, and privilege requirements. Most KPC/KPERF calls require root privileges.
 pub struct VTable {
     pub kpc_cpu_string: kpc_cpu_string,
     pub kpc_pmu_version: kpc_pmu_version,
@@ -391,6 +410,17 @@ impl fmt::Debug for VTable {
 }
 
 impl VTable {
+    /// Resolves every `kperf.framework` symbol from `handle` and returns a populated
+    /// `VTable`.
+    ///
+    /// Resolution is all-or-nothing: if any of the 34 required symbols cannot be found,
+    /// the call returns an error and no partial `VTable` is produced. This ensures that
+    /// callers never encounter a null function pointer at the point of use.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoadError`] if any symbol cannot be resolved from the framework.
+    #[expect(clippy::too_many_lines)]
     pub fn load(handle: &LibraryHandle) -> Result<Self, LoadError> {
         Ok(Self {
             kpc_cpu_string: load_sym!(handle, kpc_cpu_string, c"kpc_cpu_string"),

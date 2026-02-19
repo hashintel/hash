@@ -77,7 +77,7 @@
 //! documentation of these private interfaces.
 //!
 //! [kpc-demo]: https://gist.github.com/ibireme/173517c208c7dc333ba962c1f0d67d12
-
+#![expect(unsafe_code)]
 #![no_std]
 
 extern crate alloc;

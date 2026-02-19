@@ -1,14 +1,21 @@
 [package]
 name              = "darwin-kperf"
+version           = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
-publish.workspace = true
-version.workspace = true
+publish           = true
 
 [dependencies]
-darwin-kperf-events = { path = "events", public = true }
-darwin-kperf-sys    = { path = "sys", public = true }
+# Public workspace dependencies
+darwin-kperf-events = { workspace = true, public = true }
+darwin-kperf-sys    = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
 
 [lints]
 workspace = true

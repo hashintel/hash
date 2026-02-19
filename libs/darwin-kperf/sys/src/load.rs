@@ -20,7 +20,7 @@
 //! mapped code pages. The caller must ensure that no such pointer is used after the
 //! originating [`LibraryHandle`] is closed or dropped.
 
-use alloc::{borrow::ToOwned, ffi::CString};
+use alloc::{borrow::ToOwned as _, ffi::CString};
 use core::{
     error::Error,
     ffi::{CStr, c_char, c_int, c_void},
@@ -96,7 +96,12 @@ impl LibraryHandle {
     /// Loads the dynamic library at `path` with `RTLD_LAZY` binding.
     ///
     /// Returns a handle that keeps the library mapped until it is closed or dropped.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoadError`] if the library cannot be loaded.
     pub fn open(path: &CStr) -> Result<Self, LoadError> {
+        // SAFETY: `path` is a valid, null-terminated C string.
         let ptr = unsafe { dlopen(path.as_ptr(), RTLD_LAZY) };
         let Some(ptr) = NonNull::new(ptr) else {
             // SAFETY: `dlerror` is guaranteed to return a valid C string
@@ -119,7 +124,11 @@ impl LibraryHandle {
     ///   to.
     /// - The resulting `LibrarySymbol` (or any pointer derived from it) is not used after this
     ///   handle is closed or dropped.
+    /// # Errors
+    ///
+    /// Returns [`LoadError`] if the symbol cannot be found in the library.
     pub unsafe fn symbol(&self, name: &CStr) -> Result<LibrarySymbol, LoadError> {
+        // SAFETY: `self.handle()` is a valid `dlopen` handle, and `name` is a valid C string.
         let ptr = unsafe { dlsym(self.handle().as_ptr(), name.as_ptr()) };
         let Some(ptr) = NonNull::new(ptr) else {
             // SAFETY: `dlerror` is guaranteed to return a valid C string
@@ -130,7 +139,7 @@ impl LibraryHandle {
         Ok(LibrarySymbol(ptr))
     }
 
-    fn handle(&self) -> NonNull<c_void> {
+    const fn handle(&self) -> NonNull<c_void> {
         self.0.expect("library should not have been closed")
     }
 
@@ -151,23 +160,22 @@ impl LibraryHandle {
     ///
     /// After this call the destructor is disarmed — dropping the handle is a no-op.
     ///
+    /// # Errors
+    ///
+    /// Returns [`LoadError`] if `dlclose` fails.
+    ///
     /// # Safety
     ///
     /// The caller must ensure that no [`LibrarySymbol`] (or function pointer derived from
     /// one) obtained from this handle is used after this call returns.
     pub unsafe fn close(mut self) -> Result<(), LoadError> {
-        if let Some(handle) = self.0.take() {
-            Self::close_handle(handle)
-        } else {
-            Ok(())
-        }
+        self.0.take().map_or(Ok(()), Self::close_handle)
     }
 }
 
 impl Drop for LibraryHandle {
     fn drop(&mut self) {
         if let Some(handle) = self.0.take() {
-            // TODO: in the future we should probably log this error
             let _result = Self::close_handle(handle);
         }
     }
