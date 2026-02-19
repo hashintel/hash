@@ -73,7 +73,7 @@ jobs:
 
             # Single-line: any line with both "todo" and the ticket ID
             # rg exits with 0 if matches found, 1 if no matches, 2+ on error
-            SINGLE_LINE=$(rg -in "todo.*${TICKET}|${TICKET}.*todo" .) || {
+            SINGLE_LINE=$(rg -in "todo.*${TICKET}([^[:alnum:]-]|$)|${TICKET}([^[:alnum:]-]|$).*todo" .) || {
               rc=$?
               if [[ $rc -ne 1 ]]; then
                 echo "::error::ripgrep failed with exit code $rc"
@@ -83,8 +83,8 @@ jobs:
 
             # Multiline: TODO within ~5 lines of Linear URL containing the ticket
             MULTILINE=$(rg -inU \
-              -e "todo[\s\S]{0,300}linear\.app/[^/]+/issue/${TICKET}" \
-              -e "linear\.app/[^/]+/issue/${TICKET}[\s\S]{0,300}todo" \
+              -e "todo[\s\S]{0,300}linear\.app/[^/]+/issue/${TICKET}([^[:alnum:]-]|$)" \
+              -e "linear\.app/[^/]+/issue/${TICKET}([^[:alnum:]-]|$)[\s\S]{0,300}todo" \
               .) || {
               rc=$?
               if [[ $rc -ne 1 ]]; then

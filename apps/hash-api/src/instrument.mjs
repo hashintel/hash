@@ -20,7 +20,10 @@ const sentryDsn = process.env.NODE_API_SENTRY_DSN;
 Sentry.init({
   dsn: sentryDsn,
   enabled: !!sentryDsn,
-  environment: isProdEnv ? "production" : "development",
+  environment:
+    process.env.SENTRY_ENVIRONMENT ||
+    process.env.ENVIRONMENT ||
+    (isProdEnv ? "production" : "development"),
   sendDefaultPii: true,
   tracesSampleRate: isProdEnv ? 1.0 : 0,
 });
