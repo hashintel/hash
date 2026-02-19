@@ -1,4 +1,5 @@
 import type { Url } from "@blockprotocol/type-system";
+import { validateExternalUrlWithDnsCheck } from "@local/hash-backend-utils/url-validation";
 import type {
   FlowInternetAccessSettings,
   WebPage,
@@ -135,7 +136,7 @@ const getWebPageFromPuppeteer = async (
 ): Promise<WebPage | { error: string }> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
   const browser = await puppeteer.launch({
-    args: ["--lang=en-US"],
+    args: ["--lang=en-US", "--no-sandbox", "--disable-dev-shm-usage"],
   });
 
   const page = await browser.newPage();
@@ -214,15 +215,13 @@ export const getWebPageActivity = async (params: {
 }): Promise<WebPage | { error: string }> => {
   const { sanitizeForLlm, url } = params;
 
-  let urlObject: URL;
-  try {
-    urlObject = new URL(url);
-  } catch {
-    const errorMsg = `Invalid URL provided to getWebPageActivity: ${url}`;
+  const validationResult = await validateExternalUrlWithDnsCheck(url);
+  if (!validationResult.valid) {
+    const errorMsg = `URL rejected by validation in getWebPageActivity: ${validationResult.reason}`;
     logger.error(errorMsg);
-
     return { error: errorMsg };
   }
+  const urlObject = validationResult.url;
 
   /**
    * We also use this function directly in sanitize-html.ts, where we don't have access to the Flow context.

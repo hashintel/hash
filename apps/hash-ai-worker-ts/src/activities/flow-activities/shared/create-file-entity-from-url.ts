@@ -67,7 +67,7 @@ const downloadFileToFileSystem = async (fileUrl: string) => {
     );
     return filePath;
   } catch (error) {
-    await unlink(filePath);
+    await unlink(filePath).catch(() => {});
     throw new Error(
       `Failed to write file to file system: ${(error as Error).message}`,
     );
@@ -188,10 +188,12 @@ export const createFileEntityFromUrl = async (params: {
 
   try {
     const mimeType = mime.lookup(filename) || "application/octet-stream";
+    const mimeTypeEntityTypeId = getEntityTypeIdForMimeType(mimeType);
     const entityTypeIds =
-      (params.entityTypeIds ?? getEntityTypeIdForMimeType(mimeType))
-        ? [getEntityTypeIdForMimeType(mimeType)]
-        : [systemEntityTypes.file.entityTypeId];
+      params.entityTypeIds ??
+      (mimeTypeEntityTypeId
+        ? [mimeTypeEntityTypeId]
+        : [systemEntityTypes.file.entityTypeId]);
 
     const stats = statSync(localFilePath);
     const fileSizeInBytes = stats.size;

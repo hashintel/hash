@@ -83,16 +83,16 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
       ).pipe(fileStream),
     );
   } catch (error) {
-    await unlink(filePath);
+    await unlink(filePath).catch(() => {});
 
     throw new Error(
       `Failed to write file to file system: ${(error as Error).message}`,
     );
   }
 
-  const response = await callback({ fileSystemPath: filePath });
-
-  await unlink(filePath);
-
-  return response;
+  try {
+    return await callback({ fileSystemPath: filePath });
+  } finally {
+    await unlink(filePath).catch(() => {});
+  }
 };
