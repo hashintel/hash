@@ -115,9 +115,11 @@ function enforceProtocols({ Yarn }) {
     );
 
     if (workspaceDependency) {
-      // Internal workspace dependencies must use the workspace:* protocol
-      if (dependency.range !== "workspace:*") {
-        dependency.update("workspace:*");
+      const expectedRange =
+        dependency.type === "peerDependencies" ? "workspace:^" : "workspace:*";
+
+      if (dependency.range !== expectedRange) {
+        dependency.update(expectedRange);
       }
     }
 

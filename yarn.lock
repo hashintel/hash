@@ -7712,8 +7712,8 @@ __metadata:
     vitest-browser-react: "npm:^2.0.2"
   peerDependencies:
     "@ark-ui/react": ^5.26.2
-    "@hashintel/ds-helpers": "workspace:*"
-    "@hashintel/refractive": "workspace:*"
+    "@hashintel/ds-helpers": "workspace:^"
+    "@hashintel/refractive": "workspace:^"
     react: ^19.2.0
     react-dom: ^19.2.0
   languageName: unknown
@@ -7850,8 +7850,8 @@ __metadata:
     vitest: "npm:4.0.18"
     web-worker: "npm:1.4.1"
   peerDependencies:
-    "@hashintel/ds-components": "workspace:*"
-    "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-components": "workspace:^"
+    "@hashintel/ds-helpers": "workspace:^"
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown

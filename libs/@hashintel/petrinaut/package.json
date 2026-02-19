@@ -83,8 +83,8 @@
     "vitest": "4.0.18"
   },
   "peerDependencies": {
-    "@hashintel/ds-components": "workspace:*",
-    "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/ds-components": "workspace:^",
+    "@hashintel/ds-helpers": "workspace:^",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }
