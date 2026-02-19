@@ -256,9 +256,9 @@ impl<'fmt, 'heap> FormatNode<'fmt, &List<'heap>> for NodeFormatter<'fmt, '_, 'he
 impl<'fmt, 'heap> FormatNode<'fmt, &Primitive<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Primitive<'heap>) -> Doc<'fmt> {
         match node {
-            Primitive::Null => self.fmt.literal(sym::lexical::null),
-            Primitive::Boolean(true) => self.fmt.literal(sym::lexical::r#true),
-            Primitive::Boolean(false) => self.fmt.literal(sym::lexical::r#false),
+            Primitive::Null => self.fmt.literal(sym::null),
+            Primitive::Boolean(true) => self.fmt.literal(sym::r#true),
+            Primitive::Boolean(false) => self.fmt.literal(sym::r#false),
             Primitive::Float(float) => self.fmt.literal(float.as_symbol()),
             Primitive::Integer(integer) => self.fmt.literal(integer.as_symbol()),
             Primitive::String(string) => {
@@ -303,10 +303,10 @@ impl<'fmt, 'heap> FormatNode<'fmt, &QualifiedVariable<'heap>> for NodeFormatter<
     ) -> Doc<'fmt> {
         // Format as: ::path::to::var<TypeArgs>
         self.fmt
-            .punct(sym::symbol::colon_colon)
+            .punct(sym::symbol::coloncolon)
             .append(self.fmt.intersperse(
                 path.0.iter().map(|ident| self.fmt.variable(ident.value)),
-                self.fmt.punct(sym::symbol::colon_colon),
+                self.fmt.punct(sym::symbol::coloncolon),
             ))
             .append(self.format_type_arguments(arguments))
     }
@@ -317,8 +317,8 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'hea
         let fmt = self.fmt;
 
         // Format as: let foo = ..., bar = ... in body
-        let r#let = self.fmt.keyword(sym::lexical::r#let);
-        let r#in = self.fmt.keyword(sym::lexical::r#in);
+        let r#let = self.fmt.keyword(sym::r#let);
+        let r#in = self.fmt.keyword(sym::r#in);
 
         let bindings = bindings.iter().map(|binding| self.format_node(binding));
         let bindings = fmt.intersperse(
@@ -358,7 +358,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
         name_doc
             .append(self.fmt.space())
-            .append(self.fmt.punct(sym::symbol::assign))
+            .append(self.fmt.punct(sym::symbol::eq))
             .append(self.fmt.space())
             .append(value_doc)
     }
@@ -397,11 +397,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &TypeAssertion<'heap>> for NodeFormatter<'fmt
         let value = self.format_node(*value);
         let r#type = self.format_type(*r#type);
 
-        let op = if *force {
-            sym::lexical::r#as_force
-        } else {
-            sym::lexical::r#as
-        };
+        let op = if *force { sym::r#as_force } else { sym::r#as };
 
         value
             .append(self.fmt.space())
@@ -460,7 +456,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &InputOperation<'heap>> for NodeFormatter<'fm
             }
             InputOp::Exists => {
                 // Format as: $exists(name)
-                let keyword = self.fmt.keyword(sym::lexical::input_exists);
+                let keyword = self.fmt.keyword(sym::input_exists);
                 let name = self.fmt.variable(name.value);
 
                 keyword.append(self.fmt.parens(name))
@@ -562,9 +558,9 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
         //               value1
         //           else
         //               value2
-        let if_keyword = self.fmt.keyword(sym::lexical::r#if);
-        let then_keyword = self.fmt.keyword(sym::lexical::then).into_doc();
-        let else_keyword = self.fmt.keyword(sym::lexical::r#else).into_doc();
+        let if_keyword = self.fmt.keyword(sym::r#if);
+        let then_keyword = self.fmt.keyword(sym::then).into_doc();
+        let else_keyword = self.fmt.keyword(sym::r#else).into_doc();
 
         let test_doc = self.format_node(test).into_doc();
         let then_doc = self.format_node(then).into_doc();
@@ -688,7 +684,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, '_, 'h
     fn format_node(&mut self, Thunk { body }: &Thunk<'heap>) -> Doc<'fmt> {
         // Format thunks differently from closures using the thunk keyword
         // Format as: thunk -> body
-        let keyword = self.fmt.keyword(sym::lexical::thunk);
+        let keyword = self.fmt.keyword(sym::thunk);
         let arrow = self.fmt.op(sym::symbol::arrow);
         let body_doc = self.format_node(*body);
 
