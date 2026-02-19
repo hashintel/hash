@@ -8,7 +8,7 @@ publish.workspace = true
 authors.workspace = true
 
 [package.metadata.sync.turborepo]
-extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
+extra-dependencies = [{ name = "@local/status", version = "workspace:*" }]
 
 [dependencies]
 # Public workspace dependencies

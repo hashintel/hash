@@ -339,6 +339,14 @@ async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTu
     }
 }
 
+fn version_protocol_from_str(version: &str) -> VersionProtocol {
+    if version == "workspace:*" {
+        VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None })
+    } else {
+        VersionProtocol::Tag(version.to_owned())
+    }
+}
+
 fn compute_package_json(
     metadata: PackageMetadata<'_>,
     mut package_json: PackageJson,
@@ -395,24 +403,10 @@ fn compute_package_json(
 
     let ExtraDependencies { normal, dev } = ExtraDependencies::new(metadata)?;
     for js_dep in normal {
-        if local_yarn_packages.contains(&js_dep.name) {
-            dependencies.insert(
-                js_dep.name,
-                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
-            );
-        } else {
-            dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
-        }
+        dependencies.insert(js_dep.name, version_protocol_from_str(&js_dep.version));
     }
     for js_dep in dev {
-        if local_yarn_packages.contains(&js_dep.name) {
-            dev_dependencies.insert(
-                js_dep.name,
-                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
-            );
-        } else {
-            dev_dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
-        }
+        dev_dependencies.insert(js_dep.name, version_protocol_from_str(&js_dep.version));
     }
 
     let IgnoreDependencies { normal, dev } = IgnoreDependencies::new(metadata)?;
