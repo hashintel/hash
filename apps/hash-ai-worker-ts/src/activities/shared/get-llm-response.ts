@@ -1,19 +1,7 @@
-import type {
-  EntityId,
-  EntityUuid,
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
-import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 // import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
@@ -34,7 +22,6 @@ import {
   isLlmParamsAnthropicLlmParams,
   isLlmParamsGoogleAiParams,
 } from "./get-llm-response/types.js";
-import { stringify } from "./stringify.js";
 
 export type UsageTrackingParams = {
   /**
@@ -107,7 +94,7 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const requestId = generateUuid();
 
-  const { flowEntityId, stepId } = await getFlowContext();
+  const { stepId } = await getFlowContext();
 
   const { taskName } = customMetadata ?? {};
   let debugMessage = `[LLM Request ${requestId}] Getting response for model ${llmParams.model}`;
