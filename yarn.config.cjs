@@ -115,8 +115,11 @@ function enforceProtocols({ Yarn }) {
     );
 
     if (workspaceDependency) {
+      const isPublishable = dependency.workspace.manifest.private !== true;
       const expectedRange =
-        dependency.type === "peerDependencies" ? "workspace:^" : "workspace:*";
+        isPublishable && dependency.type !== "devDependencies"
+          ? "workspace:^"
+          : "workspace:*";
 
       if (dependency.range !== expectedRange) {
         dependency.update(expectedRange);

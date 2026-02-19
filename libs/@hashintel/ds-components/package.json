@@ -51,8 +51,8 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
-    "@hashintel/ds-helpers": "workspace:*",
-    "@hashintel/refractive": "workspace:*",
+    "@hashintel/ds-helpers": "workspace:^",
+    "@hashintel/refractive": "workspace:^",
     "canvas": "3.2.0",
     "motion": "12.23.24"
   },

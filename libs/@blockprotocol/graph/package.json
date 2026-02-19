@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/type-system": "workspace:*",
+    "@blockprotocol/type-system": "workspace:^",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "json-schema-to-typescript": "15.0.4",

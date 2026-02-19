@@ -50,7 +50,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "workspace:*",
+    "@blockprotocol/type-system-rs": "workspace:^",
     "semver": "7.7.3",
     "uuid": "13.0.0"
   },
