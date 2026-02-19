@@ -77,6 +77,78 @@ fn sample_fixed_counters() {
 
 #[test]
 #[ignore = "requires root privileges"]
+fn sample_configurable_event() {
+    let sampler = Sampler::new().expect("Sampler::new() failed");
+
+    // RetireUop is a configurable (non-fixed) counter available on all
+    // Apple Silicon generations.
+    let mut thread = sampler
+        .thread([Event::RetireUop])
+        .expect("failed to create ThreadSampler with configurable event");
+
+    thread.start().expect("failed to start counting");
+
+    let before = thread.sample().expect("sample before")[0];
+    do_work();
+    let after = thread.sample().expect("sample after")[0];
+
+    thread.stop().expect("failed to stop counting");
+
+    let retired = after.wrapping_sub(before);
+    eprintln!("retired uops: {retired}");
+
+    assert!(
+        retired > 10_000,
+        "retired uop count suspiciously low: {retired}"
+    );
+}
+
+#[test]
+#[ignore = "requires root privileges"]
+fn mixed_fixed_and_configurable_events() {
+    let sampler = Sampler::new().expect("Sampler::new() failed");
+
+    let mut thread = sampler
+        .thread([Event::FixedInstructions, Event::RetireUop])
+        .expect("failed to create ThreadSampler with mixed events");
+
+    thread.start().expect("failed to start counting");
+
+    let before = thread.sample().expect("sample before");
+    do_work();
+    let after = thread.sample().expect("sample after");
+
+    thread.stop().expect("failed to stop counting");
+
+    let instructions = after[0].wrapping_sub(before[0]);
+    let retired_uops = after[1].wrapping_sub(before[1]);
+
+    eprintln!("instructions: {instructions}");
+    eprintln!("retired uops: {retired_uops}");
+
+    assert!(
+        instructions > 10_000,
+        "instruction count suspiciously low: {instructions}"
+    );
+    assert!(
+        retired_uops > 10_000,
+        "retired uop count suspiciously low: {retired_uops}"
+    );
+
+    // Retired uops should be in the same ballpark as instructions — at least
+    // the same order of magnitude. This is a loose sanity check, not a
+    // microarchitectural assertion.
+    #[expect(clippy::cast_precision_loss)]
+    let ratio = retired_uops as f64 / instructions as f64;
+    eprintln!("uops/instruction ratio: {ratio:.2}");
+    assert!(
+        ratio > 0.1 && ratio < 100.0,
+        "uops/instruction ratio out of sane range: {ratio}"
+    );
+}
+
+#[test]
+#[ignore = "requires root privileges"]
 fn counters_are_monotonic() {
     let sampler = Sampler::new().expect("Sampler::new() failed");
 
@@ -185,4 +257,28 @@ fn drop_stops_counting() {
         .thread([Event::FixedInstructions])
         .expect("new thread after drop");
     assert!(!thread.is_running());
+}
+
+#[test]
+#[ignore = "requires root privileges"]
+#[expect(unsafe_code)]
+fn release_relinquishes_counters() {
+    let sampler = Sampler::new().expect("Sampler::new() failed");
+
+    // Do a measurement first to confirm the sampler is functional.
+    {
+        let mut thread = sampler
+            .thread([Event::FixedInstructions])
+            .expect("failed to create ThreadSampler");
+        thread.start().expect("start");
+        let _values = thread.sample().expect("sample");
+        thread.stop().expect("stop");
+    }
+
+    // Release counters back to the OS Power Manager.
+    //
+    // SAFETY: no ThreadSampler is running.
+    unsafe { sampler.release() }.expect("release failed");
+
+    eprintln!("counters released successfully");
 }

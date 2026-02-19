@@ -76,10 +76,17 @@ pub struct kpep_event {
     pub mask: u32,
     /// Event number (selector value written to the PMC config register).
     pub number: u16,
-    /// Whether this event must be placed in a fixed counter.
-    pub is_fixed: u8,
+    /// Intel PMC umask value, populated from the plist `"umask"` key.
+    ///
+    /// Only set on `x86_64`; always zero on ARM. The name is a holdover from
+    /// Intel's PMC naming conventions — despite what older references call it,
+    /// this is *not* a "is this a fixed counter" flag.
+    pub umask: u8,
     _pad0: u8,
-    /// Bit 0: fallback event was set during `_event_init`.
+    /// Bit 0: event has a fixed counter entry in the plist and must be placed
+    /// in a fixed counter slot. Set during `_event_init` when the plist
+    /// contains a `"fixed_counter"` key; the fallback event name (if any) is
+    /// read alongside it.
     pub flags: u8,
     _pad1: [u8; 7],
 }
@@ -94,7 +101,7 @@ const _: () = {
     assert!(core::mem::offset_of!(kpep_event, fallback) == 32);
     assert!(core::mem::offset_of!(kpep_event, mask) == 40);
     assert!(core::mem::offset_of!(kpep_event, number) == 44);
-    assert!(core::mem::offset_of!(kpep_event, is_fixed) == 46);
+    assert!(core::mem::offset_of!(kpep_event, umask) == 46);
     assert!(core::mem::offset_of!(kpep_event, flags) == 48);
 };
 
