@@ -128,15 +128,15 @@ fn wrap_doc(text: &str) -> Vec<String> {
 
     for word in text.split_whitespace() {
         if current.is_empty() {
-            current.push_str(word);
+            // do nothing
         } else if current.len() + 1 + word.len() > DOC_WIDTH {
             lines.push(format!(" {current}"));
             current.clear();
-            current.push_str(word);
         } else {
             current.push(' ');
-            current.push_str(word);
         }
+
+        current.push_str(word);
     }
 
     if !current.is_empty() {

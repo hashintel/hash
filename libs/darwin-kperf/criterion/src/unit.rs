@@ -79,7 +79,8 @@ const COUNTS: Unit = Unit {
     per_byte: "counts/B",
 };
 
-pub(crate) fn unit_for_event(event: Event) -> Unit {
+pub(crate) const fn unit_for_event(event: Event) -> Unit {
+    #[expect(clippy::wildcard_enum_match_arm, reason = "100s of events")]
     match event {
         Event::FixedInstructions => INSTRUCTIONS,
         Event::FixedCycles => CYCLES,
@@ -98,6 +99,7 @@ impl CounterFormatter {
         Self { unit }
     }
 
+    #[expect(clippy::float_arithmetic)]
     fn scale_values_inner(&self, typical: f64, values: &mut [f64]) -> &'static str {
         let (factor, label) = self.unit.scaled(typical);
 
@@ -108,6 +110,7 @@ impl CounterFormatter {
         label
     }
 
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
     fn scale_throughputs_bytes(&self, bytes: u64, values: &mut [f64]) -> &'static str {
         for value in values {
             *value /= bytes as f64;
@@ -116,6 +119,7 @@ impl CounterFormatter {
         self.unit.per_byte
     }
 
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
     fn scale_throughputs_elements(&self, elements: u64, values: &mut [f64]) -> &'static str {
         for value in values {
             *value /= elements as f64;
@@ -127,10 +131,11 @@ impl CounterFormatter {
 
 // Implement ValueFormatter for the real criterion crate.
 impl criterion::measurement::ValueFormatter for CounterFormatter {
-    fn scale_values(&self, typical: f64, values: &mut [f64]) -> &'static str {
-        self.scale_values_inner(typical, values)
+    fn scale_values(&self, typical_value: f64, values: &mut [f64]) -> &'static str {
+        self.scale_values_inner(typical_value, values)
     }
 
+    #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
     fn scale_throughputs(
         &self,
         _typical: f64,
@@ -156,23 +161,23 @@ impl criterion::measurement::ValueFormatter for CounterFormatter {
 
 // Implement ValueFormatter for the codspeed-criterion-compat crate.
 #[cfg(feature = "codspeed")]
-impl codspeed_criterion_compat::measurement::ValueFormatter for CounterFormatter {
-    fn scale_values(&self, typical: f64, values: &mut [f64]) -> &'static str {
-        self.scale_values_inner(typical, values)
+impl codspeed_criterion_compat_walltime::measurement::ValueFormatter for CounterFormatter {
+    fn scale_values(&self, typical_value: f64, values: &mut [f64]) -> &'static str {
+        self.scale_values_inner(typical_value, values)
     }
 
     fn scale_throughputs(
         &self,
         _typical: f64,
-        throughput: &codspeed_criterion_compat::Throughput,
+        throughput: &codspeed_criterion_compat_walltime::Throughput,
         values: &mut [f64],
     ) -> &'static str {
         match *throughput {
-            codspeed_criterion_compat::Throughput::Bytes(bytes)
-            | codspeed_criterion_compat::Throughput::BytesDecimal(bytes) => {
+            codspeed_criterion_compat_walltime::Throughput::Bytes(bytes)
+            | codspeed_criterion_compat_walltime::Throughput::BytesDecimal(bytes) => {
                 self.scale_throughputs_bytes(bytes, values)
             }
-            codspeed_criterion_compat::Throughput::Elements(elements) => {
+            codspeed_criterion_compat_walltime::Throughput::Elements(elements) => {
                 self.scale_throughputs_elements(elements, values)
             }
         }

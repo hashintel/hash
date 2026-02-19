@@ -25,7 +25,7 @@
 //! All three structs have compile-time layout assertions that verify size,
 //! alignment, and field offsets.
 //!
-//! # VTable
+//! # `VTable`
 //!
 //! Because the framework is private, symbols are not available at link time.
 //! [`VTable::load`] resolves all function pointers eagerly from a [`LibraryHandle`] at runtime,
@@ -78,10 +78,10 @@ pub struct kpep_event {
     pub number: u16,
     /// Whether this event must be placed in a fixed counter.
     pub is_fixed: u8,
-    pub _pad0: u8,
+    _pad0: u8,
     /// Bit 0: fallback event was set during `_event_init`.
     pub flags: u8,
-    pub _pad1: [u8; 7],
+    _pad1: [u8; 7],
 }
 
 const _: () = {
@@ -113,21 +113,21 @@ pub struct kpep_db {
     ///
     /// This is what [`kpep_db_name`] returns.
     pub marketing_name: *const c_char,
-    /// Serialized plist in binary format v1.0 (CFDataRef). Created lazily by
+    /// Serialized plist in binary format v1.0 (`CFDataRef`). Created lazily by
     /// `kpep_db_serialize`.
     pub plist_data: *mut c_void,
-    /// All events keyed by event name (CFDictionaryRef: `CFString → *mut kpep_event`).
+    /// All events keyed by event name (`CFDictionaryRef`: `CFString → *mut kpep_event`).
     pub event_map: *mut c_void,
     /// Contiguous event array (`sizeof(kpep_event) * event_count`).
     pub event_arr: *mut kpep_event,
     /// Fixed counter event pointers (`sizeof(kpep_event *) * fixed_counter_count`).
     pub fixed_event_arr: *mut *mut kpep_event,
-    /// All aliases keyed by alias name (CFDictionaryRef: `CFString → *mut kpep_event`). Searched
+    /// All aliases keyed by alias name (`CFDictionaryRef`: `CFString → *mut kpep_event`). Searched
     /// first by [`kpep_db_event`].
     pub alias_map: *mut c_void,
-    pub _reserved0: usize,
-    pub _reserved1: usize,
-    pub _reserved2: usize,
+    _reserved0: usize,
+    _reserved1: usize,
+    _reserved2: usize,
     /// Total number of events in [`event_arr`](kpep_db::event_arr).
     pub event_count: usize,
     pub alias_count: usize,
@@ -145,13 +145,13 @@ pub struct kpep_db {
     pub config_counter_bits: u32,
     /// Bitmap of available power counters.
     pub power_counter_bits: u32,
-    /// Search flags passed to [`kpep_db_createx`].
+    /// Search flags passed to `kpep_db_createx`.
     pub create_flags: u32,
     /// Whether the database contains Apple-internal events.
     pub is_internal: u8,
     /// Whether [`is_internal`](kpep_db::is_internal) has been populated.
     pub internal_known: u8,
-    pub _pad: [u8; 2],
+    _pad: [u8; 2],
 }
 
 const _: () = {
@@ -390,12 +390,38 @@ macro_rules! load_sym {
     }};
 }
 
-/// Resolved function pointers for `kperfdata.framework`.
+/// Eagerly-resolved function pointers for `kperfdata.framework`.
 ///
-/// All entries are resolved eagerly by [`load`](Self::load) when the framework
-/// is first opened. These functions manage the KPEP event database and
-/// configuration — looking up events by name, building register configs, and
-/// querying the counter-to-event mapping.
+/// Each field is a C function pointer obtained via `dlsym` from Apple's private
+/// `kperfdata.framework`. The framework provides the Kernel Performance Event
+/// Programming (KPEP) interface, which sits between human-readable event names
+/// (like `"INST_RETIRED.ANY"` or `"Cycles"`) and the raw KPC hardware registers.
+///
+/// The KPEP API is organized around three object types:
+///
+/// - **[`kpep_db`]** — a parsed PMC event database, opened from the plist files in
+///   `/usr/share/kpep/`. Functions: [`kpep_db_create`], [`kpep_db_free`], [`kpep_db_event`],
+///   [`kpep_db_events`].
+///
+/// - **[`kpep_event`]** — a single PMC event descriptor with its hardware selector, name, alias,
+///   and fixed-counter flag. Functions: [`kpep_event_name`], [`kpep_event_alias`],
+///   [`kpep_event_description`].
+///
+/// - **[`kpep_config`]** — a mutable configuration builder that maps events to counter registers.
+///   Functions: [`kpep_config_create`], [`kpep_config_add_event`], [`kpep_config_kpc`],
+///   [`kpep_config_kpc_map`].
+///
+/// All function pointers are resolved eagerly by [`load`](Self::load) — if any symbol
+/// is missing from the framework, loading fails immediately rather than deferring to
+/// first use. The resolved pointers remain valid for as long as the originating
+/// [`LibraryHandle`] is open.
+///
+/// # Safety
+///
+/// Every field is an `unsafe extern "C" fn`. The caller is responsible for upholding the
+/// preconditions documented on each function pointer type alias — buffer sizes, pointer
+/// validity, and correct lifetime management of the opaque `kpep_*` objects.
+#[expect(clippy::struct_field_names)]
 pub struct VTable {
     pub kpep_config_create: kpep_config_create,
     pub kpep_config_free: kpep_config_free,
@@ -429,6 +455,16 @@ impl fmt::Debug for VTable {
 }
 
 impl VTable {
+    /// Resolves every `kperfdata.framework` symbol from `handle` and returns a populated
+    /// `VTable`.
+    ///
+    /// Resolution is all-or-nothing: if any of the 23 required symbols cannot be found,
+    /// the call returns an error and no partial `VTable` is produced. This ensures that
+    /// callers never encounter a null function pointer at the point of use.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoadError`] if any symbol cannot be resolved from the framework.
     pub fn load(handle: &LibraryHandle) -> Result<Self, LoadError> {
         Ok(Self {
             kpep_config_create: load_sym!(handle, kpep_config_create, c"kpep_config_create"),

@@ -99,6 +99,7 @@ impl HardwareCounter {
 }
 
 impl Drop for HardwareCounter {
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         // SAFETY: the ThreadSampler field is dropped after this runs (struct
         // drop order is field declaration order), and we are the sole owner.
@@ -115,8 +116,8 @@ impl criterion::measurement::Measurement for HardwareCounter {
         self.sample_or_panic()
     }
 
-    fn end(&self, start: Self::Intermediate) -> Self::Value {
-        self.sample_or_panic().saturating_sub(start)
+    fn end(&self, i: Self::Intermediate) -> Self::Value {
+        self.sample_or_panic().saturating_sub(i)
     }
 
     fn add(&self, v1: &Self::Value, v2: &Self::Value) -> Self::Value {
@@ -140,7 +141,7 @@ impl criterion::measurement::Measurement for HardwareCounter {
 }
 
 #[cfg(feature = "codspeed")]
-impl codspeed_criterion_compat::measurement::Measurement for HardwareCounter {
+impl codspeed_criterion_compat_walltime::measurement::Measurement for HardwareCounter {
     type Intermediate = u64;
     type Value = u64;
 
@@ -148,8 +149,8 @@ impl codspeed_criterion_compat::measurement::Measurement for HardwareCounter {
         self.sample_or_panic()
     }
 
-    fn end(&self, start: Self::Intermediate) -> Self::Value {
-        self.sample_or_panic().saturating_sub(start)
+    fn end(&self, i: Self::Intermediate) -> Self::Value {
+        self.sample_or_panic().saturating_sub(i)
     }
 
     fn add(&self, v1: &Self::Value, v2: &Self::Value) -> Self::Value {
@@ -167,7 +168,7 @@ impl codspeed_criterion_compat::measurement::Measurement for HardwareCounter {
         value
     }
 
-    fn formatter(&self) -> &dyn codspeed_criterion_compat::measurement::ValueFormatter {
+    fn formatter(&self) -> &dyn codspeed_criterion_compat_walltime::measurement::ValueFormatter {
         &self.formatter
     }
 }
