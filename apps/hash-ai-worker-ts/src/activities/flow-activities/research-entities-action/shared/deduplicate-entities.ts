@@ -97,7 +97,7 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
  * We are using Sonnet here rather than the cheaper (as of 08/08/2025) GPT-4o model because Sonnet has a max context
  * window of 200k tokens vs 128k for GPT-4o, and we've encountered 'max-token' responses here before.
  */
-const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
+const defaultModel: LlmParams["model"] = "claude-sonnet-4-6";
 
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];

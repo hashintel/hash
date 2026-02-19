@@ -144,107 +144,107 @@ export const getLlmResponse = async <T extends LlmParams>(
   /**
    * Capture incurred usage in a usage record.
    */
-  if (
-    llmResponse.status === "ok" ||
-    llmResponse.status === "exceeded-maximum-retries" ||
-    llmResponse.status === "max-tokens"
-  ) {
-    const { usage } = llmResponse;
+  // if (
+  //   llmResponse.status === "ok" ||
+  //   llmResponse.status === "exceeded-maximum-retries" ||
+  //   llmResponse.status === "max-tokens"
+  // ) {
+  //   const { usage } = llmResponse;
 
-    let usageRecordEntity: HashEntity;
+  //   let usageRecordEntity: HashEntity;
 
-    try {
-      usageRecordEntity = await backOff(
-        () =>
-          createUsageRecord(
-            { graphApi: graphApiClient },
-            {
-              assignUsageToWebId: webId,
-              customMetadata,
-              serviceName: isLlmParamsAnthropicLlmParams(llmParams)
-                ? "Anthropic"
-                : isLlmParamsGoogleAiParams(llmParams)
-                  ? "Google AI"
-                  : "OpenAI",
-              featureName: llmParams.model,
-              inputUnitCount: usage.inputTokens,
-              outputUnitCount: usage.outputTokens,
-              userAccountId,
-              aiAssistantAccountId,
-            },
-          ),
-        {
-          jitter: "full",
-          numOfAttempts: 3,
-          startingDelay: 1_000,
-        },
-      );
-    } catch (error) {
-      return {
-        status: "internal-error",
-        message: `Failed to create usage record: ${stringifyError(error)}`,
-        provider: llmResponse.provider,
-      };
-    }
+  //   try {
+  //     usageRecordEntity = await backOff(
+  //       () =>
+  //         createUsageRecord(
+  //           { graphApi: graphApiClient },
+  //           {
+  //             assignUsageToWebId: webId,
+  //             customMetadata,
+  //             serviceName: isLlmParamsAnthropicLlmParams(llmParams)
+  //               ? "Anthropic"
+  //               : isLlmParamsGoogleAiParams(llmParams)
+  //                 ? "Google AI"
+  //                 : "OpenAI",
+  //             featureName: llmParams.model,
+  //             inputUnitCount: usage.inputTokens,
+  //             outputUnitCount: usage.outputTokens,
+  //             userAccountId,
+  //             aiAssistantAccountId,
+  //           },
+  //         ),
+  //       {
+  //         jitter: "full",
+  //         numOfAttempts: 3,
+  //         startingDelay: 1_000,
+  //       },
+  //     );
+  //   } catch (error) {
+  //     return {
+  //       status: "internal-error",
+  //       message: `Failed to create usage record: ${stringifyError(error)}`,
+  //       provider: llmResponse.provider,
+  //     };
+  //   }
 
-    const { incurredInEntities } = usageTrackingParams;
+  //   const { incurredInEntities } = usageTrackingParams;
 
-    if (incurredInEntities.length > 0) {
-      const provenance: ProvidedEntityEditionProvenance = {
-        actorType: "ai",
-        origin: {
-          type: "flow",
-          id: flowEntityId,
-          stepIds: [stepId],
-        } satisfies OriginProvenance,
-      };
+  //   if (incurredInEntities.length > 0) {
+  //     const provenance: ProvidedEntityEditionProvenance = {
+  //       actorType: "ai",
+  //       origin: {
+  //         type: "flow",
+  //         id: flowEntityId,
+  //         stepIds: [stepId],
+  //       } satisfies OriginProvenance,
+  //     };
 
-      const errors = await Promise.all(
-        incurredInEntities.map(async ({ entityId }) => {
-          try {
-            const incurredInEntityUuid = generateUuid() as EntityUuid;
-            await HashEntity.create<IncurredIn>(
-              graphApiClient,
-              { actorId: aiAssistantAccountId },
-              {
-                draft: false,
-                properties: { value: {} },
-                provenance,
-                webId,
-                entityUuid: incurredInEntityUuid,
-                entityTypeIds: [
-                  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-                ],
-                linkData: {
-                  leftEntityId: usageRecordEntity.metadata.recordId.entityId,
-                  rightEntityId: entityId,
-                },
-              },
-            );
+  //     const errors = await Promise.all(
+  //       incurredInEntities.map(async ({ entityId }) => {
+  //         try {
+  //           const incurredInEntityUuid = generateUuid() as EntityUuid;
+  //           await HashEntity.create<IncurredIn>(
+  //             graphApiClient,
+  //             { actorId: aiAssistantAccountId },
+  //             {
+  //               draft: false,
+  //               properties: { value: {} },
+  //               provenance,
+  //               webId,
+  //               entityUuid: incurredInEntityUuid,
+  //               entityTypeIds: [
+  //                 systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+  //               ],
+  //               linkData: {
+  //                 leftEntityId: usageRecordEntity.metadata.recordId.entityId,
+  //                 rightEntityId: entityId,
+  //               },
+  //             },
+  //           );
 
-            return [];
-          } catch (error) {
-            return {
-              status: "internal-error",
-              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(
-                error,
-              )}`,
-            };
-          }
-        }),
-      ).then((unflattenedErrors) => unflattenedErrors.flat());
+  //           return [];
+  //         } catch (error) {
+  //           return {
+  //             status: "internal-error",
+  //             message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(
+  //               error,
+  //             )}`,
+  //           };
+  //         }
+  //       }),
+  //     ).then((unflattenedErrors) => unflattenedErrors.flat());
 
-      if (errors.length > 0) {
-        return {
-          status: "internal-error",
-          provider: llmResponse.provider,
-          message: `Failed to link usage record to entities: ${stringify(
-            errors,
-          )}`,
-        };
-      }
-    }
-  }
+  //     if (errors.length > 0) {
+  //       return {
+  //         status: "internal-error",
+  //         provider: llmResponse.provider,
+  //         message: `Failed to link usage record to entities: ${stringify(
+  //           errors,
+  //         )}`,
+  //       };
+  //     }
+  //   }
+  // }
 
   logLlmRequest({
     requestId,
