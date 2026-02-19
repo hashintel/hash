@@ -4,6 +4,7 @@ import type {
   PropertyObjectWithMetadata,
 } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
+import { isSDCPNEqual } from "@hashintel/petrinaut";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
@@ -95,60 +96,10 @@ export const useProcessSaveAndLoad = ({
       return true;
     }
 
-    if (title !== persistedNet.title) {
-      return true;
-    }
-
-    if (petriNet.places.length !== persistedNet.definition.places.length) {
-      return true;
-    }
-
-    if (
-      petriNet.transitions.length !== persistedNet.definition.transitions.length
-    ) {
-      return true;
-    }
-
-    if (petriNet.types.length !== persistedNet.definition.types.length) {
-      return true;
-    }
-
-    if (
-      JSON.stringify(petriNet.places) !==
-      JSON.stringify(persistedNet.definition.places)
-    ) {
-      return true;
-    }
-
-    if (
-      JSON.stringify(petriNet.transitions) !==
-      JSON.stringify(persistedNet.definition.transitions)
-    ) {
-      return true;
-    }
-
-    if (
-      JSON.stringify(petriNet.types) !==
-      JSON.stringify(persistedNet.definition.types)
-    ) {
-      return true;
-    }
-
-    if (
-      JSON.stringify(petriNet.differentialEquations) !==
-      JSON.stringify(persistedNet.definition.differentialEquations)
-    ) {
-      return true;
-    }
-
-    if (
-      JSON.stringify(petriNet.parameters) !==
-      JSON.stringify(persistedNet.definition.parameters)
-    ) {
-      return true;
-    }
-
-    return false;
+    return (
+      title !== persistedNet.title ||
+      !isSDCPNEqual(petriNet, persistedNet.definition)
+    );
   }, [petriNet, persistedNet, title]);
 
   const loadPersistedNet = useCallback(
