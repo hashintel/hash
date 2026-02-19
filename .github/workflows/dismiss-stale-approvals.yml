@@ -1,7 +1,7 @@
 name: Dismiss stale pull request approvals
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
   merge_group:
 
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Dismiss stale pull request approvals
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         # see: https://github.com/withgraphite/dismiss-stale-approvals/pull/8#issuecomment-3386592574
         uses: turnage/dismiss-stale-approvals@ff3fc67f2978497c420e446f704b9502dd911fd8 # fork
         with:
