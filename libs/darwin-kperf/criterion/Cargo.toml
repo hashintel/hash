@@ -1,0 +1,16 @@
+[package]
+name    = "darwin-kperf-criterion"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+codspeed-criterion-compat = { workspace = true, optional = true, public = true }
+criterion                 = { workspace = true, public = true }
+darwin-kperf-events       = { version = "0.1.0", path = "../events", public = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+darwin-kperf = { version = "0.0.0", path = "..", public = true }
+
+[features]
+codspeed = ["dep:codspeed-criterion-compat"]

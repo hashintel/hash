@@ -28,6 +28,7 @@ bump-scope           = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
+libc                 = "0.2.182"
 memchr               = { workspace = true }
 rapidfuzz            = { workspace = true }
 roaring              = { workspace = true, features = ["std"] }
@@ -46,6 +47,7 @@ workspace = true
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { path = "../../../darwin-kperf/criterion", features = ["codspeed"] }
 insta                     = { workspace = true }
 proptest                  = { workspace = true }
 rstest                    = { workspace = true }
@@ -57,4 +59,12 @@ harness = false
 
 [[bench]]
 name    = "symbol"
+harness = false
+
+[[bench]]
+name    = "bit_matrix"
+harness = false
+
+[[bench]]
+name    = "linked_graph"
 harness = false
