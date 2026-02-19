@@ -355,10 +355,11 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 continue;
             };
 
-            self.narrow(body, next, elem.target);
             self.region.blocks[self.depth].target = elem;
             self.region.blocks[self.depth].heap = heap;
+
             self.depth += 1;
+            self.narrow(body, next, elem.target);
         }
 
         true
