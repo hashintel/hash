@@ -1,12 +1,8 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { css, cva } from "@hashintel/ds-helpers/css";
-import { MdDragIndicator } from "react-icons/md";
+import { css } from "@hashintel/ds-helpers/css";
 import { TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
 import { NumberInput } from "../../../../components/number-input";
-import { FEATURE_FLAGS } from "../../../../feature-flags";
 
 const containerStyle = css({
   display: "flex",
@@ -15,28 +11,6 @@ const containerStyle = css({
   padding: "[8px 12px]",
   whiteSpace: "nowrap",
   borderBottom: "[1px solid rgba(0, 0, 0, 0.06)]",
-});
-
-const dragHandleStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        cursor: "default",
-        color: "[#ccc]",
-        pointerEvents: "none",
-      },
-      false: {
-        cursor: "grab",
-        color: "[#999]",
-        pointerEvents: "auto",
-      },
-    },
-  },
 });
 
 const placeNameStyle = css({
@@ -68,22 +42,16 @@ const weightInputStyle = css({
   padding: "[4px 8px]",
 });
 
-/**
- * SortableArcItem - A draggable arc item that displays place name and weight
- */
-interface SortableArcItemProps {
-  id: string;
+interface ArcItemProps {
   placeName: string;
   weight: number;
   disabled?: boolean;
-  /** Tooltip to show when disabled (e.g., for read-only mode) */
   tooltip?: string;
   onWeightChange: (weight: number) => void;
   onDelete?: () => void;
 }
 
-export const SortableArcItem: React.FC<SortableArcItemProps> = ({
-  id,
+export const ArcItem: React.FC<ArcItemProps> = ({
   placeName,
   weight,
   disabled = false,
@@ -91,32 +59,8 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
   onWeightChange,
   onDelete,
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled });
-
-  const transformStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   return (
-    <div ref={setNodeRef} style={transformStyle} className={containerStyle}>
-      {FEATURE_FLAGS.REORDER_TRANSITION_ARCS && (
-        <div
-          {...attributes}
-          {...listeners}
-          className={dragHandleStyle({ isDisabled: disabled })}
-        >
-          <MdDragIndicator size={16} />
-        </div>
-      )}
+    <div className={containerStyle}>
       <div className={placeNameStyle}>{placeName}</div>
       <div className={weightContainerStyle}>
         <span className={weightLabelStyle}>weight</span>

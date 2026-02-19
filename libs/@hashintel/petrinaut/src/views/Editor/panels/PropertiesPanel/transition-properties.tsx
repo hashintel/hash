@@ -1,20 +1,5 @@
 /* eslint-disable id-length */
 /* eslint-disable curly */
-import type { DragEndEvent } from "@dnd-kit/core";
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
@@ -34,7 +19,7 @@ import { CodeEditor } from "../../../../monaco/code-editor";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
-import { SortableArcItem } from "./sortable-arc-item";
+import { ArcItem } from "./sortable-arc-item";
 
 const containerStyle = css({
   display: "flex",
@@ -182,55 +167,6 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const isReadOnly = useIsReadOnly();
   const { globalMode } = use(EditorContext);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const handleInputArcDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === active.id,
-      );
-      const newIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === over.id,
-      );
-
-      updateTransition(transition.id, (existingTransition) => {
-        existingTransition.inputArcs = arrayMove(
-          existingTransition.inputArcs,
-          oldIndex,
-          newIndex,
-        );
-      });
-    }
-  };
-
-  const handleOutputArcDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === active.id,
-      );
-      const newIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === over.id,
-      );
-
-      updateTransition(transition.id, (existingTransition) => {
-        existingTransition.outputArcs = arrayMove(
-          existingTransition.outputArcs,
-          oldIndex,
-          newIndex,
-        );
-      });
-    }
-  };
-
   const handleDeleteInputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
       const index = existingTransition.inputArcs.findIndex(
@@ -308,43 +244,29 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           </div>
         ) : (
           <div className={arcListContainerStyle}>
-            <DndContext
-              sensors={isReadOnly ? [] : sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleInputArcDragEnd}
-            >
-              <SortableContext
-                items={transition.inputArcs.map((arc) => arc.placeId)}
-                strategy={verticalListSortingStrategy}
-              >
-                {transition.inputArcs.map((arc) => {
-                  const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId,
-                  );
-                  return (
-                    <SortableArcItem
-                      key={arc.placeId}
-                      id={arc.placeId}
-                      placeName={place?.name ?? arc.placeId}
-                      weight={arc.weight}
-                      disabled={isReadOnly}
-                      tooltip={
-                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
-                      }
-                      onWeightChange={(weight) => {
-                        onArcWeightUpdate(
-                          transition.id,
-                          "input",
-                          arc.placeId,
-                          weight,
-                        );
-                      }}
-                      onDelete={() => handleDeleteInputArc(arc.placeId)}
-                    />
-                  );
-                })}
-              </SortableContext>
-            </DndContext>
+            {transition.inputArcs.map((arc) => {
+              const place = places.find(
+                (placeItem) => placeItem.id === arc.placeId,
+              );
+              return (
+                <ArcItem
+                  key={arc.placeId}
+                  placeName={place?.name ?? arc.placeId}
+                  weight={arc.weight}
+                  disabled={isReadOnly}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                  onWeightChange={(weight) => {
+                    onArcWeightUpdate(
+                      transition.id,
+                      "input",
+                      arc.placeId,
+                      weight,
+                    );
+                  }}
+                  onDelete={() => handleDeleteInputArc(arc.placeId)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -357,43 +279,29 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           </div>
         ) : (
           <div className={arcListContainerStyle}>
-            <DndContext
-              sensors={isReadOnly ? [] : sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleOutputArcDragEnd}
-            >
-              <SortableContext
-                items={transition.outputArcs.map((arc) => arc.placeId)}
-                strategy={verticalListSortingStrategy}
-              >
-                {transition.outputArcs.map((arc) => {
-                  const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId,
-                  );
-                  return (
-                    <SortableArcItem
-                      key={arc.placeId}
-                      id={arc.placeId}
-                      placeName={place?.name ?? arc.placeId}
-                      weight={arc.weight}
-                      disabled={isReadOnly}
-                      tooltip={
-                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
-                      }
-                      onWeightChange={(weight) => {
-                        onArcWeightUpdate(
-                          transition.id,
-                          "output",
-                          arc.placeId,
-                          weight,
-                        );
-                      }}
-                      onDelete={() => handleDeleteOutputArc(arc.placeId)}
-                    />
-                  );
-                })}
-              </SortableContext>
-            </DndContext>
+            {transition.outputArcs.map((arc) => {
+              const place = places.find(
+                (placeItem) => placeItem.id === arc.placeId,
+              );
+              return (
+                <ArcItem
+                  key={arc.placeId}
+                  placeName={place?.name ?? arc.placeId}
+                  weight={arc.weight}
+                  disabled={isReadOnly}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                  onWeightChange={(weight) => {
+                    onArcWeightUpdate(
+                      transition.id,
+                      "output",
+                      arc.placeId,
+                      weight,
+                    );
+                  }}
+                  onDelete={() => handleDeleteOutputArc(arc.placeId)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
