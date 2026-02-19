@@ -8,7 +8,6 @@
     if_let_guard,
 
     // Library Features
-    assert_matches,
     file_buffered,
     formatting_options,
     lock_value_accessors,

@@ -14,7 +14,6 @@
 
     // Library Features
     allocator_api,
-    assert_matches,
     binary_heap_drain_sorted,
     clone_from_ref,
     const_type_name,

@@ -57,7 +57,6 @@
     formatting_options,
     iter_intersperse,
 )]
-#![cfg_attr(test, feature(assert_matches))]
 
 extern crate alloc;
 

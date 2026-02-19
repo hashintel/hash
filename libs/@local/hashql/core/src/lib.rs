@@ -17,7 +17,6 @@
 
     // Library Features
     allocator_api,
-    assert_matches,
     binary_heap_into_iter_sorted,
     clone_from_ref,
     debug_closure_helpers,

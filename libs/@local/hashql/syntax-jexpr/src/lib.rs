@@ -11,7 +11,6 @@
     // Library Features
     allocator_api,
     ascii_char,
-    assert_matches,
     box_into_boxed_slice,
     new_range_api,
     portable_simd,

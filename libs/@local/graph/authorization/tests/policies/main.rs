@@ -1,8 +1,3 @@
-#![feature(
-    // Library Features
-    assert_matches,
-)]
-
 extern crate alloc;
 
 mod definitions;
