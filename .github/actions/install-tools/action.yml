@@ -47,7 +47,8 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') }}
+      # Forked pull requests do not receive repository secrets, so `vault_address` is empty there.
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.vault_address != '' }}
       uses: ./.github/actions/install-sccache
       with:
         vault_address: ${{ inputs.vault_address }}
