@@ -19,6 +19,7 @@ import type {
   Place,
 } from "../../../../core/types/sdcpn";
 import { CodeEditor } from "../../../../monaco/code-editor";
+import { getEditorPath } from "../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 const containerStyle = css({
@@ -476,7 +477,7 @@ export const DifferentialEquationProperties: React.FC<
           )}
         </div>
         <CodeEditor
-          path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
+          path={getEditorPath("differential-equation", differentialEquation.id)}
           language="typescript"
           value={differentialEquation.code}
           height="100%"
