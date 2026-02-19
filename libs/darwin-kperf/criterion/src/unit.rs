@@ -12,6 +12,7 @@ pub(crate) struct Unit {
     machine: &'static str,
     per_element: &'static str,
     per_byte: &'static str,
+    per_bit: &'static str,
 }
 
 impl Unit {
@@ -37,6 +38,7 @@ const INSTRUCTIONS: Unit = Unit {
     machine: "instructions",
     per_element: "instr/elem",
     per_byte: "instr/B",
+    per_bit: "instr/bit",
 };
 
 const CYCLES: Unit = Unit {
@@ -47,6 +49,7 @@ const CYCLES: Unit = Unit {
     machine: "cycles",
     per_element: "cycles/elem",
     per_byte: "cycles/B",
+    per_bit: "cycles/bit",
 };
 
 const BRANCH_MISSES: Unit = Unit {
@@ -57,6 +60,7 @@ const BRANCH_MISSES: Unit = Unit {
     machine: "branch-misses",
     per_element: "misses/elem",
     per_byte: "misses/B",
+    per_bit: "misses/bit",
 };
 
 const CACHE_MISSES: Unit = Unit {
@@ -67,6 +71,7 @@ const CACHE_MISSES: Unit = Unit {
     machine: "l1d-misses",
     per_element: "misses/elem",
     per_byte: "misses/B",
+    per_bit: "misses/bit",
 };
 
 const COUNTS: Unit = Unit {
@@ -77,15 +82,105 @@ const COUNTS: Unit = Unit {
     machine: "counts",
     per_element: "counts/elem",
     per_byte: "counts/B",
+    per_bit: "counts/bit",
+};
+
+#[expect(clippy::non_ascii_literal, reason = "µ is the SI prefix for micro")]
+const UOPS: Unit = Unit {
+    raw: "µops",
+    kilo: "Kµops",
+    mega: "Mµops",
+    giga: "Gµops",
+    machine: "uops",
+    per_element: "µops/elem",
+    per_byte: "µops/B",
+    per_bit: "µops/bit",
+};
+
+const TLB_MISSES: Unit = Unit {
+    raw: "misses",
+    kilo: "Kmisses",
+    mega: "Mmisses",
+    giga: "Gmisses",
+    machine: "tlb-misses",
+    per_element: "misses/elem",
+    per_byte: "misses/B",
+    per_bit: "misses/bit",
 };
 
 pub(crate) const fn unit_for_event(event: Event) -> Unit {
     #[expect(clippy::wildcard_enum_match_arm, reason = "100s of events")]
     match event {
-        Event::FixedInstructions => INSTRUCTIONS,
-        Event::FixedCycles => CYCLES,
-        Event::BranchMispredNonspec => BRANCH_MISSES,
-        Event::L1DCacheMissLdNonspec => CACHE_MISSES,
+        // Instructions (retired)
+        Event::FixedInstructions
+        | Event::InstAll
+        | Event::InstBarrier
+        | Event::InstBranch
+        | Event::InstBranchCall
+        | Event::InstBranchCond
+        | Event::InstBranchIndir
+        | Event::InstBranchRet
+        | Event::InstBranchTaken
+        | Event::InstIntAlu
+        | Event::InstIntLd
+        | Event::InstIntSt
+        | Event::InstLdst
+        | Event::InstSimdAlu
+        | Event::InstSimdAluVec
+        | Event::InstSimdLd
+        | Event::InstSimdSt
+        | Event::InstSmeEngineAlu
+        | Event::InstSmeEngineLd
+        | Event::InstSmeEnginePackingFused
+        | Event::InstSmeEngineScalarfp
+        | Event::InstSmeEngineSt => INSTRUCTIONS,
+
+        // Cycles
+        Event::FixedCycles | Event::CoreActiveCycle => CYCLES,
+
+        // Branch mispredictions
+        Event::ArmBrMisPred
+        | Event::BranchMispredNonspec
+        | Event::BranchCondMispredNonspec
+        | Event::BranchIndirMispredNonspec
+        | Event::BranchCallIndirMispredNonspec
+        | Event::BranchRetIndirMispredNonspec => BRANCH_MISSES,
+
+        // Cache misses
+        Event::L1DCacheMissLd
+        | Event::L1DCacheMissLdNonspec
+        | Event::L1DCacheMissSt
+        | Event::L1DCacheMissStNonspec
+        | Event::L1ICacheMissDemand => CACHE_MISSES,
+
+        // TLB misses
+        Event::L1DTlbMiss
+        | Event::L1DTlbMissNonspec
+        | Event::L1ITlbMissDemand
+        | Event::L2TlbMissData
+        | Event::L2TlbMissInstruction => TLB_MISSES,
+
+        // Micro-ops
+        Event::RetireUop
+        | Event::MapIntUop
+        | Event::MapLdstUop
+        | Event::MapSimdUop
+        | Event::MapUop
+        | Event::MapIntSmeUop
+        | Event::ScheduleUop
+        | Event::LdUnitUop
+        | Event::StUnitUop
+        | Event::LdNtUop
+        | Event::StNtUop
+        | Event::LdSmeNormalUop
+        | Event::LdSmeNtUop
+        | Event::StSmeNormalUop
+        | Event::StSmeNtUop
+        | Event::LdstX64Uop
+        | Event::LdstXpgUop
+        | Event::LdstSmeXpgUop
+        | Event::LdstSmePredInactive => UOPS,
+
         _ => COUNTS,
     }
 }
@@ -120,6 +215,15 @@ impl CounterFormatter {
     }
 
     #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+    fn scale_throughputs_bits(&self, bits: u64, values: &mut [f64]) -> &'static str {
+        for value in values {
+            *value /= bits as f64;
+        }
+
+        self.unit.per_bit
+    }
+
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
     fn scale_throughputs_elements(&self, elements: u64, values: &mut [f64]) -> &'static str {
         for value in values {
             *value /= elements as f64;
@@ -135,7 +239,6 @@ impl criterion::measurement::ValueFormatter for CounterFormatter {
         self.scale_values_inner(typical_value, values)
     }
 
-    #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
     fn scale_throughputs(
         &self,
         _typical: f64,
@@ -150,7 +253,7 @@ impl criterion::measurement::ValueFormatter for CounterFormatter {
             | criterion::Throughput::ElementsAndBytes { elements, .. } => {
                 self.scale_throughputs_elements(elements, values)
             }
-            criterion::Throughput::Bits(bits) => self.scale_throughputs_bytes(bits / 8, values),
+            criterion::Throughput::Bits(bits) => self.scale_throughputs_bits(bits, values),
         }
     }
 
