@@ -10,6 +10,7 @@
 use core::{
     ffi::{CStr, c_char},
     marker::PhantomData,
+    ptr::NonNull,
 };
 
 use darwin_kperf_sys::kperfdata::{
@@ -95,6 +96,17 @@ impl<'db> Database<'db> {
     /// remain alive and unmodified for `'db`.
     pub(crate) const unsafe fn from_raw(db: &'db darwin_kperf_sys::kperfdata::kpep_db) -> Self {
         Self { inner: db }
+    }
+
+    /// Returns a reference to the underlying `kpep_db`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must not mutate the database or use it after the
+    /// [`Database`]'s lifetime has expired.
+    #[must_use]
+    pub const unsafe fn as_raw(&self) -> NonNull<darwin_kperf_sys::kperfdata::kpep_db> {
+        NonNull::from_ref(self.inner)
     }
 
     /// Database name, e.g. `"a14"`, `"as4"`.
@@ -223,8 +235,11 @@ impl<'db> DatabaseEvent<'db> {
     }
 
     /// Whether this event must be placed in a fixed counter.
+    ///
+    /// Checks bit 0 of the event's `flags` field, which the framework sets
+    /// during `_event_init` when the plist contains a `"fixed_counter"` key.
     #[must_use]
     pub const fn is_fixed(&self) -> bool {
-        self.event.is_fixed != 0
+        self.event.flags & 1 != 0
     }
 }
