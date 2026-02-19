@@ -46,6 +46,9 @@ process.env.NEXT_PUBLIC_API_ORIGIN =
   process.env.API_ORIGIN ?? "http://localhost:5001";
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
+process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
+process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =
+  process.env.SENTRY_ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? "1";
 

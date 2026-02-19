@@ -8,6 +8,8 @@ Sentry.init({
   environment:
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     process.env.SENTRY_ENVIRONMENT ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    process.env.ENVIRONMENT ||
     (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
 });
