@@ -1,6 +1,7 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
+import { CheckerProvider } from "./checker/provider";
 import type {
   Color,
   DifferentialEquation,
@@ -15,7 +16,6 @@ import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
-import { CheckerProvider } from "./checker/provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { EditorView } from "./views/Editor/editor-view";
