@@ -2,6 +2,7 @@ import type * as Monaco from "monaco-editor";
 
 import type { MonacoContextValue } from "./context";
 import { MonacoContext } from "./context";
+import { DiagnosticsSync } from "./diagnostics-sync";
 
 interface LanguageDefaults {
   setModeConfiguration(config: Record<string, boolean>): void;
@@ -100,6 +101,7 @@ export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <MonacoContext.Provider value={monacoPromise}>
+      <DiagnosticsSync />
       {children}
     </MonacoContext.Provider>
   );
