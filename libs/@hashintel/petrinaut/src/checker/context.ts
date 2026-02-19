@@ -1,13 +1,11 @@
 import { createContext } from "react";
 
-import type { SDCPNCheckResult } from "./lib/checker";
-
-export type CheckResult = SDCPNCheckResult;
+import type { CheckerResult } from "./worker/protocol";
 
 export interface CheckerContextValue {
-  /** The result of the last SDCPN check */
-  checkResult: SDCPNCheckResult;
-  /** Total count of all diagnostics across all items */
+  /** Result of the last SDCPN validation run. */
+  checkResult: CheckerResult;
+  /** Total number of diagnostics across all items. */
   totalDiagnosticsCount: number;
 }
 
