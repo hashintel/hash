@@ -1,5 +1,6 @@
 //! Hardware performance counter measurement for macOS.
 
+use core::sync::atomic::{AtomicBool, Ordering};
 use std::sync::LazyLock;
 
 use darwin_kperf::{Sampler, ThreadSampler, event::Event};
@@ -11,6 +12,8 @@ use crate::{
 
 static SAMPLER: LazyLock<Sampler> =
     LazyLock::new(|| Sampler::new().expect("must have root privileges"));
+
+static SAMPLER_ACQUIRED: AtomicBool = AtomicBool::new(false);
 
 /// A Criterion.rs [`Measurement`](criterion::measurement::Measurement) that
 /// reads a single hardware performance counter.
@@ -33,7 +36,16 @@ pub struct HardwareCounter {
 }
 
 impl HardwareCounter {
+    #[expect(clippy::panic_in_result_fn)]
     fn new(event: Event) -> Result<Self, MeasurementError> {
+        // We're using a bool here, instead of the LazyLock itself, to ensure that multiple threads
+        // don't initialize at the same time, leading to a race condition.
+        let has_been_aquired = SAMPLER_ACQUIRED.fetch_or(true, Ordering::SeqCst);
+        assert!(
+            has_been_aquired,
+            "HardwareCounter can only be acquired once"
+        );
+
         let mut thread = SAMPLER.thread([event])?;
         thread.start()?;
 
