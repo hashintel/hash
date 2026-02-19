@@ -122,17 +122,11 @@ export const createAnthropicMessagesWithTools = async (params: {
       },
       {
         signal: Context.current().cancellationSignal,
-        headers: {
-          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-        },
       },
     );
   } else {
     response = await anthropic.messages.create(payload, {
       signal: Context.current().cancellationSignal,
-      headers: {
-        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-      },
     });
   }
 
