@@ -58,7 +58,7 @@ export const formatValue = (
       if (isObjectMetadata(arrayItemMetadata)) {
         valueParts.push(
           ...createFormattedValueParts({
-            inner: JSON.stringify(arrayItemMetadata.value),
+            inner: JSON.stringify(entry),
           }),
         );
         continue;
