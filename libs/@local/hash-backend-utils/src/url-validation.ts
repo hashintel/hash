@@ -18,7 +18,15 @@ const BLOCKED_HOSTNAMES = new Set([
  * local/non-routable address (e.g. `.local`, `.internal`, `.localhost`).
  */
 const hasBlockedSuffix = (hostname: string): boolean => {
-  const blockedSuffixes = [".local", ".internal", ".localhost"];
+  const blockedSuffixes = [
+    ".local",
+    ".internal",
+    ".localhost",
+    ".svc",
+    ".intranet",
+    ".corp",
+    ".home.arpa",
+  ];
   const lower = hostname.toLowerCase();
   return blockedSuffixes.some((suffix) => lower.endsWith(suffix));
 };
@@ -183,10 +191,11 @@ export const validateExternalUrl = (
   const hostname = url.hostname.toLowerCase();
 
   // Strip IPv6 brackets if present (URL parser keeps them in .hostname for
-  // bracket-enclosed literals, but net.isIPv6 expects bare addresses)
-  const bareHostname = hostname.startsWith("[")
-    ? hostname.slice(1, -1)
-    : hostname;
+  // bracket-enclosed literals, but net.isIPv6 expects bare addresses).
+  // Also strip any zone ID (e.g. %25eth0) which could bypass suffix/IP checks.
+  const bareHostname = (
+    hostname.startsWith("[") ? hostname.slice(1, -1) : hostname
+  ).replace(/%25.*$/, "");
 
   if (BLOCKED_HOSTNAMES.has(bareHostname)) {
     return {
@@ -245,9 +254,9 @@ export const validateExternalUrlWithDnsCheck = async (
   }
 
   const { url } = syncResult;
-  const bareHostname = url.hostname.startsWith("[")
-    ? url.hostname.slice(1, -1)
-    : url.hostname;
+  const bareHostname = (
+    url.hostname.startsWith("[") ? url.hostname.slice(1, -1) : url.hostname
+  ).replace(/%25.*$/, "");
 
   // If it's already a literal IP we already checked it synchronously
   if (isIPv4(bareHostname) || isIPv6(bareHostname)) {
