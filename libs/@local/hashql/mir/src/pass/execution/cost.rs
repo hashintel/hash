@@ -455,13 +455,6 @@ impl<A: Allocator> StatementCostVec<A> {
         &self.costs[range]
     }
 
-    pub fn sum(&self, block: BasicBlockId) -> Option<Cost> {
-        self.of(block)
-            .iter()
-            .copied()
-            .try_fold(Cost::MIN, |acc, value| Some(acc.saturating_add(value?)))
-    }
-
     pub fn sum_approx(&self, block: BasicBlockId) -> ApproxCost {
         self.of(block).iter().copied().flatten().sum()
     }
