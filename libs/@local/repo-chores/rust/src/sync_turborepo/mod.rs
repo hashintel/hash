@@ -340,11 +340,9 @@ async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTu
 }
 
 fn version_protocol_from_str(version: &str) -> VersionProtocol {
-    if version == "workspace:*" {
-        VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None })
-    } else {
-        VersionProtocol::Tag(version.to_owned())
-    }
+    version
+        .parse()
+        .unwrap_or_else(|_| VersionProtocol::Tag(version.to_owned()))
 }
 
 fn compute_package_json(
