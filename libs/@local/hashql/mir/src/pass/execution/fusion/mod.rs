@@ -14,6 +14,7 @@
 //!
 //! Use [`BasicBlockFusion`] to run the pass on a [`Body`].
 //!
+//! [`BasicBlock`]: crate::body::basic_block::BasicBlock
 //! [`BasicBlockSplitting`]: super::splitting::BasicBlockSplitting
 //! [`Goto`]: crate::body::terminator::Goto
 
@@ -45,6 +46,8 @@ mod tests;
 /// - That predecessor terminates with an unconditional [`Goto`] to this block.
 /// - The [`Goto`] carries no arguments (and hence the block has no parameters).
 /// - Both blocks share the same [`TargetId`].
+///
+/// [`Goto`]: crate::body::terminator::Goto
 fn fusable_into(
     body: &Body<'_>,
     targets: &BasicBlockSlice<TargetId>,
@@ -221,6 +224,7 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 /// assigns concrete targets, some adjacent blocks end up on the same backend. This pass merges
 /// them back together, reducing the block count for downstream consumers.
 ///
+/// [`BasicBlock`]: crate::body::basic_block::BasicBlock
 /// [`BasicBlockSplitting`]: super::splitting::BasicBlockSplitting
 pub struct BasicBlockFusion<A: Allocator> {
     alloc: A,
