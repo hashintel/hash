@@ -7,11 +7,11 @@ import {
 import { unlink } from "node:fs/promises";
 import * as http from "node:http";
 import * as https from "node:https";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
-import { fileURLToPath } from "node:url";
 
 import type {
   EntityUuid,
@@ -45,10 +45,7 @@ import { logger } from "../../shared/activity-logger.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const baseFilePath = path.join(__dirname, "/var/tmp_files");
+const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
 
 const downloadFileToFileSystem = async (fileUrl: string) => {
   mkdirSync(baseFilePath, { recursive: true });
@@ -121,8 +118,6 @@ const writeFileToS3URL = async ({
     );
     fileStream.pipe(req);
     fileStream.on("end", () => req.end());
-  }).finally(() => {
-    void unlink(filePath);
   });
 };
 
@@ -191,150 +186,155 @@ export const createFileEntityFromUrl = async (params: {
     };
   }
 
-  const mimeType = mime.lookup(filename) || "application/octet-stream";
-  const entityTypeIds =
-    (params.entityTypeIds ?? getEntityTypeIdForMimeType(mimeType))
-      ? [getEntityTypeIdForMimeType(mimeType)]
-      : [systemEntityTypes.file.entityTypeId];
+  try {
+    const mimeType = mime.lookup(filename) || "application/octet-stream";
+    const entityTypeIds =
+      (params.entityTypeIds ?? getEntityTypeIdForMimeType(mimeType))
+        ? [getEntityTypeIdForMimeType(mimeType)]
+        : [systemEntityTypes.file.entityTypeId];
 
-  const stats = statSync(localFilePath);
-  const fileSizeInBytes = stats.size;
+    const stats = statSync(localFilePath);
+    const fileSizeInBytes = stats.size;
 
-  const initialProperties: FileProperties = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-      description ?? undefined,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+    const initialProperties: FileProperties = {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        description ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        displayName ?? filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        originalUrl,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+        mimeType,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
+        filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+        "URL",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
+        originalUrl,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
+        fileSizeInBytes,
+    };
+
+    const isAiGenerated = provenanceFromParams?.actorType === "ai";
+
+    const webBotActorId = isAiGenerated
+      ? await getAiAssistantAccountIdActivity({
+          authentication: { actorId: userAuthentication.actorId },
+          graphApiClient,
+          grantCreatePermissionForWeb: webId,
+        })
+      : await getWebMachineId(
+          { graphApi: graphApiClient },
+          { actorId: userAuthentication.actorId },
+          { webId },
+        ).then((maybeMachineId) => {
+          if (!maybeMachineId) {
+            throw new Error(
+              `Failed to get web machine for user account ID: ${userAuthentication.actorId}`,
+            );
+          }
+          return maybeMachineId;
+        });
+
+    if (!webBotActorId) {
+      throw new Error(
+        `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
+      );
+    }
+
+    const provenance: ProvidedEntityEditionProvenance =
+      provenanceFromParams ?? {
+        actorType: "machine",
+        origin: {
+          type: "flow",
+          id: flowEntityId,
+          stepIds: [stepId],
+        },
+      };
+
+    const incompleteFileEntity = await HashEntity.create<File>(
+      graphApiClient,
+      { actorId: webBotActorId },
+      {
+        draft: false,
+        webId,
+        properties: mergePropertyObjectAndMetadata<File>(
+          initialProperties,
+          propertyMetadata,
+        ),
+        entityTypeIds: entityTypeIds as [
+          typeof systemEntityTypes.file.entityTypeId,
+        ],
+        provenance,
+      },
+    );
+
+    const storageProvider = getStorageProvider();
+
+    const editionIdentifier = generateUuid();
+
+    const key = storageProvider.getFileEntityStorageKey({
+      entityId: incompleteFileEntity.metadata.recordId.entityId,
+      editionIdentifier,
       filename,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      displayName ?? filename,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      originalUrl,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-      mimeType,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-      filename,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-      "URL",
-    "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
-      originalUrl,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
-      fileSizeInBytes,
-  };
+    });
 
-  const isAiGenerated = provenanceFromParams?.actorType === "ai";
-
-  const webBotActorId = isAiGenerated
-    ? await getAiAssistantAccountIdActivity({
-        authentication: { actorId: userAuthentication.actorId },
-        graphApiClient,
-        grantCreatePermissionForWeb: webId,
-      })
-    : await getWebMachineId(
-        { graphApi: graphApiClient },
-        { actorId: userAuthentication.actorId },
-        { webId },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web machine for user account ID: ${userAuthentication.actorId}`,
-          );
-        }
-        return maybeMachineId;
+    const { fileStorageProperties, presignedPut } =
+      await storageProvider.presignUpload({
+        expiresInSeconds: 60 * 60 * 24, // 24 hours
+        headers: {
+          "content-length": fileSizeInBytes,
+          "content-type": mimeType,
+        },
+        key,
       });
 
-  if (!webBotActorId) {
-    throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
-    );
-  }
-
-  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
-    actorType: "machine",
-    origin: {
-      type: "flow",
-      id: flowEntityId,
-      stepIds: [stepId],
-    },
-  };
-
-  const incompleteFileEntity = await HashEntity.create<File>(
-    graphApiClient,
-    { actorId: webBotActorId },
-    {
-      draft: false,
-      webId,
-      properties: mergePropertyObjectAndMetadata<File>(
-        initialProperties,
-        propertyMetadata,
-      ),
-      entityTypeIds: entityTypeIds as [
-        typeof systemEntityTypes.file.entityTypeId,
-      ],
-      provenance,
-    },
-  );
-
-  const storageProvider = getStorageProvider();
-
-  const editionIdentifier = generateUuid();
-
-  const key = storageProvider.getFileEntityStorageKey({
-    entityId: incompleteFileEntity.metadata.recordId.entityId,
-    editionIdentifier,
-    filename,
-  });
-
-  const { fileStorageProperties, presignedPut } =
-    await storageProvider.presignUpload({
-      expiresInSeconds: 60 * 60 * 24, // 24 hours
-      headers: {
-        "content-length": fileSizeInBytes,
-        "content-type": mimeType,
-      },
-      key,
-    });
-
-  const updatedProperties: File["propertiesWithMetadata"] = {
-    ...fileStorageProperties,
-    value: {
-      ...fileStorageProperties.value,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        {
-          value: formatFileUrl(key),
-          metadata: {
-            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
+    const updatedProperties: File["propertiesWithMetadata"] = {
+      ...fileStorageProperties,
+      value: {
+        ...fileStorageProperties.value,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+          {
+            value: formatFileUrl(key),
+            metadata: {
+              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
+            },
           },
-        },
-    },
-  };
+      },
+    };
 
-  const updatedEntity = await incompleteFileEntity.patch(
-    graphApiClient,
-    { actorId: webBotActorId },
-    {
-      propertyPatches: propertyObjectToPatches(updatedProperties),
-      provenance,
-    },
-  );
+    const updatedEntity = await incompleteFileEntity.patch(
+      graphApiClient,
+      { actorId: webBotActorId },
+      {
+        propertyPatches: propertyObjectToPatches(updatedProperties),
+        provenance,
+      },
+    );
 
-  try {
-    await writeFileToS3URL({
-      filePath: localFilePath,
-      mimeType,
-      presignedPutUrl: presignedPut.url,
-      sizeInBytes: fileSizeInBytes,
-    });
-  } catch (err) {
-    const message = `Error uploading file: ${(err as Error).message}`;
+    try {
+      await writeFileToS3URL({
+        filePath: localFilePath,
+        mimeType,
+        presignedPutUrl: presignedPut.url,
+        sizeInBytes: fileSizeInBytes,
+      });
+    } catch (err) {
+      const message = `Error uploading file: ${(err as Error).message}`;
+
+      return {
+        status: "error-uploading-file",
+        message,
+      };
+    }
 
     return {
-      status: "error-uploading-file",
-      message,
+      status: "ok",
+      entity: updatedEntity,
     };
+  } finally {
+    await unlink(localFilePath).catch(() => {});
   }
-
-  return {
-    status: "ok",
-    entity: updatedEntity,
-  };
 };
