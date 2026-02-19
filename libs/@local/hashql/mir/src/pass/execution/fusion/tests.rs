@@ -26,10 +26,6 @@ use crate::{
     pretty::TextFormatOptions,
 };
 
-// =============================================================================
-// Test Helpers
-// =============================================================================
-
 fn make_targets<'heap>(
     heap: &'heap Heap,
     assignments: &[TargetId],
@@ -78,10 +74,6 @@ fn assert_fusion<'heap>(
     let output = String::from_utf8_lossy(&text_format.writer);
     assert_snapshot!(name, output);
 }
-
-// =============================================================================
-// fusable_into() Tests
-// =============================================================================
 
 #[test]
 fn fusable_into_same_target_goto() {
@@ -174,9 +166,57 @@ fn fusable_into_multiple_predecessors() {
     assert_eq!(result, None);
 }
 
-// =============================================================================
-// Fusion integration tests (snapshot)
-// =============================================================================
+#[test]
+fn fusable_into_goto_with_args() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int;
+
+        bb0() {
+            x = load 1;
+            goto bb1(x);
+        },
+        bb1(y) {
+            return y;
+        }
+    });
+
+    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+
+    // The Goto carries an argument — not fusable even though targets match.
+    let result = fusable_into(&body, &targets, BasicBlockId::new(1));
+    assert_eq!(result, None);
+}
+
+#[test]
+fn fusable_into_target_has_params() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // A goto with no arguments to a block that nonetheless has a parameter. This is a
+    // malformed edge (arity mismatch), but fusable_into must still reject it because the
+    // block has parameters that cannot be resolved by simple statement concatenation.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int;
+
+        bb0() {
+            x = load 1;
+            goto bb1();
+        },
+        bb1(y) {
+            return y;
+        }
+    });
+
+    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+
+    let result = fusable_into(&body, &targets, BasicBlockId::new(1));
+    assert_eq!(result, None);
+}
 
 #[test]
 fn fuse_no_changes_needed() {
@@ -510,62 +550,6 @@ fn fuse_does_not_fuse_join_points() {
     assert_eq!(body.basic_blocks.len(), 4);
     assert_eq!(targets.len(), 4);
     assert_fusion("fuse_does_not_fuse_join_points", &context, &body, &targets);
-}
-
-// =============================================================================
-// Regression tests for bugs fixed during implementation
-// =============================================================================
-
-#[test]
-fn fusable_into_goto_with_args() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, y: Int;
-
-        bb0() {
-            x = load 1;
-            goto bb1(x);
-        },
-        bb1(y) {
-            return y;
-        }
-    });
-
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
-
-    // The Goto carries an argument — not fusable even though targets match.
-    let result = fusable_into(&body, &targets, BasicBlockId::new(1));
-    assert_eq!(result, None);
-}
-
-#[test]
-fn fusable_into_target_has_params() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    // A goto with no arguments to a block that nonetheless has a parameter. This is a
-    // malformed edge (arity mismatch), but fusable_into must still reject it because the
-    // block has parameters that cannot be resolved by simple statement concatenation.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, y: Int;
-
-        bb0() {
-            x = load 1;
-            goto bb1();
-        },
-        bb1(y) {
-            return y;
-        }
-    });
-
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
-
-    let result = fusable_into(&body, &targets, BasicBlockId::new(1));
-    assert_eq!(result, None);
 }
 
 #[test]
