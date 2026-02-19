@@ -170,63 +170,58 @@ const getWebPageFromRemoteBrowser = async (
 ): Promise<WebPage | { error: string }> => {
   await acquireSessionSlot();
 
+  let browser: Awaited<ReturnType<typeof puppeteer.connect>> | undefined;
+  let page: Awaited<ReturnType<typeof browser.newPage>> | undefined;
+
   try {
-    const browser = await puppeteer.connect({
+    browser = await puppeteer.connect({
       browserWSEndpoint: getRemoteBrowserWsEndpoint(),
     });
 
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     await page.setExtraHTTPHeaders({
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language */
       "Accept-Language": "en-US,en,q=0.5",
     });
 
-    try {
-      const response = await page.goto(url, {
-        waitUntil: "networkidle2",
-        timeout: 20_000,
-      });
+    const response = await page.goto(url, {
+      waitUntil: "networkidle2",
+      timeout: 20_000,
+    });
 
-      if (!response) {
-        throw new Error("No response");
-      }
-
-      if (response.status() < 200 || response.status() >= 300) {
-        throw new Error(
-          `Page load failed: ${response.status()}: ${response.statusText()}`,
-        );
-      }
-
-      await page.waitForSelector("body", { timeout: 5_000 });
-
-      const htmlContent = await page.content();
-      const innerText = await page.evaluate(() => document.body.innerText);
-      const title = await page.title();
-
-      await page.close();
-      void browser.disconnect();
-
-      return {
-        htmlContent,
-        innerText,
-        title,
-        url,
-      };
-    } catch (error) {
-      await page.close().catch(() => {});
-      void browser.disconnect();
-
-      const errMessage = stringifyError(error);
-      logger.error(
-        `Failed to load URL ${url} in remote browser: ${errMessage}`,
-      );
-
-      return {
-        error: errMessage,
-      };
+    if (!response) {
+      throw new Error("No response");
     }
+
+    if (response.status() < 200 || response.status() >= 300) {
+      throw new Error(
+        `Page load failed: ${response.status()}: ${response.statusText()}`,
+      );
+    }
+
+    await page.waitForSelector("body", { timeout: 5_000 });
+
+    const htmlContent = await page.evaluate(() => document.body.innerHTML);
+    const innerText = await page.evaluate(() => document.body.innerText);
+    const title = await page.title();
+
+    return {
+      htmlContent,
+      innerText,
+      title,
+      url,
+    };
+  } catch (error) {
+    const errMessage = stringifyError(error);
+    logger.error(`Failed to load URL ${url} in remote browser: ${errMessage}`);
+
+    return {
+      error: errMessage,
+    };
   } finally {
+    await page?.close().catch(() => {});
+    void browser?.disconnect();
     releaseSessionSlot();
   }
 };

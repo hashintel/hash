@@ -43,10 +43,12 @@ export const anthropicMessageModelToMaxOutput: Record<
   PermittedAnthropicModel,
   number
 > = {
-  "claude-haiku-4-5-20251001": 4096,
-  // actually 128k, but this forces streaming mode.
+  // actually 64k, but we should implement streaming mode to handle higher.
+  "claude-haiku-4-5-20251001": 24_000,
+  // actually 128k, but we should implement streaming mode to handle higher.
   "claude-opus-4-6": 24_000,
-  "claude-sonnet-4-6": 8192,
+  // actually 64k, but we should implement streaming mode to handle higher.
+  "claude-sonnet-4-6": 24_000,
 };
 
 export type AnthropicMessagesCreateParams = {
@@ -109,7 +111,9 @@ export const createAnthropicMessagesWithTools = async (params: {
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
    * has been requested, use the Bedrock client for the request.
    */
-  if (provider === "amazon-bedrock") {
+  /** @todo re-enable switching to bedrock */
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (false) {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
     response = await anthropicBedrockClient.messages.create(
       {
