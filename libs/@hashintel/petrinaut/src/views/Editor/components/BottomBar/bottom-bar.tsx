@@ -3,7 +3,7 @@ import { refractive } from "@hashintel/refractive";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { CheckerContext } from "../../../../state/checker-context";
+import { CheckerContext } from "../../../../checker/context";
 import {
   EditorContext,
   type EditorState,
