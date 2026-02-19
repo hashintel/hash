@@ -55,11 +55,3 @@ test-strategy             = { workspace = true }
 [[bench]]
 name    = "type_system"
 harness = false
-
-[[bench]]
-name    = "symbol"
-harness = false
-
-[[bench]]
-name    = "bit_matrix"
-harness = false
