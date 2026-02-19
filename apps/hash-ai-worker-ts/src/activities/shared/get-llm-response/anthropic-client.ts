@@ -44,11 +44,11 @@ export const anthropicMessageModelToMaxOutput: Record<
   number
 > = {
   // actually 64k, but we should implement streaming mode to handle higher.
-  "claude-haiku-4-5-20251001": 24_000,
+  "claude-haiku-4-5-20251001": 12_000,
   // actually 128k, but we should implement streaming mode to handle higher.
-  "claude-opus-4-6": 24_000,
+  "claude-opus-4-6": 12_000,
   // actually 64k, but we should implement streaming mode to handle higher.
-  "claude-sonnet-4-6": 24_000,
+  "claude-sonnet-4-6": 12_000,
 };
 
 export type AnthropicMessagesCreateParams = {

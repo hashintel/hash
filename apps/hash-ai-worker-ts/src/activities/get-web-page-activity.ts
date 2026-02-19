@@ -170,8 +170,8 @@ const getWebPageFromRemoteBrowser = async (
 ): Promise<WebPage | { error: string }> => {
   await acquireSessionSlot();
 
-  let browser: Awaited<ReturnType<typeof puppeteer.connect>> | undefined;
-  let page: Awaited<ReturnType<typeof browser.newPage>> | undefined;
+  let browser: puppeteer.Browser | undefined;
+  let page: puppeteer.Page | undefined;
 
   try {
     browser = await puppeteer.connect({
