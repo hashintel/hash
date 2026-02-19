@@ -1,5 +1,5 @@
 //! Tests for basic block fusion.
-#![expect(clippy::min_ident_chars, clippy::cast_possible_truncation)]
+#![expect(clippy::min_ident_chars)]
 
 use core::assert_matches;
 use std::{io::Write as _, path::PathBuf};

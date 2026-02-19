@@ -40,11 +40,11 @@ mod tests;
 /// predecessor's [`BasicBlockId`].
 ///
 /// A block is fusable when:
-/// - It is not the entry block
-/// - It has exactly one predecessor
-/// - That predecessor terminates with an unconditional [`Goto`] to this block
-/// - The [`Goto`] carries no arguments (and hence the block has no parameters)
-/// - Both blocks share the same [`TargetId`]
+/// - It is not the entry block.
+/// - It has exactly one predecessor.
+/// - That predecessor terminates with an unconditional [`Goto`] to this block.
+/// - The [`Goto`] carries no arguments (and hence the block has no parameters).
+/// - Both blocks share the same [`TargetId`].
 fn fusable_into(
     body: &Body<'_>,
     targets: &BasicBlockSlice<TargetId>,
@@ -102,7 +102,10 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
         _: Location,
         basic_block_id: &mut BasicBlockId,
     ) -> Self::Result<()> {
-        *basic_block_id = self.ids[*basic_block_id];
+        let id = self.ids[*basic_block_id];
+        debug_assert_ne!(id, BasicBlockId::PLACEHOLDER);
+
+        *basic_block_id = id;
         Ok(())
     }
 }
@@ -121,9 +124,9 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
 /// 3. **Compaction** — Build a remap table that assigns contiguous new IDs to surviving (head)
 ///    blocks, rewrite all [`BasicBlockId`] references, then permute blocks into their final
 ///    positions and truncate.
-fn fuse_blocks<'heap, A: Allocator, S: Allocator + Clone>(
+fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
     scratch: S,
-    body: &mut Body<'heap>,
+    body: &mut Body<'_>,
     targets: &mut BasicBlockVec<TargetId, A>,
 ) {
     let reverse_postorder = body
@@ -166,26 +169,27 @@ fn fuse_blocks<'heap, A: Allocator, S: Allocator + Clone>(
 
         head_block.statements.append(&mut tail_block.statements);
         mem::swap(&mut head_block.terminator, &mut tail_block.terminator);
+
+        // The tail block is now dead
+        tail_block.terminator.kind = TerminatorKind::Unreachable;
     }
 
     // Phase 3: compaction.
     //
-    // Assign contiguous new IDs to surviving blocks. Fused blocks inherit their head's new ID.
+    // Assign contiguous new IDs to surviving blocks. Dead blocks get a PLACEHOLDER sentinel —
+    // no surviving terminator should reference them because each had exactly one predecessor
+    // (the chain Goto that was replaced during merging).
     let mut remap =
-        BasicBlockVec::from_elem_in(BasicBlockId::START, body.basic_blocks.len(), scratch);
+        BasicBlockVec::from_elem_in(BasicBlockId::PLACEHOLDER, body.basic_blocks.len(), scratch);
     let mut write_ptr = BasicBlockId::START;
 
     for block_id in body.basic_blocks.ids() {
-        if head[block_id] == block_id {
-            remap[block_id] = write_ptr;
-            write_ptr.increment_by(1);
-        }
-    }
-
-    for block_id in body.basic_blocks.ids() {
         if head[block_id] != block_id {
-            remap[block_id] = remap[head[block_id]];
+            continue;
         }
+
+        remap[block_id] = write_ptr;
+        write_ptr.increment_by(1);
     }
 
     let new_len = write_ptr;
@@ -202,10 +206,9 @@ fn fuse_blocks<'heap, A: Allocator, S: Allocator + Clone>(
         }
 
         let new_id = remap[old_id];
-        if new_id != old_id {
-            body.basic_blocks.as_mut().swap(old_id, new_id);
-            targets.swap(old_id, new_id);
-        }
+
+        body.basic_blocks.as_mut().swap(old_id, new_id);
+        targets.swap(old_id, new_id);
     }
 
     body.basic_blocks.as_mut().truncate(new_len);
