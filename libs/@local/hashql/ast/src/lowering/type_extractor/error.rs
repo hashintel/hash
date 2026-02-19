@@ -479,7 +479,7 @@ pub(crate) fn unknown_intrinsic_type(
     } else {
         let suggestions: String = similar
             .into_iter()
-            .map(|symbol| symbol.unwrap())
+            .map(Symbol::unwrap)
             .intersperse("`, `")
             .collect();
 
