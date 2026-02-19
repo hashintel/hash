@@ -6,6 +6,8 @@ import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
+import { logger } from "../shared/activity-logger.js";
+
 export type GetWebSearchResultsResponse = Omit<
   GetWebSearchResults200ResponseWebSearchResultsInner,
   "url"
@@ -30,11 +32,25 @@ export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
 
   const {
     data: { webSearchResults },
-  } = await backOff(() => internalApiClient.getWebSearchResults(query), {
-    jitter: "full",
-    numOfAttempts: 3,
-    startingDelay: 1_000,
-  });
+  } = await backOff(
+    async () => {
+      try {
+        return await internalApiClient.getWebSearchResults(query);
+      } catch (error) {
+        logger.error(
+          `Error fetching web search results for query "${query}": ${
+            error instanceof Error ? error.message : JSON.stringify(error)
+          }`,
+        );
+        throw error;
+      }
+    },
+    {
+      jitter: "full",
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+    },
+  );
 
   const webPages = webSearchResults.slice(0, numberOfSearchResults);
 
