@@ -11,7 +11,7 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
@@ -31,15 +31,6 @@ export type {
   Place,
   SDCPN,
   Transition,
-};
-
-/**
- * Internal component to initialize Monaco global typings.
- * Must be inside SDCPNProvider to access the store.
- */
-const MonacoSetup: React.FC = () => {
-  useMonacoGlobalTypings();
-  return null;
 };
 
 export type PetrinautProps = {
@@ -107,18 +98,19 @@ export const Petrinaut = ({
   return (
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
-        <CheckerProvider>
-          <SimulationProvider>
-            <PlaybackProvider>
-              <EditorProvider>
-                <MonacoSetup />
-                <EditorView
-                  hideNetManagementControls={hideNetManagementControls}
-                />
-              </EditorProvider>
-            </PlaybackProvider>
-          </SimulationProvider>
-        </CheckerProvider>
+        <MonacoProvider>
+          <CheckerProvider>
+            <SimulationProvider>
+              <PlaybackProvider>
+                <EditorProvider>
+                  <EditorView
+                    hideNetManagementControls={hideNetManagementControls}
+                  />
+                </EditorProvider>
+              </PlaybackProvider>
+            </SimulationProvider>
+          </CheckerProvider>
+        </MonacoProvider>
       </SDCPNProvider>
     </NotificationsProvider>
   );

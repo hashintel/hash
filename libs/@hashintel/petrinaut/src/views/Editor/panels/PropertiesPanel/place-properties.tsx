@@ -1,6 +1,5 @@
 /* eslint-disable id-length */
 import { css } from "@hashintel/ds-helpers/css";
-import MonacoEditor from "@monaco-editor/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   TbArrowRight,
@@ -28,6 +27,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
+import { CodeEditor } from "../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../playback/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
@@ -140,12 +140,6 @@ const codeHeaderStyle = css({
 const codeHeaderLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
-});
-
-const editorBorderStyle = css({
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  overflow: "hidden",
 });
 
 const aiMenuItemStyle = css({
@@ -549,33 +543,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 ]}
               />
             </div>
-            <div className={editorBorderStyle}>
-              <MonacoEditor
-                key={`visualizer-${place.colorId ?? "no-type"}`}
-                language="typescript"
-                path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
-                height={400}
-                value={place.visualizerCode}
-                onChange={(value) => {
-                  updatePlace(place.id, (existingPlace) => {
-                    existingPlace.visualizerCode = value ?? "";
-                  });
-                }}
-                theme="vs-light"
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 12,
-                  lineNumbers: "off",
-                  folding: true,
-                  glyphMargin: false,
-                  lineDecorationsWidth: 0,
-                  lineNumbersMinChars: 3,
-                  padding: { top: 8, bottom: 8 },
-                  fixedOverflowWidgets: true,
-                }}
-              />
-            </div>
+            <CodeEditor
+              path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
+              language="typescript"
+              height={400}
+              value={place.visualizerCode}
+              onChange={(value) => {
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.visualizerCode = value ?? "";
+                });
+              }}
+            />
           </div>
         )}
       </div>
