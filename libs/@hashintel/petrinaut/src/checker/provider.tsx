@@ -1,8 +1,8 @@
 import { use } from "react";
 
-import { checkSDCPN } from "../core/checker/checker";
-import { CheckerContext } from "./checker-context";
-import { SDCPNContext } from "./sdcpn-context";
+import { SDCPNContext } from "../state/sdcpn-context";
+import { checkSDCPN } from "./lib/checker";
+import { CheckerContext } from "./context";
 
 export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,

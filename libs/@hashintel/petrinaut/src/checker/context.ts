@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { SDCPNCheckResult } from "../core/checker/checker";
+import type { SDCPNCheckResult } from "./lib/checker";
 
 export type CheckResult = SDCPNCheckResult;
 
