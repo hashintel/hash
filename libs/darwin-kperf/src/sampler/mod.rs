@@ -103,6 +103,18 @@ impl Sampler {
         try_kpc(result, SamplerError::FailedToForceAllCounters)
     }
 
+    /// The loaded `kperf.framework` handle.
+    #[must_use]
+    pub const fn kperf(&self) -> &KPerf {
+        &self.kperf
+    }
+
+    /// The loaded `kperfdata.framework` handle.
+    #[must_use]
+    pub const fn kperfdata(&self) -> &KPerfData {
+        &self.kperfdata
+    }
+
     /// The detected CPU generation.
     #[must_use]
     pub const fn cpu(&self) -> Cpu {

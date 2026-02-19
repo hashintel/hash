@@ -187,46 +187,58 @@ const _: () = {
 };
 
 /// KPEP config (80 bytes on 64-bit).
+///
+/// Layout reverse-engineered from `kperfdata.framework` via Ghidra
+/// disassembly of `_kpep_config_create`, `_kpep_config_add_event`,
+/// `_kpep_config_kpc_map`, and `_kpep_config_force_counters`.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct kpep_config {
     pub db: *mut kpep_db,
     /// Event pointers (`sizeof(kpep_event *) * counter_count`), init NULL.
-    pub ev_arr: *mut *mut kpep_event,
-    /// Event map (`sizeof(usize) * counter_count`), init 0.
-    pub ev_map: *mut usize,
-    /// Event indices (`sizeof(usize) * counter_count`), init -1.
-    pub ev_idx: *mut usize,
-    /// Flags (`sizeof(u32) * counter_count`), init 0.
+    pub events: *mut *mut kpep_event,
+    /// Maps event index → absolute counter slot (`sizeof(usize) *
+    /// counter_count`), init 0. [`kpep_config_kpc_map`] copies from this
+    /// array, optionally subtracting `fixed_counter_count` to produce
+    /// class-relative indices.
+    pub event_map: *mut usize,
+    /// Maps counter slot → event index (`sizeof(usize) * counter_count`),
+    /// init `usize::MAX` (−1). Inverse of [`event_map`](Self::event_map).
+    pub event_indices: *mut usize,
+    /// Per-counter flags (`sizeof(u32) * counter_count`), init 0.
     pub flags: *mut u32,
-    /// KPC periods (`sizeof(u64) * counter_count`), init 0.
+    /// KPC sampling periods (`sizeof(u64) * counter_count`), init 0.
     pub kpc_periods: *mut u64,
-    /// Number of events, see [`kpep_config_events_count`].
+    /// Number of events added via [`kpep_config_add_event`].
     pub event_count: usize,
+    /// Total number of hardware counters (fixed + configurable), set from
+    /// `kpep_db_counters_count(db, FIXED | CONFIGURABLE)` at creation.
     pub counter_count: usize,
-    /// See `KPC_CLASS_*` class mask constants.
+    /// Active counter class mask (see `KPC_CLASS_*_MASK` constants). Built
+    /// incrementally by [`kpep_config_add_event`].
     pub classes: u32,
-    pub config_counter: u32,
-    pub power_counter: u32,
-    pub reserved: u32,
+    /// Bitmask of occupied counter slots. Bit `i` is set when counter slot
+    /// `i` has an event assigned.
+    pub occupied_counters: u32,
+    /// Bit 0: [`kpep_config_force_counters`] has been called.
+    pub force_flags: u8,
+    _pad: [u8; 7],
 }
 
-// Layout assertions derived from bindgen.
 const _: () = {
     assert!(core::mem::size_of::<kpep_config>() == 80);
     assert!(core::mem::align_of::<kpep_config>() == 8);
     assert!(core::mem::offset_of!(kpep_config, db) == 0);
-    assert!(core::mem::offset_of!(kpep_config, ev_arr) == 8);
-    assert!(core::mem::offset_of!(kpep_config, ev_map) == 16);
-    assert!(core::mem::offset_of!(kpep_config, ev_idx) == 24);
+    assert!(core::mem::offset_of!(kpep_config, events) == 8);
+    assert!(core::mem::offset_of!(kpep_config, event_map) == 16);
+    assert!(core::mem::offset_of!(kpep_config, event_indices) == 24);
     assert!(core::mem::offset_of!(kpep_config, flags) == 32);
     assert!(core::mem::offset_of!(kpep_config, kpc_periods) == 40);
     assert!(core::mem::offset_of!(kpep_config, event_count) == 48);
     assert!(core::mem::offset_of!(kpep_config, counter_count) == 56);
     assert!(core::mem::offset_of!(kpep_config, classes) == 64);
-    assert!(core::mem::offset_of!(kpep_config, config_counter) == 68);
-    assert!(core::mem::offset_of!(kpep_config, power_counter) == 72);
-    assert!(core::mem::offset_of!(kpep_config, reserved) == 76);
+    assert!(core::mem::offset_of!(kpep_config, occupied_counters) == 68);
+    assert!(core::mem::offset_of!(kpep_config, force_flags) == 72);
 };
 
 // -----------------------------------------------------------------------------
