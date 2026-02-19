@@ -74,8 +74,6 @@ function registerCompletionProvider(monaco: typeof Monaco) {
 }
 
 async function initMonaco(): Promise<MonacoContextValue> {
-  await new Promise((resolve) => setTimeout(resolve, 4000));
-
   // Disable all workers — no worker files will be shipped or loaded.
   (globalThis as Record<string, unknown>).MonacoEnvironment = {
     getWorker: undefined,

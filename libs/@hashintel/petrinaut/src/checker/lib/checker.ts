@@ -1,6 +1,6 @@
 import type ts from "typescript";
 
-import type { SDCPN } from "../types/sdcpn";
+import type { SDCPN } from "../../core/types/sdcpn";
 import { createSDCPNLanguageService } from "./create-sdcpn-language-service";
 import { getItemFilePath } from "./file-paths";
 
