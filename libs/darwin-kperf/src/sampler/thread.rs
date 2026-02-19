@@ -86,6 +86,12 @@ impl<'sampler, const N: usize> ThreadSampler<'sampler, N> {
 
         self.running = true;
 
+        // NOTE: On some macOS versions, configurable counters can return stale
+        // thread samples immediately after start when reconfiguring rapidly.
+        // Callers can force an all-CPU read via kpc_get_cpu_counters(true, ...)
+        // between start and the first sample to flush counters.
+        // TODO: consider providing a built-in flush or stabilized sample API.
+
         DropGuard::dismiss(counting_guard);
 
         Ok(())

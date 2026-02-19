@@ -80,6 +80,8 @@
 //! `com.apple.private.kernel.kpc` entitlement. On other platforms the
 //! constructors return a wall-clock fallback.
 
+mod error;
+
 #[cfg(target_os = "macos")]
 mod pmc;
 
@@ -89,6 +91,7 @@ mod fallback;
 #[cfg(target_os = "macos")]
 mod unit;
 
+pub use error::MeasurementError;
 #[cfg(not(target_os = "macos"))]
 pub use fallback::HardwareCounter;
 #[cfg(target_os = "macos")]

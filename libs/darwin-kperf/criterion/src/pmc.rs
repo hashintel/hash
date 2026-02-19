@@ -2,9 +2,12 @@
 
 use std::sync::LazyLock;
 
-use darwin_kperf::{Sampler, SamplerError, ThreadSampler, event::Event};
+use darwin_kperf::{Sampler, ThreadSampler, event::Event};
 
-use crate::unit::{CounterFormatter, unit_for_event};
+use crate::{
+    MeasurementError,
+    unit::{CounterFormatter, unit_for_event},
+};
 
 static SAMPLER: LazyLock<Sampler> =
     LazyLock::new(|| Sampler::new().expect("must have root privileges"));
@@ -30,7 +33,7 @@ pub struct HardwareCounter {
 }
 
 impl HardwareCounter {
-    fn new(event: Event) -> Result<Self, SamplerError> {
+    fn new(event: Event) -> Result<Self, MeasurementError> {
         let mut thread = SAMPLER.thread([event])?;
         thread.start()?;
 
@@ -44,8 +47,8 @@ impl HardwareCounter {
     ///
     /// # Errors
     ///
-    /// Returns [`SamplerError`] if counter configuration fails.
-    pub fn instructions() -> Result<Self, SamplerError> {
+    /// Returns [`MeasurementError`] if counter configuration fails.
+    pub fn instructions() -> Result<Self, MeasurementError> {
         Self::new(Event::FixedInstructions)
     }
 
@@ -53,8 +56,8 @@ impl HardwareCounter {
     ///
     /// # Errors
     ///
-    /// Returns [`SamplerError`] if counter configuration fails.
-    pub fn cycles() -> Result<Self, SamplerError> {
+    /// Returns [`MeasurementError`] if counter configuration fails.
+    pub fn cycles() -> Result<Self, MeasurementError> {
         Self::new(Event::FixedCycles)
     }
 
@@ -62,8 +65,8 @@ impl HardwareCounter {
     ///
     /// # Errors
     ///
-    /// Returns [`SamplerError`] if counter configuration fails.
-    pub fn branch_mispredictions() -> Result<Self, SamplerError> {
+    /// Returns [`MeasurementError`] if counter configuration fails.
+    pub fn branch_mispredictions() -> Result<Self, MeasurementError> {
         Self::new(Event::BranchMispredNonspec)
     }
 
@@ -71,8 +74,8 @@ impl HardwareCounter {
     ///
     /// # Errors
     ///
-    /// Returns [`SamplerError`] if counter configuration fails.
-    pub fn l1d_cache_misses() -> Result<Self, SamplerError> {
+    /// Returns [`MeasurementError`] if counter configuration fails.
+    pub fn l1d_cache_misses() -> Result<Self, MeasurementError> {
         Self::new(Event::L1DCacheMissLdNonspec)
     }
 
@@ -83,9 +86,9 @@ impl HardwareCounter {
     ///
     /// # Errors
     ///
-    /// Returns [`SamplerError`] if the event is unavailable on the current CPU
+    /// Returns [`MeasurementError`] if the event is unavailable on the current CPU
     /// or counter configuration fails.
-    pub fn custom(event: Event) -> Result<Self, SamplerError> {
+    pub fn custom(event: Event) -> Result<Self, MeasurementError> {
         Self::new(event)
     }
 
