@@ -19,7 +19,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
-import { CodeEditor } from "../../../../components/code-editor";
 import { IconButton } from "../../../../components/icon-button";
 import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
@@ -31,6 +30,7 @@ import {
   generateDefaultTransitionKernelCode,
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
+import { CodeEditor } from "../../../../monaco/code-editor";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -480,12 +480,12 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           )}
         </div>
         <CodeEditor
+          path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
           key={`lambda-${transition.lambdaType}-${transition.inputArcs
             .map((a) => `${a.placeId}:${a.weight}`)
             .join("-")}`}
           language="typescript"
           value={transition.lambdaCode || ""}
-          path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
           height={340}
           onChange={(value) => {
             updateTransition(transition.id, (existingTransition) => {
@@ -583,14 +583,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             )}
           </div>
           <CodeEditor
-            key={`kernel-${transition.inputArcs
-              .map((a) => `${a.placeId}:${a.weight}`)
-              .join("-")}-${transition.outputArcs
-              .map((a) => `${a.placeId}:${a.weight}`)
-              .join("-")}`}
+            path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
             language="typescript"
             value={transition.transitionKernelCode || ""}
-            path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
             height={400}
             onChange={(value) => {
               updateTransition(transition.id, (existingTransition) => {

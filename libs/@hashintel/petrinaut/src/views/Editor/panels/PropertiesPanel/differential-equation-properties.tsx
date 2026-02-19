@@ -5,7 +5,6 @@ import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
-import { CodeEditor } from "../../../../components/code-editor";
 import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { Tooltip } from "../../../../components/tooltip";
@@ -19,6 +18,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
+import { CodeEditor } from "../../../../monaco/code-editor";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 const containerStyle = css({
@@ -476,6 +476,7 @@ export const DifferentialEquationProperties: React.FC<
           )}
         </div>
         <CodeEditor
+          path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
           language="typescript"
           value={differentialEquation.code}
           height="100%"
@@ -487,7 +488,6 @@ export const DifferentialEquationProperties: React.FC<
               },
             );
           }}
-          path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
           options={{ readOnly: isReadOnly }}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
