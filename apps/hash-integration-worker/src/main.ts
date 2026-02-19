@@ -5,6 +5,12 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
+  environment:
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    process.env.SENTRY_ENVIRONMENT ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    process.env.ENVIRONMENT ||
+    (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
 });
 
