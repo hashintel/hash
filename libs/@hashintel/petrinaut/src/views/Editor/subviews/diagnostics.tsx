@@ -1,9 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-import ts from "typescript";
 
 import { CheckerContext } from "../../../checker/context";
+import type { CheckerDiagnostic } from "../../../checker/worker/protocol";
 import type { SubView } from "../../../components/sub-view/types";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
@@ -94,22 +94,6 @@ const positionStyle = css({
   marginLeft: "[8px]",
 });
 
-// --- Helpers ---
-
-/**
- * Formats a TypeScript diagnostic message to a readable string
- */
-function formatDiagnosticMessage(
-  messageText: string | ts.DiagnosticMessageChain,
-): string {
-  if (typeof messageText === "string") {
-    return messageText;
-  }
-  return ts.flattenDiagnosticMessageText(messageText, "\n");
-}
-
-// --- Types ---
-
 type EntityType = "transition" | "differential-equation";
 
 interface GroupedDiagnostics {
@@ -119,7 +103,7 @@ interface GroupedDiagnostics {
   errorCount: number;
   items: Array<{
     subType: "lambda" | "kernel" | null;
-    diagnostics: ts.Diagnostic[];
+    diagnostics: CheckerDiagnostic[];
   }>;
 }
 
@@ -269,7 +253,7 @@ const DiagnosticsContent: React.FC = () => {
                             className={diagnosticButtonStyle}
                           >
                             <span className={bulletStyle}>•</span>
-                            {formatDiagnosticMessage(diagnostic.messageText)}
+                            {diagnostic.messageText}
                             {diagnostic.start !== undefined && (
                               <span className={positionStyle}>
                                 (pos: {diagnostic.start})
