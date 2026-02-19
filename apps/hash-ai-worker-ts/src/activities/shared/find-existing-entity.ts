@@ -165,47 +165,42 @@ export const findExistingEntity = async ({
     }
   }
 
-  /** Create the filters for any of label or name-like property values */
-  const semanticDistanceFilters: CosineDistanceFilter[] =
-    propertyBaseUrlsToMatchOn
-      .map((baseUrl) => {
-        const foundEmbedding = embeddings.find(
-          (embedding) => embedding.property === baseUrl,
-        )?.embedding;
+  /**
+   * Create a semantic distance filter from the first label/name-like property
+   * The Graph API currently only supports one cosine distance filter per query.
+   */
+  let semanticDistanceFilter: CosineDistanceFilter | undefined;
 
-        if (!foundEmbedding) {
-          logger.error(
-            `Could not find embedding for property ${baseUrl} – skipping`,
-          );
-          return null;
-        }
+  const firstPropertyBaseUrl = propertyBaseUrlsToMatchOn[0];
+  if (firstPropertyBaseUrl) {
+    const foundEmbedding = embeddings.find(
+      (embedding) => embedding.property === firstPropertyBaseUrl,
+    )?.embedding;
 
-        return {
-          cosineDistance: [
-            { path: ["embedding"] },
-            {
-              parameter: foundEmbedding,
-            },
-            { parameter: maximumSemanticDistance },
-          ],
-        } satisfies CosineDistanceFilter;
-      })
-      .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
+    if (foundEmbedding) {
+      semanticDistanceFilter = {
+        cosineDistance: [
+          { path: ["embedding"] },
+          { parameter: foundEmbedding },
+          { parameter: maximumSemanticDistance },
+        ],
+      };
+    } else {
+      logger.error(
+        `Could not find embedding for property ${firstPropertyBaseUrl} – skipping`,
+      );
+    }
+  }
 
   let potentialMatches: HashEntity[] | undefined;
 
-  if (semanticDistanceFilters.length > 0) {
+  if (semanticDistanceFilter) {
     potentialMatches = await queryEntities(
       { graphApi: graphApiClient },
       { actorId },
       {
         filter: {
-          all: [
-            ...existingEntityBaseAllFilter,
-            {
-              any: semanticDistanceFilters,
-            },
-          ],
+          all: [...existingEntityBaseAllFilter, semanticDistanceFilter],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
