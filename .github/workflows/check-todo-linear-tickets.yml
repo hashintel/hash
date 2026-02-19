@@ -73,7 +73,7 @@ jobs:
 
             # Single-line: any line with both "todo" and the ticket ID
             # rg exits with 0 if matches found, 1 if no matches, 2+ on error
-            SINGLE_LINE=$(rg -in "todo.*(^|[^[:alnum:]-])${TICKET}([^[:alnum:]-]|$)|(^|[^[:alnum:]-])${TICKET}([^[:alnum:]-]|$).*todo" .) || {
+            SINGLE_LINE=$(rg -in "todo.*${TICKET}([^[:alnum:]-]|$)|${TICKET}([^[:alnum:]-]|$).*todo" .) || {
               rc=$?
               if [[ $rc -ne 1 ]]; then
                 echo "::error::ripgrep failed with exit code $rc"
