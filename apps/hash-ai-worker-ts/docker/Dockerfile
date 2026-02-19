@@ -65,8 +65,6 @@ FROM rust AS builder
 
 WORKDIR /usr/local/src/
 
-ENV PUPPETEER_CACHE_DIR=/usr/local/src/.cache/puppeteer
-
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/.yarn .yarn
@@ -92,20 +90,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
 
 FROM mise AS runner
 
-ENV PUPPETEER_CACHE_DIR=/usr/local/src/.cache/puppeteer
-
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 \
-    libcairo2 libcups2 libdbus-1-3 libdrm2 libgbm1 \
-    libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 \
-    libxcomposite1 libxdamage1 libxext6 libxfixes3 \
-    libxkbcommon0 libxrandr2 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
 ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON}
