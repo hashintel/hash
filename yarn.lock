@@ -14478,7 +14478,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/darwin-kperf-codegen@workspace:*, @rust/darwin-kperf-codegen@workspace:libs/darwin-kperf/codegen":
+"@rust/darwin-kperf-codegen@workspace:libs/darwin-kperf/codegen":
   version: 0.0.0-use.local
   resolution: "@rust/darwin-kperf-codegen@workspace:libs/darwin-kperf/codegen"
   languageName: unknown
@@ -14509,7 +14509,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/darwin-kperf@workspace:libs/darwin-kperf"
   dependencies:
-    "@rust/darwin-kperf-codegen": "workspace:*"
     "@rust/darwin-kperf-events": "workspace:*"
     "@rust/darwin-kperf-sys": "workspace:*"
   languageName: unknown
