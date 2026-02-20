@@ -24,5 +24,8 @@ darwin-kperf = { workspace = true, public = true }
 [features]
 codspeed = ["dep:codspeed-criterion-compat-walltime"]
 
+[package.metadata.docs.rs]
+targets = ["aarch64-apple-darwin"]
+
 [lints]
 workspace = true

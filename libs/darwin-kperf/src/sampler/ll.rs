@@ -198,7 +198,7 @@ pub(crate) fn ll_init() -> Result<Sampler, SamplerError> {
     // definition. Apple has changed this struct size across macOS versions;
     // a mismatch means our repr(C) definition is stale and direct field
     // access would read corrupt data.
-    if cfg!(debug_assertions) {
+    if cfg!(any(debug_assertions, feature = "runtime-assertions")) {
         verify_event_stride(kpep_vt, db.as_ptr())?;
     }
 

@@ -80,6 +80,8 @@
 //! `com.apple.private.kernel.kpc` entitlement. On other platforms the
 //! constructors return a wall-clock fallback.
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 mod error;
 
 #[cfg(target_os = "macos")]
