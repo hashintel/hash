@@ -10,13 +10,13 @@
     "test:unit": "mise run test:unit @rust/hash-graph-validation"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hash-graph-types": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hash-graph-types": "workspace:*"
   },
   "devDependencies": {
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
-    "@rust/hash-graph-test-data": "0.0.0-private"
+    "@rust/hash-graph-temporal-versioning": "workspace:*",
+    "@rust/hash-graph-test-data": "workspace:*"
   }
 }

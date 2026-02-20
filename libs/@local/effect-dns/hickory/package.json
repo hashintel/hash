@@ -19,8 +19,8 @@
     "test:unit": "vitest --run"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.2",
     "rimraf": "6.1.2",

@@ -10,10 +10,10 @@
     "test:unit": "mise run test:unit @rust/hashql-eval"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hashql-core": "0.0.0-private",
-    "@rust/hashql-diagnostics": "0.0.0-private",
-    "@rust/hashql-hir": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hashql-core": "workspace:*",
+    "@rust/hashql-diagnostics": "workspace:*",
+    "@rust/hashql-hir": "workspace:*"
   }
 }

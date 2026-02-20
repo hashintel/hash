@@ -50,13 +50,13 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@blockprotocol/type-system-rs": "workspace:^",
     "semver": "7.7.3",
     "uuid": "13.0.0"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@rollup/plugin-commonjs": "29.0.0",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@rollup/plugin-typescript": "12.3.0",

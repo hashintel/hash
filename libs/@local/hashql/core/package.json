@@ -13,7 +13,7 @@
     "test:unit": "mise run test:unit @rust/hashql-core"
   },
   "dependencies": {
-    "@rust/hash-codec": "0.0.0-private",
-    "@rust/hashql-diagnostics": "0.0.0-private"
+    "@rust/hash-codec": "workspace:*",
+    "@rust/hashql-diagnostics": "workspace:*"
   }
 }

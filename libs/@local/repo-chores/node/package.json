@@ -13,8 +13,8 @@
     "@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.4",
     "@linear/sdk": "61.0.0",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
     "@optique/core": "0.8.1",
     "chalk": "5.6.2",
     "dotenv-flow": "3.3.0",
@@ -32,8 +32,8 @@
     "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "^4",
     "eslint": "9.39.2",

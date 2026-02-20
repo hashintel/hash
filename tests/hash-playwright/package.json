@@ -11,23 +11,23 @@
     "test:integration": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project chromium"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.2.1",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-graph-sdk": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@blockprotocol/type-system": "workspace:*",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/hash-graph-sdk": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@playwright/test": "1.58.2",
     "execa": "9.6.0",
     "graphql": "16.11.0",
     "js-yaml": "4.1.1"
   },
   "devDependencies": {
-    "@apps/hash-api": "0.0.0-private",
-    "@apps/hash-frontend": "0.0.0-private",
-    "@apps/plugin-browser": "0.0.9",
-    "@blockprotocol/graph": "0.4.1",
+    "@apps/hash-api": "workspace:*",
+    "@apps/hash-frontend": "workspace:*",
+    "@apps/plugin-browser": "workspace:*",
+    "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^5.0.3",
-    "@local/eslint": "0.0.0-private",
+    "@local/eslint": "workspace:*",
     "eslint": "9.39.2",
     "rimraf": "6.1.2",
     "typescript": "5.9.3"

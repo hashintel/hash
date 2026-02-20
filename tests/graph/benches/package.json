@@ -12,16 +12,16 @@
     "test:integration:manual": "cargo test --bench manual-queries"
   },
   "devDependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-graph-api": "0.0.0-private",
-    "@rust/hash-graph-authorization": "0.0.0-private",
-    "@rust/hash-graph-postgres-store": "0.0.0-private",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
-    "@rust/hash-graph-test-data": "0.0.0-private",
-    "@rust/hash-graph-type-fetcher": "0.0.0-private",
-    "@rust/hash-repo-chores": "0.0.0-private",
-    "@rust/hash-telemetry": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-graph-api": "workspace:*",
+    "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-postgres-store": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*",
+    "@rust/hash-graph-test-data": "workspace:*",
+    "@rust/hash-graph-type-fetcher": "workspace:*",
+    "@rust/hash-repo-chores": "workspace:*",
+    "@rust/hash-telemetry": "workspace:*"
   }
 }

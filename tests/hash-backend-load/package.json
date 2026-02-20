@@ -30,11 +30,11 @@
     "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.2.1",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-graph-sdk": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@blockprotocol/type-system": "workspace:*",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/hash-graph-client": "workspace:*",
+    "@local/hash-graph-sdk": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "0.207.0",
     "@opentelemetry/resources": "2.2.0",
@@ -47,9 +47,9 @@
     "uuid": "13.0.0"
   },
   "devDependencies": {
-    "@apps/hash-api": "0.0.0-private",
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@apps/hash-api": "workspace:*",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@rollup/plugin-commonjs": "29.0.0",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@rollup/plugin-typescript": "12.3.0",

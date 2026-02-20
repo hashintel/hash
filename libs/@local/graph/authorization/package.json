@@ -24,13 +24,13 @@
     "test:unit": "mise run test:unit @rust/hash-graph-authorization --test-strategy=powerset -- --all-targets --filterset 'not kind(test) & not kind(bench)'"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-codec": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-codec": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/hash-codegen": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
+    "@rust/hash-codegen": "workspace:*",
     "typescript": "5.9.3"
   }
 }

@@ -13,8 +13,8 @@
     "test:unit": "mise run test:unit @rust/hashql-mir"
   },
   "dependencies": {
-    "@rust/hashql-core": "0.0.0-private",
-    "@rust/hashql-diagnostics": "0.0.0-private",
-    "@rust/hashql-hir": "0.0.0-private"
+    "@rust/hashql-core": "workspace:*",
+    "@rust/hashql-diagnostics": "workspace:*",
+    "@rust/hashql-hir": "workspace:*"
   }
 }

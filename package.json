@@ -74,7 +74,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "0.5.1",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch",
-    "@local/claude-hooks": "0.0.0-private",
+    "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4"

@@ -11,7 +11,7 @@ use guppy::{
     MetadataCommand,
     graph::{DependencyDirection, PackageGraph, PackageMetadata},
 };
-use nodejs_package_json::{PackageJson, VersionProtocol};
+use nodejs_package_json::{PackageJson, VersionProtocol, WorkspaceProtocol};
 use tokio::{fs, process::Command};
 
 #[derive(Debug, Clone, derive_more::Display)]
@@ -339,6 +339,12 @@ async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTu
     }
 }
 
+fn version_protocol_from_str(version: &str) -> VersionProtocol {
+    version
+        .parse()
+        .unwrap_or_else(|_| VersionProtocol::Tag(version.to_owned()))
+}
+
 fn compute_package_json(
     metadata: PackageMetadata<'_>,
     mut package_json: PackageJson,
@@ -383,22 +389,22 @@ fn compute_package_json(
         if dependency.dev_only() {
             dev_dependencies.insert(
                 package_name(dependency.to())?,
-                VersionProtocol::Version(package_version(dependency.to())),
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
             );
         } else {
             dependencies.insert(
                 package_name(dependency.to())?,
-                VersionProtocol::Version(package_version(dependency.to())),
+                VersionProtocol::Workspace(WorkspaceProtocol::Any { alias: None }),
             );
         }
     }
 
     let ExtraDependencies { normal, dev } = ExtraDependencies::new(metadata)?;
     for js_dep in normal {
-        dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        dependencies.insert(js_dep.name, version_protocol_from_str(&js_dep.version));
     }
     for js_dep in dev {
-        dev_dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
+        dev_dependencies.insert(js_dep.name, version_protocol_from_str(&js_dep.version));
     }
 
     let IgnoreDependencies { normal, dev } = IgnoreDependencies::new(metadata)?;

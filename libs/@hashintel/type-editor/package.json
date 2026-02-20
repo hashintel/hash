@@ -21,12 +21,12 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.1",
-    "@blockprotocol/type-system": "0.2.1",
+    "@blockprotocol/graph": "workspace:*",
+    "@blockprotocol/type-system": "workspace:*",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@hashintel/design-system": "0.0.9",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@hashintel/design-system": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
     "clsx": "2.1.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
@@ -35,7 +35,7 @@
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
+    "@local/eslint": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@types/lodash.memoize": "4.1.9",

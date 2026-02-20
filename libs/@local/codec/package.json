@@ -23,13 +23,13 @@
     "test:unit": "mise run test:unit @rust/hash-codec"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/harpc-wire-protocol": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/harpc-wire-protocol": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private",
-    "@rust/hash-codegen": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
+    "@rust/harpc-types": "workspace:*",
+    "@rust/hash-codegen": "workspace:*",
     "typescript": "5.9.3"
   }
 }
