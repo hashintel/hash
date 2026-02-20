@@ -3756,7 +3756,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 
     async fn update_web_shortname(
-        &self,
+        &mut self,
         _actor_id: ActorEntityUuid,
         id: WebId,
         shortname: &str,

@@ -1061,7 +1061,7 @@ where
     }
 
     async fn update_web_shortname(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         id: WebId,
         shortname: &str,
