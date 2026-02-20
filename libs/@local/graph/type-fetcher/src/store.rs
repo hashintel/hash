@@ -553,14 +553,16 @@ where
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, Report<QueryError>> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
-        let mut seen = queue.iter().cloned().collect::<HashSet<_>>();
-        if matches!(fetch_behavior, FetchBehavior::IncludeProvidedReferences) {
-            seen.clear();
-        }
+        let mut seen = match fetch_behavior {
+            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
+            FetchBehavior::ExcludeProvidedReferences => {
+                queue.iter().cloned().collect::<HashSet<_>>()
+            }
+        };
 
         let mut total_urls_scheduled = queue.len();
         if total_urls_scheduled > MAX_FETCH_URLS_PER_OPERATION {
-            return Err(Report::new(QueryError).attach_printable(format!(
+            return Err(Report::new(QueryError).attach(format!(
                 "Exceeded type fetch limit: attempted to fetch {total_urls_scheduled} URLs, but \
                  at most {MAX_FETCH_URLS_PER_OPERATION} are allowed per operation"
             )));
@@ -582,11 +584,17 @@ where
                     .join(", ")
             })
             .change_context(QueryError)?;
-        let mut recursion_depth = 0;
+        let mut recursion_depth: usize = 0;
         loop {
             let ontology_urls = mem::take(&mut queue);
             if ontology_urls.is_empty() {
                 break;
+            }
+
+            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                return Err(Report::new(QueryError).attach(format!(
+                    "Exceeded maximum type fetch recursion depth of {MAX_FETCH_RECURSION_DEPTH}"
+                )));
             }
 
             let ontology_types = {
@@ -603,122 +611,81 @@ where
             };
 
             for (ontology_type, fetched_at) in ontology_types {
-                match ontology_type {
+                // Collect referenced URLs and store the fetched type
+                let referenced_urls: Vec<VersionedUrl> = match ontology_type {
                     FetchedOntologyType::DataType(data_type) => {
-                        let metadata = PartialDataTypeMetadata {
-                            record_id: data_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
-                        {
-                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
-                                return Err(Report::new(QueryError).attach_printable(format!(
-                                    "Exceeded maximum type fetch recursion depth of \
-                                     {MAX_FETCH_RECURSION_DEPTH}"
-                                )));
-                            }
-
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
-                                    return Err(Report::new(QueryError).attach_printable(format!(
-                                        "Exceeded type fetch limit: attempted to fetch more than \
-                                         {} URLs",
-                                        MAX_FETCH_URLS_PER_OPERATION
-                                    )));
-                                }
-
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                                total_urls_scheduled += 1;
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .data_types
-                            .push((*data_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = data_type.id().clone().into();
+                        fetched_ontology_types.data_types.push((
+                            *data_type,
+                            PartialDataTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
-                        let metadata = PartialPropertyTypeMetadata {
-                            record_id: property_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*property_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
-                                return Err(Report::new(QueryError).attach_printable(format!(
-                                    "Exceeded maximum type fetch recursion depth of \
-                                     {MAX_FETCH_RECURSION_DEPTH}"
-                                )));
-                            }
-
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
-                                    return Err(Report::new(QueryError).attach_printable(format!(
-                                        "Exceeded type fetch limit: attempted to fetch more than \
-                                         {} URLs",
-                                        MAX_FETCH_URLS_PER_OPERATION
-                                    )));
-                                }
-
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                                total_urls_scheduled += 1;
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .property_types
-                            .push((*property_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = property_type.id().clone().into();
+                        fetched_ontology_types.property_types.push((
+                            *property_type,
+                            PartialPropertyTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
-                        let metadata = PartialEntityTypeMetadata {
-                            record_id: entity_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*entity_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
-                                return Err(Report::new(QueryError).attach_printable(format!(
-                                    "Exceeded maximum type fetch recursion depth of \
-                                     {MAX_FETCH_RECURSION_DEPTH}"
-                                )));
-                            }
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = entity_type.id().clone().into();
+                        fetched_ontology_types.entity_types.push((
+                            *entity_type,
+                            PartialEntityTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
+                    }
+                };
 
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
-                                    return Err(Report::new(QueryError).attach_printable(format!(
-                                        "Exceeded type fetch limit: attempted to fetch more than \
-                                         {} URLs",
-                                        MAX_FETCH_URLS_PER_OPERATION
-                                    )));
-                                }
-
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                                total_urls_scheduled += 1;
-                            }
+                // Enqueue unseen references (single place, no duplication)
+                for url in referenced_urls {
+                    if !seen.contains(&url) {
+                        if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                            return Err(Report::new(QueryError).attach(format!(
+                                "Exceeded type fetch limit: attempted to fetch more than \
+                                 {MAX_FETCH_URLS_PER_OPERATION} URLs"
+                            )));
                         }
-
-                        fetched_ontology_types
-                            .entity_types
-                            .push((*entity_type, metadata));
+                        seen.insert(url.clone());
+                        queue.push(url);
+                        total_urls_scheduled += 1;
                     }
                 }
             }
