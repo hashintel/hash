@@ -6,6 +6,7 @@
  */
 
 import type { Color, Place, SDCPN, Transition } from "../../core/types/sdcpn";
+import type { RuntimeDistribution } from "./distribution";
 import type { SimulationFrame } from "../context";
 
 /**
@@ -39,7 +40,7 @@ export type LambdaFn = (
 export type TransitionKernelFn = (
   tokenValues: Record<string, Record<string, number>[]>,
   parameters: ParameterValues,
-) => Record<string, Record<string, number>[]>;
+) => Record<string, Record<string, number | RuntimeDistribution>[]>;
 
 /**
  * Input configuration for building a new simulation instance.
