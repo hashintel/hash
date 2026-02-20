@@ -24,6 +24,7 @@ export const buildCspHeader = (nonce: string): string => {
       "https://apis.google.com",
       // Vercel toolbar / live preview widget
       "https://vercel.live",
+      // @todo FE-488 will make this unnecessary
       // Monaco Editor loaded from CDN by @monaco-editor/react (used by petrinaut)
       "https://cdn.jsdelivr.net",
     ],
@@ -33,6 +34,7 @@ export const buildCspHeader = (nonce: string): string => {
       // Required for Emotion/MUI CSS-in-JS inline style injection.
       // @todo Use nonce-based approach via Emotion's cache `nonce` option.
       "'unsafe-inline'",
+      // @todo FE-488 will make this unnecessary
       // Monaco Editor stylesheet loaded from CDN by @monaco-editor/react (used by petrinaut)
       "https://cdn.jsdelivr.net",
     ],
@@ -51,6 +53,7 @@ export const buildCspHeader = (nonce: string): string => {
 
     "font-src": [
       "'self'",
+      // @todo FE-488 will make this unnecessary
       // Monaco Editor CSS embeds the Codicon icon font as an inline base64 data URI
       "data:",
     ],
