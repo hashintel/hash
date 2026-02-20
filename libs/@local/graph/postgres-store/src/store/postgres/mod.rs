@@ -3778,10 +3778,17 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(WebUpdateError)?;
+            .map_err(|error| match error.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => Report::new(error)
+                    .change_context(WebUpdateError::AlreadyExists {
+                        shortname: shortname.to_owned(),
+                    })
+                    .attach(StatusCode::AlreadyExists),
+                _ => Report::new(error).change_context(WebUpdateError::StoreError),
+            })?;
 
         if rows_affected == 0 {
-            Err(Report::new(WebUpdateError).attach(format!("Web {id} does not exist")))
+            Err(Report::new(WebUpdateError::NotFound { web_id: id }).attach(StatusCode::NotFound))
         } else {
             Ok(())
         }

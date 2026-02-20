@@ -72,9 +72,18 @@ pub struct WebRetrievalError;
 #[error("Could not insert web")]
 pub struct WebInsertionError;
 
-#[derive(Debug, Error)]
-#[error("Could not update web")]
-pub struct WebUpdateError;
+#[derive(Debug, derive_more::Display)]
+#[display("Could not update web: {_variant}")]
+pub enum WebUpdateError {
+    #[display("Web `{web_id}` does not exist")]
+    NotFound { web_id: WebId },
+    #[display("Shortname `{shortname}` is already taken")]
+    AlreadyExists { shortname: String },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl core::error::Error for WebUpdateError {}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -193,7 +202,9 @@ pub trait AccountStore {
     ///
     /// # Errors
     ///
-    /// - If reading the web failed.
+    /// - [`WebUpdateError::NotFound`] if the web does not exist.
+    /// - [`WebUpdateError::AlreadyExists`] if the shortname is already taken.
+    /// - [`WebUpdateError::StoreError`] if the underlying store operation failed.
     fn update_web_shortname(
         &self,
         actor_id: ActorEntityUuid,
