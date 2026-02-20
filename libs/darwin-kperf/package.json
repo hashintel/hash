@@ -4,6 +4,7 @@
   "private": true,
   "license": "MIT OR Apache-2.0",
   "dependencies": {
+    "@rust/darwin-kperf-codegen": "0.1.0-private",
     "@rust/darwin-kperf-events": "0.1.0",
     "@rust/darwin-kperf-sys": "0.1.0"
   }

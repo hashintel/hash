@@ -10,7 +10,7 @@
 //! ```
 extern crate alloc;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod codegen;
 mod database;
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
     Ok(())
 }
 
-fn run(out_dir: &std::path::Path) -> Result<usize, Box<dyn core::error::Error>> {
+fn run(out_dir: impl AsRef<Path>) -> Result<usize, Box<dyn core::error::Error>> {
     let chips = database::load_all()?;
     codegen::generate(out_dir, &chips)
 }
