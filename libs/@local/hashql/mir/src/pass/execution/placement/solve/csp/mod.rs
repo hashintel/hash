@@ -395,8 +395,19 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
     /// Computes a lower bound on the cost of completing the current partial assignment.
     ///
-    /// Sums minimum statement costs and minimum transition costs over unfixed blocks. Used for
-    /// `BnB` pruning.
+    /// Sums `min(statement_cost)` and `min(transition_cost)` independently over unfixed blocks.
+    /// Used for BnB pruning: a branch is skipped when `cost_so_far + lower_bound ≥ worst_retained`.
+    ///
+    /// This is *not* redundant with [`CostEstimation`] despite operating on the same data.
+    /// [`CostEstimation::estimate`] computes a per-block heuristic that jointly optimizes
+    /// `statement + transition` costs and double-counts edges (both predecessor and successor
+    /// sides) for join-point influence. This method instead:
+    ///
+    /// - **Independently minimizes** statement and transition costs (`min(stmt) + min(trans) ≤
+    ///   min(stmt + trans)`), producing a weaker but valid lower bound.
+    /// - **Single-counts edges** — only outgoing edges from each unfixed block — to avoid inflating
+    ///   the bound when both endpoints are unfixed.
+    /// - **Omits boundary dampening** — the bound should be optimistic, not weighted.
     fn lower_bound(&self, body: &Body<'_>) -> ApproxCost {
         let unfixed = &self.region.blocks[self.depth..];
         let mut bound = ApproxCost::ZERO;
