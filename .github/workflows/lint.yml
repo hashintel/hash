@@ -167,14 +167,18 @@ jobs:
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples
+        run: |
+          TARGET=$(yq -r '.package.metadata.docs.rs.targets[0] // empty' Cargo.toml 2>/dev/null || true)
+          cargo doc --all-features --no-deps -Zrustdoc-scrape-examples ${TARGET:+--target "$TARGET"}
 
       - name: Check private documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples  --document-private-items
+        run: |
+          TARGET=$(yq -r '.package.metadata.docs.rs.targets[0] // empty' Cargo.toml 2>/dev/null || true)
+          cargo doc --all-features --no-deps -Zrustdoc-scrape-examples --document-private-items ${TARGET:+--target "$TARGET"}
 
       - name: Show disk usage
         run: df -h

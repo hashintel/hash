@@ -76,7 +76,7 @@
 //! documentation of these private interfaces.
 //!
 //! [kpc-demo]: https://gist.github.com/ibireme/173517c208c7dc333ba962c1f0d67d12
-#![cfg(any(target_os = "macos", doc))]
+#![cfg(target_os = "macos")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![expect(unsafe_code)]
 #![no_std]
