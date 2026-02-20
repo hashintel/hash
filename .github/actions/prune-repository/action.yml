@@ -34,6 +34,9 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hashql-eval"; then
             SCOPES="$SCOPES @rust/hashql-compiletest"
           fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/darwin-kperf"; then
+            SCOPES="$SCOPES @rust/darwin-kperf @rust/darwin-kperf-sys @rust/darwin-kperf-criterion @rust/darwin-kperf-events @rust/darwin-kperf-codegen"
+          fi
           if echo "$DEPENDENCIES" | grep -q "@blockprotocol/type-system-rs"; then
             SCOPES="$SCOPES @rust/hash-graph-test-data"
           fi
