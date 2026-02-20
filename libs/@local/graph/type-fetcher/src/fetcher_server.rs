@@ -211,18 +211,31 @@ mod tests {
             .build()
             .expect("client should build");
 
-        let result = client.get("http://example.com/types/v/1").send().await;
+        let err = client
+            .get("http://example.com/types/v/1")
+            .send()
+            .await
+            .expect_err("http scheme should be rejected");
 
-        assert!(result.is_err(), "http scheme should be rejected");
+        assert!(
+            err.is_builder(),
+            "expected builder error from HTTPS-only restriction, got: {err}"
+        );
     }
 
     #[tokio::test]
     async fn ssrf_resolver_blocks_localhost() {
         let resolver = SsrfSafeResolver;
-        let result = resolver
+        let err = resolver
             .resolve("localhost".parse().expect("valid name"))
-            .await;
-        assert!(result.is_err(), "localhost should be blocked");
+            .await
+            .err()
+            .expect("localhost should be blocked");
+
+        assert!(
+            err.to_string().contains("no globally routable addresses"),
+            "expected SSRF blocking error, got: {err}"
+        );
     }
 
     #[tokio::test]
