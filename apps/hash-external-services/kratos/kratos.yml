@@ -11,8 +11,8 @@ serve:
     base_url: http://kratos:4434/
 
 session:
-  # Let sessions live for 3 years
-  lifespan: 26280h # 24 h * 365 days * 3 years
+  # Let sessions live for 1 month
+  lifespan: 720h # 24 h * 30 days
   whoami:
     required_aal: highest_available
 
