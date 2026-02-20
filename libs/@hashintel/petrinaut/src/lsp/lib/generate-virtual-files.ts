@@ -28,7 +28,9 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   files.set(getItemFilePath("sdcpn-lib-defs"), {
     content: [
       `type Distribution = {};`,
-      `declare function DistributionGaussian(mean: number, deviation: number): Distribution;`,
+      `declare namespace Distribution {`,
+      `  function Gaussian(mean: number, deviation: number): Distribution;`,
+      `}`,
     ].join("\n"),
   });
 
