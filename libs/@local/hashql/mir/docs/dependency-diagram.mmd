@@ -30,12 +30,16 @@ graph TD
     class 18 root
     19[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
     20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    21[<a href="../error_stack/index.html">error-stack</a>]
-    22[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    23[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    21[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    22[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    23[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    24[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    25[<a href="../error_stack/index.html">error-stack</a>]
+    26[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    27[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 8
     1 --> 7
-    1 -.-> 23
+    1 -.-> 27
     2 -.-> 3
     2 --> 11
     4 --> 16
@@ -46,17 +50,18 @@ graph TD
     6 --> 20
     7 --> 2
     8 --> 4
-    9 -.-> 23
+    9 -.-> 27
     11 -.-> 10
     11 --> 10
-    11 --> 21
+    11 --> 25
     12 -.-> 13
     13 --> 16
     13 --> 18
     13 --> 19
-    13 --> 21
+    13 --> 25
     14 --> 2
     14 --> 15
+    14 -.-> 22
     16 --> 6
     16 --> 17
     17 -.-> 13
@@ -64,5 +69,8 @@ graph TD
     19 --> 12
     19 --> 14
     20 --> 1
-    22 -.-> 4
-    23 --> 6
+    21 --> 23
+    21 --> 24
+    22 --> 21
+    26 -.-> 4
+    27 --> 6

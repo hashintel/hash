@@ -1,0 +1,10 @@
+{
+  "name": "@rust/darwin-kperf-criterion",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "dependencies": {
+    "@rust/darwin-kperf": "0.1.0",
+    "@rust/darwin-kperf-events": "0.1.0"
+  }
+}
