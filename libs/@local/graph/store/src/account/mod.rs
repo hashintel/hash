@@ -72,6 +72,10 @@ pub struct WebRetrievalError;
 #[error("Could not insert web")]
 pub struct WebInsertionError;
 
+#[derive(Debug, Error)]
+#[error("Could not update web")]
+pub struct WebUpdateError;
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -184,6 +188,18 @@ pub trait AccountStore {
         actor_id: ActorEntityUuid,
         id: WebId,
     ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
+
+    /// Updates the web's shortname.
+    ///
+    /// # Errors
+    ///
+    /// - If reading the web failed.
+    fn update_web_shortname(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> impl Future<Output = Result<(), Report<WebUpdateError>>> + Send;
 
     /// Retrieves the web as specified by the `shortname`.
     ///

@@ -25,7 +25,7 @@ use hash_graph_store::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
-        WebRetrievalError,
+        WebRetrievalError, WebUpdateError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -1058,6 +1058,17 @@ where
         id: WebId,
     ) -> Result<Option<Web>, Report<WebRetrievalError>> {
         self.store.get_web_by_id(actor_id, id).await
+    }
+
+    async fn update_web_shortname(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> Result<(), Report<WebUpdateError>> {
+        self.store
+            .update_web_shortname(actor_id, id, shortname)
+            .await
     }
 
     async fn get_web_by_shortname(

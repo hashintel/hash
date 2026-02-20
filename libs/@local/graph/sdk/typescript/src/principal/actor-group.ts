@@ -117,6 +117,17 @@ export const createAiActor = (
     .createAiActor(authentication.actorId, params)
     .then(({ data }) => data as AiId);
 
+export const updateWebShortname = (
+  graphApi: GraphApi,
+  authentication: AuthenticationContext,
+  params: { webId: WebId; shortname: string },
+): Promise<void> =>
+  graphApi
+    .updateWebShortname(authentication.actorId, params.webId, {
+      shortname: params.shortname,
+    })
+    .then(() => {});
+
 export const createOrgWeb = (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
