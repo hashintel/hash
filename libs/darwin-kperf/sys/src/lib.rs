@@ -55,9 +55,8 @@
 //!
 //! # Platform
 //!
-//! This crate only supports macOS on `x86_64` and `aarch64`. Compilation on any other
-//! target produces a `compile_error!`. Root privileges (`sudo`) are required at runtime
-//! to force-acquire performance counters and to read thread-level PMC values.
+//! This crate only supports macOS on `x86_64` and `aarch64`. Root privileges (`sudo`) are required
+//! at runtime to force-acquire performance counters and to read thread-level PMC values.
 //!
 //! # Safety
 //!
@@ -77,6 +76,7 @@
 //! documentation of these private interfaces.
 //!
 //! [kpc-demo]: https://gist.github.com/ibireme/173517c208c7dc333ba962c1f0d67d12
+#![cfg(target_os = "macos")]
 #![expect(unsafe_code)]
 #![no_std]
 
@@ -85,6 +85,3 @@ extern crate alloc;
 pub mod kperf;
 pub mod kperfdata;
 pub mod load;
-
-#[cfg(not(target_os = "macos"))]
-compile_error!("`darwin-kperf-sys` only supports macOS");
