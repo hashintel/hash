@@ -432,12 +432,6 @@ struct FetchedOntologyTypes {
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
-#[derive(Debug)]
-enum FetchBehavior {
-    IncludeProvidedReferences,
-    ExcludeProvidedReferences,
-}
-
 impl<S, A> FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -549,16 +543,12 @@ where
         &self,
         actor_id: ActorEntityUuid,
         ontology_type_references: impl IntoIterator<Item = VersionedUrl> + Send,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, Report<QueryError>> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
-        let mut seen = match fetch_behavior {
-            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
-            FetchBehavior::ExcludeProvidedReferences => {
-                queue.iter().cloned().collect::<HashSet<_>>()
-            }
-        };
+        // Always seed `seen` with initial URLs to prevent re-fetching them if they
+        // appear as transitive dependencies (e.g. circular references).
+        let mut seen: HashSet<VersionedUrl> = queue.iter().cloned().collect();
 
         let mut total_urls_scheduled = queue.len();
         if total_urls_scheduled > MAX_FETCH_URLS_PER_OPERATION {
@@ -724,12 +714,7 @@ where
         }
 
         let fetched_ontology_types = self
-            .fetch_external_ontology_types(
-                actor_id,
-                ontology_type_ids,
-                FetchBehavior::ExcludeProvidedReferences,
-                bypassed_types,
-            )
+            .fetch_external_ontology_types(actor_id, ontology_type_ids, bypassed_types)
             .await
             .change_context(InsertionError)?;
 
@@ -806,7 +791,6 @@ where
         actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeMetadata>, Report<InsertionError>> {
         if on_conflict == ConflictBehavior::Fail
@@ -816,12 +800,7 @@ where
                 .change_context(InsertionError)?
         {
             let fetched_ontology_types = self
-                .fetch_external_ontology_types(
-                    actor_id,
-                    [reference.url().clone()],
-                    fetch_behavior,
-                    bypassed_types,
-                )
+                .fetch_external_ontology_types(actor_id, [reference.url().clone()], bypassed_types)
                 .await
                 .change_context(InsertionError)?;
 
@@ -928,7 +907,6 @@ where
             actor_id,
             reference,
             ConflictBehavior::Fail,
-            FetchBehavior::IncludeProvidedReferences,
             &HashSet::new(),
         )
         .await?
@@ -1611,7 +1589,6 @@ where
                 actor_uuid,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await?;
@@ -1676,7 +1653,6 @@ where
                     url: entity_type_id.clone(),
                 }),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await
