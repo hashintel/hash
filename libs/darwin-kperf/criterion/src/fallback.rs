@@ -12,7 +12,7 @@ use crate::MeasurementError;
 /// API surface but delegates to [`WallTime`].
 ///
 /// Returned on non-macOS platforms. The named constructors always succeed;
-/// `custom` is not available since [`Event`](darwin_kperf_events::Event)
+/// `custom` is not available since [`Event`]
 /// requires macOS.
 pub struct HardwareCounter {
     inner: WallTime,

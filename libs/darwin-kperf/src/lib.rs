@@ -64,6 +64,7 @@
 //! [`darwin_kperf_criterion`]: https://docs.rs/darwin-kperf-criterion
 
 #![cfg(target_os = "macos")]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![no_std]
 #![expect(unsafe_code)]
 

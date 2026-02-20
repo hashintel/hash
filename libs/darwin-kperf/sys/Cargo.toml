@@ -15,5 +15,8 @@ publish           = true
 
 # Private third-party dependencies
 
+[package.metadata.docs.rs]
+targets = ["aarch64-apple-darwin"]
+
 [lints]
 workspace = true

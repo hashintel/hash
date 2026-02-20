@@ -17,6 +17,12 @@ darwin-kperf-sys    = { workspace = true, public = true }
 
 # Private third-party dependencies
 
+[features]
+runtime-assertions = []
+
+[package.metadata.docs.rs]
+targets = ["aarch64-apple-darwin"]
+
 [lints]
 workspace = true
 
