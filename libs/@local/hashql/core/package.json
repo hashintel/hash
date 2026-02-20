@@ -17,6 +17,6 @@
     "@rust/hashql-diagnostics": "workspace:*"
   },
   "devDependencies": {
-    "@rust/darwin-kperf-criterion": "0.1.0"
+    "@rust/darwin-kperf-criterion": "workspace:*"
   }
 }
