@@ -1,7 +1,7 @@
 //! Low-level sampler operations.
 //!
-//! These functions bridge the safe [`Sampler`](super::Sampler) /
-//! [`ThreadSampler`](super::ThreadSampler) API to the raw framework vtables. They are
+//! These functions bridge the safe [`Sampler`] /
+//! [`ThreadSampler`] API to the raw framework vtables. They are
 //! `pub(crate)` and not part of the public API.
 
 #![expect(clippy::indexing_slicing)]

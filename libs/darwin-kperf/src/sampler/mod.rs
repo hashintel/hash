@@ -4,8 +4,8 @@
 //!
 //! 1. Create a [`Sampler`] to load the frameworks, detect the CPU, and force-acquire all hardware
 //!    counters.
-//! 2. Call [`Sampler::thread`] with an array of [`Event`](crate::event::Event)s to create a
-//!    [`ThreadSampler`] bound to the calling thread.
+//! 2. Call [`Sampler::thread`] with an array of [`Event`]s to create a [`ThreadSampler`] bound to
+//!    the calling thread.
 //! 3. [`start`](ThreadSampler::start) / [`sample`](ThreadSampler::sample) /
 //!    [`stop`](ThreadSampler::stop) to toggle counting and read raw values.
 //! 4. Compute deltas between successive samples to get per-region counts.
