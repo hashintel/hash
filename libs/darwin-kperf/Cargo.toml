@@ -19,3 +19,8 @@ darwin-kperf-sys    = { workspace = true, public = true }
 
 [lints]
 workspace = true
+
+[package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@rust/darwin-kperf-codegen", version = "0.1.0-private" },
+]
