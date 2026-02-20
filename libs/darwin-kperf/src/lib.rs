@@ -63,7 +63,7 @@
 //! [kpc-demo]: https://gist.github.com/ibireme/173517c208c7dc333ba962c1f0d67d12
 //! [`darwin_kperf_criterion`]: https://docs.rs/darwin-kperf-criterion
 
-#![cfg(target_os = "macos")]
+#![cfg(any(target_os = "macos", doc))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![no_std]
 #![expect(unsafe_code)]
