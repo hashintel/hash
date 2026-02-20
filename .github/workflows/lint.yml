@@ -168,7 +168,7 @@ jobs:
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: |
-          TARGET=$(yq -p toml -r '.package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
+          TARGET=$(yq -p toml -r 'select(.package.metadata.ci.skip-docs-target != true) | .package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
           cargo doc --all-features --no-deps -Zrustdoc-scrape-examples ${TARGET:+--target "$TARGET"}
 
       - name: Check private documentation
@@ -177,7 +177,7 @@ jobs:
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: |
-          TARGET=$(yq -p toml -r '.package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
+          TARGET=$(yq -p toml -r 'select(.package.metadata.ci.skip-docs-target != true) | .package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
           cargo doc --all-features --no-deps -Zrustdoc-scrape-examples --document-private-items ${TARGET:+--target "$TARGET"}
 
       - name: Show disk usage

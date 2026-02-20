@@ -27,5 +27,8 @@ codspeed = ["dep:codspeed-criterion-compat-walltime"]
 [package.metadata.docs.rs]
 targets = ["aarch64-apple-darwin"]
 
+[package.metadata.ci]
+skip-docs-target = true
+
 [lints]
 workspace = true
