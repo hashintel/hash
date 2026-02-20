@@ -1,0 +1,6 @@
+{
+  "name": "@rust/darwin-kperf-events",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT OR Apache-2.0"
+}
