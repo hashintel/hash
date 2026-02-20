@@ -152,6 +152,7 @@ impl Fetcher for FetchServer {
         })?;
 
         let client = Client::builder()
+            .https_only(true)
             .dns_resolver(Arc::new(SsrfSafeResolver))
             .redirect(SsrfSafeResolver::redirect_policy())
             .build()
@@ -202,6 +203,18 @@ impl Fetcher for FetchServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn reqwest_https_only_rejects_http_urls() {
+        let client = Client::builder()
+            .https_only(true)
+            .build()
+            .expect("client should build");
+
+        let result = client.get("http://example.com/types/v/1").send().await;
+
+        assert!(result.is_err(), "http scheme should be rejected");
+    }
 
     #[tokio::test]
     async fn ssrf_resolver_blocks_localhost() {
