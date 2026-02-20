@@ -14,14 +14,15 @@ export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { checkSDCPN } = useCheckerWorker();
+  const { setSDCPN, getCompletions, getQuickInfo, getSignatureHelp } =
+    useCheckerWorker();
 
   const [checkResult, setCheckerResult] = useState<CheckerResult>(EMPTY_RESULT);
 
   useEffect(() => {
     let cancelled = false;
 
-    void checkSDCPN(petriNetDefinition).then((result) => {
+    void setSDCPN(petriNetDefinition).then((result) => {
       if (!cancelled) {
         setCheckerResult(result);
       }
@@ -30,7 +31,7 @@ export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [petriNetDefinition, checkSDCPN]);
+  }, [petriNetDefinition, setSDCPN]);
 
   const totalDiagnosticsCount = checkResult.itemDiagnostics.reduce(
     (sum, item) => sum + item.diagnostics.length,
@@ -42,6 +43,9 @@ export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         checkResult,
         totalDiagnosticsCount,
+        getCompletions,
+        getQuickInfo,
+        getSignatureHelp,
       }}
     >
       {children}

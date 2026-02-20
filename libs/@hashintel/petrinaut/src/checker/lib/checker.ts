@@ -1,7 +1,10 @@
 import type ts from "typescript";
 
 import type { SDCPN } from "../../core/types/sdcpn";
-import { createSDCPNLanguageService } from "./create-sdcpn-language-service";
+import {
+  createSDCPNLanguageService,
+  type SDCPNLanguageService,
+} from "./create-sdcpn-language-service";
 import { getItemFilePath } from "./file-paths";
 
 export type SDCPNDiagnostic = {
@@ -29,8 +32,12 @@ export type SDCPNCheckResult = {
  * @param sdcpn - The SDCPN to check
  * @returns A result object indicating validity and any diagnostics
  */
-export function checkSDCPN(sdcpn: SDCPN): SDCPNCheckResult {
-  const languageService = createSDCPNLanguageService(sdcpn);
+export function checkSDCPN(
+  sdcpn: SDCPN,
+  existingLanguageService?: SDCPNLanguageService,
+): SDCPNCheckResult {
+  const languageService =
+    existingLanguageService ?? createSDCPNLanguageService(sdcpn);
   const itemDiagnostics: SDCPNDiagnostic[] = [];
 
   // Check all differential equations
