@@ -46,7 +46,7 @@ workspace = true
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
-darwin-kperf-criterion    = { path = "../../../darwin-kperf/criterion", features = ["codspeed"] }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 insta                     = { workspace = true }
 proptest                  = { workspace = true }
 rstest                    = { workspace = true }
@@ -54,4 +54,8 @@ test-strategy             = { workspace = true }
 
 [[bench]]
 name    = "type_system"
+harness = false
+
+[[bench]]
+name    = "symbol"
 harness = false

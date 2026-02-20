@@ -60,7 +60,6 @@ version = "0.0.0"
 [workspace.dependencies]
 # Workspace members
 darwin-kperf.path                   = "libs/darwin-kperf"
-darwin-kperf-codegen.path           = "libs/darwin-kperf/codegen"
 darwin-kperf-criterion.path         = "libs/darwin-kperf/criterion"
 darwin-kperf-events.path            = "libs/darwin-kperf/events"
 darwin-kperf-sys.path               = "libs/darwin-kperf/sys"
