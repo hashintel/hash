@@ -128,6 +128,10 @@ impl HardwareCounter {
 impl Drop for HardwareCounter {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
+        // preempt the drop order, by calling `stop` here, instead of inside the ThreadSampler's
+        // drop.
+        let _result = self.thread.stop();
+
         // SAFETY: the ThreadSampler field is dropped after this runs (struct
         // drop order is field declaration order), and we are the sole owner.
         // No ThreadSampler will be running after this point.
