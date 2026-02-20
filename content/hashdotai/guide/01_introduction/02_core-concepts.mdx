@@ -41,7 +41,23 @@ We recommend having a quick scan of this page as you start out, and returning to
 # Where information lives
 
 <ParagraphIconWrapper boxContent={
-    <div style={{ display: "flex", columnGap: "8px", alignItems: "center" }}>
+    <>
+    <style>{`
+      .core-concepts-account-icons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 8px;
+      }
+
+      @media (min-width: 600px) {
+        .core-concepts-account-icons {
+          flex-direction: row;
+          column-gap: 8px;
+        }
+      }
+    `}</style>
+    <div className="core-concepts-account-icons">
         <UserIcon />
         <span style={{
             color: "#758AA1",
@@ -56,6 +72,7 @@ We recommend having a quick scan of this page as you start out, and returning to
          }}>+</span>
          <UsersIcon />
     </div>
+    </>
 }>
 
 ## Accounts
