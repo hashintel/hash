@@ -7,7 +7,9 @@ import {
 } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 
-export type SDCPNLanguageService = ts.LanguageService;
+export type SDCPNLanguageService = ts.LanguageService & {
+  updateFileContent: (fileName: string, content: string) => void;
+};
 
 /**
  * Sanitizes a color ID to be a valid TypeScript identifier.
@@ -250,12 +252,14 @@ function adjustDiagnostics<T extends ts.Diagnostic>(
  */
 export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
   const files = generateVirtualFiles(sdcpn);
-  const host = createLanguageServiceHost(files);
+  const { host, updateFileContent } = createLanguageServiceHost(files);
   const baseService = ts.createLanguageService(host);
 
   // Proxy service to adjust positions for injected prefixes
   return {
     ...baseService,
+
+    updateFileContent,
 
     getSemanticDiagnostics(fileName) {
       const entry = files.get(fileName);
@@ -275,6 +279,35 @@ export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
       const entry = files.get(fileName);
       const prefixLength = entry?.prefix?.length ?? 0;
       return baseService.getCompletionsAtPosition(
+        fileName,
+        position + prefixLength,
+        options,
+      );
+    },
+
+    getQuickInfoAtPosition(fileName, position) {
+      const entry = files.get(fileName);
+      const prefixLength = entry?.prefix?.length ?? 0;
+      const info = baseService.getQuickInfoAtPosition(
+        fileName,
+        position + prefixLength,
+      );
+      if (!info) {
+        return undefined;
+      }
+      return {
+        ...info,
+        textSpan: {
+          start: info.textSpan.start - prefixLength,
+          length: info.textSpan.length,
+        },
+      };
+    },
+
+    getSignatureHelpItems(fileName, position, options) {
+      const entry = files.get(fileName);
+      const prefixLength = entry?.prefix?.length ?? 0;
+      return baseService.getSignatureHelpItems(
         fileName,
         position + prefixLength,
         options,

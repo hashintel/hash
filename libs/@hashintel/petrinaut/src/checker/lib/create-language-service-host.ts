@@ -42,9 +42,12 @@ export type VirtualFile = {
  *
  * Creates a TypeScript LanguageServiceHost for virtual SDCPN files
  */
-export function createLanguageServiceHost(
-  files: Map<string, VirtualFile>,
-): ts.LanguageServiceHost {
+export function createLanguageServiceHost(files: Map<string, VirtualFile>): {
+  host: ts.LanguageServiceHost;
+  updateFileContent: (fileName: string, content: string) => void;
+} {
+  const versions = new Map<string, number>();
+
   const getFileContent = (fileName: string): string | undefined => {
     const entry = files.get(fileName);
     if (entry) {
@@ -62,10 +65,18 @@ export function createLanguageServiceHost(
     return undefined;
   };
 
-  return {
+  const updateFileContent = (fileName: string, content: string) => {
+    const entry = files.get(fileName);
+    if (entry) {
+      entry.content = content;
+      versions.set(fileName, (versions.get(fileName) ?? 0) + 1);
+    }
+  };
+
+  const host: ts.LanguageServiceHost = {
     getScriptFileNames: () => [...files.keys()],
     getCompilationSettings: () => COMPILER_OPTIONS,
-    getScriptVersion: () => "0",
+    getScriptVersion: (fileName) => String(versions.get(fileName) ?? 0),
     getCurrentDirectory: () => "/",
     getDefaultLibFileName: () => "/lib.es2015.core.d.ts",
 
@@ -82,4 +93,6 @@ export function createLanguageServiceHost(
       return getFileContent(path);
     },
   };
+
+  return { host, updateFileContent };
 }

@@ -46,16 +46,105 @@ export type CheckerResult = {
 };
 
 // ---------------------------------------------------------------------------
+// Completions — serializable variants of ts.CompletionEntry
+// ---------------------------------------------------------------------------
+
+/** A single completion suggestion, safe for structured clone. */
+export type CheckerCompletionItem = {
+  name: string;
+  /** @see ts.ScriptElementKind */
+  kind: string;
+  sortText: string;
+  insertText?: string;
+};
+
+/** Result of requesting completions at a position. */
+export type CheckerCompletionResult = {
+  items: CheckerCompletionItem[];
+};
+
+// ---------------------------------------------------------------------------
+// Quick Info (hover) — serializable variant of ts.QuickInfo
+// ---------------------------------------------------------------------------
+
+/** Result of requesting quick info (hover) at a position. */
+export type CheckerQuickInfoResult = {
+  /** Type/signature display string. */
+  displayParts: string;
+  /** JSDoc documentation string. */
+  documentation: string;
+  /** Offset in user code where the hovered symbol starts. */
+  start: number;
+  /** Length of the hovered symbol span. */
+  length: number;
+} | null;
+
+// ---------------------------------------------------------------------------
+// Signature Help — serializable variant of ts.SignatureHelpItems
+// ---------------------------------------------------------------------------
+
+/** A single parameter in a signature. */
+export type CheckerSignatureParameter = {
+  label: string;
+  documentation: string;
+};
+
+/** A single signature (overload). */
+export type CheckerSignatureInfo = {
+  label: string;
+  documentation: string;
+  parameters: CheckerSignatureParameter[];
+};
+
+/** Result of requesting signature help at a position. */
+export type CheckerSignatureHelpResult = {
+  signatures: CheckerSignatureInfo[];
+  activeSignature: number;
+  activeParameter: number;
+} | null;
+
+// ---------------------------------------------------------------------------
 // JSON-RPC 2.0
 // ---------------------------------------------------------------------------
 
 /** A JSON-RPC request sent from the main thread to the worker. */
-export type JsonRpcRequest = {
-  jsonrpc: "2.0";
-  id: number;
-  method: "checkSDCPN";
-  params: { sdcpn: SDCPN };
-};
+export type JsonRpcRequest =
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "setSDCPN";
+      params: { sdcpn: SDCPN };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "getCompletions";
+      params: {
+        itemType: CheckerItemDiagnostics["itemType"];
+        itemId: string;
+        offset: number;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "getQuickInfo";
+      params: {
+        itemType: CheckerItemDiagnostics["itemType"];
+        itemId: string;
+        offset: number;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "getSignatureHelp";
+      params: {
+        itemType: CheckerItemDiagnostics["itemType"];
+        itemId: string;
+        offset: number;
+      };
+    };
 
 /** A JSON-RPC response sent from the worker back to the main thread. */
 export type JsonRpcResponse<Result = unknown> =

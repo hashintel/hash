@@ -1,8 +1,11 @@
 import type * as Monaco from "monaco-editor";
 
+import { CompletionSync } from "./completion-sync";
 import type { MonacoContextValue } from "./context";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";
+import { HoverSync } from "./hover-sync";
+import { SignatureHelpSync } from "./signature-help-sync";
 
 interface LanguageDefaults {
   setModeConfiguration(config: Record<string, boolean>): void;
@@ -42,38 +45,6 @@ function disableBuiltInTypeScriptFeatures(monaco: typeof Monaco) {
   ts.javascriptDefaults.setModeConfiguration(modeConfiguration);
 }
 
-function registerCompletionProvider(monaco: typeof Monaco) {
-  monaco.languages.registerCompletionItemProvider("typescript", {
-    provideCompletionItems(model, position) {
-      const word = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
-      };
-
-      // eslint-disable-next-line no-console
-      console.log("Completion requested", {
-        position: { line: position.lineNumber, column: position.column },
-        word: word.word,
-        range,
-      });
-
-      return {
-        suggestions: [
-          {
-            label: "transition",
-            kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: "transition",
-            range,
-          },
-        ],
-      };
-    },
-  });
-}
-
 async function initMonaco(): Promise<MonacoContextValue> {
   // Disable all workers — no worker files will be shipped or loaded.
   (globalThis as Record<string, unknown>).MonacoEnvironment = {
@@ -89,7 +60,6 @@ async function initMonaco(): Promise<MonacoContextValue> {
   monacoReact.loader.config({ monaco });
 
   disableBuiltInTypeScriptFeatures(monaco);
-  registerCompletionProvider(monaco);
   return { monaco, Editor: monacoReact.default };
 }
 
@@ -102,6 +72,9 @@ export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <MonacoContext.Provider value={monacoPromise}>
       <DiagnosticsSync />
+      <CompletionSync />
+      <HoverSync />
+      <SignatureHelpSync />
       {children}
     </MonacoContext.Provider>
   );

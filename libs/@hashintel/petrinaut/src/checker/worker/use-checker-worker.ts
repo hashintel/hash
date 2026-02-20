@@ -1,21 +1,43 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import type { SDCPN } from "../../core/types/sdcpn";
 import type {
+  CheckerCompletionResult,
+  CheckerItemDiagnostics,
+  CheckerQuickInfoResult,
   CheckerResult,
+  CheckerSignatureHelpResult,
   JsonRpcRequest,
   JsonRpcResponse,
 } from "./protocol";
 
 type Pending = {
-  resolve: (result: CheckerResult) => void;
+  resolve: (result: never) => void;
   reject: (error: Error) => void;
 };
 
 /** Methods exposed by the checker WebWorker. */
 export type CheckerWorkerApi = {
-  /** Validate all user code in an SDCPN model. Runs off the main thread. */
-  checkSDCPN: (sdcpn: SDCPN) => Promise<CheckerResult>;
+  /** Send an SDCPN model to the worker. Persists the LanguageService and returns diagnostics. */
+  setSDCPN: (sdcpn: SDCPN) => Promise<CheckerResult>;
+  /** Request completions at a position within an SDCPN item. */
+  getCompletions: (
+    itemType: CheckerItemDiagnostics["itemType"],
+    itemId: string,
+    offset: number,
+  ) => Promise<CheckerCompletionResult>;
+  /** Request quick info (hover) at a position within an SDCPN item. */
+  getQuickInfo: (
+    itemType: CheckerItemDiagnostics["itemType"],
+    itemId: string,
+    offset: number,
+  ) => Promise<CheckerQuickInfoResult>;
+  /** Request signature help at a position within an SDCPN item. */
+  getSignatureHelp: (
+    itemType: CheckerItemDiagnostics["itemType"],
+    itemId: string,
+    offset: number,
+  ) => Promise<CheckerSignatureHelpResult>;
 };
 
 /**
@@ -32,9 +54,7 @@ export function useCheckerWorker(): CheckerWorkerApi {
       type: "module",
     });
 
-    worker.onmessage = (
-      event: MessageEvent<JsonRpcResponse<CheckerResult>>,
-    ) => {
+    worker.onmessage = (event: MessageEvent<JsonRpcResponse>) => {
       const response = event.data;
       const pending = pendingRef.current.get(response.id);
       if (!pending) {
@@ -45,7 +65,7 @@ export function useCheckerWorker(): CheckerWorkerApi {
       if ("error" in response) {
         pending.reject(new Error(response.error.message));
       } else {
-        pending.resolve(response.result);
+        pending.resolve(response.result as never);
       }
     };
 
@@ -62,25 +82,84 @@ export function useCheckerWorker(): CheckerWorkerApi {
     };
   }, []);
 
-  const checkSDCPN = (sdcpn: SDCPN): Promise<CheckerResult> => {
+  const sendRequest = useCallback(<T>(request: JsonRpcRequest): Promise<T> => {
     const worker = workerRef.current;
     if (!worker) {
       return Promise.reject(new Error("Worker not initialized"));
     }
 
-    const id = nextId.current++;
-    const request: JsonRpcRequest = {
-      jsonrpc: "2.0",
-      id,
-      method: "checkSDCPN",
-      params: { sdcpn },
-    };
-
-    return new Promise<CheckerResult>((resolve, reject) => {
-      pendingRef.current.set(id, { resolve, reject });
+    return new Promise<T>((resolve, reject) => {
+      pendingRef.current.set(request.id, {
+        resolve: resolve as (result: never) => void,
+        reject,
+      });
       worker.postMessage(request);
     });
-  };
+  }, []);
 
-  return { checkSDCPN };
+  const setSDCPN = useCallback(
+    (sdcpn: SDCPN): Promise<CheckerResult> => {
+      const id = nextId.current++;
+      return sendRequest<CheckerResult>({
+        jsonrpc: "2.0",
+        id,
+        method: "setSDCPN",
+        params: { sdcpn },
+      });
+    },
+    [sendRequest],
+  );
+
+  const getCompletions = useCallback(
+    (
+      itemType: CheckerItemDiagnostics["itemType"],
+      itemId: string,
+      offset: number,
+    ): Promise<CheckerCompletionResult> => {
+      const id = nextId.current++;
+      return sendRequest<CheckerCompletionResult>({
+        jsonrpc: "2.0",
+        id,
+        method: "getCompletions",
+        params: { itemType, itemId, offset },
+      });
+    },
+    [sendRequest],
+  );
+
+  const getQuickInfo = useCallback(
+    (
+      itemType: CheckerItemDiagnostics["itemType"],
+      itemId: string,
+      offset: number,
+    ): Promise<CheckerQuickInfoResult> => {
+      const id = nextId.current++;
+      return sendRequest<CheckerQuickInfoResult>({
+        jsonrpc: "2.0",
+        id,
+        method: "getQuickInfo",
+        params: { itemType, itemId, offset },
+      });
+    },
+    [sendRequest],
+  );
+
+  const getSignatureHelp = useCallback(
+    (
+      itemType: CheckerItemDiagnostics["itemType"],
+      itemId: string,
+      offset: number,
+    ): Promise<CheckerSignatureHelpResult> => {
+      const id = nextId.current++;
+      return sendRequest<CheckerSignatureHelpResult>({
+        jsonrpc: "2.0",
+        id,
+        method: "getSignatureHelp",
+        params: { itemType, itemId, offset },
+      });
+    },
+    [sendRequest],
+  );
+
+  return { setSDCPN, getCompletions, getQuickInfo, getSignatureHelp };
 }
