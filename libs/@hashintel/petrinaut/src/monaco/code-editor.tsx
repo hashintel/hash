@@ -1,10 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
-import MonacoEditor from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useCallback, useRef } from "react";
+import { Suspense, use, useCallback, useRef } from "react";
 
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "../components/tooltip";
+import { MonacoContext } from "./context";
 
 const containerStyle = cva({
   base: {
@@ -24,31 +24,34 @@ const containerStyle = cva({
   },
 });
 
+const loadingStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "2",
+  height: "full",
+  color: "fg.muted",
+  bg: "bg.subtle",
+  fontSize: "base",
+});
+
 type CodeEditorProps = Omit<EditorProps, "theme"> & {
   tooltip?: string;
 };
 
-/**
- * Code editor component that wraps Monaco Editor.
- *
- * @param tooltip - Optional tooltip to show when hovering over the editor.
- *                  In read-only mode, the tooltip also appears when attempting to edit.
- */
-export const CodeEditor: React.FC<CodeEditorProps> = ({
-  tooltip,
+const CodeEditorInner: React.FC<CodeEditorProps> = ({
   options,
-  height,
   onMount,
   ...props
 }) => {
-  const isReadOnly = options?.readOnly === true;
+  const { Editor } = use(use(MonacoContext));
+
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const handleMount = useCallback(
-    (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+    (editorInstance: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
       editorRef.current = editorInstance;
-      // Call the original onMount if provided
-      onMount?.(editorInstance, monaco);
+      onMount?.(editorInstance, monacoInstance);
     },
     [onMount],
   );
@@ -67,19 +70,35 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     ...options,
   };
 
+  return (
+    <Editor
+      theme="vs-light"
+      height="100%"
+      options={editorOptions}
+      onMount={handleMount}
+      {...props}
+    />
+  );
+};
+
+export const CodeEditor: React.FC<CodeEditorProps> = ({
+  tooltip,
+  options,
+  height,
+  ...props
+}) => {
+  const isReadOnly = options?.readOnly === true;
+
   const editorElement = (
     <div className={containerStyle({ isReadOnly })} style={{ height }}>
-      <MonacoEditor
-        theme="vs-light"
-        height="100%"
-        options={editorOptions}
-        onMount={handleMount}
-        {...props}
-      />
+      <Suspense
+        fallback={<div className={loadingStyle}>Loading editor...</div>}
+      >
+        <CodeEditorInner options={options} height={height} {...props} />
+      </Suspense>
     </div>
   );
 
-  // Regular tooltip for non-read-only mode (if tooltip is provided)
   if (tooltip) {
     return (
       <Tooltip

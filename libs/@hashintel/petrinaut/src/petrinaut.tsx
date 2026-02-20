@@ -1,6 +1,7 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
+import { CheckerProvider } from "./checker/provider";
 import type {
   Color,
   DifferentialEquation,
@@ -11,11 +12,10 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
-import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -31,15 +31,6 @@ export type {
   Place,
   SDCPN,
   Transition,
-};
-
-/**
- * Internal component to initialize Monaco global typings.
- * Must be inside SDCPNProvider to access the store.
- */
-const MonacoSetup: React.FC = () => {
-  useMonacoGlobalTypings();
-  return null;
 };
 
 export type PetrinautProps = {
@@ -108,16 +99,17 @@ export const Petrinaut = ({
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
         <CheckerProvider>
-          <SimulationProvider>
-            <PlaybackProvider>
-              <EditorProvider>
-                <MonacoSetup />
-                <EditorView
-                  hideNetManagementControls={hideNetManagementControls}
-                />
-              </EditorProvider>
-            </PlaybackProvider>
-          </SimulationProvider>
+          <MonacoProvider>
+            <SimulationProvider>
+              <PlaybackProvider>
+                <EditorProvider>
+                  <EditorView
+                    hideNetManagementControls={hideNetManagementControls}
+                  />
+                </EditorProvider>
+              </PlaybackProvider>
+            </SimulationProvider>
+          </MonacoProvider>
         </CheckerProvider>
       </SDCPNProvider>
     </NotificationsProvider>

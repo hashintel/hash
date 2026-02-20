@@ -21,7 +21,6 @@ export default defineConfig({
         "react",
         "react-dom",
         "reactflow",
-        "typescript",
         "monaco-editor",
         "@babel/standalone",
       ],
@@ -48,7 +47,17 @@ export default defineConfig({
         // This causes crashes in Web Workers, since `window` is not defined there.
         // To prevent this, we do this resolution on our side.
         "typeof window": '"undefined"',
+        // TypeScript's internals reference process, process.versions.pnp, etc.
+        "typeof process": "'undefined'",
+        "typeof process.versions.pnp": "'undefined'",
       }),
+      // Separate replacePlugin for call-expression replacements:
+      // 1. Empty end delimiter because \b can't match after `)` (non-word → non-word).
+      // 2. Negative lookbehind skips the function definition (`function isNodeLikeSystem`).
+      replacePlugin(
+        { "isNodeLikeSystem()": "false" },
+        { delimiters: ["(?<!function )\\b", ""] },
+      ),
     ],
   },
 
@@ -59,6 +68,7 @@ export default defineConfig({
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
+        "typescript",
       ],
     }),
 
