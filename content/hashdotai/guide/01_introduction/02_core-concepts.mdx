@@ -31,8 +31,6 @@ import {
   PlugRegularIcon,
   InfinityIcon,
 } from "@/shared/icons";
-import { Box, Typography } from "@mui/material";
-import { palette } from "src/app/layout/theme/palette";
 
 # Overview
 
@@ -43,21 +41,21 @@ We recommend having a quick scan of this page as you start out, and returning to
 # Where information lives
 
 <ParagraphIconWrapper boxContent={
-    <Box sx={{ display: "flex", columnGap: 1, alignItems: "center", flexDirection: { xs: "column", sm: "row" } }}>
+    <div style={{ display: "flex", columnGap: "8px", alignItems: "center" }}>
         <UserIcon />
-        <Typography sx={{
-            color: palette.gray[60],
+        <span style={{
+            color: "#758AA1",
             textAlign: "center",
             fontFamily: "Inter, sans-serif",
-            fontSize: 32,
+            fontSize: "32px",
             fontStyle: "normal",
             fontWeight: 400,
             lineHeight: 1.5,
-            letterSpacing: -0.64,
-            width: 24,
-         }}>+</Typography>
+            letterSpacing: "-0.64px",
+            width: "24px",
+         }}>+</span>
          <UsersIcon />
-    </Box>
+    </div>
 }>
 
 ## Accounts
