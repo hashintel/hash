@@ -36,16 +36,7 @@ pub struct HardwareCounter {
 }
 
 impl HardwareCounter {
-    #[expect(clippy::panic_in_result_fn)]
-    fn new(event: Event) -> Result<Self, MeasurementError> {
-        // We're using a bool here, instead of the LazyLock itself, to ensure that multiple threads
-        // don't initialize at the same time, leading to a race condition.
-        let has_been_aquired = SAMPLER_ACQUIRED.fetch_or(true, Ordering::SeqCst);
-        assert!(
-            has_been_aquired,
-            "HardwareCounter can only be acquired once"
-        );
-
+    fn try_new(event: Event) -> Result<Self, MeasurementError> {
         let mut thread = SAMPLER.thread([event])?;
         thread.start()?;
 
@@ -53,6 +44,27 @@ impl HardwareCounter {
             thread,
             formatter: CounterFormatter::new(unit_for_event(event)),
         })
+    }
+
+    #[expect(clippy::panic_in_result_fn)]
+    fn new(event: Event) -> Result<Self, MeasurementError> {
+        // We're using a bool here, instead of the LazyLock itself, to ensure that multiple threads
+        // don't initialize at the same time, leading to a race condition.
+        let previously_acquired = SAMPLER_ACQUIRED.fetch_or(true, Ordering::SeqCst);
+        assert!(
+            !previously_acquired,
+            "HardwareCounter can only be acquired once"
+        );
+
+        let result = Self::try_new(event);
+
+        if result.is_err() {
+            // We actually *weren't* able to acquire it, reset the flag, so that other threads can
+            // try again.
+            SAMPLER_ACQUIRED.store(false, Ordering::SeqCst);
+        }
+
+        result
     }
 
     /// Measures retired instructions (fixed counter, all generations).
