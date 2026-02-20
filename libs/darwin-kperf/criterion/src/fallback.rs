@@ -1,4 +1,5 @@
 //! Wall-clock fallback for non-macOS platforms.
+#![expect(clippy::unnecessary_wraps, reason = "compatability with pmc module")]
 
 use core::time::Duration;
 use std::time::Instant;
