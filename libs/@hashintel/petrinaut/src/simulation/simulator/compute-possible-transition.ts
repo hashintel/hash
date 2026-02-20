@@ -1,5 +1,6 @@
 import { SDCPNItemError } from "../../core/errors";
 import type { ID } from "../../core/types/sdcpn";
+import { isDistribution, sampleDistribution } from "./distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
 import type { SimulationFrame, SimulationInstance } from "./types";
@@ -204,7 +205,9 @@ export function computePossibleTransition(
       // Convert transition kernel output back to place-indexed format
       // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
       // We need to convert this to place IDs and flatten to number[][]
+      // Distribution values are sampled here, advancing the RNG state.
       const addMap: Record<PlaceID, number[][]> = {};
+      let currentRngState = newRngState;
 
       for (const outputArc of transition.instance.outputArcs) {
         const outputPlaceState = frame.places[outputArc.placeId];
@@ -251,9 +254,21 @@ export function computePossibleTransition(
           );
         }
 
-        // Convert token objects back to number arrays in correct order
+        // Convert token objects back to number arrays in correct order,
+        // sampling any Distribution values using the RNG
         const tokenArrays = outputTokens.map((token) => {
-          return type.elements.map((element) => token[element.name]!);
+          return type.elements.map((element) => {
+            const value = token[element.name]!;
+            if (isDistribution(value)) {
+              const [sampled, nextRng] = sampleDistribution(
+                value,
+                currentRngState,
+              );
+              currentRngState = nextRng;
+              return sampled;
+            }
+            return value;
+          });
         });
 
         addMap[outputArc.placeId] = tokenArrays;
@@ -275,7 +290,7 @@ export function computePossibleTransition(
         // Map from place ID to array of token values to
         // create as per transition kernel output
         add: addMap,
-        newRngState,
+        newRngState: currentRngState,
       };
     }
   }

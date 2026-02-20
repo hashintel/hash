@@ -28,8 +28,10 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   files.set(getItemFilePath("sdcpn-lib-defs"), {
     content: [
       `type Distribution = {};`,
+      `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
       `declare namespace Distribution {`,
       `  function Gaussian(mean: number, deviation: number): Distribution;`,
+      `  function Uniform(min: number, max: number): Distribution;`,
       `}`,
     ].join("\n"),
   });
@@ -168,7 +170,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
         outputTypeImports.push(importStatement);
       }
       const tokenTuple = Array.from({ length: arc.weight })
-        .fill(`Color_${sanitizedColorId}`)
+        .fill(`Probabilistic<Color_${sanitizedColorId}>`)
         .join(", ");
       outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
     }
