@@ -4,6 +4,6 @@
   "private": true,
   "license": "MIT OR Apache-2.0",
   "scripts": {
-    "lint:clippy": "just clippy"
+    "lint:clippy": "just clippy --target aarch64-apple-darwin"
   }
 }
