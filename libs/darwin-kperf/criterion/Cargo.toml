@@ -11,8 +11,8 @@ publish           = true
 darwin-kperf-events = { version = "0.1.0", path = "../events", public = true }
 
 # Public third-party dependencies
-codspeed-criterion-compat-walltime = { workspace = true, optional = true, public = true }
-criterion                          = { workspace = true, public = true }
+codspeed-criterion-compat-walltime = { workspace = true, optional = true, public = true, default-features = false }
+criterion                          = { workspace = true, public = true, default-features = false }
 
 # Private workspace dependencies
 
