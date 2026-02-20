@@ -8,18 +8,12 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
-import _puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import puppeteer from "puppeteer-core";
 import sanitizeHtml from "sanitize-html";
 
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { requestExternalInput } from "./shared/request-external-input.js";
-
-/** @see https://github.com/berstend/puppeteer-extra/issues/748 */
-const puppeteer = _puppeteer.default;
-
-puppeteer.use(StealthPlugin());
 
 const sliceContentForLlmConsumption = (params: {
   content: string;
@@ -131,44 +125,86 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   return slicedSanitizedHtml;
 };
 
-const getWebPageFromPuppeteer = async (
+const getRemoteBrowserWsEndpoint = (): string => {
+  const endpoint = process.env.BROWSER_WS_ENDPOINT;
+  if (!endpoint) {
+    throw new Error(
+      "BROWSER_WS_ENDPOINT environment variable is required. " +
+        "Set it to the WebSocket endpoint of a remote browser service (e.g. Browserless).",
+    );
+  }
+  return endpoint;
+};
+
+const maxConcurrentSessions = parseInt(
+  process.env.BROWSER_MAX_CONCURRENT_SESSIONS ?? "2",
+  10,
+);
+
+let activeSessions = 0;
+const sessionQueue: Array<() => void> = [];
+
+const acquireSessionSlot = (): Promise<void> => {
+  if (activeSessions < maxConcurrentSessions) {
+    activeSessions++;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    sessionQueue.push(() => {
+      activeSessions++;
+      resolve();
+    });
+  });
+};
+
+const releaseSessionSlot = () => {
+  activeSessions--;
+  const next = sessionQueue.shift();
+  if (next) {
+    next();
+  }
+};
+
+const getWebPageFromRemoteBrowser = async (
   url: Url,
 ): Promise<WebPage | { error: string }> => {
-  /** @todo: consider re-using the same `browser` instance across requests  */
-  const browser = await puppeteer.launch({
-    args: ["--lang=en-US", "--no-sandbox", "--disable-dev-shm-usage"],
-  });
+  await acquireSessionSlot();
 
-  const page = await browser.newPage();
-
-  await page.setExtraHTTPHeaders({
-    /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language */
-    "Accept-Language": "en-US,en,q=0.5",
-  });
+  let browser: puppeteer.Browser | undefined;
+  let page: puppeteer.Page | undefined;
 
   try {
-    const { htmlContent, innerText } = await page
-      .goto(url, {
-        waitUntil: "networkidle2",
-        timeout: 20_000,
-      })
-      .then((response) => {
-        if (!response) {
-          throw new Error("No response");
-        }
+    browser = await puppeteer.connect({
+      browserWSEndpoint: getRemoteBrowserWsEndpoint(),
+    });
 
-        if (response.status() < 200 || response.status() >= 300) {
-          throw new Error(`${response.status()}: ${response.statusText()}`);
-        }
-      })
-      .then(async () => ({
-        htmlContent: await page.evaluate(() => document.body.innerHTML),
-        innerText: await page.evaluate(() => document.body.innerText),
-      }));
+    page = await browser.newPage();
 
+    await page.setExtraHTTPHeaders({
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language */
+      "Accept-Language": "en-US,en,q=0.5",
+    });
+
+    const response = await page.goto(url, {
+      waitUntil: "networkidle2",
+      timeout: 20_000,
+    });
+
+    if (!response) {
+      throw new Error("No response");
+    }
+
+    if (response.status() < 200 || response.status() >= 300) {
+      throw new Error(
+        `Page load failed: ${response.status()}: ${response.statusText()}`,
+      );
+    }
+
+    await page.waitForSelector("body", { timeout: 5_000 });
+
+    const htmlContent = await page.evaluate(() => document.body.innerHTML);
+    const innerText = await page.evaluate(() => document.body.innerText);
     const title = await page.title();
-
-    await browser.close();
 
     return {
       htmlContent,
@@ -177,14 +213,16 @@ const getWebPageFromPuppeteer = async (
       url,
     };
   } catch (error) {
-    await browser.close();
-
     const errMessage = stringifyError(error);
-    logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
+    logger.error(`Failed to load URL ${url} in remote browser: ${errMessage}`);
 
     return {
       error: errMessage,
     };
+  } finally {
+    await page?.close().catch(() => {});
+    void browser?.disconnect();
+    releaseSessionSlot();
   }
 };
 
@@ -202,8 +240,8 @@ const getWebPageFromBrowser = async (
 
   const webPage = externalResponse.data.webPages[0];
   if (!webPage) {
-    /** No webpage returned from external source, fallback to whatever Puppeteer can provide */
-    return await getWebPageFromPuppeteer(url);
+    /** No webpage returned from external source, fallback to remote browser */
+    return await getWebPageFromRemoteBrowser(url);
   }
 
   return webPage;
@@ -256,7 +294,7 @@ export const getWebPageActivity = async (params: {
 
   const response = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
-    : await getWebPageFromPuppeteer(url);
+    : await getWebPageFromRemoteBrowser(url);
 
   if ("error" in response) {
     return response;
