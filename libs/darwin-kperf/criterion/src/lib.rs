@@ -1,7 +1,7 @@
 //! Criterion.rs integration for hardware performance counters on Apple Silicon.
 //!
-//! This crate provides a [`Measurement`] implementation that reads hardware
-//! performance counters (PMCs) instead of wall-clock time, enabling
+//! This crate provides a [`Measurement`](criterion::measurement::Measurement) implementation that
+//! reads hardware performance counters (PMCs) instead of wall-clock time, enabling
 //! deterministic, low-noise benchmarking of CPU-bound code.
 //!
 //! On non-macOS platforms (or when the `codspeed` feature is active),
@@ -34,7 +34,7 @@
 //! | [`cycles`](HardwareCounter::cycles) | CPU cycles | All generations (fixed) |
 //! | [`branch_mispredictions`](HardwareCounter::branch_mispredictions) | Retired branch mispredictions | All generations |
 //! | [`l1d_cache_misses`](HardwareCounter::l1d_cache_misses) | Retired L1D cache miss loads | All generations |
-//! | [`custom`](HardwareCounter::custom) | Any [`Event`] | Depends on event |
+//! | [`custom`](HardwareCounter::custom) | Any [`Event`](darwin_kperf_events::Event) | Depends on event |
 //!
 //! # Choosing a counter
 //!

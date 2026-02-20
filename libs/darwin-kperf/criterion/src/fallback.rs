@@ -8,11 +8,11 @@ use darwin_kperf_events::Event;
 
 use crate::MeasurementError;
 
-/// Wall-clock fallback that mirrors the macOS [`HardwareCounter`](crate::pmc::HardwareCounter)
+/// Wall-clock fallback that mirrors the macOS `HardwareCounter`
 /// API surface but delegates to [`WallTime`].
 ///
 /// Returned on non-macOS platforms. The named constructors always succeed;
-/// `custom` is not available since [`Event`](darwin_kperf::event::Event)
+/// `custom` is not available since [`Event`](darwin_kperf_events::Event)
 /// requires macOS.
 pub struct HardwareCounter {
     inner: WallTime,

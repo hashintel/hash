@@ -43,7 +43,7 @@
 //!
 //! # Platform
 //!
-//! - macOS only (`compile_error!` on other targets).
+//! - macOS only
 //! - Requires root or the `com.apple.private.kernel.kpc` entitlement.
 //!
 //! ```sh
@@ -63,6 +63,7 @@
 //! [kpc-demo]: https://gist.github.com/ibireme/173517c208c7dc333ba962c1f0d67d12
 //! [`darwin_kperf_criterion`]: https://docs.rs/darwin-kperf-criterion
 
+#![cfg(target_os = "macos")]
 #![no_std]
 #![expect(unsafe_code)]
 
@@ -74,9 +75,6 @@ mod sampler;
 pub mod database;
 pub use darwin_kperf_events as event;
 pub(crate) mod utils;
-
-#[cfg(not(target_os = "macos"))]
-compile_error!("`darwin-kperf` only supports macOS");
 
 pub use darwin_kperf_sys::load::LoadError;
 
