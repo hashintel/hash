@@ -95,6 +95,9 @@ use type_system::{
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
 
+const MAX_FETCH_RECURSION_DEPTH: usize = 10;
+const MAX_FETCH_URLS_PER_OPERATION: usize = 100;
+
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
     fn insert_external_ontology_type(
@@ -550,12 +553,18 @@ where
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, Report<QueryError>> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
-        let mut seen = match fetch_behavior {
-            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
-            FetchBehavior::ExcludeProvidedReferences => {
-                queue.iter().cloned().collect::<HashSet<_>>()
-            }
-        };
+        let mut seen = queue.iter().cloned().collect::<HashSet<_>>();
+        if matches!(fetch_behavior, FetchBehavior::IncludeProvidedReferences) {
+            seen.clear();
+        }
+
+        let mut total_urls_scheduled = queue.len();
+        if total_urls_scheduled > MAX_FETCH_URLS_PER_OPERATION {
+            return Err(Report::new(QueryError).attach_printable(format!(
+                "Exceeded type fetch limit: attempted to fetch {total_urls_scheduled} URLs, but \
+                 at most {MAX_FETCH_URLS_PER_OPERATION} are allowed per operation"
+            )));
+        }
 
         let mut fetched_ontology_types = FetchedOntologyTypes::default();
         if queue.is_empty() {
@@ -573,6 +582,7 @@ where
                     .join(", ")
             })
             .change_context(QueryError)?;
+        let mut recursion_depth = 0;
         loop {
             let ontology_urls = mem::take(&mut queue);
             if ontology_urls.is_empty() {
@@ -604,9 +614,25 @@ where
                             .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
                         {
+                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                                return Err(Report::new(QueryError).attach_printable(format!(
+                                    "Exceeded maximum type fetch recursion depth of \
+                                     {MAX_FETCH_RECURSION_DEPTH}"
+                                )));
+                            }
+
                             if !seen.contains(referenced_ontology_type.url()) {
+                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                                    return Err(Report::new(QueryError).attach_printable(format!(
+                                        "Exceeded type fetch limit: attempted to fetch more than \
+                                         {} URLs",
+                                        MAX_FETCH_URLS_PER_OPERATION
+                                    )));
+                                }
+
                                 queue.push(referenced_ontology_type.url().clone());
                                 seen.insert(referenced_ontology_type.url().clone());
+                                total_urls_scheduled += 1;
                             }
                         }
 
@@ -628,9 +654,25 @@ where
                             )
                             .await?
                         {
+                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                                return Err(Report::new(QueryError).attach_printable(format!(
+                                    "Exceeded maximum type fetch recursion depth of \
+                                     {MAX_FETCH_RECURSION_DEPTH}"
+                                )));
+                            }
+
                             if !seen.contains(referenced_ontology_type.url()) {
+                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                                    return Err(Report::new(QueryError).attach_printable(format!(
+                                        "Exceeded type fetch limit: attempted to fetch more than \
+                                         {} URLs",
+                                        MAX_FETCH_URLS_PER_OPERATION
+                                    )));
+                                }
+
                                 queue.push(referenced_ontology_type.url().clone());
                                 seen.insert(referenced_ontology_type.url().clone());
+                                total_urls_scheduled += 1;
                             }
                         }
 
@@ -652,9 +694,25 @@ where
                             )
                             .await?
                         {
+                            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                                return Err(Report::new(QueryError).attach_printable(format!(
+                                    "Exceeded maximum type fetch recursion depth of \
+                                     {MAX_FETCH_RECURSION_DEPTH}"
+                                )));
+                            }
+
                             if !seen.contains(referenced_ontology_type.url()) {
+                                if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                                    return Err(Report::new(QueryError).attach_printable(format!(
+                                        "Exceeded type fetch limit: attempted to fetch more than \
+                                         {} URLs",
+                                        MAX_FETCH_URLS_PER_OPERATION
+                                    )));
+                                }
+
                                 queue.push(referenced_ontology_type.url().clone());
                                 seen.insert(referenced_ontology_type.url().clone());
+                                total_urls_scheduled += 1;
                             }
                         }
 
@@ -664,6 +722,8 @@ where
                     }
                 }
             }
+
+            recursion_depth += 1;
         }
 
         Ok(fetched_ontology_types)
