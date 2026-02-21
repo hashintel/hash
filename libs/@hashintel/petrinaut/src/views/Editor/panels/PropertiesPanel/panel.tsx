@@ -18,7 +18,7 @@ import { TypeProperties } from "./type-properties";
 
 const positionContainerStyle = css({
   display: "flex",
-  position: "fixed",
+  position: "absolute",
   top: "[0]",
   right: "[0]",
   zIndex: 1000,

@@ -7,10 +7,10 @@ export default [
       parserOptions: {
         projectService: {
           allowDefaultProject: [
-            "assets.d.ts",
             "panda.config.ts",
             "postcss.config.cjs",
             "vite.config.ts",
+            "vite.site.config.ts",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
@@ -43,10 +43,6 @@ export default [
         "error",
         {
           patterns: [
-            {
-              group: ["@mui/material/*"],
-              message: "Please import from @mui/material instead",
-            },
             {
               group: ["@local/*"],
               message:

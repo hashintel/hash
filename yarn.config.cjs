@@ -17,7 +17,10 @@ const enforcedDevDependencies = {
 
 const ignoredDependencies = [
   "@sentry/webpack-plugin",
-  // Petrinaut SDCPN uses multiple packages which are many versions behind in other workspaces
+  // Petrinaut uses Vite 8
+  "vite",
+  "@vitejs/plugin-react",
+  // Petrinaut uses multiple packages which are many versions behind in other workspaces
   // To be un-ignored once H-5639 completed
   "vitest",
   "@dnd-kit/sortable",

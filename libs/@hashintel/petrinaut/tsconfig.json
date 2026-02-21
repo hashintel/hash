@@ -1,11 +1,21 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "target": "es2024",
     "lib": ["dom", "dom.iterable", "ESNext"],
+    "module": "preserve",
     "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "isolatedModules": true
   },
   "include": ["src", "demo-site"],
   "exclude": ["demo-site/dist/**/*"]

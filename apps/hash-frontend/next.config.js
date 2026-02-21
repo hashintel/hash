@@ -158,7 +158,9 @@ export default withSentryConfig(
         "@emotion/server",
         "@hashintel/block-design-system",
         "@hashintel/design-system",
-        "@hashintel/petrinaut-old",
+        "@hashintel/petrinaut",
+        "@hashintel/ds-components",
+        "@hashintel/ds-helpers",
         "@hashintel/type-editor",
         "echarts",
         "zrender",
@@ -216,6 +218,20 @@ export default withSentryConfig(
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.resolve.alias.canvas = false;
+
+        if (!isServer) {
+          // Stub Node.js built-ins for browser — needed by `typescript` (used by
+          // @hashintel/petrinaut's in-browser language service)
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.resolve.fallback = {
+            ...webpackConfig.resolve.fallback,
+            module: false,
+            fs: false,
+            path: false,
+            os: false,
+            perf_hooks: false,
+          };
+        }
 
         webpackConfig.plugins.push(
           new DefinePlugin({

@@ -1,7 +1,9 @@
+import "@hashintel/petrinaut/dist/main.css";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import type { PetriNetDefinitionObject } from "@hashintel/petrinaut-old";
-import { defaultTokenTypes, Petrinaut } from "@hashintel/petrinaut-old";
+import type { SDCPN } from "@hashintel/petrinaut";
+import { Petrinaut } from "@hashintel/petrinaut";
 import { Box, Stack } from "@mui/material";
 import { produce } from "immer";
 import { useCallback, useMemo, useState } from "react";
@@ -15,22 +17,17 @@ import {
 export const ProcessEditorWrapper = () => {
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
   const [title, setTitle] = useState<string>("Process");
-  const [parentNet, setParentNet] = useState<{
-    parentNetId: EntityId;
-    title: string;
-  } | null>(null);
 
-  const [petriNetDefinition, setPetriNetDefinition] =
-    useState<PetriNetDefinitionObject>({
-      arcs: [],
-      nodes: [],
-      tokenTypes: defaultTokenTypes,
-    });
+  const [petriNetDefinition, setPetriNetDefinition] = useState<SDCPN>({
+    places: [],
+    transitions: [],
+    types: [],
+    differentialEquations: [],
+    parameters: [],
+  });
 
   const mutatePetriNetDefinition = useCallback(
-    (
-      mutationFn: (petriNetDefinition: PetriNetDefinitionObject) => undefined,
-    ) => {
+    (mutationFn: (petriNetDefinition: SDCPN) => void) => {
       setPetriNetDefinition((netDefinition) => {
         const updatedNetDefinition = produce(netDefinition, (draft) => {
           mutationFn(draft);
@@ -55,10 +52,8 @@ export const ProcessEditorWrapper = () => {
     userEditable,
     setUserEditable,
   } = useProcessSaveAndLoad({
-    parentNet,
     petriNet: petriNetDefinition,
     selectedNetId,
-    setParentNet,
     setPetriNet: setPetriNetDefinition,
     setSelectedNetId,
     setTitle,
@@ -70,17 +65,16 @@ export const ProcessEditorWrapper = () => {
       petriNetDefinition: newPetriNetDefinition,
       title: newTitle,
     }: {
-      petriNetDefinition: PetriNetDefinitionObject;
+      petriNetDefinition: SDCPN;
       title: string;
     }) => {
       setPetriNetDefinition(newPetriNetDefinition);
 
       setSelectedNetId(null);
-      setParentNet(null);
       setUserEditable(true);
       setTitle(newTitle);
     },
-    [setParentNet, setSelectedNetId, setUserEditable, setTitle],
+    [setSelectedNetId, setUserEditable, setTitle],
   );
 
   const loadNetFromId = useCallback(
@@ -100,7 +94,7 @@ export const ProcessEditorWrapper = () => {
     [isDirty, loadPersistedNet, persistedNets],
   );
 
-  const childProcessOptions = useMemo(() => {
+  const existingNetOptions = useMemo(() => {
     return persistedNets
       .filter((net) => net.userEditable && net.entityId !== selectedNetId)
       .map((net) => ({
@@ -140,13 +134,13 @@ export const ProcessEditorWrapper = () => {
       <Box sx={{ height: "100%" }}>
         <Petrinaut
           createNewNet={createNewNet}
-          existingNets={childProcessOptions}
+          existingNets={existingNetOptions}
           hideNetManagementControls={false}
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}
-          parentNet={parentNet}
           petriNetDefinition={petriNetDefinition}
           petriNetId={selectedNetId}
           mutatePetriNetDefinition={mutatePetriNetDefinition}
+          readonly={!userEditable}
           setTitle={setTitle}
           title={title}
         />
