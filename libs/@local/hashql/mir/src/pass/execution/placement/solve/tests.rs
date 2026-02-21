@@ -24,7 +24,8 @@ use crate::{
     error::MirDiagnosticCategory,
     intern::Interner,
     pass::execution::{
-        ApproxCost, Cost, StatementCostVec,
+        ApproxCost, Cost,
+        cost::StatementCostVec,
         placement::error::PlacementDiagnosticCategory,
         target::{TargetArray, TargetBitSet, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},

@@ -14,7 +14,7 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
+        cost::StatementCostVec,
         target::{TargetArray, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },

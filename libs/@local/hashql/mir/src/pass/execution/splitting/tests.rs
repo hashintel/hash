@@ -30,8 +30,7 @@ use crate::{
     context::MirContext,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
-        cost::Cost,
+        cost::{Cost, StatementCostVec},
         target::{TargetArray, TargetBitSet, TargetId},
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
