@@ -1,9 +1,16 @@
-import type { ActorEntityUuid, BaseUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
-import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
+import {
+  addActorGroupAdministrator,
+  updateWebShortname,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   enabledFeatureFlagsPropertyBaseUrl,
@@ -208,6 +215,12 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         context.graphApi,
         { actorId: systemAccountId },
         { actorId: user.accountId, actorGroupId: user.accountId },
+      );
+
+      await updateWebShortname(
+        context.graphApi,
+        { actorId: systemAccountId },
+        { webId: user.accountId as WebId, shortname: updatedShortname },
       );
     }
   };

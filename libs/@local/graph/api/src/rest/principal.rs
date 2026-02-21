@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use axum::{
     Extension, Router,
     extract::Path,
-    routing::{get, post},
+    routing::{get, post, put},
 };
 use hash_graph_authorization::policies::store::{
     CreateWebResponse, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
@@ -40,6 +40,7 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
 
         create_org_web,
         get_web_by_id,
+        update_web_shortname,
         get_web_by_shortname,
         get_web_roles,
         get_team_by_name,
@@ -69,6 +70,7 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
             TeamId,
             CreateOrgWebParams,
             CreateWebResponse,
+            UpdateWebShortnameParams,
 
             RoleName,
             RoleAssignmentStatus,
@@ -128,6 +130,7 @@ impl PrincipalResource {
                                 "/{web_id}",
                                 Router::new()
                                     .route("/", get(get_web_by_id::<S>))
+                                    .route("/shortname", put(update_web_shortname::<S>))
                                     .route("/roles", get(get_web_roles::<S>)),
                             )
                             .route("/shortname/{shortname}", get(get_web_by_shortname::<S>)),
@@ -397,6 +400,47 @@ where
         .await
         .map_err(report_to_response)
         .map(Json)
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateWebShortnameParams {
+    shortname: String,
+}
+
+#[utoipa::path(
+    put,
+    path = "/actor-groups/webs/{web_id}/shortname",
+    request_body = UpdateWebShortnameParams,
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("web_id" = WebId, Path, description = "The ID of the web to update"),
+    ),
+    responses(
+        (status = 200, description = "The web shortname was updated successfully"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn update_web_shortname<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(web_id): Path<WebId>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+    Json(params): Json<UpdateWebShortnameParams>,
+) -> Result<(), BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: PrincipalStore,
+{
+    store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?
+        .update_web_shortname(actor_id, web_id, &params.shortname)
+        .await
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
