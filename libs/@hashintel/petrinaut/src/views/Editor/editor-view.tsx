@@ -5,6 +5,7 @@ import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
+import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
@@ -206,6 +207,14 @@ export const EditorView = ({
                     label: "Satellites",
                     onClick: () => {
                       createNewNet(satellitesSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-probabilistic-satellites",
+                    label: "Probabilistic Satellites Launcher",
+                    onClick: () => {
+                      createNewNet(probabilisticSatellitesSDCPN);
                       clearSelection();
                     },
                   },
