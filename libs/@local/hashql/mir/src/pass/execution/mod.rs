@@ -4,6 +4,9 @@ macro_rules! cost {
     };
 }
 
+#[cfg(test)]
+mod tests;
+
 mod cost;
 pub mod fusion;
 pub mod island;
