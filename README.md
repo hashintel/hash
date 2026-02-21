@@ -240,7 +240,6 @@ This repository's contents is divided across several primary sections:
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](https://github.com/hashintel/hash/tree/main/apps#applications)
   - The HASH application itself is divided into various different services which can be found in this directory.
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](https://github.com/hashintel/hash/tree/main/blocks#blocks)
-- [**`/content`**](/content) contains our publicly-editable website [content](https://github.com/hashintel/hash/tree/main/content#content) (e.g. glossary definitions, user docs)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](https://github.com/hashintel/hash/tree/main/infra#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](https://github.com/hashintel/hash/tree/main/libs#libraries) including npm packages and Rust crates
 - [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
