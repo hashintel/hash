@@ -1,0 +1,24 @@
+[package]
+name              = "darwin-kperf-events"
+version           = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+publish           = true
+description       = "Apple Silicon PMU event definitions for darwin-kperf"
+documentation     = "https://docs.rs/darwin-kperf-events"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf/events"
+keywords          = ["macos", "kperf", "performance-counters", "apple-silicon", "pmu"]
+categories        = ["os::macos-apis"]
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+
+[lints]
+workspace = true

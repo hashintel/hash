@@ -27,7 +27,7 @@ hash-telemetry                 = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies
-criterion       = { workspace = true, features = ["async_tokio", "html_reports"] }
+criterion       = { workspace = true, default-features = true, features = ["async_tokio", "html_reports"] }
 criterion-macro = { workspace = true }
 derive_more     = { workspace = true, features = ["display"] }
 either          = { workspace = true }

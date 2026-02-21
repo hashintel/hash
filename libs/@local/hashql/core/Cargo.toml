@@ -46,6 +46,7 @@ workspace = true
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 insta                     = { workspace = true }
 proptest                  = { workspace = true }
 rstest                    = { workspace = true }

@@ -24,8 +24,12 @@ graph TD
     12[<a href="../hashql_hir/index.html">hashql-hir</a>]
     13[<a href="../hashql_mir/index.html">hashql-mir</a>]
     14[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    15[<a href="../error_stack/index.html">error-stack</a>]
-    16[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    15[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    16[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    17[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    18[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    19[<a href="../error_stack/index.html">error-stack</a>]
+    20[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
     0 --> 4
     1 -.-> 2
     1 --> 6
@@ -34,17 +38,21 @@ graph TD
     4 --> 3
     6 -.-> 5
     6 --> 5
-    6 --> 15
+    6 --> 19
     7 -.-> 8
     8 --> 11
     8 --> 13
     8 --> 14
-    8 --> 15
+    8 --> 19
     9 --> 1
     9 --> 10
+    9 -.-> 16
     11 --> 12
     12 -.-> 8
     13 --> 12
     14 --> 7
     14 --> 9
-    16 -.-> 3
+    15 --> 17
+    15 --> 18
+    16 --> 15
+    20 -.-> 3

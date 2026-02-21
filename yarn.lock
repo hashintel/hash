@@ -14478,6 +14478,42 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/darwin-kperf-codegen@workspace:libs/darwin-kperf/codegen":
+  version: 0.0.0-use.local
+  resolution: "@rust/darwin-kperf-codegen@workspace:libs/darwin-kperf/codegen"
+  languageName: unknown
+  linkType: soft
+
+"@rust/darwin-kperf-criterion@workspace:*, @rust/darwin-kperf-criterion@workspace:libs/darwin-kperf/criterion":
+  version: 0.0.0-use.local
+  resolution: "@rust/darwin-kperf-criterion@workspace:libs/darwin-kperf/criterion"
+  dependencies:
+    "@rust/darwin-kperf": "workspace:*"
+    "@rust/darwin-kperf-events": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@rust/darwin-kperf-events@workspace:*, @rust/darwin-kperf-events@workspace:libs/darwin-kperf/events":
+  version: 0.0.0-use.local
+  resolution: "@rust/darwin-kperf-events@workspace:libs/darwin-kperf/events"
+  languageName: unknown
+  linkType: soft
+
+"@rust/darwin-kperf-sys@workspace:*, @rust/darwin-kperf-sys@workspace:libs/darwin-kperf/sys":
+  version: 0.0.0-use.local
+  resolution: "@rust/darwin-kperf-sys@workspace:libs/darwin-kperf/sys"
+  languageName: unknown
+  linkType: soft
+
+"@rust/darwin-kperf@workspace:*, @rust/darwin-kperf@workspace:libs/darwin-kperf":
+  version: 0.0.0-use.local
+  resolution: "@rust/darwin-kperf@workspace:libs/darwin-kperf"
+  dependencies:
+    "@rust/darwin-kperf-events": "workspace:*"
+    "@rust/darwin-kperf-sys": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
 "@rust/error-stack-macros@workspace:*, @rust/error-stack-macros@workspace:libs/error-stack/macros":
   version: 0.0.0-use.local
   resolution: "@rust/error-stack-macros@workspace:libs/error-stack/macros"
@@ -14885,6 +14921,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hashql-core@workspace:libs/@local/hashql/core"
   dependencies:
+    "@rust/darwin-kperf-criterion": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hashql-diagnostics": "workspace:*"
   languageName: unknown
