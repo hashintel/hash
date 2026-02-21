@@ -1,3 +1,4 @@
+// Vendored in from the std
 use core::{
     fmt::{self, Debug},
     mem::ManuallyDrop,
