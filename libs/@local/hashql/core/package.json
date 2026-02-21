@@ -9,7 +9,7 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:codspeed": "cargo codspeed run -p hashql-core",
-    "test:miri": "cargo miri nextest run -- co_sort try_scan heap::transfer stable_empty_slice id::slice tarjan::tests::members symbol",
+    "test:miri": "cargo miri nextest run -- co_sort try_scan heap::transfer stable_empty_slice id::slice tarjan::tests::members tarjan::tests::bump_members symbol",
     "test:unit": "mise run test:unit @rust/hashql-core"
   },
   "dependencies": {

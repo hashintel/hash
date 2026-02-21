@@ -38,6 +38,13 @@ pub struct IdVec<I, T, A: Allocator = Global> {
     pub(crate) raw: Vec<T, A>,
 }
 
+impl<I, T, A: Allocator> IdVec<I, T, A> {
+    #[inline]
+    pub fn allocator(&self) -> &A {
+        self.raw.allocator()
+    }
+}
+
 #[coverage(off)] // reason: trivial implementation
 impl<I, T> IdVec<I, T, Global>
 where

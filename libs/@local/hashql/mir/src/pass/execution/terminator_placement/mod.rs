@@ -149,6 +149,12 @@ impl TransMatrix {
         self.matrix[Self::offset(from, to)]
     }
 
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, from: TargetId, to: TargetId) -> bool {
+        self.matrix[Self::offset(from, to)].is_some()
+    }
+
     /// Returns a mutable reference to the cost entry for the given transition.
     ///
     /// ```
@@ -277,6 +283,17 @@ impl TransMatrix {
         }
     }
 
+    #[inline]
+    pub fn keep(&mut self, sources: TargetBitSet, targets: TargetBitSet) {
+        for source in TargetId::all() {
+            for target in TargetId::all() {
+                if !sources.contains(source) || !targets.contains(target) {
+                    self.matrix[Self::offset(source, target)] = None;
+                }
+            }
+        }
+    }
+
     /// Removes all transitions both to and from `target`.
     ///
     /// ```
@@ -329,6 +346,18 @@ impl TransMatrix {
             (from, to, cost)
         })
     }
+
+    pub fn outgoing(&self, target: TargetId) -> impl Iterator<Item = (TargetId, Cost)> {
+        self.iter()
+            .filter_map(|(from, to, cost)| cost.map(|cost| (from, to, cost)))
+            .filter_map(move |(from, to, cost)| (target == from).then_some((to, cost)))
+    }
+
+    pub fn incoming(&self, target: TargetId) -> impl Iterator<Item = (TargetId, Cost)> {
+        self.iter()
+            .filter_map(|(from, to, cost)| cost.map(|cost| (from, to, cost)))
+            .filter_map(move |(from, to, cost)| (target == to).then_some((from, cost)))
+    }
 }
 
 impl Default for TransMatrix {
@@ -367,6 +396,7 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
 /// [`SwitchInt`]: TerminatorKind::SwitchInt
 /// [`Return`]: TerminatorKind::Return
 /// [`Unreachable`]: TerminatorKind::Unreachable
+#[derive(Debug)]
 pub struct TerminatorCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     matrices: Vec<TransMatrix, A>,
@@ -424,6 +454,14 @@ impl<A: Allocator> TerminatorCostVec<A> {
             TerminatorKind::Goto(_) | TerminatorKind::GraphRead(_) => 1,
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => 0,
         }
+    }
+
+    pub const fn len(&self) -> usize {
+        self.matrices.len()
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns the transition matrices for all successor edges of `block`.
@@ -719,7 +757,7 @@ impl<A: Allocator> TerminatorPlacement<A> {
                 return Cost::MAX;
             };
 
-            total = total.saturating_add(size_estimate.as_u32());
+            total = total.saturating_add(Cost::new_saturating(size_estimate.as_u32()));
         }
 
         total

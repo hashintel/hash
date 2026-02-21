@@ -34,6 +34,7 @@ macro_rules! for_both {
 
 // We could also contemplate implementing more API surface of iterator, but this should be
 // sufficient for now
+#[derive(Clone)]
 enum EitherIter<L, R> {
     Left(L),
     Right(R),
@@ -178,7 +179,7 @@ impl<'heap> TerminatorKind<'heap> {
     #[must_use]
     pub fn successor_blocks(
         &self,
-    ) -> impl DoubleEndedIterator<Item = BasicBlockId> + ExactSizeIterator {
+    ) -> impl DoubleEndedIterator<Item = BasicBlockId> + ExactSizeIterator + Clone {
         match self {
             Self::Goto(goto) => EitherIter::Left(iter::once(goto.target.block)),
             Self::SwitchInt(switch) => EitherIter::Right(EitherIter::Left(

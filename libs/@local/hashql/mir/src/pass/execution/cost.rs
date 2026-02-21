@@ -6,9 +6,11 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    fmt, iter,
-    ops::{Index, IndexMut},
+    fmt,
+    iter::{self, Sum},
+    ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
 };
+use std::f32;
 
 use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
@@ -20,6 +22,7 @@ use crate::{
         local::{Local, LocalVec},
         location::Location,
     },
+    macros::{forward_ref_binop, forward_ref_op_assign},
     pass::transform::Traversals,
 };
 
@@ -49,6 +52,10 @@ impl Cost {
         Some(cost) => Self(cost),
         None => unreachable!(),
     };
+    pub const MIN: Self = match core::num::niche_types::U32NotAllOnes::new(0) {
+        Some(cost) => Self(cost),
+        None => unreachable!(),
+    };
 
     /// Creates a cost from a `u32` value, returning `None` if the value is `u32::MAX`.
     ///
@@ -60,11 +67,21 @@ impl Cost {
     /// assert!(Cost::new(100).is_some());
     /// assert!(Cost::new(u32::MAX).is_none()); // Reserved for niche
     /// ```
+    #[inline]
     #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
         match core::num::niche_types::U32NotAllOnes::new(value) {
             Some(cost) => Some(Self(cost)),
             None => None,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn new_saturating(value: u32) -> Self {
+        match Self::new(value) {
+            Some(cost) => cost,
+            None => Self::MAX,
         }
     }
 
@@ -91,28 +108,203 @@ impl Cost {
     }
 
     /// Adds `other` to this cost, saturating at [`Cost::MAX`] on overflow.
-    ///
-    /// ```
-    /// # use hashql_mir::pass::execution::Cost;
-    /// let cost = Cost::new(100).unwrap();
-    /// assert_eq!(cost.saturating_add(50), Cost::new(150).unwrap());
-    ///
-    /// // Saturates at MAX instead of overflowing
-    /// let large = Cost::new(u32::MAX - 10).unwrap();
-    /// assert_eq!(large.saturating_add(100), Cost::MAX);
-    /// ```
     #[inline]
     #[must_use]
-    pub fn saturating_add(self, other: u32) -> Self {
+    pub const fn saturating_add(self, other: Self) -> Self {
         let raw = self.0.as_inner();
 
-        Self::new(raw.saturating_add(other)).unwrap_or(Self::MAX)
+        Self::new_saturating(raw.saturating_add(other.0.as_inner()))
+    }
+
+    #[expect(clippy::cast_precision_loss)]
+    #[inline]
+    #[must_use]
+    pub const fn as_approx(self) -> ApproxCost {
+        ApproxCost(self.0.as_inner() as f32)
     }
 }
 
 impl fmt::Display for Cost {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0.as_inner(), fmt)
+    }
+}
+
+/// Approximate execution cost as a floating-point value.
+///
+/// Guarantees the inner value is never NaN, which makes the type totally ordered ([`Eq`] +
+/// [`Ord`]). Used when exact integer costs are unnecessary or when operations like averaging,
+/// weighting, or normalization produce fractional results. Supports accumulation via [`Add`],
+/// [`AddAssign`], and [`Sum`].
+///
+/// Created from a [`Cost`] via [`From`]:
+///
+/// ```
+/// # use hashql_mir::pass::execution::{Cost, ApproxCost};
+/// let cost = Cost::new(42).unwrap();
+/// let approx = ApproxCost::from(cost);
+/// ```
+#[derive(Debug, Clone, Copy)]
+#[repr(transparent)]
+pub struct ApproxCost(f32);
+
+impl ApproxCost {
+    pub const INF: Self = Self(f32::INFINITY);
+    /// An approximate cost of zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Creates an approximate cost from an `f32`, returning `None` if the value is NaN.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::ApproxCost;
+    /// assert!(ApproxCost::new(1.5).is_some());
+    /// assert!(ApproxCost::new(f32::NAN).is_none());
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f32) -> Option<Self> {
+        if value.is_nan() {
+            None
+        } else {
+            Some(Self(value))
+        }
+    }
+
+    /// Returns the inner `f32` value.
+    #[inline]
+    #[must_use]
+    pub const fn as_f32(self) -> f32 {
+        self.0
+    }
+
+    /// Returns `true` if the cost is infinite.
+    #[inline]
+    #[must_use]
+    pub const fn is_infinite(self) -> bool {
+        self.0.is_infinite()
+    }
+
+    /// Returns `true` if the cost is finite.
+    #[inline]
+    #[must_use]
+    pub const fn is_finite(self) -> bool {
+        self.0.is_finite()
+    }
+
+    /// Compute the absolute difference between this cost and another.
+    #[inline]
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub const fn abs_diff(self, other: Self) -> f32 {
+        (self.0 - other.0).abs()
+    }
+}
+
+impl Eq for ApproxCost {}
+
+impl PartialEq for ApproxCost {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl Ord for ApproxCost {
+    #[inline]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+
+impl PartialOrd for ApproxCost {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl From<Cost> for ApproxCost {
+    #[inline]
+    fn from(cost: Cost) -> Self {
+        #[expect(clippy::cast_precision_loss)]
+        Self(cost.0.as_inner() as f32)
+    }
+}
+
+impl fmt::Display for ApproxCost {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Add<Self> for ApproxCost {
+    type Output = Self;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.0 + rhs.0).expect("Operation on two NotNan resulted in NaN")
+    }
+}
+
+impl Mul<f32> for ApproxCost {
+    type Output = Self;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn mul(self, rhs: f32) -> Self {
+        Self::new(self.0 * rhs).expect("Operation resulted in NaN")
+    }
+}
+
+impl Add<Cost> for ApproxCost {
+    type Output = Self;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+    fn add(self, rhs: Cost) -> Self {
+        Self(self.0 + rhs.0.as_inner() as f32)
+    }
+}
+
+impl AddAssign<Self> for ApproxCost {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl AddAssign<Cost> for ApproxCost {
+    #[inline]
+    #[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+    fn add_assign(&mut self, rhs: Cost) {
+        self.0 += rhs.0.as_inner() as f32;
+    }
+}
+
+impl MulAssign<f32> for ApproxCost {
+    #[inline]
+    fn mul_assign(&mut self, rhs: f32) {
+        *self = *self * rhs;
+    }
+}
+
+forward_ref_binop!(impl Add<Self>::add for ApproxCost);
+forward_ref_binop!(impl Add<Cost>::add for ApproxCost);
+forward_ref_binop!(impl Mul<f32>::mul for ApproxCost);
+forward_ref_op_assign!(impl AddAssign<Self>::add_assign for ApproxCost);
+forward_ref_op_assign!(impl AddAssign<Cost>::add_assign for ApproxCost);
+forward_ref_op_assign!(impl MulAssign<f32>::mul_assign for ApproxCost);
+
+impl Sum for ApproxCost {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, Add::add)
+    }
+}
+
+impl Sum<Cost> for ApproxCost {
+    fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, Add::add)
     }
 }
 
@@ -171,8 +363,7 @@ impl<A: Allocator> IntoIterator for &TraversalCostVec<A> {
 /// Stores the execution cost for every statement, indexed by [`Location`]. A `None` cost
 /// indicates the target cannot execute that statement. The execution planner compares costs
 /// across targets to determine the optimal execution strategy.
-///
-/// Internally uses a flattened representation with per-block offsets for efficient indexing.
+#[derive(Debug)]
 pub struct StatementCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     costs: Vec<Option<Cost>, A>,
@@ -262,6 +453,10 @@ impl<A: Allocator> StatementCostVec<A> {
         let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
 
         &self.costs[range]
+    }
+
+    pub fn sum_approx(&self, block: BasicBlockId) -> ApproxCost {
+        self.of(block).iter().copied().flatten().sum()
     }
 
     /// Returns a reference to the allocator used by this cost vector.

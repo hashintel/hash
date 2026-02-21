@@ -48,7 +48,10 @@
 //! ```
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, ops::Index};
+use core::{
+    alloc::Allocator,
+    ops::{Index, IndexMut},
+};
 
 use super::{
     DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
@@ -263,6 +266,16 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         Self {
             nodes: IdVec::new_in(alloc.clone()),
             edges: IdVec::new_in(alloc),
+        }
+    }
+
+    pub fn with_capacity_in(num_nodes: usize, num_edges: usize, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        Self {
+            nodes: IdVec::with_capacity_in(num_nodes, alloc.clone()),
+            edges: IdVec::with_capacity_in(num_edges, alloc),
         }
     }
 
@@ -528,11 +541,23 @@ impl<N, E> Default for LinkedGraph<N, E> {
     }
 }
 
+impl<N, E, A: Allocator> IndexMut<NodeId> for LinkedGraph<N, E, A> {
+    fn index_mut(&mut self, index: NodeId) -> &mut Self::Output {
+        &mut self.nodes[index]
+    }
+}
+
 impl<N, E, A: Allocator> Index<NodeId> for LinkedGraph<N, E, A> {
     type Output = Node<N>;
 
     fn index(&self, index: NodeId) -> &Self::Output {
         &self.nodes[index]
+    }
+}
+
+impl<N, E, A: Allocator> IndexMut<EdgeId> for LinkedGraph<N, E, A> {
+    fn index_mut(&mut self, index: EdgeId) -> &mut Self::Output {
+        &mut self.edges[index]
     }
 }
 
