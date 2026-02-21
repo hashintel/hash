@@ -33,7 +33,6 @@ export function isDistribution(value: unknown): value is RuntimeDistribution {
     typeof value === "object" &&
     value !== null &&
     "__brand" in value &&
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (value as Record<string, unknown>).__brand === "distribution"
   );
 }
@@ -105,6 +104,7 @@ export function sampleDistribution(
     }
   }
 
+  // eslint-disable-next-line no-param-reassign -- intentional: cache sampled value for coherent .map() siblings
   distribution.sampledValue = value;
   return [value, nextRng];
 }

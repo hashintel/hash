@@ -256,20 +256,24 @@ export function computePossibleTransition(
 
         // Convert token objects back to number arrays in correct order,
         // sampling any Distribution values using the RNG
-        const tokenArrays = outputTokens.map((token) => {
-          return type.elements.map((element) => {
-            const value = token[element.name]!;
-            if (isDistribution(value)) {
+        const tokenArrays: number[][] = [];
+        for (const token of outputTokens) {
+          const values: number[] = [];
+          for (const element of type.elements) {
+            const raw = token[element.name]!;
+            if (isDistribution(raw)) {
               const [sampled, nextRng] = sampleDistribution(
-                value,
+                raw,
                 currentRngState,
               );
               currentRngState = nextRng;
-              return sampled;
+              values.push(sampled);
+            } else {
+              values.push(raw);
             }
-            return value;
-          });
-        });
+          }
+          tokenArrays.push(values);
+        }
 
         addMap[outputArc.placeId] = tokenArrays;
       }
