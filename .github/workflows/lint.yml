@@ -122,8 +122,48 @@ jobs:
         run: df -h
 
       - name: Run ESLint
+        id: eslint
         if: always() && steps.lints.outputs.eslint == 'true'
-        run: turbo run lint:eslint --filter "${{ matrix.name }}"
+        run: |
+          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
+            # merge_group: fix first, then check
+            turbo run fix:eslint --filter "${{ matrix.name }}" || true
+            if ! turbo run lint:eslint --filter "${{ matrix.name }}"; then
+              echo '::error::ESLint failed even after auto-fix on merge_group for ${{ matrix.name }}.'
+              echo '## ❌ ESLint (${{ matrix.name }})' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fix was applied but non-fixable ESLint issues remain.' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+            # Check if fix changed anything
+            if ! git diff --quiet; then
+              echo '## ⚠️ ESLint (${{ matrix.name }})' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fixable ESLint issues were found and fixed in merge queue.' >> $GITHUB_STEP_SUMMARY
+              echo 'Note: ESLint fixes in the package job cannot be committed from here.' >> $GITHUB_STEP_SUMMARY
+              echo 'The merge-queue ref may need a separate mechanism to persist these fixes.' >> $GITHUB_STEP_SUMMARY
+              echo '::warning::ESLint auto-fixes were applied for ${{ matrix.name }} but cannot be committed from the package job. Consider running fix:eslint on the PR branch before merge queue entry.'
+            fi
+          else
+            # pull_request / push: check first, auto-fix if needed
+            if ! turbo run lint:eslint --filter "${{ matrix.name }}"; then
+              echo '::notice::ESLint check failed for ${{ matrix.name }} — attempting auto-fix...'
+              turbo run fix:eslint --filter "${{ matrix.name }}" || true
+              if turbo run lint:eslint --filter "${{ matrix.name }}"; then
+                echo '## ⚠️ ESLint (${{ matrix.name }}) (auto-fixed)' >> $GITHUB_STEP_SUMMARY
+                echo 'CI detected fixable ESLint issues that were auto-resolved.' >> $GITHUB_STEP_SUMMARY
+                echo 'Please run `turbo run fix:eslint --filter "${{ matrix.name }}"` locally and commit the changes.' >> $GITHUB_STEP_SUMMARY
+                # Restore working tree so subsequent steps are not affected
+                git checkout -- .
+              else
+                echo ''
+                echo ''
+                echo 'ℹ️ ℹ️ ℹ️'
+                echo 'ESLint has non-fixable errors for ${{ matrix.name }}. Try running `turbo run fix:eslint --filter "${{ matrix.name }}"` locally to apply autofixes, then fix remaining issues manually.'
+                echo 'ℹ️ ℹ️ ℹ️'
+                git checkout -- .
+                exit 1
+              fi
+            fi
+          fi
 
       - name: Run TSC
         if: always() && steps.lints.outputs.tsc == 'true'
@@ -183,13 +223,15 @@ jobs:
     name: Global
     permissions:
       id-token: write
-      contents: read
+      contents: write
       checks: write
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean up disk
         uses: ./.github/actions/clean-up-disk
@@ -243,27 +285,134 @@ jobs:
           fi
 
       - name: Run yarn lint:markdownlint
+        id: markdownlint
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:markdownlint; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:markdownlint` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
+          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
+            # merge_group: fix first, then check
+            yarn fix:markdownlint || true
+            if ! yarn lint:markdownlint; then
+              echo '::error::markdownlint failed even after auto-fix on merge_group.'
+              echo '## ❌ markdownlint' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fix was applied but non-fixable issues remain.' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+            # Check if fix changed anything
+            if ! git diff --quiet; then
+              echo "MARKDOWNLINT_FIXED=true" >> $GITHUB_ENV
+              echo '## ⚠️ markdownlint' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fixable markdownlint issues were found and fixed in merge queue.' >> $GITHUB_STEP_SUMMARY
+              echo 'These fixes need to be committed to the merge-queue ref.' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            # pull_request / push: check first, auto-fix if needed
+            if ! yarn lint:markdownlint; then
+              echo '::notice::markdownlint check failed — attempting auto-fix...'
+              yarn fix:markdownlint || true
+              if yarn lint:markdownlint; then
+                echo '## ⚠️ markdownlint (auto-fixed)' >> $GITHUB_STEP_SUMMARY
+                echo 'CI detected fixable markdownlint issues that were auto-resolved.' >> $GITHUB_STEP_SUMMARY
+                echo 'Please run `yarn fix:markdownlint` locally and commit the changes.' >> $GITHUB_STEP_SUMMARY
+                # Restore working tree so subsequent steps are not affected
+                git checkout -- .
+              else
+                echo ''
+                echo ''
+                echo 'ℹ️ ℹ️ ℹ️'
+                echo 'markdownlint has non-fixable errors. Try running `yarn fix:markdownlint` locally to apply autofixes, then fix remaining issues manually.'
+                echo 'ℹ️ ℹ️ ℹ️'
+                git checkout -- .
+                exit 1
+              fi
+            fi
           fi
 
       - name: Run yarn lint:format
+        id: biome_format
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:format; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:format` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
+          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
+            # merge_group: fix first, then check
+            yarn fix:format || true
+            if ! yarn lint:format; then
+              echo '::error::Biome format check failed even after auto-fix on merge_group.'
+              echo '## ❌ Biome format' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fix was applied but non-fixable formatting issues remain.' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+            # Check if fix changed anything
+            if ! git diff --quiet; then
+              echo "BIOME_FORMAT_FIXED=true" >> $GITHUB_ENV
+              echo '## ⚠️ Biome format' >> $GITHUB_STEP_SUMMARY
+              echo 'Auto-fixable formatting issues were found and fixed in merge queue.' >> $GITHUB_STEP_SUMMARY
+              echo 'These fixes need to be committed to the merge-queue ref.' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            # pull_request / push: check first, auto-fix if needed
+            if ! yarn lint:format; then
+              echo '::notice::Biome format check failed — attempting auto-fix...'
+              yarn fix:format || true
+              if yarn lint:format; then
+                echo '## ⚠️ Biome format (auto-fixed)' >> $GITHUB_STEP_SUMMARY
+                echo 'CI detected fixable formatting issues that were auto-resolved.' >> $GITHUB_STEP_SUMMARY
+                echo 'Please run `yarn fix:format` locally and commit the changes.' >> $GITHUB_STEP_SUMMARY
+                # Restore working tree so subsequent steps are not affected
+                git checkout -- .
+              else
+                echo ''
+                echo ''
+                echo 'ℹ️ ℹ️ ℹ️'
+                echo 'Biome format has non-fixable errors. Try running `yarn fix:format` locally to apply autofixes, then fix remaining issues manually.'
+                echo 'ℹ️ ℹ️ ℹ️'
+                git checkout -- .
+                exit 1
+              fi
+            fi
+          fi
+
+      - name: Commit and push auto-fixes (merge_group)
+        if: ${{ github.event_name == 'merge_group' && (env.MARKDOWNLINT_FIXED == 'true' || env.BIOME_FORMAT_FIXED == 'true') }}
+        run: |
+          echo '## 🔧 Merge Queue Auto-Fix Commit Attempt' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          # Detect the merge-queue ref
+          MERGE_REF="${{ github.ref }}"
+          echo "Merge queue ref: $MERGE_REF"
+
+          # Configure git for the commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git diff --cached --stat
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit after auto-fix (unexpected)."
+            echo 'No changes detected after auto-fix — skipping commit.' >> $GITHUB_STEP_SUMMARY
+          else
+            git commit -m "ci: auto-fix markdownlint/biome formatting issues [merge-queue]"
+
+            # Attempt to push — this may fail if the merge-queue ref is read-only
+            if git push origin HEAD:"$MERGE_REF" 2>&1; then
+              echo '✅ Auto-fix commit pushed to merge-queue ref successfully.' >> $GITHUB_STEP_SUMMARY
+            else
+              echo ''
+              echo '::warning::Could not push auto-fix commit to merge-queue ref.'
+              echo 'This is expected — GitHub merge queue refs may be read-only.'
+              echo 'The fixes were applied and checks passed, but the commit could not be persisted.'
+              echo '' >> $GITHUB_STEP_SUMMARY
+              echo '⚠️ **Could not push auto-fix commit to merge-queue ref.**' >> $GITHUB_STEP_SUMMARY
+              echo 'GitHub merge queue refs are typically read-only. The auto-fixes were applied' >> $GITHUB_STEP_SUMMARY
+              echo 'and all checks passed in the fixed state, but the commit could not be persisted.' >> $GITHUB_STEP_SUMMARY
+              echo '' >> $GITHUB_STEP_SUMMARY
+              echo '**Feasibility note:** To persist auto-fixes in merge queue, consider:' >> $GITHUB_STEP_SUMMARY
+              echo '1. Using a GitHub App token with `contents: write` permission' >> $GITHUB_STEP_SUMMARY
+              echo '2. Pushing fixes to the source branch before merge queue entry' >> $GITHUB_STEP_SUMMARY
+              echo '3. Using a pre-merge-queue workflow that applies fixes to the PR branch' >> $GITHUB_STEP_SUMMARY
+              # Fail so the team can evaluate feasibility
+              exit 1
+            fi
           fi
 
       - name: Run yarn lint:package-json
