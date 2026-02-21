@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/tests.rs
+expression: output
+---
+Assignment:
+  bb0: postgres
+  bb1: interpreter
+
+Islands:
+  0: target=postgres, blocks=[BasicBlockId(0)]
+  1: target=interpreter, blocks=[BasicBlockId(1)]
