@@ -11,8 +11,6 @@
 
 use core::alloc::Allocator;
 
-use hashql_core::heap::Heap;
-
 #[cfg(test)]
 mod tests;
 
@@ -26,7 +24,7 @@ pub use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::target::ExecutionTarget;
+use super::target::TargetId;
 use crate::{
     body::Body,
     context::MirContext,
@@ -47,7 +45,7 @@ use crate::{
 /// - Whether operands flow through supported paths to reach return blocks
 /// - Special handling for entity field projections based on storage location
 pub trait StatementPlacement<'heap, A: Allocator> {
-    type Target: ExecutionTarget;
+    fn target(&self) -> TargetId;
 
     /// Computes placement costs for `body`.
     ///
@@ -56,11 +54,61 @@ pub trait StatementPlacement<'heap, A: Allocator> {
     /// - Statement costs: For all statements in the body
     ///
     /// A `None` cost means the target cannot execute that statement/traversal.
-    fn statement_placement(
+    fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
         alloc: A,
-    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>);
+    ) -> (TraversalCostVec<A>, StatementCostVec<A>);
+}
+
+pub enum TargetPlacementStatement<'heap, S: Allocator> {
+    Interpreter(InterpreterStatementPlacement),
+    Postgres(PostgresStatementPlacement<'heap, S>),
+    Embedding(EmbeddingStatementPlacement<S>),
+}
+
+impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
+    #[must_use]
+    pub fn new_in(target: TargetId, scratch: S) -> Self {
+        match target {
+            TargetId::Interpreter => Self::Interpreter(InterpreterStatementPlacement::default()),
+            TargetId::Postgres => Self::Postgres(PostgresStatementPlacement::new_in(scratch)),
+            TargetId::Embedding => Self::Embedding(EmbeddingStatementPlacement::new_in(scratch)),
+        }
+    }
+}
+
+impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
+    for TargetPlacementStatement<'heap, S>
+{
+    #[inline]
+    fn target(&self) -> TargetId {
+        match self {
+            Self::Interpreter(_) => TargetId::Interpreter,
+            Self::Postgres(_) => TargetId::Postgres,
+            Self::Embedding(_) => TargetId::Embedding,
+        }
+    }
+
+    fn statement_placement_in(
+        &mut self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        traversals: &Traversals<'heap>,
+        alloc: A,
+    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+        match self {
+            TargetPlacementStatement::Interpreter(placement) => {
+                placement.statement_placement_in(context, body, traversals, alloc)
+            }
+            TargetPlacementStatement::Postgres(placement) => {
+                placement.statement_placement_in(context, body, traversals, alloc)
+            }
+            TargetPlacementStatement::Embedding(placement) => {
+                placement.statement_placement_in(context, body, traversals, alloc)
+            }
+        }
+    }
 }

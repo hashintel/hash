@@ -66,7 +66,7 @@ fn narrow_restricts_successor_domain() {
 
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0, I->P = 0];
@@ -117,7 +117,7 @@ fn narrow_restricts_predecessor_domain() {
 
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
@@ -169,7 +169,7 @@ fn narrow_to_empty_domain() {
 
     let domains = [target_set(&[I]), target_set(&[P]), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
@@ -219,7 +219,7 @@ fn narrow_multiple_edges_intersect() {
 
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
@@ -282,7 +282,7 @@ fn replay_narrowing_resets_then_repropagates() {
 
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0, I->P = 0, P->E = 0];
@@ -354,7 +354,7 @@ fn lower_bound_min_statement_cost_per_block() {
         all_targets(),
     ];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb1: I=10, P=20; bb2: I=5, P=15
     stmt_costs! { statements;
@@ -416,7 +416,7 @@ fn lower_bound_min_transition_cost_per_edge() {
         all_targets(),
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -469,7 +469,7 @@ fn lower_bound_skips_self_loop_edges() {
 
     let domains = [target_set(&[I, P]), target_set(&[I, P]), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -525,7 +525,7 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
         all_targets(),
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -579,7 +579,7 @@ fn lower_bound_all_fixed_returns_zero() {
 
     let domains = [target_set(&[I, P]), target_set(&[I, P]), all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     stmt_costs! { statements;
         bb(0): I = 10;
         bb(1): I = 5
@@ -639,7 +639,7 @@ fn mrv_selects_smallest_domain() {
         all_targets(),
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
@@ -689,7 +689,7 @@ fn mrv_tiebreak_by_constraint_degree() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, ip, all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
@@ -744,7 +744,7 @@ fn mrv_skips_fixed_blocks() {
         all_targets(),
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
@@ -796,7 +796,7 @@ fn greedy_solves_two_block_loop() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0: I=8, P=3; bb1: I=8, P=3
     stmt_costs! { statements;
@@ -856,7 +856,7 @@ fn greedy_rollback_finds_alternative() {
         all_targets(),
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -915,7 +915,7 @@ fn greedy_fails_when_infeasible() {
 
     let domains = [target_set(&[I]), target_set(&[P]), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -964,7 +964,7 @@ fn bnb_finds_optimal() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0: I=10, P=2; bb1: I=1, P=50; bb2: I=1, P=50
     stmt_costs! { statements;
@@ -1023,7 +1023,7 @@ fn bnb_retains_ranked_solutions() {
 
     let domains = [all_targets(), all_targets(), all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0: I=5, P=10, E=15; bb1: I=5, P=10, E=15
     stmt_costs! { statements;
@@ -1096,7 +1096,7 @@ fn bnb_pruning_preserves_optimal() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // All blocks: I=1, P=1
     stmt_costs! { statements;
@@ -1157,7 +1157,7 @@ fn retry_returns_ranked_solutions_in_order() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0: I=1, P=2; bb1: I=1, P=2
     stmt_costs! { statements;
@@ -1229,7 +1229,7 @@ fn retry_exhausts_then_perturbs() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(0): I = 1, P = 2;
@@ -1294,7 +1294,7 @@ fn greedy_rollback_on_empty_heap() {
     let ip = target_set(&[I, P]);
     let domains = [ip, ip, all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0: I=0 (cheap, picked first), P=5 (fallback after rollback)
     stmt_costs! { statements;
@@ -1366,7 +1366,7 @@ fn retry_perturbation_after_ranked_exhaustion() {
 
     let domains = [all_targets(), all_targets(), all_targets()];
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // Distinct costs so BnB ordering is deterministic
     stmt_costs! { statements;
