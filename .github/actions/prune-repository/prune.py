@@ -167,7 +167,7 @@ def stub_missing_members(*, dry_run: bool = False) -> None:
         src_dir = out_dir / "src"
 
         src_dir.mkdir(parents=True, exist_ok=True)
-        (src_dir / "lib.rs").write_text("")
+        (src_dir / "lib.rs").write_text("\n")
         out_cargo.write_text(f'[package]\nname = "{name}"\nedition.workspace = true\n')
 
 
