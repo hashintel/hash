@@ -1,6 +1,8 @@
 //! Tests for [`InterpreterStatementPlacement`].
 #![expect(clippy::min_ident_chars)]
 
+use alloc::alloc::Global;
+
 use hashql_core::{heap::Heap, symbol::sym, r#type::environment::Environment};
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -9,9 +11,12 @@ use crate::{
     context::MirContext,
     def::DefId,
     intern::Interner,
-    pass::execution::statement_placement::{
-        InterpreterStatementPlacement,
-        tests::{assert_placement, run_placement},
+    pass::execution::{
+        statement_placement::{
+            InterpreterStatementPlacement,
+            tests::{assert_placement, run_placement},
+        },
+        target::TargetArray,
     },
 };
 
@@ -58,7 +63,9 @@ fn all_statements_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::default();
+    let traversal_costs = TargetArray::from_fn(|_| None);
+    let mut placement: InterpreterStatementPlacement<'_, Global> =
+        InterpreterStatementPlacement::new(&traversal_costs);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -104,7 +111,9 @@ fn storage_statements_zero_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::default();
+    let traversal_costs = TargetArray::from_fn(|_| None);
+    let mut placement: InterpreterStatementPlacement<'_, Global> =
+        InterpreterStatementPlacement::new(&traversal_costs);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 

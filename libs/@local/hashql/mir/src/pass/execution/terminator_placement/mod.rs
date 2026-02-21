@@ -62,7 +62,6 @@ use crate::{
         local::Local,
         terminator::TerminatorKind,
     },
-    context::MirContext,
     pass::{
         analysis::{
             dataflow::{

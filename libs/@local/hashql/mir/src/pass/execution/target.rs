@@ -5,9 +5,6 @@ use core::{
 
 use hashql_core::id::{self, Id as _, IdArray, bit_vec::FiniteBitSet};
 
-use super::statement_placement::StatementPlacement;
-use crate::pass::simplify_type_name;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TargetId {
     Interpreter,
@@ -213,5 +210,5 @@ impl fmt::Display for TargetId {
     }
 }
 
-pub type TargetBitSet = FiniteBitSet<TargetId, u8>;
-pub type TargetArray<T> = IdArray<TargetId, T, { TargetId::VARIANT_COUNT }>;
+pub(crate) type TargetBitSet = FiniteBitSet<TargetId, u8>;
+pub(crate) type TargetArray<T> = IdArray<TargetId, T, { TargetId::VARIANT_COUNT }>;

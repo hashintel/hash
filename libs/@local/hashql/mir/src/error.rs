@@ -4,8 +4,7 @@ use hashql_core::span::SpanId;
 use hashql_diagnostics::{Diagnostic, DiagnosticCategory, DiagnosticIssues, Severity};
 
 use crate::pass::{
-    execution::placement::error::PlacementDiagnosticCategory,
-    transform::error::TransformationDiagnosticCategory,
+    execution::PlacementDiagnosticCategory, transform::error::TransformationDiagnosticCategory,
 };
 
 pub type MirDiagnostic<K = Severity> = Diagnostic<MirDiagnosticCategory, SpanId, K>;

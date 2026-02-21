@@ -24,7 +24,7 @@ pub use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::target::TargetId;
+use super::target::{TargetArray, TargetId};
 use crate::{
     body::Body,
     context::MirContext,
@@ -63,17 +63,23 @@ pub trait StatementPlacement<'heap, A: Allocator> {
     ) -> (TraversalCostVec<A>, StatementCostVec<A>);
 }
 
-pub enum TargetPlacementStatement<'heap, S: Allocator> {
-    Interpreter(InterpreterStatementPlacement),
+pub enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
+    Interpreter(InterpreterStatementPlacement<'ctx, S>),
     Postgres(PostgresStatementPlacement<'heap, S>),
     Embedding(EmbeddingStatementPlacement<S>),
 }
 
-impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
+impl<'ctx, S: Allocator + Clone> TargetPlacementStatement<'ctx, '_, S> {
     #[must_use]
-    pub fn new_in(target: TargetId, scratch: S) -> Self {
+    pub fn new_in(
+        target: TargetId,
+        traversals: &'ctx TargetArray<Option<TraversalCostVec<S>>>,
+        scratch: S,
+    ) -> Self {
         match target {
-            TargetId::Interpreter => Self::Interpreter(InterpreterStatementPlacement::default()),
+            TargetId::Interpreter => {
+                Self::Interpreter(InterpreterStatementPlacement::new(traversals))
+            }
             TargetId::Postgres => Self::Postgres(PostgresStatementPlacement::new_in(scratch)),
             TargetId::Embedding => Self::Embedding(EmbeddingStatementPlacement::new_in(scratch)),
         }
@@ -81,7 +87,7 @@ impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
 }
 
 impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
-    for TargetPlacementStatement<'heap, S>
+    for TargetPlacementStatement<'_, 'heap, S>
 {
     #[inline]
     fn target(&self) -> TargetId {
