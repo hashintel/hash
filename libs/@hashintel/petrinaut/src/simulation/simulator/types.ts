@@ -6,8 +6,8 @@
  */
 
 import type { Color, Place, SDCPN, Transition } from "../../core/types/sdcpn";
-import type { RuntimeDistribution } from "./distribution";
 import type { SimulationFrame } from "../context";
+import type { RuntimeDistribution } from "./distribution";
 
 /**
  * Runtime parameter values used during simulation execution.
