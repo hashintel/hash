@@ -5,6 +5,11 @@ authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
 publish           = true
+description       = "Safe Rust bindings for Apple's kperf/kpc hardware performance counters"
+documentation     = "https://docs.rs/darwin-kperf"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf"
+keywords          = ["macos", "profiling", "kperf", "apple-silicon", "performance-counters"]
+categories        = ["os::macos-apis", "development-tools::profiling"]
 
 [dependencies]
 # Public workspace dependencies

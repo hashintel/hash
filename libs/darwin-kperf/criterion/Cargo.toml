@@ -5,6 +5,11 @@ authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
 publish           = true
+description       = "Criterion measurement plugin using Apple's hardware performance counters"
+documentation     = "https://docs.rs/darwin-kperf-criterion"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf/criterion"
+keywords          = ["criterion", "macos", "profiling", "benchmark", "kperf"]
+categories        = ["development-tools::profiling"]
 
 [dependencies]
 # Public workspace dependencies

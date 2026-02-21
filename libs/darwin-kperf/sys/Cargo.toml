@@ -5,6 +5,11 @@ authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
 publish           = true
+description       = "Raw FFI bindings to Apple's kperf and kperfdata frameworks"
+documentation     = "https://docs.rs/darwin-kperf-sys"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf/sys"
+keywords          = ["macos", "kperf", "kpc", "ffi", "apple"]
+categories        = ["os::macos-apis", "external-ffi-bindings"]
 
 [dependencies]
 # Public workspace dependencies
