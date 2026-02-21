@@ -2,5 +2,6 @@
   "name": "@rust/darwin-kperf-events",
   "version": "0.1.0",
   "private": true,
+  "description": "Apple Silicon PMU event definitions for darwin-kperf",
   "license": "MIT OR Apache-2.0"
 }
