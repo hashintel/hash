@@ -20,7 +20,7 @@
     "@rust/hash-graph-api": "workspace:*",
     "@types/node": "22.18.13",
     "fix-esm-import-path": "1.10.3",
-    "rimraf": "6.1.2",
+    "rimraf": "6.1.3",
     "typescript": "5.9.3"
   }
 }
