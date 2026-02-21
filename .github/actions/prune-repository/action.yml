@@ -10,7 +10,9 @@ runs:
   steps:
     - name: Prune repository
       shell: bash
-      run: python3 ${{ github.action_path }}/prune.py "${{ inputs.scope }}"
+      env:
+        SCOPE: ${{ inputs.scope }}
+      run: python3 ${{ github.action_path }}/prune.py "$SCOPE"
 
     - name: Copy required files
       shell: bash
