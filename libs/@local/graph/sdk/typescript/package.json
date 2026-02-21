@@ -30,7 +30,7 @@
     "@local/hash-graph-client": "workspace:*",
     "@rust/hash-graph-authorization": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
-    "@temporalio/client": "1.12.1",
+    "@temporalio/client": "1.15.0",
     "effect": "3.18.4",
     "uuid": "13.0.0"
   },
