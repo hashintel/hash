@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/dataflow/liveness/tests.rs
+expression: "format!(\"{}\\n\\n========\\n\\n{}\", format_body(env, body),\nformat_traversal_liveness(body, &results))"
+---
+fn {closure@4294967040}(%0: (), %1: (Integer, Integer)) -> (Integer, Integer) {
+    let %2: (Integer, Integer)
+
+    bb0(): {
+        %2.0 = %1.0
+
+        return %2
+    }
+}
+
+========
+
+bb0: {%1, %2} -> {}
