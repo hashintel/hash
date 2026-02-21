@@ -2,6 +2,7 @@
   "name": "@rust/darwin-kperf-sys",
   "version": "0.1.0",
   "private": true,
+  "description": "Raw FFI bindings to Apple's kperf and kperfdata frameworks",
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "lint:clippy": "just clippy --target aarch64-apple-darwin"
