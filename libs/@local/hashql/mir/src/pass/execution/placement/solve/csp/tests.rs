@@ -10,7 +10,8 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::execution::{
-        ApproxCost, StatementCostVec,
+        ApproxCost,
+        cost::StatementCostVec,
         placement::solve::{
             PlacementRegionId, PlacementSolverContext,
             condensation::PlacementRegionKind,
