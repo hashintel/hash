@@ -1,4 +1,5 @@
-use core::ops::Try;
+use alloc::alloc::Global;
+use core::{alloc::Allocator, ops::Try};
 
 use self::filter::{Deep, Filter as _};
 use super::{
@@ -658,15 +659,32 @@ where
     }
 }
 
-pub struct RecursiveVisitorGuard<'heap> {
-    boundary: RecursionBoundary<'heap>,
+pub struct RecursiveVisitorGuard<'heap, A: Allocator = Global> {
+    boundary: RecursionBoundary<'heap, A>,
 }
 
-impl<'heap> RecursiveVisitorGuard<'heap> {
+impl RecursiveVisitorGuard<'_> {
     #[must_use]
+    #[inline]
     pub fn new() -> Self {
+        Self::new_in(Global)
+    }
+}
+
+impl<'heap, A: Allocator> RecursiveVisitorGuard<'heap, A> {
+    #[inline]
+    #[must_use]
+    pub fn new_in(alloc: A) -> Self {
         Self {
-            boundary: RecursionBoundary::new(),
+            boundary: RecursionBoundary::new_in(alloc),
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            boundary: RecursionBoundary::with_capacity_in(capacity, alloc),
         }
     }
 
@@ -692,7 +710,7 @@ impl Default for RecursiveVisitorGuard<'_> {
     }
 }
 
-impl AsMut<Self> for RecursiveVisitorGuard<'_> {
+impl<A: Allocator> AsMut<Self> for RecursiveVisitorGuard<'_, A> {
     fn as_mut(&mut self) -> &mut Self {
         self
     }

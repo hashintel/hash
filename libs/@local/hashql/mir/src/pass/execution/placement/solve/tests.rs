@@ -207,7 +207,7 @@ fn forward_pass_assigns_all_blocks() {
     let domains = [ip, ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
@@ -273,7 +273,7 @@ fn backward_pass_improves_suboptimal_forward() {
     let domains = [target_set(&[I]), ip, ip, ip];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb1: P is locally cheaper. bb2: I is locally cheaper (forces bb3 toward I).
     stmt_costs! { statements;
@@ -351,7 +351,7 @@ fn rewind_triggers_on_join_with_conflicting_predecessors() {
     let domains = [target_set(&[I]), ip, ip, ip];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // Bias bb1 and bb2 to pick I initially
     stmt_costs! { statements;
@@ -440,7 +440,7 @@ fn rewind_skips_exhausted_region() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(1): I = 0, P = 10
@@ -486,7 +486,7 @@ fn single_block_trivial_region() {
     let domains = [target_set(&[I, P])];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(0): I = 10, P = 5
@@ -538,7 +538,7 @@ fn cyclic_region_in_forward_backward() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(1): I = 3, P = 1;
@@ -623,7 +623,7 @@ fn rewind_retries_cyclic_region() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(1): I = 0, P = 1;
@@ -722,7 +722,7 @@ fn rewind_skips_exhausted_cyclic_region() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(0): I = 0, P = 5
@@ -793,7 +793,7 @@ fn rewind_exhausts_all_regions() {
     let domains = [ip, ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -861,7 +861,7 @@ fn forward_pass_rewinds_on_cyclic_failure() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(0): I = 0, P = 5
@@ -935,7 +935,7 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
     ];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(1): I = 0, P = 10;
@@ -1043,7 +1043,7 @@ fn backward_pass_adopts_better_cyclic_solution() {
 
     // SCC stmts: P much cheaper → forward picks all-P.
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(1): I = 10, P = 0;
@@ -1109,7 +1109,7 @@ fn trivial_failure_emits_diagnostic() {
     let domains = [ip, ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -1173,7 +1173,7 @@ fn cyclic_failure_emits_diagnostic() {
     let domains = [ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     // bb0→bb1 (arm1, then): only I→P — forces bb0=I, bb1=P.
     // bb1→bb0 (arm0, goto): only I→P — forces bb1=I, bb0=P.

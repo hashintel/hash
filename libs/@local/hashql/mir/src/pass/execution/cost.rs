@@ -324,7 +324,7 @@ impl<A: Allocator> TraversalCostVec<A> {
     ///
     /// Only locals that are enabled traversals (per [`Traversals::enabled`]) will accept cost
     /// insertions; other locals are silently ignored.
-    pub fn new<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
+    pub fn new_in<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
         Self {
             traversals: traversals.enabled(body),
             costs: LocalVec::new_in(alloc),
@@ -413,7 +413,7 @@ impl<A: Allocator> StatementCostVec<A> {
     ///
     /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
     #[expect(clippy::cast_possible_truncation)]
-    pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
+    pub fn new_in(blocks: &BasicBlocks, alloc: A) -> Self
     where
         A: Clone,
     {

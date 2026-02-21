@@ -1,7 +1,11 @@
-use core::ops::ControlFlow;
+use alloc::alloc::Global;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use super::{Type, kind::TypeKind};
-use crate::{collections::FastHashSet, intern::Interned};
+use crate::{
+    collections::{FastHashSet, fast_hash_set_in, fast_hash_set_with_capacity_in},
+    intern::Interned,
+};
 
 /// Recursive cycle.
 ///
@@ -43,17 +47,35 @@ impl RecursionCycle {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct RecursionBoundary<'heap> {
-    inner: FastHashSet<(
-        Interned<'heap, TypeKind<'heap>>,
-        Interned<'heap, TypeKind<'heap>>,
-    )>,
+pub(crate) struct RecursionBoundary<'heap, A: Allocator = Global> {
+    inner: FastHashSet<
+        (
+            Interned<'heap, TypeKind<'heap>>,
+            Interned<'heap, TypeKind<'heap>>,
+        ),
+        A,
+    >,
 }
 
-impl<'heap> RecursionBoundary<'heap> {
+impl RecursionBoundary<'_> {
+    #[inline]
     pub(crate) fn new() -> Self {
+        Self::new_in(Global)
+    }
+}
+
+impl<'heap, A: Allocator> RecursionBoundary<'heap, A> {
+    #[inline]
+    pub(crate) fn new_in(alloc: A) -> Self {
         Self {
-            inner: FastHashSet::default(),
+            inner: fast_hash_set_in(alloc),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            inner: fast_hash_set_with_capacity_in(capacity, alloc),
         }
     }
 

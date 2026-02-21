@@ -1,6 +1,8 @@
 //! Tests for [`EmbeddingStatementPlacement`].
 #![expect(clippy::min_ident_chars)]
 
+use alloc::alloc::Global;
+
 use hashql_core::{heap::Heap, symbol::sym, r#type::environment::Environment};
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -42,7 +44,7 @@ fn only_vectors_projection_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = EmbeddingStatementPlacement::default();
+    let mut placement = EmbeddingStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -85,7 +87,7 @@ fn all_args_excluded() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = EmbeddingStatementPlacement::default();
+    let mut placement = EmbeddingStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -126,7 +128,7 @@ fn non_vectors_entity_projection_rejected() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = EmbeddingStatementPlacement::default();
+    let mut placement = EmbeddingStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -169,7 +171,7 @@ fn storage_statements_zero_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = EmbeddingStatementPlacement::default();
+    let mut placement = EmbeddingStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -224,7 +226,7 @@ fn other_operations_rejected() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = EmbeddingStatementPlacement::default();
+    let mut placement = EmbeddingStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 

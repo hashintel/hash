@@ -1,11 +1,9 @@
 use core::alloc::Allocator;
 
-use hashql_core::heap::Heap;
-
 use super::StatementPlacement;
 use crate::{
     body::{
-        Body,
+        Body, Source,
         location::Location,
         statement::{Statement, StatementKind},
     },
@@ -13,7 +11,7 @@ use crate::{
     pass::{
         execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
-            target::Interpreter,
+            target::TargetId,
         },
         transform::Traversals,
     },
@@ -23,13 +21,13 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-struct CostVisitor<'heap> {
+struct CostVisitor<A: Allocator> {
     cost: Cost,
 
-    statement_costs: StatementCostVec<&'heap Heap>,
+    statement_costs: StatementCostVec<A>,
 }
 
-impl<'heap> Visitor<'heap> for CostVisitor<'heap> {
+impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<A> {
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -67,18 +65,27 @@ impl Default for InterpreterStatementPlacement {
     }
 }
 
-impl<'heap, A: Allocator> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
-    type Target = Interpreter;
+impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
+    fn target(&self) -> TargetId {
+        TargetId::Interpreter
+    }
 
-    fn statement_placement(
+    fn statement_placement_in(
         &mut self,
-        context: &MirContext<'_, 'heap>,
+        _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
-        _: A,
-    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
-        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
-        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
+        alloc: A,
+    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
+        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc);
+
+        match body.source {
+            Source::GraphReadFilter(_) => {}
+            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+                return (traversal_costs, statement_costs);
+            }
+        }
 
         let mut visitor = CostVisitor {
             cost: self.statement_cost,

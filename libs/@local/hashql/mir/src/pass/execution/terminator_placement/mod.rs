@@ -619,8 +619,8 @@ impl PopulateEdgeMatrix {
 /// let matrices = costs.of(BasicBlockId::new(0));
 /// let can_transition = matrices[0].get(TargetId::Postgres, TargetId::Interpreter);
 /// ```
-pub struct TerminatorPlacement<A: Allocator> {
-    alloc: A,
+pub struct TerminatorPlacement<S: Allocator> {
+    scratch: S,
     entity_size: InformationRange,
 }
 
@@ -632,26 +632,29 @@ impl TerminatorPlacement<Global> {
     }
 }
 
-impl<A: Allocator> TerminatorPlacement<A> {
+impl<S: Allocator> TerminatorPlacement<S> {
     /// Creates a new placement analyzer.
     ///
     /// The `entity_size` estimate is used when computing transfer costs — it represents the
     /// expected size of entity data that may need to cross backend boundaries.
     #[inline]
-    pub const fn new_in(entity_size: InformationRange, alloc: A) -> Self {
-        Self { alloc, entity_size }
+    pub const fn new_in(entity_size: InformationRange, scratch: S) -> Self {
+        Self {
+            scratch,
+            entity_size,
+        }
     }
 
     fn compute_liveness<'heap>(
         &self,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
-    ) -> BasicBlockVec<DenseBitSet<Local>, &A> {
+    ) -> BasicBlockVec<DenseBitSet<Local>, &S> {
         let DataflowResults {
             analysis: _,
             entry_states: live_in,
             exit_states: _,
-        } = TraversalLivenessAnalysis { traversals }.iterate_to_fixpoint_in(body, &self.alloc);
+        } = TraversalLivenessAnalysis { traversals }.iterate_to_fixpoint_in(body, &self.scratch);
 
         live_in
     }
@@ -659,8 +662,18 @@ impl<A: Allocator> TerminatorPlacement<A> {
     fn compute_scc<'a>(
         &'a self,
         body: &Body,
-    ) -> StronglyConnectedComponents<BasicBlockId, SccId, ComponentSizeMetadata, &'a A> {
-        Tarjan::new_with_metadata_in(&body.basic_blocks, ComponentSizeMetadata, &self.alloc).run()
+    ) -> StronglyConnectedComponents<BasicBlockId, SccId, ComponentSizeMetadata, &'a S> {
+        Tarjan::new_with_metadata_in(&body.basic_blocks, ComponentSizeMetadata, &self.scratch).run()
+    }
+
+    pub fn terminator_placement<'heap>(
+        &self,
+        body: &Body<'heap>,
+        footprint: &BodyFootprint<&'heap Heap>,
+        traversals: &Traversals<'heap>,
+        targets: &BasicBlockSlice<TargetBitSet>,
+    ) -> TerminatorCostVec<Global> {
+        self.terminator_placement_in(body, footprint, traversals, targets, Global)
     }
 
     /// Computes transition costs for all terminator edges in `body`.
@@ -672,18 +685,18 @@ impl<A: Allocator> TerminatorPlacement<A> {
     ///
     /// The returned [`TerminatorCostVec`] can be indexed by block ID to get the transition
     /// matrices for that block's successor edges.
-    pub fn terminator_placement<'heap>(
+    pub fn terminator_placement_in<'heap, A: Allocator + Clone>(
         &self,
-        context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         footprint: &BodyFootprint<&'heap Heap>,
         traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
-    ) -> TerminatorCostVec<&'heap Heap> {
+        alloc: A,
+    ) -> TerminatorCostVec<A> {
         let live_in = self.compute_liveness(body, traversals);
         let scc = self.compute_scc(body);
 
-        let mut output = TerminatorCostVec::new(&body.basic_blocks, context.heap);
+        let mut output = TerminatorCostVec::new(&body.basic_blocks, alloc);
         let mut required_locals = DenseBitSet::new_empty(body.local_decls.len());
 
         for (block_id, block) in body.basic_blocks.iter_enumerated() {
