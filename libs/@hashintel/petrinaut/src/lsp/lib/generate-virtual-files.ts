@@ -27,7 +27,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   // Generate global SDCPN library definitions
   files.set(getItemFilePath("sdcpn-lib-defs"), {
     content: [
-      `type Distribution = {};`,
+      `type Distribution = { map(fn: (value: number) => number): Distribution };`,
       `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
       `declare namespace Distribution {`,
       `  function Gaussian(mean: number, deviation: number): Distribution;`,
