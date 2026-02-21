@@ -11,7 +11,7 @@ use crate::{
     pass::{
         execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
-            target::{TargetArray, TargetId},
+            target::TargetArray,
         },
         transform::Traversals,
     },
@@ -68,13 +68,15 @@ impl<'heap, A: Allocator, B: Allocator> Visitor<'heap> for CostVisitor<'_, A, B>
 /// Statement placement for the [`Interpreter`] execution target.
 ///
 /// Supports all statements unconditionally, serving as the universal fallback.
-pub struct InterpreterStatementPlacement<'ctx, A: Allocator> {
+pub(crate) struct InterpreterStatementPlacement<'ctx, A: Allocator> {
     traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<A>>>,
     statement_cost: Cost,
 }
 
 impl<'ctx, A: Allocator> InterpreterStatementPlacement<'ctx, A> {
-    pub const fn new(traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<A>>>) -> Self {
+    pub(crate) const fn new(
+        traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<A>>>,
+    ) -> Self {
         Self {
             traversal_costs,
             statement_cost: cost!(8),
@@ -85,10 +87,6 @@ impl<'ctx, A: Allocator> InterpreterStatementPlacement<'ctx, A> {
 impl<'heap, A: Allocator + Clone, B: Allocator> StatementPlacement<'heap, A>
     for InterpreterStatementPlacement<'_, B>
 {
-    fn target(&self) -> TargetId {
-        TargetId::Interpreter
-    }
-
     fn statement_placement_in(
         &mut self,
         _: &MirContext<'_, 'heap>,

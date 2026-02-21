@@ -25,7 +25,10 @@ use crate::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },
-        execution::{Cost, StatementCostVec, cost::TraversalCostVec},
+        execution::{
+            Cost,
+            cost::{StatementCostVec, TraversalCostVec},
+        },
     },
     visit::Visitor,
 };

@@ -17,7 +17,8 @@ use hashql_core::{
 };
 
 use super::{
-    Cost, StatementCostVec,
+    Cost,
+    cost::StatementCostVec,
     target::{TargetArray, TargetBitSet, TargetId},
 };
 use crate::{
@@ -273,25 +274,26 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
 /// same set of execution targets. The pass inserts [`Goto`] terminators to chain split
 /// blocks and returns per-block [`TargetBitSet`] affinities indicating which targets
 /// support each block.
-pub struct BasicBlockSplitting<A: Allocator> {
+pub(crate) struct BasicBlockSplitting<A: Allocator> {
     scratch: A,
 }
 
 impl BasicBlockSplitting<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self { scratch: Global }
     }
 }
 
 impl<S: Allocator> BasicBlockSplitting<S> {
     /// Creates a new pass using the provided allocator.
-    pub const fn new_in(scratch: S) -> Self {
+    pub(crate) const fn new_in(scratch: S) -> Self {
         Self { scratch }
     }
 
-    pub fn split<'heap>(
+    #[cfg(test)]
+    pub(crate) fn split<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
@@ -306,7 +308,7 @@ impl<S: Allocator> BasicBlockSplitting<S> {
     /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
     ///
     /// The returned vector is indexed by the new [`BasicBlockId`]s.
-    pub fn split_in<'heap, A: Allocator>(
+    pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,

@@ -20,7 +20,7 @@ mod interpret;
 mod lookup;
 mod postgres;
 
-pub use self::{
+pub(crate) use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
@@ -44,9 +44,7 @@ use crate::{
 /// - Whether each rvalue (operation) is supported by the target
 /// - Whether operands flow through supported paths to reach return blocks
 /// - Special handling for entity field projections based on storage location
-pub trait StatementPlacement<'heap, A: Allocator> {
-    fn target(&self) -> TargetId;
-
+pub(crate) trait StatementPlacement<'heap, A: Allocator> {
     /// Computes placement costs for `body`.
     ///
     /// Returns two cost vectors:
@@ -63,7 +61,7 @@ pub trait StatementPlacement<'heap, A: Allocator> {
     ) -> (TraversalCostVec<A>, StatementCostVec<A>);
 }
 
-pub enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
+pub(crate) enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
     Interpreter(InterpreterStatementPlacement<'ctx, S>),
     Postgres(PostgresStatementPlacement<'heap, S>),
     Embedding(EmbeddingStatementPlacement<S>),
@@ -71,7 +69,7 @@ pub enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
 
 impl<'ctx, S: Allocator + Clone> TargetPlacementStatement<'ctx, '_, S> {
     #[must_use]
-    pub fn new_in(
+    pub(crate) fn new_in(
         target: TargetId,
         traversals: &'ctx TargetArray<Option<TraversalCostVec<S>>>,
         scratch: S,
@@ -90,14 +88,6 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
     for TargetPlacementStatement<'_, 'heap, S>
 {
     #[inline]
-    fn target(&self) -> TargetId {
-        match self {
-            Self::Interpreter(_) => TargetId::Interpreter,
-            Self::Postgres(_) => TargetId::Postgres,
-            Self::Embedding(_) => TargetId::Embedding,
-        }
-    }
-
     fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,

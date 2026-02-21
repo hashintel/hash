@@ -86,14 +86,14 @@ impl Island {
 /// Two blocks belong to the same island when they are connected in the CFG (directly or
 /// transitively through same-target successors) and share the same [`TargetId`]. The pass
 /// uses a union-find to identify these components in nearly linear time.
-pub struct IslandPlacement<A: Allocator> {
+pub(crate) struct IslandPlacement<A: Allocator> {
     scratch: A,
 }
 
 impl IslandPlacement<Global> {
     /// Creates a new pass using the global allocator for scratch space.
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self::new_in(Global)
     }
 }
@@ -106,7 +106,7 @@ impl Default for IslandPlacement<Global> {
 
 impl<S: Allocator + Clone> IslandPlacement<S> {
     /// Creates a new pass using the provided allocator for scratch space.
-    pub const fn new_in(scratch: S) -> Self {
+    pub(crate) const fn new_in(scratch: S) -> Self {
         Self { scratch }
     }
 
@@ -114,7 +114,7 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
     ///
     /// Returns an [`IslandVec`] where each [`Island`] contains the set of blocks that form
     /// a connected same-target component. The output is allocated with `alloc`.
-    pub fn run<A>(
+    pub(crate) fn run<A>(
         &self,
         body: &Body<'_>,
         targets: &BasicBlockSlice<TargetId>,
