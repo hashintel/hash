@@ -267,25 +267,6 @@ mod tests {
     fn iteration_needed() {
         //       0
         //      / \
-        //     v   v
-        //     1   2
-        //     |   |
-        //     v   v
-        //     3   4
-        //      \ /
-        //       v
-        //       5
-        //       |
-        //       v
-        //       6
-        //
-        // DF(1) = {5} (via 3)
-        // DF(2) = {5} (via 4)
-        // DF(5) = {} (no successors with multiple preds after it)
-        //
-        // But if we have:
-        //       0
-        //      / \
         //     1   4
         //     |   |
         //     2   |
@@ -346,24 +327,6 @@ mod tests {
 
     #[test]
     fn transitive_closure() {
-        //         0
-        //        /|\
-        //       v v v
-        //       1 2 3
-        //       |   |
-        //       v   v
-        //       4   5
-        //        \ /
-        //         v
-        //         6
-        //         |
-        //         v
-        //         7
-        //
-        // DF(1) = {6} (via 4)
-        // DF(3) = {6} (via 5)
-        // DF(6) = {7}? No, 7 has single predecessor
-        //
         // Let's use a graph where iteration is clearly needed:
         //
         //       0
@@ -419,27 +382,6 @@ mod tests {
 
     #[test]
     fn nested_loops() {
-        //        0
-        //        |
-        //        v
-        // +----->1<----+
-        // |      |     |
-        // |      v     |
-        // |  +-->2--+  |
-        // |  |   |  |  |
-        // |  +---3  |  |
-        // |      |  |  |
-        // |      v  |  |
-        // +------4<-+  |
-        // |      |     |
-        // |      +-----+
-        // |
-        // +----->5
-        //
-        // Inner loop: 2->3->2
-        // Outer loop: 1->2->4->1
-        //
-        // Simpler version:
         //     0
         //     |
         //     v
