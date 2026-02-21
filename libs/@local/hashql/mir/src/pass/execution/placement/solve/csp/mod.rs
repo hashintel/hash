@@ -396,7 +396,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     /// Computes a lower bound on the cost of completing the current partial assignment.
     ///
     /// Sums `min(statement_cost)` and `min(transition_cost)` independently over unfixed blocks.
-    /// Used for BnB pruning: a branch is skipped when `cost_so_far + lower_bound ≥ worst_retained`.
+    /// Used for `BnB` pruning: a branch is skipped when `cost_so_far + lower_bound ≥
+    /// worst_retained`.
     ///
     /// This is *not* redundant with [`CostEstimation`] despite operating on the same data.
     /// [`CostEstimation::estimate`] computes a per-block heuristic that jointly optimizes
