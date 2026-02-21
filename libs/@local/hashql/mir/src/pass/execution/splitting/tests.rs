@@ -30,8 +30,7 @@ use crate::{
     context::MirContext,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
-        cost::Cost,
+        cost::{Cost, StatementCostVec},
         target::{TargetArray, TargetBitSet, TargetId},
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
@@ -69,7 +68,7 @@ fn make_target_costs<'heap, const N: usize>(
     patterns: TargetArray<[impl AsRef<[bool]>; N]>,
     heap: &'heap Heap,
 ) -> TargetArray<StatementCostVec<&'heap Heap>> {
-    let mut costs = TargetArray::from_fn(|_| StatementCostVec::new(&body.basic_blocks, heap));
+    let mut costs = TargetArray::from_fn(|_| StatementCostVec::new_in(&body.basic_blocks, heap));
 
     for (target_id, block_patterns) in patterns.iter_enumerated() {
         for (block_index, stmt_patterns) in block_patterns.iter().enumerate() {
@@ -201,7 +200,7 @@ fn count_regions_empty_block() {
         }
     });
 
-    let costs = TargetArray::from_fn(|_| StatementCostVec::new(&body.basic_blocks, &heap));
+    let costs = TargetArray::from_fn(|_| StatementCostVec::new_in(&body.basic_blocks, &heap));
     let regions = count_regions(&body, &costs, Global);
 
     assert_eq!(regions[BasicBlockId::new(0)].get(), 1);
@@ -367,7 +366,7 @@ fn offset_single_block_no_split() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
@@ -411,7 +410,7 @@ fn offset_single_block_splits() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
@@ -467,7 +466,7 @@ fn offset_multiple_blocks_no_splits() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
@@ -522,7 +521,7 @@ fn offset_multiple_blocks_mixed() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_eq!(targets.len(), 3);
@@ -583,7 +582,7 @@ fn offset_terminator_moves_to_last() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_return_terminator(&body, BasicBlockId::new(1));
 }
@@ -620,7 +619,7 @@ fn offset_goto_chain_created() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_goto_terminator(&body, BasicBlockId::new(0));
@@ -660,7 +659,7 @@ fn offset_goto_targets_correct() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
@@ -699,7 +698,7 @@ fn offset_statements_split_correctly() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
     assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
@@ -737,7 +736,7 @@ fn offset_statement_order_preserved() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     assert_assignment_locals(&body, BasicBlockId::new(0), &["a"]);
     assert_assignment_locals(&body, BasicBlockId::new(1), &["b", "c"]);
@@ -774,7 +773,7 @@ fn offset_targets_populated() {
     let mut costs = make_target_costs(&body, patterns, &heap);
     let regions = count_regions(&body, &costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global);
+    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
 
     let expected_first = Targets {
         interpreter: true,

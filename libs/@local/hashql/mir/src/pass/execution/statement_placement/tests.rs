@@ -23,7 +23,11 @@ use crate::{
         Changed, TransformPass as _,
         execution::{
             cost::{StatementCostVec, TraversalCostVec},
-            statement_placement::{EmbeddingStatementPlacement, PostgresStatementPlacement},
+            statement_placement::{
+                EmbeddingStatementPlacement, InterpreterStatementPlacement,
+                PostgresStatementPlacement,
+            },
+            target::TargetArray,
         },
         transform::{TraversalExtraction, Traversals},
     },
@@ -121,7 +125,7 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
 #[track_caller]
 pub(crate) fn run_placement<'heap>(
     context: &mut MirContext<'_, 'heap>,
-    placement: &mut impl StatementPlacement<'heap, Global>,
+    placement: &mut impl StatementPlacement<'heap, &'heap Heap>,
     mut body: Body<'heap>,
 ) -> (
     Body<'heap>,
@@ -137,7 +141,7 @@ pub(crate) fn run_placement<'heap>(
 
     // Run placement analysis
     let (traversal_costs, statement_costs) =
-        placement.statement_placement(context, &body, &traversals, Global);
+        placement.statement_placement_in(context, &body, &traversals, context.heap);
 
     (body, statement_costs, traversal_costs)
 }
@@ -178,16 +182,25 @@ fn non_graph_read_filter_returns_empty() {
 
     let traversals = Traversals::with_capacity_in(Local::new(1), body.local_decls.len(), &heap);
 
-    let mut postgres = PostgresStatementPlacement::default();
-    let mut embedding = EmbeddingStatementPlacement::default();
+    let traversal_costs = TargetArray::from_fn(|_| None);
+
+    let mut postgres = PostgresStatementPlacement::new_in(Global);
+    let mut interpreter = InterpreterStatementPlacement::<Global>::new(&traversal_costs);
+    let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
     let (postgres_traversal, postgres_statement) =
-        postgres.statement_placement(&context, &body, &traversals, &heap);
+        postgres.statement_placement_in(&context, &body, &traversals, &heap);
+    let (interpreter_traversal, interpreter_statement) =
+        interpreter.statement_placement_in(&context, &body, &traversals, &heap);
     let (embedding_traversal, embedding_statement) =
-        embedding.statement_placement(&context, &body, &traversals, &heap);
+        embedding.statement_placement_in(&context, &body, &traversals, &heap);
 
     assert_eq!(postgres_traversal.iter().count(), 0);
     assert!(postgres_statement.all_unassigned());
+
+    assert_eq!(interpreter_traversal.iter().count(), 0);
+    assert!(interpreter_statement.all_unassigned());
+
     assert_eq!(embedding_traversal.iter().count(), 0);
     assert!(embedding_statement.all_unassigned());
 }

@@ -11,6 +11,12 @@
 //! When a neighbor's target is unknown, the estimator assumes the neighbor will choose the locally
 //! optimal option. Transition costs are counted from both predecessor and successor sides —
 //! intentional double-counting that gives each edge proportional influence at join points.
+//!
+//! The double-counting inflates transition costs relative to statement costs. This is acceptable
+//! (and possibly desirable) as long as transitions dominate. If statement costs ever become
+//! comparable and the greedy value ordering consistently disagrees with BnB-optimal solutions,
+//! consider halving the transition weight here rather than single-counting — single-counting
+//! would make source-side blocks blind to downstream target demand.
 
 use core::{alloc::Allocator, cmp};
 

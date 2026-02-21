@@ -1,7 +1,6 @@
 use core::{alloc::Allocator, cell::Cell, cmp::Reverse};
 
 use hashql_core::{
-    heap::Heap,
     id::{
         Id as _,
         bit_vec::{BitRelations as _, DenseBitSet},
@@ -26,7 +25,10 @@ use crate::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },
-        execution::{Cost, StatementCostVec, cost::TraversalCostVec},
+        execution::{
+            Cost,
+            cost::{StatementCostVec, TraversalCostVec},
+        },
     },
     visit::Visitor,
 };
@@ -201,19 +203,19 @@ where
 /// After the supportedness analysis computes which locals are dispatchable, this visitor walks
 /// the body and assigns costs. A statement receives a cost if its rvalue is supported given the
 /// dispatchable locals; otherwise it gets `None`. Storage statements always receive zero cost.
-pub(crate) struct CostVisitor<'ctx, 'env, 'heap> {
+pub(crate) struct CostVisitor<'ctx, 'env, 'heap, A: Allocator> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
     pub dispatchable: &'ctx DenseBitSet<Local>,
     pub cost: Cost,
 
-    pub statement_costs: StatementCostVec<&'heap Heap>,
-    pub traversal_costs: TraversalCostVec<&'heap Heap>,
+    pub statement_costs: StatementCostVec<A>,
+    pub traversal_costs: TraversalCostVec<A>,
 
     pub is_supported_rvalue: RValueFn<'heap>,
 }
 
-impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
+impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, '_, 'heap, A> {
     type Result = Result<(), !>;
 
     fn visit_statement(

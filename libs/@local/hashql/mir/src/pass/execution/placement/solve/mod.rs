@@ -33,7 +33,8 @@ use crate::{
     },
     context::MirContext,
     pass::execution::{
-        ApproxCost, StatementCostVec,
+        ApproxCost,
+        cost::StatementCostVec,
         target::{TargetArray, TargetBitSet, TargetId},
         terminator_placement::TerminatorCostVec,
     },
@@ -86,7 +87,7 @@ fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
 /// Bundles the per-block target domains (`assignment`), per-target statement costs
 /// (`statements`), and terminator transition costs (`terminators`).
 #[derive(Debug, Copy, Clone)]
-pub struct PlacementSolverContext<'ctx, A: Allocator> {
+pub(crate) struct PlacementSolverContext<'ctx, A: Allocator> {
     pub assignment: &'ctx BasicBlockSlice<TargetBitSet>,
     pub statements: &'ctx TargetArray<StatementCostVec<A>>,
     pub terminators: &'ctx TerminatorCostVec<A>,
@@ -97,7 +98,7 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
     ///
     /// Allocates working storage (targets and options slices) and builds the
     /// `Condensation` graph from `body`.
-    pub fn build_in<'alloc, S>(
+    pub(crate) fn build_in<'alloc, S>(
         self,
         body: &Body<'_>,
         alloc: &'alloc S,
@@ -135,7 +136,7 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
 /// Uses a two-pass approach: the forward pass assigns targets in topological order, the backward
 /// pass refines them with full boundary context. Rewind-based backtracking recovers from
 /// assignment failures in the forward pass.
-pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
+pub(crate) struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
     data: PlacementSolverContext<'ctx, A>,
 
     condensation: Condensation<'alloc, S>,
@@ -149,7 +150,7 @@ pub struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
 impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
     /// Runs the forward and backward passes, returning the chosen [`TargetId`] for each basic
     /// block.
-    pub fn run<'heap>(
+    pub(crate) fn run<'heap>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
         body: &Body<'heap>,

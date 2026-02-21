@@ -11,14 +11,14 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible, mem, num::NonZero};
 
 use hashql_core::{
-    heap::Heap,
     id::{Id as _, bit_vec::FiniteBitSet},
     intern::Interned,
     span::SpanId,
 };
 
 use super::{
-    Cost, StatementCostVec,
+    Cost,
+    cost::StatementCostVec,
     target::{TargetArray, TargetBitSet, TargetId},
 };
 use crate::{
@@ -125,12 +125,13 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
 /// Remaps all [`BasicBlockId`] references, connects split blocks with [`Goto`] chains,
 /// and updates [`StatementCostVec`] to reflect the new layout.
 #[expect(clippy::cast_possible_truncation)]
-fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
+fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
     context: &MirContext<'_, 'heap>,
     body: &mut Body<'heap>,
     regions: &BasicBlockSlice<NonZero<usize>>,
-    statement_costs: &mut TargetArray<StatementCostVec<A>>,
-    alloc: B,
+    statement_costs: &mut TargetArray<StatementCostVec<impl Allocator + Clone>>,
+    scratch: S,
+    alloc: A,
 ) -> BasicBlockVec<TargetBitSet, A> {
     debug_assert!(
         !body.basic_blocks.is_empty(),
@@ -140,7 +141,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     // Compute prefix offsets: `indices` maps old block IDs to the first new ID.
     let mut length = BasicBlockId::START;
     let mut indices =
-        BasicBlockVec::from_elem_in(BasicBlockId::MIN, body.basic_blocks.len(), alloc);
+        BasicBlockVec::from_elem_in(BasicBlockId::MIN, body.basic_blocks.len(), scratch);
 
     for (id, regions) in regions.iter_enumerated() {
         indices[id] = length;
@@ -150,7 +151,7 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
     let mut targets = BasicBlockVec::from_elem_in(
         FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32),
         length.as_usize(),
-        statement_costs[TargetId::Interpreter].allocator().clone(),
+        alloc,
     );
 
     Ok(()) = RemapBasicBlockId { ids: &indices }.visit_body(body);
@@ -273,39 +274,60 @@ fn offset_basic_blocks<'heap, A: Allocator + Clone, B: Allocator + Clone>(
 /// same set of execution targets. The pass inserts [`Goto`] terminators to chain split
 /// blocks and returns per-block [`TargetBitSet`] affinities indicating which targets
 /// support each block.
-pub struct BasicBlockSplitting<A: Allocator> {
-    alloc: A,
+pub(crate) struct BasicBlockSplitting<A: Allocator> {
+    scratch: A,
 }
 
 impl BasicBlockSplitting<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
-    pub const fn new() -> Self {
-        Self { alloc: Global }
+    pub(crate) const fn new() -> Self {
+        Self { scratch: Global }
     }
 }
 
-impl<A: Allocator> BasicBlockSplitting<A> {
+impl<S: Allocator> BasicBlockSplitting<S> {
     /// Creates a new pass using the provided allocator.
-    pub const fn new_in(alloc: A) -> Self {
-        Self { alloc }
+    pub(crate) const fn new_in(scratch: S) -> Self {
+        Self { scratch }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn split<'heap>(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &mut Body<'heap>,
+        statement_costs: &mut TargetArray<StatementCostVec<impl Allocator + Clone>>,
+    ) -> BasicBlockVec<TargetBitSet, Global>
+    where
+        S: Clone,
+    {
+        self.split_in(context, body, statement_costs, Global)
     }
 
     /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
     ///
     /// The returned vector is indexed by the new [`BasicBlockId`]s.
-    pub fn split<'heap>(
+    pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
-        statement_costs: &mut TargetArray<StatementCostVec<&'heap Heap>>,
-    ) -> BasicBlockVec<TargetBitSet, &'heap Heap>
+        statement_costs: &mut TargetArray<StatementCostVec<impl Allocator + Clone>>,
+        alloc: A,
+    ) -> BasicBlockVec<TargetBitSet, A>
     where
-        A: Clone,
+        S: Clone,
     {
-        let regions = count_regions(body, statement_costs, self.alloc.clone());
+        let regions = count_regions(body, statement_costs, self.scratch.clone());
 
-        offset_basic_blocks(context, body, &regions, statement_costs, self.alloc.clone())
+        offset_basic_blocks(
+            context,
+            body,
+            &regions,
+            statement_costs,
+            self.scratch.clone(),
+            alloc,
+        )
     }
 }
 
