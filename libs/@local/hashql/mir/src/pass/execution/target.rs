@@ -62,6 +62,15 @@ impl TargetId {
 
         VARIANTS
     }
+
+    #[must_use]
+    pub const fn abbreviation(self) -> &'static str {
+        match self {
+            Self::Interpreter => "I",
+            Self::Postgres => "P",
+            Self::Embedding => "E",
+        }
+    }
 }
 
 const _: () = {

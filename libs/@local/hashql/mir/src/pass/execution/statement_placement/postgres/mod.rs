@@ -26,7 +26,7 @@ use crate::{
     },
     context::MirContext,
     pass::{
-        analysis::execution::{
+        execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
             target::Postgres,
