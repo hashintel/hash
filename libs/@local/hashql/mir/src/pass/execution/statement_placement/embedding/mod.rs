@@ -14,10 +14,9 @@ use crate::{
     context::MirContext,
     pass::{
         execution::{
-            Cost, StatementCostVec,
-            cost::TraversalCostVec,
+            Cost,
+            cost::{StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
-            target::TargetId,
         },
         transform::Traversals,
     },
@@ -89,13 +88,13 @@ fn is_supported_rvalue<'heap>(
 ///
 /// Only supports loading from entity projections that access the `encodings.vectors` path.
 /// No arguments are transferable, and no other operations are supported.
-pub struct EmbeddingStatementPlacement<S: Allocator> {
+pub(crate) struct EmbeddingStatementPlacement<S: Allocator> {
     statement_cost: Cost,
     scratch: S,
 }
 
 impl<S: Allocator> EmbeddingStatementPlacement<S> {
-    pub const fn new_in(scratch: S) -> Self {
+    pub(crate) const fn new_in(scratch: S) -> Self {
         Self {
             statement_cost: cost!(4),
             scratch,
@@ -106,10 +105,6 @@ impl<S: Allocator> EmbeddingStatementPlacement<S> {
 impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
     for EmbeddingStatementPlacement<S>
 {
-    fn target(&self) -> TargetId {
-        TargetId::Embedding
-    }
-
     fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,

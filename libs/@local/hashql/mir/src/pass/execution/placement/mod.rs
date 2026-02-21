@@ -15,7 +15,4 @@ mod arc;
 pub(crate) mod error;
 mod solve;
 
-pub use self::{
-    arc::ArcConsistency,
-    solve::{PlacementSolver, PlacementSolverContext},
-};
+pub(crate) use self::{arc::ArcConsistency, solve::PlacementSolverContext};

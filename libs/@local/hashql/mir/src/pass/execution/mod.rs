@@ -8,20 +8,20 @@ macro_rules! cost {
 mod tests;
 
 mod cost;
-pub mod fusion;
-pub mod island;
-pub mod placement;
-pub mod splitting;
-pub mod statement_placement;
-pub mod target;
-pub mod terminator_placement;
+mod fusion;
+mod island;
+mod placement;
+mod splitting;
+mod statement_placement;
+mod target;
+mod terminator_placement;
 
 use core::{alloc::Allocator, assert_matches};
 
 use hashql_core::heap::{BumpAllocator, Heap};
 
 pub use self::{
-    cost::{ApproxCost, Cost, StatementCostVec, TraversalCostVec},
+    cost::{ApproxCost, Cost},
     island::{Island, IslandId, IslandVec},
     placement::error::PlacementDiagnosticCategory,
     target::TargetId,

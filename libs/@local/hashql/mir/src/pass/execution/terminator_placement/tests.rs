@@ -17,7 +17,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
-use super::{Cost, TerminatorCostVec, TerminatorPlacement};
+use super::{Cost, TerminatorCostVec, TerminatorPlacement, TransMatrix};
 use crate::{
     body::{
         Body,
@@ -717,4 +717,95 @@ fn terminator_placement_snapshot() {
         &body,
         &costs,
     );
+}
+
+#[test]
+fn trans_matrix_new_all_disallowed() {
+    let matrix = TransMatrix::new();
+
+    for source in TargetId::all() {
+        for target in TargetId::all() {
+            assert!(matrix.get(source, target).is_none());
+        }
+    }
+}
+
+#[test]
+fn trans_matrix_get_returns_inserted() {
+    let mut matrix = TransMatrix::new();
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(100));
+
+    assert_eq!(
+        matrix.get(TargetId::Postgres, TargetId::Interpreter),
+        Some(cost!(100))
+    );
+    assert_eq!(matrix.get(TargetId::Interpreter, TargetId::Postgres), None);
+}
+
+#[test]
+fn trans_matrix_insert_same_backend_zero_cost() {
+    let mut matrix = TransMatrix::new();
+
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(100));
+    assert_eq!(
+        matrix.get(TargetId::Postgres, TargetId::Interpreter),
+        Some(cost!(100))
+    );
+
+    matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(100));
+    assert_eq!(
+        matrix.get(TargetId::Interpreter, TargetId::Interpreter),
+        Some(cost!(0))
+    );
+}
+
+#[test]
+fn trans_matrix_clear() {
+    let mut matrix = TransMatrix::new();
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(10));
+
+    matrix.clear();
+    assert!(
+        matrix
+            .get(TargetId::Postgres, TargetId::Interpreter)
+            .is_none()
+    );
+}
+
+#[test]
+fn trans_matrix_remove_incoming_preserves_self_loop() {
+    let mut matrix = TransMatrix::new();
+    matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(10));
+    matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
+
+    matrix.remove_incoming(TargetId::Postgres);
+
+    assert!(
+        matrix
+            .get(TargetId::Interpreter, TargetId::Postgres)
+            .is_none()
+    );
+    assert!(matrix.get(TargetId::Postgres, TargetId::Postgres).is_some());
+}
+
+#[test]
+fn trans_matrix_remove_all() {
+    let mut matrix = TransMatrix::new();
+    matrix.insert(TargetId::Interpreter, TargetId::Postgres, cost!(10));
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(20));
+    matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
+
+    matrix.remove_all(TargetId::Postgres);
+
+    assert!(
+        matrix
+            .get(TargetId::Interpreter, TargetId::Postgres)
+            .is_none()
+    );
+    assert!(
+        matrix
+            .get(TargetId::Postgres, TargetId::Interpreter)
+            .is_none()
+    );
+    assert!(matrix.get(TargetId::Postgres, TargetId::Postgres).is_none());
 }

@@ -29,7 +29,6 @@ use crate::{
         execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
-            target::TargetId,
         },
         transform::Traversals,
     },
@@ -163,7 +162,7 @@ where
 /// Supports constants, binary/unary operations, aggregates (except closures), inputs, and entity
 /// field projections that map to Postgres columns or JSONB paths. The environment argument is
 /// only transferable if it contains no closure types.
-pub struct PostgresStatementPlacement<'heap, S: Allocator> {
+pub(crate) struct PostgresStatementPlacement<'heap, S: Allocator> {
     statement_cost: Cost,
     type_visitor_guard: RecursiveVisitorGuard<'heap, S>,
 
@@ -171,7 +170,7 @@ pub struct PostgresStatementPlacement<'heap, S: Allocator> {
 }
 
 impl<S: Allocator + Clone> PostgresStatementPlacement<'_, S> {
-    pub fn new_in(scratch: S) -> Self {
+    pub(crate) fn new_in(scratch: S) -> Self {
         const TYPICAL_RECURSION_DEPTH: usize = 32; // This is the usual upper limit, we usually don't have more than ~8-16 levels, 32 at the absolute maximum in types such as `Entity`.
 
         Self {
@@ -188,10 +187,6 @@ impl<S: Allocator + Clone> PostgresStatementPlacement<'_, S> {
 impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
     for PostgresStatementPlacement<'heap, S>
 {
-    fn target(&self) -> TargetId {
-        TargetId::Postgres
-    }
-
     fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,

@@ -14,7 +14,7 @@ use crate::{
     pass::{
         Changed, TransformPass as _,
         execution::{
-            TraversalCostVec,
+            cost::TraversalCostVec,
             statement_placement::{
                 InterpreterStatementPlacement, StatementPlacement as _,
                 tests::{assert_placement, run_placement},
