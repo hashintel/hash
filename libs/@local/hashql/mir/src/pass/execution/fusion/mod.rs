@@ -233,7 +233,7 @@ pub struct BasicBlockFusion<A: Allocator> {
 impl BasicBlockFusion<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self::new_in(Global)
     }
 }

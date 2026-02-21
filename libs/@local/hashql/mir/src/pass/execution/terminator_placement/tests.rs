@@ -2,7 +2,10 @@
 #![expect(clippy::min_ident_chars)]
 
 use alloc::alloc::Global;
-use core::fmt::{self, Display};
+use core::{
+    alloc::Allocator,
+    fmt::{self, Display},
+};
 use std::{io::Write as _, path::PathBuf};
 
 use hashql_core::{
@@ -89,7 +92,7 @@ fn assert_snapshot<'heap>(
     name: &'static str,
     context: &MirContext<'_, 'heap>,
     body: &Body<'heap>,
-    edges: &TerminatorCostVec<&'heap Heap>,
+    edges: &TerminatorCostVec<impl Allocator>,
 ) {
     let formatter = Formatter::new(context.heap);
     let type_formatter = TypeFormatter::new(&formatter, context.env, TypeFormatterOptions::terse());
@@ -208,12 +211,6 @@ fn goto_allows_cross_backend_non_postgres() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -259,12 +256,6 @@ fn switchint_blocks_cross_backend() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -310,12 +301,6 @@ fn switchint_edge_targets_are_branch_specific() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -400,12 +385,6 @@ fn graphread_interpreter_only() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -446,12 +425,6 @@ fn postgres_incoming_removed() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -491,12 +464,6 @@ fn postgres_removed_in_loops() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -533,12 +500,6 @@ fn postgres_removed_in_self_loops() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -585,12 +546,6 @@ fn transfer_cost_counts_live_and_params() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -645,24 +600,12 @@ fn traversal_assignment_skips_source_transfer_cost() {
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversal_costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
         build_targets(&body, &targets),
     );
     let standard_costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &empty_traversals(&body, &heap),
@@ -712,12 +655,6 @@ fn transfer_cost_is_max_for_unbounded() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,
@@ -763,12 +700,6 @@ fn terminator_placement_snapshot() {
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
     let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
-        &MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
         &body,
         &footprint,
         &traversals,

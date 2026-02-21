@@ -13,44 +13,49 @@ pub mod statement_placement;
 pub mod target;
 pub mod terminator_placement;
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, assert_matches};
 
-use hashql_core::{
-    heap::{BumpAllocator, Heap},
-    id::IdArray,
+use hashql_core::heap::{BumpAllocator, Heap};
+
+pub use self::{
+    cost::{ApproxCost, Cost, StatementCostVec, TraversalCostVec},
+    island::{Island, IslandId, IslandVec},
+    placement::error::PlacementDiagnosticCategory,
+    target::TargetId,
 };
-
-pub use self::cost::{ApproxCost, Cost, StatementCostVec, TraversalCostVec};
 use self::{
     fusion::BasicBlockFusion,
     island::IslandPlacement,
     placement::{ArcConsistency, PlacementSolverContext},
     splitting::BasicBlockSplitting,
-    statement_placement::{StatementPlacement, TargetPlacementStatement},
-    target::{TargetArray, TargetId},
+    statement_placement::{StatementPlacement as _, TargetPlacementStatement},
+    target::TargetArray,
     terminator_placement::TerminatorPlacement,
 };
-use super::{
-    Changed, TransformPass, analysis::size_estimation::BodyFootprint, transform::Traversals,
-};
+use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
 use crate::{
-    body::{Body, Source},
+    body::{Body, Source, basic_block::BasicBlockVec},
     context::MirContext,
     def::DefIdSlice,
     pass::analysis::size_estimation::InformationRange,
 };
 
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
-    traversals: &'ctx DefIdSlice<Option<Traversals<'heap>>>,
-    footprints: &'ctx DefIdSlice<BodyFootprint<&'heap Heap>>,
-    scratch: S,
+    pub traversals: &'ctx DefIdSlice<Option<Traversals<'heap>>>,
+    pub footprints: &'ctx DefIdSlice<BodyFootprint<&'heap Heap>>,
+    pub scratch: S,
 }
 
-impl<'env, 'heap, S: BumpAllocator> TransformPass<'env, 'heap> for ExecutionAnalysis<'_, 'heap, S> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        if !matches!(body.source, Source::GraphReadFilter(_)) {
-            return Changed::No;
-        }
+impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
+    pub fn run(
+        &self,
+        context: &mut MirContext<'_, 'heap>,
+        body: &mut Body<'heap>,
+    ) -> (
+        BasicBlockVec<TargetId, &'heap Heap>,
+        IslandVec<Island, &'heap Heap>,
+    ) {
+        assert_matches!(body.source, Source::GraphReadFilter(_));
 
         let traversals = self
             .traversals
@@ -60,8 +65,12 @@ impl<'env, 'heap, S: BumpAllocator> TransformPass<'env, 'heap> for ExecutionAnal
         let mut traversal_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
-        for target in TargetId::all() {
-            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
+        let mut targets = TargetId::all();
+        targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
+
+        for target in targets {
+            let mut statement =
+                TargetPlacementStatement::new_in(target, &traversal_costs, &self.scratch);
             let (traversal_cost, statement_cost) =
                 statement.statement_placement_in(context, body, traversals, &self.scratch);
 
@@ -69,7 +78,6 @@ impl<'env, 'heap, S: BumpAllocator> TransformPass<'env, 'heap> for ExecutionAnal
             statement_costs[target] = Some(statement_cost);
         }
 
-        let traversal_costs = traversal_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 

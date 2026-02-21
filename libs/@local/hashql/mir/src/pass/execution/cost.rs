@@ -331,6 +331,11 @@ impl<A: Allocator> TraversalCostVec<A> {
         }
     }
 
+    /// Returns the cost assigned to `local`, or `None` if unassigned or not a traversal.
+    pub fn get(&self, local: Local) -> Option<Cost> {
+        self.costs.lookup(local).copied()
+    }
+
     /// Records a cost for a traversal local.
     ///
     /// If `local` is not a traversal, the insertion is silently ignored.

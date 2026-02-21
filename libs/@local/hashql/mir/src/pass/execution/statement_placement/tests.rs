@@ -27,6 +27,7 @@ use crate::{
                 EmbeddingStatementPlacement, InterpreterStatementPlacement,
                 PostgresStatementPlacement,
             },
+            target::TargetArray,
         },
         transform::{TraversalExtraction, Traversals},
     },
@@ -181,8 +182,10 @@ fn non_graph_read_filter_returns_empty() {
 
     let traversals = Traversals::with_capacity_in(Local::new(1), body.local_decls.len(), &heap);
 
+    let traversal_costs = TargetArray::from_fn(|_| None);
+
     let mut postgres = PostgresStatementPlacement::new_in(Global);
-    let mut interpreter = InterpreterStatementPlacement::default();
+    let mut interpreter = InterpreterStatementPlacement::<Global>::new(&traversal_costs);
     let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
     let (postgres_traversal, postgres_statement) =
