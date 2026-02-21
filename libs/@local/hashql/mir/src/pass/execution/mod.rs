@@ -6,6 +6,7 @@ macro_rules! cost {
 
 mod cost;
 pub mod fusion;
+pub mod island;
 pub mod placement;
 pub mod splitting;
 pub mod statement_placement;
