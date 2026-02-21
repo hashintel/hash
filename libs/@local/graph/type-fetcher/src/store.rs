@@ -95,6 +95,9 @@ use type_system::{
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
 
+const MAX_FETCH_RECURSION_DEPTH: usize = 10;
+const MAX_FETCH_URLS_PER_OPERATION: usize = 100;
+
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
     fn insert_external_ontology_type(
@@ -429,12 +432,6 @@ struct FetchedOntologyTypes {
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
-#[derive(Debug)]
-enum FetchBehavior {
-    IncludeProvidedReferences,
-    ExcludeProvidedReferences,
-}
-
 impl<S, A> FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -546,16 +543,20 @@ where
         &self,
         actor_id: ActorEntityUuid,
         ontology_type_references: impl IntoIterator<Item = VersionedUrl> + Send,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, Report<QueryError>> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
-        let mut seen = match fetch_behavior {
-            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
-            FetchBehavior::ExcludeProvidedReferences => {
-                queue.iter().cloned().collect::<HashSet<_>>()
-            }
-        };
+        // Always seed `seen` with initial URLs to prevent re-fetching them if they
+        // appear as transitive dependencies (e.g. circular references).
+        let mut seen: HashSet<VersionedUrl> = queue.iter().cloned().collect();
+
+        let mut total_urls_scheduled = queue.len();
+        if total_urls_scheduled > MAX_FETCH_URLS_PER_OPERATION {
+            return Err(Report::new(QueryError).attach(format!(
+                "Exceeded type fetch limit: attempted to fetch {total_urls_scheduled} URLs, but \
+                 at most {MAX_FETCH_URLS_PER_OPERATION} are allowed per operation"
+            )));
+        }
 
         let mut fetched_ontology_types = FetchedOntologyTypes::default();
         if queue.is_empty() {
@@ -573,10 +574,17 @@ where
                     .join(", ")
             })
             .change_context(QueryError)?;
+        let mut recursion_depth: usize = 0;
         loop {
             let ontology_urls = mem::take(&mut queue);
             if ontology_urls.is_empty() {
                 break;
+            }
+
+            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                return Err(Report::new(QueryError).attach(format!(
+                    "Exceeded maximum type fetch recursion depth of {MAX_FETCH_RECURSION_DEPTH}"
+                )));
             }
 
             let ontology_types = {
@@ -593,77 +601,86 @@ where
             };
 
             for (ontology_type, fetched_at) in ontology_types {
-                match ontology_type {
+                // Collect referenced URLs and store the fetched type
+                let referenced_urls: Vec<VersionedUrl> = match ontology_type {
                     FetchedOntologyType::DataType(data_type) => {
-                        let metadata = PartialDataTypeMetadata {
-                            record_id: data_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .data_types
-                            .push((*data_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = data_type.id().clone().into();
+                        fetched_ontology_types.data_types.push((
+                            *data_type,
+                            PartialDataTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
-                        let metadata = PartialPropertyTypeMetadata {
-                            record_id: property_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*property_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .property_types
-                            .push((*property_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = property_type.id().clone().into();
+                        fetched_ontology_types.property_types.push((
+                            *property_type,
+                            PartialPropertyTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
-                        let metadata = PartialEntityTypeMetadata {
-                            record_id: entity_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*entity_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = entity_type.id().clone().into();
+                        fetched_ontology_types.entity_types.push((
+                            *entity_type,
+                            PartialEntityTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
+                    }
+                };
 
-                        fetched_ontology_types
-                            .entity_types
-                            .push((*entity_type, metadata));
+                // Enqueue unseen references (single place, no duplication)
+                for url in referenced_urls {
+                    if !seen.contains(&url) {
+                        if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                            return Err(Report::new(QueryError).attach(format!(
+                                "Exceeded type fetch limit: attempted to fetch more than \
+                                 {MAX_FETCH_URLS_PER_OPERATION} URLs"
+                            )));
+                        }
+                        seen.insert(url.clone());
+                        queue.push(url);
+                        total_urls_scheduled += 1;
                     }
                 }
             }
+
+            recursion_depth += 1;
         }
 
         Ok(fetched_ontology_types)
@@ -697,12 +714,7 @@ where
         }
 
         let fetched_ontology_types = self
-            .fetch_external_ontology_types(
-                actor_id,
-                ontology_type_ids,
-                FetchBehavior::ExcludeProvidedReferences,
-                bypassed_types,
-            )
+            .fetch_external_ontology_types(actor_id, ontology_type_ids, bypassed_types)
             .await
             .change_context(InsertionError)?;
 
@@ -779,7 +791,6 @@ where
         actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeMetadata>, Report<InsertionError>> {
         if on_conflict == ConflictBehavior::Fail
@@ -789,12 +800,7 @@ where
                 .change_context(InsertionError)?
         {
             let fetched_ontology_types = self
-                .fetch_external_ontology_types(
-                    actor_id,
-                    [reference.url().clone()],
-                    fetch_behavior,
-                    bypassed_types,
-                )
+                .fetch_external_ontology_types(actor_id, [reference.url().clone()], bypassed_types)
                 .await
                 .change_context(InsertionError)?;
 
@@ -901,7 +907,6 @@ where
             actor_id,
             reference,
             ConflictBehavior::Fail,
-            FetchBehavior::IncludeProvidedReferences,
             &HashSet::new(),
         )
         .await?
@@ -1584,7 +1589,6 @@ where
                 actor_uuid,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await?;
@@ -1649,7 +1653,6 @@ where
                     url: entity_type_id.clone(),
                 }),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await
