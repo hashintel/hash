@@ -46,7 +46,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{user_id}}",
   "schema": [{
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
