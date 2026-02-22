@@ -609,11 +609,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         })
                                         .chain(once(SelectExpression::Expression {
                                             expression: Expression::Function(Function::Min(
-                                                Box::new(Expression::CosineDistance(
-                                                    Box::new(Expression::ColumnReference(
+                                                Box::new(Expression::cosine_distance(
+                                                    Expression::ColumnReference(
                                                         embeddings_column.into(),
-                                                    )),
-                                                    Box::new(parameter_expression),
+                                                    ),
+                                                    parameter_expression,
                                                 )),
                                             )),
                                             alias: Some("distance"),

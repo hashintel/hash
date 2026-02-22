@@ -5,7 +5,10 @@ use core::fmt::{
 use hash_graph_store::filter::PathToken;
 
 use super::ColumnReference;
-use crate::store::postgres::query::{SelectStatement, Table, Transpile, WindowStatement};
+use crate::store::postgres::query::{
+    SelectStatement, Table, Transpile, WindowStatement,
+    expression::{BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
@@ -218,7 +221,6 @@ pub enum EqualityOperator {
 /// an "expression". This allows natural composition, e.g. negating any boolean expression.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
-    // --- Value expressions ---
     ColumnReference(ColumnReference<'static>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
@@ -226,7 +228,6 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
-    CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
     /// Row expansion - expands a composite type into its constituent columns.
@@ -252,27 +253,16 @@ pub enum Expression {
         else_result: Option<Box<Self>>,
     },
 
-    // --- Boolean conditions ---
+    Unary(UnaryExpression),
+    Binary(BinaryExpression),
+
     /// Conjunction of conditions. Transpiles to `(c1) AND (c2) AND ...`.
     /// Empty list transpiles to `TRUE`.
     All(Vec<Self>),
     /// Disjunction of conditions. Transpiles to `((c1) OR (c2) OR ...)`.
     /// Empty list transpiles to `FALSE`.
     Any(Vec<Self>),
-    /// Negation. Transpiles to `NOT(expr)`.
-    /// Special case: `Not(Exists(expr))` transpiles to `expr IS NOT NULL`.
-    Not(Box<Self>),
-    Equal(Box<Self>, Box<Self>),
-    NotEqual(Box<Self>, Box<Self>),
-    /// Null check. Transpiles to `expr IS NULL`.
-    Exists(Box<Self>),
-    Less(Box<Self>, Box<Self>),
-    LessOrEqual(Box<Self>, Box<Self>),
-    Greater(Box<Self>, Box<Self>),
-    GreaterOrEqual(Box<Self>, Box<Self>),
-    In(Box<Self>, Box<Self>),
-    TimeIntervalContainsTimestamp(Box<Self>, Box<Self>),
-    Overlap(Box<Self>, Box<Self>),
+
     StartsWith(Box<Self>, Box<Self>),
     EndsWith(Box<Self>, Box<Self>),
     ContainsSegment(Box<Self>, Box<Self>),
@@ -292,57 +282,108 @@ impl Expression {
 
     #[must_use]
     pub fn not(inner: Self) -> Self {
-        Self::Not(Box::new(inner))
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::Not,
+            expr: Box::new(inner),
+        })
     }
 
     #[must_use]
     pub fn equal(lhs: Self, rhs: Self) -> Self {
-        Self::Equal(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Equal,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn not_equal(lhs: Self, rhs: Self) -> Self {
-        Self::NotEqual(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::NotEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn exists(expr: Self) -> Self {
-        Self::Exists(Box::new(expr))
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::IsNull,
+            expr: Box::new(expr),
+        })
     }
 
     #[must_use]
     pub fn less(lhs: Self, rhs: Self) -> Self {
-        Self::Less(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Less,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn less_or_equal(lhs: Self, rhs: Self) -> Self {
-        Self::LessOrEqual(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::LessOrEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn greater(lhs: Self, rhs: Self) -> Self {
-        Self::Greater(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Greater,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn greater_or_equal(lhs: Self, rhs: Self) -> Self {
-        Self::GreaterOrEqual(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::GreaterOrEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn r#in(lhs: Self, rhs: Self) -> Self {
-        Self::In(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::In,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn time_interval_contains_timestamp(lhs: Self, rhs: Self) -> Self {
-        Self::TimeIntervalContainsTimestamp(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::TimeIntervalContainsTimestamp,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
     pub fn overlap(lhs: Self, rhs: Self) -> Self {
-        Self::Overlap(Box::new(lhs), Box::new(rhs))
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Overlap,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::CosineDistance,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
     }
 
     #[must_use]
@@ -362,7 +403,6 @@ impl Expression {
 }
 
 impl Transpile for Expression {
-    #[expect(clippy::too_many_lines)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // --- Value expressions ---
@@ -370,11 +410,6 @@ impl Transpile for Expression {
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
-            Self::CosineDistance(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <=> ")?;
-                rhs.transpile(fmt)
-            }
             Self::Window(expression, window) => {
                 expression.transpile(fmt)?;
                 fmt.write_str(" OVER (")?;
@@ -411,6 +446,9 @@ impl Transpile for Expression {
                 fmt.write_str(" END")
             }
 
+            Self::Unary(unary) => unary.transpile(fmt),
+            Self::Binary(binary) => binary.transpile(fmt),
+
             // --- Boolean conditions ---
             Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
             Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
@@ -441,67 +479,6 @@ impl Transpile for Expression {
                     fmt.write_char(')')?;
                 }
                 Ok(())
-            }
-            Self::Not(inner) => {
-                if let Self::Exists(path) = &**inner {
-                    path.transpile(fmt)?;
-                    fmt.write_str(" IS NOT NULL")
-                } else {
-                    fmt.write_str("NOT(")?;
-                    inner.transpile(fmt)?;
-                    fmt.write_char(')')
-                }
-            }
-            Self::Exists(path) => {
-                path.transpile(fmt)?;
-                fmt.write_str(" IS NULL")
-            }
-            Self::Equal(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" = ")?;
-                rhs.transpile(fmt)
-            }
-            Self::NotEqual(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" != ")?;
-                rhs.transpile(fmt)
-            }
-            Self::Less(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" < ")?;
-                rhs.transpile(fmt)
-            }
-            Self::LessOrEqual(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <= ")?;
-                rhs.transpile(fmt)
-            }
-            Self::Greater(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" > ")?;
-                rhs.transpile(fmt)
-            }
-            Self::GreaterOrEqual(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" >= ")?;
-                rhs.transpile(fmt)
-            }
-            Self::In(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" = ANY(")?;
-                rhs.transpile(fmt)?;
-                fmt.write_char(')')
-            }
-            Self::TimeIntervalContainsTimestamp(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" @> ")?;
-                rhs.transpile(fmt)?;
-                fmt.write_str("::TIMESTAMPTZ")
-            }
-            Self::Overlap(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" && ")?;
-                rhs.transpile(fmt)
             }
             Self::StartsWith(lhs, rhs) => {
                 fmt.write_str("starts_with(")?;
@@ -553,8 +530,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, SelectCompiler, Transpile as _,
-        test_helper::max_version_expression,
+        Alias, PostgresQueryPath as _, SelectCompiler, test_helper::max_version_expression,
     };
 
     #[test]
