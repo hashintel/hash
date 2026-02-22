@@ -284,7 +284,7 @@ impl EventInfo for ResolvedEvent {
 }
 /// A hardware performance counter event from Apple's kpep database.
 ///
-/// Covers Apple Silicon generations M1–M5.
+/// Covers Apple Silicon generations M1 through M5.
 /// Each variant maps to a named event in the PMC database; the event's
 /// availability on a specific chip is noted in the variant doc comment.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
