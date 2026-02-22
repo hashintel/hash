@@ -10,12 +10,15 @@ use crate::utils::DropGuard;
 
 /// Per-thread performance counter reader.
 ///
-/// Created via [`Sampler::thread`]. Use [`start`](Self::start) /
-/// [`sample`](Self::sample) / [`stop`](Self::stop) to control counting
-/// and read raw values. Reusable across multiple start/stop cycles.
+/// Created via [`Sampler::thread`]. You call [`start`](Self::start) to enable
+/// counting, [`sample`](Self::sample) to read the current raw counter values,
+/// and [`stop`](Self::stop) to disable counting. A `ThreadSampler` is
+/// reusable across multiple start/stop cycles.
 ///
-/// `!Send + !Sync` — hardware counters are thread-local, so the sampler
-/// must be used on the thread that created it.
+/// Hardware performance counters are thread-local: each CPU core maintains
+/// separate counter registers, and the kernel tracks per-thread accumulations
+/// as threads migrate between cores. This means a `ThreadSampler` must be
+/// used on the thread that created it, which is why it is `!Send + !Sync`.
 pub struct ThreadSampler<'sampler, const N: usize> {
     running: bool,
 
@@ -79,7 +82,7 @@ impl<'sampler, const N: usize> ThreadSampler<'sampler, N> {
         });
 
         try_kpc(
-            // SAFETY: same as kpc_set_counting — sysctl write with valid classes.
+            // SAFETY: same as kpc_set_counting, sysctl write with valid classes.
             unsafe { (kpc_vt.kpc_set_thread_counting)(self.classes) },
             SamplerError::UnableToStartThreadCounting,
         )?;

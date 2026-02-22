@@ -37,7 +37,7 @@ fn sampler_new_succeeds() {
 
     let database = sampler.database();
     eprintln!(
-        "db: {} ({}) — {} events",
+        "db: {} ({}) - {} events",
         database.name(),
         database.marketing_name(),
         database.events().len(),
@@ -167,7 +167,7 @@ fn mixed_fixed_and_configurable_events() {
         "retired uop count suspiciously low: {retired_uops}"
     );
 
-    // Retired uops should be in the same ballpark as instructions — at least
+    // Retired uops should be in the same ballpark as instructions, at least
     // the same order of magnitude. This is a loose sanity check, not a
     // microarchitectural assertion.
     #[expect(clippy::cast_precision_loss)]
@@ -236,7 +236,7 @@ fn sample_while_stopped_returns_error() {
         .thread([Event::FixedCycles])
         .expect("failed to create ThreadSampler");
 
-    // Never started — sample should fail.
+    // Never started; sample should fail.
     let result = thread.sample();
     assert!(
         matches!(result, Err(SamplerError::SamplerNotRunning)),
@@ -259,7 +259,7 @@ fn multiple_thread_samplers_sequentially() {
         thread.stop().expect("stop 1");
     }
 
-    // Second sampler reusing the same Sampler — config should be freed and
+    // Second sampler reusing the same Sampler. Config should be freed and
     // re-created cleanly.
     {
         let mut thread = sampler.thread([Event::FixedCycles]).expect("thread 2");
@@ -284,7 +284,7 @@ fn drop_stops_counting() {
     // Drop should stop counting without panicking.
     drop(thread);
 
-    // Creating a new ThreadSampler should work — the old one cleaned up.
+    // Creating a new ThreadSampler should work. The old one cleaned up.
     let thread = sampler
         .thread([Event::FixedInstructions])
         .expect("new thread after drop");

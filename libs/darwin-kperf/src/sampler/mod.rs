@@ -6,7 +6,7 @@
 //!    counters.
 //! 2. Call [`Sampler::thread`] with an array of [`Event`]s to create a [`ThreadSampler`] bound to
 //!    the calling thread.
-//! 3. [`start`](ThreadSampler::start) / [`sample`](ThreadSampler::sample) /
+//! 3. Use [`start`](ThreadSampler::start), [`sample`](ThreadSampler::sample), and
 //!    [`stop`](ThreadSampler::stop) to toggle counting and read raw values.
 //! 4. Compute deltas between successive samples to get per-region counts.
 //!
@@ -32,12 +32,25 @@ use crate::{
 
 /// Session-scoped handle for hardware performance counters.
 ///
-/// Loads both Apple private frameworks, detects the CPU, opens its PMC event
-/// database, and force-acquires all hardware counters (including those
-/// reserved by the OS Power Manager). The previous force-all state is saved
-/// and restored on drop.
+/// When you create a `Sampler`, it loads Apple's private `kperf.framework` and
+/// `kperfdata.framework`, detects which CPU you're running on, opens the
+/// corresponding PMC event database, and force-acquires all hardware counters.
 ///
-/// Create per-thread samplers via [`thread`](Self::thread).
+/// "Force-acquiring" means taking control of the counters that macOS normally
+/// reserves for the OS Power Manager. Without this step, you can only access
+/// a subset of the available counters. The previous force-all state is saved
+/// at construction and restored when the `Sampler` is dropped, so other tools
+/// that rely on those counters (like `powermetrics`) are only affected while
+/// the `Sampler` is alive.
+///
+/// You should typically create one `Sampler` per process. Creating multiple
+/// `Sampler`s is safe but will interfere with the save/restore of the
+/// force-all-counters state, since each one independently saves and restores
+/// the `sysctl` value on drop.
+///
+/// A `Sampler` is [`Send`] + [`Sync`] because all of its operations are
+/// stateless `sysctl` calls. Use [`thread`](Self::thread) to create per-thread
+/// [`ThreadSampler`]s that read the actual counter values.
 pub struct Sampler {
     kperf: KPerf,
     kperfdata: KPerfData,
@@ -78,8 +91,8 @@ impl Sampler {
 
     /// Releases force-acquired counters back to the OS Power Manager.
     ///
-    /// Restores the `force_all_ctrs` state saved at construction — the same
-    /// teardown step that [`Drop`] performs, but without freeing the database.
+    /// Restores the `force_all_ctrs` state saved at construction. This performs
+    /// the same teardown step as [`Drop`], but without freeing the database.
     /// Intended for `static` samplers that outlive the measurement phase (e.g.
     /// a Criterion harness) and need to relinquish counters before process
     /// exit.

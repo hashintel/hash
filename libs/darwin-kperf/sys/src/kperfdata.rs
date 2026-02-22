@@ -2,22 +2,22 @@
 //! `kperfdata.framework`.
 //!
 //! This module provides the Kernel Performance Event Programming (KPEP)
-//! interface — the layer that sits between the raw KPC hardware registers and
+//! interface: the layer that sits between the raw KPC hardware registers and
 //! human-readable event names like `"INST_RETIRED.ANY"` or `"Cycles"`.
 //!
 //! # Structs
 //!
 //! Three opaque-ish C structs form the core of the KPEP API:
 //!
-//! - [`kpep_db`] (152 bytes) — a parsed PMC event database, opened via [`kpep_db_create`] from the
+//! - [`kpep_db`] (152 bytes): a parsed PMC event database, opened via [`kpep_db_create`] from the
 //!   plist files in `/usr/share/kpep/`. Contains the full catalogue of events the current CPU
 //!   supports, queryable by name ([`kpep_db_event`]) or enumerated in bulk ([`kpep_db_events`]).
 //!
-//! - [`kpep_event`] (56 bytes) — a single PMC event descriptor. Holds the event's name,
-//!   description, alias, hardware selector (`number`, `mask`), and whether the event is bound to a
-//!   fixed counter. Layout reverse-engineered from `kperfdata.framework` via Ghidra.
+//! - [`kpep_event`] (56 bytes): a single PMC event descriptor. Holds the event's name, description,
+//!   alias, hardware selector (`number`, `mask`), and whether the event is bound to a fixed
+//!   counter. Layout reverse-engineered from `kperfdata.framework` via Ghidra.
 //!
-//! - [`kpep_config`] (80 bytes) — a mutable configuration builder. Events are added via
+//! - [`kpep_config`] (80 bytes): a mutable configuration builder. Events are added via
 //!   [`kpep_config_add_event`], then [`kpep_config_kpc`] and [`kpep_config_kpc_map`] extract the
 //!   register values and counter-to-event mapping that
 //!   [`kpc_set_config`](crate::kperf::kpc_set_config) expects.
@@ -79,7 +79,7 @@ pub struct kpep_event {
     /// Intel PMC umask value, populated from the plist `"umask"` key.
     ///
     /// Only set on `x86_64`; always zero on ARM. The name is a holdover from
-    /// Intel's PMC naming conventions — despite what older references call it,
+    /// Intel's PMC naming conventions. Despite what older references call it,
     /// this is *not* a "is this a fixed counter" flag.
     pub umask: u8,
     _pad0: u8,
@@ -266,22 +266,27 @@ pub const KPEP_CONFIG_ERROR_ERRNO: c_int = 15;
 // Function pointer types
 // -----------------------------------------------------------------------------
 
-/// Create a config.
+/// Creates a new configuration builder for the given database.
 ///
-/// `db` is a kpep db (see [`kpep_db_create`]). `cfg_ptr` receives the new
-/// config. Returns 0 on success.
+/// - `db`: a database handle previously obtained from [`kpep_db_create`].
+/// - `cfg_ptr`: receives the newly allocated config. Free with [`kpep_config_free`].
+///
+/// Returns 0 on success.
 pub type kpep_config_create =
     unsafe extern "C" fn(db: *mut kpep_db, cfg_ptr: *mut *mut kpep_config) -> c_int;
 
-/// Free the config.
+/// Frees a config previously allocated by [`kpep_config_create`].
 pub type kpep_config_free = unsafe extern "C" fn(cfg: *mut kpep_config);
 
-/// Add an event to config.
+/// Adds an event to the configuration.
 ///
-/// `flag`: 0 for all, 1 for user space only. `err` is an optional error bitmap
-/// pointer — if the return value is `CONFLICTING_EVENTS`, this bitmap contains
-/// the conflicted event indices (e.g. `1 << 2` means index 2). Returns 0 on
-/// success.
+/// - `cfg`: the config to modify.
+/// - `ev_ptr`: pointer to the event pointer (obtained from [`kpep_db_event`]).
+/// - `flag`: 0 to count in all modes, 1 for user space only.
+/// - `err`: optional error bitmap pointer. If the return value is `CONFLICTING_EVENTS`, this bitmap
+///   indicates which event indices conflict (e.g. `1 << 2` means index 2).
+///
+/// Returns 0 on success.
 pub type kpep_config_add_event = unsafe extern "C" fn(
     cfg: *mut kpep_config,
     ev_ptr: *mut *mut kpep_event,
@@ -289,111 +294,135 @@ pub type kpep_config_add_event = unsafe extern "C" fn(
     err: *mut u32,
 ) -> c_int;
 
-/// Remove event at index. Returns 0 on success.
+/// Removes the event at `idx` from the configuration. Returns 0 on success.
 pub type kpep_config_remove_event =
     unsafe extern "C" fn(cfg: *mut kpep_config, idx: usize) -> c_int;
 
-/// Force all counters. Returns 0 on success.
+/// Marks the configuration as needing force-acquired counters.
+///
+/// After calling this, [`kpep_config_kpc`] will produce register values that
+/// require `kpc_force_all_ctrs_set(1)` to have been called first. Returns 0
+/// on success.
 pub type kpep_config_force_counters = unsafe extern "C" fn(cfg: *mut kpep_config) -> c_int;
 
-/// Get events count. Returns 0 on success.
+/// Gets the number of events added to this config. Returns 0 on success.
 pub type kpep_config_events_count =
     unsafe extern "C" fn(cfg: *mut kpep_config, count_ptr: *mut usize) -> c_int;
 
-/// Get all event pointers.
+/// Gets all event pointers from the configuration.
 ///
-/// `buf` receives event pointers. `buf_size` is the buffer's size in bytes and
-/// should be at least `kpep_config_events_count() * sizeof(void *)`. Returns 0
-/// on success.
+/// - `cfg`: the config to query.
+/// - `buf`: receives event pointers.
+/// - `buf_size`: buffer size in bytes; should be at least `kpep_config_events_count() * sizeof(void
+///   *)`.
+///
+/// Returns 0 on success.
 pub type kpep_config_events = unsafe extern "C" fn(
     cfg: *mut kpep_config,
     buf: *mut *mut kpep_event,
     buf_size: usize,
 ) -> c_int;
 
-/// Get kpc register configs.
+/// Gets the KPC register configuration values.
 ///
-/// `buf` receives kpc register configs. `buf_size` is the buffer's size in
-/// bytes and should be at least `kpep_config_kpc_count() *
-/// sizeof(kpc_config_t)`. Returns 0 on success.
+/// - `cfg`: the config to query.
+/// - `buf`: receives register config values.
+/// - `buf_size`: buffer size in bytes; should be at least `kpep_config_kpc_count() *
+///   sizeof(kpc_config_t)`.
+///
+/// Returns 0 on success.
 pub type kpep_config_kpc =
     unsafe extern "C" fn(cfg: *mut kpep_config, buf: *mut kpc_config_t, buf_size: usize) -> c_int;
 
-/// Get kpc register config count. Returns 0 on success.
+/// Gets the number of KPC register config values. Returns 0 on success.
 pub type kpep_config_kpc_count =
     unsafe extern "C" fn(cfg: *mut kpep_config, count_ptr: *mut usize) -> c_int;
 
-/// Get kpc classes. `classes_ptr` receives the class mask (see `KPC_CLASS_*`
-/// constants). Returns 0 on success.
+/// Gets the active KPC counter class mask.
+///
+/// `classes_ptr` receives a combination of `KPC_CLASS_*_MASK` constants.
+/// Returns 0 on success.
 pub type kpep_config_kpc_classes =
     unsafe extern "C" fn(cfg: *mut kpep_config, classes_ptr: *mut u32) -> c_int;
 
-/// Get the index mapping from event to counter.
+/// Gets the mapping from event index to hardware counter slot.
 ///
-/// `buf` receives indexes. `buf_size` is the buffer's size in bytes and should
-/// be at least `kpep_config_events_count() * sizeof(usize)`. Returns 0 on
-/// success.
+/// - `cfg`: the config to query.
+/// - `buf`: receives one index per event. Each value is the hardware counter slot assigned to the
+///   corresponding event.
+/// - `buf_size`: buffer size in bytes; should be at least `kpep_config_events_count() *
+///   sizeof(usize)`.
+///
+/// Returns 0 on success.
 pub type kpep_config_kpc_map =
     unsafe extern "C" fn(cfg: *mut kpep_config, buf: *mut usize, buf_size: usize) -> c_int;
 
-/// Open a kpep database file in `/usr/share/kpep/` or `/usr/local/share/kpep/`.
+/// Opens a kpep database file in `/usr/share/kpep/` or `/usr/local/share/kpep/`.
 ///
-/// `name` is the file name, for example `"haswell"` or
-/// `"cpu_100000c_1_92fb37c8"`. Pass NULL for the current CPU. Returns 0 on
-/// success.
+/// - `name`: the database file name, for example `"haswell"` or `"cpu_100000c_1_92fb37c8"`. Pass
+///   NULL to auto-detect the current CPU.
+/// - `db_ptr`: receives the newly allocated database. Free with [`kpep_db_free`].
+///
+/// Returns 0 on success.
 pub type kpep_db_create =
     unsafe extern "C" fn(name: *const c_char, db_ptr: *mut *mut kpep_db) -> c_int;
 
-/// Free the kpep database.
+/// Frees a database previously allocated by [`kpep_db_create`].
 pub type kpep_db_free = unsafe extern "C" fn(db: *mut kpep_db);
 
-/// Get the database's name. Returns 0 on success.
+/// Gets the database's marketing name (e.g. `"Apple M1"`). Returns 0 on success.
 pub type kpep_db_name = unsafe extern "C" fn(db: *mut kpep_db, name: *mut *const c_char) -> c_int;
 
-/// Get the event alias count. Returns 0 on success.
+/// Gets the number of event aliases in the database. Returns 0 on success.
 pub type kpep_db_aliases_count = unsafe extern "C" fn(db: *mut kpep_db, count: *mut usize) -> c_int;
 
-/// Get all aliases.
+/// Gets all alias strings from the database.
 ///
-/// `buf` receives alias strings. `buf_size` is the buffer's size in bytes and
-/// should be at least `kpep_db_aliases_count() * sizeof(void *)`. Returns 0 on
-/// success.
+/// - `db`: the database to query.
+/// - `buf`: receives alias string pointers.
+/// - `buf_size`: buffer size in bytes; should be at least `kpep_db_aliases_count() * sizeof(void
+///   *)`.
+///
+/// Returns 0 on success.
 pub type kpep_db_aliases =
     unsafe extern "C" fn(db: *mut kpep_db, buf: *mut *const c_char, buf_size: usize) -> c_int;
 
-/// Get counters count for given classes.
+/// Gets the number of counters for the given classes.
 ///
-/// `classes`: 1 for fixed, 2 for configurable. Returns 0 on success.
+/// `classes`: 1 for fixed, 2 for configurable, 3 for both. Returns 0 on success.
 pub type kpep_db_counters_count =
     unsafe extern "C" fn(db: *mut kpep_db, classes: u8, count: *mut usize) -> c_int;
 
-/// Get all event count. Returns 0 on success.
+/// Gets the total number of events in the database. Returns 0 on success.
 pub type kpep_db_events_count = unsafe extern "C" fn(db: *mut kpep_db, count: *mut usize) -> c_int;
 
-/// Get all events.
+/// Gets all event pointers from the database.
 ///
-/// `buf` receives event pointers. `buf_size` is the buffer's size in bytes and
-/// should be at least `kpep_db_events_count() * sizeof(void *)`. Returns 0 on
-/// success.
+/// - `db`: the database to query.
+/// - `buf`: receives event pointers.
+/// - `buf_size`: buffer size in bytes; should be at least `kpep_db_events_count() * sizeof(void
+///   *)`.
+///
+/// Returns 0 on success.
 pub type kpep_db_events =
     unsafe extern "C" fn(db: *mut kpep_db, buf: *mut *mut kpep_event, buf_size: usize) -> c_int;
 
-/// Get one event by name. Returns 0 on success.
+/// Looks up a single event by name or alias. Returns 0 on success.
 pub type kpep_db_event = unsafe extern "C" fn(
     db: *mut kpep_db,
     name: *const c_char,
     ev_ptr: *mut *mut kpep_event,
 ) -> c_int;
 
-/// Get event's name. Returns 0 on success.
+/// Gets an event's unique name (e.g. `"INST_ALL"`). Returns 0 on success.
 pub type kpep_event_name =
     unsafe extern "C" fn(ev: *mut kpep_event, name_ptr: *mut *const c_char) -> c_int;
 
-/// Get event's alias. Returns 0 on success.
+/// Gets an event's alias (e.g. `"Instructions"`), if one exists. Returns 0 on success.
 pub type kpep_event_alias =
     unsafe extern "C" fn(ev: *mut kpep_event, alias_ptr: *mut *const c_char) -> c_int;
 
-/// Get event's description. Returns 0 on success.
+/// Gets an event's human-readable description, if available. Returns 0 on success.
 pub type kpep_event_description =
     unsafe extern "C" fn(ev: *mut kpep_event, str_ptr: *mut *const c_char) -> c_int;
 
@@ -418,28 +447,29 @@ macro_rules! load_sym {
 ///
 /// The KPEP API is organized around three object types:
 ///
-/// - **[`kpep_db`]** — a parsed PMC event database, opened from the plist files in
+/// - **[`kpep_db`]**: a parsed PMC event database, opened from the plist files in
 ///   `/usr/share/kpep/`. Functions: [`kpep_db_create`], [`kpep_db_free`], [`kpep_db_event`],
 ///   [`kpep_db_events`].
 ///
-/// - **[`kpep_event`]** — a single PMC event descriptor with its hardware selector, name, alias,
-///   and fixed-counter flag. Functions: [`kpep_event_name`], [`kpep_event_alias`],
+/// - **[`kpep_event`]**: a single PMC event descriptor with its hardware selector, name, alias, and
+///   fixed-counter flag. Functions: [`kpep_event_name`], [`kpep_event_alias`],
 ///   [`kpep_event_description`].
 ///
-/// - **[`kpep_config`]** — a mutable configuration builder that maps events to counter registers.
+/// - **[`kpep_config`]**: a mutable configuration builder that maps events to counter registers.
 ///   Functions: [`kpep_config_create`], [`kpep_config_add_event`], [`kpep_config_kpc`],
 ///   [`kpep_config_kpc_map`].
 ///
-/// All function pointers are resolved eagerly by [`load`](Self::load) — if any symbol
-/// is missing from the framework, loading fails immediately rather than deferring to
-/// first use. The resolved pointers remain valid for as long as the originating
-/// [`LibraryHandle`] is open.
+/// All function pointers are resolved eagerly by [`load`](Self::load). If any
+/// symbol is missing from the framework, loading fails immediately rather than
+/// deferring to first use. The resolved pointers remain valid for as long as
+/// the originating [`LibraryHandle`] is open.
 ///
 /// # Safety
 ///
-/// Every field is an `unsafe extern "C" fn`. The caller is responsible for upholding the
-/// preconditions documented on each function pointer type alias — buffer sizes, pointer
-/// validity, and correct lifetime management of the opaque `kpep_*` objects.
+/// Every field is an `unsafe extern "C" fn`. The caller is responsible for
+/// upholding the preconditions documented on each function pointer type alias:
+/// buffer sizes, pointer validity, and correct lifetime management of the
+/// opaque `kpep_*` objects.
 #[expect(clippy::struct_field_names)]
 pub struct VTable {
     pub kpep_config_create: kpep_config_create,
@@ -474,12 +504,10 @@ impl fmt::Debug for VTable {
 }
 
 impl VTable {
-    /// Resolves every `kperfdata.framework` symbol from `handle` and returns a populated
-    /// `VTable`.
+    /// Resolves every `kperfdata.framework` symbol from `handle`.
     ///
-    /// Resolution is all-or-nothing: if any of the 23 required symbols cannot be found,
-    /// the call returns an error and no partial `VTable` is produced. This ensures that
-    /// callers never encounter a null function pointer at the point of use.
+    /// Resolution is all-or-nothing: if any of the 23 required symbols cannot
+    /// be found, the call returns an error.
     ///
     /// # Errors
     ///

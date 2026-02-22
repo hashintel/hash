@@ -25,6 +25,9 @@ pub enum SamplerError {
     /// A framework function returned a null pointer where non-null was expected.
     UnexpectedNullPointer,
     /// Insufficient privileges to access performance counters.
+    ///
+    /// Run with `sudo` or sign the binary with the
+    /// `com.apple.private.kernel.kpc` entitlement.
     MissingPrivileges,
     /// Failed to force-acquire all hardware counters.
     FailedToForceAllCounters(c_int),

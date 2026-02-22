@@ -1,12 +1,13 @@
 //! Criterion.rs integration for hardware performance counters on Apple Silicon.
 //!
-//! This crate provides a [`Measurement`](criterion::measurement::Measurement) implementation that
-//! reads hardware performance counters (PMCs) instead of wall-clock time, enabling
-//! deterministic, low-noise benchmarking of CPU-bound code.
+//! A [`Measurement`](criterion::measurement::Measurement) implementation backed
+//! by hardware performance counters (PMCs) instead of wall-clock time.
 //!
-//! On non-macOS platforms (or when the `codspeed` feature is active),
-//! [`HardwareCounter`] transparently falls back to wall-clock time so that
-//! benchmarks remain compilable and runnable everywhere.
+//! On non-macOS platforms, [`HardwareCounter`] falls back to wall-clock time so
+//! that benchmarks still compile and run everywhere. The optional `codspeed`
+//! feature adds a second `Measurement` implementation for
+//! `codspeed-criterion-compat-walltime`, so the same `HardwareCounter` type
+//! works in both vanilla Criterion and CodSpeed environments.
 //!
 //! # Quick start
 //!
@@ -39,16 +40,16 @@
 //! # Choosing a counter
 //!
 //! **Instructions** is the best default for most benchmarks. Instruction counts
-//! are deterministic — they don't vary with CPU frequency scaling, thermal
-//! throttling, or background load — so you get stable, reproducible numbers
-//! even with a small sample size. Use **cycles** when you care about actual
+//! are deterministic: they don't vary with CPU frequency scaling, thermal
+//! throttling, or background load. You get stable, reproducible numbers even
+//! with a small sample size. Use **cycles** when you care about actual
 //! execution time on a specific microarchitecture (IPC, port pressure, etc.),
 //! but expect higher variance.
 //!
 //! # Tuning Criterion for instruction counting
 //!
-//! Instruction counts are nearly deterministic for straight-line code —
-//! typical variance is 0.01–0.05%, far below wall-clock noise. This means
+//! Instruction counts are nearly deterministic for straight-line code;
+//! typical variance is 0.01% to 0.05%, far below wall-clock noise. This means
 //! you can dramatically reduce sample sizes without sacrificing precision:
 //!
 //! ```rust,ignore
@@ -76,7 +77,7 @@
 //!
 //! # Platform
 //!
-//! macOS only (Apple Silicon M1–M5). Requires root privileges or the
+//! macOS only (Apple Silicon M1-M5). Requires root privileges or the
 //! `com.apple.private.kernel.kpc` entitlement. On other platforms the
 //! constructors return a wall-clock fallback.
 

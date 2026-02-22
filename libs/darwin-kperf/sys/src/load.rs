@@ -1,7 +1,7 @@
 //! Minimal dynamic library loading primitives built directly on `dlopen(3)`.
 //!
-//! This module provides [`LibraryHandle`] and [`LibrarySymbol`] — thin wrappers around
-//! the POSIX `dl*` family — without pulling in `libc` or `libloading`. This works on
+//! This module provides [`LibraryHandle`] and [`LibrarySymbol`], thin wrappers around
+//! the POSIX `dl*` family, without pulling in `libc` or `libloading`. This works on
 //! macOS because `libSystem.B.dylib` (which exports `dlopen`, `dlsym`, `dlclose`, and
 //! `dlerror`) is always implicitly linked into every process.
 //!
@@ -28,9 +28,9 @@ use core::{
     ptr::NonNull,
 };
 
-/// Bind symbols lazily — each symbol is resolved on first use.
+/// Bind symbols lazily; each symbol is resolved on first use.
 pub const RTLD_LAZY: c_int = 0x1;
-/// Bind symbols eagerly — all symbols are resolved when `dlopen` returns.
+/// Bind symbols eagerly; all symbols are resolved when `dlopen` returns.
 pub const RTLD_NOW: c_int = 0x2;
 
 unsafe extern "C" {
@@ -75,21 +75,20 @@ pub struct LibrarySymbol(NonNull<c_void>);
 
 /// A RAII wrapper around a `dlopen` handle.
 ///
-/// Opens a dynamic library on construction and closes it on drop. The inner
-/// `Option` becomes `None` after an explicit [`close`](Self::close), which prevents the
-/// destructor from double-closing.
+/// Opens a dynamic library on construction and closes it on drop. After an
+/// explicit [`close`](Self::close), the destructor is disarmed.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct LibraryHandle(Option<NonNull<c_void>>);
 
 // SAFETY: a `LibraryHandle` is an opaque token for a `dlopen`-ed library.
 // `dlsym` and `dlclose` are thread-safe per POSIX, and `&self` methods only
-// call `dlsym` — no interior mutability.
+// call `dlsym`. No interior mutability.
 unsafe impl Send for LibraryHandle {}
 
 // SAFETY: a `LibraryHandle` is an opaque token for a `dlopen`-ed library.
 // `dlsym` and `dlclose` are thread-safe per POSIX, and `&self` methods only
-// call `dlsym` — no interior mutability.
+// call `dlsym`. No interior mutability.
 unsafe impl Sync for LibraryHandle {}
 
 impl LibraryHandle {
@@ -158,7 +157,7 @@ impl LibraryHandle {
 
     /// Explicitly closes the library handle and returns any error from `dlclose`.
     ///
-    /// After this call the destructor is disarmed — dropping the handle is a no-op.
+    /// After this call the destructor is disarmed; dropping the handle is a no-op.
     ///
     /// # Errors
     ///

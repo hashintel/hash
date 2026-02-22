@@ -1,11 +1,28 @@
 //! Safe read-only view of the PMC event database.
 //!
-//! The [`Database`] type wraps the framework-allocated `kpep_db` and provides
-//! accessors for the database metadata, event list, and fixed-counter events.
+//! Each Apple Silicon CPU has a corresponding plist file in `/usr/share/kpep/`
+//! that catalogues every hardware event the chip supports: event names, hardware
+//! selectors, fixed-counter assignments, and human-readable aliases like
+//! `"Instructions"` or `"Cycles"`. The `kperfdata.framework` parses these plists
+//! into an in-memory `kpep_db`, and this module wraps that allocation with a
+//! safe, borrowing API.
 //!
-//! A `Database` is obtained via [`Sampler::database`](crate::Sampler::database)
-//! and borrows the `Sampler`'s lifetime — the underlying database memory is freed
-//! when the `Sampler` is dropped.
+//! You get a [`Database`] by calling [`Sampler::database`](crate::Sampler::database).
+//! It borrows the `Sampler`'s lifetime, so the underlying database memory is
+//! freed when the `Sampler` is dropped. From there you can inspect the full
+//! event list, query fixed-counter events, or read database metadata like the
+//! CPU identifier and marketing name.
+//!
+//! ```rust,ignore
+//! let sampler = Sampler::new()?;
+//! let db = sampler.database();
+//!
+//! for event in db.events() {
+//!     if let Some(alias) = event.alias() {
+//!         println!("{}: {}", event.name(), alias);
+//!     }
+//! }
+//! ```
 
 use core::{
     ffi::{CStr, c_char},
@@ -59,11 +76,20 @@ const unsafe fn as_opt_str<'db>(field: *const c_char) -> Option<&'db str> {
     }
 }
 
+/// CPU architecture reported by the PMC database.
+///
+/// Mirrors the `KPEP_ARCH_*` constants from `kperfdata.framework`. Includes
+/// non-Apple-Silicon values because the database format predates the ARM
+/// transition.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Architecture {
+    /// 32-bit x86 (`IA-32`).
     I386,
+    /// 64-bit x86 (`x86_64` / `AMD64`).
     X86_64,
+    /// 32-bit ARM.
     Arm,
+    /// 64-bit ARM (`AArch64`).
     Arm64,
 }
 
@@ -79,10 +105,12 @@ impl Architecture {
     }
 }
 
-/// Safe view of a `kpep_db` opened by the framework.
+/// Safe, read-only view of a `kpep_db` opened by the framework.
 ///
-/// The `'db` lifetime is tied to the framework-allocated database; all string
-/// and event pointers inside the database remain valid for this lifetime.
+/// Each database describes every PMC event that a specific Apple Silicon CPU
+/// supports. The `'db` lifetime is tied to the framework-allocated database;
+/// all string and event pointers inside the database remain valid for this
+/// lifetime.
 pub struct Database<'db> {
     inner: &'db darwin_kperf_sys::kperfdata::kpep_db,
 }
@@ -98,12 +126,15 @@ impl<'db> Database<'db> {
         Self { inner: db }
     }
 
-    /// Returns a reference to the underlying `kpep_db`.
+    /// Returns a non-null pointer to the underlying `kpep_db`.
+    ///
+    /// This is useful if you need to call `kperfdata.framework` functions
+    /// directly through the [`VTable`](darwin_kperf_sys::kperfdata::VTable).
     ///
     /// # Safety
     ///
-    /// The caller must not mutate the database or use it after the
-    /// [`Database`]'s lifetime has expired.
+    /// The returned pointer borrows the database. The caller must not mutate
+    /// it, free it, or use it after the [`Database`]'s lifetime has expired.
     #[must_use]
     pub const unsafe fn as_raw(&self) -> NonNull<darwin_kperf_sys::kperfdata::kpep_db> {
         NonNull::from_ref(self.inner)
@@ -120,7 +151,7 @@ impl<'db> Database<'db> {
     /// Plist CPU identifier, e.g. `"cpu_7_8_10b282dc"`.
     #[must_use]
     pub const fn cpu_id(&self) -> &'db str {
-        // SAFETY: same as `name` — framework-owned, NUL-terminated, valid for 'db.
+        // SAFETY: same as `name`, framework-owned, NUL-terminated, valid for 'db.
         unsafe { as_str(self.inner.cpu_id) }
     }
 
@@ -133,7 +164,7 @@ impl<'db> Database<'db> {
     /// Marketing name, e.g. `"Apple A14/M1"`.
     #[must_use]
     pub const fn marketing_name(&self) -> &'db str {
-        // SAFETY: same as `name` — framework-owned, NUL-terminated, valid for 'db.
+        // SAFETY: same as `name`, framework-owned, NUL-terminated, valid for 'db.
         unsafe { as_str(self.inner.marketing_name) }
     }
 
@@ -187,10 +218,13 @@ impl<'db> Database<'db> {
     }
 }
 
-/// A hardware performance counter event from the PMC database.
+/// A single hardware performance counter event from the PMC database.
 ///
-/// This is a `#[repr(transparent)]` wrapper over the framework's `kpep_event`,
-/// with string accessors that return `&str` tied to the database lifetime.
+/// Each event describes one thing the CPU can count: retired instructions,
+/// cache misses, branch mispredictions, micro-ops, and so on. The [`name`](Self::name)
+/// is the hardware-specific identifier (e.g. `"INST_ALL"`), while
+/// [`alias`](Self::alias) provides a human-readable label when one exists
+/// (e.g. `"Instructions"`).
 #[derive(Debug, Copy, Clone)]
 #[repr(transparent)]
 pub struct DatabaseEvent<'db> {
@@ -234,10 +268,10 @@ impl<'db> DatabaseEvent<'db> {
         unsafe { as_opt_str(self.event.fallback) }
     }
 
-    /// Whether this event must be placed in a fixed counter.
+    /// Whether this event is bound to a fixed counter register.
     ///
-    /// Checks bit 0 of the event's `flags` field, which the framework sets
-    /// during `_event_init` when the plist contains a `"fixed_counter"` key.
+    /// The framework sets bit 0 of the event's `flags` field during
+    /// `_event_init` when the plist contains a `"fixed_counter"` key.
     #[must_use]
     pub const fn is_fixed(&self) -> bool {
         self.event.flags & 1 != 0

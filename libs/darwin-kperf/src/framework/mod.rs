@@ -2,11 +2,15 @@
 //!
 //! [`KPerf`] wraps `kperf.framework` (counter configuration and sampling) and
 //! [`KPerfData`] wraps `kperfdata.framework` (PMC event database and
-//! configuration). Both load their framework at construction via `dlopen` and
-//! resolve all required symbols eagerly.
+//! configuration building). Both load their framework at construction via
+//! `dlopen` and resolve all required symbols eagerly into a
+//! [`VTable`](darwin_kperf_sys::kperf::VTable).
 //!
-//! These types are owned by [`Sampler`](crate::Sampler) and are not typically
-//! constructed directly.
+//! You normally don't construct these directly. [`Sampler::new`](crate::Sampler::new)
+//! creates both handles internally. If you need the raw function pointers for
+//! something the safe API doesn't expose, you can access them through
+//! [`Sampler::kperf`](crate::Sampler::kperf) and
+//! [`Sampler::kperfdata`](crate::Sampler::kperfdata).
 
 mod error;
 
@@ -18,10 +22,10 @@ pub use self::error::{FrameworkError, FrameworkErrorKind};
 
 /// Handle to Apple's private `kperf.framework`.
 ///
-/// Owns the dynamically loaded library and the resolved function pointers for kernel
-/// performance counter (KPC) operations: configuring counter classes, starting/stopping
-/// counting, reading per-thread and per-CPU counters, and converting between ticks and
-/// nanoseconds.
+/// Owns the dynamically loaded library and its resolved
+/// [`VTable`](darwin_kperf_sys::kperf::VTable), which has the KPC function
+/// pointers for counter configuration, sampling, and tick/nanosecond
+/// conversion.
 #[derive(Debug)]
 pub struct KPerf {
     _handle: LibraryHandle,
@@ -64,10 +68,11 @@ impl KPerf {
 
 /// Handle to Apple's private `kperfdata.framework`.
 ///
-/// Owns the dynamically loaded library and the resolved function pointers for the kernel
-/// performance event programming (KPEP) interface: opening the PMC event database for the
-/// current CPU, looking up events by name or alias, and building a register configuration
-/// to push to the kernel via [`KPerf`].
+/// Owns the dynamically loaded library and its resolved
+/// [`VTable`](darwin_kperf_sys::kperfdata::VTable). The VTable contains the
+/// KPEP functions for opening the PMC event database for the current CPU,
+/// looking up events by name or alias, and building the register configuration
+/// that gets pushed to the kernel via [`KPerf`].
 #[derive(Debug)]
 pub struct KPerfData {
     _handle: LibraryHandle,

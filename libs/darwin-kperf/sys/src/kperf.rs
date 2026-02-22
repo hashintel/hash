@@ -2,12 +2,12 @@
 //!
 //! This module covers two subsystems that live inside the same framework:
 //!
-//! - **KPC** (Kernel Performance Counters) — configuring which counter classes are active
+//! - **KPC** (Kernel Performance Counters): configuring which counter classes are active
 //!   ([`kpc_set_counting`]), programming hardware register values ([`kpc_set_config`]), and reading
 //!   back counter accumulations per-thread or per-CPU ([`kpc_get_thread_counters`],
 //!   [`kpc_get_cpu_counters`]).
 //!
-//! - **KPERF** (Kernel Performance) — the sampling subsystem that fires actions on timer triggers,
+//! - **KPERF** (Kernel Performance): the sampling subsystem that fires actions on timer triggers,
 //!   enabling continuous profiling with configurable sample sources ([`kperf_action_samplers_set`],
 //!   [`kperf_timer_period_set`]).
 //!
@@ -195,10 +195,10 @@ pub type kpc_set_config = unsafe extern "C" fn(classes: u32, config: *mut kpc_co
 ///
 /// See [`kpc_get_counter_count`].
 ///
-/// - `all_cpus` — `true` for all CPUs, `false` for the current CPU.
-/// - `classes` — a combination of `KPC_CLASS_*_MASK` constants.
-/// - `curcpu` — pointer to receive the current CPU id; may be null.
-/// - `buf` — buffer to receive counter values.
+/// - `all_cpus`: `true` for all CPUs, `false` for the current CPU.
+/// - `classes`: a combination of `KPC_CLASS_*_MASK` constants.
+/// - `curcpu`: pointer to receive the current CPU id; may be null.
+/// - `buf`: buffer to receive counter values.
 ///
 /// Returns 0 for success.
 ///
@@ -208,10 +208,10 @@ pub type kpc_get_cpu_counters =
 
 /// Gets counter accumulations for the current thread.
 ///
-/// - `tid` — thread id, should be 0.
-/// - `buf_count` — number of elements in `buf` (not bytes); should be at least
+/// - `tid`: thread id, should be 0.
+/// - `buf_count`: number of elements in `buf` (not bytes); should be at least
 ///   `kpc_get_counter_count()`.
-/// - `buf` — buffer to receive counter values.
+/// - `buf`: buffer to receive counter values.
 ///
 /// Returns 0 for success.
 ///
@@ -221,7 +221,7 @@ pub type kpc_get_thread_counters =
 
 /// Acquires or releases the counters used by the Power Manager.
 ///
-/// `val` — 1 to acquire, 0 to release.
+/// `val`: 1 to acquire, 0 to release.
 ///
 /// Returns 0 for success.
 ///
@@ -347,25 +347,26 @@ macro_rules! load_sym {
 /// Each field is a C function pointer obtained via `dlsym` from Apple's private
 /// `kperf.framework`. The framework exposes two subsystems:
 ///
-/// - **KPC** (Kernel Performance Counters) — enabling counter classes ([`kpc_set_counting`]),
+/// - **KPC** (Kernel Performance Counters): enabling counter classes ([`kpc_set_counting`]),
 ///   programming hardware registers ([`kpc_set_config`]), reading per-thread or per-CPU
 ///   accumulations ([`kpc_get_thread_counters`], [`kpc_get_cpu_counters`]), and force-acquiring
 ///   counters from the Power Manager ([`kpc_force_all_ctrs_set`]).
 ///
-/// - **KPERF** (Kernel Performance) — the sampling subsystem that fires actions on timer triggers
+/// - **KPERF** (Kernel Performance): the sampling subsystem that fires actions on timer triggers
 ///   ([`kperf_action_samplers_set`], [`kperf_timer_period_set`]), with tick/nanosecond conversion
 ///   helpers ([`kperf_ns_to_ticks`], [`kperf_ticks_to_ns`]).
 ///
-/// All function pointers are resolved eagerly by [`load`](Self::load) — if any symbol
-/// is missing from the framework, loading fails immediately rather than deferring to
-/// first use. The resolved pointers remain valid for as long as the originating
-/// [`LibraryHandle`] is open.
+/// All function pointers are resolved eagerly by [`load`](Self::load). If any
+/// symbol is missing from the framework, loading fails immediately rather than
+/// deferring to first use. The resolved pointers remain valid for as long as
+/// the originating [`LibraryHandle`] is open.
 ///
 /// # Safety
 ///
-/// Every field is an `unsafe extern "C" fn`. The caller is responsible for upholding the
-/// preconditions documented on each function pointer type alias — buffer sizes, pointer
-/// validity, and privilege requirements. Most KPC/KPERF calls require root privileges.
+/// Every field is an `unsafe extern "C" fn`. The caller is responsible for
+/// upholding the preconditions documented on each function pointer type alias:
+/// buffer sizes, pointer validity, and privilege requirements. Most KPC/KPERF
+/// calls require root privileges.
 pub struct VTable {
     pub kpc_cpu_string: kpc_cpu_string,
     pub kpc_pmu_version: kpc_pmu_version,
@@ -410,12 +411,10 @@ impl fmt::Debug for VTable {
 }
 
 impl VTable {
-    /// Resolves every `kperf.framework` symbol from `handle` and returns a populated
-    /// `VTable`.
+    /// Resolves every `kperf.framework` symbol from `handle`.
     ///
-    /// Resolution is all-or-nothing: if any of the 34 required symbols cannot be found,
-    /// the call returns an error and no partial `VTable` is produced. This ensures that
-    /// callers never encounter a null function pointer at the point of use.
+    /// Resolution is all-or-nothing: if any of the 34 required symbols cannot
+    /// be found, the call returns an error.
     ///
     /// # Errors
     ///

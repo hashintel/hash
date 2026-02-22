@@ -2,7 +2,7 @@
 #![expect(
     clippy::missing_errors_doc,
     clippy::unnecessary_wraps,
-    reason = "compatability with pmc module"
+    reason = "compatibility with pmc module"
 )]
 
 use core::time::Duration;

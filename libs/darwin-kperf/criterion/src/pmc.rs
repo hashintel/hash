@@ -22,6 +22,15 @@ static SAMPLER_ACQUIRED: AtomicBool = AtomicBool::new(false);
 /// [`cycles`](Self::cycles), etc.) or [`custom`](Self::custom) for arbitrary
 /// [`Event`]s.
 ///
+/// Only one `HardwareCounter` can exist at a time. The constructors panic
+/// if a second instance is created while the first is still alive. This is
+/// because the underlying [`Sampler`] is a process-global static that
+/// force-acquires hardware counters from the OS and must release them on
+/// [`Drop`]. Because the static is global, the sampler's release must be
+/// tied to the `HardwareCounter`'s lifetime, so a second instantiation
+/// would be unsound. This is a non-issue in practice: Criterion
+/// measurements are created once at startup during configuration.
+///
 /// # Examples
 ///
 /// ```rust,ignore
