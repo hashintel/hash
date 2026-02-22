@@ -69,7 +69,7 @@ impl KPerf {
 /// Handle to Apple's private `kperfdata.framework`.
 ///
 /// Owns the dynamically loaded library and its resolved
-/// [`VTable`](darwin_kperf_sys::kperfdata::VTable). The VTable contains the
+/// [`VTable`](darwin_kperf_sys::kperfdata::VTable). The vtable contains the
 /// KPEP functions for opening the PMC event database for the current CPU,
 /// looking up events by name or alias, and building the register configuration
 /// that gets pushed to the kernel via [`KPerf`].

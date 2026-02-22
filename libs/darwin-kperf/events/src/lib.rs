@@ -282,6 +282,7 @@ impl EventInfo for ResolvedEvent {
         self.0.aliases()
     }
 }
+
 /// A hardware performance counter event from Apple's kpep database.
 ///
 /// Covers Apple Silicon generations M1 through M5.

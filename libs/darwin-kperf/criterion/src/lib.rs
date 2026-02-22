@@ -7,7 +7,8 @@
 //! that benchmarks still compile and run everywhere. The optional `codspeed`
 //! feature adds a second `Measurement` implementation for
 //! `codspeed-criterion-compat-walltime`, so the same `HardwareCounter` type
-//! works in both vanilla Criterion and CodSpeed environments.
+//! works in both vanilla Criterion and [codspeed](https://codspeed.io)
+//! environments.
 //!
 //! # Quick start
 //!
