@@ -84,7 +84,7 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-/// Statement placement for the [`Embedding`] execution target.
+/// Statement placement for the [`Embedding`](super::super::TargetId::Embedding) execution target.
 ///
 /// Only supports loading from entity projections that access the `encodings.vectors` path.
 /// No arguments are transferable, and no other operations are supported.

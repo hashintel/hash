@@ -65,7 +65,8 @@ impl<'heap, A: Allocator, B: Allocator> Visitor<'heap> for CostVisitor<'_, A, B>
     }
 }
 
-/// Statement placement for the [`Interpreter`] execution target.
+/// Statement placement for the [`Interpreter`](super::super::TargetId::Interpreter) execution
+/// target.
 ///
 /// Supports all statements unconditionally, serving as the universal fallback.
 pub(crate) struct InterpreterStatementPlacement<'ctx, A: Allocator> {

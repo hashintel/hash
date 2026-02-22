@@ -1,6 +1,6 @@
 //! Statement placement analysis for MIR execution targets.
 //!
-//! Determines which MIR statements can be executed on each [`ExecutionTarget`] and assigns costs
+//! Determines which MIR statements can be executed on each [`TargetId`] and assigns costs
 //! to supported statements. The execution planner uses these costs to select optimal targets for
 //! different parts of a query.
 //!
@@ -37,7 +37,7 @@ use crate::{
 /// Computes statement placement costs for a specific execution target.
 ///
 /// Implementations analyze a [`Body`] to determine which statements can be dispatched to their
-/// associated [`ExecutionTarget`]. Each statement that can be executed on the target receives a
+/// associated [`TargetId`]. Each statement that can be executed on the target receives a
 /// cost; statements that cannot be executed have no cost assigned (`None`).
 ///
 /// The analysis considers:

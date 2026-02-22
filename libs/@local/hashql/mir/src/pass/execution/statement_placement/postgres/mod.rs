@@ -157,7 +157,7 @@ where
     }
 }
 
-/// Statement placement for the [`Postgres`] execution target.
+/// Statement placement for the [`Postgres`](super::super::TargetId::Postgres) execution target.
 ///
 /// Supports constants, binary/unary operations, aggregates (except closures), inputs, and entity
 /// field projections that map to Postgres columns or JSONB paths. The environment argument is
