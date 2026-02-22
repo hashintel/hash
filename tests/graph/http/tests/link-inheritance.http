@@ -28,7 +28,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
-  "shortname": "test-user",
+  "shortname": "snapshot",
   "registrationComplete": true
 }
 
