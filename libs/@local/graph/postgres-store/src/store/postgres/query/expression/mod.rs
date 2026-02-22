@@ -10,6 +10,7 @@ mod select_clause;
 mod table_reference;
 mod table_sample;
 mod unary;
+mod variadic;
 mod where_clause;
 mod with_clause;
 
@@ -25,6 +26,7 @@ pub use self::{
     table_reference::{TableName, TableReference},
     table_sample::TableSample,
     unary::{UnaryExpression, UnaryOperator},
+    variadic::{VariadicExpression, VariadicOperator},
     where_clause::WhereExpression,
     with_clause::WithExpression,
 };

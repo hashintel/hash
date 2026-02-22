@@ -1378,11 +1378,11 @@ mod tests {
             test_compilation(
                 &compiler,
                 r#"
-                SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
+                SELECT "entity_editions_0_1_0"."properties" - (CASE WHEN
                     ($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
                     AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
                     THEN ARRAY[$3]::text[]
-                    ELSE ARRAY[]::text[] END))
+                    ELSE ARRAY[]::text[] END)
                 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
                 INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
                     ON "entity_editions_0_1_0"."entity_edition_id" =
@@ -1491,7 +1491,7 @@ mod tests {
             // The ORDER BY expression should include the masking (properties - (CASE WHEN...))
             // followed by the JSON extraction for email
             assert!(
-                sql.contains(r#"ORDER BY jsonb_path_query_first(("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
+                sql.contains(r#"ORDER BY jsonb_path_query_first("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
                 "ORDER BY should use masked properties expression: {sql}"
             );
         }

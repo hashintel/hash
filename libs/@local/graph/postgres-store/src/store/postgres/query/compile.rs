@@ -1220,7 +1220,7 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         if compiler.property_keys_to_remove.is_none()
             && let Some(filter) = compiler.property_protection_filter
         {
-            compiler.property_keys_to_remove = Some(Expression::Function(Function::ArrayConcat(
+            compiler.property_keys_to_remove = Some(Expression::concatenate(
                 filter
                     .iter()
                     .map(|(property_url, filter)| {
@@ -1246,11 +1246,11 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
                         }
                     })
                     .collect(),
-            )));
+            ));
         }
 
         if let Some(keys) = compiler.property_keys_to_remove.clone() {
-            Expression::Function(Function::JsonDeleteKeys(Box::new(column), Box::new(keys)))
+            Expression::subtract(column, keys)
         } else {
             column
         }
