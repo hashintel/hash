@@ -169,19 +169,39 @@ impl Transpile for Function {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
     Boolean(bool),
-    String(&'static str),
+    Text(&'static str),
     UnsignedInteger(u32),
+    Null,
+}
+
+impl From<bool> for Constant {
+    fn from(value: bool) -> Self {
+        Self::Boolean(value)
+    }
+}
+
+impl From<&'static str> for Constant {
+    fn from(text: &'static str) -> Self {
+        Self::Text(text)
+    }
+}
+
+impl From<u32> for Constant {
+    fn from(value: u32) -> Self {
+        Self::UnsignedInteger(value)
+    }
 }
 
 impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
-            Self::String(value) => write!(fmt, "'{value}'"),
-            Self::UnsignedInteger(value) => write!(fmt, "{value}"),
+            Self::Text(value) => write!(fmt, "'{value}'"),
+            Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
+            Self::Null => fmt.write_str("NULL"),
         }
     }
 }
@@ -564,15 +584,15 @@ mod tests {
         let case_expr = Expression::CaseWhen {
             conditions: vec![
                 (
-                    Expression::Constant(Constant::Boolean(true)),
-                    Expression::Constant(Constant::String("yes")),
+                    Expression::Constant(Constant::from(true)),
+                    Expression::Constant(Constant::from("yes")),
                 ),
                 (
-                    Expression::Constant(Constant::Boolean(false)),
-                    Expression::Constant(Constant::String("maybe")),
+                    Expression::Constant(Constant::from(false)),
+                    Expression::Constant(Constant::from("maybe")),
                 ),
             ],
-            else_result: Some(Box::new(Expression::Constant(Constant::String("no")))),
+            else_result: Some(Box::new(Expression::Constant(Constant::from("no")))),
         };
         assert_eq!(
             case_expr.transpile_to_string(),
@@ -584,8 +604,8 @@ mod tests {
     fn transpile_case_when_no_else() {
         let case_expr = Expression::CaseWhen {
             conditions: vec![(
-                Expression::Constant(Constant::Boolean(true)),
-                Expression::Constant(Constant::String("yes")),
+                Expression::Constant(Constant::from(true)),
+                Expression::Constant(Constant::from("yes")),
             )],
             else_result: None,
         };
@@ -601,8 +621,8 @@ mod tests {
             Box::new(Expression::Parameter(1)),
             Box::new(Expression::Function(Function::ArrayLiteral {
                 elements: vec![
-                    Expression::Constant(Constant::String("email/")),
-                    Expression::Constant(Constant::String("phone/")),
+                    Expression::Constant(Constant::from("email/")),
+                    Expression::Constant(Constant::from("phone/")),
                 ],
                 element_type: PostgresType::Text,
             })),
@@ -617,11 +637,11 @@ mod tests {
     fn transpile_array_concat() {
         let concat_expr = Expression::Function(Function::ArrayConcat(vec![
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::String("a"))],
+                elements: vec![Expression::Constant(Constant::from("a"))],
                 element_type: PostgresType::Text,
             }),
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::String("b"))],
+                elements: vec![Expression::Constant(Constant::from("b"))],
                 element_type: PostgresType::Text,
             }),
         ]));
