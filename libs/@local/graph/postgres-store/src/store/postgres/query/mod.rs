@@ -3,7 +3,6 @@
 //! Postgres implementation to compile queries.
 
 mod compile;
-mod condition;
 mod data_type;
 mod entity;
 mod entity_type;
@@ -31,9 +30,9 @@ use type_system::knowledge::{Entity, PropertyValue};
 
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
-    condition::{Condition, EqualityOperator},
     expression::{
-        Constant, Expression, Function, SelectExpression, WhereExpression, WithExpression,
+        Constant, EqualityOperator, Expression, Function, SelectExpression, WhereExpression,
+        WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,

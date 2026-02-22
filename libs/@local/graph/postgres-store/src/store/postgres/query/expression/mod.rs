@@ -13,7 +13,7 @@ mod with_clause;
 
 pub use self::{
     column_reference::{ColumnName, ColumnReference},
-    conditional::{Constant, Expression, Function, PostgresType},
+    conditional::{Constant, EqualityOperator, Expression, Function, PostgresType},
     from_item::FromItem,
     group_by_clause::GroupByExpression,
     join_type::JoinType,
