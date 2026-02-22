@@ -234,6 +234,10 @@ pub enum Expression {
     /// INSERT INTO users VALUES (($1::users).*)
     /// ```
     RowExpansion(Box<Self>),
+    /// Row constructor - builds a composite row value from individual expressions.
+    ///
+    /// Transpiles to `ROW(e1, e2, ...)` in PostgreSQL.
+    Row(Vec<Self>),
     Select(Box<SelectStatement>),
     /// Conditional expression.
     ///
@@ -534,6 +538,16 @@ impl Transpile for Expression {
             Self::RowExpansion(expression) => {
                 expression.transpile(fmt)?;
                 fmt.write_str(".*")
+            }
+            Self::Row(exprs) => {
+                fmt.write_str("ROW(")?;
+                for (i, expr) in exprs.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    expr.transpile(fmt)?;
+                }
+                fmt.write_char(')')
             }
             Self::Select(select) => select.transpile(fmt),
             Self::CaseWhen {
