@@ -249,6 +249,11 @@ pub enum Expression {
     Unary(UnaryExpression),
     Binary(BinaryExpression),
     Variadic(VariadicExpression),
+    /// Wraps an expression in parentheses to enforce evaluation order.
+    ///
+    /// Transpiles to `(<expr>)`. Use this when composing expressions where
+    /// operator precedence would otherwise produce incorrect SQL.
+    Grouped(Box<Self>),
 
     StartsWith(Box<Self>, Box<Self>),
     EndsWith(Box<Self>, Box<Self>),
@@ -485,6 +490,11 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn grouped(inner: Self) -> Self {
+        Self::Grouped(Box::new(inner))
+    }
+
+    #[must_use]
     pub fn starts_with(lhs: Self, rhs: Self) -> Self {
         Self::StartsWith(Box::new(lhs), Box::new(rhs))
     }
@@ -547,6 +557,11 @@ impl Transpile for Expression {
             Self::Unary(unary) => unary.transpile(fmt),
             Self::Binary(binary) => binary.transpile(fmt),
             Self::Variadic(variadic) => variadic.transpile(fmt),
+            Self::Grouped(inner) => {
+                fmt.write_char('(')?;
+                inner.transpile(fmt)?;
+                fmt.write_char(')')
+            }
 
             Self::StartsWith(lhs, rhs) => {
                 fmt.write_str("starts_with(")?;

@@ -18,7 +18,10 @@ pub enum VariadicOperator {
     Or,
     /// `(e1 || e2 || ...)`
     ///
-    /// Empty list transpiles to nothing (panics — caller must ensure non-empty).
+    /// # Panics
+    ///
+    /// Panics in debug builds if `exprs` is empty, as there is no identity element for `||`
+    /// that works across all PostgreSQL types. Callers must ensure at least one expression.
     Concatenate,
 }
 
@@ -66,6 +69,10 @@ impl Transpile for VariadicExpression {
                 Ok(())
             }
             VariadicOperator::Concatenate => {
+                debug_assert!(
+                    !self.exprs.is_empty(),
+                    "Concatenate requires at least one expression"
+                );
                 fmt.write_char('(')?;
                 for (idx, expr) in self.exprs.iter().enumerate() {
                     if idx > 0 {

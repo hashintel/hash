@@ -1250,7 +1250,10 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         }
 
         if let Some(keys) = compiler.property_keys_to_remove.clone() {
-            Expression::subtract(column, keys)
+            // Wrap in parens so that subsequent JSON operators (-> / ->>) bind to the
+            // result of the subtraction, not to `keys`. In PostgreSQL, -> has higher
+            // precedence than -, so `col - keys -> 'f'` would parse as `col - (keys -> 'f')`.
+            Expression::grouped(Expression::subtract(column, keys))
         } else {
             column
         }
