@@ -16,7 +16,7 @@ const containerStyle = css({
  */
 export const nodeCardStyle = cva({
   base: {
-    width: "[220px]",
+    width: "[180px]",
     display: "flex",
     alignItems: "center",
     gap: "[8px]",
