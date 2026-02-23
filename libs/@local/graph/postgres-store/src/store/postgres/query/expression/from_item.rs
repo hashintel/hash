@@ -1,7 +1,7 @@
 use core::fmt::{self, Write as _};
 
-use super::{ColumnName, Function, JoinType, TableReference, TableSample};
-use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
+use super::{ColumnName, Expression, Function, JoinType, TableReference, TableSample};
+use crate::store::postgres::query::{SelectStatement, Transpile};
 
 /// A FROM item in a PostgreSQL query.
 ///
@@ -171,7 +171,7 @@ pub enum FromItem<'id> {
         ///
         /// Multiple conditions support composite joins (e.g., multi-column foreign keys).
         /// When empty, transpiles to `ON TRUE`, producing a cartesian product.
-        condition: Vec<Condition>,
+        condition: Vec<Expression>,
     },
 
     /// A JOIN using a USING clause with specified column names.
@@ -320,7 +320,7 @@ impl<'id> FromItem<'id> {
         self,
         #[builder(start_fn)] r#type: JoinType,
         #[builder(start_fn, into)] from: Self,
-        #[builder(setters(vis = ""))] condition: Vec<Condition>,
+        #[builder(setters(vis = ""))] condition: Vec<Expression>,
         #[builder(setters(vis = ""))] join_using_alias: Option<TableReference<'id>>,
         #[builder(setters(vis = ""))] columns: Vec<ColumnName<'id>>,
     ) -> Self {
@@ -581,15 +581,12 @@ mod from_item_join_builder_impl {
             IsSet, IsUnset, SetColumns, SetCondition, SetJoinUsingAlias, State,
         },
     };
-    use crate::store::postgres::query::{
-        Condition,
-        expression::{ColumnName, TableReference},
-    };
+    use crate::store::postgres::query::expression::{ColumnName, Expression, TableReference};
 
     impl<'id, S: State> FromItemJoinBuilder<'id, S> {
         pub fn on(
             self,
-            conditions: Vec<Condition>,
+            conditions: Vec<Expression>,
         ) -> FromItemJoinBuilder<'id, SetCondition<SetColumns<S>>>
         where
             S: State<Condition: IsUnset, Columns: IsUnset>,
@@ -958,7 +955,7 @@ mod tests {
 
         let base = FromItem::table(Table::DataTypes).build();
 
-        let conditions = vec![Condition::Equal(
+        let conditions = vec![Expression::equal(
             Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
             Expression::ColumnReference(Column::OntologyIds(OntologyIds::OntologyId).into()),
         )];

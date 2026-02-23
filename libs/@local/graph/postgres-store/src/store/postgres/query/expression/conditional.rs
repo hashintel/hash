@@ -6,7 +6,8 @@ use hash_graph_store::filter::PathToken;
 
 use super::ColumnReference;
 use crate::store::postgres::query::{
-    Condition, SelectStatement, Table, Transpile, WindowStatement,
+    SelectStatement, Table, Transpile, WindowStatement,
+    expression::{BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -207,7 +208,17 @@ impl Transpile for PostgresType {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EqualityOperator {
+    Equal,
+    NotEqual,
+}
+
 /// A compiled expression in Postgres.
+///
+/// This type unifies both value expressions and boolean conditions. In SQL, conditions are
+/// boolean-valued expressions — there is no fundamental distinction between a "condition" and
+/// an "expression". This allows natural composition, e.g. negating any boolean expression.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     ColumnReference(ColumnReference<'static>),
@@ -217,7 +228,6 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
-    CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
     /// Row expansion - expands a composite type into its constituent columns.
@@ -242,30 +252,164 @@ pub enum Expression {
         /// Optional else result if no condition matches.
         else_result: Option<Box<Self>>,
     },
-    /// Wraps a [`Condition`] for use in expression contexts.
-    ///
-    /// This allows conditions (which evaluate to boolean) to be used where expressions
-    /// are expected, such as in CASE WHEN conditions.
-    ///
-    /// # Example SQL
-    /// ```sql
-    /// CASE WHEN (a = b AND c != d) THEN 'yes' ELSE 'no' END
-    /// ```
-    Condition(Box<Condition>),
+
+    Unary(UnaryExpression),
+    Binary(BinaryExpression),
+
+    /// Conjunction of conditions. Transpiles to `(c1) AND (c2) AND ...`.
+    /// Empty list transpiles to `TRUE`.
+    All(Vec<Self>),
+    /// Disjunction of conditions. Transpiles to `((c1) OR (c2) OR ...)`.
+    /// Empty list transpiles to `FALSE`.
+    Any(Vec<Self>),
+
+    StartsWith(Box<Self>, Box<Self>),
+    EndsWith(Box<Self>, Box<Self>),
+    ContainsSegment(Box<Self>, Box<Self>),
+}
+
+/// Convenience constructors for condition variants to avoid `Box::new()` boilerplate.
+impl Expression {
+    #[must_use]
+    pub const fn all(conditions: Vec<Self>) -> Self {
+        Self::All(conditions)
+    }
+
+    #[must_use]
+    pub const fn any(conditions: Vec<Self>) -> Self {
+        Self::Any(conditions)
+    }
+
+    #[must_use]
+    pub fn not(inner: Self) -> Self {
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::Not,
+            expr: Box::new(inner),
+        })
+    }
+
+    #[must_use]
+    pub fn equal(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Equal,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn not_equal(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::NotEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn exists(expr: Self) -> Self {
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::IsNull,
+            expr: Box::new(expr),
+        })
+    }
+
+    #[must_use]
+    pub fn less(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Less,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn less_or_equal(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::LessOrEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn greater(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Greater,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn greater_or_equal(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::GreaterOrEqual,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn r#in(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::In,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn time_interval_contains_timestamp(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::TimeIntervalContainsTimestamp,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn overlap(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Overlap,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::CosineDistance,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn starts_with(lhs: Self, rhs: Self) -> Self {
+        Self::StartsWith(Box::new(lhs), Box::new(rhs))
+    }
+
+    #[must_use]
+    pub fn ends_with(lhs: Self, rhs: Self) -> Self {
+        Self::EndsWith(Box::new(lhs), Box::new(rhs))
+    }
+
+    #[must_use]
+    pub fn contains_segment(lhs: Self, rhs: Self) -> Self {
+        Self::ContainsSegment(Box::new(lhs), Box::new(rhs))
+    }
 }
 
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            // --- Value expressions ---
             Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
-            Self::CosineDistance(lhs, rhs) => {
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <=> ")?;
-                rhs.transpile(fmt)
-            }
             Self::Window(expression, window) => {
                 expression.transpile(fmt)?;
                 fmt.write_str(" OVER (")?;
@@ -301,10 +445,62 @@ impl Transpile for Expression {
                 }
                 fmt.write_str(" END")
             }
-            Self::Condition(condition) => {
-                fmt.write_char('(')?;
-                condition.transpile(fmt)?;
+
+            Self::Unary(unary) => unary.transpile(fmt),
+            Self::Binary(binary) => binary.transpile(fmt),
+
+            // --- Boolean conditions ---
+            Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
+            Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
+            Self::All(conditions) => {
+                for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" AND ")?;
+                    }
+                    fmt.write_char('(')?;
+                    condition.transpile(fmt)?;
+                    fmt.write_char(')')?;
+                }
+                Ok(())
+            }
+            Self::Any(conditions) => {
+                if conditions.len() > 1 {
+                    fmt.write_char('(')?;
+                }
+                for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" OR ")?;
+                    }
+                    fmt.write_char('(')?;
+                    condition.transpile(fmt)?;
+                    fmt.write_char(')')?;
+                }
+                if conditions.len() > 1 {
+                    fmt.write_char(')')?;
+                }
+                Ok(())
+            }
+            Self::StartsWith(lhs, rhs) => {
+                fmt.write_str("starts_with(")?;
+                lhs.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                rhs.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            Self::EndsWith(lhs, rhs) => {
+                fmt.write_str("right(")?;
+                lhs.transpile(fmt)?;
+                fmt.write_str(", length(")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(")) = ")?;
+                rhs.transpile(fmt)
+            }
+            Self::ContainsSegment(lhs, rhs) => {
+                fmt.write_str("strpos(")?;
+                lhs.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(") > 0")
             }
         }
     }
@@ -322,11 +518,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_store::data_type::DataTypeQueryPath;
+    use alloc::borrow::Cow;
+
+    use hash_codec::numeric::Real;
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
+    };
+    use postgres_types::ToSql;
+    use type_system::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, test_helper::max_version_expression,
+        Alias, PostgresQueryPath as _, SelectCompiler, test_helper::max_version_expression,
     };
 
     #[test]
@@ -434,5 +638,240 @@ mod tests {
             element_type: PostgresType::Text,
         });
         assert_eq!(empty_array.transpile_to_string(), "ARRAY[]::text[]");
+    }
+
+    fn test_condition<'p, 'f: 'p>(
+        filter: &'f Filter<'p, DataTypeWithMetadata>,
+        rendered: &'static str,
+        parameters: &[&'p dyn ToSql],
+    ) {
+        let mut compiler = SelectCompiler::new(None, false);
+        let condition = compiler
+            .compile_filter(filter)
+            .expect("failed to compile filter");
+
+        assert_eq!(condition.transpile_to_string(), rendered);
+
+        let parameter_list = parameters
+            .iter()
+            .map(|parameter| format!("{parameter:?}"))
+            .collect::<Vec<_>>();
+        let expected_parameters = compiler
+            .compile()
+            .1
+            .iter()
+            .map(|parameter| format!("{parameter:?}"))
+            .collect::<Vec<_>>();
+
+        assert_eq!(parameter_list, expected_parameters);
+    }
+
+    #[test]
+    fn transpile_empty_condition() {
+        test_condition(&Filter::All(vec![]), "TRUE", &[]);
+        test_condition(&Filter::Any(vec![]), "FALSE", &[]);
+    }
+
+    #[test]
+    fn transpile_exists_condition() {
+        test_condition(
+            &Filter::Exists {
+                path: DataTypeQueryPath::Description,
+            },
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
+            &[],
+        );
+
+        test_condition(
+            &Filter::Not(Box::new(Filter::Exists {
+                path: DataTypeQueryPath::Description,
+            })),
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
+            &[],
+        );
+    }
+
+    #[test]
+    fn transpile_all_condition() {
+        test_condition(
+            &Filter::All(vec![Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                },
+            )]),
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
+            &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+        );
+
+        test_condition(
+            &Filter::All(vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::BaseUrl,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                        )),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::Version,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Decimal(Real::from_natural(1, 1)),
+                        convert: None,
+                    },
+                ),
+            ]),
+            r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
+            &[
+                &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                &Real::from_natural(1, 1),
+            ],
+        );
+    }
+
+    #[test]
+    fn transpile_any_condition() {
+        test_condition(
+            &Filter::Any(vec![Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                },
+            )]),
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
+            &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+        );
+
+        test_condition(
+            &Filter::Any(vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::BaseUrl,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                        )),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::Version,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Decimal(Real::from_natural(1, 1)),
+                        convert: None,
+                    },
+                ),
+            ]),
+            r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
+            &[
+                &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                &Real::from_natural(1, 1),
+            ],
+        );
+    }
+
+    #[test]
+    fn transpile_not_condition() {
+        test_condition(
+            &Filter::Not(Box::new(Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                },
+            ))),
+            r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
+            &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+        );
+    }
+
+    #[test]
+    fn transpile_starts_with_condition() {
+        test_condition(
+            &Filter::StartsWith(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("foo")),
+                    convert: None,
+                },
+            ),
+            r#"starts_with("data_types_0_1_0"."schema"->>'title', $1)"#,
+            &[&"foo"],
+        );
+    }
+
+    #[test]
+    fn transpile_ends_with_condition() {
+        test_condition(
+            &Filter::EndsWith(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("bar")),
+                    convert: None,
+                },
+            ),
+            r#"right("data_types_0_1_0"."schema"->>'title', length($1)) = $1"#,
+            &[&"bar"],
+        );
+    }
+
+    #[test]
+    fn transpile_contains_segment_condition() {
+        test_condition(
+            &Filter::ContainsSegment(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("baz")),
+                    convert: None,
+                },
+            ),
+            r#"strpos("data_types_0_1_0"."schema"->>'title', $1) > 0"#,
+            &[&"baz"],
+        );
+    }
+
+    #[test]
+    fn render_without_parameters() {
+        test_condition(
+            &Filter::Any(vec![Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                },
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                },
+            )]),
+            r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
+            &[],
+        );
     }
 }
