@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { type CSSProperties, use, useEffect, useRef } from "react";
-import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
+import { BaseEdge, type EdgeProps, type Position } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
@@ -116,6 +116,46 @@ const weightTextStyle = css({
   pointerEvents: "none",
 });
 
+/**
+ * Custom cubic bezier path between two points.
+ * Control point offsets are proportional to the horizontal distance
+ * so arcs stay tight for nearby nodes and sweep wide for distant ones.
+ */
+function getArcBezierPath({
+  sourceX,
+  sourceY,
+  sourcePosition: _sourcePosition,
+  targetX,
+  targetY,
+  targetPosition: _targetPosition,
+}: {
+  sourceX: number;
+  sourceY: number;
+  sourcePosition: Position;
+  targetX: number;
+  targetY: number;
+  targetPosition: Position;
+}): [path: string, labelX: number, labelY: number] {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+
+  // Control point offset scales with horizontal distance, with a minimum
+  const offset = Math.max(Math.abs(dx) * 0.7, 80);
+
+  const cp1x = sourceX + offset;
+  const cp1y = sourceY;
+  const cp2x = targetX - offset;
+  const cp2y = targetY;
+
+  const path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
+
+  // Label at the midpoint of the cubic bezier (t=0.5)
+  const labelX = sourceX + dx / 2;
+  const labelY = sourceY + dy / 2;
+
+  return [path, labelX, labelY];
+}
+
 export const Arc: React.FC<EdgeProps<ArcData>> = ({
   id,
   sourceX,
@@ -143,7 +183,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  const [arcPath, labelX, labelY] = getBezierPath({
+  const [arcPath, labelX, labelY] = getArcBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
