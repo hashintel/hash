@@ -192,7 +192,7 @@ opentelemetry-otlp                 = { version = "0.30.0", default-features = fa
 opentelemetry-semantic-conventions = { version = "0.30.0", default-features = false }
 opentelemetry_sdk                  = { version = "0.30.0", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
-oxc                                = { version = "0.95.0", default-features = false }
+oxc                                = { version = "0.115.0", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
 pin-project-lite                   = { version = "0.2.16", default-features = false }
 postgres-protocol                  = { version = "0.6.9", default-features = false }
