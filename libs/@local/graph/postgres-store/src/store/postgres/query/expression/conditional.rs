@@ -766,6 +766,24 @@ mod tests {
     }
 
     #[test]
+    fn transpile_row_constructor() {
+        assert_eq!(Expression::Row(vec![]).transpile_to_string(), "ROW()");
+        assert_eq!(
+            Expression::Row(vec![Expression::Parameter(1)]).transpile_to_string(),
+            "ROW($1)"
+        );
+        assert_eq!(
+            Expression::Row(vec![
+                Expression::Parameter(1),
+                Expression::Constant(Constant::from(42_u32)),
+                Expression::Constant(Constant::from("hello")),
+            ])
+            .transpile_to_string(),
+            "ROW($1, 42, 'hello')"
+        );
+    }
+
+    #[test]
     fn transpile_empty_condition() {
         test_condition(&Filter::All(vec![]), "TRUE", &[]);
         test_condition(&Filter::Any(vec![]), "FALSE", &[]);
