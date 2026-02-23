@@ -47,13 +47,13 @@ export const calculateGraphLayout = async (
   const elkNodes: ElkNode["children"] = [
     ...sdcpn.places.map((place) => ({
       id: place.id,
-      width: place.width ?? nodeDimensions.place.width,
-      height: place.height ?? nodeDimensions.place.height,
+      width: nodeDimensions.place.width,
+      height: nodeDimensions.place.height,
     })),
     ...sdcpn.transitions.map((transition) => ({
       id: transition.id,
-      width: transition.width ?? nodeDimensions.transition.width,
-      height: transition.height ?? nodeDimensions.transition.height,
+      width: nodeDimensions.transition.width,
+      height: nodeDimensions.transition.height,
     })),
   ];
 

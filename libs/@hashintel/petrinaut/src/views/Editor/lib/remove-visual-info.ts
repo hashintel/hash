@@ -9,8 +9,8 @@ type SDCPNWithoutVisualInfo = Omit<
   SDCPN,
   "places" | "transitions" | "types"
 > & {
-  places: Array<Omit<Place, "x" | "y" | "width" | "height">>;
-  transitions: Array<Omit<Transition, "x" | "y" | "width" | "height">>;
+  places: Array<Omit<Place, "x" | "y">>;
+  transitions: Array<Omit<Transition, "x" | "y">>;
   types: Array<Omit<Color, "displayColor" | "iconSlug">>;
 };
 
@@ -22,12 +22,9 @@ type SDCPNWithoutVisualInfo = Omit<
 export function removeVisualInformation(sdcpn: SDCPN): SDCPNWithoutVisualInfo {
   return {
     ...sdcpn,
-    places: sdcpn.places.map(
-      ({ x: _x, y: _y, width: _width, height: _height, ...place }) => place,
-    ),
+    places: sdcpn.places.map(({ x: _x, y: _y, ...place }) => place),
     transitions: sdcpn.transitions.map(
-      ({ x: _x, y: _y, width: _width, height: _height, ...transition }) =>
-        transition,
+      ({ x: _x, y: _y, ...transition }) => transition,
     ),
     types: sdcpn.types.map(
       ({ displayColor: _displayColor, iconSlug: _iconSlug, ...type }) => type,

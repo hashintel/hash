@@ -9,6 +9,7 @@ import type {
   NodeType,
   PetrinautReactFlowDefinitionObject,
 } from "../reactflow-types";
+import { nodeDimensions } from "../styles/styling";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
@@ -43,8 +44,8 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : { x: place.x, y: place.y },
-      width: place.width ?? 80,
-      height: place.height ?? 80,
+      width: nodeDimensions.place.width,
+      height: nodeDimensions.place.height,
       dragging: draggingState?.dragging ?? false,
       selected: selectedItemIds.has(place.id),
       data: {
@@ -67,8 +68,8 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : { x: transition.x, y: transition.y },
-      width: transition.width ?? 60,
-      height: transition.height ?? 60,
+      width: nodeDimensions.transition.width,
+      height: nodeDimensions.transition.height,
       dragging: draggingState?.dragging ?? false,
       selected: selectedItemIds.has(transition.id),
       data: {

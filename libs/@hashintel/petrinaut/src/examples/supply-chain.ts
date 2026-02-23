@@ -1,5 +1,4 @@
 import type { SDCPN } from "../core/types/sdcpn";
-import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
 export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
   title: "Drug Production",
@@ -13,8 +12,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 20,
         y: 120,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__1",
@@ -24,8 +21,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 20,
         y: 600,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__2",
@@ -35,8 +30,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 300,
         y: 300,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__3",
@@ -46,8 +39,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 700,
         y: 350,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__4",
@@ -57,8 +48,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 1100,
         y: 600,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__5",
@@ -68,8 +57,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 1000,
         y: 200,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
       {
         id: "place__6",
@@ -79,8 +66,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 1300,
         y: 380,
-        width: nodeDimensions.place.width,
-        height: nodeDimensions.place.height,
       },
     ],
     transitions: [
@@ -97,8 +82,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         transitionKernelCode: "",
         x: 100,
         y: 400,
-        width: nodeDimensions.transition.width,
-        height: nodeDimensions.transition.height,
       },
       {
         id: "transition__1",
@@ -110,8 +93,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         transitionKernelCode: "",
         x: 490,
         y: 350,
-        width: nodeDimensions.transition.width,
-        height: nodeDimensions.transition.height,
       },
       {
         id: "transition__2",
@@ -126,8 +107,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         transitionKernelCode: "",
         x: 870,
         y: 400,
-        width: nodeDimensions.transition.width,
-        height: nodeDimensions.transition.height,
       },
       {
         id: "transition__3",
@@ -139,8 +118,6 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         transitionKernelCode: "",
         x: 1150,
         y: 280,
-        width: nodeDimensions.transition.width,
-        height: nodeDimensions.transition.height,
       },
     ],
     types: [],
