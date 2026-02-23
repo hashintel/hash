@@ -134,6 +134,8 @@ const convertScreamingSnakeToPascalCase = (str: string) =>
 type GetFlowRunsFilters = {
   executionStatus?: FlowRunStatus | null;
   flowDefinitionIds?: string[] | null;
+  offset?: number | null;
+  limit?: number | null;
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
@@ -152,17 +154,24 @@ type MinimalFlowMetadata = {
   webId: WebId;
 };
 
+type PaginatedFlowRuns<T> = {
+  flowRuns: T[];
+  totalCount: number;
+};
+
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<true>,
-): Promise<FlowRun[]>;
+): Promise<PaginatedFlowRuns<FlowRun>>;
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<false>,
-): Promise<SparseFlowRun[]>;
+): Promise<PaginatedFlowRuns<SparseFlowRun>>;
 
 export async function getFlowRuns<IncludeDetails extends boolean>(
   args: GetFlowRunsFnArgs<IncludeDetails>,
-): Promise<IncludeDetails extends true ? FlowRun[] : SparseFlowRun[]>;
+): Promise<
+  PaginatedFlowRuns<IncludeDetails extends true ? FlowRun : SparseFlowRun>
+>;
 
 export async function getFlowRuns({
   authentication,
@@ -171,7 +180,9 @@ export async function getFlowRuns({
   includeDetails,
   storageProvider,
   temporalClient,
-}: GetFlowRunsFnArgs<boolean>): Promise<SparseFlowRun[] | FlowRun[]> {
+}: GetFlowRunsFnArgs<boolean>): Promise<
+  PaginatedFlowRuns<SparseFlowRun | FlowRun>
+> {
   const temporalWorkflowIdToFlowDetails = await queryEntities<FlowRunEntity>(
     { graphApi: graphApiClient },
     authentication,
@@ -237,7 +248,7 @@ export async function getFlowRuns({
   const temporalWorkflowIds = typedKeys(temporalWorkflowIdToFlowDetails);
 
   if (!temporalWorkflowIds.length) {
-    return [];
+    return { flowRuns: [], totalCount: 0 };
   }
 
   /** @see https://docs.temporal.io/develop/typescript/observability#search-attributes */
@@ -255,33 +266,48 @@ export async function getFlowRuns({
 
   const workflowIdToLatestRunTime: Record<string, string> = {};
 
+  const deduplicatedWorkflowIds: string[] = [];
+
+  for await (const workflow of workflowIterable) {
+    const temporalWorkflowId = workflow.workflowId;
+
+    const startTime = workflow.startTime.toISOString();
+    workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
+
+    if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
+      /**
+       * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
+       *
+       * It could also theoretically be:
+       * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
+       * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
+       *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
+       */
+      continue;
+    }
+
+    if (!temporalWorkflowIdToFlowDetails[temporalWorkflowId]) {
+      throw new Error(
+        `Could not find details for workflowId ${workflow.workflowId}`,
+      );
+    }
+
+    deduplicatedWorkflowIds.push(temporalWorkflowId);
+  }
+
+  const totalCount = deduplicatedWorkflowIds.length;
+
+  const { offset, limit } = filters;
+  const paginatedIds =
+    offset != null && limit != null
+      ? deduplicatedWorkflowIds.slice(offset, offset + limit)
+      : deduplicatedWorkflowIds;
+
   if (includeDetails) {
     const workflows: FlowRun[] = [];
 
-    for await (const workflow of workflowIterable) {
-      const temporalWorkflowId = workflow.workflowId;
-      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId];
-
-      const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
-
-      if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
-        /**
-         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
-         *
-         * It could also theoretically be:
-         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
-         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
-         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
-         */
-        continue;
-      }
-
-      if (!flowDetails) {
-        throw new Error(
-          `Could not find details for workflowId ${workflow.workflowId}`,
-        );
-      }
+    for (const temporalWorkflowId of paginatedIds) {
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getFlowRunFromTemporalWorkflowId({
         flowRunId: flowDetails.flowRunId,
@@ -294,35 +320,12 @@ export async function getFlowRuns({
       workflows.push(runInfo);
     }
 
-    return workflows;
+    return { flowRuns: workflows, totalCount };
   } else {
     const workflows: SparseFlowRun[] = [];
 
-    for await (const workflow of workflowIterable) {
-      const temporalWorkflowId = workflow.workflowId;
-
-      const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
-
-      if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
-        /**
-         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
-         *
-         * It could also theoretically be:
-         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
-         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
-         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
-         */
-        continue;
-      }
-
-      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId];
-
-      if (!flowDetails) {
-        throw new Error(
-          `Could not find details for workflowId ${workflow.workflowId}`,
-        );
-      }
+    for (const temporalWorkflowId of paginatedIds) {
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getSparseFlowRunFromTemporalWorkflowId({
         flowRunId: flowDetails.flowRunId,
@@ -334,6 +337,6 @@ export async function getFlowRuns({
       workflows.push(runInfo);
     }
 
-    return workflows;
+    return { flowRuns: workflows, totalCount };
   }
 }

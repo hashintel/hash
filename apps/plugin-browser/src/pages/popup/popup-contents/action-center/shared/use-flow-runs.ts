@@ -28,7 +28,7 @@ import { useStorageSync } from "../../../../shared/use-storage-sync";
 import { useUserContext } from "../../shared/user-context";
 
 const mapFlowRunToMinimalFlowRun = (
-  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"][number],
+  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number],
 ): MinimalFlowRun => {
   const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
     (output.contents[0]?.outputs ?? []).flatMap(({ outputName, payload }) => {
@@ -75,7 +75,7 @@ const getFlowRuns = async ({
     getMinimalFlowRunsQuery,
   )
     .then(({ data }) =>
-      data.getFlowRuns.sort((a, b) => {
+      data.getFlowRuns.flowRuns.sort((a, b) => {
         if (!a.executedAt) {
           return b.executedAt ? 1 : 0;
         }
