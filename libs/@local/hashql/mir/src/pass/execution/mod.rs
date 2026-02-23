@@ -5,9 +5,10 @@ macro_rules! cost {
 }
 
 mod cost;
+pub mod placement;
 pub mod splitting;
 pub mod statement_placement;
 pub mod target;
 pub mod terminator_placement;
 
-pub use self::cost::{Cost, StatementCostVec, TraversalCostVec};
+pub use self::cost::{ApproxCost, Cost, StatementCostVec, TraversalCostVec};

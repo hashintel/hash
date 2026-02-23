@@ -63,6 +63,7 @@ where
         unsafe { &mut *(ptr::from_mut(raw) as *mut Self) }
     }
 
+    /// Returns the underlying raw slice.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw(&self) -> &[T] {
@@ -70,6 +71,7 @@ where
         unsafe { &*(ptr::from_ref(self) as *const [T]) }
     }
 
+    /// Returns the underlying raw mutable slice.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw_mut(&mut self) -> &mut [T] {
@@ -250,9 +252,42 @@ where
         self.raw.swap(lhs.as_usize(), rhs.as_usize());
     }
 
+    /// Returns an iterator over contiguous array windows of size `N`.
+    ///
+    /// See [`slice::array_windows`] for details.
     #[inline]
     pub fn windows<const N: usize>(&self) -> impl ExactSizeIterator<Item = &[T; N]> {
         self.raw.array_windows()
+    }
+}
+
+#[expect(unsafe_code)]
+impl<I, T> IdSlice<I, MaybeUninit<T>>
+where
+    I: Id,
+{
+    /// Converts `&mut IdSlice<I, MaybeUninit<T>>` to `&mut IdSlice<I, T>`.
+    ///
+    /// # Safety
+    ///
+    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
+    /// really are in an initialized state. Calling this when the content is not yet fully
+    /// initialized causes immediate undefined behavior.
+    pub const unsafe fn assume_init_mut(&mut self) -> &mut IdSlice<I, T> {
+        // SAFETY: The caller must ensure that all elements are initialized.
+        IdSlice::from_raw_mut(unsafe { self.raw.assume_init_mut() })
+    }
+
+    /// Converts `&IdSlice<I, MaybeUninit<T>>` to `&IdSlice<I, T>`.
+    ///
+    /// # Safety
+    ///
+    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
+    /// really are in an initialized state. Calling this when the content is not yet fully
+    /// initialized causes immediate undefined behavior.
+    pub const unsafe fn assume_init_ref(&self) -> &IdSlice<I, T> {
+        // SAFETY: The caller must ensure that all elements are initialized.
+        IdSlice::from_raw(unsafe { self.raw.assume_init_ref() })
     }
 }
 
