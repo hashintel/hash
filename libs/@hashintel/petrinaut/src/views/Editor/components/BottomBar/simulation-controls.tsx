@@ -20,6 +20,7 @@ import {
 import { SimulationContext } from "../../../../simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { ToolbarButton } from "./toolbar-button";
+import { ToolbarDivider } from "./toolbar-divider";
 
 const frameInfoStyle = css({
   display: "flex",
@@ -49,7 +50,7 @@ const frameIndexStyle = css({
 });
 
 const sliderStyle = css({
-  width: "[400px]",
+  width: "[300px]",
   height: "[4px]",
   appearance: "none",
   background: "neutral.s30",
@@ -285,13 +286,6 @@ const maxTimeInputStyle = css({
   },
 });
 
-const toolbarDividerStyle = css({
-  background: "neutral.s40",
-  width: "[1px]",
-  height: "[16px]",
-  margin: "[0 4px]",
-});
-
 interface SimulationControlsProps {
   disabled?: boolean;
 }
@@ -462,7 +456,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           >
             <MdRotateLeft />
           </ToolbarButton>
-          <div className={toolbarDividerStyle} />
+          <ToolbarDivider />
         </>
       )}
 
@@ -499,7 +493,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             className={sliderStyle}
           />
 
-          <div className={toolbarDividerStyle} />
+          <ToolbarDivider />
         </>
       )}
 
