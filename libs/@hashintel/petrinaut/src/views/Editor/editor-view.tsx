@@ -12,7 +12,6 @@ import { SDCPNContext } from "../../state/sdcpn-context";
 // import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-// import { ModeSelector } from "./components/mode-selector";
 import { TopBar } from "./components/TopBar/top-bar";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { exportTikZ } from "./lib/export-tikz";
@@ -35,14 +34,6 @@ const canvasContainerStyle = css({
   position: "relative",
   flexGrow: 1,
 });
-
-// const modeSelectorPositionStyle = css({
-//   position: "absolute",
-//   top: "[24px]",
-//   left: "[50%]",
-//   transform: "translateX(-50%)",
-//   zIndex: 1000,
-// });
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -203,6 +194,10 @@ export const EditorView = ({
         title={title}
         onTitleChange={setTitle}
         hideNetManagementControls={hideNetManagementControls}
+        mode={mode}
+        onModeChange={() => {
+          // Mode change handled by TopBar; currently only "edit" is enabled
+        }}
       />
 
       <Stack direction="row" className={rowContainerStyle}>
