@@ -19,10 +19,10 @@
 
 | Crate | Description |
 | --- | --- |
-| [`darwin-kperf`](.) | Safe Rust API for configuring and sampling performance counters |
-| [`darwin-kperf-sys`](sys) | Raw FFI bindings to `kperf.framework` and `kperfdata.framework` |
-| [`darwin-kperf-events`](events) | Apple Silicon PMU event definitions (M1-M5), auto-generated from plist databases |
-| [`darwin-kperf-criterion`](criterion) | Criterion.rs measurement plugin for hardware-counter benchmarking |
+| [`darwin-kperf`](https://crates.io/crates/darwin-kperf) | Safe Rust API for configuring and sampling performance counters |
+| [`darwin-kperf-sys`](https://crates.io/crates/darwin-kperf-sys) | Raw FFI bindings to `kperf.framework` and `kperfdata.framework` |
+| [`darwin-kperf-events`](https://crates.io/crates/darwin-kperf-events) | Apple Silicon PMU event definitions (M1-M5), auto-generated from plist databases |
+| [`darwin-kperf-criterion`](https://crates.io/crates/darwin-kperf-criterion) | Criterion.rs measurement plugin for hardware-counter benchmarking |
 
 ## Platform support
 
