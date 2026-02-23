@@ -18,11 +18,11 @@ import { TypeProperties } from "./type-properties";
 
 const glassPanelStyle = css({
   position: "absolute",
+  boxSizing: "border-box",
   top: "[0]",
   right: "[0]",
   zIndex: 1000,
   pointerEvents: "auto",
-  height: "[100%]",
   borderLeftWidth: "thin",
 });
 

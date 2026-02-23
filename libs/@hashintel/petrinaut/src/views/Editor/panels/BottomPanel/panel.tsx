@@ -22,13 +22,14 @@ import {
 } from "../../../../state/editor-context";
 
 const glassPanelBaseStyle = css({
-  padding: "[4px]",
   position: "absolute",
-  zIndex: 999,
+  zIndex: 1001,
   borderTopWidth: "thin",
+  boxSizing: "border-box",
 });
 
 const panelContainerStyle = css({
+  padding: "[4px]",
   display: "flex",
   flexDirection: "column",
 });
