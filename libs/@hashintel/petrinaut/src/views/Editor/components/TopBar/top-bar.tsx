@@ -6,14 +6,20 @@ import {
 } from "react-icons/tb";
 
 import type { MenuItem } from "../../../../components/menu";
-import { EditorContext } from "../../../../state/editor-context";
+import {
+  EditorContext,
+  type EditorState,
+} from "../../../../state/editor-context";
 import { FloatingTitle } from "../../panels/LeftSideBar/floating-title";
 import { HamburgerMenu } from "../../panels/LeftSideBar/hamburger-menu";
+import { ModeSelector } from "../mode-selector";
 
 const topBarStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[12px]",
+  height: "16",
+  boxSizing: "border-box",
   padding: "[16px]",
   backgroundColor: "[white]",
   borderBottomWidth: "thin",
@@ -61,6 +67,8 @@ interface TopBarProps {
   title: string;
   onTitleChange: (value: string) => void;
   hideNetManagementControls: boolean;
+  mode: EditorState["globalMode"];
+  onModeChange: (mode: EditorState["globalMode"]) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -68,6 +76,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   title,
   onTitleChange,
   hideNetManagementControls,
+  mode,
+  onModeChange,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen } = use(EditorContext);
 
@@ -96,8 +106,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
       </div>
 
-      {/* Center section - mode switcher (placeholder for now) */}
-      <div />
+      {/* Center section - mode switcher */}
+      <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
         {/* Right section - version info, save button, etc. (placeholder for now) */}
