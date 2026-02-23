@@ -22,7 +22,7 @@ bytes               = { workspace = true }
 cargo_metadata      = { workspace = true }
 clap                = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete       = { workspace = true }
-criterion           = { workspace = true }
+criterion           = { workspace = true, default-features = true }
 derive_more         = { workspace = true, features = ["display"] }
 globset             = { workspace = true }
 guppy               = { workspace = true }

@@ -1943,6 +1943,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "darwin-kperf"
+version = "0.1.0"
+dependencies = [
+ "darwin-kperf-events",
+ "darwin-kperf-sys",
+]
+
+[[package]]
+name = "darwin-kperf-codegen"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.11.0",
+ "plist",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "darwin-kperf-criterion"
+version = "0.1.0"
+dependencies = [
+ "codspeed-criterion-compat-walltime",
+ "criterion",
+ "darwin-kperf",
+ "darwin-kperf-events",
+]
+
+[[package]]
+name = "darwin-kperf-events"
+version = "0.1.0"
+
+[[package]]
+name = "darwin-kperf-sys"
+version = "0.1.0"
+
+[[package]]
 name = "dashu-base"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3784,6 +3823,7 @@ dependencies = [
  "bitvec",
  "bump-scope",
  "codspeed-criterion-compat",
+ "darwin-kperf-criterion",
  "derive_more",
  "ena",
  "foldhash 0.2.0",
@@ -4743,9 +4783,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.180"
+version = "0.2.182"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc35a38544a891a5f7c865aca548a982ccb3b8650a5b06d0fd33a10283c56fc"
+checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
 name = "libloading"
@@ -6693,6 +6733,19 @@ checksum = "f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7"
 dependencies = [
  "der",
  "spki",
+]
+
+[[package]]
+name = "plist"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "740ebea15c5d1428f910cd1a5f52cebf8d25006245ed8ade92702f4943d91e07"
+dependencies = [
+ "base64",
+ "indexmap 2.13.0",
+ "quick-xml",
+ "serde",
+ "time",
 ]
 
 [[package]]
