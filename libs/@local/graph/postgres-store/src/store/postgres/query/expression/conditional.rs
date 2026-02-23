@@ -199,6 +199,8 @@ impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
+            // SAFETY: `Text` only accepts `&'static str`, which is compiler-controlled.
+            // User input must always go through `Parameter` to prevent SQL injection.
             Self::Text(value) => write!(fmt, "'{value}'"),
             Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
             Self::Null => fmt.write_str("NULL"),
@@ -612,6 +614,15 @@ mod tests {
         assert_eq!(
             case_expr.transpile_to_string(),
             "CASE WHEN TRUE THEN 'yes' END"
+        );
+    }
+
+    #[test]
+    fn transpile_null_constant() {
+        // Constant::Null must transpile to NULL (the SQL keyword), not 'NULL' (a string literal).
+        assert_eq!(
+            Expression::Constant(Constant::Null).transpile_to_string(),
+            "NULL"
         );
     }
 
