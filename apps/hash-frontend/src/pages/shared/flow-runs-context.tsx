@@ -48,7 +48,7 @@ export const FlowRunsContextProvider = ({
         offset: pagination.page * pagination.rowsPerPage,
         limit: pagination.rowsPerPage,
       }
-    : {};
+    : { offset: 0, limit: 50 };
 
   const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,
