@@ -173,6 +173,10 @@ impl Transpile for Function {
 pub enum Constant {
     Boolean(bool),
     UnsignedInteger(u32),
+    /// The JSON `null` literal, distinct from SQL `NULL`.
+    ///
+    /// Transpiles to `'null'::jsonb`.
+    JsonNull,
 }
 
 impl From<bool> for Constant {
@@ -192,6 +196,7 @@ impl Transpile for Constant {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
             Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
+            Self::JsonNull => fmt.write_str("'null'::jsonb"),
         }
     }
 }
@@ -566,6 +571,14 @@ mod tests {
             ),)))
             .transpile_to_string(),
             r#"MIN("ontology_ids_1_2_3"."version")"#
+        );
+    }
+
+    #[test]
+    fn transpile_json_null_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::JsonNull).transpile_to_string(),
+            "'null'::jsonb"
         );
     }
 
