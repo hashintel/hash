@@ -12,18 +12,10 @@ import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../constants/ui";
 
 const panelContainerStyle = css({
   position: "relative",
-  borderRadius: "[7px]",
-  backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-  boxShadow: "[0 2px 11px rgba(0, 0, 0, 0.1)]",
-  border: "[1px solid rgba(255, 255, 255, 0.8)]",
-});
-
-const blurOverlayStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  borderRadius: "[7px]",
-  pointerEvents: "none",
-  backdropFilter: "[blur(27px)]",
+  backgroundColor: "neutral.s10",
+  borderColor: "neutral.s40",
+  boxSizing: "content-box",
+  borderStyle: "solid",
 });
 
 const contentContainerStyle = css({
@@ -58,8 +50,6 @@ interface GlassPanelProps {
   contentClassName?: string;
   /** Inline styles for the content container */
   contentStyle?: CSSProperties;
-  /** Blur amount in pixels (default: 24) */
-  blur?: number;
   /** Configuration for making the panel resizable */
   resizable?: ResizeConfig;
 }
@@ -118,11 +108,7 @@ const getCursorStyle = (edge: ResizableEdge): string => {
 };
 
 /**
- * GlassPanel provides a frosted glass-like appearance with backdrop blur.
- *
- * Uses a separate overlay element for the backdrop-filter to avoid
- * interfering with child components that use fixed/absolute positioning
- * (e.g., Monaco Editor hover widgets).
+ * GlassPanel provides a styled container panel.
  *
  * Optionally supports resizing from any edge with the `resizable` prop.
  */
@@ -132,7 +118,6 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
   style,
   contentClassName,
   contentStyle,
-  blur = 24,
   resizable,
 }) => {
   const [isResizing, setIsResizing] = useState(false);
@@ -252,12 +237,6 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
           style={getResizeHandleStyle(resizable.edge)}
         />
       )}
-
-      {/* Blur overlay - separate from content to avoid affecting child positioning */}
-      <div
-        className={blurOverlayStyle}
-        style={blur !== 24 ? { backdropFilter: `blur(${blur}px)` } : undefined}
-      />
 
       {/* Content container */}
       <div

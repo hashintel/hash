@@ -113,6 +113,20 @@ const titleContainerStyle = cva({
   },
 });
 
+const glassPanelBaseStyle = cva({
+  base: {},
+  variants: {
+    isOpen: {
+      true: {
+        borderRightWidth: "thin",
+      },
+      false: {
+        borderWidth: "thin",
+      },
+    },
+  },
+});
+
 const toggleButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -164,6 +178,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
       }}
     >
       <GlassPanel
+        className={glassPanelBaseStyle({ isOpen })}
         style={isOpen ? { width: leftSidebarWidth } : undefined}
         contentClassName={panelContentStyle({ isOpen })}
         resizable={

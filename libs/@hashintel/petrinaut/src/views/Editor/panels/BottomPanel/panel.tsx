@@ -23,6 +23,9 @@ import {
 
 const glassPanelBaseStyle = css({
   padding: "[4px]",
+  position: "absolute",
+  zIndex: 999,
+  borderTopWidth: "thin",
 });
 
 const panelContainerStyle = css({
@@ -141,12 +144,10 @@ export const BottomPanel: React.FC = () => {
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{
-        position: "absolute",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
-        zIndex: 999,
       }}
       contentClassName={panelContainerStyle}
       resizable={{

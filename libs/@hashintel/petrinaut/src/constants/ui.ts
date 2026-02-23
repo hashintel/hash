@@ -12,10 +12,10 @@ import { simulationTimelineSubView } from "../views/Editor/subviews/simulation-t
 import { typesListSubView } from "../views/Editor/subviews/types-list";
 
 // Panel margin (spacing around panels)
-export const PANEL_MARGIN = 6;
+export const PANEL_MARGIN = 0;
 
 // Resize handle
-export const RESIZE_HANDLE_SIZE = PANEL_MARGIN * 2;
+export const RESIZE_HANDLE_SIZE = 16;
 export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2);
 
 // Left Sidebar
