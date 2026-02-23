@@ -132,7 +132,7 @@ codspeed-criterion-compat          = { version = "4.1.0" }
 codspeed-criterion-compat-walltime = { version = "4.3.0", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
 convert_case                       = { version = "0.11.0", default-features = false }
-criterion                          = { version = "0.8.0" }
+criterion                          = { version = "0.8.0", default-features = false }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
