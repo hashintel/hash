@@ -138,8 +138,6 @@ export const SDCPNView: React.FC = () => {
     nodeType: "place" | "transition",
     position: { x: number; y: number },
   ) {
-    const { width, height } = nodeDimensions[nodeType];
-
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
 
@@ -152,8 +150,6 @@ export const SDCPNView: React.FC = () => {
         differentialEquationId: null,
         x: position.x,
         y: position.y,
-        width,
-        height,
         visualizerCode: undefined,
       });
     } else {
@@ -167,8 +163,6 @@ export const SDCPNView: React.FC = () => {
         transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
         x: position.x,
         y: position.y,
-        width,
-        height,
       });
     }
     setSelectedItemIds(new Set([id]));
