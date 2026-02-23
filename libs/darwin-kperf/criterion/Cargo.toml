@@ -13,7 +13,7 @@ categories        = ["development-tools::profiling"]
 
 [dependencies]
 # Public workspace dependencies
-darwin-kperf-events = { version = "0.1.0", path = "../events", public = true }
+darwin-kperf-events = { workspace = true, public = true }
 
 # Public third-party dependencies
 codspeed-criterion-compat-walltime = { workspace = true, optional = true, public = true, default-features = false }
