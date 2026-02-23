@@ -13,6 +13,7 @@ import { SDCPNContext } from "../../state/sdcpn-context";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 // import { ModeSelector } from "./components/mode-selector";
+import { TopBar } from "./components/TopBar/top-bar";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { exportTikZ } from "./lib/export-tikz";
 import { importSDCPN } from "./lib/import-sdcpn";
@@ -109,128 +110,105 @@ export const EditorView = ({
     });
   }
 
+  const menuItems = [
+    {
+      id: "new",
+      label: "New",
+      onClick: handleNew,
+    },
+    ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
+      ? [
+          {
+            id: "open",
+            label: "Open",
+            submenu: existingNets.map((net) => ({
+              id: `open-${net.netId}`,
+              label: net.title,
+              onClick: () => {
+                loadPetriNet(net.netId);
+                clearSelection();
+              },
+            })),
+          },
+        ]
+      : []),
+    {
+      id: "export",
+      label: "Export",
+      submenu: [
+        {
+          id: "export-json",
+          label: "JSON",
+          onClick: handleExport,
+        },
+        {
+          id: "export-without-visuals",
+          label: "JSON without visual info",
+          onClick: handleExportWithoutVisualInfo,
+        },
+        {
+          id: "export-tikz",
+          label: "TikZ",
+          onClick: handleExportTikZ,
+        },
+      ],
+    },
+    {
+      id: "import",
+      label: "Import",
+      onClick: handleImport,
+    },
+    {
+      id: "layout",
+      label: "Layout",
+      onClick: layoutGraph,
+    },
+    {
+      id: "load-example",
+      label: "Load example",
+      submenu: [
+        {
+          id: "load-example-satellites",
+          label: "Satellites",
+          onClick: () => {
+            createNewNet(satellitesSDCPN);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-production-machines",
+          label: "Production Machines",
+          onClick: () => {
+            createNewNet(productionMachines);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-sir-model",
+          label: "SIR Model",
+          onClick: () => {
+            createNewNet(sirModel);
+            clearSelection();
+          },
+        },
+      ],
+    },
+  ];
+
   return (
     <Stack className={`${fullHeightStyle} petrinaut-root`}>
+      {/* Top Bar - always visible */}
+      <TopBar
+        menuItems={menuItems}
+        title={title}
+        onTitleChange={setTitle}
+        hideNetManagementControls={hideNetManagementControls}
+      />
+
       <Stack direction="row" className={rowContainerStyle}>
         <Box className={canvasContainerStyle}>
-          {/* Floating Mode Selector - Top Center */}
-          {/* <div className={modeSelectorPositionStyle}>
-            <ModeSelector mode={mode} onChange={handleModeChange} />
-          </div> */}
-
-          {/* Left Sidebar with Menu, Title, and Tools */}
-          <LeftSideBar
-            hideNetManagementControls={hideNetManagementControls}
-            menuItems={[
-              {
-                id: "new",
-                label: "New",
-                onClick: handleNew,
-              },
-              ...(!hideNetManagementControls &&
-              Object.keys(existingNets).length > 0
-                ? [
-                    {
-                      id: "open",
-                      label: "Open",
-                      submenu: existingNets.map((net) => ({
-                        id: `open-${net.netId}`,
-                        label: net.title,
-                        onClick: () => {
-                          loadPetriNet(net.netId);
-                          clearSelection();
-                        },
-                      })),
-                    },
-                  ]
-                : []),
-              {
-                id: "export",
-                label: "Export",
-                submenu: [
-                  {
-                    id: "export-json",
-                    label: "JSON",
-                    onClick: handleExport,
-                  },
-                  {
-                    id: "export-without-visuals",
-                    label: "JSON without visual info",
-                    onClick: handleExportWithoutVisualInfo,
-                  },
-                  {
-                    id: "export-tikz",
-                    label: "TikZ",
-                    onClick: handleExportTikZ,
-                  },
-                ],
-              },
-              {
-                id: "import",
-                label: "Import",
-                onClick: handleImport,
-              },
-              {
-                id: "layout",
-                label: "Layout",
-                onClick: layoutGraph,
-              },
-              {
-                id: "load-example",
-                label: "Load example",
-                submenu: [
-                  /**
-                   * @todo H-5641: once probabilistic transition kernel available,
-                   *       update this example so that the Manufacture step probabilistically
-                   *       produces either good or bad product, then enable a 'Dispose' or 'Dispatch'
-                   *       transition depending on which was randomly selected.
-                   */
-                  // {
-                  //   id: "load-example-supply-chain",
-                  //   label: "Supply Chain",
-                  //   onClick: () => {
-                  //     createNewNet(supplyChainSDCPN);
-                  //     clearSelection();
-                  //   },
-                  // },
-                  // {
-                  //   id: "load-example-supply-chain-stochastic",
-                  //   label: "Supply Chain (Stochastic)",
-                  //   onClick: () => {
-                  //     createNewNet(supplyChainStochasticSDCPN);
-                  //     clearSelection();
-                  //   },
-                  // },
-                  {
-                    id: "load-example-satellites",
-                    label: "Satellites",
-                    onClick: () => {
-                      createNewNet(satellitesSDCPN);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-production-machines",
-                    label: "Production Machines",
-                    onClick: () => {
-                      createNewNet(productionMachines);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-sir-model",
-                    label: "SIR Model",
-                    onClick: () => {
-                      createNewNet(sirModel);
-                      clearSelection();
-                    },
-                  },
-                ],
-              },
-            ]}
-            title={title}
-            onTitleChange={setTitle}
-          />
+          {/* Left Sidebar - Tools and content panels */}
+          <LeftSideBar />
 
           {/* Properties Panel - Right Side */}
           <PropertiesPanel />
