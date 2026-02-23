@@ -22,9 +22,9 @@ pub enum BinaryOperator {
     LessOrEqual,
     /// `<lhs> = ANY(<rhs>)`
     In,
-    /// `<lhs> @> <rhs>`
+    /// `<lhs> @> <rhs>::TIMESTAMPTZ`
     TimeIntervalContainsTimestamp,
-    /// `<lhs> && <rhs>::TIMESTAMPTZ`
+    /// `<lhs> && <rhs>`
     Overlap,
     /// `<lhs> <=> <rhs>`
     CosineDistance,
