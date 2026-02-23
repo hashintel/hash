@@ -20,7 +20,7 @@ use crate::{
     intern::Interner,
     op,
     pass::{
-        analysis::execution::statement_placement::{
+        execution::statement_placement::{
             PostgresStatementPlacement, StatementPlacement as _,
             tests::{assert_placement, run_placement},
         },

@@ -14,7 +14,7 @@ use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
     context::MirContext,
     pass::{
-        analysis::execution::{
+        execution::{
             Cost, StatementCostVec,
             cost::TraversalCostVec,
             statement_placement::lookup::{Access, entity_projection_access},

@@ -1,0 +1,32 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/terminator_placement/tests.rs
+expression: output
+---
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %1 = 10
+        %0 = 1
+
+        switchInt(%0) -> [0: bb1(%2), otherwise: bb2()]
+    }
+
+    bb1(%2): {
+        return %1
+    }
+
+    bb2(): {
+        return 0
+    }
+}
+
+================ Terminator Edges ================
+
+bb0:
+  edge[0]:I->I=0P->I=2P->P=0E->I=2
+  edge[1]:I->I=0P->I=0E->I=0E->E=0
+bb1:
+bb2:

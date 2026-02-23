@@ -13,6 +13,7 @@ use core::{alloc::Allocator, fmt};
 use hashql_core::heap::TryCloneIn;
 
 use super::{
+    InformationUnit,
     affine::AffineEquation,
     estimate::Estimate,
     range::{Cardinality, InformationRange},
@@ -223,6 +224,29 @@ impl Footprint {
             units: Estimate::Affine(AffineEquation::coefficient(index, length)),
             cardinality: Estimate::Affine(AffineEquation::coefficient(index, length)),
         }
+    }
+
+    #[must_use]
+    pub fn average(
+        &self,
+        units: &[InformationRange],
+        cardinality: &[Cardinality],
+    ) -> Option<InformationUnit> {
+        let units = self.units.eval(&SaturatingSemiring, units);
+        let cardinality = self.cardinality.eval(&SaturatingSemiring, cardinality);
+
+        if units.is_empty() || cardinality.is_empty() {
+            return Some(InformationUnit::new(0));
+        }
+
+        let max = units.inclusive_max()?;
+        let max = max.checked_mul(cardinality.inclusive_max()?)?;
+
+        let min = units.min();
+        let min = min.checked_mul(cardinality.min())?;
+
+        let avg = min.midpoint(max);
+        Some(avg)
     }
 
     /// Adds `other * coefficient` to this footprint (component-wise).

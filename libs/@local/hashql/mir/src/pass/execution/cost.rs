@@ -37,9 +37,29 @@ use crate::{
 pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
 impl Cost {
+    /// The maximum representable cost value (`u32::MAX - 1`).
+    ///
+    /// Used as a sentinel for "effectively infinite" cost when exact values overflow.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::Cost;
+    /// assert_eq!(Cost::MAX, Cost::new(u32::MAX - 1).unwrap());
+    /// ```
+    pub const MAX: Self = match core::num::niche_types::U32NotAllOnes::new(0xFFFF_FFFE) {
+        Some(cost) => Self(cost),
+        None => unreachable!(),
+    };
+
     /// Creates a cost from a `u32` value, returning `None` if the value is `u32::MAX`.
     ///
-    /// The `u32::MAX` value is reserved as a niche for `Option<Cost>` optimization.
+    /// The `u32::MAX` value is reserved as a niche for [`Option<Cost>`] optimization.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::Cost;
+    /// assert!(Cost::new(0).is_some());
+    /// assert!(Cost::new(100).is_some());
+    /// assert!(Cost::new(u32::MAX).is_none()); // Reserved for niche
+    /// ```
     #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
         match core::num::niche_types::U32NotAllOnes::new(value) {
@@ -68,6 +88,25 @@ impl Cost {
     pub const unsafe fn new_unchecked(value: u32) -> Self {
         // SAFETY: The caller must ensure `value` is not `u32::MAX`.
         Self(unsafe { core::num::niche_types::U32NotAllOnes::new_unchecked(value) })
+    }
+
+    /// Adds `other` to this cost, saturating at [`Cost::MAX`] on overflow.
+    ///
+    /// ```
+    /// # use hashql_mir::pass::execution::Cost;
+    /// let cost = Cost::new(100).unwrap();
+    /// assert_eq!(cost.saturating_add(50), Cost::new(150).unwrap());
+    ///
+    /// // Saturates at MAX instead of overflowing
+    /// let large = Cost::new(u32::MAX - 10).unwrap();
+    /// assert_eq!(large.saturating_add(100), Cost::MAX);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn saturating_add(self, other: u32) -> Self {
+        let raw = self.0.as_inner();
+
+        Self::new(raw.saturating_add(other)).unwrap_or(Self::MAX)
     }
 }
 
@@ -109,6 +148,7 @@ impl<A: Allocator> TraversalCostVec<A> {
         }
     }
 
+    /// Iterates over all (local, cost) pairs that have assigned costs.
     pub fn iter(&self) -> impl Iterator<Item = (Local, Cost)> {
         self.costs
             .iter_enumerated()
@@ -144,7 +184,6 @@ impl<A: Allocator> StatementCostVec<A> {
         mut iter: impl ExactSizeIterator<Item = u32>,
         alloc: A,
     ) -> (Box<BasicBlockSlice<u32>, A>, usize) {
-        // Try to reuse existing offsets if available and of correct length
         let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc);
 
         let mut offset = 0_u32;
@@ -193,6 +232,10 @@ impl<A: Allocator> StatementCostVec<A> {
         )
     }
 
+    /// Rebuilds the offset table for a new block layout.
+    ///
+    /// Call after transforms that change statement counts per block. Does not resize or clear
+    /// the cost data — callers must ensure the total statement count remains unchanged.
     #[expect(clippy::cast_possible_truncation)]
     pub fn remap(&mut self, blocks: &BasicBlocks)
     where
@@ -207,16 +250,21 @@ impl<A: Allocator> StatementCostVec<A> {
         self.offsets = offsets;
     }
 
+    /// Returns `true` if no statements have assigned costs.
     pub fn all_unassigned(&self) -> bool {
         self.costs.iter().all(Option::is_none)
     }
 
+    /// Returns the cost slice for all statements in `block`.
+    ///
+    /// The returned slice is indexed by statement position (0-based within the block).
     pub fn of(&self, block: BasicBlockId) -> &[Option<Cost>] {
         let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
 
         &self.costs[range]
     }
 
+    /// Returns a reference to the allocator used by this cost vector.
     pub fn allocator(&self) -> &A {
         Box::allocator(&self.offsets)
     }
