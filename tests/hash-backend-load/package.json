@@ -56,7 +56,7 @@
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.39.2",
     "rimraf": "6.1.2",
-    "rollup": "4.55.3",
+    "rollup": "4.57.1",
     "typescript": "5.9.3"
   }
 }
