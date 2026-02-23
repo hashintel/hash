@@ -280,7 +280,12 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
   const { flowDefinitions } = useFlowDefinitionsContext();
 
-  const { flowRuns: unfilteredFlowRuns, loading } = useFlowRunsContext();
+  const {
+    flowRuns: unfilteredFlowRuns,
+    totalCount,
+    loading,
+    pagination,
+  } = useFlowRunsContext();
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -431,15 +436,81 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
   );
 
   return (
-    <Box sx={{ height: tableHeight }}>
-      <VirtualizedTable
-        columns={columns}
-        createRowContent={createRowContent}
-        EmptyPlaceholder={loading ? LoadingPlaceholder : EmptyPlaceholder}
-        rows={flowRunRows}
-        sort={sort}
-        setSort={setSort}
-      />
+    <Box>
+      <Box sx={{ height: tableHeight }}>
+        <VirtualizedTable
+          columns={columns}
+          createRowContent={createRowContent}
+          EmptyPlaceholder={loading ? LoadingPlaceholder : EmptyPlaceholder}
+          rows={flowRunRows}
+          sort={sort}
+          setSort={setSort}
+        />
+      </Box>
+      {pagination && totalCount > 0 && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 1, py: 1.5 }}
+        >
+          <Typography
+            sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
+          >
+            Showing{" "}
+            <strong>{pagination.page * pagination.rowsPerPage + 1}</strong> to{" "}
+            <strong>
+              {Math.min(
+                (pagination.page + 1) * pagination.rowsPerPage,
+                totalCount,
+              )}
+            </strong>{" "}
+            of <strong>{totalCount}</strong>
+          </Typography>
+          <Stack direction="row" gap={2}>
+            {pagination.page > 0 && (
+              <Typography
+                component="button"
+                onClick={() => pagination.onPageChange(pagination.page - 1)}
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: ({ palette }) => palette.blue[70],
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+              >
+                Previous page
+              </Typography>
+            )}
+            {(pagination.page + 1) * pagination.rowsPerPage < totalCount && (
+              <Typography
+                component="button"
+                onClick={() => pagination.onPageChange(pagination.page + 1)}
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: ({ palette }) => palette.blue[70],
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+              >
+                Next page
+              </Typography>
+            )}
+          </Stack>
+        </Stack>
+      )}
     </Box>
   );
 };

@@ -17,9 +17,18 @@ import type {
 } from "../../graphql/api-types.gen";
 import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
+export type FlowRunsPaginationState = {
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+};
+
 export type FlowRunsContextType = {
-  flowRuns: GetFlowRunsQuery["getFlowRuns"];
+  flowRuns: GetFlowRunsQuery["getFlowRuns"]["flowRuns"];
+  totalCount: number;
   loading: boolean;
+  pagination: FlowRunsPaginationState | null;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;
 };
@@ -28,13 +37,25 @@ export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
 
 export const FlowRunsContextProvider = ({
   children,
+  pagination,
   selectedFlowRunId,
-}: PropsWithChildren<{ selectedFlowRunId: string | null }>) => {
+}: PropsWithChildren<{
+  pagination?: FlowRunsPaginationState;
+  selectedFlowRunId: string | null;
+}>) => {
+  const variables: GetFlowRunsQueryVariables = pagination
+    ? {
+        offset: pagination.page * pagination.rowsPerPage,
+        limit: pagination.rowsPerPage,
+      }
+    : {};
+
   const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,
     GetFlowRunsQueryVariables
   >(getFlowRunsQuery, {
     pollInterval: 3_000,
+    variables,
   });
 
   const { data: selectedFlowRunData, loading: selectedFlowRunLoading } =
@@ -51,10 +72,12 @@ export const FlowRunsContextProvider = ({
 
   const flowRuns = useMemo(() => {
     if (flowRunsData) {
-      return flowRunsData.getFlowRuns;
+      return flowRunsData.getFlowRuns.flowRuns;
     }
     return [];
   }, [flowRunsData]);
+
+  const totalCount = flowRunsData?.getFlowRuns.totalCount ?? 0;
 
   const selectedFlowRun = useMemo(() => {
     if (selectedFlowRunData) {
@@ -66,13 +89,17 @@ export const FlowRunsContextProvider = ({
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
+      totalCount,
       loading: selectedFlowRunLoading || flowRunsLoading,
+      pagination: pagination ?? null,
       selectedFlowRun,
       selectedFlowRunId,
     }),
     [
       flowRuns,
+      totalCount,
       flowRunsLoading,
+      pagination,
       selectedFlowRunLoading,
       selectedFlowRun,
       selectedFlowRunId,
