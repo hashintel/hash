@@ -6566,6 +6566,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fontsource-variable/jetbrains-mono@npm:5.2.8":
+  version: 5.2.8
+  resolution: "@fontsource-variable/jetbrains-mono@npm:5.2.8"
+  checksum: 10c0/574e5463b802cfdd6ec8dd16724d2fd5ee38204815729c9dca0f457a417f0a4d32e6ec4ed2dfa0e5a5de5a9b0deaeb9f3c0b49b332763ed40172de43d6b1502f
+  languageName: node
+  linkType: hard
+
 "@fortawesome/fontawesome-common-types@npm:6.7.2":
   version: 6.7.2
   resolution: "@fortawesome/fontawesome-common-types@npm:6.7.2"
@@ -7795,6 +7802,7 @@ __metadata:
     "@dnd-kit/core": "npm:6.3.1"
     "@dnd-kit/sortable": "npm:10.0.0"
     "@dnd-kit/utilities": "npm:3.2.2"
+    "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/refractive": "workspace:^"

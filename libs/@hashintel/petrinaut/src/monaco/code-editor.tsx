@@ -1,3 +1,5 @@
+import "@fontsource-variable/jetbrains-mono";
+
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
@@ -59,7 +61,8 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   const editorOptions: EditorProps["options"] = {
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
-    fontSize: 12,
+    fontFamily: "'JetBrains Mono Variable', monospace",
+    fontSize: 11,
     lineNumbers: "off",
     folding: true,
     glyphMargin: false,
