@@ -1,4 +1,5 @@
-import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
+import { FaArrowPointer, FaHand } from "react-icons/fa6";
+import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
 
 import type { EditorState } from "../../../../state/editor-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -33,7 +34,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
               event.dataTransfer.setData("application/reactflow", "place");
             }}
           >
-            <FaCircle />
+            <TbCirclePlus2 />
           </ToolbarButton>
           <ToolbarButton
             tooltip="Add Transition (T)"
@@ -47,7 +48,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
               event.dataTransfer.setData("application/reactflow", "transition");
             }}
           >
-            <FaSquare />
+            <TbSquarePlus2 />
           </ToolbarButton>
         </>
       )}
