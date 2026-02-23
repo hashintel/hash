@@ -112,7 +112,7 @@ impl<'heap> Traversals<'heap> {
         }
     }
 
-    fn insert(&mut self, local: Local, place: Place<'heap>) {
+    pub(crate) fn insert(&mut self, local: Local, place: Place<'heap>) {
         debug_assert_eq!(place.local, self.source);
 
         self.derivations.insert(local, place);
@@ -125,6 +125,19 @@ impl<'heap> Traversals<'heap> {
         self.derivations.lookup(local)
     }
 
+    /// Returns `true` if `local` is a registered traversal destination.
+    #[must_use]
+    pub fn contains(&self, local: Local) -> bool {
+        self.derivations.contains(local)
+    }
+
+    /// Returns the source local from which all projections were extracted.
+    #[must_use]
+    pub const fn source(&self) -> Local {
+        self.source
+    }
+
+    /// Returns a bitset of all locals that are traversal destinations.
     #[must_use]
     pub fn enabled(&self, body: &Body<'heap>) -> DenseBitSet<Local> {
         let mut set = DenseBitSet::new_empty(body.local_decls.len());
