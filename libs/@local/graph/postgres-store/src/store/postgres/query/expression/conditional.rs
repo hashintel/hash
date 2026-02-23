@@ -172,20 +172,12 @@ impl Transpile for Function {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
     Boolean(bool),
-    Text(&'static str),
     UnsignedInteger(u32),
-    Null,
 }
 
 impl From<bool> for Constant {
     fn from(value: bool) -> Self {
         Self::Boolean(value)
-    }
-}
-
-impl From<&'static str> for Constant {
-    fn from(text: &'static str) -> Self {
-        Self::Text(text)
     }
 }
 
@@ -199,11 +191,7 @@ impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
-            // SAFETY: `Text` only accepts `&'static str`, which is compiler-controlled.
-            // User input must always go through `Parameter` to prevent SQL injection.
-            Self::Text(value) => write!(fmt, "'{value}'"),
             Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
-            Self::Null => fmt.write_str("NULL"),
         }
     }
 }
@@ -587,18 +575,18 @@ mod tests {
             conditions: vec![
                 (
                     Expression::Constant(Constant::from(true)),
-                    Expression::Constant(Constant::from("yes")),
+                    Expression::Constant(Constant::from(1_u32)),
                 ),
                 (
                     Expression::Constant(Constant::from(false)),
-                    Expression::Constant(Constant::from("maybe")),
+                    Expression::Constant(Constant::from(2_u32)),
                 ),
             ],
-            else_result: Some(Box::new(Expression::Constant(Constant::from("no")))),
+            else_result: Some(Box::new(Expression::Constant(Constant::from(3_u32)))),
         };
         assert_eq!(
             case_expr.transpile_to_string(),
-            "CASE WHEN TRUE THEN 'yes' WHEN FALSE THEN 'maybe' ELSE 'no' END"
+            "CASE WHEN TRUE THEN 1 WHEN FALSE THEN 2 ELSE 3 END"
         );
     }
 
@@ -607,23 +595,11 @@ mod tests {
         let case_expr = Expression::CaseWhen {
             conditions: vec![(
                 Expression::Constant(Constant::from(true)),
-                Expression::Constant(Constant::from("yes")),
+                Expression::Constant(Constant::from(1_u32)),
             )],
             else_result: None,
         };
-        assert_eq!(
-            case_expr.transpile_to_string(),
-            "CASE WHEN TRUE THEN 'yes' END"
-        );
-    }
-
-    #[test]
-    fn transpile_null_constant() {
-        // Constant::Null must transpile to NULL (the SQL keyword), not 'NULL' (a string literal).
-        assert_eq!(
-            Expression::Constant(Constant::Null).transpile_to_string(),
-            "NULL"
-        );
+        assert_eq!(case_expr.transpile_to_string(), "CASE WHEN TRUE THEN 1 END");
     }
 
     #[test]
@@ -631,16 +607,13 @@ mod tests {
         let delete_expr = Expression::Function(Function::JsonDeleteKeys(
             Box::new(Expression::Parameter(1)),
             Box::new(Expression::Function(Function::ArrayLiteral {
-                elements: vec![
-                    Expression::Constant(Constant::from("email/")),
-                    Expression::Constant(Constant::from("phone/")),
-                ],
+                elements: vec![Expression::Parameter(2), Expression::Parameter(3)],
                 element_type: PostgresType::Text,
             })),
         ));
         assert_eq!(
             delete_expr.transpile_to_string(),
-            "($1 - ARRAY['email/', 'phone/']::text[])"
+            "($1 - ARRAY[$2, $3]::text[])"
         );
     }
 
@@ -648,17 +621,17 @@ mod tests {
     fn transpile_array_concat() {
         let concat_expr = Expression::Function(Function::ArrayConcat(vec![
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::from("a"))],
+                elements: vec![Expression::Parameter(1)],
                 element_type: PostgresType::Text,
             }),
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::from("b"))],
+                elements: vec![Expression::Parameter(2)],
                 element_type: PostgresType::Text,
             }),
         ]));
         assert_eq!(
             concat_expr.transpile_to_string(),
-            "(ARRAY['a']::text[] || ARRAY['b']::text[])"
+            "(ARRAY[$1]::text[] || ARRAY[$2]::text[])"
         );
     }
 
