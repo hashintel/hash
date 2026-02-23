@@ -24,7 +24,6 @@ import type {
   NodeData,
   PetrinautReactFlowInstance,
 } from "./reactflow-types";
-import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
 
@@ -194,12 +193,11 @@ export const SDCPNView: React.FC = () => {
     }
 
     const nodeType = editionMode === "add-place" ? "place" : "transition";
-    const { width, height } = nodeDimensions[nodeType];
 
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -225,11 +223,10 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const { width, height } = nodeDimensions[nodeType];
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -325,7 +322,6 @@ export const SDCPNView: React.FC = () => {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
-        connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
         panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
         nodesDraggable={!isReadonly}
