@@ -48,11 +48,53 @@ impl<T> OnceValue<T> {
     }
 }
 
-type RValueFn<'heap> =
-    fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &RValue<'heap>) -> bool;
+/// Target-specific predicates for determining whether rvalues and operands can be dispatched
+/// to a particular execution target.
+///
+/// Implementations carry any target-specific state needed for the decision (e.g., which
+/// environment fields are transferable for Postgres).
+pub(crate) trait Supported<'heap> {
+    fn is_supported_rvalue(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        rvalue: &RValue<'heap>,
+    ) -> bool;
 
-type OperandFn<'heap> =
-    fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &Operand<'heap>) -> bool;
+    fn is_supported_operand(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        operand: &Operand<'heap>,
+    ) -> bool;
+}
+
+impl<'heap, T> Supported<'heap> for &T
+where
+    T: Supported<'heap>,
+{
+    fn is_supported_rvalue(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        rvalue: &RValue<'heap>,
+    ) -> bool {
+        T::is_supported_rvalue(self, context, body, domain, rvalue)
+    }
+
+    fn is_supported_operand(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        operand: &Operand<'heap>,
+    ) -> bool {
+        T::is_supported_operand(self, context, body, domain, operand)
+    }
+}
 
 /// Computes which locals can be dispatched to an execution target.
 ///
@@ -67,21 +109,21 @@ type OperandFn<'heap> =
 /// reads must be executed by the interpreter and cannot be dispatched to external backends.
 ///
 /// [`GraphRead`]: crate::body::terminator::GraphRead
-pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
+pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, S, B> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
 
-    pub is_supported_rvalue: RValueFn<'heap>,
-    pub is_supported_operand: OperandFn<'heap>,
+    pub supported: S,
     pub initialize_boundary: OnceValue<B>,
 }
 
-impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
+impl<'heap, S, B> SupportedAnalysis<'_, '_, 'heap, S, B> {
     /// Runs the analysis and returns the set of dispatchable locals.
     ///
     /// A local is dispatchable only if it is supported at every return block.
     pub(crate) fn finish_in<A: Allocator + Clone>(self, alloc: A) -> DenseBitSet<Local>
     where
+        S: Supported<'heap>,
         B: FnOnce(&Body<'heap>, &mut DenseBitSet<Local>),
     {
         let body = self.body;
@@ -108,8 +150,9 @@ impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
     }
 }
 
-impl<'heap, B> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap, B>
+impl<'heap, S, B> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap, S, B>
 where
+    S: Supported<'heap>,
     B: FnOnce(&Body<'heap>, &mut DenseBitSet<Local>),
 {
     type Domain<A: Allocator> = DenseBitSet<Local>;
@@ -147,12 +190,10 @@ where
             "MIR must be in MIR(SSA) form for analysis to take place"
         );
 
-        let is_supported = (self.is_supported_rvalue)(self.context, self.body, state, rhs);
-        if is_supported {
-            state.insert(lhs.local);
-        } else {
-            state.remove(lhs.local);
-        }
+        let is_supported = self
+            .supported
+            .is_supported_rvalue(self.context, self.body, state, rhs);
+        state.set(lhs.local, is_supported);
     }
 
     fn transfer_edge<A: Allocator>(
@@ -171,7 +212,9 @@ where
         let mut is_supported_set = DenseBitSet::new_empty(target_params.len());
 
         for (index, arg) in source_args.iter().enumerate() {
-            let is_supported = (self.is_supported_operand)(self.context, self.body, state, arg);
+            let is_supported =
+                self.supported
+                    .is_supported_operand(self.context, self.body, state, arg);
             is_supported_set.set(ParamIndex::from_usize(index), is_supported);
         }
 
@@ -203,7 +246,7 @@ where
 /// After the supportedness analysis computes which locals are dispatchable, this visitor walks
 /// the body and assigns costs. A statement receives a cost if its rvalue is supported given the
 /// dispatchable locals; otherwise it gets `None`. Storage statements always receive zero cost.
-pub(crate) struct CostVisitor<'ctx, 'env, 'heap, A: Allocator> {
+pub(crate) struct CostVisitor<'ctx, 'env, 'heap, S, A: Allocator> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
     pub dispatchable: &'ctx DenseBitSet<Local>,
@@ -212,10 +255,13 @@ pub(crate) struct CostVisitor<'ctx, 'env, 'heap, A: Allocator> {
     pub statement_costs: StatementCostVec<A>,
     pub traversal_costs: TraversalCostVec<A>,
 
-    pub is_supported_rvalue: RValueFn<'heap>,
+    pub supported: S,
 }
 
-impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, '_, 'heap, A> {
+impl<'heap, S, A: Allocator> Visitor<'heap> for CostVisitor<'_, '_, 'heap, S, A>
+where
+    S: Supported<'heap>,
+{
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -225,9 +271,10 @@ impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, '_, 'heap, A> {
     ) -> Self::Result {
         match &statement.kind {
             StatementKind::Assign(Assign { lhs, rhs }) => {
-                let cost =
-                    (self.is_supported_rvalue)(self.context, self.body, self.dispatchable, rhs)
-                        .then_some(self.cost);
+                let cost = self
+                    .supported
+                    .is_supported_rvalue(self.context, self.body, self.dispatchable, rhs)
+                    .then_some(self.cost);
 
                 if let Some(cost) = cost
                     && lhs.projections.is_empty()

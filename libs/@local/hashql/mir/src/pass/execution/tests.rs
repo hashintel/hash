@@ -113,10 +113,13 @@ fn closure_forces_interpreter() {
 
     let mut body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
         decl env: (Int, [fn(Int) -> Int]), vertex: [Opaque sym::path::Entity; ?],
-             capture: (Int, [fn(Int) -> Int]), func: [fn(Int) -> Int], result: Int;
+             env_int: Int, env_fn: [fn(Int) -> Int], capture: (Int, [fn(Int) -> Int]), func: [fn(Int) -> Int], result: Int;
+        @proj env_0 = env.0: Int, env_1 = env.1: [fn(Int) -> Int];
 
         bb0() {
-            capture = load env;
+            env_int = load env_0;
+            env_fn = load env_1;
+            capture = tuple env_int, env_fn;
             func = closure callee_id capture;
             result = apply func, 5;
             return result;
@@ -150,12 +153,14 @@ fn projection_and_apply_splits() {
 
     let mut body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
         decl env: (Int), vertex: [Opaque sym::path::Entity; ?],
-             archived: Bool, capture: (Int), func: [fn(Bool) -> Int], result: Int;
-        @proj metadata = vertex.metadata: ?, archived_proj = metadata.archived: Bool;
+             archived: Bool, env_int: Int, capture: (Int), func: [fn(Bool) -> Int], result: Int;
+        @proj metadata = vertex.metadata: ?, archived_proj = metadata.archived: Bool,
+              env_0 = env.0: Int;
 
         bb0() {
             archived = load archived_proj;
-            capture = load env;
+            env_int = load env_0;
+            capture = tuple env_int;
             func = closure callee_id capture;
             result = apply func, archived;
             return result;
@@ -190,14 +195,16 @@ fn mixed_postgres_embedding_interpreter() {
     let mut body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
         decl env: (Int), vertex: [Opaque sym::path::Entity; ?],
              archived: Bool, vectors: ?,
-             capture: (Int), func: [fn(Bool) -> Int], result: Int;
+             env_int: Int, capture: (Int), func: [fn(Bool) -> Int], result: Int;
         @proj metadata = vertex.metadata: ?, archived_proj = metadata.archived: Bool,
-              encodings = vertex.encodings: ?, vectors_proj = encodings.vectors: ?;
+              encodings = vertex.encodings: ?, vectors_proj = encodings.vectors: ?,
+              env_0 = env.0: Int;
 
         bb0() {
             archived = load archived_proj;
             vectors = load vectors_proj;
-            capture = load env;
+            env_int = load env_0;
+            capture = tuple env_int;
             func = closure callee_id capture;
             result = apply func, archived;
             return result;

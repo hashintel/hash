@@ -7,7 +7,7 @@ use hashql_core::{
 
 use super::{
     StatementPlacement,
-    common::{CostVisitor, OnceValue, SupportedAnalysis},
+    common::{CostVisitor, OnceValue, Supported, SupportedAnalysis},
 };
 use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
@@ -56,31 +56,37 @@ fn is_supported_place<'heap>(
     domain.contains(place.local)
 }
 
-fn is_supported_operand<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    operand: &Operand<'heap>,
-) -> bool {
-    match operand {
-        Operand::Place(place) => is_supported_place(context, body, domain, place),
-        Operand::Constant(_) => false,
-    }
-}
+struct EmbeddingSupported;
 
-fn is_supported_rvalue<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    rvalue: &RValue<'heap>,
-) -> bool {
-    match rvalue {
-        RValue::Load(operand) => is_supported_operand(context, body, domain, operand),
-        RValue::Input(_)
-        | RValue::Aggregate(_)
-        | RValue::Binary(_)
-        | RValue::Unary(_)
-        | RValue::Apply(_) => false,
+impl<'heap> Supported<'heap> for EmbeddingSupported {
+    fn is_supported_rvalue(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        rvalue: &RValue<'heap>,
+    ) -> bool {
+        match rvalue {
+            RValue::Load(operand) => self.is_supported_operand(context, body, domain, operand),
+            RValue::Input(_)
+            | RValue::Aggregate(_)
+            | RValue::Binary(_)
+            | RValue::Unary(_)
+            | RValue::Apply(_) => false,
+        }
+    }
+
+    fn is_supported_operand(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        operand: &Operand<'heap>,
+    ) -> bool {
+        match operand {
+            Operand::Place(place) => is_supported_place(context, body, domain, place),
+            Operand::Constant(_) => false,
+        }
     }
 }
 
@@ -125,8 +131,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         let dispatchable = SupportedAnalysis {
             body,
             context,
-            is_supported_rvalue,
-            is_supported_operand,
+            supported: &EmbeddingSupported,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     match body.source {
@@ -157,7 +162,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             statement_costs,
             traversal_costs,
 
-            is_supported_rvalue,
+            supported: &EmbeddingSupported,
         };
         visitor.visit_body(body);
 
