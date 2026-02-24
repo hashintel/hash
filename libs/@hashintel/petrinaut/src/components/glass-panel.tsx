@@ -7,7 +7,7 @@ import { useResizeDrag } from "../resize/use-resize-drag";
 const panelContainerStyle = cva({
   base: {
     position: "relative",
-    backgroundColor: "neutral.s10",
+    backgroundColor: "neutral.s00",
     borderColor: "neutral.s40",
     boxSizing: "content-box",
     borderStyle: "solid",
@@ -33,7 +33,6 @@ const resizeHandleStyle = cva({
   base: {
     position: "absolute",
     backgroundColor: "[transparent]",
-    padding: "[0]",
     zIndex: "[1001]",
     transition: "[background-color 0.3s ease]",
   },
