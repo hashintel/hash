@@ -1,8 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 
-import { ResizeHandle } from "../../../resize/resize-handle";
-import { useResizable } from "../../../resize/use-resizable";
+import { ResizeHandle } from "./resize-handle";
+import { useResizable } from "./use-resizable";
 import type { SubView, SubViewResizeConfig } from "../types";
 import { SubViewHeader } from "./sub-view-header";
 

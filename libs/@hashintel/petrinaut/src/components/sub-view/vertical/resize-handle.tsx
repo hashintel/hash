@@ -1,6 +1,6 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-import type { ResizeDirection } from "./use-resize-drag";
+import type { ResizeDirection } from "../../../resize/use-resize-drag";
 
 const resizeHandleStyle = cva({
   base: {
