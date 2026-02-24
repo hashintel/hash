@@ -1,10 +1,17 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 
-import { ResizeHandle } from "./resize-handle";
+import { ResizeHandle } from "../../../resize/resize-handle";
+import { useResizable } from "../../../resize/use-resizable";
+import type { SubView, SubViewResizeConfig } from "../types";
 import { SubViewHeader } from "./sub-view-header";
-import type { SubView } from "../types";
-import { DEFAULT_RESIZE_CONFIG, useResizable } from "./use-resizable";
+
+/** Default resize config used when resizable is undefined but we need the hook */
+const DEFAULT_RESIZE_CONFIG: SubViewResizeConfig = {
+  defaultHeight: 150,
+  minHeight: 80,
+  maxHeight: 400,
+};
 
 /**
  * CSS Grid wrapper for animating content expand/collapse in fixed container.
@@ -119,11 +126,17 @@ const FixedSection: React.FC<FixedSectionProps> = ({
     resizable,
   } = subView;
 
-  // Use the resize hook - it will be used only if resizable is defined
-  const { height, isResizing, handleResizeStart } = useResizable(
-    resizable ?? DEFAULT_RESIZE_CONFIG,
-    resizeHandlePosition,
-  );
+  const config = resizable ?? DEFAULT_RESIZE_CONFIG;
+  const {
+    size: height,
+    isResizing,
+    handleResizeStart,
+  } = useResizable({
+    defaultSize: config.defaultHeight,
+    minSize: config.minHeight,
+    maxSize: config.maxHeight,
+    edge: resizeHandlePosition,
+  });
 
   // Last item should grow if it has flexGrow, but shouldn't have bottom border
   const effectiveFlexGrow = isLast ? flexGrow : false;
@@ -166,7 +179,7 @@ const FixedSection: React.FC<FixedSectionProps> = ({
       {/* Top handle rendered before header when position is "top" */}
       {resizable && resizeHandlePosition === "top" && isExpanded && (
         <ResizeHandle
-          position="top"
+          direction="vertical"
           isResizing={isResizing}
           onMouseDown={handleResizeStart}
         />
@@ -189,7 +202,7 @@ const FixedSection: React.FC<FixedSectionProps> = ({
       {/* Bottom handle rendered after content - outside animation wrapper */}
       {resizable && resizeHandlePosition === "bottom" && isExpanded && (
         <ResizeHandle
-          position="bottom"
+          direction="vertical"
           isResizing={isResizing}
           onMouseDown={handleResizeStart}
         />
