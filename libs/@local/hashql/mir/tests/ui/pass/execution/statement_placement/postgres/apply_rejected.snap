@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: Integer, %1: Entity) -> Boolean {
+    let %2: Integer
+    let %3: (Integer) -> Integer
+    let %4: Integer
+    let %5: Boolean
+
+    bb0(): {
+        %2 = %0                                                                 // cost: 4
+        %3 = closure(({def@99} as FnPtr), %2)
+        %4 = apply %3 42
+        %5 = %4 == 0
+
+        return %5
+    }
+}
+
+=================== Traversals ===================
+
+Traversals:

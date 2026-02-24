@@ -1,10 +1,10 @@
 import { createWriteStream } from "node:fs";
 import { mkdir, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
-import { fileURLToPath } from "node:url";
 
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -13,10 +13,7 @@ import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { fetchFileFromUrl } from "./fetch-file-from-url.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const baseFilePath = path.join(__dirname, "/var/tmp_files");
+const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
 
 export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
   fileEntity: Pick<HashEntity<File>, "entityId" | "properties">,
@@ -86,16 +83,16 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
       ).pipe(fileStream),
     );
   } catch (error) {
-    await unlink(filePath);
+    await unlink(filePath).catch(() => {});
 
     throw new Error(
       `Failed to write file to file system: ${(error as Error).message}`,
     );
   }
 
-  const response = await callback({ fileSystemPath: filePath });
-
-  await unlink(filePath);
-
-  return response;
+  try {
+    return await callback({ fileSystemPath: filePath });
+  } finally {
+    await unlink(filePath).catch(() => {});
+  }
 };

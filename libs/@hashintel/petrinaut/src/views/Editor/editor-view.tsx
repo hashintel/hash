@@ -14,6 +14,7 @@ import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 // import { ModeSelector } from "./components/mode-selector";
 import { exportSDCPN } from "./lib/export-sdcpn";
+import { exportTikZ } from "./lib/export-tikz";
 import { importSDCPN } from "./lib/import-sdcpn";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -92,6 +93,10 @@ export const EditorView = ({
     exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true });
   }
 
+  function handleExportTikZ() {
+    exportTikZ({ petriNetDefinition, title });
+  }
+
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
       const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
@@ -142,12 +147,23 @@ export const EditorView = ({
               {
                 id: "export",
                 label: "Export",
-                onClick: handleExport,
-              },
-              {
-                id: "export-without-visuals",
-                label: "Export without Visual Info",
-                onClick: handleExportWithoutVisualInfo,
+                submenu: [
+                  {
+                    id: "export-json",
+                    label: "JSON",
+                    onClick: handleExport,
+                  },
+                  {
+                    id: "export-without-visuals",
+                    label: "JSON without visual info",
+                    onClick: handleExportWithoutVisualInfo,
+                  },
+                  {
+                    id: "export-tikz",
+                    label: "TikZ",
+                    onClick: handleExportTikZ,
+                  },
+                ],
               },
               {
                 id: "import",

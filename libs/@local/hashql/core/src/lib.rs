@@ -3,6 +3,7 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![expect(clippy::indexing_slicing)]
+#![recursion_limit = "256"]
 #![feature(
     // Language Features
     arbitrary_self_types,
@@ -18,6 +19,9 @@
     allocator_api,
     binary_heap_into_iter_sorted,
     clone_from_ref,
+    const_cmp,
+    const_ops,
+    const_trait_impl,
     debug_closure_helpers,
     extend_one,
     formatting_options,
@@ -28,6 +32,7 @@
     slice_partition_dedup,
     slice_swap_unchecked,
     step_trait,
+    str_from_raw_parts,
     try_trait_v2,
     variant_count,
 )]

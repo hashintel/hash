@@ -14,7 +14,7 @@ exclude       = ["package.json", "macros", "experimental"]
 
 [package.metadata.sync.turborepo]
 extra-dependencies = [
-    { name = "@rust/error-stack-macros", version = "0.0.0-private" },
+    { name = "@rust/error-stack-macros", version = "workspace:*" },
 ]
 
 [dependencies]

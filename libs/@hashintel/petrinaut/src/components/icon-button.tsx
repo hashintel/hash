@@ -34,17 +34,17 @@ const iconButtonStyle = cva({
     },
     variant: {
       default: {
-        color: "neutral.s60",
+        color: "neutral.s105",
         _hover: {
-          color: "neutral.s80",
+          color: "neutral.s115",
           backgroundColor: "[rgba(0, 0, 0, 0.05)]",
         },
       },
       danger: {
-        color: "neutral.s60",
+        color: "neutral.s105",
         _hover: {
-          color: "red.s60",
-          backgroundColor: "red.s10",
+          color: "red.s90",
+          backgroundColor: "red.s25",
         },
       },
     },
@@ -53,7 +53,7 @@ const iconButtonStyle = cva({
         opacity: "[0.5]",
         cursor: "not-allowed",
         _hover: {
-          color: "neutral.s60",
+          color: "neutral.s105",
           backgroundColor: "[transparent]",
         },
       },
@@ -71,7 +71,7 @@ const iconButtonStyle = cva({
       isDisabled: true,
       css: {
         _hover: {
-          color: "neutral.s60",
+          color: "neutral.s105",
           backgroundColor: "[transparent]",
         },
       },

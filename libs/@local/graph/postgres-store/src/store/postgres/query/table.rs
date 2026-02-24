@@ -12,9 +12,7 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
 use super::expression::{ColumnName, ColumnReference, TableName, TableReference};
-use crate::store::postgres::query::{
-    Condition, Constant, Expression, Transpile, expression::JoinType,
-};
+use crate::store::postgres::query::{Constant, Expression, Transpile, expression::JoinType};
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -1927,13 +1925,13 @@ impl ForeignKeyReference {
         }
     }
 
-    pub fn conditions(self, on_alias: Alias, join_alias: Alias) -> Vec<Condition> {
+    pub fn conditions(self, on_alias: Alias, join_alias: Alias) -> Vec<Expression> {
         match self {
             Self::Single {
                 join,
                 on,
                 join_type: _,
-            } => vec![Condition::Equal(
+            } => vec![Expression::equal(
                 Expression::ColumnReference(join.aliased(join_alias)),
                 Expression::ColumnReference(on.aliased(on_alias)),
             )],
@@ -1942,11 +1940,11 @@ impl ForeignKeyReference {
                 on: [on1, on2],
                 join_type: _,
             } => vec![
-                Condition::Equal(
+                Expression::equal(
                     Expression::ColumnReference(join1.aliased(join_alias)),
                     Expression::ColumnReference(on1.aliased(on_alias)),
                 ),
-                Condition::Equal(
+                Expression::equal(
                     Expression::ColumnReference(join2.aliased(join_alias)),
                     Expression::ColumnReference(on2.aliased(on_alias)),
                 ),
@@ -2154,7 +2152,7 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Condition> {
+    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Expression> {
         match self {
             Self::Reference {
                 table: reference_table,
@@ -2166,7 +2164,7 @@ impl Relation {
                         column
                             .inheritance_depth()
                             .map_or_else(Vec::new, |inheritance_depth| {
-                                vec![Condition::LessOrEqual(
+                                vec![Expression::less_or_equal(
                                     Expression::ColumnReference(
                                         column.aliased(table.alias.unwrap_or_default()),
                                     ),

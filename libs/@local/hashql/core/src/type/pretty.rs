@@ -313,7 +313,7 @@ impl<'fmt, 'heap> FormatType<'fmt, TypeKind<'heap>> for TypeFormatter<'fmt, '_, 
             TypeKind::Generic(generic) => self.format_type(generic),
             TypeKind::Param(param) => self.format_type(param),
             TypeKind::Infer(infer) => self.format_type(infer),
-            TypeKind::Never => self.fmt.type_name(sym::symbol::exclamation_mark),
+            TypeKind::Never => self.fmt.type_name(sym::symbol::exclamation),
             TypeKind::Unknown => self.fmt.type_name(sym::symbol::question_mark),
         };
 
@@ -397,11 +397,11 @@ impl<'fmt, 'heap> FormatType<'fmt, OpaqueType<'heap>> for TypeFormatter<'fmt, '_
 impl<'fmt> FormatType<'fmt, PrimitiveType> for TypeFormatter<'fmt, '_, '_> {
     fn format_type(&mut self, value: PrimitiveType) -> Doc<'fmt> {
         match value {
-            PrimitiveType::Number => self.fmt.type_name(sym::lexical::Number),
-            PrimitiveType::Integer => self.fmt.type_name(sym::lexical::Integer),
-            PrimitiveType::String => self.fmt.type_name(sym::lexical::String),
-            PrimitiveType::Null => self.fmt.type_name(sym::lexical::Null),
-            PrimitiveType::Boolean => self.fmt.type_name(sym::lexical::Boolean),
+            PrimitiveType::Number => self.fmt.type_name(sym::Number),
+            PrimitiveType::Integer => self.fmt.type_name(sym::Integer),
+            PrimitiveType::String => self.fmt.type_name(sym::String),
+            PrimitiveType::Null => self.fmt.type_name(sym::Null),
+            PrimitiveType::Boolean => self.fmt.type_name(sym::Boolean),
         }
     }
 }
@@ -409,14 +409,14 @@ impl<'fmt> FormatType<'fmt, PrimitiveType> for TypeFormatter<'fmt, '_, '_> {
 impl<'fmt> FormatType<'fmt, ListType> for TypeFormatter<'fmt, '_, '_> {
     fn format_type(&mut self, ListType { element }: ListType) -> Doc<'fmt> {
         self.fmt
-            .type_name(sym::lexical::List)
+            .type_name(sym::List)
             .append(self.fmt.angles(self.format_type(element)))
     }
 }
 
 impl<'fmt> FormatType<'fmt, DictType> for TypeFormatter<'fmt, '_, '_> {
     fn format_type(&mut self, DictType { key, value }: DictType) -> Doc<'fmt> {
-        self.fmt.type_name(sym::lexical::Dict).append(
+        self.fmt.type_name(sym::Dict).append(
             self.fmt.angles(
                 self.fmt
                     .comma_sep([self.format_type(key), self.format_type(value)]),

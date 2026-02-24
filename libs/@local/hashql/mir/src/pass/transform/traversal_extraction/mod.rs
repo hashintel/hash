@@ -69,7 +69,11 @@ mod tests;
 
 use core::{alloc::Allocator, convert::Infallible};
 
-use hashql_core::{heap::Heap, id::Id as _, span::SpanId};
+use hashql_core::{
+    heap::Heap,
+    id::{Id as _, bit_vec::DenseBitSet},
+    span::SpanId,
+};
 
 use crate::{
     body::{
@@ -101,14 +105,14 @@ pub struct Traversals<'heap> {
 }
 
 impl<'heap> Traversals<'heap> {
-    fn with_capacity_in(source: Local, capacity: usize, heap: &'heap Heap) -> Self {
+    pub(crate) fn with_capacity_in(source: Local, capacity: usize, heap: &'heap Heap) -> Self {
         Self {
             source,
             derivations: LocalVec::with_capacity_in(capacity, heap),
         }
     }
 
-    fn insert(&mut self, local: Local, place: Place<'heap>) {
+    pub(crate) fn insert(&mut self, local: Local, place: Place<'heap>) {
         debug_assert_eq!(place.local, self.source);
 
         self.derivations.insert(local, place);
@@ -119,6 +123,32 @@ impl<'heap> Traversals<'heap> {
     #[inline]
     pub fn lookup(&self, local: Local) -> Option<&Place<'heap>> {
         self.derivations.lookup(local)
+    }
+
+    /// Returns `true` if `local` is a registered traversal destination.
+    #[must_use]
+    pub fn contains(&self, local: Local) -> bool {
+        self.derivations.contains(local)
+    }
+
+    /// Returns the source local from which all projections were extracted.
+    #[must_use]
+    pub const fn source(&self) -> Local {
+        self.source
+    }
+
+    /// Returns a bitset of all locals that are traversal destinations.
+    #[must_use]
+    pub fn enabled(&self, body: &Body<'heap>) -> DenseBitSet<Local> {
+        let mut set = DenseBitSet::new_empty(body.local_decls.len());
+
+        for (local, place) in self.derivations.iter_enumerated() {
+            if place.is_some() {
+                set.insert(local);
+            }
+        }
+
+        set
     }
 }
 

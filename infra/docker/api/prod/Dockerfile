@@ -100,10 +100,10 @@ RUN groupadd --system --gid 60000 hash && \
     install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles $COREPACK_HOME && \
     corepack prepare --activate
 
-ENTRYPOINT [ "yarn"]
-CMD ["start"]
-
 USER api:hash
 ENV NODE_ENV=production
+
+ENTRYPOINT [ "yarn"]
+CMD ["start"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

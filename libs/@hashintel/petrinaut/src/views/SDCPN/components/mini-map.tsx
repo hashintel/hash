@@ -83,9 +83,10 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
   const { selectedResourceId, propertiesPanelWidth } = use(EditorContext);
 
   const isPropertiesPanelVisible = selectedResourceId !== null;
-  const rightOffset = isPropertiesPanelVisible
-    ? propertiesPanelWidth + PANEL_MARGIN * 2
-    : PANEL_MARGIN;
+  const minimapOffset = 12;
+  const panelOffset = isPropertiesPanelVisible
+    ? propertiesPanelWidth + PANEL_MARGIN
+    : 0;
 
   return (
     <ReactFlowMiniMap
@@ -93,8 +94,8 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
       ariaLabel=""
       className={miniMapClassName}
       style={{
-        top: 0,
-        right: rightOffset,
+        top: minimapOffset,
+        right: minimapOffset + panelOffset,
         bottom: "auto",
         left: "auto",
         width: 130,

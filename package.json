@@ -74,7 +74,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "0.5.1",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch",
-    "@local/claude-hooks": "0.0.0-private",
+    "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4"
@@ -92,6 +92,8 @@
     "@types/react": "19.2.7",
     "ai": "5.0.97",
     "blockprotocol@npm:0.0.10": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
+    "canvas": "3.2.0",
+    "fast-xml-parser": "5.3.6",
     "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch",
     "jsondiffpatch": "0.7.2",
     "prosemirror-model@npm:>=1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
@@ -101,6 +103,7 @@
     "prosemirror-model@npm:^1.21.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
     "prosemirror-view@npm:^1.1.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "prosemirror-view@npm:^1.27.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
+    "qs": "6.14.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

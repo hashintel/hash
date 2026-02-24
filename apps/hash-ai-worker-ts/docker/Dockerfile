@@ -111,10 +111,10 @@ RUN GITHUB_TOKEN="" mise install node && \
     echo "GOOGLE_APPLICATION_CREDENTIALS not set, no GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON in environment"; \
     fi
 
-ENTRYPOINT [ "yarn"]
-CMD ["start"]
-
 USER tsworker:hash
 ENV NODE_ENV=production
+
+ENTRYPOINT [ "yarn"]
+CMD ["start"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1

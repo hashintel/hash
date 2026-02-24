@@ -30,7 +30,7 @@ use crate::{
             BodyProperties, Candidate, analysis::InlineDirective, heuristics::InlineHeuristics,
         },
     },
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 /// Creates an identity function: `fn(x: Int) -> Int { return x; }`.
@@ -84,12 +84,14 @@ fn format_bodies<'heap>(
         context.env,
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer: Vec::new(),
         indent: 4,
         sources: (),
         types: &mut formatter,
-    };
+        annotations: (),
+    }
+    .build();
 
     text_format
         .format(bodies, &[])
@@ -532,7 +534,7 @@ fn analysis_directives_by_source() {
 
     let mut ctor_body = closure_body.clone();
     ctor_body.id = DefId::new(1);
-    ctor_body.source = Source::Ctor(sym::lexical::Some);
+    ctor_body.source = Source::Ctor(sym::Some);
 
     let mut intrinsic_body = closure_body.clone();
     intrinsic_body.id = DefId::new(2);

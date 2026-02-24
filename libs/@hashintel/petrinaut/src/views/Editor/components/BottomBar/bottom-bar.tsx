@@ -33,14 +33,14 @@ const toolbarContainerStyle = css({
 });
 
 const dividerStyle = css({
-  background: "neutral.s20",
+  background: "neutral.s40",
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",
 });
 
 const bottomBarPositionStyle = css({
-  position: "fixed",
+  position: "absolute",
   left: "[50%]",
   transform: "translateX(-50%)",
   zIndex: 1000,

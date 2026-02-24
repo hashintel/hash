@@ -9,7 +9,7 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*"
   }
 }

@@ -18,9 +18,9 @@
   },
   "dependencies": {
     "@linear/sdk": "61.0.0",
-    "@local/eslint": "0.0.0-private",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@modelcontextprotocol/sdk": "1.26.0",
     "dotenv-flow": "3.3.0",
     "zod": "4.1.12",

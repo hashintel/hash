@@ -62,6 +62,7 @@ const scaledLineHeights = scaleTokenValues(
 const globalCss = defineGlobalStyles({
   "html, body": {
     colorPalette: "neutral",
+    focusRingColor: "colorPalette.bd.solid",
     fontFamily: "body",
     bg: "neutral.s00",
     color: "fg.heading",
@@ -268,7 +269,7 @@ export const preset = definePreset({
       // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
       colorPalette: {
         enabled: true,
-        include: ["bg.*", "fg.*", "bd.*", "status.*"],
+        include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
       },
     },
   },

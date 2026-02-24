@@ -1,0 +1,42 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/execution/splitting/tests.rs
+expression: output
+---
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %0 = 1                                                                  // IP
+
+        goto -> bb1()
+    }
+
+    bb1(): {
+        %1 = 2                                                                  // I
+
+        goto -> bb2()
+    }
+
+    bb2(): {
+        %2 = 3                                                                  // I
+
+        goto -> bb3()
+    }
+
+    bb3(): {
+        %3 = 4                                                                  // IP
+
+        return %3
+    }
+}
+
+================= Block Targets ==================
+
+Block Targets:
+  bb0: {Interpreter, Postgres}
+  bb1: {Interpreter}
+  bb2: {Interpreter}
+  bb3: {Interpreter, Postgres}

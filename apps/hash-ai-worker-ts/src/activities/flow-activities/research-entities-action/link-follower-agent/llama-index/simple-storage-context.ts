@@ -34,7 +34,6 @@ export const createStorageContext = async ({ hash }: { hash: string }) => {
 
   const context = await storageContextFromDefaults({
     persistDir: directoryPath,
-    storeImages: false,
   });
 
   return { ...context, directory: directoryPath };

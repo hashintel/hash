@@ -27,6 +27,7 @@
 //! - Implement `MixedBitSet::intersect`.
 //! - Implement `DenseBitSet::negate`
 //! - Implement `DenseBitSet::first_unset`
+//! - Re-implement `FiniteBitSet`
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -34,19 +35,24 @@
     clippy::too_long_first_doc_paragraph
 )]
 
-use alloc::{alloc::Global, rc::Rc};
+use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
     fmt, iter,
     marker::PhantomData,
-    ops::{BitAnd, BitAndAssign, BitOrAssign, Bound, Not, Range, RangeBounds, Shl},
+    ops::{Bound, Range, RangeBounds},
     slice,
 };
 
 use smallvec::{SmallVec, smallvec};
 
-use super::{Id, IdVec};
+pub use self::{
+    finite::{FiniteBitIter, FiniteBitSet},
+    matrix::{BitMatrix, RowMut, RowRef, SparseBitMatrix},
+};
+use super::Id;
 
+mod finite;
+mod matrix;
 #[cfg(test)]
 mod tests;
 
@@ -226,6 +232,15 @@ impl<T: Id> DenseBitSet<T> {
         let new_word = word | mask;
         *word_ref = new_word;
         new_word != word
+    }
+
+    #[inline]
+    pub fn set(&mut self, elem: T, value: bool) -> bool {
+        if value {
+            self.insert(elem)
+        } else {
+            self.remove(elem)
+        }
     }
 
     #[inline]
@@ -1528,418 +1543,6 @@ impl<'this, T: Id> IntoIterator for &'this GrowableBitSet<T> {
     }
 }
 
-/// A fixed-size 2D bit matrix type with a dense representation.
-///
-/// `R` and `C` are index types used to identify rows and columns respectively;
-/// typically newtyped `usize` wrappers, but they can also just be `usize`.
-///
-/// All operations that involve a row and/or column index will panic if the
-/// index exceeds the relevant bound.
-#[derive(Clone, Eq, PartialEq, Hash)]
-pub struct BitMatrix<R: Id, C: Id> {
-    num_rows: usize,
-    num_columns: usize,
-    words: SmallVec<Word, 2>,
-    marker: PhantomData<(R, C)>,
-}
-
-impl<R: Id, C: Id> BitMatrix<R, C> {
-    /// Creates a new `rows x columns` matrix, initially empty.
-    #[must_use]
-    pub fn new(num_rows: usize, num_columns: usize) -> Self {
-        // For every element, we need one bit for every other
-        // element. Round up to an even number of words.
-        let words_per_row = num_words(num_columns);
-
-        Self {
-            num_rows,
-            num_columns,
-            words: smallvec![0; num_rows * words_per_row],
-            marker: PhantomData,
-        }
-    }
-
-    /// Creates a new matrix, with `row` used as the value for every row.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row` has a different number of columns than the matrix.
-    #[must_use]
-    pub fn from_row_n(row: &DenseBitSet<C>, num_rows: usize) -> Self {
-        let num_columns = row.domain_size();
-        let words_per_row = num_words(num_columns);
-        assert_eq!(words_per_row, row.words.len());
-
-        Self {
-            num_rows,
-            num_columns,
-            words: iter::repeat_n(&row.words, num_rows)
-                .flatten()
-                .copied()
-                .collect(),
-            marker: PhantomData,
-        }
-    }
-
-    pub fn rows(&self) -> impl Iterator<Item = R> {
-        (0..self.num_rows).map(R::from_usize)
-    }
-
-    /// The range of bits for a given row.
-    fn range(&self, row: R) -> (usize, usize) {
-        let words_per_row = num_words(self.num_columns);
-        let start = row.as_usize() * words_per_row;
-        (start, start + words_per_row)
-    }
-
-    /// Sets the cell at `(row, column)` to true. Put another way, insert
-    /// `column` to the bitset for `row`.
-    ///
-    /// Returns `true` if this changed the matrix.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row` or `column` are out of bounds.
-    pub fn insert(&mut self, row: R, column: C) -> bool {
-        assert!(row.as_usize() < self.num_rows && column.as_usize() < self.num_columns);
-        let (start, _) = self.range(row);
-        let (word_index, mask) = word_index_and_mask(column.as_usize());
-        let words = &mut *self.words;
-        let word = words[start + word_index];
-        let new_word = word | mask;
-        words[start + word_index] = new_word;
-        word != new_word
-    }
-
-    /// Do the bits from `row` contain `column`? Put another way, is
-    /// the matrix cell at `(row, column)` true?  Put yet another way,
-    /// if the matrix represents (transitive) reachability, can
-    /// `row` reach `column`?
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row` or `column` are out of bounds.
-    pub fn contains(&self, row: R, column: C) -> bool {
-        assert!(row.as_usize() < self.num_rows && column.as_usize() < self.num_columns);
-        let (start, _) = self.range(row);
-        let (word_index, mask) = word_index_and_mask(column.as_usize());
-        (self.words[start + word_index] & mask) != 0
-    }
-
-    /// Returns those indices that are true in rows `a` and `b`. This
-    /// is an *O*(*n*) operation where *n* is the number of elements
-    /// (somewhat independent from the actual size of the
-    /// intersection, in particular).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row1` or `row2` are out of bounds.
-    pub fn intersect_rows(&self, row1: R, row2: R) -> Vec<C> {
-        assert!(row1.as_usize() < self.num_rows && row2.as_usize() < self.num_rows);
-        let (row1_start, row1_end) = self.range(row1);
-        let (row2_start, row2_end) = self.range(row2);
-        let mut result = Vec::with_capacity(self.num_columns);
-        for (base, (i, j)) in (row1_start..row1_end).zip(row2_start..row2_end).enumerate() {
-            let mut word = self.words[i] & self.words[j];
-            for bit in 0..WORD_BITS {
-                if word == 0 {
-                    break;
-                }
-                if word & 0x1 != 0 {
-                    result.push(C::from_usize(base * WORD_BITS + bit));
-                }
-                word >>= 1;
-            }
-        }
-        result
-    }
-
-    /// Adds the bits from row `read` to the bits from row `write`, and
-    /// returns `true` if anything changed.
-    ///
-    /// This is used when computing transitive reachability because if
-    /// you have an edge `write -> read`, because in that case
-    /// `write` can reach everything that `read` can (and
-    /// potentially more).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `read` or `write` are out of bounds.
-    pub fn union_rows(&mut self, read: R, write: R) -> bool {
-        assert!(read.as_usize() < self.num_rows && write.as_usize() < self.num_rows);
-        let (read_start, read_end) = self.range(read);
-        let (write_start, write_end) = self.range(write);
-        let words = &mut *self.words;
-        let mut changed = 0;
-        for (read_index, write_index) in iter::zip(read_start..read_end, write_start..write_end) {
-            let word = words[write_index];
-            let new_word = word | words[read_index];
-            words[write_index] = new_word;
-            // See `bitwise` for the rationale.
-            changed |= word ^ new_word;
-        }
-        changed != 0
-    }
-
-    /// Adds the bits from `with` to the bits from row `write`, and
-    /// returns `true` if anything changed.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `write` is out of bounds.
-    pub fn union_row_with(&mut self, with: &DenseBitSet<C>, write: R) -> bool {
-        assert!(write.as_usize() < self.num_rows);
-        assert_eq!(with.domain_size(), self.num_columns);
-        let (write_start, write_end) = self.range(write);
-        bitwise(
-            &mut self.words[write_start..write_end],
-            &with.words,
-            |lhs, rhs| lhs | rhs,
-        )
-    }
-
-    /// Sets every cell in `row` to true.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row` is out of bounds.
-    pub fn insert_all_into_row(&mut self, row: R) {
-        assert!(row.as_usize() < self.num_rows);
-        let (start, end) = self.range(row);
-
-        for word in &mut self.words[start..end] {
-            *word = !0;
-        }
-
-        clear_excess_bits_in_final_word(self.num_columns, &mut self.words[..end]);
-    }
-
-    /// Gets a slice of the underlying words.
-    #[must_use]
-    pub fn words(&self) -> &[Word] {
-        &self.words
-    }
-
-    /// Iterates through all the columns set to true in a given row of
-    /// the matrix.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `row` is out of bounds.
-    pub fn iter(&self, row: R) -> BitIter<'_, C> {
-        assert!(row.as_usize() < self.num_rows);
-        let (start, end) = self.range(row);
-        BitIter::new(&self.words[start..end])
-    }
-
-    /// Returns the number of elements in `row`.
-    pub fn count(&self, row: R) -> usize {
-        let (start, end) = self.range(row);
-        count_ones(&self.words[start..end])
-    }
-}
-
-impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        /// Forces its contents to print in regular mode instead of alternate mode.
-        struct OneLinePrinter<T>(T);
-        impl<T: fmt::Debug> fmt::Debug for OneLinePrinter<T> {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(fmt, "{:?}", self.0)
-            }
-        }
-
-        write!(fmt, "BitMatrix({}x{}) ", self.num_rows, self.num_columns)?;
-        let items = self
-            .rows()
-            .flat_map(|row| self.iter(row).map(move |column| (row, column)));
-        fmt.debug_set().entries(items.map(OneLinePrinter)).finish()
-    }
-}
-
-/// A fixed-column-size, variable-row-size 2D bit matrix with a moderately
-/// sparse representation.
-///
-/// Initially, every row has no explicit representation. If any bit within a row
-/// is set, the entire row is instantiated as `Some(<MixedBitSet>)`.
-/// Furthermore, any previously uninstantiated rows prior to it will be
-/// instantiated as `None`. Those prior rows may themselves become fully
-/// instantiated later on if any of their bits are set.
-///
-/// `R` and `C` are index types used to identify rows and columns respectively;
-/// typically newtyped `usize` wrappers, but they can also just be `usize`.
-#[derive(Clone)]
-pub struct SparseBitMatrix<R, C, A: Allocator = Global> {
-    num_columns: usize,
-    rows: IdVec<R, Option<DenseBitSet<C>>, A>,
-}
-
-impl<R: Id, C: Id> SparseBitMatrix<R, C> {
-    /// Creates a new empty sparse bit matrix with no rows or columns.
-    #[must_use]
-    pub const fn new(num_columns: usize) -> Self {
-        Self {
-            num_columns,
-            rows: IdVec::new(),
-        }
-    }
-}
-
-impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
-    /// Creates a new empty sparse bit matrix with no rows or columns.
-    #[must_use]
-    pub const fn new_in(num_columns: usize, alloc: A) -> Self {
-        Self {
-            num_columns,
-            rows: IdVec::new_in(alloc),
-        }
-    }
-
-    fn ensure_row(&mut self, row: R) -> &mut DenseBitSet<C> {
-        // Instantiate any missing rows up to and including row `row` with an empty `DenseBitSet`.
-        // Then replace row `row` with a full `DenseBitSet` if necessary.
-        self.rows
-            .get_or_insert_with(row, || DenseBitSet::new_empty(self.num_columns))
-    }
-
-    /// Sets the cell at `(row, column)` to true. Put another way, insert
-    /// `column` to the bitset for `row`.
-    ///
-    /// Returns `true` if this changed the matrix.
-    pub fn insert(&mut self, row: R, column: C) -> bool {
-        self.ensure_row(row).insert(column)
-    }
-
-    /// Sets the cell at `(row, column)` to false. Put another way, delete
-    /// `column` from the bitset for `row`. Has no effect if `row` does not
-    /// exist.
-    ///
-    /// Returns `true` if this changed the matrix.
-    pub fn remove(&mut self, row: R, column: C) -> bool {
-        match self.rows.get_mut(row) {
-            Some(Some(row)) => row.remove(column),
-            _ => false,
-        }
-    }
-
-    /// Sets all columns at `row` to false. Has no effect if `row` does
-    /// not exist.
-    pub fn clear(&mut self, row: R) {
-        if let Some(Some(row)) = self.rows.get_mut(row) {
-            row.clear();
-        }
-    }
-
-    /// Do the bits from `row` contain `column`? Put another way, is
-    /// the matrix cell at `(row, column)` true?  Put yet another way,
-    /// if the matrix represents (transitive) reachability, can
-    /// `row` reach `column`?
-    pub fn contains(&self, row: R, column: C) -> bool {
-        self.row(row).is_some_and(|row| row.contains(column))
-    }
-
-    /// Adds the bits from row `read` to the bits from row `write`, and
-    /// returns `true` if anything changed.
-    ///
-    /// This is used when computing transitive reachability because if
-    /// you have an edge `write -> read`, because in that case
-    /// `write` can reach everything that `read` can (and
-    /// potentially more).
-    pub fn union_rows(&mut self, read: R, write: R) -> bool {
-        if read == write || self.row(read).is_none() {
-            return false;
-        }
-
-        self.ensure_row(write);
-        if let Ok([Some(read_row), Some(write_row)]) = self.rows.get_disjoint_mut([read, write]) {
-            write_row.union(read_row)
-        } else {
-            unreachable!()
-        }
-    }
-
-    /// Insert all bits in the given row.
-    pub fn insert_all_into_row(&mut self, row: R) {
-        self.ensure_row(row).insert_all();
-    }
-
-    pub fn rows(&self) -> impl Iterator<Item = R> {
-        self.rows.ids()
-    }
-
-    /// Iterates through all the columns set to true in a given row of
-    /// the matrix.
-    pub fn iter(&self, row: R) -> impl Iterator<Item = C> {
-        self.row(row).into_iter().flat_map(|row| row.iter())
-    }
-
-    pub fn row(&self, row: R) -> Option<&DenseBitSet<C>> {
-        self.rows.get(row)?.as_ref()
-    }
-
-    pub fn superset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
-        match self.rows.get(row) {
-            Some(Some(row)) => Some(row.superset(other)),
-            _ => None,
-        }
-    }
-
-    pub fn subset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
-        match self.rows.get(row) {
-            Some(Some(row)) => Some(other.superset(row)),
-            _ => None,
-        }
-    }
-
-    /// Intersects `row` with `set`. `set` can be either `DenseBitSet` or
-    /// `ChunkedBitSet`. Has no effect if `row` does not exist.
-    ///
-    /// Returns true if the row was changed.
-    pub fn intersect_row<Set>(&mut self, row: R, set: &Set) -> bool
-    where
-        DenseBitSet<C>: BitRelations<Set>,
-    {
-        match self.rows.get_mut(row) {
-            Some(Some(row)) => row.intersect(set),
-            _ => false,
-        }
-    }
-
-    /// Subtracts `set` from `row`. `set` can be either `DenseBitSet` or
-    /// `ChunkedBitSet`. Has no effect if `row` does not exist.
-    ///
-    /// Returns true if the row was changed.
-    pub fn subtract_row<Set>(&mut self, row: R, set: &Set) -> bool
-    where
-        DenseBitSet<C>: BitRelations<Set>,
-    {
-        match self.rows.get_mut(row) {
-            Some(Some(row)) => row.subtract(set),
-            _ => false,
-        }
-    }
-
-    /// Unions `row` with `set`. `set` can be either `DenseBitSet` or
-    /// `ChunkedBitSet`.
-    ///
-    /// Returns true if the row was changed.
-    pub fn union_row<Set>(&mut self, row: R, set: &Set) -> bool
-    where
-        DenseBitSet<C>: BitRelations<Set>,
-    {
-        self.ensure_row(row).union(set)
-    }
-}
-
-impl<R, C: Id> fmt::Debug for SparseBitMatrix<R, C> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SparseBitMatrix")
-            .field("num_columns", &self.num_columns)
-            .field("rows", &self.rows)
-            .finish()
-    }
-}
-
 #[inline]
 const fn num_words(domain_size: usize) -> usize {
     domain_size.div_ceil(WORD_BITS)
@@ -1985,113 +1588,4 @@ const fn max_bit(word: Word) -> usize {
 #[inline]
 fn count_ones(words: &[Word]) -> usize {
     words.iter().map(|word| word.count_ones() as usize).sum()
-}
-
-/// Integral type used to represent the bit set.
-pub trait FiniteBitSetTy:
-    BitAnd<Output = Self>
-    + BitAndAssign
-    + BitOrAssign
-    + Clone
-    + Copy
-    + Shl
-    + Not<Output = Self>
-    + PartialEq
-    + Sized
-{
-    /// Size of the domain representable by this type, e.g. 64 for `u64`.
-    const DOMAIN_SIZE: u32;
-
-    /// Value which represents the `FiniteBitSet` having every bit set.
-    const FILLED: Self;
-    /// Value which represents the `FiniteBitSet` having no bits set.
-    const EMPTY: Self;
-
-    /// Value for one as the integral type.
-    const ONE: Self;
-    /// Value for zero as the integral type.
-    const ZERO: Self;
-
-    /// Perform a checked left shift on the integral type.
-    fn checked_shl(self, rhs: u32) -> Option<Self>;
-    /// Perform a checked right shift on the integral type.
-    fn checked_shr(self, rhs: u32) -> Option<Self>;
-}
-
-impl FiniteBitSetTy for u32 {
-    const DOMAIN_SIZE: Self = 32;
-    const EMPTY: Self = Self::MIN;
-    const FILLED: Self = Self::MAX;
-    const ONE: Self = 1_u32;
-    const ZERO: Self = 0_u32;
-
-    fn checked_shl(self, rhs: u32) -> Option<Self> {
-        self.checked_shl(rhs)
-    }
-
-    fn checked_shr(self, rhs: u32) -> Option<Self> {
-        self.checked_shr(rhs)
-    }
-}
-
-impl fmt::Debug for FiniteBitSet<u32> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:032b}", self.0)
-    }
-}
-
-/// A fixed-sized bitset type represented by an integer type. Indices outwith than the range
-/// representable by `T` are considered set.
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub struct FiniteBitSet<T: FiniteBitSetTy>(pub T);
-
-impl<T: FiniteBitSetTy> FiniteBitSet<T> {
-    /// Creates a new, empty bitset.
-    pub const fn new_empty() -> Self {
-        Self(T::EMPTY)
-    }
-
-    /// Sets the `index`th bit.
-    pub fn set(&mut self, index: u32) {
-        self.0 |= T::ONE.checked_shl(index).unwrap_or(T::ZERO);
-    }
-
-    /// Unsets the `index`th bit.
-    pub fn clear(&mut self, index: u32) {
-        self.0 &= !T::ONE.checked_shl(index).unwrap_or(T::ZERO);
-    }
-
-    /// Sets the `i`th to `j`th bits.
-    pub fn set_range(&mut self, range: Range<u32>) {
-        let bits = T::FILLED
-            .checked_shl(range.end - range.start)
-            .unwrap_or(T::ZERO)
-            .not()
-            .checked_shl(range.start)
-            .unwrap_or(T::ZERO);
-        self.0 |= bits;
-    }
-
-    /// Is the set empty?
-    pub fn is_empty(&self) -> bool {
-        self.0 == T::EMPTY
-    }
-
-    /// Returns the domain size of the bitset.
-    #[must_use]
-    pub const fn within_domain(index: u32) -> bool {
-        index < T::DOMAIN_SIZE
-    }
-
-    /// Returns if the `index`th bit is set.
-    pub fn contains(&self, index: u32) -> Option<bool> {
-        Self::within_domain(index)
-            .then(|| ((self.0.checked_shr(index).unwrap_or(T::ONE)) & T::ONE) == T::ONE)
-    }
-}
-
-impl<T: FiniteBitSetTy> Default for FiniteBitSet<T> {
-    fn default() -> Self {
-        Self::new_empty()
-    }
 }

@@ -14,12 +14,12 @@
     "start:test:healthcheck": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300 --logging-console-level=warn"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-graph-authorization": "0.0.0-private",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
-    "@rust/hash-graph-types": "0.0.0-private",
-    "@rust/hash-temporal-client": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*",
+    "@rust/hash-graph-types": "workspace:*",
+    "@rust/hash-temporal-client": "workspace:*"
   }
 }

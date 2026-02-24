@@ -20,3 +20,5 @@ COPY infra/docker/citus/prod/postgresql.conf /etc/postgresql/
 COPY infra/docker/citus/prod/pg_hba.conf /etc/postgresql/
 COPY infra/docker/citus/prod/initdb /docker-entrypoint-initdb.d
 COPY infra/docker/citus/prod/initdb/0000_init.sql /0001_init.sql
+
+USER postgres

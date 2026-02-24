@@ -69,7 +69,7 @@
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
-    "@hashintel/ds-theme": "0.0.3",
+    "@hashintel/ds-theme": "workspace:*",
     "@ladle/react": "5.1.1",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.4.3",

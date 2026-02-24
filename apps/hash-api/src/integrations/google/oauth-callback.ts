@@ -155,7 +155,10 @@ export const googleOAuthCallback: RequestHandler<
      * If we wish to maintain multiple secrets, the vault path will need to be changed to not overwrite existing secrets.
      */
     archiveExistingSecrets: true,
-    expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
+    // Set the expiration to 5 years from now (in ISO format)
+    expiresAt: new Date(
+      Date.now() + 5 * 365 * 24 * 60 * 60 * 1000,
+    ).toISOString(), // the secret data includes a refresh token that lasts indefinitely and will be used as needed
     graphApi: req.context.graphApi,
     managingBotAccountId: googleBotAccountId,
     provenance: req.context.provenance,

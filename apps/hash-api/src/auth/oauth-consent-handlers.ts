@@ -1,5 +1,6 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
+import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import type { RequestHandler } from "express";
 
 import { isDevEnv } from "../lib/env-config";
@@ -29,16 +30,6 @@ function parseCookieValue(
     }
   }
   return undefined;
-}
-
-/**
- * Constant-time comparison of two CSRF token strings to prevent timing attacks.
- */
-function csrfTokensMatch(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
 }
 
 /**
@@ -158,7 +149,7 @@ export const oauthConsentSubmissionHandler: RequestHandler = (
   if (
     typeof csrfTokenFromBody !== "string" ||
     !csrfTokenFromCookie ||
-    !csrfTokensMatch(csrfTokenFromBody, csrfTokenFromCookie)
+    !timingSafeCompare(csrfTokenFromBody, csrfTokenFromCookie)
   ) {
     res.status(403).send("Invalid or missing CSRF token.");
     return;

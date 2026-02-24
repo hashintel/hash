@@ -20,6 +20,8 @@ import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { EditorView } from "./views/Editor/editor-view";
 
+export { isSDCPNEqual } from "./lib/deep-equal";
+
 export type {
   Color,
   DifferentialEquation,

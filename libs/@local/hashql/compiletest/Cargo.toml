@@ -12,36 +12,33 @@ version.workspace = true
 # Public third-party dependencies
 
 # Private workspace dependencies
-error-stack                    = { workspace = true }
-hash-graph-store               = { workspace = true }
-hash-graph-temporal-versioning = { workspace = true }
-hashql-ast                     = { workspace = true }
-hashql-core                    = { workspace = true }
-hashql-diagnostics             = { workspace = true, features = ["render"] }
-hashql-eval                    = { workspace = true, features = ["graph"] }
-hashql-hir                     = { workspace = true }
-hashql-mir                     = { workspace = true }
-hashql-syntax-jexpr            = { workspace = true }
+error-stack         = { workspace = true }
+hashql-ast          = { workspace = true }
+hashql-core         = { workspace = true }
+hashql-diagnostics  = { workspace = true, features = ["render"] }
+hashql-eval         = { workspace = true, features = ["graph"] }
+hashql-hir          = { workspace = true }
+hashql-mir          = { workspace = true }
+hashql-syntax-jexpr = { workspace = true }
 
 # Private third-party dependencies
+ansi-to-tui        = { workspace = true }
 anstream           = { workspace = true }
 camino             = { workspace = true }
 clap               = { workspace = true, features = ["derive", "env"] }
 derive_more        = { workspace = true, features = ["display"] }
 guppy              = { workspace = true }
-indicatif          = { workspace = true }
 line-index         = { workspace = true }
 nextest-filtering  = { workspace = true }
 nextest-metadata   = { workspace = true }
-radix_trie         = { workspace = true }
+ratatui            = { workspace = true, features = ["unstable-rendered-line-info"] }
 rayon              = { workspace = true }
 serde              = { workspace = true }
 similar-asserts    = { workspace = true }
 simple-mermaid     = { workspace = true }
 toml               = { workspace = true, features = ["parse", "serde"] }
 tracing            = { workspace = true }
-tracing-indicatif  = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "fmt"] }
+tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "fmt", "json"] }
 walkdir            = { workspace = true }
 
 

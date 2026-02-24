@@ -82,7 +82,7 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
         includePermissions: false,
       },
     },
-    pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
+    pollInterval: selectedFlowRun?.closedAt ? 0 : 5_000,
     skip: !selectedFlowRun,
     fetchPolicy: "cache-and-network",
   });

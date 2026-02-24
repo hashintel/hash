@@ -20,6 +20,10 @@ use url::Url;
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const MAX_RESPONSE_SIZE_BYTES: usize = 1_024 * 1_024;
+
 /// SSRF protection that ensures only globally routable addresses are reachable.
 ///
 /// Provides three layers of protection, all using [`IpAddr::is_global`] for validation:
@@ -138,6 +142,55 @@ impl FetchServer {
 
         Ok(())
     }
+
+    async fn fetch_ontology_type_from_url(
+        client: reqwest_middleware::ClientWithMiddleware,
+        url: VersionedUrl,
+    ) -> Result<FetchedOntologyType, FetcherError> {
+        let request_url = url.to_url();
+        SsrfSafeResolver::reject_ip_literal(&request_url)?;
+
+        let response = client
+            .get(request_url)
+            .header(ACCEPT, "application/json")
+            .header(USER_AGENT, "HASH Graph")
+            .timeout(REQUEST_TIMEOUT)
+            .send()
+            .await
+            .map_err(|err| {
+                tracing::error!(error=?err, %url, "Could not fetch ontology type");
+                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
+            })?
+            .error_for_status()
+            .map_err(|err| {
+                tracing::error!(error=?err, %url, "Could not fetch ontology type");
+                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
+            })?;
+
+        let mut body = Vec::new();
+        let mut body_stream = response.bytes_stream();
+
+        while let Some(chunk) = body_stream.next().await {
+            let chunk = chunk.map_err(|err| {
+                tracing::error!(error=?err, %url, "Could not read response body");
+                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
+            })?;
+
+            if body.len() + chunk.len() > MAX_RESPONSE_SIZE_BYTES {
+                return Err(FetcherError::Network(format!(
+                    "Error fetching {url}: response exceeded the maximum size of \
+                     {MAX_RESPONSE_SIZE_BYTES} bytes"
+                )));
+            }
+
+            body.extend_from_slice(&chunk);
+        }
+
+        serde_json::from_slice::<FetchedOntologyType>(&body).map_err(|err| {
+            tracing::error!(error=?err, %url, "Could not deserialize response");
+            FetcherError::Serialization(format!("Error deserializing {url}: {err:?}"))
+        })
+    }
 }
 
 impl Fetcher for FetchServer {
@@ -152,8 +205,10 @@ impl Fetcher for FetchServer {
         })?;
 
         let client = Client::builder()
+            .https_only(true)
             .dns_resolver(Arc::new(SsrfSafeResolver))
             .redirect(SsrfSafeResolver::redirect_policy())
+            .connect_timeout(CONNECT_TIMEOUT)
             .build()
             .map_err(|err| FetcherError::Network(format!("Error building HTTP client: {err:?}")))?;
         let client = ClientBuilder::new(client)
@@ -167,27 +222,7 @@ impl Fetcher for FetchServer {
                     let ontology_type = if let Some(ontology_type) = predefined_types.get(&url) {
                         ontology_type.clone()
                     } else {
-                        let request_url = url.to_url();
-                        SsrfSafeResolver::reject_ip_literal(&request_url)?;
-                        client
-                            .get(request_url)
-                            .header(ACCEPT, "application/json")
-                            .header(USER_AGENT, "HASH Graph")
-                            .timeout(Duration::from_secs(10))
-                            .send()
-                            .await
-                            .map_err(|err| {
-                                tracing::error!(error=?err, %url, "Could not fetch ontology type");
-                                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
-                            })?
-                            .json::<FetchedOntologyType>()
-                            .await
-                            .map_err(|err| {
-                                tracing::error!(error=?err, %url, "Could not deserialize response");
-                                FetcherError::Serialization(format!(
-                                    "Error deserializing {url}: {err:?}"
-                                ))
-                            })?
+                        Self::fetch_ontology_type_from_url(client.clone(), url).await?
                     };
 
                     Ok::<_, FetcherError>((ontology_type, OffsetDateTime::now_utc()))
@@ -204,12 +239,37 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    async fn reqwest_https_only_rejects_http_urls() {
+        let client = Client::builder()
+            .https_only(true)
+            .build()
+            .expect("client should build");
+
+        let err = client
+            .get("http://example.com/types/v/1")
+            .send()
+            .await
+            .expect_err("http scheme should be rejected");
+
+        assert!(
+            err.is_builder(),
+            "expected builder error from HTTPS-only restriction, got: {err}"
+        );
+    }
+
+    #[tokio::test]
     async fn ssrf_resolver_blocks_localhost() {
         let resolver = SsrfSafeResolver;
-        let result = resolver
+        let err = resolver
             .resolve("localhost".parse().expect("valid name"))
-            .await;
-        assert!(result.is_err(), "localhost should be blocked");
+            .await
+            .err()
+            .expect("localhost should be blocked");
+
+        assert!(
+            err.to_string().contains("no globally routable addresses"),
+            "expected SSRF blocking error, got: {err}"
+        );
     }
 
     #[tokio::test]

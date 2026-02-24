@@ -9,7 +9,7 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@rust/harpc-tower": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private"
+    "@rust/harpc-tower": "workspace:*",
+    "@rust/harpc-types": "workspace:*"
   }
 }

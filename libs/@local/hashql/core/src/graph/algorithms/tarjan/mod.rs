@@ -10,13 +10,14 @@
 mod tests;
 
 use alloc::{alloc::Global, vec::Vec};
-use core::{alloc::Allocator, iter, ops::Range, slice};
+use core::{alloc::Allocator, iter, mem::MaybeUninit, ops::Range, slice};
 
 #[cfg(debug_assertions)]
 use crate::id::bit_vec::DenseBitSet;
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
     graph::{DirectedGraph, EdgeId, Successors},
+    heap::BumpAllocator,
     id::{HasId, Id, IdSlice, IdVec},
     newtype,
 };
@@ -151,6 +152,31 @@ struct Component<A> {
     successors: Range<usize>,
 }
 
+#[derive(Copy, Clone)]
+pub struct MembersRef<'alloc, N, S> {
+    offsets: &'alloc IdSlice<S, usize>,
+    nodes: &'alloc [N],
+}
+
+impl<'alloc, N, S> MembersRef<'alloc, N, S>
+where
+    S: Id,
+{
+    #[inline]
+    #[must_use]
+    pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator + 'alloc {
+        // Offsets is 1 longer than the number of SCCs
+        self.offsets.ids().take(self.offsets.len() - 1)
+    }
+
+    #[inline]
+    pub fn of(&self, id: S) -> &'alloc [N] {
+        let range = self.offsets[id]..self.offsets[id.plus(1)];
+
+        &self.nodes[range]
+    }
+}
+
 pub struct Members<N, S, A: Allocator = Global> {
     offsets: Box<IdSlice<S, usize>, A>,
     nodes: Box<[N], A>,
@@ -160,15 +186,23 @@ impl<N, S, A: Allocator> Members<N, S, A>
 where
     S: Id,
 {
+    #[inline]
+    pub const fn as_slice(&self) -> MembersRef<'_, N, S> {
+        MembersRef {
+            offsets: &self.offsets,
+            nodes: &self.nodes,
+        }
+    }
+
+    #[inline]
     pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator {
         // Offsets is 1 longer than the number of SCCs
         self.offsets.ids().take(self.offsets.len() - 1)
     }
 
+    #[inline]
     pub fn of(&self, id: S) -> &[N] {
-        let range = self.offsets[id]..self.offsets[id.plus(1)];
-
-        &self.nodes[range]
+        self.as_slice().of(id)
     }
 }
 
@@ -219,14 +253,16 @@ where
     where
         A: Clone,
     {
-        self.members_in(Global)
+        self.members_in(self.alloc.clone())
     }
 
-    #[expect(unsafe_code, clippy::debug_assert_with_mut_call)]
-    pub fn members_in<B: Allocator>(&self, scratch: B) -> Members<N, S, A>
-    where
-        A: Clone,
-    {
+    #[expect(unsafe_code)]
+    fn members_in_impl<'slice, B: Allocator>(
+        &self,
+        scratch: B,
+        nodes: &'slice mut [MaybeUninit<N>],
+        offsets: &'slice mut IdSlice<S, MaybeUninit<usize>>,
+    ) -> (&'slice mut [N], &'slice mut IdSlice<S, usize>) {
         let num_sccs = self.data.components.len();
         let num_nodes = self.data.nodes.len();
 
@@ -237,9 +273,7 @@ where
         }
 
         // Build offsets via prefix sum
-        let mut offsets =
-            IdSlice::from_boxed_slice(Box::new_uninit_slice_in(num_sccs + 1, self.alloc.clone()));
-
+        debug_assert_eq!(offsets.len(), num_sccs + 1);
         let mut total = 0;
         for (index, &count) in counts.iter_enumerated() {
             offsets[index].write(total);
@@ -250,7 +284,7 @@ where
         // SAFETY: All `num_sccs + 1` elements are initialized:
         // - The loop writes indices 0..num_sccs (one per SCC via iter_enumerated)
         // - Final index at num_sccs is written just before this
-        let offsets = unsafe { IdSlice::boxed_assume_init(offsets) };
+        let offsets = unsafe { offsets.assume_init_mut() };
 
         // Reuse the counts vector, for cursors, copying from the offsets vector
         let mut cursor = counts;
@@ -262,10 +296,11 @@ where
         debug_assert_eq!(offsets.len(), num_sccs + 1);
 
         // Pass 2: place nodes
-        let mut nodes = Box::new_uninit_slice_in(num_nodes, self.alloc.clone());
+        debug_assert_eq!(nodes.len(), num_nodes);
         #[cfg(debug_assertions)]
         let mut nodes_written = DenseBitSet::new_empty(num_nodes);
 
+        #[expect(clippy::debug_assert_with_mut_call)]
         for (node, &scc) in self.data.nodes.iter_enumerated() {
             #[cfg(debug_assertions)]
             {
@@ -292,9 +327,55 @@ where
         // - Cursors start at disjoint offsets (prefix sum of counts per SCC).
         // - The sum of all counts equals `num_nodes` (each node belongs to exactly one SCC).
         // - Therefore, the cursor writes partition and fully cover `0..num_nodes`.
+        let nodes = unsafe { nodes.assume_init_mut() };
+
+        (nodes, offsets)
+    }
+
+    #[expect(unsafe_code)]
+    pub fn members_in<B: Allocator>(&self, scratch: B) -> Members<N, S, A>
+    where
+        A: Clone,
+    {
+        let num_sccs = self.data.components.len();
+        let num_nodes = self.data.nodes.len();
+
+        let mut nodes = Box::new_uninit_slice_in(num_nodes, self.alloc.clone());
+        let mut offsets =
+            IdSlice::from_boxed_slice(Box::new_uninit_slice_in(num_sccs + 1, self.alloc.clone()));
+
+        self.members_in_impl(scratch, &mut nodes, &mut offsets);
+
+        // SAFETY: `members_in_impl` guarantees that everything has been initialized.
         let nodes = unsafe { nodes.assume_init() };
+        // SAFETY: `members_in_impl` guarantees that everything has been initialized.
+        let offsets = unsafe { IdSlice::boxed_assume_init(offsets) };
 
         Members { offsets, nodes }
+    }
+}
+
+impl<'alloc, N, S, M, A> StronglyConnectedComponents<N, S, M, &'alloc A>
+where
+    N: Id,
+    S: Id,
+    M: Metadata<N, S>,
+    A: BumpAllocator,
+{
+    pub fn bump_members(&self) -> MembersRef<'alloc, N, S> {
+        self.bump_members_in(self.alloc)
+    }
+
+    pub fn bump_members_in<B: Allocator>(&self, scratch: B) -> MembersRef<'alloc, N, S> {
+        let num_sccs = self.data.components.len();
+        let num_nodes = self.data.nodes.len();
+
+        let nodes = self.alloc.allocate_slice_uninit(num_nodes);
+        let offsets = IdSlice::from_raw_mut(self.alloc.allocate_slice_uninit(num_sccs + 1));
+
+        let (nodes, offsets) = self.members_in_impl(scratch, nodes, offsets);
+
+        MembersRef { offsets, nodes }
     }
 }
 

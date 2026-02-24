@@ -12,7 +12,7 @@
     "upload-benchmarks": "cargo run -- benches upload"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-telemetry": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-telemetry": "workspace:*"
   }
 }

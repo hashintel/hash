@@ -10,15 +10,13 @@
     "test:unit": "mise run test:unit @rust/hashql-compiletest"
   },
   "dependencies": {
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
-    "@rust/hashql-ast": "0.0.0-private",
-    "@rust/hashql-core": "0.0.0-private",
-    "@rust/hashql-diagnostics": "0.0.0-private",
-    "@rust/hashql-eval": "0.0.0-private",
-    "@rust/hashql-hir": "0.0.0-private",
-    "@rust/hashql-mir": "0.0.0-private",
-    "@rust/hashql-syntax-jexpr": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/hashql-ast": "workspace:*",
+    "@rust/hashql-core": "workspace:*",
+    "@rust/hashql-diagnostics": "workspace:*",
+    "@rust/hashql-eval": "workspace:*",
+    "@rust/hashql-hir": "workspace:*",
+    "@rust/hashql-mir": "workspace:*",
+    "@rust/hashql-syntax-jexpr": "workspace:*"
   }
 }

@@ -20,11 +20,11 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pretty::{D2Buffer, D2Format, TextFormat},
+    pretty::{D2Buffer, D2Format, TextFormatOptions},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, SuiteDirectives, common::process_status};
-use crate::executor::TrialError;
+use crate::harness::trial::TrialError;
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
@@ -87,12 +87,15 @@ pub(crate) fn mir_format_text<'heap>(
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
 
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer,
         indent: 4,
         sources: bodies,
         types,
-    };
+        annotations: (),
+    }
+    .build();
+
     text_format
         .format(bodies, &[root])
         .expect("should be able to write bodies");
@@ -150,6 +153,7 @@ pub(crate) fn mir_spawn_d2() -> (BufWriter<ChildStdin>, JoinHandle<Vec<u8>>) {
         .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()
         .expect("should be able to spawn d2");
 

@@ -1,238 +1,558 @@
-use core::ops::Index;
+//! String interning table for HashQL symbols.
+//!
+//! This module provides [`SymbolTable`], a hash-based interner that maps strings to their
+//! canonical [`Repr`] representation. The table supports two kinds of symbols:
+//!
+//! - **Constant symbols**: Statically defined symbols from [`sym::LOOKUP`]. Their [`Repr`] encodes
+//!   an index into the static [`sym::SYMBOLS`] array (effectively `'static` lifetime).
+//!
+//! - **Runtime symbols**: Dynamically interned strings allocated on a bump allocator. Their
+//!   [`Repr`] holds a pointer to a [`RuntimeRepr`] allocation.
+//!
+//! # Lifecycle and Epoch Coupling
+//!
+//! The `SymbolTable` is designed for epoch-based memory management where allocations are
+//! made during a processing phase and then freed in bulk. The critical invariant is:
+//!
+//! **Runtime [`Repr`] values contain pointers to bump-allocated memory. When the bump
+//! allocator resets, these pointers become dangling.**
+//!
+//! Therefore, the table must be reset **before** the bump allocator to prevent undefined
+//! behavior from accessing dangling pointers during hash table operations.
+//!
+//! ## Correct Reset Ordering
+//!
+//! ```text
+//! symbol_table.reset();   // Clear runtime Reprs, restore constants
+//! heap.reset();           // Now safe: no dangling pointers in the table
+//! ```
+//!
+//! # Priming
+//!
+//! Calling [`SymbolTable::prime`] populates the table with predefined symbols from
+//! [`sym::LOOKUP`]. This ensures that interning a predefined string returns its
+//! canonical constant [`Repr`] rather than allocating a runtime symbol.
+//!
+//! [`sym::LOOKUP`]: super::sym::LOOKUP
+//! [`sym::SYMBOLS`]: super::sym::SYMBOLS
 
-use super::Symbol;
-use crate::{
-    collections::FastHashMap,
-    id::{Id, IdVec},
-};
+use alloc::alloc::Global;
+use core::{alloc::Allocator, hash::BuildHasher as _};
 
+use foldhash::fast::RandomState;
+use hashbrown::{HashTable, hash_table::Entry};
+
+use super::repr::{Repr, RuntimeRepr};
+use crate::heap::BumpAllocator;
+
+/// A string interning table mapping `&str` to canonical [`Repr`] values.
+///
+/// The table uses a [`HashTable`] with string-based hashing and equality. Two symbols
+/// with identical string content will always map to the same [`Repr`].
+///
+/// # Safety Contract
+///
+/// This type contains unsafe methods because runtime [`Repr`] values hold raw pointers
+/// to bump-allocated memory. The caller must ensure:
+///
+/// 1. **Epoch coupling**: [`reset`](Self::reset) must be called before resetting the bump allocator
+///    that backs runtime symbols. Failure to do so causes undefined behavior when the table
+///    attempts to hash or compare entries with dangling pointers.
+///
+/// 2. **Allocator consistency**: The same bump allocator instance must be used for all
+///    [`intern`](Self::intern) calls on this table.
+///
+/// 3. **Allocator lifetime**: The bump allocator passed to [`intern`](Self::intern) must remain
+///    live for as long as the table is in use (i.e., until [`reset`](Self::reset) is called).
+///
+/// 4. **Priming precondition**: [`prime`](Self::prime) must only be called on an empty table
+///    (typically after [`clear`](Self::clear)).
+///
+/// # Drop Safety
+///
+/// Dropping the `SymbolTable` after the bump allocator has been reset is **safe**.
+/// [`Repr`] has no [`Drop`] implementation, so dropping the table does not dereference
+/// any runtime symbol pointers. Only *using* the table (e.g., calling [`intern`](Self::intern))
+/// after the allocator reset causes undefined behavior.
+///
+/// Note: This assumes the [`HashTable`]'s own allocator `A` (used for bucket storage) is
+/// still valid. With the default `A = Global`, this is always the case.
 #[derive(Debug)]
-enum SymbolTableInner<'heap, I> {
-    Dense(IdVec<I, Symbol<'heap>>),
-    Gapped(IdVec<I, Option<Symbol<'heap>>>),
-    Sparse(FastHashMap<I, Symbol<'heap>>),
+pub(crate) struct SymbolTable<A: Allocator = Global> {
+    inner: HashTable<Repr, A>,
+    hasher: RandomState,
 }
 
-/// A mapping from identifiers to symbols optimized for different access patterns.
-///
-/// [`SymbolTable`] provides efficient storage and retrieval of [`Symbol`] instances which are tied
-/// to a specific identifier (which is any type that implements the [`Id`] trait).
-///
-/// # Storage Strategies
-///
-/// To accommodate different access patterns, [`SymbolTable`] supports three storage strategies:
-///
-/// ## Dense Storage
-///
-/// Created with [`SymbolTable::dense()`], this mode uses a [`Vec`] internally and requires
-/// IDs to be inserted sequentially starting from 0. This provides optimal memory efficiency
-/// and cache performance for contiguous ID ranges.
-///
-/// ## Gapped Storage
-///
-/// Created with [`SymbolTable::gapped()`], this mode uses a [`Vec`] of [`Option<Symbol>`]
-/// internally and allows insertion at arbitrary indices. Unlike dense storage, gaps are allowed in
-/// the ID sequence. This provides a balance between the memory efficiency of dense storage and the
-/// flexibility of sparse storage, making it ideal for scenarios where most IDs are contiguous but
-/// some gaps may exist.
-///
-/// ## Sparse Storage
-///
-/// Created with [`SymbolTable::sparse()`], this mode uses a [`FastHashMap`] internally and
-/// supports arbitrary ID insertion order. This provides flexibility at the cost of higher
-/// memory overhead per entry.
-///
-/// # Examples
-///
-/// ```
-/// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
-/// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-/// # let mut heap = Heap::new();
-/// # let symbol = heap.intern_symbol("example");
-/// // Dense storage for sequential IDs
-/// let mut dense_table = SymbolTable::<MyId>::dense();
-/// dense_table.insert(MyId::from_u32(0), symbol);
-/// assert_eq!(dense_table.get(MyId::from_u32(0)), Some(symbol));
-///
-/// // Gapped storage for mostly contiguous IDs with some gaps
-/// let mut gapped_table = SymbolTable::<MyId>::gapped();
-/// gapped_table.insert(MyId::from_u32(0), symbol);
-/// gapped_table.insert(MyId::from_u32(5), symbol); // Gap at IDs 1-4
-/// assert_eq!(gapped_table.get(MyId::from_u32(0)), Some(symbol));
-/// assert_eq!(gapped_table.get(MyId::from_u32(2)), None); // Gap
-/// assert_eq!(gapped_table.get(MyId::from_u32(5)), Some(symbol));
-///
-/// // Sparse storage for arbitrary IDs
-/// let mut sparse_table = SymbolTable::<MyId>::sparse();
-/// sparse_table.insert(MyId::from_u32(100), symbol);
-/// assert_eq!(sparse_table.get(MyId::from_u32(100)), Some(symbol));
-/// sparse_table.insert(MyId::from_u32(5), symbol);
-/// assert_eq!(sparse_table.get(MyId::from_u32(5)), Some(symbol));
-/// ```
-#[derive(Debug)]
-pub struct SymbolTable<'heap, I> {
-    inner: SymbolTableInner<'heap, I>,
+impl SymbolTable {
+    /// Creates a new, empty symbol table using the global allocator.
+    ///
+    /// The table is not primed. Call [`prime`](Self::prime) to populate it with
+    /// predefined symbols before use.
+    #[inline]
+    pub(crate) fn new() -> Self {
+        Self::new_in(Global)
+    }
 }
 
-impl<'heap, I> SymbolTable<'heap, I>
-where
-    I: Id,
-{
-    /// Creates a new symbol table using dense vector-based storage.
+impl<A: Allocator> SymbolTable<A> {
+    /// Creates a new, empty symbol table using the given allocator.
     ///
-    /// Dense tables require sequential ID insertion starting from 0 and provide
-    /// optimal memory efficiency and cache performance for contiguous ID ranges.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::dense();
-    /// // Insertions must be sequential: 0, 1, 2, ...
-    /// ```
-    #[must_use]
-    pub const fn dense() -> Self {
+    /// The table is not primed. Call [`prime`](Self::prime) to populate it with
+    /// predefined symbols before use.
+    #[inline]
+    fn new_in(alloc: A) -> Self {
         Self {
-            inner: SymbolTableInner::Dense(IdVec::new()),
+            inner: HashTable::new_in(alloc),
+            hasher: RandomState::default(),
         }
     }
 
-    /// Creates a new symbol table using gapped vector-based storage.
+    /// Returns the number of symbols currently in the table.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    /// Returns `true` if the table contains no symbols.
+    #[inline]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+}
+
+#[expect(unsafe_code)]
+impl<A: Allocator> SymbolTable<A> {
+    /// Removes all entries from the table.
     ///
-    /// Gapped tables allow insertion at arbitrary indices within a vector, automatically
-    /// filling gaps with `None` values. This provides better memory locality than sparse
-    /// tables while still allowing non-contiguous ID ranges.
+    /// After calling this method, the table is empty and must be primed before use.
     ///
-    /// # Examples
+    /// # Safety
     ///
-    /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::gapped();
-    /// // Insertions can have gaps: 0, 5, 3, 10, ...
-    /// ```
-    #[must_use]
-    pub const fn gapped() -> Self {
-        Self {
-            inner: SymbolTableInner::Gapped(IdVec::new()),
+    /// The caller must call [`prime`](Self::prime) before any subsequent [`intern`](Self::intern)
+    /// calls. Without priming, interning a predefined symbol (e.g., `"and"`) would allocate
+    /// a new runtime symbol instead of returning the canonical constant [`Repr`] that matches
+    /// the static symbols in [`sym`](super::sym). This would break the invariant that
+    /// predefined symbols intern to their canonical constant representations.
+    #[inline]
+    pub(crate) unsafe fn clear(&mut self) {
+        self.inner.clear();
+    }
+
+    /// Populates the table with predefined symbols from [`sym::LOOKUP`].
+    ///
+    /// After priming, interning any predefined symbol string will return its canonical
+    /// constant [`Repr`] rather than allocating a new runtime symbol.
+    ///
+    /// # Preconditions
+    ///
+    /// The table must be empty. This is typically ensured by calling [`clear`](Self::clear)
+    /// beforehand, or by using a freshly constructed table.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the table is empty before calling this method.
+    ///
+    /// [`sym::LOOKUP`]: super::sym::LOOKUP
+    pub(crate) unsafe fn prime(&mut self) {
+        self.inner.reserve(super::sym::LOOKUP.len(), |_| {
+            unreachable!("prime() requires an empty table; hasher callback should not be invoked")
+        });
+
+        for &(name, value) in super::sym::LOOKUP {
+            let hash = self.hasher.hash_one(name);
+
+            self.inner.insert_unique(hash, value, |_| {
+                unreachable!("capacity was pre-reserved; hasher callback should not be invoked")
+            });
         }
     }
 
-    /// Creates a new symbol table using sparse hash-based storage.
+    /// Resets the table to its initial primed state.
     ///
-    /// Sparse tables support arbitrary ID insertion order and provide flexibility
-    /// for non-contiguous ID ranges at the cost of higher memory overhead per entry.
+    /// This is equivalent to calling [`clear`](Self::clear) followed by [`prime`](Self::prime).
+    /// After resetting, the table contains only the predefined constant symbols.
     ///
-    /// # Examples
+    /// # Safety
     ///
+    /// **This method must be called before resetting the bump allocator** that backs any
+    /// runtime symbols previously interned into this table. The reset ordering is:
+    ///
+    /// ```text
+    /// symbol_table.reset();   // ← First: clear dangling runtime Reprs
+    /// heap.reset();           // ← Second: now safe to invalidate allocations
     /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::sparse();
-    /// // Insertions can be in any order: 100, 5, 1000, ...
-    /// ```
-    #[must_use]
-    pub fn sparse() -> Self {
-        Self {
-            inner: SymbolTableInner::Sparse(FastHashMap::default()),
+    ///
+    /// Violating this ordering causes undefined behavior: the bump allocator reset
+    /// invalidates runtime symbol pointers, and subsequent table operations (including
+    /// this method's `clear()` + `prime()` sequence, or future `intern()` calls) may
+    /// attempt to dereference those dangling pointers.
+    ///
+    /// # Invariants Restored
+    ///
+    /// After this method returns:
+    /// - All runtime symbols are removed from the table.
+    /// - All constant symbols from [`sym::LOOKUP`] are present.
+    /// - The table is ready for a new epoch of interning.
+    ///
+    /// [`sym::LOOKUP`]: super::sym::LOOKUP
+    #[inline]
+    pub(crate) unsafe fn reset(&mut self) {
+        // SAFETY: correct order of operations is present.
+        unsafe {
+            self.clear();
+            self.prime();
         }
     }
 
-    /// Inserts a symbol associated with the given identifier.
+    /// Interns a string, returning its canonical [`Repr`].
     ///
-    /// - For dense tables, the `id` must be sequential starting from 0.
-    /// - For gapped tables, any `id` value is accepted, and gaps will be filled with `None`.
-    /// - For sparse tables, any `id` value is accepted.
+    /// If the string has already been interned (either as a predefined constant or a
+    /// previously interned runtime symbol), returns the existing [`Repr`]. Otherwise,
+    /// allocates a new [`RuntimeRepr`] on the provided bump allocator and inserts it.
     ///
-    /// If the `id` already exists in a gapped or sparse table, the previous symbol is replaced.
+    /// # Returns
     ///
-    /// # Panics
+    /// The canonical [`Repr`] for `value`. Interning the same string multiple times
+    /// is idempotent—subsequent calls return the same [`Repr`].
     ///
-    /// Panics if this is a dense table and the `id` is not sequential (i.e., not equal
-    /// to the current length of the internal vector).
+    /// # Safety
     ///
-    /// # Examples
+    /// The caller must ensure:
     ///
-    /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::dense();
-    /// table.insert(MyId::from_u32(0), symbol); // First insertion
-    /// table.insert(MyId::from_u32(1), symbol); // Sequential insertion
-    /// ```
+    /// 1. **No dangling pointers**: The table must not contain dangling runtime [`Repr`] values.
+    ///    This means [`reset`](Self::reset) must have been called before any preceding bump
+    ///    allocator reset.
     ///
-    /// Non-sequential insertions will panic in dense tables:
+    /// 2. **Allocator consistency**: The same allocator instance must be used for all `intern()`
+    ///    calls on this table. Using different allocators would result in runtime symbols from
+    ///    multiple allocators, and resetting one would leave dangling pointers from the other.
     ///
-    /// ```should_panic
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::dense();
-    /// table.insert(MyId::from_u32(0), symbol); // First insertion
-    /// table.insert(MyId::from_u32(2), symbol); // Non-sequential insertion
-    /// ```
-    pub fn insert(&mut self, id: I, symbol: Symbol<'heap>) {
-        match &mut self.inner {
-            SymbolTableInner::Dense(vec) => {
-                assert_eq!(
-                    id,
-                    vec.bound(),
-                    "insertions into dense symbol tables must be sequential and contiguous"
-                );
+    /// 3. **Allocator lifetime**: The allocator must remain live for the lifetime of this symbol
+    ///    table, or until [`reset`](Self::reset) is called. All runtime [`Repr`] values in the
+    ///    table point into the allocator's memory and are dereferenced during table operations.
+    ///
+    /// # Implementation Notes
+    ///
+    /// The table hashes and compares entries by their string content, not by [`Repr`]
+    /// identity. This means:
+    /// - Equality: `repr.as_str() == value`
+    /// - Hashing: `hash(repr.as_str())`
+    ///
+    /// Both operations dereference runtime [`Repr`] pointers, which is why the caller
+    /// must ensure no dangling pointers exist in the table.
+    pub(crate) unsafe fn intern<B: BumpAllocator>(&mut self, alloc: &B, value: &str) -> Repr {
+        let hash = self.hasher.hash_one(value);
 
-                vec.push(symbol);
+        // We hash against the string, therefore we must pull out the string representation,
+        // instead of hashing against the Repr directly, as that would lead to incorrect results.
+        // We're mapping string -> repr. But the string representation is already stored in the
+        // Repr.
+        match self.inner.entry(
+            hash,
+            // SAFETY: Caller guarantees no dangling runtime pointers in the table.
+            |repr| unsafe { repr.as_str() } == value,
+            // SAFETY: Same as above; this is called during rehashing.
+            |repr| self.hasher.hash_one(unsafe { repr.as_str() }),
+        ) {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                let repr = Repr::runtime(RuntimeRepr::alloc(alloc, value));
+                *entry.insert(repr).get()
             }
-            SymbolTableInner::Gapped(vec) => {
-                vec.insert(id, symbol);
-            }
-            SymbolTableInner::Sparse(map) => {
-                map.insert(id, symbol);
-            }
-        }
-    }
-
-    /// Retrieves the symbol associated with the given identifier.
-    ///
-    /// Returns the [`Symbol`] if the `id` exists in the table, or [`None`] if
-    /// the `id` is not found or if the entry is a gap (in gapped tables).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::sparse();
-    /// table.insert(MyId::from_u32(42), symbol);
-    ///
-    /// assert_eq!(table.get(MyId::from_u32(42)), Some(symbol));
-    /// assert_eq!(table.get(MyId::from_u32(99)), None);
-    /// ```
-    pub fn get(&self, id: I) -> Option<Symbol<'heap>> {
-        match &self.inner {
-            SymbolTableInner::Dense(vec) => vec.get(id).copied(),
-            SymbolTableInner::Gapped(vec) => vec.get(id).copied().flatten(),
-            SymbolTableInner::Sparse(map) => map.get(&id).copied(),
         }
     }
 }
 
-impl<'heap, I> Index<I> for SymbolTable<'heap, I>
-where
-    I: Id,
-{
-    type Output = Symbol<'heap>;
+#[cfg(test)]
+mod tests {
+    #![expect(unsafe_code, clippy::non_ascii_literal)]
 
-    fn index(&self, index: I) -> &Self::Output {
-        match &self.inner {
-            SymbolTableInner::Dense(vec) => &vec[index],
-            SymbolTableInner::Gapped(vec) => vec[index].as_ref().expect("index out of bounds"),
-            SymbolTableInner::Sparse(map) => &map[&index],
+    use super::{super::sym, SymbolTable};
+    use crate::heap::Scratch;
+
+    #[test]
+    fn new_table_is_empty() {
+        let table = SymbolTable::new();
+        assert!(table.is_empty());
+        assert_eq!(table.len(), 0);
+    }
+
+    #[test]
+    fn prime_populates_table_with_lookup_entries() {
+        let mut table = SymbolTable::new();
+        // SAFETY: Table is empty, no dangling pointers.
+        unsafe {
+            table.prime();
         }
+
+        assert_eq!(table.len(), sym::LOOKUP.len());
+        assert!(!table.is_empty());
+    }
+
+    #[test]
+    fn clear_removes_all_entries() {
+        let mut table = SymbolTable::new();
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+        assert!(!table.is_empty());
+
+        // SAFETY: We will not call intern() after this without priming first.
+        unsafe {
+            table.clear();
+        }
+        assert!(table.is_empty());
+        assert_eq!(table.len(), 0);
+    }
+
+    #[test]
+    fn reset_restores_primed_state() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+        let initial_len = table.len();
+
+        // SAFETY: Table is primed, scratch is live.
+        unsafe {
+            table.intern(&scratch, "user_defined_symbol");
+        };
+        assert_eq!(table.len(), initial_len + 1);
+
+        // SAFETY: Scratch has not been reset, so runtime pointers are valid.
+        unsafe {
+            table.reset();
+        };
+        assert_eq!(table.len(), initial_len);
+    }
+
+    #[test]
+    fn intern_predefined_symbol_returns_constant_repr() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+
+        // Intern a predefined symbol (e.g., "and" from LOOKUP).
+        // The returned Repr should match the one in LOOKUP.
+        for &(name, expected_repr) in sym::LOOKUP {
+            // SAFETY: Table is primed, scratch is live.
+            let repr = unsafe { table.intern(&scratch, name) };
+            assert_eq!(
+                repr, expected_repr,
+                "predefined symbol '{name}' should return constant Repr"
+            );
+        }
+    }
+
+    #[test]
+    fn intern_is_idempotent() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        };
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr1 = unsafe { table.intern(&scratch, "my_custom_symbol") };
+        // SAFETY: Table is primed, scratch is live.
+        let repr2 = unsafe { table.intern(&scratch, "my_custom_symbol") };
+
+        assert_eq!(repr1, repr2);
+        // SAFETY: scratch is live.
+        assert_eq!(unsafe { repr1.as_str() }, "my_custom_symbol");
+    }
+
+    #[test]
+    fn intern_different_strings_returns_different_reprs() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr_foo = unsafe { table.intern(&scratch, "foo_unique") };
+        // SAFETY: Table is primed, scratch is live.
+        let repr_bar = unsafe { table.intern(&scratch, "bar_unique") };
+
+        assert_ne!(repr_foo, repr_bar);
+    }
+
+    #[test]
+    fn intern_empty_string() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr = unsafe { table.intern(&scratch, "") };
+
+        // SAFETY: scratch is live.
+        assert_eq!(unsafe { repr.as_str() }, "");
+    }
+
+    #[test]
+    fn intern_unicode_string() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr = unsafe { table.intern(&scratch, "日本語 🎉 émojis") };
+
+        // SAFETY: scratch is live.
+        assert_eq!(unsafe { repr.as_str() }, "日本語 🎉 émojis");
+    }
+
+    #[test]
+    fn intern_long_string() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        }
+
+        let long_string = "a".repeat(10_000);
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr = unsafe { table.intern(&scratch, &long_string) };
+
+        // SAFETY: scratch is live.
+        assert_eq!(unsafe { repr.as_str() }, long_string);
+    }
+
+    #[test]
+    fn constants_survive_reset() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        };
+
+        // Get a constant Repr by interning a predefined symbol.
+        let (name, expected_repr) = sym::LOOKUP[0];
+        // SAFETY: Table is primed, scratch is live.
+        let repr_before = unsafe { table.intern(&scratch, name) };
+        assert_eq!(repr_before, expected_repr);
+
+        // SAFETY: Scratch has not been reset.
+        unsafe {
+            table.reset();
+        };
+
+        // SAFETY: Table is primed, scratch is live.
+        let repr_after = unsafe { table.intern(&scratch, name) };
+
+        // Constants should be identical across resets.
+        assert_eq!(repr_before, repr_after);
+    }
+
+    #[test]
+    fn runtime_symbols_cleared_on_reset() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        };
+        let primed_len = table.len();
+
+        // Intern some runtime symbols.
+        // SAFETY: Table is primed, scratch is live.
+        unsafe {
+            table.intern(&scratch, "runtime_1");
+            table.intern(&scratch, "runtime_2");
+            table.intern(&scratch, "runtime_3");
+        }
+        assert_eq!(table.len(), primed_len + 3);
+
+        // SAFETY: Scratch has not been reset.
+        unsafe {
+            table.reset();
+        };
+
+        // Runtime symbols should be gone, only constants remain.
+        assert_eq!(table.len(), primed_len);
+    }
+
+    #[test]
+    fn multiple_intern_operations_grow_table() {
+        let mut table = SymbolTable::new();
+        let scratch = Scratch::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        };
+        let initial_len = table.len();
+
+        // SAFETY: Table is primed, scratch is live.
+        unsafe {
+            for i in 0..100 {
+                table.intern(&scratch, &format!("symbol_{i}"));
+            }
+        }
+
+        assert_eq!(table.len(), initial_len + 100);
+    }
+
+    /// Test that dropping a `SymbolTable` after the backing allocator has been reset
+    /// does not cause undefined behavior.
+    ///
+    /// This test is designed to be run under Miri to verify drop safety.
+    /// The key invariant: `Repr` has no `Drop` impl, so dropping the table
+    /// does not dereference any (now-dangling) runtime symbol pointers.
+    #[test]
+    fn drop_after_allocator_reset_is_safe() {
+        let scratch = Scratch::new();
+        let mut table = SymbolTable::new();
+
+        // SAFETY: Table is empty.
+        unsafe {
+            table.prime();
+        };
+
+        // Intern several runtime symbols to ensure we have dangling pointers after reset.
+        // SAFETY: Table is primed, scratch is live.
+        unsafe {
+            table.intern(&scratch, "runtime_symbol_1");
+            table.intern(&scratch, "runtime_symbol_2");
+            table.intern(&scratch, "another_runtime_symbol");
+        }
+
+        // Drop the allocator FIRST - this invalidates all runtime symbol pointers.
+        // The table now contains dangling pointers, but we will NOT use it.
+        drop(scratch);
+
+        // Drop the table. This should NOT cause UB because:
+        // - Repr has no Drop impl (it's Copy)
+        // - HashTable::drop doesn't hash/compare elements, just drops them in-place
+        // - Dropping a Repr is a no-op that doesn't dereference the pointer
+        drop(table);
     }
 }

@@ -46,6 +46,9 @@ process.env.NEXT_PUBLIC_API_ORIGIN =
   process.env.API_ORIGIN ?? "http://localhost:5001";
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
+process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
+process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =
+  process.env.SENTRY_ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? "1";
 
@@ -155,7 +158,9 @@ export default withSentryConfig(
         "@emotion/server",
         "@hashintel/block-design-system",
         "@hashintel/design-system",
-        "@hashintel/petrinaut-old",
+        "@hashintel/petrinaut",
+        "@hashintel/ds-components",
+        "@hashintel/ds-helpers",
         "@hashintel/type-editor",
         "echarts",
         "zrender",
@@ -213,6 +218,20 @@ export default withSentryConfig(
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.resolve.alias.canvas = false;
+
+        if (!isServer) {
+          // Stub Node.js built-ins for browser — needed by `typescript` (used by
+          // @hashintel/petrinaut's in-browser language service)
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.resolve.fallback = {
+            ...webpackConfig.resolve.fallback,
+            module: false,
+            fs: false,
+            path: false,
+            os: false,
+            perf_hooks: false,
+          };
+        }
 
         webpackConfig.plugins.push(
           new DefinePlugin({

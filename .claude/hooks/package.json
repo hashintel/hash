@@ -17,8 +17,8 @@
     "natural": "8.1.0"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@types/node": "22.18.13",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.2",

@@ -1,0 +1,32 @@
+[package]
+name              = "darwin-kperf"
+version           = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+publish           = true
+description       = "Safe Rust bindings for Apple's kperf/kpc hardware performance counters"
+documentation     = "https://docs.rs/darwin-kperf"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf"
+keywords          = ["macos", "profiling", "kperf", "apple-silicon", "performance-counters"]
+categories        = ["os::macos-apis", "development-tools::profiling"]
+
+[dependencies]
+# Public workspace dependencies
+darwin-kperf-events = { workspace = true, public = true }
+darwin-kperf-sys    = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+
+[features]
+runtime-assertions = []
+
+[package.metadata.docs.rs]
+targets = ["aarch64-apple-darwin"]
+
+[lints]
+workspace = true

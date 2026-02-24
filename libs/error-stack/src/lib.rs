@@ -378,7 +378,7 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE` or `RUST_BACKTRACE_LIB` is
+//! [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` is
 //! set and the `backtrace` feature is enabled (by default this is the case). If on a nightly
 //! toolchain, it will use the [`Backtrace`] if provided by the base [`Error`], and will try to
 //! capture one otherwise.

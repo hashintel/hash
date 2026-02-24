@@ -101,10 +101,10 @@ RUN groupadd --system --gid 60000 hash && \
     install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker $COREPACK_HOME && \
     corepack prepare --activate
 
-ENTRYPOINT [ "yarn"]
-CMD ["start"]
-
 USER integrationworker:hash
 ENV NODE_ENV=production
+
+ENTRYPOINT [ "yarn"]
+CMD ["start"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4300/health || exit 1

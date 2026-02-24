@@ -71,13 +71,13 @@ impl BinOp {
     #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
-            Self::And => sym::symbol::and,
-            Self::Or => sym::symbol::or,
-            Self::Eq => sym::symbol::eq,
+            Self::And => sym::symbol::ampamp,
+            Self::Or => sym::symbol::pipepipe,
+            Self::Eq => sym::symbol::eqeq,
             Self::Lt => sym::symbol::lt,
-            Self::Lte => sym::symbol::lte,
-            Self::Ne => sym::symbol::ne,
-            Self::Gte => sym::symbol::gte,
+            Self::Lte => sym::symbol::lteq,
+            Self::Ne => sym::symbol::excleq,
+            Self::Gte => sym::symbol::gteq,
             Self::Gt => sym::symbol::gt,
         }
     }

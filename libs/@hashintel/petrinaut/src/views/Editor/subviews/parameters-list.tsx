@@ -17,21 +17,21 @@ const addButtonStyle = css({
   borderRadius: "xs",
   cursor: "pointer",
   fontSize: "[16px]",
-  color: "neutral.s60",
+  color: "neutral.s105",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "neutral.s90",
+    color: "neutral.s120",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.4]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "neutral.s60",
+      color: "neutral.s105",
     },
   },
 });
@@ -106,7 +106,7 @@ const deleteButtonStyle = css({
   borderRadius: "sm",
   cursor: "pointer",
   fontSize: "[14px]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
@@ -120,7 +120,7 @@ const deleteButtonStyle = css({
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "neutral.s50",
+      color: "neutral.s100",
     },
   },
 });

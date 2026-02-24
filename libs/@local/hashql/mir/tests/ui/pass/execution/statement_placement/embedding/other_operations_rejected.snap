@@ -1,0 +1,35 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
+    let %2: Integer
+    let %3: Integer
+    let %4: Integer
+    let %5: Integer
+    let %6: (Integer, Integer)
+    let %7: Integer
+    let %8: (Integer,)
+    let %9: (Integer) -> Integer
+    let %10: Integer
+    let %11: Boolean
+
+    bb0(): {
+        %2 = 10
+        %3 = 20
+        %4 = %2 + %3
+        %5 = -%4
+        %6 = (1, 2)
+        %7 = input LOAD param
+        %8 = %0
+        %9 = closure(({def@123} as FnPtr), %8)
+        %10 = apply %9 1
+        %11 = 1
+
+        return %11
+    }
+}
+
+=================== Traversals ===================
+
+Traversals:

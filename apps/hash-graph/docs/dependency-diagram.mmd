@@ -44,11 +44,15 @@ graph TD
     32[<a href="../hash_status/index.html">hash-status</a>]
     33[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
     34[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    35[<a href="../error_stack/index.html">error-stack</a>]
-    36[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    35[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    36[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    37[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    38[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    39[<a href="../error_stack/index.html">error-stack</a>]
+    40[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 11
     1 --> 10
-    1 -.-> 36
+    1 -.-> 40
     2 -.-> 3
     2 --> 23
     4 --> 8
@@ -70,11 +74,11 @@ graph TD
     11 --> 4
     12 --> 32
     13 --> 9
-    14 -.-> 36
-    15 -.-> 36
+    14 -.-> 40
+    15 -.-> 40
     16 --> 20
     17 --> 22
-    17 --> 35
+    17 --> 39
     18 --> 2
     18 -.-> 17
     18 --> 17
@@ -85,19 +89,24 @@ graph TD
     21 --> 18
     23 -.-> 22
     23 --> 22
-    23 --> 35
+    23 --> 39
     24 -.-> 25
     25 --> 28
     25 --> 30
     25 --> 31
+    25 --> 39
     26 --> 2
     26 --> 27
+    26 -.-> 36
     28 --> 9
     28 --> 29
     29 -.-> 25
     30 --> 29
     31 --> 24
     31 --> 26
-    33 --> 35
+    33 --> 39
     34 --> 1
-    36 --> 9
+    35 --> 37
+    35 --> 38
+    36 --> 35
+    40 --> 9

@@ -12,12 +12,12 @@
     "codegen": "redocly bundle -o openapi.bundle.json ../../api/openapi/openapi.json && JAVA_OPTS='-Dlog.level=warn' openapi-generator-cli generate && rm openapi.bundle.json && fix-esm-import-path *.ts"
   },
   "dependencies": {
-    "@openapitools/openapi-generator-cli": "2.25.0",
+    "@openapitools/openapi-generator-cli": "2.29.0",
     "axios": "1.13.5"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/hash-graph-api": "0.0.0-private",
+    "@local/tsconfig": "workspace:*",
+    "@rust/hash-graph-api": "workspace:*",
     "@types/node": "22.18.13",
     "fix-esm-import-path": "1.10.3",
     "rimraf": "6.1.2",

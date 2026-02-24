@@ -53,12 +53,12 @@ const closeButtonStyle = css({
   border: "none",
   borderRadius: "[5px]",
   background: "[transparent]",
-  color: "neutral.s50",
+  color: "neutral.s100",
   cursor: "pointer",
   transition: "[all 0.15s ease]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-    color: "neutral.s80",
+    color: "neutral.s115",
   },
 });
 
@@ -141,7 +141,7 @@ export const BottomPanel: React.FC = () => {
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{
-        position: "fixed",
+        position: "absolute",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,

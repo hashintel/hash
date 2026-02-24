@@ -12,19 +12,19 @@
     "test:unit": "mise run test:unit @rust/hash-graph-postgres-store --test-strategy=powerset -- --lib"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.6.0",
-    "@rust/hash-codec": "0.0.0-private",
-    "@rust/hash-graph-authorization": "0.0.0-private",
-    "@rust/hash-graph-store": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
-    "@rust/hash-graph-types": "0.0.0-private",
-    "@rust/hash-graph-validation": "0.0.0-private",
-    "@rust/hash-status": "0.0.0-private",
-    "@rust/hash-temporal-client": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-codec": "workspace:*",
+    "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*",
+    "@rust/hash-graph-types": "workspace:*",
+    "@rust/hash-graph-validation": "workspace:*",
+    "@rust/hash-status": "workspace:*",
+    "@rust/hash-temporal-client": "workspace:*"
   },
   "devDependencies": {
-    "@rust/hash-graph-migrations": "0.0.0-private",
-    "@rust/hash-telemetry": "0.0.0-private"
+    "@rust/hash-graph-migrations": "workspace:*",
+    "@rust/hash-telemetry": "workspace:*"
   }
 }
