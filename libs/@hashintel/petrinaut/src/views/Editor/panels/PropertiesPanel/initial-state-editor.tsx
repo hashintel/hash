@@ -3,7 +3,6 @@ import { use, useEffect, useRef, useState } from "react";
 
 import type { Color } from "../../../../core/types/sdcpn";
 import { PlaybackContext } from "../../../../playback/context";
-import { useResizable } from "../../../../resize/use-resizable";
 import { SimulationContext } from "../../../../simulation/context";
 
 const wrapperStyle = css({
@@ -169,26 +168,6 @@ const cellButtonStyle = cva({
   },
 });
 
-const resizeHandleStyle = cva({
-  base: {
-    position: "absolute",
-    bottom: "[0]",
-    left: "[0]",
-    right: "[0]",
-    height: "[8px]",
-    cursor: "ns-resize",
-    border: "none",
-    padding: "0",
-    zIndex: 10,
-  },
-  variants: {
-    isResizing: {
-      true: { backgroundColor: "[rgba(0, 0, 0, 0.1)]" },
-      false: { backgroundColor: "[transparent]" },
-    },
-  },
-});
-
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
  * Stores data in SimulationStore, not in the Place definition
@@ -196,29 +175,12 @@ const resizeHandleStyle = cva({
 interface InitialStateEditorProps {
   placeId: string;
   placeType: Color;
-  /**
-   * When true, the editor fills the container height instead of using internal resize logic.
-   * Used when the component is inside a resizable SubView container.
-   */
-  fillContainer?: boolean;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
-  fillContainer = false,
 }) => {
-  const {
-    size: height,
-    isResizing,
-    handleResizeStart,
-  } = useResizable({
-    defaultSize: 250,
-    minSize: 100,
-    maxSize: 600,
-    edge: "bottom",
-  });
-
   const { initialMarking, setInitialMarking } = use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
 
@@ -693,13 +655,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const columnWidth = Math.max(60, 100 / placeType.elements.length);
 
   return (
-    <div className={fillContainer ? wrapperStyle : undefined}>
-      <div
-        className={tableContainerStyle}
-        style={
-          fillContainer ? { flex: 1, minHeight: 0 } : { height: `${height}px` }
-        }
-      >
+    <div className={wrapperStyle}>
+      <div className={tableContainerStyle} style={{ flex: 1, minHeight: 0 }}>
         <table className={tableStyle}>
           <thead>
             <tr>
@@ -833,15 +790,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             })()}
           </tbody>
         </table>
-
-        {!fillContainer && (
-          <button
-            type="button"
-            aria-label="Resize table"
-            onMouseDown={handleResizeStart}
-            className={resizeHandleStyle({ isResizing })}
-          />
-        )}
       </div>
     </div>
   );
