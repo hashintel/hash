@@ -128,8 +128,6 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "4",
-  textAlign: "center",
 });
 
 /**
