@@ -1,15 +1,26 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { type CSSProperties, type ReactNode, useCallback, useRef } from "react";
 
 import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../constants/ui";
 import { useResizeDrag } from "../resize/use-resize-drag";
 
-const panelContainerStyle = css({
-  position: "relative",
-  backgroundColor: "neutral.s10",
-  borderColor: "neutral.s40",
-  boxSizing: "content-box",
-  borderStyle: "solid",
+const panelContainerStyle = cva({
+  base: {
+    position: "relative",
+    backgroundColor: "neutral.s10",
+    borderColor: "neutral.s40",
+    boxSizing: "content-box",
+    borderStyle: "solid",
+  },
+  variants: {
+    resizingEdge: {
+      top: { borderTopColor: "blue.a70" },
+      bottom: { borderBottomColor: "blue.a70" },
+      left: { borderLeftColor: "blue.a70" },
+      right: { borderRightColor: "blue.a70" },
+      none: {},
+    },
+  },
 });
 
 const contentContainerStyle = css({
@@ -17,6 +28,65 @@ const contentContainerStyle = css({
   height: "[100%]",
   width: "[100%]",
 });
+
+const resizeHandleStyle = cva({
+  base: {
+    position: "absolute",
+    backgroundColor: "[transparent]",
+    padding: "[0]",
+    zIndex: "[1001]",
+    transition: "[background-color 0.15s ease]",
+  },
+  variants: {
+    isResizing: {
+      true: {
+        backgroundColor: "blue.a40",
+      },
+      false: {
+        _hover: {
+          backgroundColor: "neutral.a30",
+        },
+      },
+    },
+    direction: {
+      vertical: { cursor: "ns-resize" },
+      horizontal: { cursor: "ew-resize" },
+    },
+  },
+});
+
+const getResizeHandlePositionStyle = (edge: ResizableEdge): CSSProperties => {
+  switch (edge) {
+    case "top":
+      return {
+        top: RESIZE_HANDLE_OFFSET,
+        left: 0,
+        right: 0,
+        height: RESIZE_HANDLE_SIZE,
+      };
+    case "bottom":
+      return {
+        bottom: RESIZE_HANDLE_OFFSET,
+        left: 0,
+        right: 0,
+        height: RESIZE_HANDLE_SIZE,
+      };
+    case "left":
+      return {
+        top: 0,
+        left: RESIZE_HANDLE_OFFSET,
+        bottom: 0,
+        width: RESIZE_HANDLE_SIZE,
+      };
+    case "right":
+      return {
+        top: 0,
+        right: RESIZE_HANDLE_OFFSET,
+        bottom: 0,
+        width: RESIZE_HANDLE_SIZE,
+      };
+  }
+};
 
 type ResizableEdge = "top" | "bottom" | "left" | "right";
 
@@ -47,55 +117,6 @@ interface GlassPanelProps {
   /** Configuration for making the panel resizable */
   resizable?: ResizeConfig;
 }
-
-const getResizeHandleStyle = (edge: ResizableEdge): CSSProperties => {
-  const base: CSSProperties = {
-    position: "absolute",
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    zIndex: 1001,
-  };
-
-  switch (edge) {
-    case "top":
-      return {
-        ...base,
-        top: RESIZE_HANDLE_OFFSET,
-        left: 0,
-        right: 0,
-        height: RESIZE_HANDLE_SIZE,
-        cursor: "ns-resize",
-      };
-    case "bottom":
-      return {
-        ...base,
-        bottom: RESIZE_HANDLE_OFFSET,
-        left: 0,
-        right: 0,
-        height: RESIZE_HANDLE_SIZE,
-        cursor: "ns-resize",
-      };
-    case "left":
-      return {
-        ...base,
-        top: 0,
-        left: RESIZE_HANDLE_OFFSET,
-        bottom: 0,
-        width: RESIZE_HANDLE_SIZE,
-        cursor: "ew-resize",
-      };
-    case "right":
-      return {
-        ...base,
-        top: 0,
-        right: RESIZE_HANDLE_OFFSET,
-        bottom: 0,
-        width: RESIZE_HANDLE_SIZE,
-        cursor: "ew-resize",
-      };
-  }
-};
 
 /**
  * GlassPanel provides a styled container panel.
@@ -149,47 +170,26 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
     [resizable, handleMouseDown],
   );
 
-  // Handle keyboard resize
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (!resizable) {
-        return;
-      }
-
-      const { edge, onResize, size, minSize = 100, maxSize = 800 } = resizable;
-      const step = 10;
-      let delta = 0;
-
-      if (edge === "top" || edge === "bottom") {
-        if (event.key === "ArrowUp") {
-          delta = edge === "top" ? step : -step;
-        } else if (event.key === "ArrowDown") {
-          delta = edge === "top" ? -step : step;
-        }
-      } else if (event.key === "ArrowLeft") {
-        delta = edge === "left" ? step : -step;
-      } else if (event.key === "ArrowRight") {
-        delta = edge === "left" ? -step : step;
-      }
-
-      if (delta !== 0) {
-        const newSize = Math.max(minSize, Math.min(maxSize, size + delta));
-        onResize(newSize);
-      }
-    },
-    [resizable],
-  );
-
   return (
-    <div className={cx(panelContainerStyle, className)} style={style}>
+    <div
+      className={cx(
+        panelContainerStyle({
+          resizingEdge: isResizing && resizable ? resizable.edge : "none",
+        }),
+        className,
+      )}
+      style={style}
+    >
       {/* Resize handle */}
       {resizable && (
         <button
+          // Hide from tab order to prevent focus/tab traversal issues
+          tabIndex={-1}
           type="button"
           aria-label={`Resize panel from ${resizable.edge}`}
           onMouseDown={handleResizeStart}
-          onKeyDown={handleKeyDown}
-          style={getResizeHandleStyle(resizable.edge)}
+          className={resizeHandleStyle({ isResizing, direction })}
+          style={getResizeHandlePositionStyle(resizable.edge)}
         />
       )}
 
