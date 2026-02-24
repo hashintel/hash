@@ -176,8 +176,20 @@ fn is_equality_safe<'heap, A: Allocator>(
         return true;
     }
 
+    let result = is_equality_safe_inner(env, boundary, lhs, rhs);
+
+    boundary.exit(lhs, rhs);
+    result
+}
+
+fn is_equality_safe_inner<'heap, A: Allocator>(
+    env: &Environment<'heap>,
+    boundary: &mut RecursionBoundary<'heap, A>,
+    lhs: Type<'heap>,
+    rhs: Type<'heap>,
+) -> bool {
     #[expect(clippy::match_same_arms, reason = "clarity over reasoning")]
-    let result = match (lhs.kind, rhs.kind) {
+    match (lhs.kind, rhs.kind) {
         // comparing against unresolved types is not safe, because we cannot prove
         // they won't produce representational collisions
         (TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_), _)
@@ -276,10 +288,7 @@ fn is_equality_safe<'heap, A: Allocator>(
             TypeKind::Tuple(_) | TypeKind::Intrinsic(IntrinsicType::List(_)),
             TypeKind::Struct(_) | TypeKind::Intrinsic(IntrinsicType::Dict(_)),
         ) => true,
-    };
-
-    boundary.exit(lhs, rhs);
-    result
+    }
 }
 
 /// Postgres-specific support predicates, carrying per-field transferability of the environment.
