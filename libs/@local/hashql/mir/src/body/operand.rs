@@ -3,13 +3,7 @@
 //! Operands represent the inputs to MIR operations. They can either reference
 //! a storage location (place) or contain an immediate constant value.
 
-use hashql_core::r#type::TypeId;
-
-use super::{
-    constant::Constant,
-    local::{Local, LocalDecl, LocalSlice},
-    place::Place,
-};
+use super::{constant::Constant, local::Local, place::Place};
 
 /// An operand in a HashQL MIR operation.
 ///
