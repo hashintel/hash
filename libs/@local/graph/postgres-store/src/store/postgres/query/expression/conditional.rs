@@ -169,19 +169,34 @@ impl Transpile for Function {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
     Boolean(bool),
-    String(&'static str),
     UnsignedInteger(u32),
+    /// The JSON `null` literal, distinct from SQL `NULL`.
+    ///
+    /// Transpiles to `'null'::jsonb`.
+    JsonNull,
+}
+
+impl From<bool> for Constant {
+    fn from(value: bool) -> Self {
+        Self::Boolean(value)
+    }
+}
+
+impl From<u32> for Constant {
+    fn from(value: u32) -> Self {
+        Self::UnsignedInteger(value)
+    }
 }
 
 impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
-            Self::String(value) => write!(fmt, "'{value}'"),
-            Self::UnsignedInteger(value) => write!(fmt, "{value}"),
+            Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
+            Self::JsonNull => fmt.write_str("'null'::jsonb"),
         }
     }
 }
@@ -560,23 +575,31 @@ mod tests {
     }
 
     #[test]
+    fn transpile_json_null_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::JsonNull).transpile_to_string(),
+            "'null'::jsonb"
+        );
+    }
+
+    #[test]
     fn transpile_case_when() {
         let case_expr = Expression::CaseWhen {
             conditions: vec![
                 (
-                    Expression::Constant(Constant::Boolean(true)),
-                    Expression::Constant(Constant::String("yes")),
+                    Expression::Constant(Constant::from(true)),
+                    Expression::Constant(Constant::from(1_u32)),
                 ),
                 (
-                    Expression::Constant(Constant::Boolean(false)),
-                    Expression::Constant(Constant::String("maybe")),
+                    Expression::Constant(Constant::from(false)),
+                    Expression::Constant(Constant::from(2_u32)),
                 ),
             ],
-            else_result: Some(Box::new(Expression::Constant(Constant::String("no")))),
+            else_result: Some(Box::new(Expression::Constant(Constant::from(3_u32)))),
         };
         assert_eq!(
             case_expr.transpile_to_string(),
-            "CASE WHEN TRUE THEN 'yes' WHEN FALSE THEN 'maybe' ELSE 'no' END"
+            "CASE WHEN TRUE THEN 1 WHEN FALSE THEN 2 ELSE 3 END"
         );
     }
 
@@ -584,15 +607,12 @@ mod tests {
     fn transpile_case_when_no_else() {
         let case_expr = Expression::CaseWhen {
             conditions: vec![(
-                Expression::Constant(Constant::Boolean(true)),
-                Expression::Constant(Constant::String("yes")),
+                Expression::Constant(Constant::from(true)),
+                Expression::Constant(Constant::from(1_u32)),
             )],
             else_result: None,
         };
-        assert_eq!(
-            case_expr.transpile_to_string(),
-            "CASE WHEN TRUE THEN 'yes' END"
-        );
+        assert_eq!(case_expr.transpile_to_string(), "CASE WHEN TRUE THEN 1 END");
     }
 
     #[test]
@@ -600,16 +620,13 @@ mod tests {
         let delete_expr = Expression::Function(Function::JsonDeleteKeys(
             Box::new(Expression::Parameter(1)),
             Box::new(Expression::Function(Function::ArrayLiteral {
-                elements: vec![
-                    Expression::Constant(Constant::String("email/")),
-                    Expression::Constant(Constant::String("phone/")),
-                ],
+                elements: vec![Expression::Parameter(2), Expression::Parameter(3)],
                 element_type: PostgresType::Text,
             })),
         ));
         assert_eq!(
             delete_expr.transpile_to_string(),
-            "($1 - ARRAY['email/', 'phone/']::text[])"
+            "($1 - ARRAY[$2, $3]::text[])"
         );
     }
 
@@ -617,17 +634,17 @@ mod tests {
     fn transpile_array_concat() {
         let concat_expr = Expression::Function(Function::ArrayConcat(vec![
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::String("a"))],
+                elements: vec![Expression::Parameter(1)],
                 element_type: PostgresType::Text,
             }),
             Expression::Function(Function::ArrayLiteral {
-                elements: vec![Expression::Constant(Constant::String("b"))],
+                elements: vec![Expression::Parameter(2)],
                 element_type: PostgresType::Text,
             }),
         ]));
         assert_eq!(
             concat_expr.transpile_to_string(),
-            "(ARRAY['a']::text[] || ARRAY['b']::text[])"
+            "(ARRAY[$1]::text[] || ARRAY[$2]::text[])"
         );
     }
 
