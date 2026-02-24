@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 
-import { type ResizeDirection, useResizeDrag } from "./use-resize-drag";
+import {
+  type ResizeDirection,
+  useResizeDrag,
+} from "../../../resize/use-resize-drag";
 
 export type ResizeEdge = "top" | "bottom" | "left" | "right";
 
