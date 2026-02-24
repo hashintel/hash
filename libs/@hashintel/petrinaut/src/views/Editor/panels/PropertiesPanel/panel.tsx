@@ -27,7 +27,7 @@ const glassPanelStyle = css({
 });
 
 const glassPanelContentStyle = css({
-  padding: "[16px]",
+  padding: "2",
   overflowY: "auto",
 });
 
@@ -100,7 +100,6 @@ export const PropertiesPanel: React.FC = () => {
           <PlaceProperties
             place={placeData}
             types={petriNetDefinition.types}
-            differentialEquations={petriNetDefinition.differentialEquations}
             updatePlace={updatePlace}
           />
         );
