@@ -29,7 +29,11 @@
 
 use core::fmt;
 
-use hashql_core::value::Primitive;
+use hashql_core::{
+    span::SpanId,
+    r#type::{PartialType, TypeId, environment::Environment},
+    value::Primitive,
+};
 
 use crate::{def::DefId, interpret::value::Int};
 

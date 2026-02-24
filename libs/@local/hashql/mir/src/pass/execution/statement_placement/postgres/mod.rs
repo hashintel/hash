@@ -2,12 +2,15 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
+    debug_panic,
     id::bit_vec::DenseBitSet,
+    intern::Interned,
+    span::SpanId,
     symbol::sym,
     r#type::{
-        self, Type, TypeId,
+        self, PartialType, Type, TypeId,
         environment::Environment,
-        kind::TypeKind,
+        kind::{IntrinsicType, TypeKind},
         visit::{RecursiveVisitorGuard, Visitor as _},
     },
 };
@@ -20,10 +23,10 @@ use crate::{
     body::{
         Body, Source,
         constant::Constant,
-        local::Local,
+        local::{Local, LocalDecl, LocalSlice},
         operand::Operand,
         place::{FieldIndex, Place, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
     },
     context::MirContext,
     pass::{
@@ -43,6 +46,324 @@ const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     match constant {
         Constant::Int(_) | Constant::Primitive(_) | Constant::Unit => true,
         Constant::FnPtr(_) => false,
+    }
+}
+
+/// Strips `Opaque`, `Apply`, and `Generic` wrappers to reach the underlying concrete type.
+///
+/// For unions where all variants peel to the same kind, returns that common type
+/// (handles aliases like `type Foo = String` appearing in a union).
+fn peel<'heap>(env: &Environment<'heap>, r#type: TypeId) -> Type<'heap> {
+    let mut current = r#type;
+
+    'peel: loop {
+        let r#type = env.r#type(current);
+
+        match r#type.kind {
+            &TypeKind::Opaque(r#type::kind::OpaqueType { repr: base, .. })
+            | &TypeKind::Apply(r#type::kind::Apply { base, .. })
+            | &TypeKind::Generic(r#type::kind::Generic { base, .. }) => {
+                current = base;
+            }
+
+            TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Closure(_)
+            | TypeKind::Param(_)
+            | TypeKind::Infer(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => break r#type,
+
+            // Intersections and unions are simplified away if there's less than two types,
+            // therefore we can assume that they have at least two variants.
+            TypeKind::Union(r#type::kind::UnionType { variants }) => {
+                debug_assert!(variants.len() >= 2);
+                let [first, rest @ ..] = &**variants else {
+                    unreachable!()
+                };
+
+                // If they peel to the same value, then we can replace the whole union with that
+                // value.
+                // This allows us to peel away an additional layer of `Opaque`
+                let primary = peel(env, *first);
+                for variant in rest {
+                    let variant = peel(env, *variant);
+
+                    if variant.kind != primary.kind {
+                        break 'peel r#type;
+                    }
+                }
+
+                break primary;
+            }
+            TypeKind::Intersection(r#type::kind::IntersectionType { variants }) => {
+                debug_assert!(variants.len() >= 2);
+
+                break r#type;
+            }
+        }
+    }
+}
+
+fn is_equality_safe_operand<'heap>(
+    env: &Environment<'heap>,
+    locals: &LocalSlice<LocalDecl>,
+    lhs: &Operand<'heap>,
+    rhs: &Operand<'heap>,
+) -> bool {
+    match (lhs, rhs) {
+        (Operand::Place(lhs), Operand::Place(rhs)) => {
+            is_equality_safe2(env, lhs.type_id(locals), rhs.type_id(locals))
+        }
+        (Operand::Constant(Constant::FnPtr(_) | Constant::Int(_) | Constant::Primitive(_)), _)
+        | (_, Operand::Constant(Constant::FnPtr(_) | Constant::Int(_) | Constant::Primitive(_))) => {
+            // primitive equality is always safe
+            true
+        }
+        (Operand::Constant(Constant::Unit), Operand::Constant(Constant::Unit)) => true,
+        (Operand::Constant(Constant::Unit), Operand::Place(rhs)) => {
+            // We must create an artificial tuple type for the unit type, and then use that for
+            // comparison.
+            let lhs = env.intern_type(PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(r#type::kind::TupleType {
+                    fields: Interned::empty(),
+                })),
+            });
+
+            is_equality_safe2(env, lhs, rhs.type_id(locals))
+        }
+        (Operand::Place(lhs), Operand::Constant(Constant::Unit)) => {
+            let rhs = env.intern_type(PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(r#type::kind::TupleType {
+                    fields: Interned::empty(),
+                })),
+            });
+
+            is_equality_safe2(env, lhs.type_id(locals), rhs)
+        }
+    }
+}
+
+fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) -> bool {
+    if lhs == rhs {
+        return true;
+    }
+
+    let lhs = peel(env, lhs);
+    let rhs = peel(env, rhs);
+
+    // If they point to the same interned type we don't need to check further
+    if core::ptr::eq(lhs.kind, rhs.kind) {
+        return true;
+    }
+
+    #[expect(clippy::match_same_arms, reason = "clarity over reasoning")]
+    match (lhs.kind, rhs.kind) {
+        // comparing against them is not safe, because we cannot
+        (TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_), _)
+        | (_, TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)) => false,
+        (
+            TypeKind::Union(r#type::kind::UnionType { variants })
+            | TypeKind::Intersection(r#type::kind::IntersectionType { variants }),
+            _,
+        ) => variants
+            .iter()
+            .all(|&variant| is_equality_safe2(env, variant, rhs.id)),
+        (
+            _,
+            TypeKind::Union(r#type::kind::UnionType { variants })
+            | TypeKind::Intersection(r#type::kind::IntersectionType { variants }),
+        ) => variants
+            .iter()
+            .all(|&variant| is_equality_safe2(env, lhs.id, variant)),
+
+        // We cannot compare dict with struct, because they serialize to the same type
+        (TypeKind::Intrinsic(IntrinsicType::Dict(_)), TypeKind::Struct(_))
+        | (TypeKind::Struct(_), TypeKind::Intrinsic(IntrinsicType::Dict(_))) => false,
+
+        // We cannot compare dict with struct, because they serialize to the same type
+        (TypeKind::Intrinsic(IntrinsicType::List(_)), TypeKind::Tuple(_))
+        | (TypeKind::Tuple(_), TypeKind::Intrinsic(IntrinsicType::List(_))) => false,
+
+        (
+            TypeKind::Tuple(r#type::kind::TupleType { fields: lhs }),
+            TypeKind::Tuple(r#type::kind::TupleType { fields: rhs }),
+        ) => {
+            // Different lengths are always safe to compare (and will lead to a constant `false`
+            // anyway).
+            if lhs.len() != rhs.len() {
+                return true;
+            }
+
+            lhs.iter()
+                .zip(rhs.iter())
+                .all(|(&left_field, &right_field)| is_equality_safe(env, left_field, right_field))
+        }
+        (
+            TypeKind::Struct(r#type::kind::StructType { fields: lhs }),
+            TypeKind::Struct(r#type::kind::StructType { fields: rhs }),
+        ) => {
+            if lhs.len() != rhs.len() {
+                return true;
+            }
+
+            // Names are ordered, so we can just zip them together
+            lhs.iter().zip(rhs.iter()).all(|(left_field, right_field)| {
+                left_field.name == right_field.name
+                    && is_equality_safe(env, left_field.value, right_field.value)
+            })
+        }
+        (
+            TypeKind::Intrinsic(IntrinsicType::Dict(left_dict)),
+            TypeKind::Intrinsic(IntrinsicType::Dict(right_dict)),
+        ) => {
+            is_equality_safe(env, left_dict.key, right_dict.key)
+                && is_equality_safe(env, left_dict.value, right_dict.value)
+        }
+        (
+            TypeKind::Intrinsic(IntrinsicType::List(left_list)),
+            TypeKind::Intrinsic(IntrinsicType::List(right_list)),
+        ) => is_equality_safe(env, left_list.element, right_list.element),
+        // "onion" values are always removed, so shouldn't even exist
+        (TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_), _)
+        | (_, TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_)) => unreachable!(),
+        // Primitive types are always equality safe
+        (TypeKind::Primitive(_), _) | (_, TypeKind::Primitive(_)) => true,
+        // Never never exists, but can be compared against
+        (TypeKind::Never, _) | (_, TypeKind::Never) => true,
+        // This should never occur, in the case that it does, return true, because the value itself
+        // is comparable (it's a pointer)
+        (TypeKind::Closure(_), _) | (_, TypeKind::Closure(_)) => {
+            debug_panic!(
+                "closure types should never require equality comparison per suitability \
+                 requirements"
+            );
+
+            true
+        }
+
+        // True, just will return always false
+        (
+            TypeKind::Struct(_) | TypeKind::Intrinsic(IntrinsicType::Dict(_)),
+            TypeKind::Tuple(_) | TypeKind::Intrinsic(IntrinsicType::List(_)),
+        )
+        | (
+            TypeKind::Tuple(_) | TypeKind::Intrinsic(IntrinsicType::List(_)),
+            TypeKind::Struct(_) | TypeKind::Intrinsic(IntrinsicType::Dict(_)),
+        ) => true,
+    }
+}
+
+/// Checks whether an equality comparison between two types can be safely evaluated in Postgres.
+///
+/// Returns `false` when the types could produce identical jsonb representations while being
+/// semantically distinct. Walks both types side-by-side after peeling, checking at each depth:
+/// - `Dict<String, _>` vs struct: both serialize to jsonb objects
+/// - `List<_>` vs tuple: both serialize to jsonb arrays
+/// - Unknown, `Param`, or `Infer` types: cannot prove safety
+///
+/// For unions and intersections, checks all variant pairs against the other operand.
+fn is_equality_safe<'heap>(env: &Environment<'heap>, left: TypeId, right: TypeId) -> bool {
+    if left == right {
+        return true;
+    }
+
+    let left = peel(env, left);
+    let right = peel(env, right);
+
+    if matches!(
+        left.kind,
+        TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)
+    ) || matches!(
+        right.kind,
+        TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)
+    ) {
+        return false;
+    }
+
+    if let TypeKind::Union(r#type::kind::UnionType { variants }) = left.kind {
+        return variants
+            .iter()
+            .all(|&variant| is_equality_safe(env, variant, right.id));
+    }
+    if let TypeKind::Union(r#type::kind::UnionType { variants }) = right.kind {
+        return variants
+            .iter()
+            .all(|&variant| is_equality_safe(env, left.id, variant));
+    }
+
+    if let TypeKind::Intersection(r#type::kind::IntersectionType { variants }) = left.kind {
+        return variants
+            .iter()
+            .all(|&variant| is_equality_safe(env, variant, right.id));
+    }
+    if let TypeKind::Intersection(r#type::kind::IntersectionType { variants }) = right.kind {
+        return variants
+            .iter()
+            .all(|&variant| is_equality_safe(env, left.id, variant));
+    }
+
+    match (left.kind, right.kind) {
+        // Dict vs Struct: both serialize to jsonb objects
+        (TypeKind::Intrinsic(IntrinsicType::Dict(_)), TypeKind::Struct(_))
+        | (TypeKind::Struct(_), TypeKind::Intrinsic(IntrinsicType::Dict(_))) => false,
+
+        // List vs Tuple: both serialize to jsonb arrays
+        (TypeKind::Intrinsic(IntrinsicType::List(_)), TypeKind::Tuple(_))
+        | (TypeKind::Tuple(_), TypeKind::Intrinsic(IntrinsicType::List(_))) => false,
+
+        // Same-kind compound types: recurse into sub-elements
+        (TypeKind::Tuple(left_tuple), TypeKind::Tuple(right_tuple)) => {
+            if left_tuple.fields.len() != right_tuple.fields.len() {
+                return true;
+            }
+            left_tuple
+                .fields
+                .iter()
+                .zip(right_tuple.fields.iter())
+                .all(|(&left_field, &right_field)| is_equality_safe(env, left_field, right_field))
+        }
+
+        (TypeKind::Struct(left_struct), TypeKind::Struct(right_struct)) => {
+            if left_struct.fields.len() != right_struct.fields.len() {
+                return true;
+            }
+            let all_names_match = left_struct
+                .fields
+                .iter()
+                .zip(right_struct.fields.iter())
+                .all(|(left_field, right_field)| left_field.name == right_field.name);
+            if !all_names_match {
+                return true;
+            }
+            left_struct
+                .fields
+                .iter()
+                .zip(right_struct.fields.iter())
+                .all(|(left_field, right_field)| {
+                    is_equality_safe(env, left_field.value, right_field.value)
+                })
+        }
+
+        (
+            TypeKind::Intrinsic(IntrinsicType::Dict(left_dict)),
+            TypeKind::Intrinsic(IntrinsicType::Dict(right_dict)),
+        ) => {
+            is_equality_safe(env, left_dict.key, right_dict.key)
+                && is_equality_safe(env, left_dict.value, right_dict.value)
+        }
+
+        (
+            TypeKind::Intrinsic(IntrinsicType::List(left_list)),
+            TypeKind::Intrinsic(IntrinsicType::List(right_list)),
+        ) => is_equality_safe(env, left_list.element, right_list.element),
+
+        // Different categories (e.g., primitive vs struct) or same scalars
+        _ => true,
     }
 }
 
@@ -74,13 +395,10 @@ impl PostgresSupported<'_> {
                 // The environment projections depend on the first projection, because that
                 // determines if we can actually transfer it
                 let [first, ..] = &*place.projections else {
-                    #[expect(clippy::manual_assert, reason = "debug panic")]
-                    if cfg!(debug_assertions) {
-                        panic!(
-                            "expected at least one projection for the env, the env should always \
-                             be immediately destructured - if used"
-                        );
-                    }
+                    debug_panic!(
+                        "expected at least one projection for the env, the env should always be \
+                         immediately destructured - if used"
+                    );
 
                     // We can gracefully handle this by returning false
                     return Some(false);
@@ -144,10 +462,13 @@ impl<'heap> Supported<'heap> for PostgresSupported<'_> {
     ) -> bool {
         match rvalue {
             RValue::Load(operand) => self.is_supported_operand(context, body, domain, operand),
-            RValue::Binary(Binary { op: _, left, right }) => {
-                // TODO: equality comparison
+            RValue::Binary(Binary { op, left, right }) => {
+                if matches!(op, BinOp::Eq | BinOp::Ne)
+                    && !is_equality_safe_operand(context.env, &body.local_decls, left, right)
+                {
+                    return false;
+                }
 
-                // All MIR binary operations have Postgres equivalents (with type coercion)
                 self.is_supported_operand(context, body, domain, left)
                     && self.is_supported_operand(context, body, domain, right)
             }
@@ -195,66 +516,6 @@ struct SupportedVisitor<'guard, 'env, 'heap, A: Allocator = Global> {
     guard: &'guard mut RecursiveVisitorGuard<'heap, A>,
 }
 
-impl<'heap, A: Allocator> SupportedVisitor<'_, '_, 'heap, A> {
-    /// Strips `Opaque`, `Apply`, and `Generic` wrappers to reach the underlying concrete type.
-    ///
-    /// For unions where all variants peel to the same kind, returns that common type
-    /// (handles aliases like `type Foo = String` appearing in a union).
-    fn peel(&self, r#type: TypeId) -> Type<'heap> {
-        let mut current = r#type;
-
-        'peel: loop {
-            let r#type = self.env.r#type(current);
-
-            match r#type.kind {
-                &TypeKind::Opaque(r#type::kind::OpaqueType { repr: base, .. })
-                | &TypeKind::Apply(r#type::kind::Apply { base, .. })
-                | &TypeKind::Generic(r#type::kind::Generic { base, .. }) => {
-                    current = base;
-                }
-
-                TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Struct(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Closure(_)
-                | TypeKind::Param(_)
-                | TypeKind::Infer(_)
-                | TypeKind::Never
-                | TypeKind::Unknown => break r#type,
-
-                // Intersections and unions are simplified away if there's less than two types,
-                // therefore we can assume that they have at least two variants.
-                TypeKind::Union(r#type::kind::UnionType { variants }) => {
-                    debug_assert!(variants.len() >= 2);
-                    let [first, rest @ ..] = &**variants else {
-                        unreachable!()
-                    };
-
-                    // If they peel to the same value, then we can replace the whole union with that
-                    // value.
-                    // This allows us to peel away an additional layer of `Opaque`
-                    let primary = self.peel(*first);
-                    for variant in rest {
-                        let variant = self.peel(*variant);
-
-                        if variant.kind != primary.kind {
-                            break 'peel r#type;
-                        }
-                    }
-
-                    break primary;
-                }
-                TypeKind::Intersection(r#type::kind::IntersectionType { variants }) => {
-                    debug_assert!(variants.len() >= 2);
-
-                    break r#type;
-                }
-            }
-        }
-    }
-}
-
 impl<'heap, A> r#type::visit::Visitor<'heap> for SupportedVisitor<'_, '_, 'heap, A>
 where
     A: Allocator,
@@ -289,7 +550,7 @@ where
         &mut self,
         dict: Type<'heap, r#type::kind::intrinsic::DictType>,
     ) -> Self::Result {
-        let key = self.peel(dict.kind.key);
+        let key = peel(self.env, dict.kind.key);
 
         // jsonb object keys must be strings; dicts with non-string keys cannot be serialized
         if !matches!(

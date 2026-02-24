@@ -47,6 +47,7 @@ pub mod graph;
 pub mod heap;
 pub mod id;
 pub mod intern;
+mod macros;
 pub mod module;
 pub mod pretty;
 pub mod span;
