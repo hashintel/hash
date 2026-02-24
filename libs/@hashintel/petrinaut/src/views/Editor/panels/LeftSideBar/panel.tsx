@@ -10,28 +10,23 @@ import {
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
 
-const outerContainerStyle = css({
+const glassPanelBaseStyle = css({
   position: "absolute",
   zIndex: 1002,
-  display: "flex",
-  top: "[0]",
-  left: "[0]",
-  bottom: "[0]",
-  height: "[100%]",
+  top: "0",
+  left: "0",
+  bottom: "0",
+  height: "full",
+  borderRightWidth: "thin",
 });
 
 const panelContentStyle = css({
   display: "flex",
   height: "[100%]",
-  padding: "[16px]",
   paddingBottom: "[0]",
   flexDirection: "column",
   gap: "[4px]",
   alignItems: "stretch",
-});
-
-const glassPanelBaseStyle = css({
-  borderRightWidth: "thin",
 });
 
 /**
@@ -51,21 +46,19 @@ export const LeftSideBar: React.FC = () => {
   }
 
   return (
-    <div className={outerContainerStyle}>
-      <GlassPanel
-        className={glassPanelBaseStyle}
-        style={{ width: leftSidebarWidth }}
-        contentClassName={panelContentStyle}
-        resizable={{
-          edge: "right",
-          size: leftSidebarWidth,
-          onResize: setLeftSidebarWidth,
-          minSize: MIN_LEFT_SIDEBAR_WIDTH,
-          maxSize: MAX_LEFT_SIDEBAR_WIDTH,
-        }}
-      >
-        <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
-      </GlassPanel>
-    </div>
+    <GlassPanel
+      className={glassPanelBaseStyle}
+      style={{ width: leftSidebarWidth }}
+      contentClassName={panelContentStyle}
+      resizable={{
+        edge: "right",
+        size: leftSidebarWidth,
+        onResize: setLeftSidebarWidth,
+        minSize: MIN_LEFT_SIDEBAR_WIDTH,
+        maxSize: MAX_LEFT_SIDEBAR_WIDTH,
+      }}
+    >
+      <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
+    </GlassPanel>
   );
 };
