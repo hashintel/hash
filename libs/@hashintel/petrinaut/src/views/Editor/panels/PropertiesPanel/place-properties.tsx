@@ -14,7 +14,7 @@ import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { Select } from "../../../../components/select";
 import type { SubView } from "../../../../components/sub-view/types";
-import { FixedHeightSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
+import { FixedHeightSubViewsContainer } from "../../../../components/sub-view/vertical/fixed-height-sub-views-container";
 import { Switch } from "../../../../components/switch";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
