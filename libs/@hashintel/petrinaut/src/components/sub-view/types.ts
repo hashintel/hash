@@ -39,6 +39,21 @@ export interface SubView {
    */
   flexGrow?: boolean;
   /**
+   * Minimum height for this section in the proportional layout (in pixels).
+   * Defaults to 100px.
+   */
+  minHeight?: number;
+  /**
+   * Whether the section header (title, toggle, actions) should be hidden.
+   * When true, `collapsible` is forced to false.
+   */
+  hideHeader?: boolean;
+  /**
+   * Whether the section can be collapsed by clicking the header.
+   * Defaults to true. Forced to false when `hideHeader` is true.
+   */
+  collapsible?: boolean;
+  /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */
