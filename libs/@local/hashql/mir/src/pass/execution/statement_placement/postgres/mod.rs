@@ -4,11 +4,9 @@ use core::{alloc::Allocator, ops::ControlFlow};
 use hashql_core::{
     debug_panic,
     id::bit_vec::DenseBitSet,
-    intern::Interned,
-    span::SpanId,
     symbol::sym,
     r#type::{
-        self, PartialType, Type, TypeId,
+        self, Type, TypeId,
         environment::Environment,
         kind::{IntrinsicType, TypeKind},
         visit::{RecursiveVisitorGuard, Visitor as _},
@@ -107,6 +105,11 @@ fn peel<'heap>(env: &Environment<'heap>, r#type: TypeId) -> Type<'heap> {
     }
 }
 
+/// Checks whether an equality comparison between two operands is safe for Postgres.
+///
+/// Constant operands are always safe because they serialize to scalars or null in jsonb,
+/// which never collide with compound types. When both operands are places, delegates to
+/// [`is_equality_safe`] for type-level checking.
 fn is_equality_safe_operand<'heap>(
     env: &Environment<'heap>,
     locals: &LocalSlice<LocalDecl>,
@@ -115,40 +118,35 @@ fn is_equality_safe_operand<'heap>(
 ) -> bool {
     match (lhs, rhs) {
         (Operand::Place(lhs), Operand::Place(rhs)) => {
-            is_equality_safe2(env, lhs.type_id(locals), rhs.type_id(locals))
+            is_equality_safe(env, lhs.type_id(locals), rhs.type_id(locals))
         }
-        (Operand::Constant(Constant::FnPtr(_) | Constant::Int(_) | Constant::Primitive(_)), _)
-        | (_, Operand::Constant(Constant::FnPtr(_) | Constant::Int(_) | Constant::Primitive(_))) => {
-            // primitive equality is always safe
-            true
-        }
-        (Operand::Constant(Constant::Unit), Operand::Constant(Constant::Unit)) => true,
-        (Operand::Constant(Constant::Unit), Operand::Place(rhs)) => {
-            // We must create an artificial tuple type for the unit type, and then use that for
-            // comparison.
-            let lhs = env.intern_type(PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(r#type::kind::TupleType {
-                    fields: Interned::empty(),
-                })),
-            });
-
-            is_equality_safe2(env, lhs, rhs.type_id(locals))
-        }
-        (Operand::Place(lhs), Operand::Constant(Constant::Unit)) => {
-            let rhs = env.intern_type(PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(r#type::kind::TupleType {
-                    fields: Interned::empty(),
-                })),
-            });
-
-            is_equality_safe2(env, lhs.type_id(locals), rhs)
-        }
+        // Constants are scalars (int, primitive, fnptr) or null (unit) in jsonb, so they never
+        // cause representational collisions with compound types.
+        (
+            Operand::Constant(
+                Constant::Int(_) | Constant::Primitive(_) | Constant::Unit | Constant::FnPtr(_),
+            ),
+            _,
+        )
+        | (
+            _,
+            Operand::Constant(
+                Constant::Int(_) | Constant::Primitive(_) | Constant::Unit | Constant::FnPtr(_),
+            ),
+        ) => true,
     }
 }
 
-fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) -> bool {
+/// Checks whether an equality comparison between two types can be safely evaluated in Postgres.
+///
+/// Returns `false` when the types could produce identical jsonb representations while being
+/// semantically distinct. Walks both types side-by-side after peeling, checking at each depth:
+/// - `Dict<String, _>` vs struct: both serialize to jsonb objects
+/// - `List<_>` vs tuple: both serialize to jsonb arrays
+/// - Unknown, `Param`, or `Infer` types: cannot prove safety
+///
+/// For unions and intersections, checks all variant pairs against the other operand.
+fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
     if lhs == rhs {
         return true;
     }
@@ -163,7 +161,8 @@ fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) 
 
     #[expect(clippy::match_same_arms, reason = "clarity over reasoning")]
     match (lhs.kind, rhs.kind) {
-        // comparing against them is not safe, because we cannot
+        // comparing against unresolved types is not safe, because we cannot prove
+        // they won't produce representational collisions
         (TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_), _)
         | (_, TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)) => false,
         (
@@ -172,20 +171,20 @@ fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) 
             _,
         ) => variants
             .iter()
-            .all(|&variant| is_equality_safe2(env, variant, rhs.id)),
+            .all(|&variant| is_equality_safe(env, variant, rhs.id)),
         (
             _,
             TypeKind::Union(r#type::kind::UnionType { variants })
             | TypeKind::Intersection(r#type::kind::IntersectionType { variants }),
         ) => variants
             .iter()
-            .all(|&variant| is_equality_safe2(env, lhs.id, variant)),
+            .all(|&variant| is_equality_safe(env, lhs.id, variant)),
 
         // We cannot compare dict with struct, because they serialize to the same type
         (TypeKind::Intrinsic(IntrinsicType::Dict(_)), TypeKind::Struct(_))
         | (TypeKind::Struct(_), TypeKind::Intrinsic(IntrinsicType::Dict(_))) => false,
 
-        // We cannot compare dict with struct, because they serialize to the same type
+        // We cannot compare list with tuple, because they serialize to the same type
         (TypeKind::Intrinsic(IntrinsicType::List(_)), TypeKind::Tuple(_))
         | (TypeKind::Tuple(_), TypeKind::Intrinsic(IntrinsicType::List(_))) => false,
 
@@ -211,10 +210,20 @@ fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) 
                 return true;
             }
 
-            // Names are ordered, so we can just zip them together
+            // Names are ordered, so we can just zip them together.
+            // If any name differs, the jsonb objects have different key sets and equality is
+            // safe (both jsonb and the interpreter agree: different shapes are never equal).
+            let all_names_match = lhs
+                .iter()
+                .zip(rhs.iter())
+                .all(|(left_field, right_field)| left_field.name == right_field.name);
+
+            if !all_names_match {
+                return true;
+            }
+
             lhs.iter().zip(rhs.iter()).all(|(left_field, right_field)| {
-                left_field.name == right_field.name
-                    && is_equality_safe(env, left_field.value, right_field.value)
+                is_equality_safe(env, left_field.value, right_field.value)
             })
         }
         (
@@ -235,16 +244,9 @@ fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) 
         (TypeKind::Primitive(_), _) | (_, TypeKind::Primitive(_)) => true,
         // Never never exists, but can be compared against
         (TypeKind::Never, _) | (_, TypeKind::Never) => true,
-        // This should never occur, in the case that it does, return true, because the value itself
-        // is comparable (it's a pointer)
-        (TypeKind::Closure(_), _) | (_, TypeKind::Closure(_)) => {
-            debug_panic!(
-                "closure types should never require equality comparison per suitability \
-                 requirements"
-            );
-
-            true
-        }
+        // Closures can reach this check because equality safety runs before operand
+        // supportedness. The subsequent `is_supported_operand` call will reject them.
+        (TypeKind::Closure(_), _) | (_, TypeKind::Closure(_)) => true,
 
         // True, just will return always false
         (
@@ -255,115 +257,6 @@ fn is_equality_safe2<'heap>(env: &Environment<'heap>, lhs: TypeId, rhs: TypeId) 
             TypeKind::Tuple(_) | TypeKind::Intrinsic(IntrinsicType::List(_)),
             TypeKind::Struct(_) | TypeKind::Intrinsic(IntrinsicType::Dict(_)),
         ) => true,
-    }
-}
-
-/// Checks whether an equality comparison between two types can be safely evaluated in Postgres.
-///
-/// Returns `false` when the types could produce identical jsonb representations while being
-/// semantically distinct. Walks both types side-by-side after peeling, checking at each depth:
-/// - `Dict<String, _>` vs struct: both serialize to jsonb objects
-/// - `List<_>` vs tuple: both serialize to jsonb arrays
-/// - Unknown, `Param`, or `Infer` types: cannot prove safety
-///
-/// For unions and intersections, checks all variant pairs against the other operand.
-fn is_equality_safe<'heap>(env: &Environment<'heap>, left: TypeId, right: TypeId) -> bool {
-    if left == right {
-        return true;
-    }
-
-    let left = peel(env, left);
-    let right = peel(env, right);
-
-    if matches!(
-        left.kind,
-        TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)
-    ) || matches!(
-        right.kind,
-        TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_)
-    ) {
-        return false;
-    }
-
-    if let TypeKind::Union(r#type::kind::UnionType { variants }) = left.kind {
-        return variants
-            .iter()
-            .all(|&variant| is_equality_safe(env, variant, right.id));
-    }
-    if let TypeKind::Union(r#type::kind::UnionType { variants }) = right.kind {
-        return variants
-            .iter()
-            .all(|&variant| is_equality_safe(env, left.id, variant));
-    }
-
-    if let TypeKind::Intersection(r#type::kind::IntersectionType { variants }) = left.kind {
-        return variants
-            .iter()
-            .all(|&variant| is_equality_safe(env, variant, right.id));
-    }
-    if let TypeKind::Intersection(r#type::kind::IntersectionType { variants }) = right.kind {
-        return variants
-            .iter()
-            .all(|&variant| is_equality_safe(env, left.id, variant));
-    }
-
-    match (left.kind, right.kind) {
-        // Dict vs Struct: both serialize to jsonb objects
-        (TypeKind::Intrinsic(IntrinsicType::Dict(_)), TypeKind::Struct(_))
-        | (TypeKind::Struct(_), TypeKind::Intrinsic(IntrinsicType::Dict(_))) => false,
-
-        // List vs Tuple: both serialize to jsonb arrays
-        (TypeKind::Intrinsic(IntrinsicType::List(_)), TypeKind::Tuple(_))
-        | (TypeKind::Tuple(_), TypeKind::Intrinsic(IntrinsicType::List(_))) => false,
-
-        // Same-kind compound types: recurse into sub-elements
-        (TypeKind::Tuple(left_tuple), TypeKind::Tuple(right_tuple)) => {
-            if left_tuple.fields.len() != right_tuple.fields.len() {
-                return true;
-            }
-            left_tuple
-                .fields
-                .iter()
-                .zip(right_tuple.fields.iter())
-                .all(|(&left_field, &right_field)| is_equality_safe(env, left_field, right_field))
-        }
-
-        (TypeKind::Struct(left_struct), TypeKind::Struct(right_struct)) => {
-            if left_struct.fields.len() != right_struct.fields.len() {
-                return true;
-            }
-            let all_names_match = left_struct
-                .fields
-                .iter()
-                .zip(right_struct.fields.iter())
-                .all(|(left_field, right_field)| left_field.name == right_field.name);
-            if !all_names_match {
-                return true;
-            }
-            left_struct
-                .fields
-                .iter()
-                .zip(right_struct.fields.iter())
-                .all(|(left_field, right_field)| {
-                    is_equality_safe(env, left_field.value, right_field.value)
-                })
-        }
-
-        (
-            TypeKind::Intrinsic(IntrinsicType::Dict(left_dict)),
-            TypeKind::Intrinsic(IntrinsicType::Dict(right_dict)),
-        ) => {
-            is_equality_safe(env, left_dict.key, right_dict.key)
-                && is_equality_safe(env, left_dict.value, right_dict.value)
-        }
-
-        (
-            TypeKind::Intrinsic(IntrinsicType::List(left_list)),
-            TypeKind::Intrinsic(IntrinsicType::List(right_list)),
-        ) => is_equality_safe(env, left_list.element, right_list.element),
-
-        // Different categories (e.g., primitive vs struct) or same scalars
-        _ => true,
     }
 }
 
@@ -570,6 +463,10 @@ where
 /// field projections that map to Postgres columns or JSONB paths. Environment fields are checked
 /// individually: a field is transferable if its type contains no closures and all dicts within
 /// it have string keys (required for jsonb serialization).
+///
+/// Equality and inequality comparisons (`==`/`!=`) are rejected when the operand types could
+/// produce identical jsonb representations while being semantically distinct (e.g.,
+/// `Dict<String, _>` vs struct, or `List<_>` vs tuple).
 pub(crate) struct PostgresStatementPlacement<'heap, S: Allocator> {
     statement_cost: Cost,
     type_visitor_guard: RecursiveVisitorGuard<'heap, S>,
