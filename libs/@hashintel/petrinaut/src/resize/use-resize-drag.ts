@@ -15,10 +15,26 @@ const getCursor = (direction: ResizeDirection) =>
   direction === "vertical" ? "ns-resize" : "ew-resize";
 
 /**
+ * Creates a full-screen overlay that captures all pointer events and
+ * forces the resize cursor. This prevents hover effects on other
+ * elements and avoids iframes swallowing mouse events during a drag.
+ */
+const createOverlay = (direction: ResizeDirection): HTMLDivElement => {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "99999";
+  overlay.style.cursor = getCursor(direction);
+  overlay.style.userSelect = "none";
+  document.body.appendChild(overlay);
+  return overlay;
+};
+
+/**
  * Low-level hook that manages a mouse-drag resize gesture.
  *
- * Handles global mousemove/mouseup listeners, body cursor override,
- * and user-select suppression during the drag.
+ * While dragging, a full-screen overlay is rendered to capture all
+ * pointer events and enforce the resize cursor.
  */
 export const useResizeDrag = ({
   onDrag,
@@ -27,6 +43,7 @@ export const useResizeDrag = ({
 }: UseResizeDragOptions) => {
   const [isResizing, setIsResizing] = useState(false);
   const startPosRef = useRef(0);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   // Keep callbacks in refs so the mousemove handler always calls the latest version
   const onDragRef = useRef(onDrag);
@@ -63,16 +80,17 @@ export const useResizeDrag = ({
       return;
     }
 
+    const overlay = createOverlay(direction);
+    overlayRef.current = overlay;
+
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-    document.body.style.cursor = getCursor(direction);
-    document.body.style.userSelect = "none";
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+      overlay.remove();
+      overlayRef.current = null;
     };
   }, [isResizing, direction, handleMouseMove, handleMouseUp]);
 

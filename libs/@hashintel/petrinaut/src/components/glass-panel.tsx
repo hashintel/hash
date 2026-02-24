@@ -35,7 +35,7 @@ const resizeHandleStyle = cva({
     backgroundColor: "[transparent]",
     padding: "[0]",
     zIndex: "[1001]",
-    transition: "[background-color 0.15s ease]",
+    transition: "[background-color 0.3s ease]",
   },
   variants: {
     isResizing: {
