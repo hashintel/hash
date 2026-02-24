@@ -223,7 +223,8 @@ impl<'heap, A: Allocator> SupportedVisitor<'_, '_, 'heap, A> {
                 | TypeKind::Never
                 | TypeKind::Unknown => break r#type,
 
-                // intersections and unions are simplified away if there's less than two types.
+                // Intersections and unions are simplified away if there's less than two types,
+                // therefore we can assume that they have at least two variants.
                 TypeKind::Union(r#type::kind::UnionType { variants }) => {
                     debug_assert!(variants.len() >= 2);
                     let [first, rest @ ..] = &**variants else {
