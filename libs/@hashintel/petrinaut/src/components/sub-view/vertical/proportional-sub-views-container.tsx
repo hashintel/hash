@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
+import { useResizeDrag } from "../../../resize/use-resize-drag";
 import type { SubView } from "../types";
 import {
   contentInnerStyle,
@@ -52,16 +53,49 @@ export const ProportionalSubViewsContainer: React.FC<
   const [resizingSectionId, setResizingSectionId] = useState<string | null>(
     null,
   );
-  const resizeStartY = useRef(0);
+  const resizingSectionIdRef = useRef<string | null>(null);
   /** Pixel height of this section + all expanded sections below at resize start */
   const resizeGroupHeight = useRef(0);
   /** Pixel height of the section being resized at resize start */
   const resizeSectionHeight = useRef(0);
 
+  const onDrag = useCallback((delta: number) => {
+    const sectionId = resizingSectionIdRef.current;
+    if (sectionId === null) {
+      return;
+    }
+
+    const groupHeight = resizeGroupHeight.current;
+    if (groupHeight <= 0) {
+      return;
+    }
+
+    const newSectionHeight = resizeSectionHeight.current + delta;
+    let newRatio = newSectionHeight / groupHeight;
+
+    // Clamp so both the section and the below group keep minimum size
+    const minSize = MIN_SECTION_HEIGHT + HEADER_HEIGHT;
+    newRatio = Math.max(
+      minSize / groupHeight,
+      Math.min(1 - minSize / groupHeight, newRatio),
+    );
+
+    setRatios((prev) => ({ ...prev, [sectionId]: newRatio }));
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    resizingSectionIdRef.current = null;
+    setResizingSectionId(null);
+  }, []);
+
+  const { isResizing, handleMouseDown } = useResizeDrag({
+    onDrag,
+    onDragEnd,
+    direction: "vertical",
+  });
+
   const handleSashMouseDown = useCallback(
     (sectionId: string) => (event: React.MouseEvent) => {
-      event.preventDefault();
-
       const sectionIndex = subViews.findIndex((sv) => sv.id === sectionId);
       if (sectionIndex === -1) {
         return;
@@ -81,62 +115,15 @@ export const ProportionalSubViewsContainer: React.FC<
         }
       }
 
+      resizingSectionIdRef.current = sectionId;
       setResizingSectionId(sectionId);
-      resizeStartY.current = event.clientY;
       resizeGroupHeight.current = sectionHeight + belowHeight;
       resizeSectionHeight.current = sectionHeight;
+
+      handleMouseDown(event);
     },
-    [subViews, expandedState, defaultExpanded],
+    [subViews, expandedState, defaultExpanded, handleMouseDown],
   );
-
-  const handleResizeMove = useCallback(
-    (event: MouseEvent) => {
-      if (resizingSectionId === null) {
-        return;
-      }
-
-      const groupHeight = resizeGroupHeight.current;
-      if (groupHeight <= 0) {
-        return;
-      }
-
-      const delta = event.clientY - resizeStartY.current;
-      const newSectionHeight = resizeSectionHeight.current + delta;
-      let newRatio = newSectionHeight / groupHeight;
-
-      // Clamp so both the section and the below group keep minimum size
-      const minSize = MIN_SECTION_HEIGHT + HEADER_HEIGHT;
-      newRatio = Math.max(
-        minSize / groupHeight,
-        Math.min(1 - minSize / groupHeight, newRatio),
-      );
-
-      setRatios((prev) => ({ ...prev, [resizingSectionId]: newRatio }));
-    },
-    [resizingSectionId],
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setResizingSectionId(null);
-  }, []);
-
-  useEffect(() => {
-    if (resizingSectionId === null) {
-      return;
-    }
-
-    document.addEventListener("mousemove", handleResizeMove);
-    document.addEventListener("mouseup", handleResizeEnd);
-    document.body.style.cursor = "ns-resize";
-    document.body.style.userSelect = "none";
-
-    return () => {
-      document.removeEventListener("mousemove", handleResizeMove);
-      document.removeEventListener("mouseup", handleResizeEnd);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [resizingSectionId, handleResizeMove, handleResizeEnd]);
 
   const toggleSection = useCallback((id: string) => {
     setExpandedState((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -156,7 +143,7 @@ export const ProportionalSubViewsContainer: React.FC<
   }
   const spacerFlex = remaining;
 
-  const isCurrentlyResizing = resizingSectionId !== null;
+  const isCurrentlyResizing = isResizing;
 
   const expandedIds = subViews
     .filter((sv) => expandedState[sv.id] ?? defaultExpanded)
