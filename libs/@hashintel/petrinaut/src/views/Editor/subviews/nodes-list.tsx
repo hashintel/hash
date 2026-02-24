@@ -17,10 +17,10 @@ const nodeRowStyle = cva({
     display: "flex",
     alignItems: "center",
     gap: "[6px]",
-    padding: "[4px 9px]",
+    px: "2",
+    py: "1",
     borderRadius: "md",
     cursor: "default",
-    transition: "[all 0.15s ease]",
   },
   variants: {
     isSelected: {
@@ -80,8 +80,6 @@ const nodeNameStyle = cva({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "4",
-  textAlign: "center",
 });
 
 /**
