@@ -27,7 +27,7 @@
     "@types/lodash-es": "4.17.12",
     "@types/node": "22.18.13",
     "@types/yargs": "17.0.34",
-    "eslint": "9.39.2",
+    "eslint": "9.39.3",
     "quicktype": "16.0.43",
     "rimraf": "6.1.2",
     "typescript": "5.9.3"
