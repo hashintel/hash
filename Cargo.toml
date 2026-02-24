@@ -59,10 +59,10 @@ version = "0.0.0"
 
 [workspace.dependencies]
 # Workspace members
-darwin-kperf                        = { path = "libs/darwin-kperf", version = "0.1.0" }
-darwin-kperf-criterion              = { path = "libs/darwin-kperf/criterion", version = "0.1.0" }
-darwin-kperf-events                 = { path = "libs/darwin-kperf/events", version = "0.1.0" }
-darwin-kperf-sys                    = { path = "libs/darwin-kperf/sys", version = "0.1.0" }
+darwin-kperf                        = { path = "libs/darwin-kperf", version = "0.1.1" }
+darwin-kperf-criterion              = { path = "libs/darwin-kperf/criterion", version = "0.1.1" }
+darwin-kperf-events                 = { path = "libs/darwin-kperf/events", version = "0.1.1" }
+darwin-kperf-sys                    = { path = "libs/darwin-kperf/sys", version = "0.1.1" }
 error-stack                         = { path = "./libs/error-stack", default-features = false }
 harpc-client.path                   = "libs/@local/harpc/client/rust"
 harpc-codec.path                    = "libs/@local/harpc/codec"
