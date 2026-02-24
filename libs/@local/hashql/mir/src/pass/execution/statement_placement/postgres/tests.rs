@@ -6,7 +6,11 @@ use alloc::alloc::Global;
 use hashql_core::{
     heap::Heap,
     symbol::sym,
-    r#type::{TypeId, builder::TypeBuilder, environment::Environment},
+    r#type::{
+        RecursionBoundary, TypeId,
+        builder::{TypeBuilder, lazy},
+        environment::Environment,
+    },
 };
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -1113,7 +1117,12 @@ fn eq_safe_same_type_id() {
     let builder = TypeBuilder::synthetic(&env);
 
     let int_ty = builder.integer();
-    assert!(super::is_equality_safe(&env, int_ty, int_ty));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        int_ty,
+        int_ty
+    ));
 }
 
 /// Two different `TypeId`s that peel to the same interned kind are safe via `ptr::eq`.
@@ -1129,7 +1138,12 @@ fn eq_safe_ptr_eq_after_peel() {
 
     // Different TypeIds, but both peel to the same interned Integer kind
     assert_ne!(opaque_a, opaque_b);
-    assert!(super::is_equality_safe(&env, opaque_a, opaque_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_a,
+        opaque_b
+    ));
 }
 
 /// Union where all variants are safe against the other operand.
@@ -1143,7 +1157,12 @@ fn eq_safe_union_all_safe() {
     let bool_ty = builder.boolean();
     let union_ty = builder.union([int_ty, bool_ty]);
 
-    assert!(super::is_equality_safe(&env, union_ty, int_ty));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        union_ty,
+        int_ty
+    ));
 }
 
 /// Union where one variant collides with the other operand.
@@ -1160,7 +1179,12 @@ fn eq_unsafe_union_has_collision() {
     let struct_ty = builder.r#struct([("a", int_ty)]);
 
     // Union contains Dict<String, Int> which collides with the struct
-    assert!(!super::is_equality_safe(&env, union_ty, struct_ty));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        union_ty,
+        struct_ty
+    ));
 }
 
 /// Intersection where one variant collides.
@@ -1176,7 +1200,12 @@ fn eq_unsafe_intersection_has_collision() {
     let intersection_ty = builder.intersection([dict_ty, int_ty]);
     let struct_ty = builder.r#struct([("a", int_ty)]);
 
-    assert!(!super::is_equality_safe(&env, intersection_ty, struct_ty));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        intersection_ty,
+        struct_ty
+    ));
 }
 
 /// Tuples with different lengths are always safe (different jsonb array sizes).
@@ -1190,7 +1219,12 @@ fn eq_safe_tuple_different_length() {
     let tuple2 = builder.tuple([int_ty, int_ty]);
     let tuple3 = builder.tuple([int_ty, int_ty, int_ty]);
 
-    assert!(super::is_equality_safe(&env, tuple2, tuple3));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        tuple2,
+        tuple3
+    ));
 }
 
 /// Structs with different field counts are always safe.
@@ -1204,7 +1238,12 @@ fn eq_safe_struct_different_length() {
     let struct1 = builder.r#struct([("a", int_ty)]);
     let struct2 = builder.r#struct([("a", int_ty), ("b", int_ty)]);
 
-    assert!(super::is_equality_safe(&env, struct1, struct2));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        struct1,
+        struct2
+    ));
 }
 
 /// Structs with different field names are always safe (different jsonb key sets).
@@ -1218,7 +1257,12 @@ fn eq_safe_struct_different_names() {
     let struct_a = builder.r#struct([("a", int_ty)]);
     let struct_b = builder.r#struct([("b", int_ty)]);
 
-    assert!(super::is_equality_safe(&env, struct_a, struct_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        struct_a,
+        struct_b
+    ));
 }
 
 /// Dicts with the same key and value types are safe.
@@ -1233,7 +1277,12 @@ fn eq_safe_dict_same_types() {
     let dict_a = builder.dict(str_ty, int_ty);
     let dict_b = builder.dict(str_ty, int_ty);
 
-    assert!(super::is_equality_safe(&env, dict_a, dict_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        dict_a,
+        dict_b
+    ));
 }
 
 /// Lists with the same element type are safe.
@@ -1247,7 +1296,12 @@ fn eq_safe_list_same_element() {
     let list_a = builder.list(int_ty);
     let list_b = builder.list(int_ty);
 
-    assert!(super::is_equality_safe(&env, list_a, list_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        list_a,
+        list_b
+    ));
 }
 
 /// Dicts recurse into key and value types.
@@ -1262,11 +1316,16 @@ fn eq_unsafe_dict_value_collision() {
     let inner_dict = builder.dict(str_ty, int_ty);
     let inner_struct = builder.r#struct([("a", int_ty)]);
 
-    // Dict<String, Dict<String, Int>> vs Dict<String, Struct{a: Int}>
+    // Dict<String, Dict<String, Int>> vs Dict<String, (a: Int)>
     let dict_of_dict = builder.dict(str_ty, inner_dict);
     let dict_of_struct = builder.dict(str_ty, inner_struct);
 
-    assert!(!super::is_equality_safe(&env, dict_of_dict, dict_of_struct));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        dict_of_dict,
+        dict_of_struct
+    ));
 }
 
 /// Lists recurse into element types.
@@ -1281,11 +1340,16 @@ fn eq_unsafe_list_element_collision() {
     let inner_dict = builder.dict(str_ty, int_ty);
     let inner_struct = builder.r#struct([("a", int_ty)]);
 
-    // List<Dict<String, Int>> vs List<Struct{a: Int}>
+    // List<Dict<String, Int>> vs List<(a: Int)>
     let list_of_dict = builder.list(inner_dict);
     let list_of_struct = builder.list(inner_struct);
 
-    assert!(!super::is_equality_safe(&env, list_of_dict, list_of_struct));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        list_of_dict,
+        list_of_struct
+    ));
 }
 
 /// Closure types return true (rejected later by operand supportedness).
@@ -1298,7 +1362,12 @@ fn eq_safe_closure() {
     let int_ty = builder.integer();
     let closure_ty = builder.closure([int_ty], int_ty);
 
-    assert!(super::is_equality_safe(&env, closure_ty, int_ty));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        closure_ty,
+        int_ty
+    ));
 }
 
 /// Cross-category (object vs array) is always safe.
@@ -1314,7 +1383,12 @@ fn eq_safe_cross_category() {
     let tuple_ty = builder.tuple([int_ty, int_ty]);
 
     // Dict (jsonb object) vs Tuple (jsonb array) → different categories → safe
-    assert!(super::is_equality_safe(&env, dict_ty, tuple_ty));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        dict_ty,
+        tuple_ty
+    ));
 }
 
 /// Union on the RHS exercises the second union/intersection match arm.
@@ -1331,7 +1405,12 @@ fn eq_unsafe_rhs_union_collision() {
     let struct_ty = builder.r#struct([("a", int_ty)]);
 
     // Struct on LHS, union on RHS → hits lines 158-164
-    assert!(!super::is_equality_safe(&env, struct_ty, union_ty));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        struct_ty,
+        union_ty
+    ));
 }
 
 /// Tuples with same length recurse into element types.
@@ -1346,11 +1425,16 @@ fn eq_unsafe_tuple_same_length_collision() {
     let dict_ty = builder.dict(str_ty, int_ty);
     let struct_ty = builder.r#struct([("a", int_ty)]);
 
-    // (Int, Dict<String, Int>) vs (Int, Struct{a: Int})
+    // (Int, Dict<String, Int>) vs (Int, (a: Int))
     let tuple_a = builder.tuple([int_ty, dict_ty]);
     let tuple_b = builder.tuple([int_ty, struct_ty]);
 
-    assert!(!super::is_equality_safe(&env, tuple_a, tuple_b));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        tuple_a,
+        tuple_b
+    ));
 }
 
 /// Tuples with same length and safe element types are accepted.
@@ -1366,7 +1450,12 @@ fn eq_safe_tuple_same_length() {
     let tuple_a = builder.tuple([int_ty, bool_ty]);
     let tuple_b = builder.tuple([int_ty, bool_ty]);
 
-    assert!(super::is_equality_safe(&env, tuple_a, tuple_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        tuple_a,
+        tuple_b
+    ));
 }
 
 /// Structs with same names recurse into value types.
@@ -1381,11 +1470,16 @@ fn eq_unsafe_struct_same_names_collision() {
     let dict_ty = builder.dict(str_ty, int_ty);
     let inner_struct = builder.r#struct([("x", int_ty)]);
 
-    // Struct{a: Dict<String, Int>} vs Struct{a: Struct{x: Int}}
+    // (a: Dict<String, Int>) vs (a: (x: Int))
     let struct_a = builder.r#struct([("a", dict_ty)]);
     let struct_b = builder.r#struct([("a", inner_struct)]);
 
-    assert!(!super::is_equality_safe(&env, struct_a, struct_b));
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        struct_a,
+        struct_b
+    ));
 }
 
 /// Structs with same names and safe value types are accepted.
@@ -1401,7 +1495,12 @@ fn eq_safe_struct_same_names() {
     let struct_a = builder.r#struct([("a", int_ty), ("b", bool_ty)]);
     let struct_b = builder.r#struct([("a", int_ty), ("b", bool_ty)]);
 
-    assert!(super::is_equality_safe(&env, struct_a, struct_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        struct_a,
+        struct_b
+    ));
 }
 
 /// Never type is always safe (values of this type can never exist).
@@ -1414,8 +1513,18 @@ fn eq_safe_never() {
     let int_ty = builder.integer();
     let never_ty = builder.never();
 
-    assert!(super::is_equality_safe(&env, never_ty, int_ty));
-    assert!(super::is_equality_safe(&env, int_ty, never_ty));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        never_ty,
+        int_ty
+    ));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        int_ty,
+        never_ty
+    ));
 }
 
 /// Closure vs closure is safe (rejected later by operand supportedness).
@@ -1429,7 +1538,97 @@ fn eq_safe_closure_vs_closure() {
     let closure_a = builder.closure([int_ty], int_ty);
     let closure_b = builder.closure([int_ty, int_ty], int_ty);
 
-    assert!(super::is_equality_safe(&env, closure_a, closure_b));
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        closure_a,
+        closure_b
+    ));
+}
+
+/// Recursive types with identical structure are safe.
+///
+/// Both `A = (Int, A)` and `B = (Int, B)` have the same recursive shape: a tuple with an
+/// integer and a self-reference. The boundary detects the cycle when it encounters the
+/// `(A, B)` pair a second time during the recursive field walk, and returns `true`.
+#[test]
+fn eq_safe_recursive_same_structure() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+
+    // type A = (Int, A)
+    let type_a = builder.tuple(lazy(|self_id, _| [int_ty, self_id.value()]));
+    // type B = (Int, B)
+    let type_b = builder.tuple(lazy(|self_id, _| [int_ty, self_id.value()]));
+
+    assert_ne!(type_a, type_b);
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        type_a,
+        type_b
+    ));
+}
+
+/// Recursive types with different structure at the recursion point are unsafe.
+///
+/// `A = (Dict<String, Int>, A)` and `B = ((a: Int), B)` recurse identically but differ
+/// at the first field: Dict vs Struct collides in jsonb. The check rejects before reaching
+/// the cycle.
+#[test]
+fn eq_unsafe_recursive_different_structure() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let dict_ty = builder.dict(str_ty, int_ty);
+    let struct_ty = builder.r#struct([("a", int_ty)]);
+
+    // type A = (Dict<String, Int>, A)
+    let type_a = builder.tuple(lazy(|self_id, _| [dict_ty, self_id.value()]));
+    // type B = ((a: Int), B)
+    let type_b = builder.tuple(lazy(|self_id, _| [struct_ty, self_id.value()]));
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        type_a,
+        type_b
+    ));
+}
+
+/// Recursive type compared against a finite type terminates without hitting the boundary.
+///
+/// `A = (Int, A)` is recursive, `B = (Int, (Int, Bool))` is finite. The traversal follows
+/// both sides in lockstep: at the second field, `A` recurses back to `(Int, A)` while `B`
+/// has `(Int, Bool)`. The check continues into that pair and reaches primitive leaves (Int vs
+/// Int, then A vs Bool where A is a tuple and Bool is a primitive), terminating naturally.
+#[test]
+fn eq_safe_recursive_vs_finite() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let bool_ty = builder.boolean();
+
+    // type A = (Int, A)
+    let type_a = builder.tuple(lazy(|self_id, _| [int_ty, self_id.value()]));
+    // type B = (Int, (Int, Bool))
+    let inner = builder.tuple([int_ty, bool_ty]);
+    let type_b = builder.tuple([int_ty, inner]);
+
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        type_a,
+        type_b
+    ));
 }
 
 /// Equality with a constant operand is always accepted.

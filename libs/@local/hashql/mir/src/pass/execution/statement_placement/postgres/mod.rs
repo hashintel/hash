@@ -5,8 +5,9 @@ use hashql_core::{
     debug_panic,
     id::bit_vec::DenseBitSet,
     symbol::sym,
+    sync::lock::LocalLock,
     r#type::{
-        self, Type, TypeId,
+        self, RecursionBoundary, Type, TypeId,
         environment::Environment,
         kind::{IntrinsicType, TypeKind},
         visit::{RecursiveVisitorGuard, Visitor as _},
@@ -110,15 +111,16 @@ fn peel<'heap>(env: &Environment<'heap>, r#type: TypeId) -> Type<'heap> {
 /// Constant operands are always safe because they serialize to scalars or null in jsonb,
 /// which never collide with compound types. When both operands are places, delegates to
 /// [`is_equality_safe`] for type-level checking.
-fn is_equality_safe_operand<'heap>(
+fn is_equality_safe_operand<'heap, A: Allocator>(
     env: &Environment<'heap>,
     locals: &LocalSlice<LocalDecl>,
+    boundary: &mut RecursionBoundary<'heap, A>,
     lhs: &Operand<'heap>,
     rhs: &Operand<'heap>,
 ) -> bool {
     match (lhs, rhs) {
         (Operand::Place(lhs), Operand::Place(rhs)) => {
-            is_equality_safe(env, lhs.type_id(locals), rhs.type_id(locals))
+            is_equality_safe(env, boundary, lhs.type_id(locals), rhs.type_id(locals))
         }
         // Constants are scalars (int, primitive, fnptr) or null (unit) in jsonb, so they never
         // cause representational collisions with compound types.
@@ -146,7 +148,16 @@ fn is_equality_safe_operand<'heap>(
 /// - Unknown, `Param`, or `Infer` types: cannot prove safety
 ///
 /// For unions and intersections, checks all variant pairs against the other operand.
-fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
+///
+/// Uses a [`RecursionBoundary`] to detect cycles in recursive types. When a type pair is
+/// encountered again during traversal, the recursive structure is the same on both sides,
+/// so equality is safe.
+fn is_equality_safe<'heap, A: Allocator>(
+    env: &Environment<'heap>,
+    boundary: &mut RecursionBoundary<'heap, A>,
+    lhs: TypeId,
+    rhs: TypeId,
+) -> bool {
     if lhs == rhs {
         return true;
     }
@@ -155,12 +166,18 @@ fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
     let rhs = peel(env, rhs);
 
     // If they point to the same interned type we don't need to check further
-    if core::ptr::eq(lhs.kind, rhs.kind) {
+    if lhs.id == rhs.id || core::ptr::eq(lhs.kind, rhs.kind) {
+        return true;
+    }
+
+    // Cycle detection: if we've seen this (lhs, rhs) pair before, the recursive structure
+    // matches on both sides, so equality is safe.
+    if boundary.enter(lhs, rhs).is_break() {
         return true;
     }
 
     #[expect(clippy::match_same_arms, reason = "clarity over reasoning")]
-    match (lhs.kind, rhs.kind) {
+    let result = match (lhs.kind, rhs.kind) {
         // comparing against unresolved types is not safe, because we cannot prove
         // they won't produce representational collisions
         (TypeKind::Unknown | TypeKind::Param(_) | TypeKind::Infer(_), _)
@@ -171,14 +188,14 @@ fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
             _,
         ) => variants
             .iter()
-            .all(|&variant| is_equality_safe(env, variant, rhs.id)),
+            .all(|&variant| is_equality_safe(env, boundary, variant, rhs.id)),
         (
             _,
             TypeKind::Union(r#type::kind::UnionType { variants })
             | TypeKind::Intersection(r#type::kind::IntersectionType { variants }),
         ) => variants
             .iter()
-            .all(|&variant| is_equality_safe(env, lhs.id, variant)),
+            .all(|&variant| is_equality_safe(env, boundary, lhs.id, variant)),
 
         // We cannot compare dict with struct, because they serialize to the same type
         (TypeKind::Intrinsic(IntrinsicType::Dict(_)), TypeKind::Struct(_))
@@ -200,7 +217,9 @@ fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
 
             lhs.iter()
                 .zip(rhs.iter())
-                .all(|(&left_field, &right_field)| is_equality_safe(env, left_field, right_field))
+                .all(|(&left_field, &right_field)| {
+                    is_equality_safe(env, boundary, left_field, right_field)
+                })
         }
         (
             TypeKind::Struct(r#type::kind::StructType { fields: lhs }),
@@ -223,20 +242,20 @@ fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
             }
 
             lhs.iter().zip(rhs.iter()).all(|(left_field, right_field)| {
-                is_equality_safe(env, left_field.value, right_field.value)
+                is_equality_safe(env, boundary, left_field.value, right_field.value)
             })
         }
         (
             TypeKind::Intrinsic(IntrinsicType::Dict(left_dict)),
             TypeKind::Intrinsic(IntrinsicType::Dict(right_dict)),
         ) => {
-            is_equality_safe(env, left_dict.key, right_dict.key)
-                && is_equality_safe(env, left_dict.value, right_dict.value)
+            is_equality_safe(env, boundary, left_dict.key, right_dict.key)
+                && is_equality_safe(env, boundary, left_dict.value, right_dict.value)
         }
         (
             TypeKind::Intrinsic(IntrinsicType::List(left_list)),
             TypeKind::Intrinsic(IntrinsicType::List(right_list)),
-        ) => is_equality_safe(env, left_list.element, right_list.element),
+        ) => is_equality_safe(env, boundary, left_list.element, right_list.element),
         // "onion" values are always removed, so shouldn't even exist
         (TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_), _)
         | (_, TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_)) => unreachable!(),
@@ -257,27 +276,31 @@ fn is_equality_safe(env: &Environment<'_>, lhs: TypeId, rhs: TypeId) -> bool {
             TypeKind::Tuple(_) | TypeKind::Intrinsic(IntrinsicType::List(_)),
             TypeKind::Struct(_) | TypeKind::Intrinsic(IntrinsicType::Dict(_)),
         ) => true,
-    }
+    };
+
+    boundary.exit(lhs, rhs);
+    result
 }
 
 /// Postgres-specific support predicates, carrying per-field transferability of the environment.
-#[derive(Debug, Copy, Clone)]
-struct PostgresSupported<'ctx> {
+struct PostgresSupported<'ctx, 'heap, A: Allocator> {
     /// Which fields of the environment tuple can be serialized to Postgres.
     ///
     /// Fields containing closures or dicts with non-string keys are excluded.
     env_domain: &'ctx DenseBitSet<FieldIndex>,
+
+    boundary: LocalLock<&'ctx mut RecursionBoundary<'heap, A>>,
 }
 
-impl PostgresSupported<'_> {
+impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
     /// Checks whether a place access in a [`GraphReadFilter`] body is Postgres-supported.
     ///
     /// Returns `Some(supported)` for the two fixed arguments (env and vertex), `None` for
     /// any other local (falls through to the regular domain check).
     ///
     /// [`GraphReadFilter`]: Source::GraphReadFilter
-    fn is_supported_place_graph_read_filter<'heap>(
-        self,
+    fn is_supported_place_graph_read_filter(
+        &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
 
@@ -325,8 +348,8 @@ impl PostgresSupported<'_> {
         }
     }
 
-    fn is_supported_place<'heap>(
-        self,
+    fn is_supported_place(
+        &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
@@ -345,7 +368,7 @@ impl PostgresSupported<'_> {
     }
 }
 
-impl<'heap> Supported<'heap> for PostgresSupported<'_> {
+impl<'heap, A: Allocator> Supported<'heap> for PostgresSupported<'_, 'heap, A> {
     fn is_supported_rvalue(
         &self,
         context: &MirContext<'_, 'heap>,
@@ -356,8 +379,19 @@ impl<'heap> Supported<'heap> for PostgresSupported<'_> {
         match rvalue {
             RValue::Load(operand) => self.is_supported_operand(context, body, domain, operand),
             RValue::Binary(Binary { op, left, right }) => {
+                // `LocalLock`, so this is just transparently dereferencing and we're the only one
+                // ever holding the value (this is the boundary and no call inside
+                // `is_equality_safe_operand`) calls back to this.
                 if matches!(op, BinOp::Eq | BinOp::Ne)
-                    && !is_equality_safe_operand(context.env, &body.local_decls, left, right)
+                    && !self.boundary.map(|boundary| {
+                        is_equality_safe_operand(
+                            context.env,
+                            &body.local_decls,
+                            boundary,
+                            left,
+                            right,
+                        )
+                    })
                 {
                     return false;
                 }
@@ -544,14 +578,16 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         }
 
         let env_domain = self.env_domain(context, body);
+
         let supported = PostgresSupported {
             env_domain: &env_domain,
+            boundary: LocalLock::new(self.type_visitor_guard.boundary_mut()),
         };
 
         let dispatchable = SupportedAnalysis {
             body,
             context,
-            supported,
+            supported: &supported,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     debug_assert_eq!(body.args, 2);
@@ -574,7 +610,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             statement_costs,
             traversal_costs,
 
-            supported,
+            supported: &supported,
         };
         visitor.visit_body(body);
 

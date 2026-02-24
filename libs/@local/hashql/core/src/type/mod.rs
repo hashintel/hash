@@ -18,6 +18,7 @@ use core::ops::{Deref, Receiver};
 pub use self::{
     builder::TypeBuilder,
     pretty::{RecursionGuardStrategy, TypeFormatter, TypeFormatterOptions},
+    recursion::RecursionBoundary,
 };
 use self::{inference::Variable, kind::TypeKind};
 use crate::{

@@ -688,6 +688,10 @@ impl<'heap, A: Allocator> RecursiveVisitorGuard<'heap, A> {
         }
     }
 
+    pub const fn boundary_mut(&mut self) -> &mut RecursionBoundary<'heap, A> {
+        &mut self.boundary
+    }
+
     pub fn with<T: Try<Output = ()>>(
         &mut self,
         visit: impl FnOnce(&mut Self, Type<'heap>) -> T,
