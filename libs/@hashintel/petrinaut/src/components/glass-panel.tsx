@@ -1,14 +1,8 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  type CSSProperties,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, type ReactNode, useCallback, useRef } from "react";
 
 import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../constants/ui";
+import { useResizeDrag } from "../resize/use-resize-drag";
 
 const panelContainerStyle = css({
   position: "relative",
@@ -103,10 +97,6 @@ const getResizeHandleStyle = (edge: ResizableEdge): CSSProperties => {
   }
 };
 
-const getCursorStyle = (edge: ResizableEdge): string => {
-  return edge === "top" || edge === "bottom" ? "ns-resize" : "ew-resize";
-};
-
 /**
  * GlassPanel provides a styled container panel.
  *
@@ -120,60 +110,44 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
   contentStyle,
   resizable,
 }) => {
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeStartPosRef = useRef(0);
   const resizeStartSizeRef = useRef(0);
+
+  const onDrag = useCallback(
+    (delta: number) => {
+      if (!resizable) {
+        return;
+      }
+      const { edge, onResize, minSize = 100, maxSize = 800 } = resizable;
+      const effectiveDelta = edge === "top" || edge === "left" ? -delta : delta;
+      const newSize = Math.max(
+        minSize,
+        Math.min(maxSize, resizeStartSizeRef.current + effectiveDelta),
+      );
+      onResize(newSize);
+    },
+    [resizable],
+  );
+
+  const direction =
+    resizable?.edge === "left" || resizable?.edge === "right"
+      ? ("horizontal" as const)
+      : ("vertical" as const);
+
+  const { isResizing, handleMouseDown } = useResizeDrag({
+    onDrag,
+    direction,
+  });
 
   const handleResizeStart = useCallback(
     (event: React.MouseEvent) => {
       if (!resizable) {
         return;
       }
-
-      event.preventDefault();
-      setIsResizing(true);
-
-      const isVertical =
-        resizable.edge === "top" || resizable.edge === "bottom";
-      resizeStartPosRef.current = isVertical ? event.clientY : event.clientX;
       resizeStartSizeRef.current = resizable.size;
+      handleMouseDown(event);
     },
-    [resizable],
+    [resizable, handleMouseDown],
   );
-
-  const handleResizeMove = useCallback(
-    (event: MouseEvent) => {
-      if (!isResizing || !resizable) {
-        return;
-      }
-
-      const { edge, onResize, minSize = 100, maxSize = 800 } = resizable;
-      const isVertical = edge === "top" || edge === "bottom";
-      const currentPos = isVertical ? event.clientY : event.clientX;
-
-      // Calculate delta based on edge direction
-      // For top/left: dragging towards origin increases size
-      // For bottom/right: dragging away from origin increases size
-      let delta: number;
-      if (edge === "top" || edge === "left") {
-        delta = resizeStartPosRef.current - currentPos;
-      } else {
-        delta = currentPos - resizeStartPosRef.current;
-      }
-
-      const newSize = Math.max(
-        minSize,
-        Math.min(maxSize, resizeStartSizeRef.current + delta),
-      );
-
-      onResize(newSize);
-    },
-    [isResizing, resizable],
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
 
   // Handle keyboard resize
   const handleKeyDown = useCallback(
@@ -205,25 +179,6 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
     },
     [resizable],
   );
-
-  // Global cursor and event listeners during resize
-  useEffect(() => {
-    if (!isResizing || !resizable) {
-      return;
-    }
-
-    document.addEventListener("mousemove", handleResizeMove);
-    document.addEventListener("mouseup", handleResizeEnd);
-    document.body.style.cursor = getCursorStyle(resizable.edge);
-    document.body.style.userSelect = "none";
-
-    return () => {
-      document.removeEventListener("mousemove", handleResizeMove);
-      document.removeEventListener("mouseup", handleResizeEnd);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing, resizable, handleResizeMove, handleResizeEnd]);
 
   return (
     <div className={cx(panelContainerStyle, className)} style={style}>

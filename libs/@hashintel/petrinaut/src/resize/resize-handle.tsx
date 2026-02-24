@@ -1,10 +1,9 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
+import type { ResizeDirection } from "./use-resize-drag";
+
 const resizeHandleStyle = cva({
   base: {
-    width: "[100%]",
-    height: "[4px]",
-    cursor: "ns-resize",
     backgroundColor: "[transparent]",
     border: "none",
     padding: "[0]",
@@ -20,24 +19,35 @@ const resizeHandleStyle = cva({
         backgroundColor: "[rgba(59, 130, 246, 0.4)]",
       },
     },
-    position: {
-      top: {},
-      bottom: {},
+    direction: {
+      vertical: {
+        width: "[100%]",
+        height: "[4px]",
+        cursor: "ns-resize",
+      },
+      horizontal: {
+        height: "[100%]",
+        width: "[4px]",
+        cursor: "ew-resize",
+      },
     },
   },
 });
 
 interface ResizeHandleProps {
-  position: "top" | "bottom";
+  direction: ResizeDirection;
   isResizing: boolean;
   onMouseDown: (event: React.MouseEvent) => void;
 }
 
 /**
- * Reusable resize handle button component.
+ * Reusable resize handle button.
+ *
+ * Renders as a thin strip (4 px) that highlights on hover and while
+ * actively resizing.
  */
 export const ResizeHandle: React.FC<ResizeHandleProps> = ({
-  position,
+  direction,
   isResizing,
   onMouseDown,
 }) => (
@@ -45,6 +55,6 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
     type="button"
     aria-label="Resize section"
     onMouseDown={onMouseDown}
-    className={resizeHandleStyle({ isResizing, position })}
+    className={resizeHandleStyle({ isResizing, direction })}
   />
 );
