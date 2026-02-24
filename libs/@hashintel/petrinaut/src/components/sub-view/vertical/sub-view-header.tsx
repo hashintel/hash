@@ -5,35 +5,28 @@ import { InfoIconTooltip } from "../../tooltip";
 
 const headerRowStyle = css({
   display: "flex",
-  alignItems: "center",
   justifyContent: "space-between",
-  flexShrink: 0,
-  padding: "[4px 0]",
 });
 
 const headerActionStyle = css({
-  display: "flex",
-  alignItems: "center",
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[20px]",
   overflow: "hidden",
 });
 
-const sectionToggleButtonStyle = css({
+const sectionToggleStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[6px]",
-  fontWeight: "semibold",
-  fontSize: "[13px]",
-  color: "[#333]",
+  fontWeight: "medium",
+  fontSize: "sm",
+  color: "neutral.s100",
   cursor: "pointer",
-  background: "[transparent]",
-  border: "none",
-  padding: "1",
-  borderRadius: "md",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  },
+});
+
+const sectionToggleIconStyle = css({
+  w: "4",
+  display: "flex",
+  justifyContent: "center",
 });
 
 interface SubViewHeaderProps {
@@ -57,19 +50,28 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   renderHeaderAction,
 }) => (
   <div className={headerRowStyle}>
-    <button
-      type="button"
+    <div
       onClick={onToggle}
-      className={sectionToggleButtonStyle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onToggle();
+        }
+      }}
+      className={sectionToggleStyle}
       aria-expanded={isExpanded}
       aria-controls={`subview-content-${id}`}
     >
-      {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+      <div className={`${sectionToggleIconStyle} toggle-icon`}>
+        {isExpanded ? <FaChevronDown size={9} /> : <FaChevronRight size={9} />}
+      </div>
       <span>
         {title}
         {tooltip && <InfoIconTooltip tooltip={tooltip} />}
       </span>
-    </button>
+    </div>
     {isExpanded && renderHeaderAction && (
       <div className={headerActionStyle}>{renderHeaderAction()}</div>
     )}

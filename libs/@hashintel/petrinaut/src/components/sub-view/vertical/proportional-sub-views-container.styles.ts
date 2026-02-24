@@ -85,12 +85,9 @@ export const contentInnerStyle = css({
 });
 
 export const proportionalContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[2px]",
   overflowY: "auto",
   flex: "[1]",
-  minHeight: "[0]",
+  p: "2",
 });
 
 export const sashStyle = cva({
