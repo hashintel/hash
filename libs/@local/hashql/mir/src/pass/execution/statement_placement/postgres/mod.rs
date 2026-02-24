@@ -298,7 +298,7 @@ where
             return ControlFlow::Break(());
         }
 
-        ControlFlow::Continue(())
+        self.visit_id(dict.kind.value)
     }
 }
 
