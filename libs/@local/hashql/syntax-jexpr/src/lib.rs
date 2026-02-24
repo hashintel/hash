@@ -6,7 +6,6 @@
 #![feature(
     // Language Features
     decl_macro,
-    if_let_guard,
 
     // Library Features
     allocator_api,
