@@ -125,7 +125,6 @@ const PlaceInitialStateContent: React.FC = () => {
       key={place.id}
       placeId={place.id}
       placeType={placeType}
-      fillContainer
     />
   );
 };
