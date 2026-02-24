@@ -3,6 +3,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import type { Color } from "../../../../core/types/sdcpn";
 import { PlaybackContext } from "../../../../playback/context";
+import { useResizable } from "../../../../resize/use-resizable";
 import { SimulationContext } from "../../../../simulation/context";
 
 const wrapperStyle = css({
@@ -189,51 +190,6 @@ const resizeHandleStyle = cva({
 });
 
 /**
- * Hook to make an element resizable by dragging its bottom border
- */
-const useResizable = (initialHeight: number) => {
-  const [height, setHeight] = useState(initialHeight);
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isResizing) {
-      return;
-    }
-
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const newHeight = event.clientY - rect.top;
-      if (newHeight >= 100 && newHeight <= 600) {
-        setHeight(newHeight);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
-  return {
-    height,
-    isResizing,
-    containerRef,
-    startResize: () => setIsResizing(true),
-  };
-};
-
-/**
  * InitialStateEditor - A component for editing initial tokens in a place
  * Stores data in SimulationStore, not in the Place definition
  */
@@ -252,8 +208,16 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeType,
   fillContainer = false,
 }) => {
-  const internalResize = useResizable(250);
-  const { height, isResizing, containerRef, startResize } = internalResize;
+  const {
+    size: height,
+    isResizing,
+    handleResizeStart,
+  } = useResizable({
+    defaultSize: 250,
+    minSize: 100,
+    maxSize: 600,
+    edge: "bottom",
+  });
 
   const { initialMarking, setInitialMarking } = use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
@@ -731,7 +695,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   return (
     <div className={fillContainer ? wrapperStyle : undefined}>
       <div
-        ref={fillContainer ? undefined : containerRef}
         className={tableContainerStyle}
         style={
           fillContainer ? { flex: 1, minHeight: 0 } : { height: `${height}px` }
@@ -875,7 +838,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           <button
             type="button"
             aria-label="Resize table"
-            onMouseDown={startResize}
+            onMouseDown={handleResizeStart}
             className={resizeHandleStyle({ isResizing })}
           />
         )}
