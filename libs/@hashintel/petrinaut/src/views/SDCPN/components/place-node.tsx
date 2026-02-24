@@ -17,11 +17,11 @@ import {
 } from "./node-card";
 
 const placeCardStyle = css({
-  borderRadius: "[9999px]",
+  borderRadius: "full",
 });
 
 const placeIconContainerStyle = css({
-  borderRadius: "[50%]",
+  borderRadius: "full",
 });
 
 const dynamicsBadgeStyle = css({
@@ -81,14 +81,16 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
     ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
     : undefined;
 
+  const placeBackgroundColor = data.typeColor
+    ? hexToHsl(data.typeColor).lighten(30).css(0.9)
+    : "#FFFFFF";
+
   return (
     <NodeCard
       cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${placeCardStyle}`}
       cardStyle={{
         borderColor: typeColorBorder,
-        backgroundColor: data.typeColor
-          ? hexToHsl(data.typeColor).lighten(30).css(0.8)
-          : "#FCFCFACC",
+        backgroundColor: placeBackgroundColor,
       }}
       iconContainer={
         <div
