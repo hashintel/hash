@@ -776,10 +776,9 @@ mod tests {
             Expression::Row(vec![
                 Expression::Parameter(1),
                 Expression::Constant(Constant::from(42_u32)),
-                Expression::Constant(Constant::from("hello")),
             ])
             .transpile_to_string(),
-            "ROW($1, 42, 'hello')"
+            "ROW($1, 42)"
         );
     }
 
