@@ -17,9 +17,8 @@ import {
 const FIRING_ANIMATION_DURATION_MS = 300;
 
 const transitionCardStyle = css({
-  borderRadius: "[0px]",
-  borderColor: "neutral.s80",
-  background: "neutral.s20",
+  borderColor: "neutral.s70",
+  background: "neutral.s00",
   transition: "[outline 0.2s ease, border-color 0.2s ease]",
   _hover: {
     borderColor: "neutral.s100",
