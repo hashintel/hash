@@ -3,6 +3,17 @@ import { css } from "@hashintel/ds-helpers/css";
 export const proportionalContainerStyle = css({
   flex: "[1]",
   minHeight: "[0]",
+  /**
+   * Animate programmatic collapse/expand via CSS transition on flex-grow.
+   * Disabled when a separator is actively being dragged (data-separator="active")
+   * so drag-to-resize stays snappy.
+   */
+  "& [data-panel]": {
+    transition: "[flex-grow 200ms ease-out]",
+  },
+  "&:has([data-separator=active]) [data-panel]": {
+    transition: "[none]",
+  },
 });
 
 export const sectionWrapperStyle = css({
