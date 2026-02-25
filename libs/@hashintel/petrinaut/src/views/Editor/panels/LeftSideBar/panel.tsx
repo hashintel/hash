@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
-import { ProportionalSubViewsContainer } from "../../../../components/sub-view/vertical/proportional-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import {
   LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
@@ -61,7 +61,7 @@ export const LeftSideBar: React.FC = () => {
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}
     >
-      <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
+      <VerticalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
     </GlassPanel>
   );
 };
