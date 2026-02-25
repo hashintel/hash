@@ -62,7 +62,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     fontFamily: "'JetBrains Mono Variable', monospace",
-    fontSize: 11,
+    fontSize: 12,
     lineNumbers: "off",
     folding: true,
     glyphMargin: false,
