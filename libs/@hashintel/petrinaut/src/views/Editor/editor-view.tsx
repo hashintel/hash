@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { use, useRef } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -8,6 +8,7 @@ import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
+import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 // import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -186,41 +187,48 @@ export const EditorView = ({
     },
   ];
 
+  const portalContainerRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Stack className={`${fullHeightStyle} petrinaut-root`}>
-      {/* Top Bar - always visible */}
-      <TopBar
-        menuItems={menuItems}
-        title={title}
-        onTitleChange={setTitle}
-        hideNetManagementControls={hideNetManagementControls}
-        mode={mode}
-        onModeChange={() => {
-          // Mode change handled by TopBar; currently only "edit" is enabled
-        }}
-      />
+    <PortalContainerContext value={portalContainerRef}>
+      <Stack
+        ref={portalContainerRef}
+        className={`${fullHeightStyle} petrinaut-root`}
+      >
+        {/* Top Bar - always visible */}
+        <TopBar
+          menuItems={menuItems}
+          title={title}
+          onTitleChange={setTitle}
+          hideNetManagementControls={hideNetManagementControls}
+          mode={mode}
+          onModeChange={() => {
+            // Mode change handled by TopBar; currently only "edit" is enabled
+          }}
+        />
 
-      <Stack direction="row" className={rowContainerStyle}>
-        <Box className={canvasContainerStyle}>
-          {/* Left Sidebar - Tools and content panels */}
-          <LeftSideBar />
+        <Stack direction="row" className={rowContainerStyle}>
+          <Box className={canvasContainerStyle}>
+            {/* Left Sidebar - Tools and content panels */}
+            <LeftSideBar />
 
-          {/* Properties Panel - Right Side */}
-          <PropertiesPanel />
+            {/* Properties Panel - Right Side */}
+            <PropertiesPanel />
 
-          {/* SDCPN Visualization */}
-          <SDCPNView />
+            {/* SDCPN Visualization */}
+            <SDCPNView />
 
-          {/* Bottom Panel - Diagnostics, Simulation Settings */}
-          <BottomPanel />
+            {/* Bottom Panel - Diagnostics, Simulation Settings */}
+            <BottomPanel />
 
-          <BottomBar
-            mode={mode}
-            editionMode={editionMode}
-            onEditionModeChange={setEditionMode}
-          />
-        </Box>
+            <BottomBar
+              mode={mode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+            />
+          </Box>
+        </Stack>
       </Stack>
-    </Stack>
+    </PortalContainerContext>
   );
 };
