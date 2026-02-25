@@ -12,6 +12,10 @@ pub enum UnaryOperator {
     Not,
     /// `<expr> IS NULL`
     IsNull,
+    /// `-<expr>`
+    Negate,
+    /// `~<expr>`
+    BitwiseNot,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -40,6 +44,16 @@ impl Transpile for UnaryExpression {
             UnaryOperator::IsNull => {
                 self.expr.transpile(fmt)?;
                 fmt.write_str(" IS NULL")
+            }
+            UnaryOperator::Negate => {
+                fmt.write_str("-(")?;
+                self.expr.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            UnaryOperator::BitwiseNot => {
+                fmt.write_str("~(")?;
+                self.expr.transpile(fmt)?;
+                fmt.write_char(')')
             }
         }
     }

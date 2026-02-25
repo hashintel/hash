@@ -8,6 +8,7 @@ use crate::store::postgres::query::{Expression, Transpile};
     reason = "The documentation is only the transpiled symbols"
 )]
 pub enum BinaryOperator {
+    // --- Comparison ---
     /// `<lhs> = <rhs>`
     Equal,
     /// `<lhs> != <rhs>`
@@ -22,6 +23,32 @@ pub enum BinaryOperator {
     LessOrEqual,
     /// `<lhs> = ANY(<rhs>)`
     In,
+
+    // --- Arithmetic ---
+    /// `<lhs> + <rhs>`
+    Add,
+    /// `<lhs> - <rhs>`
+    Subtract,
+    /// `<lhs> * <rhs>`
+    Multiply,
+    /// `<lhs> / <rhs>`
+    Divide,
+    /// `<lhs> % <rhs>`
+    Modulo,
+
+    // --- Bitwise ---
+    /// `<lhs> & <rhs>`
+    BitwiseAnd,
+    /// `<lhs> | <rhs>`
+    BitwiseOr,
+
+    // --- JSON ---
+    /// `<lhs> -> <rhs>`
+    JsonAccess,
+    /// `<lhs> ->> <rhs>`
+    JsonAccessAsText,
+
+    // --- Domain-specific ---
     /// `<lhs> @> <rhs>::TIMESTAMPTZ`
     TimeIntervalContainsTimestamp,
     /// `<lhs> && <rhs>`
@@ -40,6 +67,15 @@ impl BinaryOperator {
             Self::Less => " < ",
             Self::LessOrEqual => " <= ",
             Self::In => " = ANY(",
+            Self::Add => " + ",
+            Self::Subtract => " - ",
+            Self::Multiply => " * ",
+            Self::Divide => " / ",
+            Self::Modulo => " % ",
+            Self::BitwiseAnd => " & ",
+            Self::BitwiseOr => " | ",
+            Self::JsonAccess => " -> ",
+            Self::JsonAccessAsText => " ->> ",
             Self::TimeIntervalContainsTimestamp => " @> ",
             Self::Overlap => " && ",
             Self::CosineDistance => " <=> ",
@@ -57,6 +93,15 @@ impl BinaryOperator {
             | Self::GreaterOrEqual
             | Self::Less
             | Self::LessOrEqual
+            | Self::Add
+            | Self::Subtract
+            | Self::Multiply
+            | Self::Divide
+            | Self::Modulo
+            | Self::BitwiseAnd
+            | Self::BitwiseOr
+            | Self::JsonAccess
+            | Self::JsonAccessAsText
             | Self::Overlap
             | Self::CosineDistance => Ok(()),
         }

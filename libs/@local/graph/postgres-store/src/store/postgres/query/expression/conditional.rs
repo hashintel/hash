@@ -7,7 +7,10 @@ use hash_graph_store::filter::PathToken;
 use super::ColumnReference;
 use crate::store::postgres::query::{
     SelectStatement, Table, Transpile, WindowStatement,
-    expression::{BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator},
+    expression::{
+        BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator, VariadicExpression,
+        VariadicOperator,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,14 +24,6 @@ pub enum Function {
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
-    /// Removes keys from a JSONB object.
-    ///
-    /// Transpiles to `{jsonb} - {text_array}` in PostgreSQL.
-    JsonDeleteKeys(Box<Expression>, Box<Expression>),
-    /// Concatenates multiple arrays into one.
-    ///
-    /// Transpiles to `{arr1} || {arr2} || ...` in PostgreSQL.
-    ArrayConcat(Vec<Expression>),
     /// Creates an array literal with explicit type cast.
     ///
     /// Transpiles to `ARRAY[{elements}]::{type}[]` in PostgreSQL.
@@ -131,23 +126,6 @@ impl Transpile for Function {
                 target.transpile(fmt)?;
                 fmt.write_str(", ")?;
                 path.transpile(fmt)?;
-                fmt.write_char(')')
-            }
-            Self::JsonDeleteKeys(jsonb, keys) => {
-                fmt.write_char('(')?;
-                jsonb.transpile(fmt)?;
-                fmt.write_str(" - ")?;
-                keys.transpile(fmt)?;
-                fmt.write_char(')')
-            }
-            Self::ArrayConcat(arrays) => {
-                fmt.write_char('(')?;
-                for (i, array) in arrays.iter().enumerate() {
-                    if i > 0 {
-                        fmt.write_str(" || ")?;
-                    }
-                    array.transpile(fmt)?;
-                }
                 fmt.write_char(')')
             }
             Self::ArrayLiteral {
@@ -270,13 +248,12 @@ pub enum Expression {
 
     Unary(UnaryExpression),
     Binary(BinaryExpression),
-
-    /// Conjunction of conditions. Transpiles to `(c1) AND (c2) AND ...`.
-    /// Empty list transpiles to `TRUE`.
-    All(Vec<Self>),
-    /// Disjunction of conditions. Transpiles to `((c1) OR (c2) OR ...)`.
-    /// Empty list transpiles to `FALSE`.
-    Any(Vec<Self>),
+    Variadic(VariadicExpression),
+    /// Wraps an expression in parentheses to enforce evaluation order.
+    ///
+    /// Transpiles to `(<expr>)`. Use this when composing expressions where
+    /// operator precedence would otherwise produce incorrect SQL.
+    Grouped(Box<Self>),
 
     StartsWith(Box<Self>, Box<Self>),
     EndsWith(Box<Self>, Box<Self>),
@@ -287,12 +264,18 @@ pub enum Expression {
 impl Expression {
     #[must_use]
     pub const fn all(conditions: Vec<Self>) -> Self {
-        Self::All(conditions)
+        Self::Variadic(VariadicExpression {
+            op: VariadicOperator::And,
+            exprs: conditions,
+        })
     }
 
     #[must_use]
     pub const fn any(conditions: Vec<Self>) -> Self {
-        Self::Any(conditions)
+        Self::Variadic(VariadicExpression {
+            op: VariadicOperator::Or,
+            exprs: conditions,
+        })
     }
 
     #[must_use]
@@ -402,6 +385,116 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn add(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Add,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn subtract(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Subtract,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn multiply(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Multiply,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn divide(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Divide,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn modulo(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::Modulo,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn bitwise_and(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::BitwiseAnd,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn bitwise_or(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::BitwiseOr,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn json_access(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::JsonAccess,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub fn json_access_as_text(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::JsonAccessAsText,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
+    pub const fn concatenate(exprs: Vec<Self>) -> Self {
+        Self::Variadic(VariadicExpression {
+            op: VariadicOperator::Concatenate,
+            exprs,
+        })
+    }
+
+    #[must_use]
+    pub fn negate(inner: Self) -> Self {
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::Negate,
+            expr: Box::new(inner),
+        })
+    }
+
+    #[must_use]
+    pub fn bitwise_not(inner: Self) -> Self {
+        Self::Unary(UnaryExpression {
+            op: UnaryOperator::BitwiseNot,
+            expr: Box::new(inner),
+        })
+    }
+
+    #[must_use]
+    pub fn grouped(inner: Self) -> Self {
+        Self::Grouped(Box::new(inner))
+    }
+
+    #[must_use]
     pub fn starts_with(lhs: Self, rhs: Self) -> Self {
         Self::StartsWith(Box::new(lhs), Box::new(rhs))
     }
@@ -463,38 +556,13 @@ impl Transpile for Expression {
 
             Self::Unary(unary) => unary.transpile(fmt),
             Self::Binary(binary) => binary.transpile(fmt),
+            Self::Variadic(variadic) => variadic.transpile(fmt),
+            Self::Grouped(inner) => {
+                fmt.write_char('(')?;
+                inner.transpile(fmt)?;
+                fmt.write_char(')')
+            }
 
-            // --- Boolean conditions ---
-            Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
-            Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
-            Self::All(conditions) => {
-                for (idx, condition) in conditions.iter().enumerate() {
-                    if idx > 0 {
-                        fmt.write_str(" AND ")?;
-                    }
-                    fmt.write_char('(')?;
-                    condition.transpile(fmt)?;
-                    fmt.write_char(')')?;
-                }
-                Ok(())
-            }
-            Self::Any(conditions) => {
-                if conditions.len() > 1 {
-                    fmt.write_char('(')?;
-                }
-                for (idx, condition) in conditions.iter().enumerate() {
-                    if idx > 0 {
-                        fmt.write_str(" OR ")?;
-                    }
-                    fmt.write_char('(')?;
-                    condition.transpile(fmt)?;
-                    fmt.write_char(')')?;
-                }
-                if conditions.len() > 1 {
-                    fmt.write_char(')')?;
-                }
-                Ok(())
-            }
             Self::StartsWith(lhs, rhs) => {
                 fmt.write_str("starts_with(")?;
                 lhs.transpile(fmt)?;
@@ -616,23 +684,23 @@ mod tests {
     }
 
     #[test]
-    fn transpile_json_delete_keys() {
-        let delete_expr = Expression::Function(Function::JsonDeleteKeys(
-            Box::new(Expression::Parameter(1)),
-            Box::new(Expression::Function(Function::ArrayLiteral {
+    fn transpile_subtract() {
+        let subtract_expr = Expression::subtract(
+            Expression::Parameter(1),
+            Expression::Function(Function::ArrayLiteral {
                 elements: vec![Expression::Parameter(2), Expression::Parameter(3)],
                 element_type: PostgresType::Text,
-            })),
-        ));
+            }),
+        );
         assert_eq!(
-            delete_expr.transpile_to_string(),
-            "($1 - ARRAY[$2, $3]::text[])"
+            subtract_expr.transpile_to_string(),
+            "$1 - ARRAY[$2, $3]::text[]"
         );
     }
 
     #[test]
-    fn transpile_array_concat() {
-        let concat_expr = Expression::Function(Function::ArrayConcat(vec![
+    fn transpile_concatenate() {
+        let concat_expr = Expression::concatenate(vec![
             Expression::Function(Function::ArrayLiteral {
                 elements: vec![Expression::Parameter(1)],
                 element_type: PostgresType::Text,
@@ -641,7 +709,7 @@ mod tests {
                 elements: vec![Expression::Parameter(2)],
                 element_type: PostgresType::Text,
             }),
-        ]));
+        ]);
         assert_eq!(
             concat_expr.transpile_to_string(),
             "(ARRAY[$1]::text[] || ARRAY[$2]::text[])"
