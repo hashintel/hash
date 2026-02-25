@@ -23,7 +23,7 @@
     "@local/tsconfig": "workspace:*",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.3",
-    "rimraf": "6.1.2",
+    "rimraf": "6.1.3",
     "typescript": "5.9.3",
     "vitest": "3.2.4"
   },
