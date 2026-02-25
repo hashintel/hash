@@ -21,6 +21,7 @@ const glassPanelBaseStyle = css({
   boxSizing: "border-box",
   padding: "2",
   pt: "3",
+  pb: "0",
 });
 
 const panelContentStyle = css({
