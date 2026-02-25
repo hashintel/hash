@@ -18,6 +18,7 @@ const glassPanelBaseStyle = css({
   bottom: "0",
   height: "full",
   borderRightWidth: "thin",
+  boxSizing: "border-box",
   padding: "2",
   pt: "3",
 });
