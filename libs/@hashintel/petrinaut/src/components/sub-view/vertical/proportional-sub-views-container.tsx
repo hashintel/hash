@@ -1,10 +1,5 @@
-import { Fragment, useCallback, useRef, useState } from "react";
-import {
-  Group,
-  Panel,
-  type PanelImperativeHandle,
-  Separator,
-} from "react-resizable-panels";
+import { Fragment, useCallback, useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
 import type { SubView } from "../types";
 import {
@@ -33,22 +28,12 @@ interface ProportionalSubViewsContainerProps {
 export const ProportionalSubViewsContainer: React.FC<
   ProportionalSubViewsContainerProps
 > = ({ subViews, defaultExpanded = true }) => {
-  const panelRefs = useRef<Map<string, PanelImperativeHandle>>(new Map());
-
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     () => Object.fromEntries(subViews.map((sv) => [sv.id, !defaultExpanded])),
   );
 
   const toggleSection = useCallback((id: string) => {
-    const panel = panelRefs.current.get(id);
-    if (!panel) {
-      return;
-    }
-    if (panel.isCollapsed()) {
-      panel.expand();
-    } else {
-      panel.collapse();
-    }
+    setCollapsedState((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
   return (
@@ -64,37 +49,8 @@ export const ProportionalSubViewsContainer: React.FC<
           <Fragment key={subView.id}>
             <Panel
               id={subView.id}
-              collapsible={isCollapsible}
-              collapsedSize={isCollapsible ? HEADER_HEIGHT : undefined}
-              minSize={minSize}
-              onResize={
-                isCollapsible
-                  ? (panelSize) => {
-                      const isNowCollapsed =
-                        panelSize.inPixels <= HEADER_HEIGHT;
-                      setCollapsedState((prev) => {
-                        if (prev[subView.id] === isNowCollapsed) {
-                          return prev;
-                        }
-                        return {
-                          ...prev,
-                          [subView.id]: isNowCollapsed,
-                        };
-                      });
-                    }
-                  : undefined
-              }
-              panelRef={
-                isCollapsible
-                  ? (handle) => {
-                      if (handle) {
-                        panelRefs.current.set(subView.id, handle);
-                      } else {
-                        panelRefs.current.delete(subView.id);
-                      }
-                    }
-                  : undefined
-              }
+              minSize={isExpanded ? minSize : HEADER_HEIGHT}
+              maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
               <div className={sectionWrapperStyle}>
                 {!hideHeader && (
