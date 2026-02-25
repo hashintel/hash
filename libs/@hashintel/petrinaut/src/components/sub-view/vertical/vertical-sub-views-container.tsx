@@ -7,7 +7,7 @@ import { InfoIconTooltip } from "../../tooltip";
 import type { SubView } from "../types";
 
 /** Height of the header row in pixels */
-const HEADER_HEIGHT = 28;
+const HEADER_HEIGHT = 44;
 /** Default minimum panel height when no per-subview minHeight is set */
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
@@ -49,26 +49,30 @@ const panelContentStyle = css({
 });
 
 const resizeHandleStyle = css({
-  height: "[4px]",
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.s30",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
-  _hover: {
+  "&[data-separator=hover]": {
     backgroundColor: "[rgba(0, 0, 0, 0.1)]",
   },
-  _active: {
+  "&[data-separator=active]": {
     backgroundColor: "[rgba(59, 130, 246, 0.4)]",
   },
 });
 
 const headerRowStyle = css({
+  height: "[44px]",
+  px: "2",
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "center",
 });
 
 const headerActionStyle = css({
   /** Constrain height so buttons don't grow the header */
-  maxHeight: "[20px]",
+  maxHeight: "[44px]",
   overflow: "hidden",
 });
 

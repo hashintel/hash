@@ -27,7 +27,6 @@ const glassPanelStyle = css({
 });
 
 const glassPanelContentStyle = css({
-  padding: "2",
   overflowY: "auto",
 });
 
