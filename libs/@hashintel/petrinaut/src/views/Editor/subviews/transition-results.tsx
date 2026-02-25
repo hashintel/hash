@@ -80,9 +80,13 @@ const ResultsHeaderAction: React.FC = () => {
             const inputs = transition.inputArcs
               .map((arc) => {
                 const place = places.find((p) => p.id === arc.placeId);
-                if (!place || !place.colorId) return null;
+                if (!place || !place.colorId) {
+                  return null;
+                }
                 const type = types.find((t) => t.id === place.colorId);
-                if (!type) return null;
+                if (!type) {
+                  return null;
+                }
                 return {
                   placeName: place.name,
                   type,
@@ -94,9 +98,13 @@ const ResultsHeaderAction: React.FC = () => {
             const outputs = transition.outputArcs
               .map((arc) => {
                 const place = places.find((p) => p.id === arc.placeId);
-                if (!place || !place.colorId) return null;
+                if (!place || !place.colorId) {
+                  return null;
+                }
                 const type = types.find((t) => t.id === place.colorId);
-                if (!type) return null;
+                if (!type) {
+                  return null;
+                }
                 return {
                   placeName: place.name,
                   type,
@@ -181,5 +189,6 @@ export const transitionResultsSubView: SubView = {
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
   component: TransitionResultsContent,
+  minHeight: 300,
   renderHeaderAction: () => <ResultsHeaderAction />,
 };
