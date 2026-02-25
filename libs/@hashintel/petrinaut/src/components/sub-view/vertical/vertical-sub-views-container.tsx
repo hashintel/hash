@@ -1,5 +1,5 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, useCallback, useState } from "react";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -42,6 +42,14 @@ const sectionContentStyle = css({
   flex: "[1]",
 });
 
+const scrollContainerStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
+});
+
 const panelContentStyle = css({
   overflowY: "auto",
   flex: "[1]",
@@ -52,9 +60,39 @@ const panelContentStyle = css({
   pt: "0",
 });
 
+const SHADOW_HEIGHT = 7;
+
+const scrollShadowStyle = cva({
+  base: {
+    position: "absolute",
+    left: "[0]",
+    right: "[0]",
+    height: `[${SHADOW_HEIGHT}px]`,
+    pointerEvents: "none",
+    zIndex: 1,
+    opacity: "[0]",
+    transition: "[opacity 150ms ease]",
+  },
+  variants: {
+    position: {
+      top: {
+        top: "[0]",
+        background: "[linear-gradient(to bottom, #F0F0F0, transparent)]",
+      },
+      bottom: {
+        bottom: "[0]",
+        background: "[linear-gradient(to top, #F0F0F0, transparent)]",
+      },
+    },
+    visible: {
+      true: { opacity: "[0.7]" },
+    },
+  },
+});
+
 const resizeHandleStyle = css({
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.s30",
+  borderTopWidth: "thin",
+  borderTopColor: "neutral.a30",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
@@ -108,6 +146,68 @@ const mainTitleStyle = css({
   fontSize: "base",
   px: "1",
 });
+
+/**
+ * Wraps children in a scrollable container with top/bottom gradient shadows
+ * that fade in when content overflows in that direction.
+ */
+const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const updateShadows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    setCanScrollUp(el.scrollTop > 0);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+
+    updateShadows();
+
+    const observer = new ResizeObserver(updateShadows);
+    observer.observe(el);
+    for (const child of el.children) {
+      observer.observe(child);
+    }
+
+    return () => observer.disconnect();
+  }, [updateShadows]);
+
+  return (
+    <div className={scrollContainerStyle}>
+      <div
+        className={scrollShadowStyle({
+          position: "top",
+          visible: canScrollUp,
+        })}
+      />
+      <div
+        ref={scrollRef}
+        className={panelContentStyle}
+        onScroll={updateShadows}
+      >
+        {children}
+      </div>
+      <div
+        className={scrollShadowStyle({
+          position: "bottom",
+          visible: canScrollDown,
+        })}
+      />
+    </div>
+  );
+};
 
 interface SubViewHeaderProps {
   id: string;
@@ -223,9 +323,9 @@ export const VerticalSubViewsContainer: React.FC<
 
                 {isExpanded && (
                   <div className={sectionContentStyle}>
-                    <div className={panelContentStyle}>
+                    <ScrollableContent>
                       <Component />
-                    </div>
+                    </ScrollableContent>
                   </div>
                 )}
               </div>
