@@ -63,6 +63,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       })),
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
+    collapseAllPanels: () =>
+      setState((prev) => ({
+        ...prev,
+        isLeftSidebarOpen: false,
+        isBottomPanelOpen: false,
+        selectedResourceId: null,
+      })),
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
     __reinitialize: () => setState(initialEditorState),

@@ -69,11 +69,27 @@ export interface MenuItem {
 export interface MenuProps {
   trigger: ReactNode;
   items: MenuItem[];
+  /** Preferred placement of the menu relative to the trigger. */
+  placement?:
+    | "top"
+    | "bottom"
+    | "left"
+    | "right"
+    | "top-start"
+    | "top-end"
+    | "bottom-start"
+    | "bottom-end"
+    | "left-start"
+    | "left-end"
+    | "right-start"
+    | "right-end";
 }
 
-export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
+export const Menu: React.FC<MenuProps> = ({ trigger, items, placement }) => {
   return (
-    <ArkMenu.Root>
+    <ArkMenu.Root
+      positioning={placement ? { placement, gutter: 4 } : undefined}
+    >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <ArkMenu.Positioner>
         <ArkMenu.Content className={menuContentStyle}>

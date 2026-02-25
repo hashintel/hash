@@ -53,6 +53,11 @@ interface TooltipProps {
    */
   display?: "block" | "inline";
   /**
+   * Preferred placement of the tooltip relative to the trigger.
+   * @default "top"
+   */
+  placement?: "top" | "bottom" | "left" | "right";
+  /**
    * Optional className to apply to the trigger wrapper element.
    */
   className?: string;
@@ -68,6 +73,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   display = "block",
+  placement = "top",
   className,
 }) => {
   const portalContainerRef = usePortalContainerRef();
@@ -81,7 +87,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       openDelay={200}
       closeDelay={0}
       positioning={{
-        placement: "top",
+        placement,
         flip: true,
         slide: true,
         overflowPadding: 8,
