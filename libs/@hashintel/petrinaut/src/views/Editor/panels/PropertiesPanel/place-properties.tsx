@@ -48,18 +48,6 @@ const mainContentStyle = css({
   gap: "[12px]",
 });
 
-const headerContainerStyle = css({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "[8px]",
-});
-
-const headerTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "[16px]",
-});
-
 const fieldLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
@@ -159,7 +147,6 @@ const PlaceMainContent: React.FC = () => {
 
   const {
     petriNetDefinition: { differentialEquations, types: availableTypes },
-    removePlace,
   } = use(SDCPNContext);
 
   // Store previous visualizer code when toggling off (in case user toggled off by mistake)
@@ -248,30 +235,6 @@ const PlaceMainContent: React.FC = () => {
 
   return (
     <div ref={rootDivRef} className={mainContentStyle}>
-      <div>
-        <div className={headerContainerStyle}>
-          <div className={headerTitleStyle}>Place</div>
-          <IconButton
-            aria-label="Delete"
-            variant="danger"
-            onClick={() => {
-              if (
-                // eslint-disable-next-line no-alert
-                window.confirm(
-                  `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
-                )
-              ) {
-                removePlace(place.id);
-              }
-            }}
-            disabled={isReadOnly}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-          >
-            <TbTrash size={16} />
-          </IconButton>
-        </div>
-      </div>
-
       <div>
         <div className={fieldLabelStyle}>Name</div>
         <Input
@@ -525,11 +488,38 @@ const PlaceMainContent: React.FC = () => {
   );
 };
 
+const DeletePlaceAction: React.FC = () => {
+  const { place, isReadOnly } = usePlacePropertiesContext();
+  const { removePlace } = use(SDCPNContext);
+
+  return (
+    <IconButton
+      aria-label="Delete"
+      variant="danger"
+      onClick={() => {
+        if (
+          // eslint-disable-next-line no-alert
+          window.confirm(
+            `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
+          )
+        ) {
+          removePlace(place.id);
+        }
+      }}
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+    >
+      <TbTrash size={16} />
+    </IconButton>
+  );
+};
+
 const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
-  hideHeader: true,
+  main: true,
   component: PlaceMainContent,
+  renderHeaderAction: () => <DeletePlaceAction />,
 };
 
 interface PlacePropertiesProps {

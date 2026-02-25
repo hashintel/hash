@@ -45,7 +45,7 @@ const sectionContentStyle = css({
 const panelContentStyle = css({
   overflowY: "auto",
   flex: "[1]",
-  p: "2",
+  px: "3",
 });
 
 const resizeHandleStyle = css({
@@ -96,10 +96,17 @@ const sectionToggleIconExpandedStyle = css({
   transform: "[rotate(90deg)]",
 });
 
+const mainTitleStyle = css({
+  fontWeight: "semibold",
+  fontSize: "base",
+  px: "1",
+});
+
 interface SubViewHeaderProps {
   id: string;
   title: string;
   tooltip?: string;
+  main?: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
@@ -109,38 +116,43 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   id,
   title,
   tooltip,
+  main = false,
   isExpanded,
   onToggle,
   renderHeaderAction,
 }) => (
   <div className={headerRowStyle}>
-    <div
-      onClick={onToggle}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onToggle();
-        }
-      }}
-      className={sectionToggleStyle}
-      aria-expanded={isExpanded}
-      aria-controls={`subview-content-${id}`}
-    >
+    {main ? (
+      <div className={mainTitleStyle}>{title}</div>
+    ) : (
       <div
-        className={cx(
-          sectionToggleIconStyle,
-          isExpanded && sectionToggleIconExpandedStyle,
-        )}
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+        className={sectionToggleStyle}
+        aria-expanded={isExpanded}
+        aria-controls={`subview-content-${id}`}
       >
-        <FaChevronRight size={9} />
+        <div
+          className={cx(
+            sectionToggleIconStyle,
+            isExpanded && sectionToggleIconExpandedStyle,
+          )}
+        >
+          <FaChevronRight size={9} />
+        </div>
+        <span>
+          {title}
+          {tooltip && <InfoIconTooltip tooltip={tooltip} />}
+        </span>
       </div>
-      <span>
-        {title}
-        {tooltip && <InfoIconTooltip tooltip={tooltip} />}
-      </span>
-    </div>
+    )}
     {isExpanded && renderHeaderAction && (
       <div className={headerActionStyle}>{renderHeaderAction()}</div>
     )}
@@ -171,15 +183,15 @@ export const VerticalSubViewsContainer: React.FC<
   }, []);
 
   const allCollapsed = subViews.every((sv) => {
-    const isCollapsible = !(sv.hideHeader ?? false) && (sv.collapsible ?? true);
+    const isCollapsible = !sv.main && (sv.collapsible ?? true);
     return isCollapsible && collapsedState[sv.id];
   });
 
   return (
     <Group orientation="vertical" className={containerStyle}>
       {subViews.map((subView, index) => {
-        const hideHeader = subView.hideHeader ?? false;
-        const isCollapsible = !hideHeader && (subView.collapsible ?? true);
+        const isMain = subView.main ?? false;
+        const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !collapsedState[subView.id];
         const Component = subView.component;
         const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
@@ -192,16 +204,15 @@ export const VerticalSubViewsContainer: React.FC<
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
               <div className={sectionWrapperStyle}>
-                {!hideHeader && (
-                  <SubViewHeader
-                    id={subView.id}
-                    title={subView.title}
-                    tooltip={subView.tooltip}
-                    isExpanded={isExpanded}
-                    onToggle={() => toggleSection(subView.id)}
-                    renderHeaderAction={subView.renderHeaderAction}
-                  />
-                )}
+                <SubViewHeader
+                  id={subView.id}
+                  title={subView.title}
+                  tooltip={subView.tooltip}
+                  main={isMain}
+                  isExpanded={isExpanded}
+                  onToggle={() => toggleSection(subView.id)}
+                  renderHeaderAction={subView.renderHeaderAction}
+                />
 
                 {isExpanded && (
                   <div className={sectionContentStyle}>
