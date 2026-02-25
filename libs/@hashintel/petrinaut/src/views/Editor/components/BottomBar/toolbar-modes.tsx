@@ -1,7 +1,8 @@
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { FaArrowPointer, FaChevronDown, FaHand } from "react-icons/fa6";
+import { FaChevronDown, FaRegHand } from "react-icons/fa6";
+import { LuMousePointerClick } from "react-icons/lu";
 import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
 
 import type { EditorState } from "../../../../state/editor-context";
@@ -119,9 +120,9 @@ const CursorModeDropdown: React.FC<{
           aria-label="Cursor mode"
         >
           {editionMode === "pan" ? (
-            <FaHand size={16} />
+            <FaRegHand size={16} />
           ) : (
-            <FaArrowPointer size={16} />
+            <LuMousePointerClick size={16} />
           )}
           <FaChevronDown size={7} className={dropdownArrowStyle} />
         </button>
@@ -135,7 +136,7 @@ const CursorModeDropdown: React.FC<{
                 selected: editionMode === "select",
               })}
             >
-              <FaArrowPointer size={14} />
+              <LuMousePointerClick size={14} />
               <span>Select</span>
               <span className={shortcutStyle}>V</span>
             </Menu.Item>
@@ -145,7 +146,7 @@ const CursorModeDropdown: React.FC<{
                 selected: editionMode === "pan",
               })}
             >
-              <FaHand size={14} />
+              <FaRegHand size={14} />
               <span>Pan</span>
               <span className={shortcutStyle}>H</span>
             </Menu.Item>
