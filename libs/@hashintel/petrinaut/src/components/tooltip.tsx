@@ -1,7 +1,10 @@
 import { ark } from "@ark-ui/react/factory";
+import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
+
+import { usePortalContainerRef } from "../state/portal-container-context";
 
 const tooltipContentStyle = css({
   backgroundColor: "neutral.s120",
@@ -67,6 +70,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
   display = "block",
   className,
 }) => {
+  const portalContainerRef = usePortalContainerRef();
+
   if (!content) {
     return children;
   }
@@ -87,11 +92,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
           {children}
         </ark.span>
       </ArkTooltip.Trigger>
-      <ArkTooltip.Positioner>
-        <ArkTooltip.Content className={tooltipContentStyle}>
-          {content}
-        </ArkTooltip.Content>
-      </ArkTooltip.Positioner>
+      <Portal container={portalContainerRef}>
+        <ArkTooltip.Positioner>
+          <ArkTooltip.Content className={tooltipContentStyle}>
+            {content}
+          </ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </Portal>
     </ArkTooltip.Root>
   );
 };
