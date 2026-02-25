@@ -61,7 +61,7 @@
     "@graphql-codegen/typescript-operations": "2.5.13",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
-    "@temporalio/workflow": "1.12.1",
+    "@temporalio/workflow": "1.15.0",
     "@types/big.js": "6.2.2",
     "@types/express": "5.0.5",
     "@types/lodash-es": "4.17.12",

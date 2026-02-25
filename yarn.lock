@@ -363,11 +363,11 @@ __metadata:
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@sentry/node": "npm:10.27.0"
-    "@temporalio/activity": "npm:1.12.1"
-    "@temporalio/common": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
-    "@temporalio/worker": "npm:1.12.1"
-    "@temporalio/workflow": "npm:1.12.1"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    "@temporalio/worker": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
     "@types/dedent": "npm:0.7.2"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/jsdom": "npm:21.1.7"
@@ -463,8 +463,8 @@ __metadata:
     "@rudderstack/rudder-sdk-node": "npm:3.0.3"
     "@sentry/node": "npm:10.27.0"
     "@snowplow/node-tracker": "npm:4.6.8"
-    "@temporalio/client": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
     "@types/app-root-path": "npm:3.1.0"
     "@types/cors": "npm:2.8.19"
     "@types/dedent": "npm:0.7.2"
@@ -710,9 +710,9 @@ __metadata:
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@sentry/node": "npm:10.27.0"
-    "@temporalio/activity": "npm:1.12.1"
-    "@temporalio/worker": "npm:1.12.1"
-    "@temporalio/workflow": "npm:1.12.1"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/worker": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.6.0"
     axios: "npm:1.13.5"
@@ -9295,12 +9295,12 @@ __metadata:
     "@sentry/node": "npm:10.27.0"
     "@smithy/protocol-http": "npm:5.3.3"
     "@smithy/signature-v4": "npm:5.3.3"
-    "@temporalio/activity": "npm:1.12.1"
-    "@temporalio/client": "npm:1.12.1"
-    "@temporalio/common": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
-    "@temporalio/worker": "npm:1.12.1"
-    "@temporalio/workflow": "npm:1.12.1"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    "@temporalio/worker": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.18.13"
     "@types/wait-on": "npm:5.3.4"
@@ -9353,7 +9353,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-    "@temporalio/client": "npm:1.12.1"
+    "@temporalio/client": "npm:1.15.0"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     effect: "npm:3.18.4"
     eslint: "npm:9.39.3"
@@ -9383,7 +9383,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@sentry/browser": "npm:10.22.0"
     "@sindresorhus/slugify": "npm:3.0.0"
-    "@temporalio/workflow": "npm:1.12.1"
+    "@temporalio/workflow": "npm:1.15.0"
     "@types/big.js": "npm:6.2.2"
     "@types/express": "npm:5.0.5"
     "@types/lodash-es": "npm:4.17.12"
@@ -17021,80 +17021,95 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@temporalio/activity@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/activity@npm:1.12.1"
+"@temporalio/activity@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/activity@npm:1.15.0"
   dependencies:
-    "@temporalio/common": "npm:1.12.1"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
     abort-controller: "npm:^3.0.0"
-  checksum: 10c0/256b47400821cf6ab2b81b4f61e9f8faebc554393b6c39f8b0c289a1b612ab36dc6c0a451e93b64bb7fa5e2d9f489c3e79d27096acf2d84631569eaae2849521
+  checksum: 10c0/167c231d94aa53ffb9c6f3a0f112408a14ea69ad6777b86cd5510ce7cb244f4186c248cf237a0b44fbd2c025afb4963e06d3dbe4bb8bc957972c97cbcc856d4d
   languageName: node
   linkType: hard
 
-"@temporalio/client@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/client@npm:1.12.1"
+"@temporalio/client@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/client@npm:1.15.0"
   dependencies:
     "@grpc/grpc-js": "npm:^1.12.4"
-    "@temporalio/common": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
     abort-controller: "npm:^3.0.0"
     long: "npm:^5.2.3"
-    uuid: "npm:^9.0.1"
-  checksum: 10c0/1aa0884c55ad47ba8a20e496b8ae2047ab82be86f6208c4fc2554dd7234afb614a8e08df3d4dd6d6a9b0aaa8f4ae2b250de39b573dfbd37c925fb51f9e4febdc
+    uuid: "npm:^11.1.0"
+  checksum: 10c0/e92b76218ecdf68e8cb7ecbd526f0be5e18f7273028596ea417ea6dd74e822c8b5d28fe1cf34926fb66e955a9b90c8266d9e197709aa54bdcee6fd21924682bb
   languageName: node
   linkType: hard
 
-"@temporalio/common@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/common@npm:1.12.1"
+"@temporalio/common@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/common@npm:1.15.0"
   dependencies:
-    "@temporalio/proto": "npm:1.12.1"
+    "@temporalio/proto": "npm:1.15.0"
     long: "npm:^5.2.3"
-    ms: "npm:^3.0.0-canary.1"
+    ms: "npm:3.0.0-canary.1"
+    nexus-rpc: "npm:^0.0.1"
     proto3-json-serializer: "npm:^2.0.0"
-  checksum: 10c0/9272a00f24477106bd7be61ed3e976f59570c30200e8beaef92c6030086cfe8f63e3c7a6a5b93fdaef1c0775a012f0e2e24ea60e93340c666ed7c61724543b52
+  checksum: 10c0/4ca5e8c6af1680fcd4df72f3d0fabc2274496735053d3be365915fa76242c56be66b60b6ee74f5b729750784186517179c227016078a82c4dc052e39092ad8da
   languageName: node
   linkType: hard
 
-"@temporalio/core-bridge@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/core-bridge@npm:1.12.1"
+"@temporalio/core-bridge@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/core-bridge@npm:1.15.0"
   dependencies:
     "@grpc/grpc-js": "npm:^1.12.4"
-    "@temporalio/common": "npm:1.12.1"
-    arg: "npm:^5.0.2"
-    cargo-cp-artifact: "npm:^0.1.8"
-    which: "npm:^4.0.0"
-  checksum: 10c0/d9deb6bcece54561f43b0fe8847199bbd55008683a73a754b1178a33f6ca935126a642e9534936e960500e0d90144691f0d4b86c4928dba62ae0bc65af78861e
+    "@temporalio/common": "npm:1.15.0"
+  checksum: 10c0/b0a1f410b2001887572109c50e864e147c171b3364d38cdf1442f8b13cb53eb56af1c38c10aec9f5eb83c05c13ad3bcc6b3eb80ab60bbf872c8274e1a6c3da7e
   languageName: node
   linkType: hard
 
-"@temporalio/proto@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/proto@npm:1.12.1"
+"@temporalio/nexus@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/nexus@npm:1.15.0"
+  dependencies:
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    long: "npm:^5.2.3"
+    nexus-rpc: "npm:^0.0.1"
+  checksum: 10c0/57f66d1b28e61286dd29eb1834f0ae0f6837069440904cf1b528a21c4c73bb67dcdc8ecece3e37872afa2fd89729df4fe3405740a183536453f333707471ed5a
+  languageName: node
+  linkType: hard
+
+"@temporalio/proto@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/proto@npm:1.15.0"
   dependencies:
     long: "npm:^5.2.3"
     protobufjs: "npm:^7.2.5"
-  checksum: 10c0/99f526398f3b01dbb8b9f6567e079d41d7774899b55c6d4ef92eb3a94289a15b8f78f84b8433fe1e01f239bee554cab173b20057bc6f47079f44cf5bf44e17dc
+  checksum: 10c0/09b25c12aad4d65c3cb3a447879e790ee83967d0d4d46011d49e9156b468c605f57663dae088ecb47d75e0a6971d2ea072bb5840dda4163f6569448d164a90b0
   languageName: node
   linkType: hard
 
-"@temporalio/worker@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/worker@npm:1.12.1"
+"@temporalio/worker@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/worker@npm:1.15.0"
   dependencies:
     "@grpc/grpc-js": "npm:^1.12.4"
     "@swc/core": "npm:^1.3.102"
-    "@temporalio/activity": "npm:1.12.1"
-    "@temporalio/client": "npm:1.12.1"
-    "@temporalio/common": "npm:1.12.1"
-    "@temporalio/core-bridge": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
-    "@temporalio/workflow": "npm:1.12.1"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/core-bridge": "npm:1.15.0"
+    "@temporalio/nexus": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
     abort-controller: "npm:^3.0.0"
-    heap-js: "npm:^2.3.0"
+    heap-js: "npm:^2.6.0"
     memfs: "npm:^4.6.0"
+    nexus-rpc: "npm:^0.0.1"
+    proto3-json-serializer: "npm:^2.0.0"
     protobufjs: "npm:^7.2.5"
     rxjs: "npm:^7.8.1"
     source-map: "npm:^0.7.4"
@@ -17102,18 +17117,19 @@ __metadata:
     supports-color: "npm:^8.1.1"
     swc-loader: "npm:^0.2.3"
     unionfs: "npm:^4.5.1"
-    webpack: "npm:^5.94.0"
-  checksum: 10c0/d8921f25566381924411b87295606808c9764260b2d9d6a10fc96d77809f1970357314273a985f329cbad92cd3710137d9cf70b277b945d5bc54209b6cbf107d
+    webpack: "npm:^5.104.1"
+  checksum: 10c0/c26a6640da0f7a29d21ce10b53099ff18268c2001d2c2f2f0e6c0c91a48d68497b5d54b407a76fad7f3bafe055a5ad964c046f778b4dd5be597c4a3f0dc7300b
   languageName: node
   linkType: hard
 
-"@temporalio/workflow@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@temporalio/workflow@npm:1.12.1"
+"@temporalio/workflow@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/workflow@npm:1.15.0"
   dependencies:
-    "@temporalio/common": "npm:1.12.1"
-    "@temporalio/proto": "npm:1.12.1"
-  checksum: 10c0/35bf6f230af9dbae3d4b511aaddf1723c7d1c72dab98e4a0823bde978a3b4f707e3f0288825a54b09b1e1e43167f78cebd2ebc28a43b079616d10baa0b6b18fe
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    nexus-rpc: "npm:^0.0.1"
+  checksum: 10c0/c25aaa3ecc837946314f25b094d74c2c6b6a55e0a9535a594dac6637b3ba24e0359b417f1c94ea3e47ea86e428c14c6ed701ea535d964fbd42eeea41ba971164
   languageName: node
   linkType: hard
 
@@ -21487,13 +21503,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"arg@npm:^5.0.2":
-  version: 5.0.2
-  resolution: "arg@npm:5.0.2"
-  checksum: 10c0/ccaf86f4e05d342af6666c569f844bec426595c567d32a8289715087825c2ca7edd8a3d204e4d2fb2aa4602e09a57d0c13ea8c9eea75aac3dbb4af5514e6800e
-  languageName: node
-  linkType: hard
-
 "argparse@npm:^1.0.7, argparse@npm:~1.0.3, argparse@npm:~1.0.9":
   version: 1.0.10
   resolution: "argparse@npm:1.0.10"
@@ -23188,15 +23197,6 @@ __metadata:
     tslib: "npm:^2.0.3"
     upper-case-first: "npm:^2.0.2"
   checksum: 10c0/6a034af73401f6e55d91ea35c190bbf8bda21714d4ea8bb8f1799311d123410a80f0875db4e3236dc3f97d74231ff4bf1c8783f2be13d7733c7d990c57387281
-  languageName: node
-  linkType: hard
-
-"cargo-cp-artifact@npm:^0.1.8":
-  version: 0.1.9
-  resolution: "cargo-cp-artifact@npm:0.1.9"
-  bin:
-    cargo-cp-artifact: bin/cargo-cp-artifact.js
-  checksum: 10c0/60eb1845917cfb021920fcf600a72379890b385396f9c69107face3b16b347960b66cd3d82cc169c6ac8b1212cf0706584125bc36fbc08353b033310c17ca0a6
   languageName: node
   linkType: hard
 
@@ -26119,7 +26119,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"enhanced-resolve@npm:^5.0.0, enhanced-resolve@npm:^5.15.0, enhanced-resolve@npm:^5.17.4, enhanced-resolve@npm:^5.18.0, enhanced-resolve@npm:^5.7.0":
+"enhanced-resolve@npm:^5.0.0, enhanced-resolve@npm:^5.15.0, enhanced-resolve@npm:^5.17.4, enhanced-resolve@npm:^5.18.0, enhanced-resolve@npm:^5.19.0, enhanced-resolve@npm:^5.7.0":
   version: 5.19.0
   resolution: "enhanced-resolve@npm:5.19.0"
   dependencies:
@@ -30136,10 +30136,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"heap-js@npm:^2.3.0":
-  version: 2.5.0
-  resolution: "heap-js@npm:2.5.0"
-  checksum: 10c0/11a8ff8abdea5087770d62bcf235fc5b7ffcb832d328264e91034cac1a898fb18259386f3cc12003ef49189d82e216498fdf8c486da197b36c44cda3e12ff3ac
+"heap-js@npm:^2.6.0":
+  version: 2.7.1
+  resolution: "heap-js@npm:2.7.1"
+  checksum: 10c0/a1e4ec7624487f198158599a04b73f5e72f3e805b2ee7dc18ae5340be035a8e5c9e6ee01d8ed4eb81a8bcb6c03b0342f57af386b2552825777a1d7c64adedbd4
   languageName: node
   linkType: hard
 
@@ -35726,7 +35726,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ms@npm:^3.0.0-canary.1":
+"ms@npm:3.0.0-canary.1, ms@npm:^3.0.0-canary.1":
   version: 3.0.0-canary.1
   resolution: "ms@npm:3.0.0-canary.1"
   checksum: 10c0/81040c55778c01b6cb8fd35aee71465b765a8ab5daa2f8d46a59f9fde0f86c668483232c82c9e8fb7d9379a3671b3bdd5f34b38e54dcedb608d791d149bb2815
@@ -36118,6 +36118,13 @@ __metadata:
     next: ">= 6.0.0"
     react: ">= 16.0.0"
   checksum: 10c0/6639c61e70e426e1795d705e3aa25005e9dcfcb841773e30311bc9e231aee0b219ef4e1d839b274f1a64df480bf4b3044f55ad7fb6796c53b218570577c4e746
+  languageName: node
+  linkType: hard
+
+"nexus-rpc@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "nexus-rpc@npm:0.0.1"
+  checksum: 10c0/60d9661d2fc53c0337d364b7baca29fe9dbf2473311c8e380fb29c729b8fa58191c7f01c18eb326559e7322edb4daed49b672cd7ae56691b6b80e5290a87881c
   languageName: node
   linkType: hard
 
@@ -45440,13 +45447,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"watchpack@npm:^2.4.4":
-  version: 2.4.4
-  resolution: "watchpack@npm:2.4.4"
+"watchpack@npm:^2.4.4, watchpack@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "watchpack@npm:2.5.1"
   dependencies:
     glob-to-regexp: "npm:^0.4.1"
     graceful-fs: "npm:^4.1.2"
-  checksum: 10c0/6c0901f75ce245d33991225af915eea1c5ae4ba087f3aee2b70dd377d4cacb34bef02a48daf109da9d59b2d31ec6463d924a0d72f8618ae1643dd07b95de5275
+  checksum: 10c0/dffbb483d1f61be90dc570630a1eb308581e2227d507d783b1d94a57ac7b705ecd9a1a4b73d73c15eab596d39874e5276a3d9cb88bbb698bafc3f8d08c34cf17
   languageName: node
   linkType: hard
 
@@ -45669,7 +45676,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:5.104.1, webpack@npm:^5.94.0":
+"webpack@npm:5.104.1":
   version: 5.104.1
   resolution: "webpack@npm:5.104.1"
   dependencies:
@@ -45704,6 +45711,44 @@ __metadata:
   bin:
     webpack: bin/webpack.js
   checksum: 10c0/ea78c57f80bbd7684f4f1bb38a18408ab0ef4c5b962e25ad382c595d10b9e9701e077f5248a8cef5f127a55902698664c18837e64243bb972fbecf4e5d9aaab0
+  languageName: node
+  linkType: hard
+
+"webpack@npm:^5.104.1":
+  version: 5.105.2
+  resolution: "webpack@npm:5.105.2"
+  dependencies:
+    "@types/eslint-scope": "npm:^3.7.7"
+    "@types/estree": "npm:^1.0.8"
+    "@types/json-schema": "npm:^7.0.15"
+    "@webassemblyjs/ast": "npm:^1.14.1"
+    "@webassemblyjs/wasm-edit": "npm:^1.14.1"
+    "@webassemblyjs/wasm-parser": "npm:^1.14.1"
+    acorn: "npm:^8.15.0"
+    acorn-import-phases: "npm:^1.0.3"
+    browserslist: "npm:^4.28.1"
+    chrome-trace-event: "npm:^1.0.2"
+    enhanced-resolve: "npm:^5.19.0"
+    es-module-lexer: "npm:^2.0.0"
+    eslint-scope: "npm:5.1.1"
+    events: "npm:^3.2.0"
+    glob-to-regexp: "npm:^0.4.1"
+    graceful-fs: "npm:^4.2.11"
+    json-parse-even-better-errors: "npm:^2.3.1"
+    loader-runner: "npm:^4.3.1"
+    mime-types: "npm:^2.1.27"
+    neo-async: "npm:^2.6.2"
+    schema-utils: "npm:^4.3.3"
+    tapable: "npm:^2.3.0"
+    terser-webpack-plugin: "npm:^5.3.16"
+    watchpack: "npm:^2.5.1"
+    webpack-sources: "npm:^3.3.3"
+  peerDependenciesMeta:
+    webpack-cli:
+      optional: true
+  bin:
+    webpack: bin/webpack.js
+  checksum: 10c0/565df8072c00d72e0a22e136971862b7eac7beb8b8d39a2ae4ab00838941ea58acc5b49dd7ea268e3d839810756cb86ba5c272b3a25904f6db7807cfa8ed0b29
   languageName: node
   linkType: hard
 
@@ -45894,17 +45939,6 @@ __metadata:
   bin:
     node-which: ./bin/node-which
   checksum: 10c0/66522872a768b60c2a65a57e8ad184e5372f5b6a9ca6d5f033d4b0dc98aff63995655a7503b9c0a2598936f532120e81dd8cc155e2e92ed662a2b9377cc4374f
-  languageName: node
-  linkType: hard
-
-"which@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "which@npm:4.0.0"
-  dependencies:
-    isexe: "npm:^3.1.1"
-  bin:
-    node-which: bin/which.js
-  checksum: 10c0/449fa5c44ed120ccecfe18c433296a4978a7583bf2391c50abce13f76878d2476defde04d0f79db8165bdf432853c1f8389d0485ca6e8ebce3bbcded513d5e6a
   languageName: node
   linkType: hard
 
