@@ -138,9 +138,6 @@ const TransitionFiringTimeContent: React.FC = () => {
 
       <CodeEditor
         path={getDocumentUri("transition-lambda", transition.id)}
-        key={`lambda-${transition.lambdaType}-${transition.inputArcs
-          .map((a) => `${a.placeId}:${a.weight}`)
-          .join("-")}`}
         language="typescript"
         value={transition.lambdaCode || ""}
         height="100%"
