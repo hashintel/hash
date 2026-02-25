@@ -45,6 +45,8 @@ const containerStyle = css({
 const mainContentStyle = css({
   display: "flex",
   flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
   gap: "[12px]",
 });
 
@@ -114,18 +116,6 @@ const menuButtonStyle = css({
   color: "[rgba(0, 0, 0, 0.6)]",
 });
 
-const codeHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[4px]",
-});
-
-const codeHeaderLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
@@ -134,6 +124,13 @@ const aiMenuItemStyle = css({
 
 const aiIconStyle = css({
   fontSize: "[16px]",
+});
+
+const codeContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
 });
 
 /**
@@ -424,57 +421,11 @@ const PlaceMainContent: React.FC = () => {
 
       {/* Visualizer Code Editor - only shown in edit mode when visualizer is enabled */}
       {place.visualizerCode !== undefined && !showVisualizerOutput && (
-        <div>
-          <div className={codeHeaderStyle}>
-            <div className={codeHeaderLabelStyle}>Visualizer Code</div>
-            <Menu
-              trigger={
-                <button type="button" className={menuButtonStyle}>
-                  <TbDotsVertical />
-                </button>
-              }
-              items={[
-                {
-                  id: "load-default",
-                  label: "Load default template",
-                  onClick: () => {
-                    // Get the place's type to generate appropriate default code
-                    const currentPlaceType = place.colorId
-                      ? types.find((t) => t.id === place.colorId)
-                      : null;
-
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.visualizerCode = currentPlaceType
-                        ? generateDefaultVisualizerCode(currentPlaceType)
-                        : DEFAULT_VISUALIZER_CODE;
-                    });
-                  },
-                },
-                {
-                  id: "generate-ai",
-                  label: (
-                    <Tooltip
-                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                      display="inline"
-                    >
-                      <div className={aiMenuItemStyle}>
-                        <TbSparkles className={aiIconStyle} />
-                        Generate with AI
-                      </div>
-                    </Tooltip>
-                  ),
-                  disabled: true,
-                  onClick: () => {
-                    // TODO: Implement AI generation
-                  },
-                },
-              ]}
-            />
-          </div>
+        <div className={codeContainerStyle}>
           <CodeEditor
             path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
             language="typescript"
-            height={400}
+            height="100%"
             value={place.visualizerCode}
             onChange={(value) => {
               updatePlace(place.id, (existingPlace) => {
@@ -485,6 +436,68 @@ const PlaceMainContent: React.FC = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const VisualizerCodeAction: React.FC = () => {
+  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
+  const { globalMode } = use(EditorContext);
+  const { totalFrames } = use(PlaybackContext);
+
+  const hasSimulationFrames = totalFrames > 0;
+  const showVisualizerOutput = isReadOnly || hasSimulationFrames;
+
+  if (
+    globalMode !== "edit" ||
+    place.visualizerCode === undefined ||
+    showVisualizerOutput
+  ) {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            const currentPlaceType = place.colorId
+              ? types.find((t) => t.id === place.colorId)
+              : null;
+
+            updatePlace(place.id, (existingPlace) => {
+              existingPlace.visualizerCode = currentPlaceType
+                ? generateDefaultVisualizerCode(currentPlaceType)
+                : DEFAULT_VISUALIZER_CODE;
+            });
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
   );
 };
 
@@ -514,12 +527,19 @@ const DeletePlaceAction: React.FC = () => {
   );
 };
 
+const PlaceHeaderActions: React.FC = () => (
+  <>
+    <VisualizerCodeAction />
+    <DeletePlaceAction />
+  </>
+);
+
 const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
   main: true,
   component: PlaceMainContent,
-  renderHeaderAction: () => <DeletePlaceAction />,
+  renderHeaderAction: () => <PlaceHeaderActions />,
 };
 
 interface PlacePropertiesProps {

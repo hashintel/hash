@@ -34,7 +34,8 @@ const containerStyle = css({
 const mainContentStyle = css({
   display: "flex",
   flexDirection: "column",
-  height: "[100%]",
+  flex: "[1]",
+  minHeight: "[0]",
   gap: "[12px]",
 });
 
@@ -176,18 +177,6 @@ const codeContainerStyle = css({
   flexDirection: "column",
   flex: "[1]",
   minHeight: "[0]",
-});
-
-const codeHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[8px]",
-});
-
-const codeHeaderLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
 });
 
 const menuButtonStyle = css({
@@ -435,58 +424,6 @@ const DiffEqMainContent: React.FC = () => {
       )}
 
       <div className={codeContainerStyle}>
-        <div className={codeHeaderStyle}>
-          <div className={codeHeaderLabelStyle}>Code</div>
-          {!isReadOnly && (
-            <Menu
-              trigger={
-                <button type="button" className={menuButtonStyle}>
-                  <TbDotsVertical />
-                </button>
-              }
-              items={[
-                {
-                  id: "load-default",
-                  label: "Load default template",
-                  onClick: () => {
-                    const equationType = types.find(
-                      (t) => t.id === differentialEquation.colorId,
-                    );
-
-                    updateDifferentialEquation(
-                      differentialEquation.id,
-                      (existingEquation) => {
-                        existingEquation.code = equationType
-                          ? generateDefaultDifferentialEquationCode(
-                              equationType,
-                            )
-                          : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
-                      },
-                    );
-                  },
-                },
-                {
-                  id: "generate-ai",
-                  label: (
-                    <Tooltip
-                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                      display="inline"
-                    >
-                      <div className={aiMenuItemStyle}>
-                        <TbSparkles className={aiIconStyle} />
-                        Generate with AI
-                      </div>
-                    </Tooltip>
-                  ),
-                  disabled: true,
-                  onClick: () => {
-                    // TODO: Implement AI generation when editing is available
-                  },
-                },
-              ]}
-            />
-          )}
-        </div>
         <CodeEditor
           path={getDocumentUri(
             "differential-equation",
@@ -511,11 +448,70 @@ const DiffEqMainContent: React.FC = () => {
   );
 };
 
+const DiffEqCodeAction: React.FC = () => {
+  const { differentialEquation, types, updateDifferentialEquation } =
+    useDiffEqPropertiesContext();
+  const isReadOnly = useIsReadOnly();
+
+  if (isReadOnly) {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            const equationType = types.find(
+              (t) => t.id === differentialEquation.colorId,
+            );
+
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = equationType
+                  ? generateDefaultDifferentialEquationCode(equationType)
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+              },
+            );
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
+  );
+};
+
 const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
   title: "Differential Equation",
   main: true,
   component: DiffEqMainContent,
+  renderHeaderAction: () => <DiffEqCodeAction />,
 };
 
 const subViews: SubView[] = [diffEqMainContentSubView];

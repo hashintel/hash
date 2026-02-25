@@ -1,5 +1,4 @@
 /* eslint-disable id-length */
-/* eslint-disable curly */
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
@@ -13,19 +12,6 @@ import { CodeEditor } from "../../../monaco/code-editor";
 import { getDocumentUri } from "../../../monaco/editor-paths";
 import { EditorContext } from "../../../state/editor-context";
 import { useTransitionPropertiesContext } from "../panels/PropertiesPanel/transition-properties-context";
-
-const codeHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[4px]",
-  height: "[30px]",
-});
-
-const codeHeaderLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-});
 
 const menuButtonStyle = css({
   background: "[transparent]",
@@ -58,15 +44,99 @@ const noOutputTypesBoxStyle = css({
   lineHeight: "[1.5]",
 });
 
+const contentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
 const noOutputTitleStyle = css({
   fontWeight: "medium",
   marginBottom: "[4px]",
 });
 
-const TransitionResultsContent: React.FC = () => {
-  const { transition, places, types, isReadOnly, updateTransition } =
+const ResultsHeaderAction: React.FC = () => {
+  const { transition, places, types, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
+
+  if (globalMode !== "edit") {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            const inputs = transition.inputArcs
+              .map((arc) => {
+                const place = places.find((p) => p.id === arc.placeId);
+                if (!place || !place.colorId) return null;
+                const type = types.find((t) => t.id === place.colorId);
+                if (!type) return null;
+                return {
+                  placeName: place.name,
+                  type,
+                  weight: arc.weight,
+                };
+              })
+              .filter((i) => i !== null);
+
+            const outputs = transition.outputArcs
+              .map((arc) => {
+                const place = places.find((p) => p.id === arc.placeId);
+                if (!place || !place.colorId) return null;
+                const type = types.find((t) => t.id === place.colorId);
+                if (!type) return null;
+                return {
+                  placeName: place.name,
+                  type,
+                  weight: arc.weight,
+                };
+              })
+              .filter((o) => o !== null);
+
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.transitionKernelCode =
+                generateDefaultTransitionKernelCode(inputs, outputs);
+            });
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
+  );
+};
+
+const TransitionResultsContent: React.FC = () => {
+  const { transition, places, isReadOnly, updateTransition } =
+    useTransitionPropertiesContext();
 
   const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
     const place = places.find((p) => p.id === arc.placeId);
@@ -87,82 +157,12 @@ const TransitionResultsContent: React.FC = () => {
   }
 
   return (
-    <>
-      <div className={codeHeaderStyle}>
-        <div className={codeHeaderLabelStyle}>Transition Results Code</div>
-        {globalMode === "edit" && (
-          <Menu
-            trigger={
-              <button type="button" className={menuButtonStyle}>
-                <TbDotsVertical />
-              </button>
-            }
-            items={[
-              {
-                id: "load-default",
-                label: "Load default template",
-                onClick: () => {
-                  const inputs = transition.inputArcs
-                    .map((arc) => {
-                      const place = places.find((p) => p.id === arc.placeId);
-                      if (!place || !place.colorId) return null;
-                      const type = types.find((t) => t.id === place.colorId);
-                      if (!type) return null;
-                      return {
-                        placeName: place.name,
-                        type,
-                        weight: arc.weight,
-                      };
-                    })
-                    .filter((i) => i !== null);
-
-                  const outputs = transition.outputArcs
-                    .map((arc) => {
-                      const place = places.find((p) => p.id === arc.placeId);
-                      if (!place || !place.colorId) return null;
-                      const type = types.find((t) => t.id === place.colorId);
-                      if (!type) return null;
-                      return {
-                        placeName: place.name,
-                        type,
-                        weight: arc.weight,
-                      };
-                    })
-                    .filter((o) => o !== null);
-
-                  updateTransition(transition.id, (existingTransition) => {
-                    existingTransition.transitionKernelCode =
-                      generateDefaultTransitionKernelCode(inputs, outputs);
-                  });
-                },
-              },
-              {
-                id: "generate-ai",
-                label: (
-                  <Tooltip
-                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                    display="inline"
-                  >
-                    <div className={aiMenuItemStyle}>
-                      <TbSparkles className={aiIconStyle} />
-                      Generate with AI
-                    </div>
-                  </Tooltip>
-                ),
-                disabled: true,
-                onClick: () => {
-                  // TODO: Implement AI generation
-                },
-              },
-            ]}
-          />
-        )}
-      </div>
+    <div className={contentStyle}>
       <CodeEditor
         path={getDocumentUri("transition-kernel", transition.id)}
         language="typescript"
         value={transition.transitionKernelCode || ""}
-        height={400}
+        height="100%"
         onChange={(value) => {
           updateTransition(transition.id, (existingTransition) => {
             existingTransition.transitionKernelCode = value ?? "";
@@ -171,7 +171,7 @@ const TransitionResultsContent: React.FC = () => {
         options={{ readOnly: isReadOnly }}
         tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       />
-    </>
+    </div>
   );
 };
 
@@ -181,4 +181,5 @@ export const transitionResultsSubView: SubView = {
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
   component: TransitionResultsContent,
+  renderHeaderAction: () => <ResultsHeaderAction />,
 };

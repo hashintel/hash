@@ -13,6 +13,13 @@ import { getDocumentUri } from "../../../monaco/editor-paths";
 import { EditorContext } from "../../../state/editor-context";
 import { useTransitionPropertiesContext } from "../panels/PropertiesPanel/transition-properties-context";
 
+const contentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
 const segmentGroupContainerStyle = css({
   marginBottom: "[8px]",
 });
@@ -25,19 +32,6 @@ const infoBoxStyle = css({
   borderRadius: "[4px]",
   lineHeight: "[1.5]",
   marginBottom: "[8px]",
-});
-
-const codeHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[4px]",
-  height: "[30px]",
-});
-
-const codeHeaderLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
 });
 
 const menuButtonStyle = css({
@@ -61,13 +55,62 @@ const aiIconStyle = css({
   fontSize: "[16px]",
 });
 
+const FiringTimeHeaderAction: React.FC = () => {
+  const { transition, updateTransition } = useTransitionPropertiesContext();
+  const { globalMode } = use(EditorContext);
+
+  if (globalMode !== "edit") {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.lambdaCode = generateDefaultLambdaCode(
+                existingTransition.lambdaType,
+              );
+            });
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
+  );
+};
+
 const TransitionFiringTimeContent: React.FC = () => {
   const { transition, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
-  const { globalMode } = use(EditorContext);
 
   return (
-    <>
+    <div className={contentStyle}>
       <div className={segmentGroupContainerStyle}>
         <OutlinedSegmentGroup
           value={transition.lambdaType}
@@ -93,53 +136,6 @@ const TransitionFiringTimeContent: React.FC = () => {
           : "For a stochastic firing rate, return a value that represents the average rate per second at which the transition will fire."}
       </div>
 
-      <div className={codeHeaderStyle}>
-        <div className={codeHeaderLabelStyle}>
-          {transition.lambdaType === "predicate"
-            ? "Predicate Firing Code"
-            : "Stochastic Firing Rate Code"}
-        </div>
-        {globalMode === "edit" && (
-          <Menu
-            trigger={
-              <button type="button" className={menuButtonStyle}>
-                <TbDotsVertical />
-              </button>
-            }
-            items={[
-              {
-                id: "load-default",
-                label: "Load default template",
-                onClick: () => {
-                  updateTransition(transition.id, (existingTransition) => {
-                    existingTransition.lambdaCode = generateDefaultLambdaCode(
-                      existingTransition.lambdaType,
-                    );
-                  });
-                },
-              },
-              {
-                id: "generate-ai",
-                label: (
-                  <Tooltip
-                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                    display="inline"
-                  >
-                    <div className={aiMenuItemStyle}>
-                      <TbSparkles className={aiIconStyle} />
-                      Generate with AI
-                    </div>
-                  </Tooltip>
-                ),
-                disabled: true,
-                onClick: () => {
-                  // TODO: Implement AI generation
-                },
-              },
-            ]}
-          />
-        )}
-      </div>
       <CodeEditor
         path={getDocumentUri("transition-lambda", transition.id)}
         key={`lambda-${transition.lambdaType}-${transition.inputArcs
@@ -147,7 +143,7 @@ const TransitionFiringTimeContent: React.FC = () => {
           .join("-")}`}
         language="typescript"
         value={transition.lambdaCode || ""}
-        height={340}
+        height="100%"
         onChange={(value) => {
           updateTransition(transition.id, (existingTransition) => {
             existingTransition.lambdaCode = value ?? "";
@@ -156,14 +152,16 @@ const TransitionFiringTimeContent: React.FC = () => {
         options={{ readOnly: isReadOnly }}
         tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       />
-    </>
+    </div>
   );
 };
 
 export const transitionFiringTimeSubView: SubView = {
   id: "transition-firing-time",
   title: "Firing Time",
+  minHeight: 340,
   tooltip:
     "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
   component: TransitionFiringTimeContent,
+  renderHeaderAction: () => <FiringTimeHeaderAction />,
 };
