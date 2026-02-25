@@ -1,6 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { createContext, use, useMemo } from "react";
 
 import { Input } from "../../../../components/input";
+import type { SubView } from "../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Parameter } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -8,13 +11,14 @@ import { useIsReadOnly } from "../../../../state/use-is-read-only";
 const containerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[12px]",
+  height: "[100%]",
+  minHeight: "[0]",
 });
 
-const headerTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "[16px]",
-  marginBottom: "[8px]",
+const mainContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
 });
 
 const fieldLabelStyle = css({
@@ -23,29 +27,18 @@ const fieldLabelStyle = css({
   marginBottom: "[4px]",
 });
 
-/**
- * Slugifies a string to a valid JavaScript identifier.
- * - Converts to lowercase
- * - Replaces spaces and special characters with underscores
- * - Removes leading/trailing underscores
- * - Ensures it doesn't start with a number
- */
 const slugifyToIdentifier = (str: string): string => {
-  return (
-    str
-      .toLowerCase()
-      // Replace spaces and non-alphanumeric characters (except underscores) with underscores
-      .replace(/[^a-z0-9_]+/g, "_")
-      // Remove leading underscores
-      .replace(/^_+/, "")
-      // Remove trailing underscores
-      .replace(/_+$/, "")
-      // Ensure it doesn't start with a number
-      .replace(/^(\d)/, "_$1")
-  );
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+/, "")
+    .replace(/_+$/, "")
+    .replace(/^(\d)/, "_$1");
 };
 
-interface ParameterPropertiesProps {
+// --- Context ---
+
+interface ParameterPropertiesContextValue {
   parameter: Parameter;
   updateParameter: (
     parameterId: string,
@@ -53,10 +46,23 @@ interface ParameterPropertiesProps {
   ) => void;
 }
 
-export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
-  parameter,
-  updateParameter,
-}) => {
+const ParameterPropertiesContext =
+  createContext<ParameterPropertiesContextValue | null>(null);
+
+const useParameterPropertiesContext = (): ParameterPropertiesContextValue => {
+  const context = use(ParameterPropertiesContext);
+  if (!context) {
+    throw new Error(
+      "useParameterPropertiesContext must be used within ParameterProperties",
+    );
+  }
+  return context;
+};
+
+// --- Content ---
+
+const ParameterMainContent: React.FC = () => {
+  const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +74,6 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   const handleUpdateVariableName = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    // Allow free-form typing
     updateParameter(parameter.id, (existingParameter) => {
       existingParameter.variableName = event.target.value;
     });
@@ -79,12 +84,10 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   ) => {
     const value = event.target.value.trim();
     if (value === "") {
-      // Default to "param" if empty
       updateParameter(parameter.id, (existingParameter) => {
         existingParameter.variableName = "param";
       });
     } else {
-      // Apply slugification on blur
       const slugified = slugifyToIdentifier(value);
       if (slugified !== value) {
         updateParameter(parameter.id, (existingParameter) => {
@@ -103,11 +106,7 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   };
 
   return (
-    <div className={containerStyle}>
-      <div>
-        <div className={headerTitleStyle}>Parameter</div>
-      </div>
-
+    <div className={mainContentStyle}>
       {/* Name field */}
       <div>
         <div className={fieldLabelStyle}>Name</div>
@@ -132,8 +131,6 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
         />
       </div>
 
-      {/* Type selector - hidden for now as internal code relies on "real" type */}
-
       {/* Default Value field */}
       <div>
         <div className={fieldLabelStyle}>Default Value</div>
@@ -145,6 +142,43 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </div>
+    </div>
+  );
+};
+
+const parameterMainContentSubView: SubView = {
+  id: "parameter-main-content",
+  title: "Parameter",
+  main: true,
+  component: ParameterMainContent,
+};
+
+const subViews: SubView[] = [parameterMainContentSubView];
+
+// --- Export ---
+
+interface ParameterPropertiesProps {
+  parameter: Parameter;
+  updateParameter: (
+    parameterId: string,
+    updateFn: (parameter: Parameter) => void,
+  ) => void;
+}
+
+export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
+  parameter,
+  updateParameter,
+}) => {
+  const value = useMemo(
+    () => ({ parameter, updateParameter }),
+    [parameter, updateParameter],
+  );
+
+  return (
+    <div className={containerStyle}>
+      <ParameterPropertiesContext.Provider value={value}>
+        <VerticalSubViewsContainer subViews={subViews} />
+      </ParameterPropertiesContext.Provider>
     </div>
   );
 };
