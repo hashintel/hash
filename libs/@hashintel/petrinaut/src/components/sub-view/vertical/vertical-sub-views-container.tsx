@@ -1,6 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { Fragment, useCallback, useState } from "react";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
+import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { InfoIconTooltip } from "../../tooltip";
@@ -85,6 +85,11 @@ const sectionToggleIconStyle = css({
   w: "4",
   display: "flex",
   justifyContent: "center",
+  transition: "[transform 150ms ease-out]",
+});
+
+const sectionToggleIconExpandedStyle = css({
+  transform: "[rotate(90deg)]",
 });
 
 interface SubViewHeaderProps {
@@ -119,8 +124,13 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
       aria-expanded={isExpanded}
       aria-controls={`subview-content-${id}`}
     >
-      <div className={`${sectionToggleIconStyle} toggle-icon`}>
-        {isExpanded ? <FaChevronDown size={9} /> : <FaChevronRight size={9} />}
+      <div
+        className={cx(
+          sectionToggleIconStyle,
+          isExpanded && sectionToggleIconExpandedStyle,
+        )}
+      >
+        <FaChevronRight size={9} />
       </div>
       <span>
         {title}
