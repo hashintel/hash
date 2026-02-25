@@ -1,9 +1,11 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { createContext, use, useMemo, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
+import type { SubView } from "../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Color } from "../../../../core/types/sdcpn";
@@ -13,13 +15,14 @@ import { ColorSelect } from "./color-select";
 const containerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[12px]",
+  height: "[100%]",
+  minHeight: "[0]",
 });
 
-const headerTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "[16px]",
-  marginBottom: "[8px]",
+const mainContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
 });
 
 const fieldLabelStyle = css({
@@ -187,30 +190,18 @@ const deleteDimensionButtonStyle = cva({
 
 // --- Helpers ---
 
-/**
- * Slugify a string to make it a valid JavaScript identifier
- * - Converts to lowercase
- * - Replaces spaces and special chars with underscores
- * - Removes leading numbers
- * - Ensures it's not empty
- */
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
     .toLowerCase()
     .trim()
-    // Replace spaces and non-alphanumeric chars with underscores
     .replace(/[^a-z0-9_]/g, "_")
-    // Remove consecutive underscores
     .replace(/_+/g, "_")
-    // Remove leading/trailing underscores
     .replace(/^_+|_+$/g, "");
 
-  // If it starts with a number, prefix with underscore
   if (/^[0-9]/.test(slug)) {
     slug = `_${slug}`;
   }
 
-  // If empty after sanitization, use a default
   if (slug === "") {
     slug = "field";
   }
@@ -218,25 +209,38 @@ const slugifyToIdentifier = (input: string): string => {
   return slug;
 };
 
-interface TypePropertiesProps {
+// --- Context ---
+
+interface TypePropertiesContextValue {
   type: Color;
   updateType: (typeId: string, updateFn: (type: Color) => void) => void;
 }
 
-export const TypeProperties: React.FC<TypePropertiesProps> = ({
-  type,
-  updateType,
-}) => {
+const TypePropertiesContext = createContext<TypePropertiesContextValue | null>(
+  null,
+);
+
+const useTypePropertiesContext = (): TypePropertiesContextValue => {
+  const context = use(TypePropertiesContext);
+  if (!context) {
+    throw new Error(
+      "useTypePropertiesContext must be used within TypeProperties",
+    );
+  }
+  return context;
+};
+
+// --- Content ---
+
+const TypeMainContent: React.FC = () => {
+  const { type, updateType } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // Element management handlers
   const handleAddElement = () => {
-    // Find the next dimension number
     let maxNumber = 0;
     for (const element of type.elements) {
-      // Match patterns like "dimension_1", "dimension_2", etc.
       const match = element.name.match(/dimension_(\d+)/i);
       if (match) {
         const num = Number.parseInt(match[1]!, 10);
@@ -258,7 +262,6 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
-    // Allow free-form typing - just update the value directly
     updateType(type.id, (existingType) => {
       for (const element of existingType.elements) {
         if (element.elementId === elementId) {
@@ -270,10 +273,8 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   const handleBlurElementName = (elementId: string, currentName: string) => {
-    // Slugify the name when user finishes editing
     const slugifiedName = slugifyToIdentifier(currentName);
 
-    // Check for duplicates (excluding the current element)
     const isDuplicate = type.elements.some(
       (elem) => elem.elementId !== elementId && elem.name === slugifiedName,
     );
@@ -286,7 +287,6 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
       return;
     }
 
-    // Only update if the slugified version is different
     if (currentName !== slugifiedName) {
       updateType(type.id, (existingType) => {
         for (const element of existingType.elements) {
@@ -300,7 +300,6 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   const handleDeleteElement = (elementId: string, elementName: string) => {
-    // Confirmation dialog using browser API
     // eslint-disable-next-line no-alert
     const confirmed = window.confirm(
       `Delete element "${elementName}"?\n\nThis cannot be undone.`,
@@ -320,7 +319,6 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
     });
   };
 
-  // Drag and drop handlers for reordering
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -354,11 +352,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   return (
-    <div className={containerStyle}>
-      <div>
-        <div className={headerTitleStyle}>Type</div>
-      </div>
-
+    <div className={mainContentStyle}>
       <div>
         <div className={fieldLabelStyle}>Name</div>
         <Input
@@ -481,6 +475,37 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const typeMainContentSubView: SubView = {
+  id: "type-main-content",
+  title: "Type",
+  main: true,
+  component: TypeMainContent,
+};
+
+const subViews: SubView[] = [typeMainContentSubView];
+
+// --- Export ---
+
+interface TypePropertiesProps {
+  type: Color;
+  updateType: (typeId: string, updateFn: (type: Color) => void) => void;
+}
+
+export const TypeProperties: React.FC<TypePropertiesProps> = ({
+  type,
+  updateType,
+}) => {
+  const value = useMemo(() => ({ type, updateType }), [type, updateType]);
+
+  return (
+    <div className={containerStyle}>
+      <TypePropertiesContext.Provider value={value}>
+        <VerticalSubViewsContainer subViews={subViews} />
+      </TypePropertiesContext.Provider>
     </div>
   );
 };

@@ -44,13 +44,15 @@ export interface SubView {
    */
   minHeight?: number;
   /**
-   * Whether the section header (title, toggle, actions) should be hidden.
-   * When true, `collapsible` is forced to false.
+   * Whether this is the main (primary) subview.
+   * When true, shows a non-collapsible header with a larger title style.
+   * The title and `renderHeaderAction` are displayed in the fixed header,
+   * and the content should not include its own title/actions.
    */
-  hideHeader?: boolean;
+  main?: boolean;
   /**
    * Whether the section can be collapsed by clicking the header.
-   * Defaults to true. Forced to false when `hideHeader` is true.
+   * Defaults to true. Forced to false when `main` is true.
    */
   collapsible?: boolean;
   /**
