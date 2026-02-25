@@ -1,35 +1,22 @@
-/* eslint-disable id-length */
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useRef, useState } from "react";
-import {
-  TbArrowRight,
-  TbDotsVertical,
-  TbSparkles,
-  TbTrash,
-} from "react-icons/tb";
+import { use, useEffect, useRef, useState } from "react";
+import { TbArrowRight, TbTrash } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
 import { IconButton } from "../../../../components/icon-button";
 import { Input } from "../../../../components/input";
-import { Menu } from "../../../../components/menu";
 import { Select } from "../../../../components/select";
 import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { Switch } from "../../../../components/switch";
-import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import {
-  DEFAULT_VISUALIZER_CODE,
-  generateDefaultVisualizerCode,
-} from "../../../../core/default-codes";
 import type { Color, Place } from "../../../../core/types/sdcpn";
-import { CodeEditor } from "../../../../monaco/code-editor";
-import { PlaybackContext } from "../../../../playback/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { placeInitialStateSubView } from "../../subviews/place-initial-state";
-import { placeVisualizerOutputSubView } from "../../subviews/place-visualizer-output";
+import { placeVisualizerSubView } from "../../subviews/place-visualizer";
 import {
   PlacePropertiesProvider,
   usePlacePropertiesContext,
@@ -105,52 +92,17 @@ const diffEqContainerStyle = css({
   marginBottom: "[25px]",
 });
 
-const menuButtonStyle = css({
-  background: "[transparent]",
-  border: "none",
-  cursor: "pointer",
-  padding: "[4px]",
-  display: "flex",
-  alignItems: "center",
-  fontSize: "[18px]",
-  color: "[rgba(0, 0, 0, 0.6)]",
-});
-
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
-const aiIconStyle = css({
-  fontSize: "[16px]",
-});
-
-const codeContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
 /**
  * Main content section for the Place properties panel.
  * Rendered as a headerless SubView at the top of the proportional layout.
  */
 const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { totalFrames } = use(PlaybackContext);
-  const { globalMode, setSelectedResourceId } = use(EditorContext);
+  const { setSelectedResourceId } = use(EditorContext);
 
   const {
     petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
-
-  // Store previous visualizer code when toggling off (in case user toggled off by mistake)
-  const [savedVisualizerCode, setSavedVisualizerCode] = useState<
-    string | undefined
-  >(undefined);
-  useEffect(() => setSavedVisualizerCode(undefined), [place.id]);
 
   // State for name input validation
   const [nameInputValue, setNameInputValue] = useState(place.name);
@@ -225,10 +177,6 @@ const PlaceMainContent: React.FC = () => {
   const availableDiffEqs = place.colorId
     ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
     : [];
-
-  // Determine if we should show visualization (when simulation has frames)
-  const hasSimulationFrames = totalFrames > 0;
-  const showVisualizerOutput = isReadOnly || hasSimulationFrames;
 
   return (
     <div ref={rootDivRef} className={mainContentStyle}>
@@ -382,122 +330,7 @@ const PlaceMainContent: React.FC = () => {
             )}
           </div>
         )}
-
-      {/* Visualizer toggle - only shown in edit mode */}
-      {globalMode === "edit" && (
-        <div className={sectionContainerStyle}>
-          <div className={switchRowStyle}>
-            <div className={switchContainerStyle}>
-              <Switch
-                checked={place.visualizerCode !== undefined}
-                disabled={isReadOnly}
-                tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    // Turning on: use saved code if available, otherwise default
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.visualizerCode =
-                        savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE;
-                    });
-                  } else {
-                    // Turning off: save current code and set to undefined
-                    if (place.visualizerCode) {
-                      setSavedVisualizerCode(place.visualizerCode);
-                    }
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.visualizerCode = undefined;
-                    });
-                  }
-                }}
-              />
-            </div>
-            <div className={fieldLabelWithTooltipStyle}>
-              Visualizer
-              <InfoIconTooltip tooltip="You can set a custom visualization for tokens evolving in a place, viewable in this panel when a simulation is running." />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Visualizer Code Editor - only shown in edit mode when visualizer is enabled */}
-      {place.visualizerCode !== undefined && !showVisualizerOutput && (
-        <div className={codeContainerStyle}>
-          <CodeEditor
-            path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
-            language="typescript"
-            height="100%"
-            value={place.visualizerCode}
-            onChange={(value) => {
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.visualizerCode = value ?? "";
-              });
-            }}
-          />
-        </div>
-      )}
     </div>
-  );
-};
-
-const VisualizerCodeAction: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { globalMode } = use(EditorContext);
-  const { totalFrames } = use(PlaybackContext);
-
-  const hasSimulationFrames = totalFrames > 0;
-  const showVisualizerOutput = isReadOnly || hasSimulationFrames;
-
-  if (
-    globalMode !== "edit" ||
-    place.visualizerCode === undefined ||
-    showVisualizerOutput
-  ) {
-    return null;
-  }
-
-  return (
-    <Menu
-      trigger={
-        <button type="button" className={menuButtonStyle}>
-          <TbDotsVertical />
-        </button>
-      }
-      items={[
-        {
-          id: "load-default",
-          label: "Load default template",
-          onClick: () => {
-            const currentPlaceType = place.colorId
-              ? types.find((t) => t.id === place.colorId)
-              : null;
-
-            updatePlace(place.id, (existingPlace) => {
-              existingPlace.visualizerCode = currentPlaceType
-                ? generateDefaultVisualizerCode(currentPlaceType)
-                : DEFAULT_VISUALIZER_CODE;
-            });
-          },
-        },
-        {
-          id: "generate-ai",
-          label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
-              <div className={aiMenuItemStyle}>
-                <TbSparkles className={aiIconStyle} />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
-    />
   );
 };
 
@@ -527,20 +360,19 @@ const DeletePlaceAction: React.FC = () => {
   );
 };
 
-const PlaceHeaderActions: React.FC = () => (
-  <>
-    <VisualizerCodeAction />
-    <DeletePlaceAction />
-  </>
-);
-
 const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
   main: true,
   component: PlaceMainContent,
-  renderHeaderAction: () => <PlaceHeaderActions />,
+  renderHeaderAction: () => <DeletePlaceAction />,
 };
+
+const subViews: SubView[] = [
+  placeMainContentSubView,
+  placeInitialStateSubView,
+  placeVisualizerSubView,
+];
 
 interface PlacePropertiesProps {
   place: Place;
@@ -558,19 +390,6 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const placeType = place.colorId
     ? (types.find((tp) => tp.id === place.colorId) ?? null)
     : null;
-
-  const subViews = useMemo(() => {
-    const views: SubView[] = [
-      placeMainContentSubView,
-      placeInitialStateSubView,
-    ];
-
-    if (place.visualizerCode !== undefined) {
-      views.push(placeVisualizerOutputSubView);
-    }
-
-    return views;
-  }, [place.visualizerCode]);
 
   return (
     <div className={containerStyle}>
