@@ -27,8 +27,10 @@ export const nodeCardStyle = cva({
     cursor: "default",
     transition: "[all 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
+    shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
     _hover: {
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
+      shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
     },
   },
   variants: {
