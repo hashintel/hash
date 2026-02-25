@@ -36,6 +36,11 @@ export const ProportionalSubViewsContainer: React.FC<
     setCollapsedState((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const allCollapsed = subViews.every((sv) => {
+    const isCollapsible = !(sv.hideHeader ?? false) && (sv.collapsible ?? true);
+    return isCollapsible && collapsedState[sv.id];
+  });
+
   return (
     <Group orientation="vertical" className={proportionalContainerStyle}>
       {subViews.map((subView, index) => {
@@ -80,6 +85,8 @@ export const ProportionalSubViewsContainer: React.FC<
           </Fragment>
         );
       })}
+      {/* Spacer absorbs remaining space when panels are collapsed */}
+      <Panel id="__spacer" minSize={0} maxSize={allCollapsed ? "100%" : 0} />
     </Group>
   );
 };
