@@ -3,7 +3,7 @@ import "reactflow/dist/style.css";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import ReactFlow, { Background } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import {
@@ -17,6 +17,7 @@ import { Arc } from "./components/arc";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
+import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type {
@@ -53,7 +54,6 @@ export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
-
   // SDCPN store
   const {
     petriNetId,
@@ -333,6 +333,7 @@ export const SDCPNView: React.FC = () => {
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
+        <ViewportControls />
       </ReactFlow>
     </div>
   );

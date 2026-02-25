@@ -61,6 +61,7 @@ export type EditorActions = {
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
   resetDraggingState: () => void;
+  collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
   __reinitialize: () => void;
 };
@@ -101,6 +102,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
+  collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   __reinitialize: () => {},
 };
