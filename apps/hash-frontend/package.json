@@ -151,7 +151,7 @@
     "@types/react-window": "1.8.8",
     "@types/url-regex-safe": "1.0.2",
     "@welldone-software/why-did-you-render": "10.0.1",
-    "eslint": "9.39.2",
+    "eslint": "9.39.3",
     "graphology-types": "0.24.8",
     "rimraf": "6.1.2",
     "sass": "1.93.2",
