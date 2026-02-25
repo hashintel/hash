@@ -91,7 +91,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   // Calculate bottom offset based on bottom panel visibility
   const bottomOffset = isBottomPanelOpen
-    ? bottomPanelHeight + 12 + 24 // panel height + margin + spacing
+    ? bottomPanelHeight + 24 // panel height + margin + spacing
     : 24;
 
   return (
