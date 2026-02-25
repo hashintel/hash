@@ -96,7 +96,25 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   return (
     <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
-      {/* Edition/Linting segment */}
+      {/* Edition tools segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 8,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <ToolbarModes
+            editionMode={editionMode}
+            onEditionModeChange={onEditionModeChange}
+          />
+        </div>
+      </refractive.div>
+
+      {/* Playback segment */}
       <refractive.div
         className={glassPanelStyle}
         refraction={{
@@ -124,24 +142,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             isExpanded={isBottomPanelOpen}
           />
           <ToolbarDivider />
-          <ToolbarModes
-            editionMode={editionMode}
-            onEditionModeChange={onEditionModeChange}
-          />
-        </div>
-      </refractive.div>
-
-      {/* Play/PlaybackSettings/Timeline segment */}
-      <refractive.div
-        className={glassPanelStyle}
-        refraction={{
-          radius: 8,
-          blur: 3,
-          bezelWidth: 20,
-          glassThickness: 100,
-        }}
-      >
-        <div className={toolbarContainerStyle}>
           <SimulationControls disabled={hasDiagnostics} />
         </div>
       </refractive.div>
