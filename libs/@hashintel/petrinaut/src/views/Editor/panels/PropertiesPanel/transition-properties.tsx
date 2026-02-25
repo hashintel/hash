@@ -7,7 +7,7 @@ import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 import { IconButton } from "../../../../components/icon-button";
 import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
-import { SegmentGroup } from "../../../../components/segment-group";
+import { OutlinedSegmentGroup } from "../../../../components/outlined-segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
@@ -313,7 +313,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
         <div className={segmentGroupContainerStyle}>
-          <SegmentGroup
+          <OutlinedSegmentGroup
             value={transition.lambdaType}
             options={[
               { value: "predicate", label: "Predicate" },
