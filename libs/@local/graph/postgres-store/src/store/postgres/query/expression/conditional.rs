@@ -694,7 +694,7 @@ mod tests {
         );
         assert_eq!(
             subtract_expr.transpile_to_string(),
-            "($1 - ARRAY[$2, $3]::text[])"
+            "$1 - ARRAY[$2, $3]::text[]"
         );
     }
 
