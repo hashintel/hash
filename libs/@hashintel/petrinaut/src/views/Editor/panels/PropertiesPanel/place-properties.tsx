@@ -14,7 +14,7 @@ import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { Select } from "../../../../components/select";
 import type { SubView } from "../../../../components/sub-view/types";
-import { ProportionalSubViewsContainer } from "../../../../components/sub-view/vertical/proportional-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { Switch } from "../../../../components/switch";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -571,7 +571,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         isReadOnly={isReadOnly}
         updatePlace={updatePlace}
       >
-        <ProportionalSubViewsContainer subViews={subViews} />
+        <VerticalSubViewsContainer subViews={subViews} />
       </PlacePropertiesProvider>
     </div>
   );
