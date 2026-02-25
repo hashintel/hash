@@ -7,7 +7,7 @@ idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 # Basic tools
-node        = { version = "22.21.1", postinstall = "corepack enable" }
+node        = { version = "24.14.0", postinstall = "corepack enable" }
 "npm:turbo" = "2.6.3"
 
 # Helper to install tools
