@@ -45,7 +45,11 @@ const sectionContentStyle = css({
 const panelContentStyle = css({
   overflowY: "auto",
   flex: "[1]",
-  px: "3",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  p: "3",
+  pt: "0",
 });
 
 const resizeHandleStyle = css({
@@ -74,6 +78,9 @@ const headerActionStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
   overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
 });
 
 const sectionToggleStyle = css({
