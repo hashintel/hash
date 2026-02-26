@@ -1,7 +1,10 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
-import { MarkupKind, Position } from "vscode-languageserver-types";
-import type { MarkupContent, SignatureHelp } from "vscode-languageserver-types";
+import {
+  type MarkupContent,
+  Position,
+  type SignatureHelp,
+} from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";
@@ -16,10 +19,7 @@ function extractDocumentation(
   if (typeof doc === "string") {
     return doc || undefined;
   }
-  if (doc.kind === MarkupKind.Markdown || doc.kind === MarkupKind.PlainText) {
-    return doc.value || undefined;
-  }
-  return undefined;
+  return doc.value || undefined;
 }
 
 function toMonacoSignatureHelp(

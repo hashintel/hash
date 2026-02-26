@@ -1,7 +1,7 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
+import type { Hover } from "vscode-languageserver-types";
 import { MarkupKind, Position } from "vscode-languageserver-types";
-import type { Hover, MarkupContent } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";
@@ -12,7 +12,7 @@ function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
 
   // MarkupContent
   if (typeof contents === "object" && "kind" in contents) {
-    const mc = contents as MarkupContent;
+    const mc = contents;
     if (mc.kind === MarkupKind.Markdown) {
       return [{ value: mc.value }];
     }

@@ -66,7 +66,8 @@ async function initMonaco(): Promise<MonacoContextValue> {
 /** Module-level lazy singleton — initialized once, reused across renders. */
 let monacoPromise: Promise<MonacoContextValue> | null = null;
 function getMonacoPromise(): Promise<MonacoContextValue> {
-  return (monacoPromise ??= initMonaco());
+  monacoPromise ??= initMonaco();
+  return monacoPromise;
 }
 
 export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({

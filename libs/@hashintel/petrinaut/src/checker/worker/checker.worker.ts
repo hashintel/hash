@@ -11,15 +11,15 @@
  */
 import ts from "typescript";
 import {
-  CompletionItemKind,
-  DiagnosticSeverity,
-  MarkupKind,
-  Range,
   type CompletionItem,
+  CompletionItemKind,
   type CompletionList,
   type Diagnostic,
+  DiagnosticSeverity,
   type DocumentUri,
   type Hover,
+  MarkupKind,
+  Range,
   type SignatureHelp,
   type SignatureInformation,
 } from "vscode-languageserver-types";

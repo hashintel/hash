@@ -1,7 +1,7 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
-import { CompletionItemKind, Position } from "vscode-languageserver-types";
 import type { CompletionItem } from "vscode-languageserver-types";
+import { CompletionItemKind, Position } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";

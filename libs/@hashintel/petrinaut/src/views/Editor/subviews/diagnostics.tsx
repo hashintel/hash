@@ -1,7 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-
 import type { Diagnostic } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../../../checker/context";
@@ -249,11 +248,9 @@ const DiagnosticsContent: React.FC = () => {
 
                     {/* Diagnostics list */}
                     <ul className={diagnosticsListStyle}>
-                      {itemGroup.diagnostics.map((diagnostic, index) => (
+                      {itemGroup.diagnostics.map((diagnostic) => (
                         <li
-                          key={`${group.entityId}-${itemGroup.subType}-${
-                            diagnostic.range.start.line
-                          }-${diagnostic.range.start.character}-${index}`}
+                          key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
                           className={diagnosticItemStyle}
                         >
                           <button
