@@ -12,6 +12,7 @@ export default [
             "vite.config.ts",
             "vite.site.config.ts",
             ".storybook/main.ts",
+            ".storybook/manager.tsx",
             ".storybook/preview.tsx",
           ],
         },
