@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 /**
- * Checker WebWorker — runs TypeScript validation off the main thread.
+ * Language Server WebWorker — runs TypeScript validation off the main thread.
  *
  * Implements an LSP-inspired protocol over JSON-RPC 2.0:
  * - Notifications: `initialize`, `sdcpn/didChange`, `textDocument/didChange`

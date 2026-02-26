@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
-import { LanguageClientProvider } from "./checker/provider";
+import { LanguageClientProvider } from "./lsp/provider";
 import type {
   Color,
   DifferentialEquation,

@@ -3,7 +3,7 @@ import { Suspense, use, useEffect } from "react";
 import type { CompletionItem } from "vscode-languageserver-types";
 import { CompletionItemKind, Position } from "vscode-languageserver-types";
 
-import { LanguageClientContext } from "../checker/context";
+import { LanguageClientContext } from "../lsp/context";
 import { MonacoContext } from "./context";
 
 /**

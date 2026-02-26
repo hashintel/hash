@@ -1,5 +1,5 @@
 /**
- * LSP-inspired protocol types for the checker WebWorker.
+ * LSP-inspired protocol types for the language server WebWorker.
  *
  * Uses JSON-RPC 2.0 with standard LSP types from `vscode-languageserver-types`.
  * All diagnostic, completion, hover, and signature help types are the official

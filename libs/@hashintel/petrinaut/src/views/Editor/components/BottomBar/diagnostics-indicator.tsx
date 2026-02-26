@@ -2,7 +2,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 
-import { LanguageClientContext } from "../../../../checker/context";
+import { LanguageClientContext } from "../../../../lsp/context";
 import { ToolbarButton } from "./toolbar-button";
 
 const iconContainerStyle = cva({

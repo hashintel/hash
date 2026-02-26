@@ -44,7 +44,7 @@ export type LanguageClientApi = {
 };
 
 /**
- * Spawn a checker WebWorker and return an LSP-inspired API to interact with it.
+ * Spawn the language server WebWorker and return an LSP-inspired API to interact with it.
  * The worker is created on mount and terminated on unmount.
  */
 export function useLanguageClient(): LanguageClientApi {
@@ -56,9 +56,12 @@ export function useLanguageClient(): LanguageClientApi {
   >(null);
 
   useEffect(() => {
-    const worker = new Worker(new URL("./checker.worker.ts", import.meta.url), {
-      type: "module",
-    });
+    const worker = new Worker(
+      new URL("./language-server.worker.ts", import.meta.url),
+      {
+        type: "module",
+      },
+    );
 
     worker.onmessage = (event: MessageEvent<ServerMessage>) => {
       const msg = event.data;
