@@ -6,6 +6,7 @@ import type {
   CompletionList,
   DocumentUri,
   Hover,
+  Position,
   PublishDiagnosticsParams,
   ServerMessage,
   SignatureHelp,
@@ -27,15 +28,15 @@ export type LanguageClientApi = {
   /** Request completions at a position within a document. */
   requestCompletion: (
     uri: DocumentUri,
-    offset: number,
+    position: Position,
   ) => Promise<CompletionList>;
   /** Request hover info at a position within a document. */
-  requestHover: (uri: DocumentUri, offset: number) => Promise<Hover>;
+  requestHover: (uri: DocumentUri, position: Position) => Promise<Hover | null>;
   /** Request signature help at a position within a document. */
   requestSignatureHelp: (
     uri: DocumentUri,
-    offset: number,
-  ) => Promise<SignatureHelp>;
+    position: Position,
+  ) => Promise<SignatureHelp | null>;
   /** Register a callback for diagnostics pushed from the server. */
   onDiagnostics: (
     callback: (params: PublishDiagnosticsParams[]) => void,
@@ -75,10 +76,7 @@ export function useLanguageClient(): LanguageClientApi {
         } else {
           pending.resolve(msg.result as never);
         }
-      } else if (
-        "method" in msg &&
-        msg.method === "textDocument/publishDiagnostics"
-      ) {
+      } else if ("method" in msg) {
         // Server-pushed notification
         diagnosticsCallbackRef.current?.(msg.params);
       }
@@ -154,39 +152,39 @@ export function useLanguageClient(): LanguageClientApi {
   }, []);
 
   const requestCompletion = useCallback(
-    (uri: DocumentUri, offset: number): Promise<CompletionList> => {
+    (uri: DocumentUri, position: Position): Promise<CompletionList> => {
       const id = nextId.current++;
       return sendRequest<CompletionList>({
         jsonrpc: "2.0",
         id,
         method: "textDocument/completion",
-        params: { textDocument: { uri }, offset },
+        params: { textDocument: { uri }, position },
       });
     },
     [sendRequest],
   );
 
   const requestHover = useCallback(
-    (uri: DocumentUri, offset: number): Promise<Hover> => {
+    (uri: DocumentUri, position: Position): Promise<Hover | null> => {
       const id = nextId.current++;
-      return sendRequest<Hover>({
+      return sendRequest<Hover | null>({
         jsonrpc: "2.0",
         id,
         method: "textDocument/hover",
-        params: { textDocument: { uri }, offset },
+        params: { textDocument: { uri }, position },
       });
     },
     [sendRequest],
   );
 
   const requestSignatureHelp = useCallback(
-    (uri: DocumentUri, offset: number): Promise<SignatureHelp> => {
+    (uri: DocumentUri, position: Position): Promise<SignatureHelp | null> => {
       const id = nextId.current++;
-      return sendRequest<SignatureHelp>({
+      return sendRequest<SignatureHelp | null>({
         jsonrpc: "2.0",
         id,
         method: "textDocument/signatureHelp",
-        params: { textDocument: { uri }, offset },
+        params: { textDocument: { uri }, position },
       });
     },
     [sendRequest],

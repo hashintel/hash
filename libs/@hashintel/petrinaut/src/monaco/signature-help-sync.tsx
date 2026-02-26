@@ -1,22 +1,42 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
+import { MarkupKind, Position } from "vscode-languageserver-types";
+import type { MarkupContent, SignatureHelp } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
-import type { SignatureHelp } from "../checker/worker/protocol";
 import { MonacoContext } from "./context";
 
+/** Extract documentation string from LSP MarkupContent or plain string. */
+function extractDocumentation(
+  doc: string | MarkupContent | undefined,
+): string | undefined {
+  if (!doc) {
+    return undefined;
+  }
+  if (typeof doc === "string") {
+    return doc || undefined;
+  }
+  if (doc.kind === MarkupKind.Markdown || doc.kind === MarkupKind.PlainText) {
+    return doc.value || undefined;
+  }
+  return undefined;
+}
+
 function toMonacoSignatureHelp(
-  result: NonNullable<SignatureHelp>,
+  result: SignatureHelp,
 ): Monaco.languages.SignatureHelp {
   return {
-    activeSignature: result.activeSignature,
-    activeParameter: result.activeParameter,
+    activeSignature: result.activeSignature ?? 0,
+    activeParameter: result.activeParameter ?? 0,
     signatures: result.signatures.map((sig) => ({
       label: sig.label,
-      documentation: sig.documentation || undefined,
-      parameters: sig.parameters.map((param) => ({
-        label: param.label,
-        documentation: param.documentation || undefined,
+      documentation: extractDocumentation(sig.documentation),
+      parameters: (sig.parameters ?? []).map((param) => ({
+        label:
+          typeof param.label === "string"
+            ? param.label
+            : [param.label[0], param.label[1]],
+        documentation: extractDocumentation(param.documentation),
       })),
     })),
   };
@@ -33,10 +53,14 @@ const SignatureHelpSyncInner = () => {
         signatureHelpTriggerCharacters: ["(", ","],
         signatureHelpRetriggerCharacters: [","],
 
-        async provideSignatureHelp(model, position) {
+        async provideSignatureHelp(model, monacoPosition) {
           const uri = model.uri.toString();
-          const offset = model.getOffsetAt(position);
-          const result = await requestSignatureHelp(uri, offset);
+          // Convert Monaco 1-based position to LSP 0-based Position
+          const position = Position.create(
+            monacoPosition.lineNumber - 1,
+            monacoPosition.column - 1,
+          );
+          const result = await requestSignatureHelp(uri, position);
 
           if (!result) {
             return null;

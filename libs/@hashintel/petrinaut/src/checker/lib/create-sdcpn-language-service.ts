@@ -278,10 +278,10 @@ export class SDCPNLanguageServer {
       if (!this.controller.hasFile(name)) {
         this.controller.addFile(name, newFile);
       } else {
-        const existing = this.controller.getFile(name);
+        const existing = this.controller.getFile(name)!;
         if (
-          existing?.content !== newFile.content ||
-          existing?.prefix !== newFile.prefix
+          existing.content !== newFile.content ||
+          existing.prefix !== newFile.prefix
         ) {
           this.controller.updateFile(name, newFile);
         }
@@ -292,6 +292,15 @@ export class SDCPNLanguageServer {
   /** Update only the user content of a single file (e.g., when the user types in an editor). */
   updateDocumentContent(fileName: string, content: string): void {
     this.controller.updateContent(fileName, content);
+  }
+
+  /** Get the full text content (prefix + user content) of a virtual file. */
+  getFileContent(fileName: string): string | undefined {
+    const file = this.controller.getFile(fileName);
+    if (!file) {
+      return undefined;
+    }
+    return (file.prefix ?? "") + file.content;
   }
 
   getSemanticDiagnostics(fileName: string): ts.Diagnostic[] {

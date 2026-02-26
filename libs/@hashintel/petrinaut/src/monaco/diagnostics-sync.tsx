@@ -1,53 +1,49 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect, useRef } from "react";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
+import type { Diagnostic } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
-import type { Diagnostic } from "../checker/worker/protocol";
 import { MonacoContext } from "./context";
 
 const OWNER = "checker";
 
 /**
- * Convert LSP-like severity to Monaco MarkerSeverity.
- * LSP: 1=Error, 2=Warning, 3=Information, 4=Hint
+ * Convert LSP `DiagnosticSeverity` to Monaco `MarkerSeverity`.
  */
 function toMarkerSeverity(
-  severity: number,
+  severity: DiagnosticSeverity | undefined,
   monaco: typeof Monaco,
 ): Monaco.MarkerSeverity {
   switch (severity) {
-    case 1:
+    case DiagnosticSeverity.Error:
       return monaco.MarkerSeverity.Error;
-    case 2:
+    case DiagnosticSeverity.Warning:
       return monaco.MarkerSeverity.Warning;
-    case 3:
+    case DiagnosticSeverity.Information:
       return monaco.MarkerSeverity.Info;
-    case 4:
+    case DiagnosticSeverity.Hint:
       return monaco.MarkerSeverity.Hint;
     default:
       return monaco.MarkerSeverity.Error;
   }
 }
 
-/** Convert Diagnostic[] to IMarkerData[] using the model for offset→position. */
+/** Convert LSP Diagnostic[] to Monaco IMarkerData[]. */
 function diagnosticsToMarkers(
-  model: Monaco.editor.ITextModel,
   diagnostics: Diagnostic[],
   monaco: typeof Monaco,
 ): Monaco.editor.IMarkerData[] {
-  return diagnostics.map((diag) => {
-    const start = model.getPositionAt(diag.start ?? 0);
-    const end = model.getPositionAt((diag.start ?? 0) + (diag.length ?? 0));
-    return {
-      severity: toMarkerSeverity(diag.severity, monaco),
-      message: diag.message,
-      startLineNumber: start.lineNumber,
-      startColumn: start.column,
-      endLineNumber: end.lineNumber,
-      endColumn: end.column,
-      code: String(diag.code),
-    };
-  });
+  return diagnostics.map((diag) => ({
+    severity: toMarkerSeverity(diag.severity, monaco),
+    message: diag.message,
+    // Monaco uses 1-based line/column, LSP uses 0-based
+    startLineNumber: diag.range.start.line + 1,
+    startColumn: diag.range.start.character + 1,
+    endLineNumber: diag.range.end.line + 1,
+    endColumn: diag.range.end.character + 1,
+    code: diag.code != null ? String(diag.code) : undefined,
+  }));
 }
 
 const DiagnosticsSyncInner = () => {
@@ -62,7 +58,7 @@ const DiagnosticsSyncInner = () => {
       const monacoUri = monaco.Uri.parse(uri);
       const model = monaco.editor.getModel(monacoUri);
       if (model) {
-        const markers = diagnosticsToMarkers(model, diagnostics, monaco);
+        const markers = diagnosticsToMarkers(diagnostics, monaco);
         monaco.editor.setModelMarkers(model, OWNER, markers);
       }
       currentUris.add(uri);
@@ -86,7 +82,7 @@ const DiagnosticsSyncInner = () => {
       const modelUri = model.uri.toString();
       const diags = diagnosticsByUri.get(modelUri);
       if (diags) {
-        const markers = diagnosticsToMarkers(model, diags, monaco);
+        const markers = diagnosticsToMarkers(diags, monaco);
         monaco.editor.setModelMarkers(model, OWNER, markers);
       }
     });

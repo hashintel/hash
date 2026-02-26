@@ -2,8 +2,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
+import type { Diagnostic } from "vscode-languageserver-types";
+
 import { LanguageClientContext } from "../../../checker/context";
-import type { Diagnostic } from "../../../checker/worker/protocol";
 import type { SubView } from "../../../components/sub-view/types";
 import { parseDocumentUri } from "../../../monaco/editor-paths";
 import { EditorContext } from "../../../state/editor-context";
@@ -251,8 +252,8 @@ const DiagnosticsContent: React.FC = () => {
                       {itemGroup.diagnostics.map((diagnostic, index) => (
                         <li
                           key={`${group.entityId}-${itemGroup.subType}-${
-                            diagnostic.start ?? index
-                          }`}
+                            diagnostic.range.start.line
+                          }-${diagnostic.range.start.character}-${index}`}
                           className={diagnosticItemStyle}
                         >
                           <button
@@ -262,11 +263,10 @@ const DiagnosticsContent: React.FC = () => {
                           >
                             <span className={bulletStyle}>•</span>
                             {diagnostic.message}
-                            {diagnostic.start !== undefined && (
-                              <span className={positionStyle}>
-                                (pos: {diagnostic.start})
-                              </span>
-                            )}
+                            <span className={positionStyle}>
+                              (Ln {diagnostic.range.start.line + 1}, Col{" "}
+                              {diagnostic.range.start.character + 1})
+                            </span>
                           </button>
                         </li>
                       ))}

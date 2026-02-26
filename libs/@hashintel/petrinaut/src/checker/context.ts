@@ -5,6 +5,7 @@ import type {
   Diagnostic,
   DocumentUri,
   Hover,
+  Position,
   SignatureHelp,
 } from "./worker/protocol";
 
@@ -18,22 +19,22 @@ export interface LanguageClientContextValue {
   /** Request completions at a position within a document. */
   requestCompletion: (
     uri: DocumentUri,
-    offset: number,
+    position: Position,
   ) => Promise<CompletionList>;
   /** Request hover info at a position within a document. */
-  requestHover: (uri: DocumentUri, offset: number) => Promise<Hover>;
+  requestHover: (uri: DocumentUri, position: Position) => Promise<Hover | null>;
   /** Request signature help at a position within a document. */
   requestSignatureHelp: (
     uri: DocumentUri,
-    offset: number,
-  ) => Promise<SignatureHelp>;
+    position: Position,
+  ) => Promise<SignatureHelp | null>;
 }
 
 const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
   notifyDocumentChanged: () => {},
-  requestCompletion: () => Promise.resolve({ items: [] }),
+  requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
 };

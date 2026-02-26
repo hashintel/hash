@@ -10,22 +10,29 @@
  * The LanguageService is created once and reused across SDCPN changes.
  */
 import ts from "typescript";
+import {
+  CompletionItemKind,
+  DiagnosticSeverity,
+  MarkupKind,
+  Range,
+  type CompletionItem,
+  type CompletionList,
+  type Diagnostic,
+  type DocumentUri,
+  type Hover,
+  type SignatureHelp,
+  type SignatureInformation,
+} from "vscode-languageserver-types";
 
 import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { getItemFilePath } from "../lib/file-paths";
+import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import type {
   ClientMessage,
-  CompletionItem,
-  CompletionList,
-  Diagnostic,
-  DocumentUri,
-  Hover,
   PublishDiagnosticsParams,
   ServerMessage,
-  SignatureHelp,
-  SignatureInformation,
 } from "./protocol";
 
 // ---------------------------------------------------------------------------
@@ -87,36 +94,92 @@ function filePathToUri(filePath: string): DocumentUri | null {
 }
 
 // ---------------------------------------------------------------------------
-// Serialization helpers
+// TS → LSP type conversions
 // ---------------------------------------------------------------------------
 
 /**
- * Map `ts.DiagnosticCategory` to LSP-like severity.
+ * Map `ts.DiagnosticCategory` to `DiagnosticSeverity`.
  * TS: 0=Warning, 1=Error, 2=Suggestion, 3=Message
  * LSP: 1=Error, 2=Warning, 3=Information, 4=Hint
  */
-function toLspSeverity(category: number): number {
+function toLspSeverity(category: number): DiagnosticSeverity {
   switch (category) {
     case 0:
-      return 2; // Warning
+      return DiagnosticSeverity.Warning;
     case 1:
-      return 1; // Error
+      return DiagnosticSeverity.Error;
     case 2:
-      return 4; // Hint (Suggestion)
+      return DiagnosticSeverity.Hint;
     case 3:
-      return 3; // Information (Message)
+      return DiagnosticSeverity.Information;
     default:
-      return 1;
+      return DiagnosticSeverity.Error;
   }
 }
 
-function serializeDiagnostic(diag: ts.Diagnostic): Diagnostic {
+/**
+ * Map TS `ScriptElementKind` strings to LSP `CompletionItemKind`.
+ */
+function toCompletionItemKind(kind: string): CompletionItemKind {
+  switch (kind) {
+    case "method":
+    case "construct":
+      return CompletionItemKind.Method;
+    case "function":
+    case "local function":
+      return CompletionItemKind.Function;
+    case "constructor":
+      return CompletionItemKind.Constructor;
+    case "property":
+    case "getter":
+    case "setter":
+      return CompletionItemKind.Property;
+    case "parameter":
+    case "var":
+    case "local var":
+    case "let":
+    case "const":
+      return CompletionItemKind.Variable;
+    case "class":
+      return CompletionItemKind.Class;
+    case "interface":
+      return CompletionItemKind.Interface;
+    case "type":
+    case "type parameter":
+    case "primitive type":
+    case "alias":
+      return CompletionItemKind.TypeParameter;
+    case "enum":
+      return CompletionItemKind.Enum;
+    case "enum member":
+      return CompletionItemKind.EnumMember;
+    case "module":
+    case "external module name":
+      return CompletionItemKind.Module;
+    case "keyword":
+      return CompletionItemKind.Keyword;
+    case "string":
+      return CompletionItemKind.Value;
+    default:
+      return CompletionItemKind.Text;
+  }
+}
+
+function serializeDiagnostic(
+  diag: ts.Diagnostic,
+  fileContent: string,
+): Diagnostic {
+  const start = diag.start ?? 0;
+  const end = start + (diag.length ?? 0);
   return {
     severity: toLspSeverity(diag.category),
-    code: diag.code,
+    range: Range.create(
+      offsetToPosition(fileContent, start),
+      offsetToPosition(fileContent, end),
+    ),
     message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
-    start: diag.start,
-    length: diag.length,
+    code: diag.code,
+    source: "ts",
   };
 }
 
@@ -152,9 +215,12 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
   const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
     (item) => {
       const uri = filePathToUri(item.filePath);
+      const fileContent = server!.getFileContent(item.filePath) ?? "";
       return {
         uri: uri ?? item.filePath,
-        diagnostics: item.diagnostics.map(serializeDiagnostic),
+        diagnostics: item.diagnostics.map((diag) =>
+          serializeDiagnostic(diag, fileContent),
+        ),
       };
     },
   );
@@ -190,9 +256,7 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
       case "sdcpn/didChange": {
         const { sdcpn } = data.params;
         lastSDCPN = sdcpn;
-        if (!server) {
-          server = new SDCPNLanguageServer();
-        }
+        server ??= new SDCPNLanguageServer();
         server.syncFiles(sdcpn);
         publishAllDiagnostics(sdcpn);
         break;
@@ -218,32 +282,41 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
       case "textDocument/completion": {
         const { id } = data;
         if (!server) {
-          respond(id, { items: [] } satisfies CompletionList);
+          respond(id, {
+            isIncomplete: false,
+            items: [],
+          } satisfies CompletionList);
           break;
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
         if (!filePath) {
-          respond(id, { items: [] } satisfies CompletionList);
+          respond(id, {
+            isIncomplete: false,
+            items: [],
+          } satisfies CompletionList);
           break;
         }
 
+        const fileContent = server.getFileContent(filePath) ?? "";
+        const offset = positionToOffset(fileContent, data.params.position);
+
         const completions = server.getCompletionsAtPosition(
           filePath,
-          data.params.offset,
+          offset,
           undefined,
         );
 
         const items: CompletionItem[] = (completions?.entries ?? []).map(
           (entry) => ({
             label: entry.name,
-            kind: entry.kind,
+            kind: toCompletionItemKind(entry.kind),
             sortText: entry.sortText,
             insertText: entry.insertText,
           }),
         );
 
-        respond(id, { items } satisfies CompletionList);
+        respond(id, { isIncomplete: false, items } satisfies CompletionList);
         break;
       }
 
@@ -260,17 +333,29 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           break;
         }
 
-        const info = server.getQuickInfoAtPosition(
-          filePath,
-          data.params.offset,
-        );
+        const fileContent = server.getFileContent(filePath) ?? "";
+        const offset = positionToOffset(fileContent, data.params.position);
 
-        const result: Hover = info
+        const info = server.getQuickInfoAtPosition(filePath, offset);
+
+        const result: Hover | null = info
           ? {
-              displayParts: ts.displayPartsToString(info.displayParts),
-              documentation: ts.displayPartsToString(info.documentation),
-              start: info.textSpan.start,
-              length: info.textSpan.length,
+              contents: {
+                kind: MarkupKind.Markdown,
+                value: [
+                  `\`\`\`typescript\n${ts.displayPartsToString(info.displayParts)}\n\`\`\``,
+                  ts.displayPartsToString(info.documentation),
+                ]
+                  .filter(Boolean)
+                  .join("\n\n"),
+              },
+              range: Range.create(
+                offsetToPosition(fileContent, info.textSpan.start),
+                offsetToPosition(
+                  fileContent,
+                  info.textSpan.start + info.textSpan.length,
+                ),
+              ),
             }
           : null;
 
@@ -291,13 +376,12 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           break;
         }
 
-        const help = server.getSignatureHelpItems(
-          filePath,
-          data.params.offset,
-          undefined,
-        );
+        const fileContent = server.getFileContent(filePath) ?? "";
+        const offset = positionToOffset(fileContent, data.params.position);
 
-        const result: SignatureHelp = help
+        const help = server.getSignatureHelpItems(filePath, offset, undefined);
+
+        const result: SignatureHelp | null = help
           ? {
               activeSignature: help.selectedItemIndex,
               activeParameter: help.argumentIndex,
@@ -313,10 +397,16 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
                   ]
                     .map((part) => part.text)
                     .join(""),
-                  documentation: ts.displayPartsToString(item.documentation),
+                  documentation: {
+                    kind: MarkupKind.PlainText,
+                    value: ts.displayPartsToString(item.documentation),
+                  },
                   parameters: item.parameters.map((param) => ({
                     label: ts.displayPartsToString(param.displayParts),
-                    documentation: ts.displayPartsToString(param.documentation),
+                    documentation: {
+                      kind: MarkupKind.PlainText,
+                      value: ts.displayPartsToString(param.documentation),
+                    },
                   })),
                 }),
               ),

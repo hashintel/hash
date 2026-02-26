@@ -1,57 +1,44 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
+import { CompletionItemKind, Position } from "vscode-languageserver-types";
+import type { CompletionItem } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
-import type { CompletionItem } from "../checker/worker/protocol";
 import { MonacoContext } from "./context";
 
 /**
- * Map TypeScript `ScriptElementKind` strings to Monaco `CompletionItemKind`.
- * @see https://github.com/microsoft/TypeScript/blob/main/src/services/types.ts
+ * Map LSP `CompletionItemKind` to Monaco `CompletionItemKind`.
  */
-function toCompletionItemKind(
-  kind: string,
+function toMonacoCompletionKind(
+  kind: CompletionItemKind | undefined,
   monaco: typeof Monaco,
 ): Monaco.languages.CompletionItemKind {
   switch (kind) {
-    case "method":
-    case "construct":
+    case CompletionItemKind.Method:
       return monaco.languages.CompletionItemKind.Method;
-    case "function":
-    case "local function":
+    case CompletionItemKind.Function:
       return monaco.languages.CompletionItemKind.Function;
-    case "constructor":
+    case CompletionItemKind.Constructor:
       return monaco.languages.CompletionItemKind.Constructor;
-    case "property":
-    case "getter":
-    case "setter":
+    case CompletionItemKind.Property:
       return monaco.languages.CompletionItemKind.Property;
-    case "parameter":
-    case "var":
-    case "local var":
-    case "let":
+    case CompletionItemKind.Variable:
       return monaco.languages.CompletionItemKind.Variable;
-    case "const":
-      return monaco.languages.CompletionItemKind.Variable;
-    case "class":
+    case CompletionItemKind.Class:
       return monaco.languages.CompletionItemKind.Class;
-    case "interface":
+    case CompletionItemKind.Interface:
       return monaco.languages.CompletionItemKind.Interface;
-    case "type":
-    case "type parameter":
-    case "primitive type":
-    case "alias":
+    case CompletionItemKind.TypeParameter:
       return monaco.languages.CompletionItemKind.TypeParameter;
-    case "enum":
+    case CompletionItemKind.Enum:
       return monaco.languages.CompletionItemKind.Enum;
-    case "enum member":
+    case CompletionItemKind.EnumMember:
       return monaco.languages.CompletionItemKind.EnumMember;
-    case "module":
-    case "external module name":
+    case CompletionItemKind.Module:
       return monaco.languages.CompletionItemKind.Module;
-    case "keyword":
+    case CompletionItemKind.Keyword:
       return monaco.languages.CompletionItemKind.Keyword;
-    case "string":
+    case CompletionItemKind.Value:
       return monaco.languages.CompletionItemKind.Value;
     default:
       return monaco.languages.CompletionItemKind.Text;
@@ -65,7 +52,7 @@ function toMonacoCompletion(
 ): Monaco.languages.CompletionItem {
   return {
     label: entry.label,
-    kind: toCompletionItemKind(entry.kind, monaco),
+    kind: toMonacoCompletionKind(entry.kind, monaco),
     insertText: entry.insertText ?? entry.label,
     sortText: entry.sortText,
     range,
@@ -82,15 +69,19 @@ const CompletionSyncInner = () => {
       {
         triggerCharacters: ["."],
 
-        async provideCompletionItems(model, position) {
+        async provideCompletionItems(model, monacoPosition) {
           const uri = model.uri.toString();
-          const offset = model.getOffsetAt(position);
-          const result = await requestCompletion(uri, offset);
+          // Convert Monaco 1-based position to LSP 0-based Position
+          const position = Position.create(
+            monacoPosition.lineNumber - 1,
+            monacoPosition.column - 1,
+          );
+          const result = await requestCompletion(uri, position);
 
-          const word = model.getWordUntilPosition(position);
+          const word = model.getWordUntilPosition(monacoPosition);
           const range: Monaco.IRange = {
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber,
+            startLineNumber: monacoPosition.lineNumber,
+            endLineNumber: monacoPosition.lineNumber,
             startColumn: word.startColumn,
             endColumn: word.endColumn,
           };

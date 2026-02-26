@@ -1,8 +1,51 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
+import { MarkupKind, Position } from "vscode-languageserver-types";
+import type { Hover, MarkupContent } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";
+
+/** Extract display string from LSP Hover contents. */
+function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
+  const { contents } = hover;
+
+  // MarkupContent
+  if (typeof contents === "object" && "kind" in contents) {
+    const mc = contents as MarkupContent;
+    if (mc.kind === MarkupKind.Markdown) {
+      return [{ value: mc.value }];
+    }
+    // PlainText — wrap in code block for Monaco
+    return [{ value: mc.value }];
+  }
+
+  // string
+  if (typeof contents === "string") {
+    return [{ value: contents }];
+  }
+
+  // MarkedString[]
+  if (Array.isArray(contents)) {
+    return contents.map((item) => {
+      if (typeof item === "string") {
+        return { value: item };
+      }
+      return { value: `\`\`\`${item.language}\n${item.value}\n\`\`\`` };
+    });
+  }
+
+  // MarkedString { language, value }
+  if ("language" in contents) {
+    return [
+      {
+        value: `\`\`\`${contents.language}\n${contents.value}\n\`\`\``,
+      },
+    ];
+  }
+
+  return [];
+}
 
 const HoverSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
@@ -10,30 +53,30 @@ const HoverSyncInner = () => {
 
   useEffect(() => {
     const disposable = monaco.languages.registerHoverProvider("typescript", {
-      async provideHover(model, position) {
+      async provideHover(model, monacoPosition) {
         const uri = model.uri.toString();
-        const offset = model.getOffsetAt(position);
-        const info = await requestHover(uri, offset);
+        // Convert Monaco 1-based position to LSP 0-based Position
+        const position = Position.create(
+          monacoPosition.lineNumber - 1,
+          monacoPosition.column - 1,
+        );
+        const info = await requestHover(uri, position);
 
         if (!info) {
           return null;
         }
 
-        const startPos = model.getPositionAt(info.start);
-        const endPos = model.getPositionAt(info.start + info.length);
-        const range: Monaco.IRange = {
-          startLineNumber: startPos.lineNumber,
-          startColumn: startPos.column,
-          endLineNumber: endPos.lineNumber,
-          endColumn: endPos.column,
-        };
+        const contents = hoverContentsToMarkdown(info);
 
-        const contents: Monaco.IMarkdownString[] = [
-          { value: `\`\`\`typescript\n${info.displayParts}\n\`\`\`` },
-        ];
-        if (info.documentation) {
-          contents.push({ value: info.documentation });
-        }
+        // Convert LSP 0-based range to Monaco 1-based range
+        const range: Monaco.IRange | undefined = info.range
+          ? {
+              startLineNumber: info.range.start.line + 1,
+              startColumn: info.range.start.character + 1,
+              endLineNumber: info.range.end.line + 1,
+              endColumn: info.range.end.character + 1,
+            }
+          : undefined;
 
         return { range, contents };
       },
