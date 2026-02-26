@@ -47,7 +47,7 @@ impl RecursionCycle {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct RecursionBoundary<'heap, A: Allocator = Global> {
+pub struct RecursionBoundary<'heap, A: Allocator = Global> {
     inner: FastHashSet<
         (
             Interned<'heap, TypeKind<'heap>>,
@@ -57,29 +57,36 @@ pub(crate) struct RecursionBoundary<'heap, A: Allocator = Global> {
     >,
 }
 
+impl Default for RecursionBoundary<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RecursionBoundary<'_> {
     #[inline]
-    pub(crate) fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self::new_in(Global)
     }
 }
 
 impl<'heap, A: Allocator> RecursionBoundary<'heap, A> {
     #[inline]
-    pub(crate) fn new_in(alloc: A) -> Self {
+    pub fn new_in(alloc: A) -> Self {
         Self {
             inner: fast_hash_set_in(alloc),
         }
     }
 
     #[inline]
-    pub(crate) fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self {
             inner: fast_hash_set_with_capacity_in(capacity, alloc),
         }
     }
 
-    pub(crate) fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
+    pub fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
         // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
         // from interning. See the `Decompose` implementation for more details.
         let lhs_kind = Interned::new_unchecked(lhs.kind);
@@ -97,7 +104,7 @@ impl<'heap, A: Allocator> RecursionBoundary<'heap, A> {
         }
     }
 
-    pub(crate) fn exit(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
+    pub fn exit(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
         // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
         // from interning. See the `Decompose` implementation for more details.
         let lhs_kind = Interned::new_unchecked(lhs.kind);
