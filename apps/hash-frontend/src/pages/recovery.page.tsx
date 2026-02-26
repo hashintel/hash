@@ -1,19 +1,41 @@
 import { TextField } from "@hashintel/design-system";
-import { Box, Collapse, Container, Typography } from "@mui/material";
+import { Box, Collapse, styled, Typography } from "@mui/material";
 import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import type { FormEventHandler } from "react";
 import { useEffect, useState } from "react";
 
+import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
 import { Button } from "../shared/ui";
+import { AuthHeading } from "./shared/auth-heading";
+import { AuthLayout } from "./shared/auth-layout";
+import { AuthPaper } from "./shared/auth-paper";
 import {
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
+
+const SignInButton = styled((props: ButtonProps) => (
+  <Button variant="secondary" size="small" {...props} />
+))(({ theme }) => ({
+  color: theme.palette.common.white,
+  background: "#1F2933",
+  transition: theme.transitions.create(["background", "box-shadow"]),
+  borderColor: "#283644",
+  boxShadow: theme.shadows[3],
+  "&:hover": {
+    background: "#283644",
+    boxShadow: theme.shadows[4],
+    "&:before": {
+      opacity: 0,
+    },
+  },
+}));
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
@@ -166,91 +188,119 @@ const RecoveryPage: NextPageWithLayout = () => {
   const hasSubmittedEmail = flow && flow.state !== "choose_method";
 
   return (
-    <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
-        Account Recovery
-      </Typography>
-      <Box
-        component="form"
-        onSubmit={handleSubmitEmail}
+    <AuthLayout
+      headerEndAdornment={
+        <SignInButton
+          endIcon={<ArrowRightToBracketRegularIcon />}
+          href="/signin"
+        >
+          Sign in
+        </SignInButton>
+      }
+    >
+      <AuthPaper
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          maxWidth: 500,
-          "> *:not(:first-child)": {
-            marginTop: 1,
-          },
+          flexGrow: 1,
+          maxWidth: 600,
         }}
       >
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email address"
-          value={email}
-          onChange={({ target }) => setEmail(target.value)}
-          error={
-            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={emailInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          disabled={hasSubmittedEmail}
-          required
-        />
-        <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
-          <Button
-            type="submit"
-            disabled={hasSubmittedEmail}
-            sx={{ width: "100%" }}
-          >
-            Recover account
-          </Button>
-        </Collapse>
-      </Box>
-      <Collapse in={hasSubmittedEmail}>
+        <AuthHeading>
+          {hasSubmittedEmail ? "Enter your verification code" : "Recover your account"}
+        </AuthHeading>
         <Box
           component="form"
-          onSubmit={handleSubmitCode}
+          onSubmit={handleSubmitEmail}
           sx={{
             display: "flex",
             flexDirection: "column",
             maxWidth: 500,
-            "> *:not(:first-child)": {
-              marginTop: 1,
-            },
+            gap: 1,
           }}
         >
           <TextField
-            label="Verification code"
-            type="text"
-            autoComplete="off"
-            placeholder="Enter your verification code"
-            value={code}
-            onChange={({ target }) => setCode(target.value)}
+            label="Email address"
+            type="email"
+            autoComplete="email"
+            placeholder="Enter your email address"
+            value={email}
+            onChange={({ target }) => setEmail(target.value)}
             error={
-              !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              !!emailInputUiNode?.messages.find(({ type }) => type === "error")
             }
-            helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+            helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
+            disabled={hasSubmittedEmail}
             required
           />
-          <Button type="submit" disabled={!code}>
-            Submit Code
-          </Button>
-          <Button variant="secondary" onClick={resetFlow}>
-            Change Email Address
-          </Button>
+          <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
+            <Button
+              type="submit"
+              disabled={hasSubmittedEmail}
+              sx={{ width: "100%" }}
+            >
+              Recover account
+            </Button>
+          </Collapse>
         </Box>
-      </Collapse>
-      <Box maxWidth={500} mt={1}>
+        <Collapse in={hasSubmittedEmail}>
+          <Box
+            component="form"
+            onSubmit={handleSubmitCode}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              maxWidth: 500,
+              gap: 1,
+            }}
+          >
+            <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
+              We've sent a verification code to your email address. Enter it below to continue.
+            </Typography>
+            <TextField
+              label="Verification code"
+              type="text"
+              autoComplete="off"
+              autoFocus
+              placeholder="Enter your verification code"
+              value={code}
+              onChange={({ target }) => setCode(target.value)}
+              error={
+                !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              }
+              helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+                <Typography key={id}>{text}</Typography>
+              ))}
+              required
+            />
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <Button type="submit" disabled={!code}>
+                Submit Code
+              </Button>
+              <Button variant="tertiary" onClick={resetFlow}>
+                Change Email Address
+              </Button>
+            </Box>
+          </Box>
+        </Collapse>
         {flow?.ui.messages?.map(({ text, id }) => (
-          <Typography key={id}>{text}</Typography>
+          <Typography
+            key={id}
+            sx={{ color: ({ palette }) => palette.gray[70], mt: 1 }}
+          >
+            {text}
+          </Typography>
         ))}
-        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
-      </Box>
-    </Container>
+        {errorMessage ? (
+          <Typography
+            sx={{ color: ({ palette }) => palette.red[70], mt: 1 }}
+            variant="smallTextParagraphs"
+          >
+            {errorMessage}
+          </Typography>
+        ) : null}
+      </AuthPaper>
+    </AuthLayout>
   );
 };
 
