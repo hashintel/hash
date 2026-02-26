@@ -1,7 +1,7 @@
 import type { WebId } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { Box, buttonClasses, styled, Typography } from "@mui/material";
+import { Box, buttonClasses, Link, styled, Typography } from "@mui/material";
 import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
@@ -493,6 +493,19 @@ const SigninPage: NextPageWithLayout = () => {
                     ),
                   }}
                 />
+                <Link
+                  href={`/recovery${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                  sx={{
+                    color: ({ palette }) => palette.gray[70],
+                    fontSize: 14,
+                    textDecorationColor: "currentcolor",
+                    "&:hover": {
+                      color: ({ palette }) => palette.gray[90],
+                    },
+                  }}
+                >
+                  Forgot your password?
+                </Link>
               </>
             )}
             {errorMessage ? (
@@ -506,13 +519,6 @@ const SigninPage: NextPageWithLayout = () => {
             {flow?.ui.messages?.map(({ text, id }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            {/* @todo: bring back recover account button */}
-            {/* <Button
-              variant="secondary"
-              href={{ pathname: "/recovery", query: { email } }}
-            >
-              Recover your account
-            </Button> */}
           </Box>
         </AuthPaper>
         <Box>
