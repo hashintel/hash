@@ -11,6 +11,8 @@ export default [
             "postcss.config.cjs",
             "vite.config.ts",
             "vite.site.config.ts",
+            ".storybook/main.ts",
+            ".storybook/preview.tsx",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
