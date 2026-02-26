@@ -1,10 +1,9 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
 
-import { CheckerContext } from "../checker/context";
-import type { CheckerCompletionItem } from "../checker/worker/protocol";
+import { LanguageClientContext } from "../checker/context";
+import type { CompletionItem } from "../checker/worker/protocol";
 import { MonacoContext } from "./context";
-import { parseEditorPath } from "./editor-paths";
 
 /**
  * Map TypeScript `ScriptElementKind` strings to Monaco `CompletionItemKind`.
@@ -60,14 +59,14 @@ function toCompletionItemKind(
 }
 
 function toMonacoCompletion(
-  entry: CheckerCompletionItem,
+  entry: CompletionItem,
   range: Monaco.IRange,
   monaco: typeof Monaco,
 ): Monaco.languages.CompletionItem {
   return {
-    label: entry.name,
+    label: entry.label,
     kind: toCompletionItemKind(entry.kind, monaco),
-    insertText: entry.insertText ?? entry.name,
+    insertText: entry.insertText ?? entry.label,
     sortText: entry.sortText,
     range,
   };
@@ -75,7 +74,7 @@ function toMonacoCompletion(
 
 const CompletionSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { getCompletions } = use(CheckerContext);
+  const { requestCompletion } = use(LanguageClientContext);
 
   useEffect(() => {
     const disposable = monaco.languages.registerCompletionItemProvider(
@@ -84,17 +83,9 @@ const CompletionSyncInner = () => {
         triggerCharacters: ["."],
 
         async provideCompletionItems(model, position) {
-          const parsed = parseEditorPath(model.uri.toString());
-          if (!parsed) {
-            return { suggestions: [] };
-          }
-
+          const uri = model.uri.toString();
           const offset = model.getOffsetAt(position);
-          const result = await getCompletions(
-            parsed.itemType,
-            parsed.itemId,
-            offset,
-          );
+          const result = await requestCompletion(uri, offset);
 
           const word = model.getWordUntilPosition(position);
           const range: Monaco.IRange = {
@@ -114,12 +105,12 @@ const CompletionSyncInner = () => {
     );
 
     return () => disposable.dispose();
-  }, [monaco, getCompletions]);
+  }, [monaco, requestCompletion]);
 
   return null;
 };
 
-/** Renders nothing visible — registers a Monaco CompletionItemProvider backed by the checker worker. */
+/** Renders nothing visible — registers a Monaco CompletionItemProvider backed by the language server. */
 export const CompletionSync: React.FC = () => (
   <Suspense fallback={null}>
     <CompletionSyncInner />

@@ -1,10 +1,7 @@
-import type { CheckerItemDiagnostics } from "../checker/worker/protocol";
+import type { ItemType } from "../checker/lib/checker";
 
-/** Generates the Monaco model path for a given SDCPN item. */
-export function getEditorPath(
-  itemType: CheckerItemDiagnostics["itemType"],
-  itemId: string,
-): string {
+/** Generates the document URI for a given SDCPN item (used as Monaco model URI). */
+export function getDocumentUri(itemType: ItemType, itemId: string): string {
   switch (itemType) {
     case "transition-lambda":
       return `inmemory://sdcpn/transitions/${itemId}/lambda.ts`;
@@ -22,9 +19,9 @@ const TRANSITION_KERNEL_RE =
 const DIFFERENTIAL_EQUATION_RE =
   /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
 
-/** Extract `(itemType, itemId)` from a Monaco model URI string. */
-export function parseEditorPath(uri: string): {
-  itemType: CheckerItemDiagnostics["itemType"];
+/** Extract `(itemType, itemId)` from a document URI string. */
+export function parseDocumentUri(uri: string): {
+  itemType: ItemType;
   itemId: string;
 } | null {
   let match = TRANSITION_LAMBDA_RE.exec(uri);

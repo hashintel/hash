@@ -3,13 +3,10 @@ import ts from "typescript";
 import type { SDCPN } from "../../core/types/sdcpn";
 import {
   createLanguageServiceHost,
+  type LanguageServiceHostController,
   type VirtualFile,
 } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
-
-export type SDCPNLanguageService = ts.LanguageService & {
-  updateFileContent: (fileName: string, content: string) => void;
-};
 
 /**
  * Sanitizes a color ID to be a valid TypeScript identifier.
@@ -245,73 +242,123 @@ function adjustDiagnostics<T extends ts.Diagnostic>(
 }
 
 /**
- * Creates a TypeScript language service for SDCPN code validation.
+ * Persistent TypeScript language server for SDCPN code validation.
  *
- * @param sdcpn - The SDCPN model to create the service for
- * @returns A TypeScript LanguageService instance
+ * Creates the `ts.LanguageService` once and reuses it across SDCPN changes
+ * by diffing virtual files (add/remove/update) rather than recreating everything.
  */
-export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
-  const files = generateVirtualFiles(sdcpn);
-  const { host, updateFileContent } = createLanguageServiceHost(files);
-  const baseService = ts.createLanguageService(host);
+export class SDCPNLanguageServer {
+  private files: Map<string, VirtualFile>;
+  private controller: LanguageServiceHostController;
+  private service: ts.LanguageService;
 
-  // Proxy service to adjust positions for injected prefixes
-  return {
-    ...baseService,
+  constructor() {
+    this.files = new Map();
+    this.controller = createLanguageServiceHost(this.files);
+    this.service = ts.createLanguageService(this.controller.host);
+  }
 
-    updateFileContent,
+  /**
+   * Sync virtual files to match the given SDCPN model.
+   * Diffs against the current state: adds new files, updates changed files,
+   * removes files that no longer exist.
+   */
+  syncFiles(sdcpn: SDCPN): void {
+    const newFiles = generateVirtualFiles(sdcpn);
 
-    getSemanticDiagnostics(fileName) {
-      const entry = files.get(fileName);
-      const prefixLength = entry?.prefix?.length ?? 0;
-      const diagnostics = baseService.getSemanticDiagnostics(fileName);
-      return adjustDiagnostics(diagnostics, prefixLength);
-    },
-
-    getSyntacticDiagnostics(fileName) {
-      const entry = files.get(fileName);
-      const prefixLength = entry?.prefix?.length ?? 0;
-      const diagnostics = baseService.getSyntacticDiagnostics(fileName);
-      return adjustDiagnostics(diagnostics, prefixLength);
-    },
-
-    getCompletionsAtPosition(fileName, position, options) {
-      const entry = files.get(fileName);
-      const prefixLength = entry?.prefix?.length ?? 0;
-      return baseService.getCompletionsAtPosition(
-        fileName,
-        position + prefixLength,
-        options,
-      );
-    },
-
-    getQuickInfoAtPosition(fileName, position) {
-      const entry = files.get(fileName);
-      const prefixLength = entry?.prefix?.length ?? 0;
-      const info = baseService.getQuickInfoAtPosition(
-        fileName,
-        position + prefixLength,
-      );
-      if (!info) {
-        return undefined;
+    // Remove files that no longer exist
+    for (const existingName of this.controller.getFileNames()) {
+      if (!newFiles.has(existingName)) {
+        this.controller.removeFile(existingName);
       }
-      return {
-        ...info,
-        textSpan: {
-          start: info.textSpan.start - prefixLength,
-          length: info.textSpan.length,
-        },
-      };
-    },
+    }
 
-    getSignatureHelpItems(fileName, position, options) {
-      const entry = files.get(fileName);
-      const prefixLength = entry?.prefix?.length ?? 0;
-      return baseService.getSignatureHelpItems(
-        fileName,
-        position + prefixLength,
-        options,
-      );
-    },
-  };
+    // Add or update files
+    for (const [name, newFile] of newFiles) {
+      if (!this.controller.hasFile(name)) {
+        this.controller.addFile(name, newFile);
+      } else {
+        const existing = this.controller.getFile(name);
+        if (
+          existing?.content !== newFile.content ||
+          existing?.prefix !== newFile.prefix
+        ) {
+          this.controller.updateFile(name, newFile);
+        }
+      }
+    }
+  }
+
+  /** Update only the user content of a single file (e.g., when the user types in an editor). */
+  updateDocumentContent(fileName: string, content: string): void {
+    this.controller.updateContent(fileName, content);
+  }
+
+  getSemanticDiagnostics(fileName: string): ts.Diagnostic[] {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    const diagnostics = this.service.getSemanticDiagnostics(fileName);
+    return adjustDiagnostics(diagnostics, prefixLength);
+  }
+
+  getSyntacticDiagnostics(fileName: string): ts.Diagnostic[] {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    const diagnostics = this.service.getSyntacticDiagnostics(fileName);
+    return adjustDiagnostics(diagnostics, prefixLength);
+  }
+
+  getCompletionsAtPosition(
+    fileName: string,
+    position: number,
+    options: ts.GetCompletionsAtPositionOptions | undefined,
+  ): ts.CompletionInfo | undefined {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    return this.service.getCompletionsAtPosition(
+      fileName,
+      position + prefixLength,
+      options,
+    );
+  }
+
+  getQuickInfoAtPosition(
+    fileName: string,
+    position: number,
+  ): ts.QuickInfo | undefined {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    const info = this.service.getQuickInfoAtPosition(
+      fileName,
+      position + prefixLength,
+    );
+    if (!info) {
+      return undefined;
+    }
+    return {
+      ...info,
+      textSpan: {
+        start: info.textSpan.start - prefixLength,
+        length: info.textSpan.length,
+      },
+    };
+  }
+
+  getSignatureHelpItems(
+    fileName: string,
+    position: number,
+    options: ts.SignatureHelpItemsOptions | undefined,
+  ): ts.SignatureHelpItems | undefined {
+    const entry = this.controller.getFile(fileName);
+    const prefixLength = entry?.prefix?.length ?? 0;
+    return this.service.getSignatureHelpItems(
+      fileName,
+      position + prefixLength,
+      options,
+    );
+  }
+
+  dispose(): void {
+    this.service.dispose();
+  }
 }

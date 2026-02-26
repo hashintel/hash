@@ -16,7 +16,7 @@ import {
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
 import { CodeEditor } from "../../../../monaco/code-editor";
-import { getEditorPath } from "../../../../monaco/editor-paths";
+import { getDocumentUri } from "../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -389,7 +389,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           )}
         </div>
         <CodeEditor
-          path={getEditorPath("transition-lambda", transition.id)}
+          path={getDocumentUri("transition-lambda", transition.id)}
           key={`lambda-${transition.lambdaType}-${transition.inputArcs
             .map((a) => `${a.placeId}:${a.weight}`)
             .join("-")}`}
@@ -492,7 +492,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             )}
           </div>
           <CodeEditor
-            path={getEditorPath("transition-kernel", transition.id)}
+            path={getDocumentUri("transition-kernel", transition.id)}
             language="typescript"
             value={transition.transitionKernelCode || ""}
             height={400}

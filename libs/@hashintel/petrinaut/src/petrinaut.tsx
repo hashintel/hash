@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
-import { CheckerProvider } from "./checker/provider";
+import { LanguageClientProvider } from "./checker/provider";
 import type {
   Color,
   DifferentialEquation,
@@ -98,7 +98,7 @@ export const Petrinaut = ({
   return (
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
-        <CheckerProvider>
+        <LanguageClientProvider>
           <MonacoProvider>
             <SimulationProvider>
               <PlaybackProvider>
@@ -110,7 +110,7 @@ export const Petrinaut = ({
               </PlaybackProvider>
             </SimulationProvider>
           </MonacoProvider>
-        </CheckerProvider>
+        </LanguageClientProvider>
       </SDCPNProvider>
     </NotificationsProvider>
   );

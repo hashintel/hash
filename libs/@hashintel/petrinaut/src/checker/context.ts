@@ -1,49 +1,43 @@
 import { createContext } from "react";
 
 import type {
-  CheckerCompletionResult,
-  CheckerItemDiagnostics,
-  CheckerQuickInfoResult,
-  CheckerResult,
-  CheckerSignatureHelpResult,
+  CompletionList,
+  Diagnostic,
+  DocumentUri,
+  Hover,
+  SignatureHelp,
 } from "./worker/protocol";
 
-export interface CheckerContextValue {
-  /** Result of the last SDCPN validation run. */
-  checkResult: CheckerResult;
-  /** Total number of diagnostics across all items. */
+export interface LanguageClientContextValue {
+  /** Per-URI diagnostics pushed from the language server. */
+  diagnosticsByUri: Map<DocumentUri, Diagnostic[]>;
+  /** Total number of diagnostics across all documents. */
   totalDiagnosticsCount: number;
-  /** Request completions at a position within an SDCPN item. */
-  getCompletions: (
-    itemType: CheckerItemDiagnostics["itemType"],
-    itemId: string,
+  /** Notify the server that a document's content changed. */
+  notifyDocumentChanged: (uri: DocumentUri, text: string) => void;
+  /** Request completions at a position within a document. */
+  requestCompletion: (
+    uri: DocumentUri,
     offset: number,
-  ) => Promise<CheckerCompletionResult>;
-  /** Request quick info (hover) at a position within an SDCPN item. */
-  getQuickInfo: (
-    itemType: CheckerItemDiagnostics["itemType"],
-    itemId: string,
+  ) => Promise<CompletionList>;
+  /** Request hover info at a position within a document. */
+  requestHover: (uri: DocumentUri, offset: number) => Promise<Hover>;
+  /** Request signature help at a position within a document. */
+  requestSignatureHelp: (
+    uri: DocumentUri,
     offset: number,
-  ) => Promise<CheckerQuickInfoResult>;
-  /** Request signature help at a position within an SDCPN item. */
-  getSignatureHelp: (
-    itemType: CheckerItemDiagnostics["itemType"],
-    itemId: string,
-    offset: number,
-  ) => Promise<CheckerSignatureHelpResult>;
+  ) => Promise<SignatureHelp>;
 }
 
-const DEFAULT_CONTEXT_VALUE: CheckerContextValue = {
-  checkResult: {
-    isValid: true,
-    itemDiagnostics: [],
-  },
+const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
+  diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
-  getCompletions: () => Promise.resolve({ items: [] }),
-  getQuickInfo: () => Promise.resolve(null),
-  getSignatureHelp: () => Promise.resolve(null),
+  notifyDocumentChanged: () => {},
+  requestCompletion: () => Promise.resolve({ items: [] }),
+  requestHover: () => Promise.resolve(null),
+  requestSignatureHelp: () => Promise.resolve(null),
 };
 
-export const CheckerContext = createContext<CheckerContextValue>(
+export const LanguageClientContext = createContext<LanguageClientContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );

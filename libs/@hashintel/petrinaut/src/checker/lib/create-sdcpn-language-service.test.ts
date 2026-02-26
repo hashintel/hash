@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createSDCPNLanguageService } from "./create-sdcpn-language-service";
+import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { getItemFilePath } from "./file-paths";
 import { createSDCPN } from "./helper/create-sdcpn";
 
@@ -22,6 +22,16 @@ function parseCursor(codeWithCursor: string): {
   const code =
     codeWithCursor.slice(0, offset) + codeWithCursor.slice(offset + 1);
   return { offset, code };
+}
+
+/** Create a server initialized with the given SDCPN and return it. */
+function createServer(
+  sdcpnOptions: Parameters<typeof createSDCPN>[0],
+): SDCPNLanguageServer {
+  const sdcpn = createSDCPN(sdcpnOptions);
+  const server = new SDCPNLanguageServer();
+  server.syncFiles(sdcpn);
+  return server;
 }
 
 /** Extract just the completion names from a position. */
@@ -60,8 +70,7 @@ function getCompletionNames(
     );
   }
 
-  const sdcpn = createSDCPN(patched);
-  const ls = createSDCPNLanguageService(sdcpn);
+  const server = createServer(patched);
 
   let filePath: string;
   if (target.type === "transition-lambda") {
@@ -78,11 +87,15 @@ function getCompletionNames(
     });
   }
 
-  const completions = ls.getCompletionsAtPosition(filePath, offset, undefined);
+  const completions = server.getCompletionsAtPosition(
+    filePath,
+    offset,
+    undefined,
+  );
   return (completions?.entries ?? []).map((entry) => entry.name);
 }
 
-describe("createSDCPNLanguageService completions", () => {
+describe("SDCPNLanguageServer completions", () => {
   const baseSdcpn = {
     types: [{ id: "color1", elements: [{ name: "x", type: "real" as const }] }],
     places: [
@@ -187,10 +200,10 @@ describe("createSDCPNLanguageService completions", () => {
     });
   });
 
-  describe("updateFileContent", () => {
+  describe("updateDocumentContent", () => {
     it("returns completions for updated code, not original code", () => {
       // Start with number code
-      const sdcpn = createSDCPN({
+      const server = createServer({
         ...baseSdcpn,
         transitions: [
           {
@@ -199,17 +212,15 @@ describe("createSDCPNLanguageService completions", () => {
           },
         ],
       });
-
-      const ls = createSDCPNLanguageService(sdcpn);
       const filePath = getItemFilePath("transition-lambda-code", {
         transitionId: "t1",
       });
 
       // Update to string code
       const { offset, code } = parseCursor(`const s = "hello";\ns.${CURSOR}`);
-      ls.updateFileContent(filePath, code);
+      server.updateDocumentContent(filePath, code);
 
-      const completions = ls.getCompletionsAtPosition(
+      const completions = server.getCompletionsAtPosition(
         filePath,
         offset,
         undefined,
@@ -224,7 +235,7 @@ describe("createSDCPNLanguageService completions", () => {
     });
 
     it("reflects new content after multiple updates", () => {
-      const sdcpn = createSDCPN({
+      const server = createServer({
         ...baseSdcpn,
         transitions: [
           {
@@ -233,16 +244,14 @@ describe("createSDCPNLanguageService completions", () => {
           },
         ],
       });
-
-      const ls = createSDCPNLanguageService(sdcpn);
       const filePath = getItemFilePath("transition-lambda-code", {
         transitionId: "t1",
       });
 
       // First update: number
       const first = parseCursor(`const a = 42;\na.${CURSOR}`);
-      ls.updateFileContent(filePath, first.code);
-      const firstCompletions = ls.getCompletionsAtPosition(
+      server.updateDocumentContent(filePath, first.code);
+      const firstCompletions = server.getCompletionsAtPosition(
         filePath,
         first.offset,
         undefined,
@@ -254,8 +263,8 @@ describe("createSDCPNLanguageService completions", () => {
 
       // Second update: string
       const second = parseCursor(`const s = "hello";\ns.${CURSOR}`);
-      ls.updateFileContent(filePath, second.code);
-      const secondCompletions = ls.getCompletionsAtPosition(
+      server.updateDocumentContent(filePath, second.code);
+      const secondCompletions = server.getCompletionsAtPosition(
         filePath,
         second.offset,
         undefined,
@@ -265,6 +274,72 @@ describe("createSDCPNLanguageService completions", () => {
       );
       expect(secondNames).toContain("charAt");
       expect(secondNames).not.toContain("toFixed");
+    });
+  });
+
+  describe("syncFiles", () => {
+    it("updates types when SDCPN changes structurally", () => {
+      // Start with one color element
+      const server = new SDCPNLanguageServer();
+      const sdcpn1 = createSDCPN({
+        types: [
+          { id: "color1", elements: [{ name: "x", type: "real" as const }] },
+        ],
+        places: [{ id: "place1", name: "Source", colorId: "color1" }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate" as const,
+            inputArcs: [{ placeId: "place1", weight: 1 }],
+            outputArcs: [],
+            lambdaCode: "",
+          },
+        ],
+      });
+      server.syncFiles(sdcpn1);
+
+      // Add a new element to the color
+      const sdcpn2 = createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" as const },
+              { name: "y", type: "real" as const },
+            ],
+          },
+        ],
+        places: [{ id: "place1", name: "Source", colorId: "color1" }],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate" as const,
+            inputArcs: [{ placeId: "place1", weight: 1 }],
+            outputArcs: [],
+            lambdaCode: `export default Lambda((input) => {\n  const t = input.Source[0];\n  return t.`,
+          },
+        ],
+      });
+      server.syncFiles(sdcpn2);
+
+      const filePath = getItemFilePath("transition-lambda-code", {
+        transitionId: "t1",
+      });
+      const { offset, code } = parseCursor(
+        `export default Lambda((input) => {\n  const t = input.Source[0];\n  return t.${CURSOR}`,
+      );
+      server.updateDocumentContent(filePath, code);
+
+      const completions = server.getCompletionsAtPosition(
+        filePath,
+        offset,
+        undefined,
+      );
+      const names = (completions?.entries ?? []).map((entry) => entry.name);
+
+      // Should now include both x and y
+      expect(names).toContain("x");
+      expect(names).toContain("y");
     });
   });
 

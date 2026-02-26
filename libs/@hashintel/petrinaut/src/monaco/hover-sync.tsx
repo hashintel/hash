@@ -1,24 +1,19 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
 
-import { CheckerContext } from "../checker/context";
+import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";
-import { parseEditorPath } from "./editor-paths";
 
 const HoverSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { getQuickInfo } = use(CheckerContext);
+  const { requestHover } = use(LanguageClientContext);
 
   useEffect(() => {
     const disposable = monaco.languages.registerHoverProvider("typescript", {
       async provideHover(model, position) {
-        const parsed = parseEditorPath(model.uri.toString());
-        if (!parsed) {
-          return null;
-        }
-
+        const uri = model.uri.toString();
         const offset = model.getOffsetAt(position);
-        const info = await getQuickInfo(parsed.itemType, parsed.itemId, offset);
+        const info = await requestHover(uri, offset);
 
         if (!info) {
           return null;
@@ -45,12 +40,12 @@ const HoverSyncInner = () => {
     });
 
     return () => disposable.dispose();
-  }, [monaco, getQuickInfo]);
+  }, [monaco, requestHover]);
 
   return null;
 };
 
-/** Renders nothing visible — registers a Monaco HoverProvider backed by the checker worker. */
+/** Renders nothing visible — registers a Monaco HoverProvider backed by the language server. */
 export const HoverSync: React.FC = () => (
   <Suspense fallback={null}>
     <HoverSyncInner />

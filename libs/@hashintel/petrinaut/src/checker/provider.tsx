@@ -1,54 +1,75 @@
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SDCPNContext } from "../state/sdcpn-context";
-import { CheckerContext } from "./context";
-import type { CheckerResult } from "./worker/protocol";
-import { useCheckerWorker } from "./worker/use-checker-worker";
+import { LanguageClientContext } from "./context";
+import type {
+  Diagnostic,
+  DocumentUri,
+  PublishDiagnosticsParams,
+} from "./worker/protocol";
+import { useLanguageClient } from "./worker/use-language-client";
 
-const EMPTY_RESULT: CheckerResult = {
-  isValid: true,
-  itemDiagnostics: [],
-};
-
-export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const LanguageClientProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { setSDCPN, getCompletions, getQuickInfo, getSignatureHelp } =
-    useCheckerWorker();
+  const client = useLanguageClient();
 
-  const [checkResult, setCheckerResult] = useState<CheckerResult>(EMPTY_RESULT);
+  const [diagnosticsByUri, setDiagnosticsByUri] = useState<
+    Map<DocumentUri, Diagnostic[]>
+  >(new Map());
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void setSDCPN(petriNetDefinition).then((result) => {
-      if (!cancelled) {
-        setCheckerResult(result);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [petriNetDefinition, setSDCPN]);
-
-  const totalDiagnosticsCount = checkResult.itemDiagnostics.reduce(
-    (sum, item) => sum + item.diagnostics.length,
-    0,
+  // Subscribe to diagnostics pushed from the server
+  const handleDiagnostics = useCallback(
+    (allParams: PublishDiagnosticsParams[]) => {
+      setDiagnosticsByUri(() => {
+        const next = new Map<DocumentUri, Diagnostic[]>();
+        for (const param of allParams) {
+          if (param.diagnostics.length > 0) {
+            next.set(param.uri, param.diagnostics);
+          }
+        }
+        return next;
+      });
+    },
+    [],
   );
 
+  useEffect(() => {
+    client.onDiagnostics(handleDiagnostics);
+  }, [client, handleDiagnostics]);
+
+  // Initialize on first mount, then send incremental updates
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    if (!initializedRef.current) {
+      client.initialize(petriNetDefinition);
+      initializedRef.current = true;
+    } else {
+      client.notifySDCPNChanged(petriNetDefinition);
+    }
+  }, [petriNetDefinition, client]);
+
+  const totalDiagnosticsCount = useMemo(() => {
+    let count = 0;
+    for (const diagnostics of diagnosticsByUri.values()) {
+      count += diagnostics.length;
+    }
+    return count;
+  }, [diagnosticsByUri]);
+
   return (
-    <CheckerContext.Provider
+    <LanguageClientContext.Provider
       value={{
-        checkResult,
+        diagnosticsByUri,
         totalDiagnosticsCount,
-        getCompletions,
-        getQuickInfo,
-        getSignatureHelp,
+        notifyDocumentChanged: client.notifyDocumentChanged,
+        requestCompletion: client.requestCompletion,
+        requestHover: client.requestHover,
+        requestSignatureHelp: client.requestSignatureHelp,
       }}
     >
       {children}
-    </CheckerContext.Provider>
+    </LanguageClientContext.Provider>
   );
 };

@@ -1,13 +1,12 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect } from "react";
 
-import { CheckerContext } from "../checker/context";
-import type { CheckerSignatureHelpResult } from "../checker/worker/protocol";
+import { LanguageClientContext } from "../checker/context";
+import type { SignatureHelp } from "../checker/worker/protocol";
 import { MonacoContext } from "./context";
-import { parseEditorPath } from "./editor-paths";
 
 function toMonacoSignatureHelp(
-  result: NonNullable<CheckerSignatureHelpResult>,
+  result: NonNullable<SignatureHelp>,
 ): Monaco.languages.SignatureHelp {
   return {
     activeSignature: result.activeSignature,
@@ -25,7 +24,7 @@ function toMonacoSignatureHelp(
 
 const SignatureHelpSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { getSignatureHelp } = use(CheckerContext);
+  const { requestSignatureHelp } = use(LanguageClientContext);
 
   useEffect(() => {
     const disposable = monaco.languages.registerSignatureHelpProvider(
@@ -35,17 +34,9 @@ const SignatureHelpSyncInner = () => {
         signatureHelpRetriggerCharacters: [","],
 
         async provideSignatureHelp(model, position) {
-          const parsed = parseEditorPath(model.uri.toString());
-          if (!parsed) {
-            return null;
-          }
-
+          const uri = model.uri.toString();
           const offset = model.getOffsetAt(position);
-          const result = await getSignatureHelp(
-            parsed.itemType,
-            parsed.itemId,
-            offset,
-          );
+          const result = await requestSignatureHelp(uri, offset);
 
           if (!result) {
             return null;
@@ -60,12 +51,12 @@ const SignatureHelpSyncInner = () => {
     );
 
     return () => disposable.dispose();
-  }, [monaco, getSignatureHelp]);
+  }, [monaco, requestSignatureHelp]);
 
   return null;
 };
 
-/** Renders nothing visible — registers a Monaco SignatureHelpProvider backed by the checker worker. */
+/** Renders nothing visible — registers a Monaco SignatureHelpProvider backed by the language server. */
 export const SignatureHelpSync: React.FC = () => (
   <Suspense fallback={null}>
     <SignatureHelpSyncInner />
