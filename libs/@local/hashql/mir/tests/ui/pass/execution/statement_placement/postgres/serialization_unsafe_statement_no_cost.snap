@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (Uuid | String, Integer), %1: Entity) -> Boolean {
+    let %2: Uuid | String
+    let %3: Integer
+    let %4: Uuid | String
+    let %5: Boolean
+
+    bb0(): {
+        %2 = %0.0
+        %3 = %0.1                                                               // cost: 4
+        %4 = %2
+        %5 = %3 > 42                                                            // cost: 4
+
+        return %5
+    }
+}
+
+=================== Traversals ===================
+
+Traversals:

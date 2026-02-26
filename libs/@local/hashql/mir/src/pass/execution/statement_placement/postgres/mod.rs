@@ -334,7 +334,7 @@ struct PostgresSupported<'ctx, 'heap, A: Allocator> {
     /// Fields containing closures or dicts with non-string keys are excluded.
     env_domain: &'ctx DenseBitSet<FieldIndex>,
 
-    boundary: LocalLock<&'ctx mut RecursionBoundary<'heap, A>>,
+    guard: LocalLock<&'ctx mut RecursiveVisitorGuard<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
@@ -428,11 +428,11 @@ impl<'heap, A: Allocator> Supported<'heap> for PostgresSupported<'_, 'heap, A> {
                 // ever holding the value (this is the boundary and no call inside
                 // `is_equality_safe_operand`) calls back to this.
                 if matches!(op, BinOp::Eq | BinOp::Ne)
-                    && !self.boundary.map(|boundary| {
+                    && !self.guard.map(|guard| {
                         is_equality_safe_operand(
                             context.env,
                             &body.local_decls,
-                            boundary,
+                            guard.boundary_mut(),
                             left,
                             right,
                         )
@@ -476,6 +476,112 @@ impl<'heap, A: Allocator> Supported<'heap> for PostgresSupported<'_, 'heap, A> {
             Operand::Place(place) => self.is_supported_place(context, body, domain, place),
             Operand::Constant(constant) => is_supported_constant(constant),
         }
+    }
+
+    fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
+        self.guard
+            .map(|guard| {
+                TypeSerializationSafety {
+                    env: context.env,
+                    guard,
+                }
+                .visit_id(type_id)
+            })
+            .is_continue()
+    }
+}
+
+/// Recursive type visitor that rejects types not safely deserializable from jsonb.
+///
+/// Walks the type tree and breaks at unions containing representational collisions:
+/// opaques (whose nominal identity is lost in jsonb), struct + dict (both jsonb objects),
+/// or tuple + list (both jsonb arrays).
+struct TypeSerializationSafety<'guard, 'env, 'heap, A: Allocator = Global> {
+    env: &'env Environment<'heap>,
+    guard: &'guard mut RecursiveVisitorGuard<'heap, A>,
+}
+
+impl<'heap, A: Allocator> r#type::visit::Visitor<'heap>
+    for TypeSerializationSafety<'_, '_, 'heap, A>
+{
+    type Filter = r#type::visit::filter::Deep;
+    type Result = ControlFlow<()>;
+
+    fn env(&self) -> &Environment<'heap> {
+        self.env
+    }
+
+    fn visit_type(&mut self, r#type: Type<'heap>) -> Self::Result {
+        self.guard.with(
+            |guard, r#type| {
+                r#type::visit::walk_type(
+                    &mut TypeSerializationSafety {
+                        env: self.env,
+                        guard,
+                    },
+                    r#type,
+                )
+            },
+            r#type,
+        )
+    }
+
+    fn visit_union(&mut self, union: Type<'heap, r#type::kind::UnionType>) -> Self::Result {
+        // A union is serialization-safe only if its variants are distinguishable in jsonb:
+        // 1. No opaque variant (nominal identity is erased; repr likely overlaps other variants)
+        // 2. No struct + dict coexistence (both serialize as jsonb objects; the open/closed struct
+        //    distinction is a type-level constraint only, values are always complete)
+        // 3. No tuple + list coexistence (both serialize as jsonb arrays)
+        debug_assert!(union.kind.variants.len() >= 2);
+
+        let mut has_dict = false;
+        let mut has_struct = false;
+        let mut has_tuple = false;
+        let mut has_list = false;
+
+        for &variant in union.kind.variants {
+            let variant = Peel::semantic(self.env, variant);
+
+            match variant.kind {
+                // Opaque types are rejected outright in unions. The opaque's repr is
+                // typically a subtype of another variant (e.g., Uuid's repr String is
+                // subsumed by a String variant), making the two indistinguishable in
+                // jsonb. Checking this precisely would require building a synthetic
+                // union from the peeled repr types and re-running simplification to
+                // detect whether any variants collapse, which is too expensive for a
+                // placement predicate.
+                TypeKind::Opaque(_) => {
+                    return ControlFlow::Break(());
+                }
+                TypeKind::Intrinsic(IntrinsicType::Dict(_)) => {
+                    has_dict = true;
+                }
+                TypeKind::Struct(_) => {
+                    has_struct = true;
+                }
+                TypeKind::Tuple(_) => {
+                    has_tuple = true;
+                }
+                TypeKind::Intrinsic(IntrinsicType::List(_)) => {
+                    has_list = true;
+                }
+                TypeKind::Apply(_) | TypeKind::Generic(_) => unreachable!(),
+                TypeKind::Primitive(_)
+                | TypeKind::Union(_)
+                | TypeKind::Intersection(_)
+                | TypeKind::Closure(_)
+                | TypeKind::Param(_)
+                | TypeKind::Infer(_)
+                | TypeKind::Never
+                | TypeKind::Unknown => {}
+            }
+
+            if (has_dict && has_struct) || (has_tuple && has_list) {
+                return ControlFlow::Break(());
+            }
+        }
+
+        r#type::visit::walk_union(self, union)
     }
 }
 
@@ -626,7 +732,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
 
         let supported = PostgresSupported {
             env_domain: &env_domain,
-            boundary: LocalLock::new(self.type_visitor_guard.boundary_mut()),
+            guard: LocalLock::new(&mut self.type_visitor_guard),
         };
 
         let dispatchable = SupportedAnalysis {

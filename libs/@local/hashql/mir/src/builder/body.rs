@@ -339,6 +339,9 @@ macro_rules! body {
     (@type $types:ident; [List $sub:tt]) => {
         $types.list($crate::builder::body!(@type $types; $sub))
     };
+    (@type $types:ident; [Opaque $name:literal; $value:tt]) => {
+        $types.opaque($name, $crate::builder::body!(@type $types; $value))
+    };
     (@type $types:ident; [Opaque $sym:path; $value:tt]) => {
         $types.opaque($sym, $crate::builder::body!(@type $types; $value))
     };

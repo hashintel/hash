@@ -71,6 +71,11 @@ pub(crate) trait Supported<'heap> {
         operand: &Operand<'heap>,
     ) -> bool;
 
+    /// Checks whether a type can be unambiguously deserialized after crossing a backend boundary.
+    ///
+    /// Returns `true` by default. Targets that serialize values to a lossy format (e.g., jsonb)
+    /// override this to reject types with representational collisions in unions.
+    #[expect(unused_variables, reason = "trait definition")]
     fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
         true
     }
@@ -204,7 +209,7 @@ where
             .is_supported_rvalue(self.context, self.body, state, rhs)
             && self
                 .supported
-                .is_type_serialization_safe(self.context, self.body.local_decls[param].r#type);
+                .is_type_serialization_safe(self.context, self.body.local_decls[lhs.local].r#type);
         state.set(lhs.local, is_supported);
     }
 
@@ -287,10 +292,16 @@ where
     ) -> Self::Result {
         match &statement.kind {
             StatementKind::Assign(Assign { lhs, rhs }) => {
-                let cost = self
-                    .supported
-                    .is_supported_rvalue(self.context, self.body, self.dispatchable, rhs)
-                    .then_some(self.cost);
+                let cost = (self.supported.is_supported_rvalue(
+                    self.context,
+                    self.body,
+                    self.dispatchable,
+                    rhs,
+                ) && self.supported.is_type_serialization_safe(
+                    self.context,
+                    self.body.local_decls[lhs.local].r#type,
+                ))
+                .then_some(self.cost);
 
                 if let Some(cost) = cost
                     && lhs.projections.is_empty()
