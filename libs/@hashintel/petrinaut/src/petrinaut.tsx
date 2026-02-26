@@ -1,7 +1,6 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
-import { LanguageClientProvider } from "./lsp/provider";
 import type {
   Color,
   DifferentialEquation,
@@ -12,6 +11,7 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
+import { LanguageClientProvider } from "./lsp/provider";
 import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
@@ -98,7 +98,7 @@ export const Petrinaut = ({
   return (
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
-        <LanguageClientProvider>
+        <LanguageClientProvider key={rest.petriNetId}>
           <MonacoProvider>
             <SimulationProvider>
               <PlaybackProvider>
