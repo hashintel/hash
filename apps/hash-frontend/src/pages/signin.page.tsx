@@ -1,7 +1,7 @@
 import type { WebId } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { Box, buttonClasses, Link, styled, Typography } from "@mui/material";
+import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
@@ -15,7 +15,7 @@ import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-le
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
-import { Button } from "../shared/ui";
+import { Button, Link } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
