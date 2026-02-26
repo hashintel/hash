@@ -115,7 +115,7 @@ impl<A: Allocator> PairWorkQueue<A> {
 /// After [`run_in`](Self::run_in), every surviving target in a block's domain has at least one
 /// compatible transition partner across each incident CFG edge, and the matrices are pruned to
 /// match the narrowed domains.
-pub struct ArcConsistency<'ctx, A: Allocator> {
+pub(crate) struct ArcConsistency<'ctx, A: Allocator> {
     pub blocks: &'ctx mut BasicBlockSlice<TargetBitSet>,
     pub terminators: &'ctx mut TerminatorCostVec<A>,
 }
@@ -163,7 +163,7 @@ impl<A: Allocator> ArcConsistency<'_, A> {
     }
 
     /// Enforces arc consistency over all CFG edges, then prunes the transition matrices.
-    pub fn run_in<B: Allocator + Clone>(&mut self, body: &Body<'_>, alloc: B) {
+    pub(crate) fn run_in<B: Allocator + Clone>(&mut self, body: &Body<'_>, alloc: B) {
         let mut queue = PairWorkQueue::new_in(body.basic_blocks.len(), alloc);
 
         // Seed: for each CFG edge, enqueue both arc directions.

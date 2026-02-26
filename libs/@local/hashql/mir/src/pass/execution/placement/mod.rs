@@ -10,12 +10,11 @@
 //! The solver groups blocks into placement regions via SCC condensation, then runs a forward pass
 //! (topological order) and backward pass (reverse topological) to refine assignments. The
 //! [`PlacementSolverContext`] provides the shared state needed across both passes.
+//!
+//! [`PlacementSolver`]: solve::PlacementSolver
 
 mod arc;
 pub(crate) mod error;
 mod solve;
 
-pub use self::{
-    arc::ArcConsistency,
-    solve::{PlacementSolver, PlacementSolverContext},
-};
+pub(crate) use self::{arc::ArcConsistency, solve::PlacementSolverContext};

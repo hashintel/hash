@@ -1,6 +1,8 @@
 //! Tests for [`PostgresStatementPlacement`].
 #![expect(clippy::min_ident_chars, clippy::similar_names)]
 
+use alloc::alloc::Global;
+
 use hashql_core::{
     heap::Heap,
     symbol::sym,
@@ -58,7 +60,7 @@ fn binary_unary_ops_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -100,7 +102,7 @@ fn aggregate_tuple_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -144,7 +146,7 @@ fn aggregate_closure_rejected() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -191,7 +193,7 @@ fn apply_rejected() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -232,7 +234,7 @@ fn input_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -275,7 +277,7 @@ fn env_with_closure_type_rejected() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -317,7 +319,7 @@ fn env_without_closure_accepted() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -358,7 +360,7 @@ fn entity_projection_column() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -400,7 +402,7 @@ fn entity_projection_jsonb() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -446,7 +448,7 @@ fn storage_statements_zero_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -508,7 +510,7 @@ fn diamond_must_analysis() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (body, statement_costs, traversal_costs) =
         run_placement(&mut context, &mut placement, body);
 
@@ -587,9 +589,9 @@ fn graph_read_edge_unsupported() {
 
     let traversals = Traversals::with_capacity_in(vertex.local, body.local_decls.len(), &heap);
 
-    let mut placement = PostgresStatementPlacement::default();
+    let mut placement = PostgresStatementPlacement::new_in(Global);
     let (traversal_costs, statement_costs) =
-        placement.statement_placement(&context, &body, &traversals, &heap);
+        placement.statement_placement_in(&context, &body, &traversals, &heap);
 
     assert_placement(
         "graph_read_edge_unsupported",

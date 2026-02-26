@@ -1,7 +1,7 @@
+use alloc::alloc::Global;
 use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
-    heap::Heap,
     id::{Id as _, bit_vec::DenseBitSet},
     symbol::sym,
     r#type::{
@@ -29,7 +29,6 @@ use crate::{
         execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
-            target::Postgres,
         },
         transform::Traversals,
     },
@@ -122,14 +121,14 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-struct HasClosureVisitor<'env, 'heap, G = RecursiveVisitorGuard<'heap>> {
+struct HasClosureVisitor<'guard, 'env, 'heap, A: Allocator = Global> {
     env: &'env Environment<'heap>,
-    guard: G,
+    guard: &'guard mut RecursiveVisitorGuard<'heap, A>,
 }
 
-impl<'heap, G> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap, G>
+impl<'heap, A> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, '_, 'heap, A>
 where
-    G: AsMut<RecursiveVisitorGuard<'heap>>,
+    A: Allocator,
 {
     type Filter = r#type::visit::filter::Deep;
     type Result = ControlFlow<()>;
@@ -139,7 +138,7 @@ where
     }
 
     fn visit_type(&mut self, r#type: r#type::Type<'heap>) -> Self::Result {
-        self.guard.as_mut().with(
+        self.guard.with(
             |guard, r#type| {
                 r#type::visit::walk_type(
                     &mut HasClosureVisitor {
@@ -158,39 +157,45 @@ where
     }
 }
 
-/// Statement placement for the [`Postgres`] execution target.
+/// Statement placement for the [`Postgres`](super::super::TargetId::Postgres) execution target.
 ///
 /// Supports constants, binary/unary operations, aggregates (except closures), inputs, and entity
 /// field projections that map to Postgres columns or JSONB paths. The environment argument is
 /// only transferable if it contains no closure types.
-pub struct PostgresStatementPlacement<'heap> {
+pub(crate) struct PostgresStatementPlacement<'heap, S: Allocator> {
     statement_cost: Cost,
-    type_visitor_guard: RecursiveVisitorGuard<'heap>,
+    type_visitor_guard: RecursiveVisitorGuard<'heap, S>,
+
+    scratch: S,
 }
 
-impl Default for PostgresStatementPlacement<'_> {
-    fn default() -> Self {
+impl<S: Allocator + Clone> PostgresStatementPlacement<'_, S> {
+    pub(crate) fn new_in(scratch: S) -> Self {
+        const TYPICAL_RECURSION_DEPTH: usize = 32; // This is the usual upper limit, we usually don't have more than ~8-16 levels, 32 at the absolute maximum in types such as `Entity`.
+
         Self {
             statement_cost: cost!(4),
-            type_visitor_guard: RecursiveVisitorGuard::default(),
+            type_visitor_guard: RecursiveVisitorGuard::with_capacity_in(
+                TYPICAL_RECURSION_DEPTH,
+                scratch.clone(),
+            ),
+            scratch,
         }
     }
 }
 
-impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
-    for PostgresStatementPlacement<'heap>
+impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
+    for PostgresStatementPlacement<'heap, S>
 {
-    type Target = Postgres;
-
-    fn statement_placement(
+    fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
         alloc: A,
-    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
-        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
-        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc.clone());
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
@@ -226,7 +231,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
                 },
             ),
         }
-        .finish_in(alloc);
+        .finish_in(&self.scratch);
 
         let mut visitor = CostVisitor {
             body,

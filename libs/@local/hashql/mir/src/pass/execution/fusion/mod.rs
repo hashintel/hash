@@ -226,21 +226,21 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 ///
 /// [`BasicBlock`]: crate::body::basic_block::BasicBlock
 /// [`BasicBlockSplitting`]: super::splitting::BasicBlockSplitting
-pub struct BasicBlockFusion<A: Allocator> {
+pub(crate) struct BasicBlockFusion<A: Allocator> {
     alloc: A,
 }
 
 impl BasicBlockFusion<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self::new_in(Global)
     }
 }
 
 impl<A: Allocator> BasicBlockFusion<A> {
     /// Creates a new pass using the provided allocator.
-    pub const fn new_in(alloc: A) -> Self {
+    pub(crate) const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 
@@ -248,7 +248,7 @@ impl<A: Allocator> BasicBlockFusion<A> {
     ///
     /// Modifies both `body` and `targets` in place. The `targets` vec is compacted to match
     /// the new block layout.
-    pub fn fuse<'heap>(
+    pub(crate) fn fuse<'heap>(
         &self,
         body: &mut Body<'heap>,
         targets: &mut BasicBlockVec<TargetId, &'heap Heap>,

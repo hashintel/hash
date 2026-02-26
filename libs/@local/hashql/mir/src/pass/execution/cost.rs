@@ -324,11 +324,16 @@ impl<A: Allocator> TraversalCostVec<A> {
     ///
     /// Only locals that are enabled traversals (per [`Traversals::enabled`]) will accept cost
     /// insertions; other locals are silently ignored.
-    pub fn new<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
+    pub fn new_in<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
         Self {
             traversals: traversals.enabled(body),
             costs: LocalVec::new_in(alloc),
         }
+    }
+
+    /// Returns the cost assigned to `local`, or `None` if unassigned or not a traversal.
+    pub fn get(&self, local: Local) -> Option<Cost> {
+        self.costs.lookup(local).copied()
     }
 
     /// Records a cost for a traversal local.
@@ -364,7 +369,7 @@ impl<A: Allocator> IntoIterator for &TraversalCostVec<A> {
 /// indicates the target cannot execute that statement. The execution planner compares costs
 /// across targets to determine the optimal execution strategy.
 #[derive(Debug)]
-pub struct StatementCostVec<A: Allocator = Global> {
+pub(crate) struct StatementCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     costs: Vec<Option<Cost>, A>,
 }
@@ -413,7 +418,7 @@ impl<A: Allocator> StatementCostVec<A> {
     ///
     /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
     #[expect(clippy::cast_possible_truncation)]
-    pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
+    pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self
     where
         A: Clone,
     {
@@ -428,7 +433,7 @@ impl<A: Allocator> StatementCostVec<A> {
     /// Call after transforms that change statement counts per block. Does not resize or clear
     /// the cost data — callers must ensure the total statement count remains unchanged.
     #[expect(clippy::cast_possible_truncation)]
-    pub fn remap(&mut self, blocks: &BasicBlocks)
+    pub(crate) fn remap(&mut self, blocks: &BasicBlocks)
     where
         A: Clone,
     {
@@ -442,30 +447,27 @@ impl<A: Allocator> StatementCostVec<A> {
     }
 
     /// Returns `true` if no statements have assigned costs.
-    pub fn all_unassigned(&self) -> bool {
+    #[cfg(test)]
+    pub(crate) fn all_unassigned(&self) -> bool {
         self.costs.iter().all(Option::is_none)
     }
 
     /// Returns the cost slice for all statements in `block`.
     ///
     /// The returned slice is indexed by statement position (0-based within the block).
-    pub fn of(&self, block: BasicBlockId) -> &[Option<Cost>] {
+    pub(crate) fn of(&self, block: BasicBlockId) -> &[Option<Cost>] {
         let range = (self.offsets[block] as usize)..(self.offsets[block.plus(1)] as usize);
 
         &self.costs[range]
     }
 
-    pub fn sum_approx(&self, block: BasicBlockId) -> ApproxCost {
+    pub(crate) fn sum_approx(&self, block: BasicBlockId) -> ApproxCost {
         self.of(block).iter().copied().flatten().sum()
     }
 
-    /// Returns a reference to the allocator used by this cost vector.
-    pub fn allocator(&self) -> &A {
-        Box::allocator(&self.offsets)
-    }
-
     /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
-    pub fn get(&self, location: Location) -> Option<Cost> {
+    #[cfg(test)]
+    pub(crate) fn get(&self, location: Location) -> Option<Cost> {
         let range = (self.offsets[location.block] as usize)
             ..(self.offsets[location.block.plus(1)] as usize);
 

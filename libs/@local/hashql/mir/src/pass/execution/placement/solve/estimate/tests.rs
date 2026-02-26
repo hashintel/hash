@@ -14,7 +14,7 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::execution::{
-        StatementCostVec,
+        cost::StatementCostVec,
         target::{TargetArray, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
     },
@@ -151,7 +151,7 @@ fn self_loop_edges_excluded_from_cost() {
     let domains = [ip, target_set(&[I])];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements; bb(0): I = 5, P = 5 }
 
@@ -220,7 +220,7 @@ fn boundary_multiplier_applied_to_cross_region_edges() {
     let domains = [ip, ip, ip];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -294,7 +294,7 @@ fn infeasible_transition_returns_none() {
     let domains = [target_set(&[P]), target_set(&[I, P])];
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
@@ -355,7 +355,7 @@ fn unassigned_neighbor_uses_heuristic_minimum() {
     let domains = [ip, ip];
 
     let mut statements: TargetArray<StatementCostVec<&Heap>> =
-        IdArray::from_fn(|_: TargetId| StatementCostVec::new(&body.basic_blocks, &heap));
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
     stmt_costs! { statements;
         bb(0): I = 3, P = 7;

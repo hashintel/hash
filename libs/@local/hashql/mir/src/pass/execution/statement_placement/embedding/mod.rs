@@ -1,7 +1,6 @@
 use core::alloc::Allocator;
 
 use hashql_core::{
-    heap::Heap,
     id::{Id as _, bit_vec::DenseBitSet},
     symbol::sym,
 };
@@ -15,10 +14,9 @@ use crate::{
     context::MirContext,
     pass::{
         execution::{
-            Cost, StatementCostVec,
-            cost::TraversalCostVec,
+            Cost,
+            cost::{StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
-            target::Embedding,
         },
         transform::Traversals,
     },
@@ -86,33 +84,36 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-/// Statement placement for the [`Embedding`] execution target.
+/// Statement placement for the [`Embedding`](super::super::TargetId::Embedding) execution target.
 ///
 /// Only supports loading from entity projections that access the `encodings.vectors` path.
 /// No arguments are transferable, and no other operations are supported.
-pub struct EmbeddingStatementPlacement {
+pub(crate) struct EmbeddingStatementPlacement<S: Allocator> {
     statement_cost: Cost,
+    scratch: S,
 }
-impl Default for EmbeddingStatementPlacement {
-    fn default() -> Self {
+
+impl<S: Allocator> EmbeddingStatementPlacement<S> {
+    pub(crate) const fn new_in(scratch: S) -> Self {
         Self {
             statement_cost: cost!(4),
+            scratch,
         }
     }
 }
 
-impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStatementPlacement {
-    type Target = Embedding;
-
-    fn statement_placement(
+impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
+    for EmbeddingStatementPlacement<S>
+{
+    fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
         alloc: A,
-    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
-        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
-        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
+    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
+        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
@@ -145,7 +146,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStat
                 },
             ),
         }
-        .finish_in(alloc);
+        .finish_in(&self.scratch);
 
         let mut visitor = CostVisitor {
             body,
