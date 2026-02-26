@@ -15,7 +15,7 @@ import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-le
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
-import { Button } from "../shared/ui";
+import { Button, Link } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
@@ -493,6 +493,19 @@ const SigninPage: NextPageWithLayout = () => {
                     ),
                   }}
                 />
+                <Link
+                  href={`/recovery${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                  sx={{
+                    color: ({ palette }) => palette.gray[70],
+                    fontSize: 14,
+                    textDecorationColor: "currentcolor",
+                    "&:hover": {
+                      color: ({ palette }) => palette.gray[90],
+                    },
+                  }}
+                >
+                  Forgot your password?
+                </Link>
               </>
             )}
             {errorMessage ? (
@@ -506,13 +519,6 @@ const SigninPage: NextPageWithLayout = () => {
             {flow?.ui.messages?.map(({ text, id }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            {/* @todo: bring back recover account button */}
-            {/* <Button
-              variant="secondary"
-              href={{ pathname: "/recovery", query: { email } }}
-            >
-              Recover your account
-            </Button> */}
           </Box>
         </AuthPaper>
         <Box>
