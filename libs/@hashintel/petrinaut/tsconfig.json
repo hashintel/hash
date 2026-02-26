@@ -17,6 +17,6 @@
     "emitDeclarationOnly": true,
     "isolatedModules": true
   },
-  "include": ["src", "demo-site"],
+  "include": ["src", "demo-site", ".storybook"],
   "exclude": ["demo-site/dist/**/*"]
 }
