@@ -61,7 +61,9 @@ function toMonacoCompletion(
 
 const CompletionSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { requestCompletion } = use(LanguageClientContext);
+  const { notifyDocumentChanged, requestCompletion } = use(
+    LanguageClientContext,
+  );
 
   useEffect(() => {
     const disposable = monaco.languages.registerCompletionItemProvider(
@@ -71,6 +73,13 @@ const CompletionSyncInner = () => {
 
         async provideCompletionItems(model, monacoPosition) {
           const uri = model.uri.toString();
+          // TODO(FE-497): Sync current content to the worker before requesting
+          // completions. When a trigger character (e.g. ".") is typed, the
+          // Monaco model already has the new text but the worker may still have
+          // stale content (the SDCPN state sync goes through a React render
+          // cycle). Since the web worker processes messages in order, this
+          // ensures the content update is applied before the completion request.
+          notifyDocumentChanged(uri, model.getValue());
           // Convert Monaco 1-based position to LSP 0-based Position
           const position = Position.create(
             monacoPosition.lineNumber - 1,
@@ -96,7 +105,7 @@ const CompletionSyncInner = () => {
     );
 
     return () => disposable.dispose();
-  }, [monaco, requestCompletion]);
+  }, [monaco, notifyDocumentChanged, requestCompletion]);
 
   return null;
 };

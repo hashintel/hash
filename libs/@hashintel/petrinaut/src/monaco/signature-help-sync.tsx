@@ -44,7 +44,9 @@ function toMonacoSignatureHelp(
 
 const SignatureHelpSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { requestSignatureHelp } = use(LanguageClientContext);
+  const { notifyDocumentChanged, requestSignatureHelp } = use(
+    LanguageClientContext,
+  );
 
   useEffect(() => {
     const disposable = monaco.languages.registerSignatureHelpProvider(
@@ -55,6 +57,8 @@ const SignatureHelpSyncInner = () => {
 
         async provideSignatureHelp(model, monacoPosition) {
           const uri = model.uri.toString();
+          // TODO(FE-497): Sync current content to ensure the worker has the latest text.
+          notifyDocumentChanged(uri, model.getValue());
           // Convert Monaco 1-based position to LSP 0-based Position
           const position = Position.create(
             monacoPosition.lineNumber - 1,
@@ -75,7 +79,7 @@ const SignatureHelpSyncInner = () => {
     );
 
     return () => disposable.dispose();
-  }, [monaco, requestSignatureHelp]);
+  }, [monaco, notifyDocumentChanged, requestSignatureHelp]);
 
   return null;
 };
