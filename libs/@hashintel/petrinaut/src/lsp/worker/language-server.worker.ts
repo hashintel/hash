@@ -64,11 +64,13 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
   const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
     (item) => {
       const uri = filePathToUri(item.filePath);
-      const fileContent = server!.getFileContent(item.filePath) ?? "";
+      // Use user content (without prefix) because diagnostic offsets have
+      // already been adjusted to be relative to user content by adjustDiagnostics.
+      const userContent = server!.getUserContent(item.filePath) ?? "";
       return {
         uri: uri ?? item.filePath,
         diagnostics: item.diagnostics.map((diag) =>
-          serializeDiagnostic(diag, fileContent),
+          serializeDiagnostic(diag, userContent),
         ),
       };
     },
@@ -147,8 +149,11 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           break;
         }
 
-        const fileContent = server.getFileContent(filePath) ?? "";
-        const offset = positionToOffset(fileContent, data.params.position);
+        // Use user content (without prefix) for position conversion since
+        // Monaco positions are relative to the visible user code only.
+        // SDCPNLanguageServer methods handle the prefix offset internally.
+        const userContent = server.getUserContent(filePath) ?? "";
+        const offset = positionToOffset(userContent, data.params.position);
 
         const completions = server.getCompletionsAtPosition(
           filePath,
@@ -182,11 +187,15 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           break;
         }
 
-        const fileContent = server.getFileContent(filePath) ?? "";
-        const offset = positionToOffset(fileContent, data.params.position);
+        // Use user content (without prefix) for position conversion since
+        // Monaco positions are relative to the visible user code only.
+        const userContent = server.getUserContent(filePath) ?? "";
+        const offset = positionToOffset(userContent, data.params.position);
 
         const info = server.getQuickInfoAtPosition(filePath, offset);
 
+        // textSpan offsets from getQuickInfoAtPosition are already
+        // adjusted to be relative to user content (prefix subtracted).
         const result: Hover | null = info
           ? {
               contents: {
@@ -199,9 +208,9 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
                   .join("\n\n"),
               },
               range: Range.create(
-                offsetToPosition(fileContent, info.textSpan.start),
+                offsetToPosition(userContent, info.textSpan.start),
                 offsetToPosition(
-                  fileContent,
+                  userContent,
                   info.textSpan.start + info.textSpan.length,
                 ),
               ),
@@ -225,8 +234,10 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           break;
         }
 
-        const fileContent = server.getFileContent(filePath) ?? "";
-        const offset = positionToOffset(fileContent, data.params.position);
+        // Use user content (without prefix) for position conversion since
+        // Monaco positions are relative to the visible user code only.
+        const userContent = server.getUserContent(filePath) ?? "";
+        const offset = positionToOffset(userContent, data.params.position);
 
         const help = server.getSignatureHelpItems(filePath, offset, undefined);
 

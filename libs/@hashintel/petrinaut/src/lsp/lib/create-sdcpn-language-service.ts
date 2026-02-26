@@ -303,6 +303,11 @@ export class SDCPNLanguageServer {
     return (file.prefix ?? "") + file.content;
   }
 
+  /** Get only the user-visible content of a virtual file (without the injected prefix). */
+  getUserContent(fileName: string): string | undefined {
+    return this.controller.getFile(fileName)?.content;
+  }
+
   getSemanticDiagnostics(fileName: string): ts.Diagnostic[] {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
