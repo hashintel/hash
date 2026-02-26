@@ -16,7 +16,6 @@ import {
   type CompletionList,
   type Diagnostic,
   DiagnosticSeverity,
-  type DocumentUri,
   type Hover,
   MarkupKind,
   Range,
@@ -27,71 +26,13 @@ import {
 import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
-import { getItemFilePath } from "../lib/file-paths";
+import { filePathToUri, uriToFilePath } from "../lib/document-uris";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import type {
   ClientMessage,
   PublishDiagnosticsParams,
   ServerMessage,
 } from "./protocol";
-
-// ---------------------------------------------------------------------------
-// URI ↔ internal file path mapping
-// ---------------------------------------------------------------------------
-
-const TRANSITION_LAMBDA_URI_RE =
-  /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/lambda\.ts$/;
-const TRANSITION_KERNEL_URI_RE =
-  /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/kernel\.ts$/;
-const DE_URI_RE = /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
-
-/** Convert a document URI to the internal virtual file path used by the TS LanguageService. */
-function uriToFilePath(uri: DocumentUri): string | null {
-  let match = TRANSITION_LAMBDA_URI_RE.exec(uri);
-  if (match) {
-    return getItemFilePath("transition-lambda-code", {
-      transitionId: match[1]!,
-    });
-  }
-
-  match = TRANSITION_KERNEL_URI_RE.exec(uri);
-  if (match) {
-    return getItemFilePath("transition-kernel-code", {
-      transitionId: match[1]!,
-    });
-  }
-
-  match = DE_URI_RE.exec(uri);
-  if (match) {
-    return getItemFilePath("differential-equation-code", { id: match[1]! });
-  }
-
-  return null;
-}
-
-const TRANSITION_LAMBDA_PATH_RE = /^\/transitions\/([^/]+)\/lambda\/code\.ts$/;
-const TRANSITION_KERNEL_PATH_RE = /^\/transitions\/([^/]+)\/kernel\/code\.ts$/;
-const DE_PATH_RE = /^\/differential_equations\/([^/]+)\/code\.ts$/;
-
-/** Convert an internal file path to the document URI used by Monaco. */
-function filePathToUri(filePath: string): DocumentUri | null {
-  let match = TRANSITION_LAMBDA_PATH_RE.exec(filePath);
-  if (match) {
-    return `inmemory://sdcpn/transitions/${match[1]!}/lambda.ts`;
-  }
-
-  match = TRANSITION_KERNEL_PATH_RE.exec(filePath);
-  if (match) {
-    return `inmemory://sdcpn/transitions/${match[1]!}/kernel.ts`;
-  }
-
-  match = DE_PATH_RE.exec(filePath);
-  if (match) {
-    return `inmemory://sdcpn/differential-equations/${match[1]!}.ts`;
-  }
-
-  return null;
-}
 
 // ---------------------------------------------------------------------------
 // TS → LSP type conversions
