@@ -48,59 +48,80 @@ const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     }
 }
 
-/// Strips `Opaque`, `Apply`, and `Generic` wrappers to reach the underlying concrete type.
-///
-/// For unions where all variants peel to the same kind, returns that common type
-/// (handles aliases like `type Foo = String` appearing in a union).
-fn peel<'heap>(env: &Environment<'heap>, r#type: TypeId) -> Type<'heap> {
-    let mut current = r#type;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct Peel {
+    opaque: bool,
+}
 
-    'peel: loop {
-        let r#type = env.r#type(current);
+impl Peel {
+    fn semantic<'heap>(env: &Environment<'heap>, id: TypeId) -> Type<'heap> {
+        Self { opaque: false }.run(env, id)
+    }
 
-        match r#type.kind {
-            &TypeKind::Opaque(r#type::kind::OpaqueType { repr: base, .. })
-            | &TypeKind::Apply(r#type::kind::Apply { base, .. })
-            | &TypeKind::Generic(r#type::kind::Generic { base, .. }) => {
-                current = base;
-            }
+    fn structural<'heap>(env: &Environment<'heap>, id: TypeId) -> Type<'heap> {
+        Self { opaque: true }.run(env, id)
+    }
+}
 
-            TypeKind::Primitive(_)
-            | TypeKind::Intrinsic(_)
-            | TypeKind::Struct(_)
-            | TypeKind::Tuple(_)
-            | TypeKind::Closure(_)
-            | TypeKind::Param(_)
-            | TypeKind::Infer(_)
-            | TypeKind::Never
-            | TypeKind::Unknown => break r#type,
+impl Peel {
+    /// Strips `Opaque`, `Apply`, and `Generic` wrappers to reach the underlying concrete type.
+    ///
+    /// For unions where all variants peel to the same kind, returns that common type
+    /// (handles aliases like `type Foo = String` appearing in a union).
+    fn run<'heap>(self, env: &Environment<'heap>, id: TypeId) -> Type<'heap> {
+        let mut current = id;
 
-            // Intersections and unions are simplified away if there's less than two types,
-            // therefore we can assume that they have at least two variants.
-            TypeKind::Union(r#type::kind::UnionType { variants }) => {
-                debug_assert!(variants.len() >= 2);
-                let [first, rest @ ..] = &**variants else {
-                    unreachable!()
-                };
+        'peel: loop {
+            let r#type = env.r#type(current);
 
-                // If they peel to the same value, then we can replace the whole union with that
-                // value.
-                // This allows us to peel away an additional layer of `Opaque`
-                let primary = peel(env, *first);
-                for variant in rest {
-                    let variant = peel(env, *variant);
-
-                    if variant.kind != primary.kind {
-                        break 'peel r#type;
-                    }
+            match r#type.kind {
+                &TypeKind::Opaque(r#type::kind::OpaqueType { .. }) if !self.opaque => {
+                    // opaque types marked as unpeelable
+                    break r#type;
+                }
+                &TypeKind::Opaque(r#type::kind::OpaqueType { repr: base, .. })
+                | &TypeKind::Apply(r#type::kind::Apply { base, .. })
+                | &TypeKind::Generic(r#type::kind::Generic { base, .. }) => {
+                    current = base;
                 }
 
-                break primary;
-            }
-            TypeKind::Intersection(r#type::kind::IntersectionType { variants }) => {
-                debug_assert!(variants.len() >= 2);
+                TypeKind::Primitive(_)
+                | TypeKind::Intrinsic(_)
+                | TypeKind::Struct(_)
+                | TypeKind::Tuple(_)
+                | TypeKind::Closure(_)
+                | TypeKind::Param(_)
+                | TypeKind::Infer(_)
+                | TypeKind::Never
+                | TypeKind::Unknown => break r#type,
 
-                break r#type;
+                // Intersections and unions are simplified away if there's less than two types,
+                // therefore we can assume that they have at least two variants.
+                TypeKind::Union(r#type::kind::UnionType { variants }) => {
+                    debug_assert!(variants.len() >= 2);
+                    let [first, rest @ ..] = &**variants else {
+                        unreachable!()
+                    };
+
+                    // If they peel to the same value, then we can replace the whole union with that
+                    // value.
+                    // This allows us to peel away an additional layer of `Opaque`
+                    let primary = self.run(env, *first);
+                    for variant in rest {
+                        let variant = self.run(env, *variant);
+
+                        if variant.kind != primary.kind {
+                            break 'peel r#type;
+                        }
+                    }
+
+                    break primary;
+                }
+                TypeKind::Intersection(r#type::kind::IntersectionType { variants }) => {
+                    debug_assert!(variants.len() >= 2);
+
+                    break r#type;
+                }
             }
         }
     }
@@ -162,8 +183,8 @@ fn is_equality_safe<'heap, A: Allocator>(
         return true;
     }
 
-    let lhs = peel(env, lhs);
-    let rhs = peel(env, rhs);
+    let lhs = Peel::semantic(env, lhs);
+    let rhs = Peel::semantic(env, rhs);
 
     // If they point to the same interned type we don't need to check further
     if lhs.id == rhs.id || core::ptr::eq(lhs.kind, rhs.kind) {
@@ -268,9 +289,24 @@ fn is_equality_safe_inner<'heap, A: Allocator>(
             TypeKind::Intrinsic(IntrinsicType::List(left_list)),
             TypeKind::Intrinsic(IntrinsicType::List(right_list)),
         ) => is_equality_safe(env, boundary, left_list.element, right_list.element),
+
+        (
+            &TypeKind::Opaque(r#type::kind::OpaqueType {
+                name: lhs_name,
+                repr: lhs_repr,
+            }),
+            &TypeKind::Opaque(r#type::kind::OpaqueType {
+                name: rhs_name,
+                repr: rhs_repr,
+            }),
+        ) => lhs_name == rhs_name && is_equality_safe(env, boundary, lhs_repr, rhs_repr),
+        // The type is not safely comparable, because the semantic representation differs in jsonb,
+        // and opaque type identifiers are not preserved in JSONB.
+        (&TypeKind::Opaque(_), _) | (_, &TypeKind::Opaque(_)) => false,
+
         // "onion" values are always removed, so shouldn't even exist
-        (TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_), _)
-        | (_, TypeKind::Opaque(_) | TypeKind::Apply(_) | TypeKind::Generic(_)) => unreachable!(),
+        (TypeKind::Apply(_) | TypeKind::Generic(_), _)
+        | (_, TypeKind::Apply(_) | TypeKind::Generic(_)) => unreachable!(),
         // Primitive types are always equality safe
         (TypeKind::Primitive(_), _) | (_, TypeKind::Primitive(_)) => true,
         // Never never exists, but can be compared against
@@ -486,7 +522,7 @@ where
         &mut self,
         dict: Type<'heap, r#type::kind::intrinsic::DictType>,
     ) -> Self::Result {
-        let key = peel(self.env, dict.kind.key);
+        let key = Peel::structural(self.env, dict.kind.key);
 
         // jsonb object keys must be strings; dicts with non-string keys cannot be serialized
         if !matches!(

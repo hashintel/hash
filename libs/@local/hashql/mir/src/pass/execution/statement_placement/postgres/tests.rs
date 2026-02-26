@@ -1126,23 +1126,28 @@ fn eq_safe_same_type_id() {
 }
 
 /// Two different `TypeId`s that peel to the same interned kind are safe via `ptr::eq`.
+///
+/// Uses Apply wrappers (not Opaque) since semantic peel preserves opaques but strips Apply.
+/// Both Apply types peel to the same interned Integer kind.
 #[test]
 fn eq_safe_ptr_eq_after_peel() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let builder = TypeBuilder::synthetic(&env);
+    let mut builder = TypeBuilder::synthetic(&env);
 
     let int_ty = builder.integer();
-    let opaque_a = builder.opaque("A", int_ty);
-    let opaque_b = builder.opaque("B", int_ty);
+    let param_a = builder.fresh_argument("A");
+    let param_b = builder.fresh_argument("B");
+    let generic_a = builder.generic([(param_a, None)], int_ty);
+    let generic_b = builder.generic([(param_b, None)], int_ty);
 
     // Different TypeIds, but both peel to the same interned Integer kind
-    assert_ne!(opaque_a, opaque_b);
+    assert_ne!(generic_a, generic_b);
     assert!(super::is_equality_safe(
         &env,
         &mut RecursionBoundary::new(),
-        opaque_a,
-        opaque_b
+        generic_a,
+        generic_b
     ));
 }
 
@@ -1674,4 +1679,287 @@ fn eq_place_vs_constant_accepted() {
         &statement_costs,
         &traversal_costs,
     );
+}
+
+// =============================================================================
+// Peel tests
+// =============================================================================
+
+/// Semantic peel preserves opaque types, returning the opaque wrapper itself.
+#[test]
+fn peel_semantic_preserves_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let peeled = super::Peel::semantic(&env, uuid_ty);
+    assert!(
+        peeled.kind.opaque().is_some(),
+        "semantic peel should preserve opaque types"
+    );
+}
+
+/// Structural peel strips opaque types to their repr.
+#[test]
+fn peel_structural_strips_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let peeled = super::Peel::structural(&env, uuid_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "structural peel should strip opaque to underlying String primitive"
+    );
+}
+
+/// Semantic peel on a union of opaques with different names does not collapse.
+///
+/// `Uuid | Email` both have repr `String`, but semantic peel preserves the opaque wrappers.
+/// Since `Opaque("Uuid", String)` and `Opaque("Email", String)` have different `TypeKind`s
+/// (different names), the union cannot collapse.
+#[test]
+fn peel_semantic_union_different_opaques_preserved() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+    let union_ty = builder.union([uuid_ty, email_ty]);
+
+    let peeled = super::Peel::semantic(&env, union_ty);
+    assert!(
+        peeled.kind.union().is_some(),
+        "semantic peel should preserve union of differently-named opaques"
+    );
+}
+
+/// Structural peel on a union of opaques with same repr collapses to that repr.
+///
+/// `Uuid | Email` both peel structurally to `String`, so the union collapses.
+#[test]
+fn peel_structural_union_same_repr_collapses() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+    let union_ty = builder.union([uuid_ty, email_ty]);
+
+    let peeled = super::Peel::structural(&env, union_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "structural peel should collapse union of same-repr opaques to String"
+    );
+}
+
+/// Semantic peel still strips Generic wrappers.
+#[test]
+fn peel_semantic_strips_generic() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let mut builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let param = builder.fresh_argument("T");
+    let generic_ty = builder.generic([(param, None)], int_ty);
+
+    let peeled = super::Peel::semantic(&env, generic_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "semantic peel should still strip Generic wrappers"
+    );
+}
+
+// =============================================================================
+// Equality safety: opaque types
+// =============================================================================
+
+/// Opaque compared against its own repr type is unsafe.
+///
+/// `Uuid` (opaque over `String`) vs `String`: both serialize to the same jsonb string,
+/// but the interpreter distinguishes them by nominal type. Postgres cannot.
+#[test]
+fn eq_unsafe_opaque_vs_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        uuid_ty,
+        str_ty
+    ));
+}
+
+/// Two opaques with different names but same repr are unsafe.
+///
+/// `Uuid` vs `Email`: both are opaque over `String`, but the interpreter considers
+/// them distinct types. In jsonb they're both plain strings.
+#[test]
+fn eq_unsafe_different_opaques_same_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        uuid_ty,
+        email_ty
+    ));
+}
+
+/// Same opaque type compared against itself is safe.
+#[test]
+fn eq_safe_same_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        uuid_ty,
+        uuid_ty
+    ));
+}
+
+/// Opaque nested inside a tuple makes the comparison unsafe if the other side has the repr.
+///
+/// `(Int, Uuid)` vs `(Int, String)`: the second field is `Opaque("Uuid", String)` vs
+/// `String`, which is a representational collision.
+#[test]
+fn eq_unsafe_opaque_nested_in_tuple() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let tuple_with_opaque = builder.tuple([int_ty, uuid_ty]);
+    let tuple_with_repr = builder.tuple([int_ty, str_ty]);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        tuple_with_opaque,
+        tuple_with_repr
+    ));
+}
+
+/// Union containing an opaque and its repr is unsafe when compared against any string-like type.
+///
+/// `Uuid | String` compared against `String`: the union arm `Uuid` vs `String` triggers
+/// the opaque-vs-non-opaque rejection.
+#[test]
+fn eq_unsafe_union_opaque_with_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let union_ty = builder.union([uuid_ty, str_ty]);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        union_ty,
+        str_ty
+    ));
+}
+
+/// Opaque with a compound repr: `Opaque("TaggedPair", (Int, String))` vs `(Int, String)`.
+///
+/// The opaque wraps a tuple. Compared against a bare tuple of the same shape,
+/// Postgres can't tell them apart in jsonb.
+#[test]
+fn eq_unsafe_opaque_compound_repr_vs_bare() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let tuple_ty = builder.tuple([int_ty, str_ty]);
+    let opaque_ty = builder.opaque("TaggedPair", tuple_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_ty,
+        tuple_ty
+    ));
+}
+
+/// Two opaques with the same name and safe repr types are safe.
+///
+/// Both sides are `Opaque("Wrapper", Int)` with matching names.
+/// The repr types (both Int) are trivially equality-safe.
+#[test]
+fn eq_safe_same_named_opaques_safe_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let opaque_a = builder.opaque("Wrapper", int_ty);
+    let opaque_b = builder.opaque("Wrapper", int_ty);
+
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_a,
+        opaque_b
+    ));
+}
+
+/// Same-named opaques whose repr types have a collision are unsafe.
+///
+/// `Opaque("Wrapper", Dict<String, Int>)` vs `Opaque("Wrapper", (a: Int))`:
+/// same opaque name, but the repr types collide (dict vs struct).
+#[test]
+fn eq_unsafe_same_named_opaques_repr_collision() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let dict_repr = builder.dict(str_ty, int_ty);
+    let struct_repr = builder.r#struct([("a", int_ty)]);
+
+    let opaque_a = builder.opaque("Wrapper", dict_repr);
+    let opaque_b = builder.opaque("Wrapper", struct_repr);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_a,
+        opaque_b
+    ));
 }

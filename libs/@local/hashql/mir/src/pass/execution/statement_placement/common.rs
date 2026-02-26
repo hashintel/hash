@@ -6,6 +6,7 @@ use hashql_core::{
         bit_vec::{BitRelations as _, DenseBitSet},
     },
     newtype,
+    r#type::TypeId,
 };
 
 use crate::{
@@ -69,6 +70,10 @@ pub(crate) trait Supported<'heap> {
         domain: &DenseBitSet<Local>,
         operand: &Operand<'heap>,
     ) -> bool;
+
+    fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
+        true
+    }
 }
 
 impl<'heap, T> Supported<'heap> for &T
@@ -93,6 +98,10 @@ where
         operand: &Operand<'heap>,
     ) -> bool {
         T::is_supported_operand(self, context, body, domain, operand)
+    }
+
+    fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
+        T::is_type_serialization_safe(self, context, type_id)
     }
 }
 
@@ -192,7 +201,10 @@ where
 
         let is_supported = self
             .supported
-            .is_supported_rvalue(self.context, self.body, state, rhs);
+            .is_supported_rvalue(self.context, self.body, state, rhs)
+            && self
+                .supported
+                .is_type_serialization_safe(self.context, self.body.local_decls[param].r#type);
         state.set(lhs.local, is_supported);
     }
 
@@ -219,7 +231,11 @@ where
         }
 
         for (index, &param) in target_params.iter().enumerate() {
-            let is_supported = is_supported_set.contains(ParamIndex::from_usize(index));
+            let is_supported = is_supported_set.contains(ParamIndex::from_usize(index))
+                && self
+                    .supported
+                    .is_type_serialization_safe(self.context, self.body.local_decls[param].r#type);
+
             state.set(param, is_supported);
         }
     }
