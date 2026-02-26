@@ -31,6 +31,11 @@ id::newtype!(
     pub struct Local(usize is 0..=usize::MAX)
 );
 
+impl Local {
+    pub const ENV: Self = Self(0);
+    pub const VERTEX: Self = Self(1);
+}
+
 id::newtype_collections!(pub type Local* from Local);
 
 /// Declaration information for a local variable in the MIR.

@@ -2,13 +2,13 @@
 source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
-fn {graph::read::filter@4294967040}(%0: (Integer, (Integer) -> Integer), %1: Entity) -> Boolean {
-    let %2: Integer
+fn {graph::read::filter@4294967040}(%0: (Dict<String, Integer>,), %1: Entity) -> Boolean {
+    let %2: Dict<String, Integer>
     let %3: Boolean
 
     bb0(): {
         %2 = %0.0                                                               // cost: 4
-        %3 = %2 == 42                                                           // cost: 4
+        %3 = 1                                                                  // cost: 4
 
         return %3
     }

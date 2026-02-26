@@ -2,18 +2,19 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
-    id::{Id as _, bit_vec::DenseBitSet},
+    id::bit_vec::DenseBitSet,
     symbol::sym,
     r#type::{
-        self,
+        self, Type, TypeId,
         environment::Environment,
+        kind::TypeKind,
         visit::{RecursiveVisitorGuard, Visitor as _},
     },
 };
 
 use super::{
     StatementPlacement,
-    common::{CostVisitor, OnceValue, SupportedAnalysis},
+    common::{CostVisitor, OnceValue, Supported, SupportedAnalysis},
 };
 use crate::{
     body::{
@@ -21,7 +22,7 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::Place,
+        place::{FieldIndex, Place, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
     },
     context::MirContext,
@@ -45,88 +46,216 @@ const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     }
 }
 
-fn is_supported_place<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    place: &Place<'heap>,
-) -> bool {
-    // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
-    // projection path maps to a Postgres-accessible field.
-    if matches!(body.source, Source::GraphReadFilter(_)) && place.local.as_usize() == 1 {
-        let local_type = body.local_decls[place.local].r#type;
-        let type_name = context
-            .env
-            .r#type(local_type)
-            .kind
-            .opaque()
-            .map_or_else(|| unreachable!(), |opaque| opaque.name);
-
-        if type_name == sym::path::Entity {
-            return matches!(
-                entity_projection_access(&place.projections),
-                Some(Access::Postgres(_))
-            );
-        }
-
-        unimplemented!("unimplemented lookup for declared type")
-    }
-
-    domain.contains(place.local)
+/// Postgres-specific support predicates, carrying per-field transferability of the environment.
+#[derive(Debug, Copy, Clone)]
+struct PostgresSupported<'ctx> {
+    /// Which fields of the environment tuple can be serialized to Postgres.
+    ///
+    /// Fields containing closures or dicts with non-string keys are excluded.
+    env_domain: &'ctx DenseBitSet<FieldIndex>,
 }
 
-fn is_supported_operand<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    operand: &Operand<'heap>,
-) -> bool {
-    match operand {
-        Operand::Place(place) => is_supported_place(context, body, domain, place),
-        Operand::Constant(constant) => is_supported_constant(constant),
-    }
-}
+impl PostgresSupported<'_> {
+    /// Checks whether a place access in a [`GraphReadFilter`] body is Postgres-supported.
+    ///
+    /// Returns `Some(supported)` for the two fixed arguments (env and vertex), `None` for
+    /// any other local (falls through to the regular domain check).
+    ///
+    /// [`GraphReadFilter`]: Source::GraphReadFilter
+    fn is_supported_place_graph_read_filter<'heap>(
+        self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
 
-fn is_supported_rvalue<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    rvalue: &RValue<'heap>,
-) -> bool {
-    match rvalue {
-        RValue::Load(operand) => is_supported_operand(context, body, domain, operand),
-        RValue::Binary(Binary { op: _, left, right }) => {
-            // All MIR binary operations have Postgres equivalents (with type coercion)
-            is_supported_operand(context, body, domain, left)
-                && is_supported_operand(context, body, domain, right)
-        }
-        RValue::Unary(Unary { op: _, operand }) => {
-            // All MIR unary operations have Postgres equivalents (with type coercion)
-            is_supported_operand(context, body, domain, operand)
-        }
-        RValue::Aggregate(Aggregate { kind, operands }) => {
-            if *kind == AggregateKind::Closure {
-                return false;
+        place: &Place<'heap>,
+    ) -> Option<bool> {
+        match place.local {
+            Local::ENV => {
+                // The environment projections depend on the first projection, because that
+                // determines if we can actually transfer it
+                let [first, ..] = &*place.projections else {
+                    #[expect(clippy::manual_assert, reason = "debug panic")]
+                    if cfg!(debug_assertions) {
+                        panic!(
+                            "expected at least one projection for the env, the env should always \
+                             be immediately destructured - if used"
+                        );
+                    }
+
+                    // We can gracefully handle this by returning false
+                    return Some(false);
+                };
+
+                let ProjectionKind::Field(field) = first.kind else {
+                    unreachable!("the env is a tuple and must always be indexed as such");
+                };
+
+                Some(self.env_domain.contains(field))
             }
+            Local::VERTEX => {
+                let local_type = body.local_decls[place.local].r#type;
+                let type_name = context
+                    .env
+                    .r#type(local_type)
+                    .kind
+                    .opaque()
+                    .map_or_else(|| unreachable!(), |opaque| opaque.name);
 
-            // Non-closure aggregates can be constructed as JSONB
-            operands
-                .iter()
-                .all(|operand| is_supported_operand(context, body, domain, operand))
+                if type_name == sym::path::Entity {
+                    return Some(matches!(
+                        entity_projection_access(&place.projections),
+                        Some(Access::Postgres(_))
+                    ));
+                }
+
+                unimplemented!("unimplemented lookup for declared type")
+            }
+            _ => None,
         }
-        // Query parameters are passed to Postgres
-        RValue::Input(_) => true,
-        // Function calls cannot be pushed to Postgres
-        RValue::Apply(_) => false,
+    }
+
+    fn is_supported_place<'heap>(
+        self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        place: &Place<'heap>,
+    ) -> bool {
+        // For GraphReadFilter bodies, the env and vertex locals are handled specially:
+        // env fields are checked against env_domain, vertex projections against entity
+        // field access. Other locals fall through to the regular domain check.
+        if matches!(body.source, Source::GraphReadFilter(_))
+            && let Some(result) = self.is_supported_place_graph_read_filter(context, body, place)
+        {
+            return result;
+        }
+
+        domain.contains(place.local)
     }
 }
 
-struct HasClosureVisitor<'guard, 'env, 'heap, A: Allocator = Global> {
+impl<'heap> Supported<'heap> for PostgresSupported<'_> {
+    fn is_supported_rvalue(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        rvalue: &RValue<'heap>,
+    ) -> bool {
+        match rvalue {
+            RValue::Load(operand) => self.is_supported_operand(context, body, domain, operand),
+            RValue::Binary(Binary { op: _, left, right }) => {
+                // TODO: equality comparison
+
+                // All MIR binary operations have Postgres equivalents (with type coercion)
+                self.is_supported_operand(context, body, domain, left)
+                    && self.is_supported_operand(context, body, domain, right)
+            }
+            RValue::Unary(Unary { op: _, operand }) => {
+                // All MIR unary operations have Postgres equivalents (with type coercion)
+                self.is_supported_operand(context, body, domain, operand)
+            }
+            RValue::Aggregate(Aggregate { kind, operands }) => {
+                if *kind == AggregateKind::Closure {
+                    return false;
+                }
+
+                // Non-closure aggregates can be constructed as JSONB
+                operands
+                    .iter()
+                    .all(|operand| self.is_supported_operand(context, body, domain, operand))
+            }
+            // Query parameters are passed to Postgres
+            RValue::Input(_) => true,
+            // Function calls cannot be pushed to Postgres
+            RValue::Apply(_) => false,
+        }
+    }
+
+    fn is_supported_operand(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        operand: &Operand<'heap>,
+    ) -> bool {
+        match operand {
+            Operand::Place(place) => self.is_supported_place(context, body, domain, place),
+            Operand::Constant(constant) => is_supported_constant(constant),
+        }
+    }
+}
+
+/// Recursive type visitor that rejects types not transferable to Postgres.
+///
+/// Breaks on closure types (no Postgres representation) and dicts with non-string keys
+/// (jsonb object keys must be strings).
+struct SupportedVisitor<'guard, 'env, 'heap, A: Allocator = Global> {
     env: &'env Environment<'heap>,
     guard: &'guard mut RecursiveVisitorGuard<'heap, A>,
 }
 
-impl<'heap, A> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, '_, 'heap, A>
+impl<'heap, A: Allocator> SupportedVisitor<'_, '_, 'heap, A> {
+    /// Strips `Opaque`, `Apply`, and `Generic` wrappers to reach the underlying concrete type.
+    ///
+    /// For unions where all variants peel to the same kind, returns that common type
+    /// (handles aliases like `type Foo = String` appearing in a union).
+    fn peel(&self, r#type: TypeId) -> Type<'heap> {
+        let mut current = r#type;
+
+        'peel: loop {
+            let r#type = self.env.r#type(current);
+
+            match r#type.kind {
+                &TypeKind::Opaque(r#type::kind::OpaqueType { repr: base, .. })
+                | &TypeKind::Apply(r#type::kind::Apply { base, .. })
+                | &TypeKind::Generic(r#type::kind::Generic { base, .. }) => {
+                    current = base;
+                }
+
+                TypeKind::Primitive(_)
+                | TypeKind::Intrinsic(_)
+                | TypeKind::Struct(_)
+                | TypeKind::Tuple(_)
+                | TypeKind::Closure(_)
+                | TypeKind::Param(_)
+                | TypeKind::Infer(_)
+                | TypeKind::Never
+                | TypeKind::Unknown => break r#type,
+
+                // Intersections and unions are simplified away if there's less than two types,
+                // therefore we can assume that they have at least two variants.
+                TypeKind::Union(r#type::kind::UnionType { variants }) => {
+                    debug_assert!(variants.len() >= 2);
+                    let [first, rest @ ..] = &**variants else {
+                        unreachable!()
+                    };
+
+                    // If they peel to the same value, then we can replace the whole union with that
+                    // value.
+                    // This allows us to peel away an additional layer of `Opaque`
+                    let primary = self.peel(*first);
+                    for variant in rest {
+                        let variant = self.peel(*variant);
+
+                        if variant.kind != primary.kind {
+                            break 'peel r#type;
+                        }
+                    }
+
+                    break primary;
+                }
+                TypeKind::Intersection(r#type::kind::IntersectionType { variants }) => {
+                    debug_assert!(variants.len() >= 2);
+
+                    break r#type;
+                }
+            }
+        }
+    }
+}
+
+impl<'heap, A> r#type::visit::Visitor<'heap> for SupportedVisitor<'_, '_, 'heap, A>
 where
     A: Allocator,
 {
@@ -141,7 +270,7 @@ where
         self.guard.with(
             |guard, r#type| {
                 r#type::visit::walk_type(
-                    &mut HasClosureVisitor {
+                    &mut SupportedVisitor {
                         env: self.env,
                         guard,
                     },
@@ -155,13 +284,31 @@ where
     fn visit_closure(&mut self, _: r#type::Type<'heap, r#type::kind::ClosureType>) -> Self::Result {
         ControlFlow::Break(())
     }
+
+    fn visit_intrinsic_dict(
+        &mut self,
+        dict: Type<'heap, r#type::kind::intrinsic::DictType>,
+    ) -> Self::Result {
+        let key = self.peel(dict.kind.key);
+
+        // jsonb object keys must be strings; dicts with non-string keys cannot be serialized
+        if !matches!(
+            key.kind,
+            TypeKind::Primitive(r#type::kind::PrimitiveType::String)
+        ) {
+            return ControlFlow::Break(());
+        }
+
+        self.visit_id(dict.kind.value)
+    }
 }
 
 /// Statement placement for the [`Postgres`](super::super::TargetId::Postgres) execution target.
 ///
 /// Supports constants, binary/unary operations, aggregates (except closures), inputs, and entity
-/// field projections that map to Postgres columns or JSONB paths. The environment argument is
-/// only transferable if it contains no closure types.
+/// field projections that map to Postgres columns or JSONB paths. Environment fields are checked
+/// individually: a field is transferable if its type contains no closures and all dicts within
+/// it have string keys (required for jsonb serialization).
 pub(crate) struct PostgresStatementPlacement<'heap, S: Allocator> {
     statement_cost: Cost,
     type_visitor_guard: RecursiveVisitorGuard<'heap, S>,
@@ -181,6 +328,40 @@ impl<S: Allocator + Clone> PostgresStatementPlacement<'_, S> {
             ),
             scratch,
         }
+    }
+}
+
+impl<'heap, S: Allocator> PostgresStatementPlacement<'heap, S> {
+    /// Computes which fields of the environment tuple are transferable to Postgres.
+    ///
+    /// Visits each field's type recursively; a field is supported if the visit completes
+    /// without encountering a closure or a dict with non-string keys.
+    fn env_domain(
+        &mut self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+    ) -> DenseBitSet<FieldIndex> {
+        let env_id = body.local_decls[Local::ENV].r#type;
+        let env = context
+            .env
+            .r#type(env_id)
+            .kind
+            .tuple()
+            .unwrap_or_else(|| unreachable!("the environment is always a tuple"));
+
+        let mut visitor = SupportedVisitor {
+            env: context.env,
+            guard: &mut self.type_visitor_guard,
+        };
+
+        let mut supported = DenseBitSet::new_empty(env.fields.len());
+
+        for (index, &field) in env.fields.iter().enumerate() {
+            let is_supported = visitor.visit_id(field).is_continue();
+            supported.set(FieldIndex::new(index), is_supported);
+        }
+
+        supported
     }
 }
 
@@ -204,30 +385,23 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             }
         }
 
+        let env_domain = self.env_domain(context, body);
+        let supported = PostgresSupported {
+            env_domain: &env_domain,
+        };
+
         let dispatchable = SupportedAnalysis {
             body,
             context,
-            is_supported_rvalue,
-            is_supported_operand,
+            supported,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     debug_assert_eq!(body.args, 2);
 
-                    // Environment (local 0) is only transferable if it contains no closures
-                    let env_type = body.local_decls[Local::new(0)].r#type;
-                    let has_closure = HasClosureVisitor {
-                        env: context.env,
-                        guard: &mut self.type_visitor_guard,
-                    }
-                    .visit_id(env_type)
-                    .is_break();
-
-                    if has_closure {
-                        domain.remove(Local::new(0));
-                    }
-
-                    // Entity argument (local 1) must be constructed from field projections
-                    domain.remove(Local::new(1));
+                    // Entity argument (local 1) must be constructed from field projections, and the
+                    // env is always projected as well.
+                    domain.remove(Local::ENV);
+                    domain.remove(Local::VERTEX);
                 },
             ),
         }
@@ -242,7 +416,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             statement_costs,
             traversal_costs,
 
-            is_supported_rvalue,
+            supported,
         };
         visitor.visit_body(body);
 

@@ -1,38 +1,40 @@
 ---
-source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
     let %2: Boolean
-    let %3: (Integer,)
-    let %4: (Integer) -> Integer
-    let %5: Integer
-    let %6: Boolean
+    let %3: Integer
+    let %4: (Integer,)
+    let %5: (Integer) -> Integer
+    let %6: Integer
+    let %7: Boolean
 
     bb0(): {
         %2 = 1                                                                  // cost: 4
-        %3 = %0                                                                 // cost: 4
-        %4 = closure(({def@77} as FnPtr), %3)
+        %3 = %0.0                                                               // cost: 4
+        %4 = (%3)                                                               // cost: 4
+        %5 = closure(({def@77} as FnPtr), %4)
 
         switchInt(%2) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %5 = 42                                                                 // cost: 4
+        %6 = 42                                                                 // cost: 4
 
-        goto -> bb3(%5)
+        goto -> bb3(%6)
     }
 
     bb2(): {
-        %5 = apply %4 1
+        %6 = apply %5 1
 
-        goto -> bb3(%5)
+        goto -> bb3(%6)
     }
 
-    bb3(%5): {
-        %6 = %5 == 0
+    bb3(%6): {
+        %7 = %6 == 0
 
-        return %6
+        return %7
     }
 }
 

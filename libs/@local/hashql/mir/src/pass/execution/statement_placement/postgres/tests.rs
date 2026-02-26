@@ -129,10 +129,11 @@ fn aggregate_closure_rejected() {
     let def_id = DefId::new(42);
 
     let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
-        decl env: Int, vertex: [Opaque sym::path::Entity; ?], closure_env: Int, closure: [fn(Int) -> Int], result: Bool;
+        decl env: (Int), vertex: [Opaque sym::path::Entity; ?], closure_env: Int, closure: [fn(Int) -> Int], result: Bool;
+        @proj env_int = env.0: Int;
 
         bb0() {
-            closure_env = load env;
+            closure_env = load env_int;
             closure = closure def_id closure_env;
             result = load true;
             return result;
@@ -175,10 +176,11 @@ fn apply_rejected() {
     let def_id = DefId::new(99);
 
     let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
-        decl env: Int, vertex: [Opaque sym::path::Entity; ?], capture: Int, func: [fn(Int) -> Int], result: Int, cond: Bool;
+        decl env: (Int), vertex: [Opaque sym::path::Entity; ?], capture: Int, func: [fn(Int) -> Int], result: Int, cond: Bool;
+        @proj env_int = env.0: Int;
 
         bb0() {
-            capture = load env;
+            capture = load env_int;
             func = closure def_id capture;
             result = apply func, 42;
             cond = bin.== result 0;
@@ -248,11 +250,11 @@ fn input_supported() {
     );
 }
 
-/// Environment argument (local 0) containing closure type is excluded from dispatchable set.
+/// Environment field containing a closure type is excluded from `env_domain`.
 ///
-/// Tests that `HasClosureVisitor` correctly detects closure types nested in the environment
-/// type and removes local 0 from the dispatchable set. Even accessing non-closure fields
-/// of an env that contains closures is rejected.
+/// The env is `(Int, fn(Int) -> Int)`. Field 0 (Int) is transferable, but
+/// field 1 (closure) is not. Since this test only accesses field 0, the
+/// projection is supported and gets a cost.
 #[test]
 fn env_with_closure_type_rejected() {
     let heap = Heap::new();
@@ -291,10 +293,10 @@ fn env_with_closure_type_rejected() {
     );
 }
 
-/// Environment argument with simple types is included in dispatchable set.
+/// Environment fields with simple types are included in `env_domain`.
 ///
-/// Tests that when the environment type contains no closures, local 0 remains in the
-/// dispatchable set and can be accessed. Contrast with `env_with_closure_type_rejected`.
+/// The env is `(Int, Bool)`. Both fields contain no closures or non-string dict keys,
+/// so projecting field 0 is supported. Contrast with `env_with_closure_type_rejected`.
 #[test]
 fn env_without_closure_accepted() {
     let heap = Heap::new();
@@ -470,7 +472,7 @@ fn storage_statements_zero_cost() {
 /// the dispatchable set. Since bb2's assignment is unsupported, `x` at bb3 cannot be
 /// guaranteed dispatchable.
 ///
-/// Uses env without closures so that local 0 is in the dispatchable set, isolating the
+/// Uses env without closures so that the env field is in the dispatchable set, isolating the
 /// must-analysis behavior from closure exclusion.
 #[test]
 fn diamond_must_analysis() {
@@ -481,11 +483,13 @@ fn diamond_must_analysis() {
     let def_id = DefId::new(77);
 
     let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
-        decl env: (Int), vertex: [Opaque sym::path::Entity; ?], cond: Bool, capture: (Int), func: [fn(Int) -> Int], x: Int, result: Bool;
+        decl env: (Int), vertex: [Opaque sym::path::Entity; ?], cond: Bool, env_val: Int, capture: (Int), func: [fn(Int) -> Int], x: Int, result: Bool;
+        @proj env_int = env.0: Int;
 
         bb0() {
             cond = load true;
-            capture = load env;
+            env_val = load env_int;
+            capture = tuple env_val;
             func = closure def_id capture;
             if cond then bb1() else bb2();
         },
@@ -595,6 +599,265 @@ fn graph_read_edge_unsupported() {
 
     assert_placement(
         "graph_read_edge_unsupported",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Accessing the closure field of a mixed env is rejected, while the Int field is accepted.
+///
+/// The env is `(Int, fn(Int) -> Int)`. Field 0 is transferable, field 1 is not.
+/// Accessing field 1 (the closure) produces no cost, while field 0 gets a cost.
+#[test]
+fn env_closure_field_rejected_other_accepted() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (Int, [fn(Int) -> Int]), vertex: [Opaque sym::path::Entity; ?], val: Int, closure_val: [fn(Int) -> Int], result: Bool;
+        @proj env_int = env.0: Int, env_closure = env.1: [fn(Int) -> Int];
+
+        bb0() {
+            val = load env_int;
+            closure_val = load env_closure;
+            result = bin.== val 42;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "env_closure_field_rejected_other_accepted",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Environment field containing a dict with non-string keys is rejected.
+///
+/// jsonb object keys must be strings; `Dict<Int, Int>` cannot be serialized.
+/// The env is `(Dict<Int, Int>)`, so field 0 is excluded from `env_domain`.
+#[test]
+fn env_dict_non_string_key_rejected() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Dict Int Int]), vertex: [Opaque sym::path::Entity; ?], val: [Dict Int Int], result: Bool;
+        @proj env_dict = env.0: [Dict Int Int];
+
+        bb0() {
+            val = load env_dict;
+            result = load true;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "env_dict_non_string_key_rejected",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Environment field containing a dict with string keys is accepted.
+///
+/// `Dict<String, Int>` can be serialized to jsonb (string keys map to object keys).
+#[test]
+fn env_dict_string_key_accepted() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Dict String Int]), vertex: [Opaque sym::path::Entity; ?], val: [Dict String Int], result: Bool;
+        @proj env_dict = env.0: [Dict String Int];
+
+        bb0() {
+            val = load env_dict;
+            result = load true;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "env_dict_string_key_accepted",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Dict with opaque string key is accepted after peeling.
+///
+/// The key type is `Opaque<String>`. The `peel` method strips the opaque wrapper
+/// to reveal the underlying `String`, so the dict is transferable.
+#[test]
+fn env_dict_opaque_string_key_accepted() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Dict [Opaque sym::path::Entity; String] Int]),
+             vertex: [Opaque sym::path::Entity; ?],
+             val: [Dict [Opaque sym::path::Entity; String] Int],
+             result: Bool;
+        @proj env_dict = env.0: [Dict [Opaque sym::path::Entity; String] Int];
+
+        bb0() {
+            val = load env_dict;
+            result = load true;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "env_dict_opaque_string_key_accepted",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Dict with union key where all variants peel to `String` is accepted.
+///
+/// The key type is `Opaque1<String> | Opaque2<String>`. Since both variants peel
+/// to `String`, the union collapses to `String` and the dict is transferable.
+#[test]
+fn env_dict_union_string_key_accepted() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int]),
+             vertex: [Opaque sym::path::Entity; ?],
+             val: [Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int],
+             result: Bool;
+        @proj env_dict = env.0: [Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int];
+
+        bb0() {
+            val = load env_dict;
+            result = load true;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "env_dict_union_string_key_accepted",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// `Constant::FnPtr` is rejected by Postgres.
+///
+/// Function pointer constants cannot be serialized to Postgres. Loading a `DefId`
+/// produces a `FnPtr` constant, which `is_supported_constant` rejects.
+#[test]
+fn fnptr_constant_rejected() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee_id = DefId::new(99);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], func: [fn(Int) -> Int], result: Bool;
+
+        bb0() {
+            func = load callee_id;
+            result = load true;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "fnptr_constant_rejected",
         "postgres",
         &body,
         &context,
