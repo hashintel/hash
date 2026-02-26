@@ -3,8 +3,8 @@ import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import type { Diagnostic } from "vscode-languageserver-types";
 
-import { LanguageClientContext } from "../../../lsp/context";
 import type { SubView } from "../../../components/sub-view/types";
+import { LanguageClientContext } from "../../../lsp/context";
 import { parseDocumentUri } from "../../../monaco/editor-paths";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
