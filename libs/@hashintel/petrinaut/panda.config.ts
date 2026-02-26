@@ -20,7 +20,7 @@ export default defineConfig({
   },
 
   // Where to look for css declarations
-  include: ["./src/**/*.{js,jsx,ts,tsx}"],
+  include: ["./src/**/*.{js,jsx,ts,tsx}", "./.storybook/**/*.{js,jsx,ts,tsx}"],
 
   // Files to exclude
   exclude: [],
