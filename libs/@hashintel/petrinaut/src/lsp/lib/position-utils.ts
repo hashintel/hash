@@ -34,5 +34,5 @@ export function positionToOffset(text: string, position: Position): number {
     i++;
   }
 
-  return i + position.character;
+  return Math.min(i + position.character, text.length);
 }
