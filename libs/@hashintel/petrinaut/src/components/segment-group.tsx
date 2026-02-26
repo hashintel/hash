@@ -1,57 +1,54 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
-import { cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
+import type { ReactNode } from "react";
 
 import { withTooltip } from "./hoc/with-tooltip";
+import { Tooltip } from "./tooltip";
 
-const containerStyle = cva({
+const rootStyle = cva({
   base: {
     display: "flex",
+    alignItems: "center",
+    gap: "0.5",
     backgroundColor: "neutral.s20",
-    gap: "1",
+    borderWidth: "thin",
+    borderColor: "neutral.s25",
     position: "relative",
   },
   variants: {
     size: {
       md: {
-        borderRadius: "[18px]",
-        padding: "[4px]",
+        borderRadius: "xl",
       },
       sm: {
-        borderRadius: "[12px]",
-        padding: "[3px]",
+        borderRadius: "lg",
       },
-    },
-    isDisabled: {
-      true: {
-        opacity: "[0.6]",
-        cursor: "not-allowed",
-      },
-      false: {},
     },
   },
   defaultVariants: {
     size: "md",
-    isDisabled: false,
   },
 });
 
 const indicatorStyle = cva({
   base: {
-    backgroundColor: "neutral.s120",
     position: "absolute",
-    transition: "[all 0.2s ease]",
     width: "var(--width)",
     height: "var(--height)",
     left: "var(--left)",
     top: "var(--top)",
+    backgroundColor: "white",
+    boxShadow: "sm",
+    transition: "[all 200ms cubic-bezier(0.4, 0, 0.2, 1)]",
+    zIndex: 0,
   },
   variants: {
     size: {
       md: {
-        borderRadius: "[14px]",
+        borderRadius: "md",
       },
       sm: {
-        borderRadius: "[10px]",
+        borderRadius: "sm",
       },
     },
   },
@@ -63,48 +60,80 @@ const indicatorStyle = cva({
 const itemStyle = cva({
   base: {
     flex: "1",
-    fontWeight: "medium",
-    textAlign: "center",
-    transition: "[all 0.2s ease]",
     position: "relative",
     zIndex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "medium",
+    cursor: "pointer",
+    transition: "[color 200ms]",
+    overflow: "hidden",
   },
   variants: {
-    isSelected: {
-      true: { color: "neutral.s10" },
-      false: { color: "neutral.s110" },
-    },
     size: {
       md: {
-        fontSize: "[13px]",
-        borderRadius: "xl",
-        padding: "[4px 8px]",
+        gap: "1.5",
+        height: "7",
+        paddingX: "2.5",
+        fontSize: "sm",
+        borderRadius: "md",
       },
       sm: {
-        fontSize: "[11px]",
-        borderRadius: "md",
-        padding: "[1px 8px]",
+        gap: "1",
+        height: "5",
+        paddingX: "2",
+        fontSize: "xs",
+        borderRadius: "sm",
       },
     },
-    isDisabled: {
+    disabled: {
       true: {
         cursor: "not-allowed",
+        opacity: "0.5",
         pointerEvents: "none",
-      },
-      false: {
-        cursor: "pointer",
       },
     },
   },
   defaultVariants: {
     size: "md",
-    isDisabled: false,
   },
 });
 
-interface SegmentOption {
+const itemContentStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4",
+    transition: "[color 200ms]",
+  },
+  variants: {
+    selected: {
+      true: {
+        color: "neutral.s120",
+      },
+      false: {
+        color: "neutral.s100",
+      },
+    },
+  },
+});
+
+const itemIconStyle = css({
+  fontSize: "xs",
+  flexShrink: 0,
+});
+
+const tooltipWrapperStyle = css({
+  display: "contents",
+});
+
+export interface SegmentOption {
   value: string;
   label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  tooltip?: string;
 }
 
 interface SegmentGroupProps {
@@ -113,7 +142,6 @@ interface SegmentGroupProps {
   onChange: (value: string) => void;
   /** Size variant. Defaults to "md". */
   size?: "md" | "sm";
-  /** Whether the segment group is disabled. */
   disabled?: boolean;
 }
 
@@ -124,36 +152,63 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
   size = "md",
   disabled = false,
 }) => {
-  const containerClassName = containerStyle({ size, isDisabled: disabled });
-
   return (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
       onValueChange={(details) => {
         if (details.value) {
-          onChange(details.value);
+          const selectedOption = options.find(
+            (opt) => opt.value === details.value,
+          );
+          if (selectedOption && !selectedOption.disabled) {
+            onChange(details.value);
+          }
         }
       }}
+      className={rootStyle({ size })}
     >
-      <div className={containerClassName}>
-        <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
-        {options.map((option) => (
+      <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
+
+      {options.map((option) => {
+        const isItemDisabled = disabled || option.disabled;
+
+        const item = (
           <ArkSegmentGroup.Item
             key={option.value}
             value={option.value}
-            className={itemStyle({
-              isSelected: value === option.value,
-              size,
-              isDisabled: disabled,
-            })}
+            disabled={isItemDisabled}
+            className={itemStyle({ size, disabled: isItemDisabled })}
           >
-            <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
+            <ArkSegmentGroup.ItemText
+              className={itemContentStyle({
+                selected: value === option.value,
+              })}
+            >
+              {option.icon && (
+                <span className={itemIconStyle}>{option.icon}</span>
+              )}
+              {option.label}
+            </ArkSegmentGroup.ItemText>
             <ArkSegmentGroup.ItemControl />
             <ArkSegmentGroup.ItemHiddenInput />
           </ArkSegmentGroup.Item>
-        ))}
-      </div>
+        );
+
+        if (option.disabled && option.tooltip) {
+          return (
+            <Tooltip
+              key={option.value}
+              content={option.tooltip}
+              display="inline"
+            >
+              <span className={tooltipWrapperStyle}>{item}</span>
+            </Tooltip>
+          );
+        }
+
+        return item;
+      })}
     </ArkSegmentGroup.Root>
   );
 };
