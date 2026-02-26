@@ -1,5 +1,5 @@
 import { TextField } from "@hashintel/design-system";
-import { Box, Collapse, Container, Typography } from "@mui/material";
+import { Box, Collapse, Typography } from "@mui/material";
 import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
@@ -9,6 +9,9 @@ import { useEffect, useState } from "react";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
+import { AuthHeading } from "./shared/auth-heading";
+import { AuthLayout } from "./shared/auth-layout";
+import { AuthPaper } from "./shared/auth-paper";
 import {
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
@@ -166,91 +169,100 @@ const RecoveryPage: NextPageWithLayout = () => {
   const hasSubmittedEmail = flow && flow.state !== "choose_method";
 
   return (
-    <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
-        Account Recovery
-      </Typography>
-      <Box
-        component="form"
-        onSubmit={handleSubmitEmail}
+    <AuthLayout>
+      <AuthPaper
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          maxWidth: 500,
-          "> *:not(:first-child)": {
-            marginTop: 1,
-          },
+          maxWidth: 600,
         }}
       >
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email address"
-          value={email}
-          onChange={({ target }) => setEmail(target.value)}
-          error={
-            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={emailInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          disabled={hasSubmittedEmail}
-          required
-        />
-        <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
-          <Button
-            type="submit"
-            disabled={hasSubmittedEmail}
-            sx={{ width: "100%" }}
-          >
-            Recover account
-          </Button>
-        </Collapse>
-      </Box>
-      <Collapse in={hasSubmittedEmail}>
+        <AuthHeading>Account Recovery</AuthHeading>
         <Box
           component="form"
-          onSubmit={handleSubmitCode}
+          onSubmit={handleSubmitEmail}
           sx={{
             display: "flex",
             flexDirection: "column",
             maxWidth: 500,
-            "> *:not(:first-child)": {
-              marginTop: 1,
-            },
+            gap: 1,
           }}
         >
           <TextField
-            label="Verification code"
-            type="text"
-            autoComplete="off"
-            placeholder="Enter your verification code"
-            value={code}
-            onChange={({ target }) => setCode(target.value)}
+            label="Email address"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            placeholder="Enter your email address"
+            value={email}
+            onChange={({ target }) => setEmail(target.value)}
             error={
-              !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              !!emailInputUiNode?.messages.find(({ type }) => type === "error")
             }
-            helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+            helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
+            disabled={hasSubmittedEmail}
             required
           />
-          <Button type="submit" disabled={!code}>
-            Submit Code
-          </Button>
-          <Button variant="secondary" onClick={resetFlow}>
-            Change Email Address
-          </Button>
+          <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
+            <Button
+              type="submit"
+              disabled={hasSubmittedEmail}
+              sx={{ width: "100%" }}
+            >
+              Recover account
+            </Button>
+          </Collapse>
         </Box>
-      </Collapse>
-      <Box maxWidth={500} mt={1}>
+        <Collapse in={hasSubmittedEmail}>
+          <Box
+            component="form"
+            onSubmit={handleSubmitCode}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              maxWidth: 500,
+              gap: 1,
+            }}
+          >
+            <TextField
+              label="Verification code"
+              type="text"
+              autoComplete="off"
+              autoFocus
+              placeholder="Enter your verification code"
+              value={code}
+              onChange={({ target }) => setCode(target.value)}
+              error={
+                !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              }
+              helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+                <Typography key={id}>{text}</Typography>
+              ))}
+              required
+            />
+            <Button type="submit" disabled={!code}>
+              Submit code
+            </Button>
+            <Button variant="secondary" onClick={resetFlow}>
+              Change email address
+            </Button>
+          </Box>
+        </Collapse>
+        {errorMessage ? (
+          <Typography
+            sx={{ color: ({ palette }) => palette.red[70], mt: 1 }}
+            variant="smallTextParagraphs"
+          >
+            {errorMessage}
+          </Typography>
+        ) : null}
         {flow?.ui.messages?.map(({ text, id }) => (
-          <Typography key={id}>{text}</Typography>
+          <Typography key={id} sx={{ mt: 1 }}>
+            {text}
+          </Typography>
         ))}
-        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
-      </Box>
-    </Container>
+      </AuthPaper>
+    </AuthLayout>
   );
 };
 
