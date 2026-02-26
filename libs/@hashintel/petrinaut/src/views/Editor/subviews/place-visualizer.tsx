@@ -3,7 +3,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../components/menu";
-import { OutlinedSegmentGroup } from "../../../components/outlined-segment-group";
+import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
 import { Switch } from "../../../components/switch";
 import { Tooltip } from "../../../components/tooltip";
@@ -200,7 +200,7 @@ const PlaceVisualizerContent: React.FC = () => {
     <div className={contentStyle}>
       {!isSimulationRunning && (
         <div className={segmentGroupContainerStyle}>
-          <OutlinedSegmentGroup
+          <SegmentGroup
             value={viewMode}
             options={[
               { value: "code", label: "Code" },

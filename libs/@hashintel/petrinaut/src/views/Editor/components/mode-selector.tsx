@@ -1,14 +1,14 @@
 import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
 
-import type { OutlinedSegmentOption } from "../../../components/outlined-segment-group";
-import { OutlinedSegmentGroup } from "../../../components/outlined-segment-group";
+import type { SegmentOption } from "../../../components/segment-group";
+import { SegmentGroup } from "../../../components/segment-group";
 
 export interface ModeSelectorProps {
   mode: "edit" | "simulate";
   onChange: (mode: "edit" | "simulate") => void;
 }
 
-const options: OutlinedSegmentOption[] = [
+const options: SegmentOption[] = [
   {
     label: "Edit",
     value: "edit",
@@ -35,7 +35,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onChange,
 }) => {
   return (
-    <OutlinedSegmentGroup
+    <SegmentGroup
       value={mode}
       options={options}
       onChange={(value) => onChange(value as "edit" | "simulate")}

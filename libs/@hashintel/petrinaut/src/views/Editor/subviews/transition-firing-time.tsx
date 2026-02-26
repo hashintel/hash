@@ -3,7 +3,7 @@ import { use } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../components/menu";
-import { OutlinedSegmentGroup } from "../../../components/outlined-segment-group";
+import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
 import { Tooltip } from "../../../components/tooltip";
 import { UI_MESSAGES } from "../../../constants/ui-messages";
@@ -112,7 +112,7 @@ const TransitionFiringTimeContent: React.FC = () => {
   return (
     <div className={contentStyle}>
       <div className={segmentGroupContainerStyle}>
-        <OutlinedSegmentGroup
+        <SegmentGroup
           value={transition.lambdaType}
           options={[
             { value: "predicate", label: "Predicate" },
