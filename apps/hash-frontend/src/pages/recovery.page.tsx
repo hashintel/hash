@@ -205,7 +205,9 @@ const RecoveryPage: NextPageWithLayout = () => {
         }}
       >
         <AuthHeading>
-          {hasSubmittedEmail ? "Enter your verification code" : "Recover your account"}
+          {hasSubmittedEmail
+            ? "Enter your verification code"
+            : "Recover your account"}
         </AuthHeading>
         <Box
           component="form"
@@ -255,7 +257,8 @@ const RecoveryPage: NextPageWithLayout = () => {
             }}
           >
             <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
-              We've sent a verification code to your email address. Enter it below to continue.
+              We've sent a verification code to your email address. Enter it
+              below to continue.
             </Typography>
             <TextField
               label="Verification code"
