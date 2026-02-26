@@ -1,7 +1,7 @@
 import type * as Monaco from "monaco-editor";
 import { Suspense, use, useEffect, useRef } from "react";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
 import type { Diagnostic } from "vscode-languageserver-types";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
 
 import { LanguageClientContext } from "../checker/context";
 import { MonacoContext } from "./context";

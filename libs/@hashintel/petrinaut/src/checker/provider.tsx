@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 
 import { SDCPNContext } from "../state/sdcpn-context";
 import { LanguageClientContext } from "./context";
@@ -8,6 +8,28 @@ import type {
   PublishDiagnosticsParams,
 } from "./worker/protocol";
 import { useLanguageClient } from "./worker/use-language-client";
+
+/** Build an immutable diagnostics map, excluding empty entries. */
+function buildDiagnosticsMap(
+  allParams: PublishDiagnosticsParams[],
+): Map<DocumentUri, Diagnostic[]> {
+  return new Map(
+    allParams
+      .filter((param) => param.diagnostics.length > 0)
+      .map((param) => [param.uri, param.diagnostics]),
+  );
+}
+
+/** Count total diagnostics across all URIs. */
+function countDiagnostics(
+  diagnosticsByUri: Map<DocumentUri, Diagnostic[]>,
+): number {
+  let count = 0;
+  for (const diagnostics of diagnosticsByUri.values()) {
+    count += diagnostics.length;
+  }
+  return count;
+}
 
 export const LanguageClientProvider: React.FC<{
   children: React.ReactNode;
@@ -22,15 +44,7 @@ export const LanguageClientProvider: React.FC<{
   // Subscribe to diagnostics pushed from the server
   const handleDiagnostics = useCallback(
     (allParams: PublishDiagnosticsParams[]) => {
-      setDiagnosticsByUri(() => {
-        const next = new Map<DocumentUri, Diagnostic[]>();
-        for (const param of allParams) {
-          if (param.diagnostics.length > 0) {
-            next.set(param.uri, param.diagnostics);
-          }
-        }
-        return next;
-      });
+      setDiagnosticsByUri(buildDiagnosticsMap(allParams));
     },
     [],
   );
@@ -50,16 +64,10 @@ export const LanguageClientProvider: React.FC<{
     }
   }, [petriNetDefinition, client]);
 
-  const totalDiagnosticsCount = useMemo(() => {
-    let count = 0;
-    for (const diagnostics of diagnosticsByUri.values()) {
-      count += diagnostics.length;
-    }
-    return count;
-  }, [diagnosticsByUri]);
+  const totalDiagnosticsCount = countDiagnostics(diagnosticsByUri);
 
   return (
-    <LanguageClientContext.Provider
+    <LanguageClientContext
       value={{
         diagnosticsByUri,
         totalDiagnosticsCount,
@@ -70,6 +78,6 @@ export const LanguageClientProvider: React.FC<{
       }}
     >
       {children}
-    </LanguageClientContext.Provider>
+    </LanguageClientContext>
   );
 };
