@@ -110,19 +110,23 @@ describe("roundtrip", () => {
     { itemType: "differential-equation" as const, itemId: "de1" },
   ];
 
-  for (const { itemType, itemId } of cases) {
-    it(`URI → filePath → URI roundtrips for ${itemType}`, () => {
+  it.for(cases)(
+    "URI → filePath → URI roundtrips for $itemType",
+    ({ itemType, itemId }) => {
       const uri = getDocumentUri(itemType, itemId);
       const filePath = uriToFilePath(uri);
       expect(filePath).not.toBeNull();
       expect(filePathToUri(filePath!)).toBe(uri);
-    });
+    },
+  );
 
-    it(`URI → parse → rebuild roundtrips for ${itemType}`, () => {
+  it.for(cases)(
+    "URI → parse → rebuild roundtrips for $itemType",
+    ({ itemType, itemId }) => {
       const uri = getDocumentUri(itemType, itemId);
       const parsed = parseDocumentUri(uri);
       expect(parsed).not.toBeNull();
       expect(getDocumentUri(parsed!.itemType, parsed!.itemId)).toBe(uri);
-    });
-  }
+    },
+  );
 });

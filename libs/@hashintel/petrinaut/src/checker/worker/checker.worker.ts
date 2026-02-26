@@ -12,10 +12,7 @@
 import ts from "typescript";
 import {
   type CompletionItem,
-  CompletionItemKind,
   type CompletionList,
-  type Diagnostic,
-  DiagnosticSeverity,
   type Hover,
   MarkupKind,
   Range,
@@ -28,101 +25,12 @@ import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
+import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 import type {
   ClientMessage,
   PublishDiagnosticsParams,
   ServerMessage,
 } from "./protocol";
-
-// ---------------------------------------------------------------------------
-// TS → LSP type conversions
-// ---------------------------------------------------------------------------
-
-/**
- * Map `ts.DiagnosticCategory` to `DiagnosticSeverity`.
- * TS: 0=Warning, 1=Error, 2=Suggestion, 3=Message
- * LSP: 1=Error, 2=Warning, 3=Information, 4=Hint
- */
-function toLspSeverity(category: number): DiagnosticSeverity {
-  switch (category) {
-    case 0:
-      return DiagnosticSeverity.Warning;
-    case 1:
-      return DiagnosticSeverity.Error;
-    case 2:
-      return DiagnosticSeverity.Hint;
-    case 3:
-      return DiagnosticSeverity.Information;
-    default:
-      return DiagnosticSeverity.Error;
-  }
-}
-
-/**
- * Map TS `ScriptElementKind` strings to LSP `CompletionItemKind`.
- */
-function toCompletionItemKind(kind: string): CompletionItemKind {
-  switch (kind) {
-    case "method":
-    case "construct":
-      return CompletionItemKind.Method;
-    case "function":
-    case "local function":
-      return CompletionItemKind.Function;
-    case "constructor":
-      return CompletionItemKind.Constructor;
-    case "property":
-    case "getter":
-    case "setter":
-      return CompletionItemKind.Property;
-    case "parameter":
-    case "var":
-    case "local var":
-    case "let":
-    case "const":
-      return CompletionItemKind.Variable;
-    case "class":
-      return CompletionItemKind.Class;
-    case "interface":
-      return CompletionItemKind.Interface;
-    case "type":
-    case "type parameter":
-    case "primitive type":
-    case "alias":
-      return CompletionItemKind.TypeParameter;
-    case "enum":
-      return CompletionItemKind.Enum;
-    case "enum member":
-      return CompletionItemKind.EnumMember;
-    case "module":
-    case "external module name":
-      return CompletionItemKind.Module;
-    case "keyword":
-      return CompletionItemKind.Keyword;
-    case "string":
-      return CompletionItemKind.Value;
-    default:
-      return CompletionItemKind.Text;
-  }
-}
-
-function serializeDiagnostic(
-  diag: ts.Diagnostic,
-  fileContent: string,
-): Diagnostic {
-  const start = diag.start ?? 0;
-  const end = start + (diag.length ?? 0);
-  return {
-    severity: toLspSeverity(diag.category),
-    range: Range.create(
-      offsetToPosition(fileContent, start),
-      offsetToPosition(fileContent, end),
-    ),
-    message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
-    code: diag.code,
-    source: "ts",
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Server state
