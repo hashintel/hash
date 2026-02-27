@@ -1,97 +1,44 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef } from "react";
-import { TbBolt, TbLambda } from "react-icons/tb";
-import { Handle, type NodeProps, Position } from "reactflow";
+import { TbBolt, TbLambda, TbSquareFilled } from "react-icons/tb";
+import type { NodeProps } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { TransitionNodeData } from "../reactflow-types";
-import { handleStyling } from "../styles/styling";
+import {
+  iconBadgeStyle,
+  iconContainerBaseStyle,
+  NodeCard,
+  nodeCardStyle,
+  type SelectionVariant,
+} from "./node-card";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 
-const containerStyle = css({
-  position: "relative",
-  background: "[transparent]",
-});
-
-const transitionBoxStyle = cva({
-  base: {
-    padding: "4",
-    borderRadius: "xl",
-    width: "[160px]",
-    height: "[80px]",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "neutral.s20",
-    border: "2px solid",
-    borderColor: "neutral.s80",
-    fontSize: "[15px]",
-    boxSizing: "border-box",
-    position: "relative",
-    cursor: "default",
-    transition: "[outline 0.2s ease, border-color 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    _hover: {
-      borderColor: "neutral.s100",
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
+const transitionCardStyle = css({
+  borderColor: "neutral.s70",
+  background: "neutral.s00",
+  transition: "[outline 0.2s ease, border-color 0.2s ease]",
+  _hover: {
+    borderColor: "neutral.s100",
   },
 });
 
-const stochasticIconStyle = css({
-  position: "absolute",
-  top: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+const transitionIconContainerStyle = css({
+  borderRadius: "[0px]",
+});
+
+const stochasticBadgeStyle = css({
   color: "blue.s60",
-  fontSize: "[18px]",
-});
-
-const contentWrapperStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "3",
-});
-
-const labelStyle = css({
-  textAlign: "center",
 });
 
 const firingIndicatorStyle = css({
   position: "absolute",
-  bottom: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "[20px]",
+  top: "[-8px]",
+  right: "[-8px]",
+  fontSize: "[16px]",
   color: "yellow.s60",
-  // Initial state: hidden
   opacity: "[0]",
   transform: "scale(0.5)",
 });
@@ -174,44 +121,39 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
 
   // Determine selection state
   const isSelectedByResource = selectedResourceId === id;
-  const selectionVariant = isSelectedByResource
+  const selectionVariant: SelectionVariant = isSelectedByResource
     ? "resource"
     : selected
       ? "reactflow"
       : "none";
 
+  const subtitle =
+    data.lambdaType === "stochastic" ? "Stochastic" : "Predicate";
+
   return (
-    <div className={containerStyle}>
-      <Handle
-        type="target"
-        position={Position.Left}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
-      <div
-        ref={boxRef}
-        className={transitionBoxStyle({
-          selection: selectionVariant,
-        })}
-      >
-        {data.lambdaType === "stochastic" && (
-          <div className={stochasticIconStyle}>
-            <TbLambda />
-          </div>
-        )}
-        <div className={contentWrapperStyle}>
-          <div className={labelStyle}>{label}</div>
+    <NodeCard
+      cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${transitionCardStyle}`}
+      cardRef={boxRef}
+      iconContainer={
+        <div
+          className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
+        >
+          <TbSquareFilled />
+          {data.lambdaType === "stochastic" && (
+            <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
+              <TbLambda />
+            </div>
+          )}
         </div>
+      }
+      title={label}
+      subtitle={subtitle}
+      badge={
         <div ref={boltRef} className={firingIndicatorStyle}>
           <TbBolt />
         </div>
-      </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
-    </div>
+      }
+      isConnectable={isConnectable}
+    />
   );
 };

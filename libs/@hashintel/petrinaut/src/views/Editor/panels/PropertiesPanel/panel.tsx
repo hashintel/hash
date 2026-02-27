@@ -16,21 +16,17 @@ import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
-const positionContainerStyle = css({
-  display: "flex",
+const glassPanelStyle = css({
   position: "absolute",
+  boxSizing: "border-box",
   top: "[0]",
   right: "[0]",
   zIndex: 1000,
-  pointerEvents: "none",
-});
-
-const glassPanelHeightStyle = css({
-  height: "[100%]",
+  pointerEvents: "auto",
+  borderLeftWidth: "thin",
 });
 
 const glassPanelContentStyle = css({
-  padding: "[16px]",
   overflowY: "auto",
 });
 
@@ -103,7 +99,6 @@ export const PropertiesPanel: React.FC = () => {
           <PlaceProperties
             place={placeData}
             types={petriNetDefinition.types}
-            differentialEquations={petriNetDefinition.differentialEquations}
             updatePlace={updatePlace}
           />
         );
@@ -177,30 +172,23 @@ export const PropertiesPanel: React.FC = () => {
   const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
   return (
-    <div
-      className={positionContainerStyle}
+    <GlassPanel
+      className={glassPanelStyle}
       style={{
         bottom: bottomOffset,
         padding: PANEL_MARGIN,
+        width: panelWidth,
+      }}
+      contentClassName={glassPanelContentStyle}
+      resizable={{
+        edge: "left",
+        size: panelWidth,
+        onResize: handleResize,
+        minSize: MIN_PROPERTIES_PANEL_WIDTH,
+        maxSize: MAX_PROPERTIES_PANEL_WIDTH,
       }}
     >
-      <GlassPanel
-        className={glassPanelHeightStyle}
-        style={{
-          width: panelWidth,
-          pointerEvents: "auto",
-        }}
-        contentClassName={glassPanelContentStyle}
-        resizable={{
-          edge: "left",
-          size: panelWidth,
-          onResize: handleResize,
-          minSize: MIN_PROPERTIES_PANEL_WIDTH,
-          maxSize: MAX_PROPERTIES_PANEL_WIDTH,
-        }}
-      >
-        {content}
-      </GlassPanel>
-    </div>
+      {content}
+    </GlassPanel>
   );
 };

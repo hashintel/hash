@@ -39,6 +39,23 @@ export interface SubView {
    */
   flexGrow?: boolean;
   /**
+   * Minimum height for this section in the proportional layout (in pixels).
+   * Defaults to 100px.
+   */
+  minHeight?: number;
+  /**
+   * Whether this is the main (primary) subview.
+   * When true, shows a non-collapsible header with a larger title style.
+   * The title and `renderHeaderAction` are displayed in the fixed header,
+   * and the content should not include its own title/actions.
+   */
+  main?: boolean;
+  /**
+   * Whether the section can be collapsed by clicking the header.
+   * Defaults to true. Forced to false when `main` is true.
+   */
+  collapsible?: boolean;
+  /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */

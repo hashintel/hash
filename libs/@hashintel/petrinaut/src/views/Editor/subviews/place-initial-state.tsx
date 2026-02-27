@@ -125,7 +125,6 @@ const PlaceInitialStateContent: React.FC = () => {
       key={place.id}
       placeId={place.id}
       placeType={placeType}
-      fillContainer
     />
   );
 };
@@ -142,9 +141,10 @@ export const placeInitialStateSubView: SubView = {
     "Define the initial tokens in this place. During simulation, shows current state.",
   component: PlaceInitialStateContent,
   renderHeaderAction: () => <ClearStateHeaderAction />,
+  minHeight: 250,
   resizable: {
-    defaultHeight: 250,
-    minHeight: 180,
-    maxHeight: 600,
+    defaultHeight: 300,
+    minHeight: 250,
+    maxHeight: 700,
   },
 };

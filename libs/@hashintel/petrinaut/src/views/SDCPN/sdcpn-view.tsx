@@ -3,7 +3,7 @@ import "reactflow/dist/style.css";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import ReactFlow, { Background } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import {
@@ -17,6 +17,7 @@ import { Arc } from "./components/arc";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
+import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type {
@@ -24,7 +25,6 @@ import type {
   NodeData,
   PetrinautReactFlowInstance,
 } from "./reactflow-types";
-import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
 
@@ -54,7 +54,6 @@ export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
-
   // SDCPN store
   const {
     petriNetId,
@@ -138,8 +137,6 @@ export const SDCPNView: React.FC = () => {
     nodeType: "place" | "transition",
     position: { x: number; y: number },
   ) {
-    const { width, height } = nodeDimensions[nodeType];
-
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
 
@@ -152,8 +149,6 @@ export const SDCPNView: React.FC = () => {
         differentialEquationId: null,
         x: position.x,
         y: position.y,
-        width,
-        height,
         visualizerCode: undefined,
       });
     } else {
@@ -167,8 +162,6 @@ export const SDCPNView: React.FC = () => {
         transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
         x: position.x,
         y: position.y,
-        width,
-        height,
       });
     }
     setSelectedItemIds(new Set([id]));
@@ -200,12 +193,11 @@ export const SDCPNView: React.FC = () => {
     }
 
     const nodeType = editionMode === "add-place" ? "place" : "transition";
-    const { width, height } = nodeDimensions[nodeType];
 
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -231,11 +223,10 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const { width, height } = nodeDimensions[nodeType];
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -331,7 +322,6 @@ export const SDCPNView: React.FC = () => {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
-        connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
         panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
         nodesDraggable={!isReadonly}
@@ -343,6 +333,7 @@ export const SDCPNView: React.FC = () => {
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
+        <ViewportControls />
       </ReactFlow>
     </div>
   );

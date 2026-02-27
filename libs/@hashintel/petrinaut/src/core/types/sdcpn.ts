@@ -11,8 +11,6 @@ export type Transition = {
   // UI positioning
   x: number;
   y: number;
-  width?: number;
-  height?: number;
 };
 
 export type Place = {
@@ -25,8 +23,6 @@ export type Place = {
   // UI positioning
   x: number;
   y: number;
-  width?: number;
-  height?: number;
 };
 
 export type Color = {

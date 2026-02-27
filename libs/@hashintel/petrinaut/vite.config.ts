@@ -84,6 +84,7 @@ export default defineConfig({
       exclude: [
         "**/*.test.*",
         "**/*.spec.*",
+        "**/*.stories.*",
         "playground/**",
         "stories/**",
         ".storybook/**",

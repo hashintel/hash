@@ -1,12 +1,14 @@
 /* eslint-disable id-length */
 
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { createContext, use, useMemo, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
+import type { SubView } from "../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
@@ -26,13 +28,15 @@ const containerStyle = css({
   display: "flex",
   flexDirection: "column",
   height: "[100%]",
-  gap: "[12px]",
+  minHeight: "[0]",
 });
 
-const headerTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "[16px]",
-  marginBottom: "[8px]",
+const mainContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+  gap: "[12px]",
 });
 
 const fieldLabelStyle = css({
@@ -175,18 +179,6 @@ const codeContainerStyle = css({
   minHeight: "[0]",
 });
 
-const codeHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[8px]",
-});
-
-const codeHeaderLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-});
-
 const menuButtonStyle = css({
   background: "[transparent]",
   border: "none",
@@ -208,7 +200,9 @@ const aiIconStyle = css({
   fontSize: "[16px]",
 });
 
-interface DifferentialEquationPropertiesProps {
+// --- Context ---
+
+interface DiffEqPropertiesContextValue {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
@@ -218,9 +212,24 @@ interface DifferentialEquationPropertiesProps {
   ) => void;
 }
 
-export const DifferentialEquationProperties: React.FC<
-  DifferentialEquationPropertiesProps
-> = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
+const DiffEqPropertiesContext =
+  createContext<DiffEqPropertiesContextValue | null>(null);
+
+const useDiffEqPropertiesContext = (): DiffEqPropertiesContextValue => {
+  const context = use(DiffEqPropertiesContext);
+  if (!context) {
+    throw new Error(
+      "useDiffEqPropertiesContext must be used within DifferentialEquationProperties",
+    );
+  }
+  return context;
+};
+
+// --- Content ---
+
+const DiffEqMainContent: React.FC = () => {
+  const { differentialEquation, types, places, updateDifferentialEquation } =
+    useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -231,7 +240,6 @@ export const DifferentialEquationProperties: React.FC<
     (type) => type.id === differentialEquation.colorId,
   );
 
-  // Find places that use this differential equation
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
       return false;
@@ -243,13 +251,10 @@ export const DifferentialEquationProperties: React.FC<
   });
 
   const handleTypeChange = (newTypeId: string) => {
-    // Check if any places are using this equation
     if (placesUsingEquation.length > 0) {
-      // Show confirmation dialog
       setPendingTypeId(newTypeId);
       setShowConfirmDialog(true);
     } else {
-      // No places using it, update directly
       updateDifferentialEquation(
         differentialEquation.id,
         (existingEquation) => {
@@ -278,11 +283,7 @@ export const DifferentialEquationProperties: React.FC<
   };
 
   return (
-    <div className={containerStyle}>
-      <div>
-        <div className={headerTitleStyle}>Differential Equation</div>
-      </div>
-
+    <div className={mainContentStyle}>
       <div>
         <div className={fieldLabelStyle}>Name</div>
         <Input
@@ -423,59 +424,6 @@ export const DifferentialEquationProperties: React.FC<
       )}
 
       <div className={codeContainerStyle}>
-        <div className={codeHeaderStyle}>
-          <div className={codeHeaderLabelStyle}>Code</div>
-          {!isReadOnly && (
-            <Menu
-              trigger={
-                <button type="button" className={menuButtonStyle}>
-                  <TbDotsVertical />
-                </button>
-              }
-              items={[
-                {
-                  id: "load-default",
-                  label: "Load default template",
-                  onClick: () => {
-                    // Get the associated type to generate appropriate default code
-                    const equationType = types.find(
-                      (t) => t.id === differentialEquation.colorId,
-                    );
-
-                    updateDifferentialEquation(
-                      differentialEquation.id,
-                      (existingEquation) => {
-                        existingEquation.code = equationType
-                          ? generateDefaultDifferentialEquationCode(
-                              equationType,
-                            )
-                          : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
-                      },
-                    );
-                  },
-                },
-                {
-                  id: "generate-ai",
-                  label: (
-                    <Tooltip
-                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                      display="inline"
-                    >
-                      <div className={aiMenuItemStyle}>
-                        <TbSparkles className={aiIconStyle} />
-                        Generate with AI
-                      </div>
-                    </Tooltip>
-                  ),
-                  disabled: true,
-                  onClick: () => {
-                    // TODO: Implement AI generation when editing is available
-                  },
-                },
-              ]}
-            />
-          )}
-        </div>
         <CodeEditor
           path={getDocumentUri(
             "differential-equation",
@@ -496,6 +444,103 @@ export const DifferentialEquationProperties: React.FC<
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </div>
+    </div>
+  );
+};
+
+const DiffEqCodeAction: React.FC = () => {
+  const { differentialEquation, types, updateDifferentialEquation } =
+    useDiffEqPropertiesContext();
+  const isReadOnly = useIsReadOnly();
+
+  if (isReadOnly) {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            const equationType = types.find(
+              (t) => t.id === differentialEquation.colorId,
+            );
+
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = equationType
+                  ? generateDefaultDifferentialEquationCode(equationType)
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+              },
+            );
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
+  );
+};
+
+const diffEqMainContentSubView: SubView = {
+  id: "diff-eq-main-content",
+  title: "Differential Equation",
+  main: true,
+  component: DiffEqMainContent,
+  renderHeaderAction: () => <DiffEqCodeAction />,
+};
+
+const subViews: SubView[] = [diffEqMainContentSubView];
+
+// --- Export ---
+
+interface DifferentialEquationPropertiesProps {
+  differentialEquation: DifferentialEquation;
+  types: Color[];
+  places: Place[];
+  updateDifferentialEquation: (
+    equationId: string,
+    updateFn: (equation: DifferentialEquation) => void,
+  ) => void;
+}
+
+export const DifferentialEquationProperties: React.FC<
+  DifferentialEquationPropertiesProps
+> = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
+  const value = useMemo(
+    () => ({ differentialEquation, types, places, updateDifferentialEquation }),
+    [differentialEquation, types, places, updateDifferentialEquation],
+  );
+
+  return (
+    <div className={containerStyle}>
+      <DiffEqPropertiesContext.Provider value={value}>
+        <VerticalSubViewsContainer subViews={subViews} />
+      </DiffEqPropertiesContext.Provider>
     </div>
   );
 };

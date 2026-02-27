@@ -14,8 +14,8 @@ const buttonStyle = cva({
     transition: "[all 0.2s ease]",
     backgroundColor: "[transparent]",
     color: "neutral.s110",
-    width: "[40px]",
-    height: "[40px]",
+    width: "8",
+    height: "8",
     fontSize: "[20px]",
     _hover: {
       transform: "[scale(1.1)]",

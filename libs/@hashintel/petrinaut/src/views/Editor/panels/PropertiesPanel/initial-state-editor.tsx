@@ -168,71 +168,6 @@ const cellButtonStyle = cva({
   },
 });
 
-const resizeHandleStyle = cva({
-  base: {
-    position: "absolute",
-    bottom: "[0]",
-    left: "[0]",
-    right: "[0]",
-    height: "[8px]",
-    cursor: "ns-resize",
-    border: "none",
-    padding: "0",
-    zIndex: 10,
-  },
-  variants: {
-    isResizing: {
-      true: { backgroundColor: "[rgba(0, 0, 0, 0.1)]" },
-      false: { backgroundColor: "[transparent]" },
-    },
-  },
-});
-
-/**
- * Hook to make an element resizable by dragging its bottom border
- */
-const useResizable = (initialHeight: number) => {
-  const [height, setHeight] = useState(initialHeight);
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isResizing) {
-      return;
-    }
-
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const newHeight = event.clientY - rect.top;
-      if (newHeight >= 100 && newHeight <= 600) {
-        setHeight(newHeight);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
-  return {
-    height,
-    isResizing,
-    containerRef,
-    startResize: () => setIsResizing(true),
-  };
-};
-
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
  * Stores data in SimulationStore, not in the Place definition
@@ -240,21 +175,12 @@ const useResizable = (initialHeight: number) => {
 interface InitialStateEditorProps {
   placeId: string;
   placeType: Color;
-  /**
-   * When true, the editor fills the container height instead of using internal resize logic.
-   * Used when the component is inside a resizable SubView container.
-   */
-  fillContainer?: boolean;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
-  fillContainer = false,
 }) => {
-  const internalResize = useResizable(250);
-  const { height, isResizing, containerRef, startResize } = internalResize;
-
   const { initialMarking, setInitialMarking } = use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
 
@@ -729,14 +655,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const columnWidth = Math.max(60, 100 / placeType.elements.length);
 
   return (
-    <div className={fillContainer ? wrapperStyle : undefined}>
-      <div
-        ref={fillContainer ? undefined : containerRef}
-        className={tableContainerStyle}
-        style={
-          fillContainer ? { flex: 1, minHeight: 0 } : { height: `${height}px` }
-        }
-      >
+    <div className={wrapperStyle}>
+      <div className={tableContainerStyle} style={{ flex: 1, minHeight: 0 }}>
         <table className={tableStyle}>
           <thead>
             <tr>
@@ -870,15 +790,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             })()}
           </tbody>
         </table>
-
-        {!fillContainer && (
-          <button
-            type="button"
-            aria-label="Resize table"
-            onMouseDown={startResize}
-            className={resizeHandleStyle({ isResizing })}
-          />
-        )}
       </div>
     </div>
   );

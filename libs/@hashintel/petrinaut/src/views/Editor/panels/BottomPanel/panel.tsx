@@ -7,7 +7,7 @@ import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
   HorizontalTabsHeaderAction,
-} from "../../../../components/sub-view/horizontal-tabs-container";
+} from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
   BOTTOM_PANEL_SUBVIEWS,
   MAX_BOTTOM_PANEL_HEIGHT,
@@ -22,10 +22,14 @@ import {
 } from "../../../../state/editor-context";
 
 const glassPanelBaseStyle = css({
-  padding: "[4px]",
+  position: "absolute",
+  zIndex: 1001,
+  borderTopWidth: "thin",
+  boxSizing: "border-box",
 });
 
 const panelContainerStyle = css({
+  padding: "[4px]",
   display: "flex",
   flexDirection: "column",
 });
@@ -141,12 +145,10 @@ export const BottomPanel: React.FC = () => {
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{
-        position: "absolute",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
-        zIndex: 999,
       }}
       contentClassName={panelContainerStyle}
       resizable={{
