@@ -140,7 +140,7 @@ impl PostgresStore<Transaction<'_>> {
                     }
                     (Entry::Occupied(mut entry), Some(draft_id)) => {
                         let tracked = entry.get_mut();
-                        if !tracked.is_empty() {
+                        if !tracked.is_empty() && !tracked.contains(&draft_id) {
                             tracked.push(draft_id);
                         }
                     }

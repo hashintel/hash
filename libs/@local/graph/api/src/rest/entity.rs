@@ -51,8 +51,8 @@ use type_system::{
             id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
-                EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
-                ProvidedEntityEditionProvenance,
+                EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
+                InferredEntityProvenance, ProvidedEntityEditionProvenance,
             },
         },
         property::{
@@ -150,6 +150,7 @@ use crate::rest::{
             EntityEditionId,
             EntityMetadata,
             EntityProvenance,
+            EntityDeletionProvenance,
             EntityEditionProvenance,
             InferredEntityProvenance,
             ProvidedEntityEditionProvenance,

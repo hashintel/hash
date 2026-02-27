@@ -4447,6 +4447,26 @@
           }
         }
       },
+      "EntityDeletionProvenance": {
+        "type": "object",
+        "required": [
+          "deletedById",
+          "deletedAtTransactionTime",
+          "deletedAtDecisionTime"
+        ],
+        "properties": {
+          "deletedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
