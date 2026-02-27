@@ -6,6 +6,7 @@ use hashql_core::{
         bit_vec::{BitRelations as _, DenseBitSet},
     },
     newtype,
+    r#type::TypeId,
 };
 
 use crate::{
@@ -69,6 +70,15 @@ pub(crate) trait Supported<'heap> {
         domain: &DenseBitSet<Local>,
         operand: &Operand<'heap>,
     ) -> bool;
+
+    /// Checks whether a type can be unambiguously deserialized after crossing a backend boundary.
+    ///
+    /// Returns `true` by default. Targets that serialize values to a lossy format (e.g., jsonb)
+    /// override this to reject types with representational collisions in unions.
+    #[expect(unused_variables, reason = "trait definition")]
+    fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
+        true
+    }
 }
 
 impl<'heap, T> Supported<'heap> for &T
@@ -93,6 +103,10 @@ where
         operand: &Operand<'heap>,
     ) -> bool {
         T::is_supported_operand(self, context, body, domain, operand)
+    }
+
+    fn is_type_serialization_safe(&self, context: &MirContext<'_, 'heap>, type_id: TypeId) -> bool {
+        T::is_type_serialization_safe(self, context, type_id)
     }
 }
 
@@ -192,7 +206,10 @@ where
 
         let is_supported = self
             .supported
-            .is_supported_rvalue(self.context, self.body, state, rhs);
+            .is_supported_rvalue(self.context, self.body, state, rhs)
+            && self
+                .supported
+                .is_type_serialization_safe(self.context, self.body.local_decls[lhs.local].r#type);
         state.set(lhs.local, is_supported);
     }
 
@@ -219,7 +236,11 @@ where
         }
 
         for (index, &param) in target_params.iter().enumerate() {
-            let is_supported = is_supported_set.contains(ParamIndex::from_usize(index));
+            let is_supported = is_supported_set.contains(ParamIndex::from_usize(index))
+                && self
+                    .supported
+                    .is_type_serialization_safe(self.context, self.body.local_decls[param].r#type);
+
             state.set(param, is_supported);
         }
     }
@@ -271,10 +292,16 @@ where
     ) -> Self::Result {
         match &statement.kind {
             StatementKind::Assign(Assign { lhs, rhs }) => {
-                let cost = self
-                    .supported
-                    .is_supported_rvalue(self.context, self.body, self.dispatchable, rhs)
-                    .then_some(self.cost);
+                let cost = (self.supported.is_supported_rvalue(
+                    self.context,
+                    self.body,
+                    self.dispatchable,
+                    rhs,
+                ) && self.supported.is_type_serialization_safe(
+                    self.context,
+                    self.body.local_decls[lhs.local].r#type,
+                ))
+                .then_some(self.cost);
 
                 if let Some(cost) = cost
                     && lhs.projections.is_empty()

@@ -10,6 +10,7 @@ use hashql_core::{
         RecursionBoundary, TypeId,
         builder::{TypeBuilder, lazy},
         environment::Environment,
+        visit::{RecursiveVisitorGuard, Visitor as _},
     },
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -782,49 +783,32 @@ fn env_dict_opaque_string_key_accepted() {
     );
 }
 
-/// Dict with union key where all variants peel to `String` is accepted.
+/// Dict with union key where all variants peel to `String` is accepted by `SupportedVisitor`.
 ///
 /// The key type is `Opaque1<String> | Opaque2<String>`. Since both variants peel
-/// to `String`, the union collapses to `String` and the dict is transferable.
+/// to `String` under structural peeling, the union collapses and the dict is
+/// considered transferable by the env-domain check.
 #[test]
 fn env_dict_union_string_key_accepted() {
     let heap = Heap::new();
-    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
 
-    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
-        decl env: ([Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int]),
-             vertex: [Opaque sym::path::Entity; ?],
-             val: [Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int],
-             result: Bool;
-        @proj env_dict = env.0: [Dict [Union [Opaque sym::path::Entity; String], [Opaque sym::path::Entity; String]] Int];
+    let str_ty = builder.string();
+    let int_ty = builder.integer();
+    let opaque_a = builder.opaque(sym::path::Entity, str_ty);
+    let opaque_b = builder.opaque(sym::path::Entity, str_ty);
+    let union_key = builder.union([opaque_a, opaque_b]);
+    let dict_ty = builder.dict(union_key, int_ty);
 
-        bb0() {
-            val = load env_dict;
-            result = load true;
-            return result;
-        }
-    });
-
-    let mut context = MirContext {
-        heap: &heap,
+    let mut guard = RecursiveVisitorGuard::new();
+    let result = super::SupportedVisitor {
         env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
+        guard: &mut guard,
+    }
+    .visit_id(dict_ty);
 
-    let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
-
-    assert_placement(
-        "env_dict_union_string_key_accepted",
-        "postgres",
-        &body,
-        &context,
-        &statement_costs,
-        &traversal_costs,
-    );
+    assert!(result.is_continue());
 }
 
 /// `Constant::FnPtr` is rejected by Postgres.
@@ -1126,23 +1110,28 @@ fn eq_safe_same_type_id() {
 }
 
 /// Two different `TypeId`s that peel to the same interned kind are safe via `ptr::eq`.
+///
+/// Uses Apply wrappers (not Opaque) since semantic peel preserves opaques but strips Apply.
+/// Both Apply types peel to the same interned Integer kind.
 #[test]
 fn eq_safe_ptr_eq_after_peel() {
     let heap = Heap::new();
     let env = Environment::new(&heap);
-    let builder = TypeBuilder::synthetic(&env);
+    let mut builder = TypeBuilder::synthetic(&env);
 
     let int_ty = builder.integer();
-    let opaque_a = builder.opaque("A", int_ty);
-    let opaque_b = builder.opaque("B", int_ty);
+    let param_a = builder.fresh_argument("A");
+    let param_b = builder.fresh_argument("B");
+    let generic_a = builder.generic([(param_a, None)], int_ty);
+    let generic_b = builder.generic([(param_b, None)], int_ty);
 
     // Different TypeIds, but both peel to the same interned Integer kind
-    assert_ne!(opaque_a, opaque_b);
+    assert_ne!(generic_a, generic_b);
     assert!(super::is_equality_safe(
         &env,
         &mut RecursionBoundary::new(),
-        opaque_a,
-        opaque_b
+        generic_a,
+        generic_b
     ));
 }
 
@@ -1668,6 +1657,599 @@ fn eq_place_vs_constant_accepted() {
 
     assert_placement(
         "eq_place_vs_constant_accepted",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+// =============================================================================
+// Peel tests
+// =============================================================================
+
+/// Semantic peel preserves opaque types, returning the opaque wrapper itself.
+#[test]
+fn peel_semantic_preserves_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let peeled = super::Peel::semantic(&env, uuid_ty);
+    assert!(
+        peeled.kind.opaque().is_some(),
+        "semantic peel should preserve opaque types"
+    );
+}
+
+/// Structural peel strips opaque types to their repr.
+#[test]
+fn peel_structural_strips_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let peeled = super::Peel::structural(&env, uuid_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "structural peel should strip opaque to underlying String primitive"
+    );
+}
+
+/// Semantic peel on a union of opaques with different names does not collapse.
+///
+/// `Uuid | Email` both have repr `String`, but semantic peel preserves the opaque wrappers.
+/// Since `Opaque("Uuid", String)` and `Opaque("Email", String)` have different `TypeKind`s
+/// (different names), the union cannot collapse.
+#[test]
+fn peel_semantic_union_different_opaques_preserved() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+    let union_ty = builder.union([uuid_ty, email_ty]);
+
+    let peeled = super::Peel::semantic(&env, union_ty);
+    assert!(
+        peeled.kind.union().is_some(),
+        "semantic peel should preserve union of differently-named opaques"
+    );
+}
+
+/// Structural peel on a union of opaques with same repr collapses to that repr.
+///
+/// `Uuid | Email` both peel structurally to `String`, so the union collapses.
+#[test]
+fn peel_structural_union_same_repr_collapses() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+    let union_ty = builder.union([uuid_ty, email_ty]);
+
+    let peeled = super::Peel::structural(&env, union_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "structural peel should collapse union of same-repr opaques to String"
+    );
+}
+
+/// Semantic peel still strips Generic wrappers.
+#[test]
+fn peel_semantic_strips_generic() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let mut builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let param = builder.fresh_argument("T");
+    let generic_ty = builder.generic([(param, None)], int_ty);
+
+    let peeled = super::Peel::semantic(&env, generic_ty);
+    assert!(
+        peeled.kind.primitive().is_some(),
+        "semantic peel should still strip Generic wrappers"
+    );
+}
+
+// =============================================================================
+// Equality safety: opaque types
+// =============================================================================
+
+/// Opaque compared against its own repr type is unsafe.
+///
+/// `Uuid` (opaque over `String`) vs `String`: both serialize to the same jsonb string,
+/// but the interpreter distinguishes them by nominal type. Postgres cannot.
+#[test]
+fn eq_unsafe_opaque_vs_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        uuid_ty,
+        str_ty
+    ));
+}
+
+/// Two opaques with different names but same repr are unsafe.
+///
+/// `Uuid` vs `Email`: both are opaque over `String`, but the interpreter considers
+/// them distinct types. In jsonb they're both plain strings.
+#[test]
+fn eq_unsafe_different_opaques_same_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let email_ty = builder.opaque("Email", str_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        uuid_ty,
+        email_ty
+    ));
+}
+
+/// Opaque nested inside a tuple makes the comparison unsafe if the other side has the repr.
+///
+/// `(Int, Uuid)` vs `(Int, String)`: the second field is `Opaque("Uuid", String)` vs
+/// `String`, which is a representational collision.
+#[test]
+fn eq_unsafe_opaque_nested_in_tuple() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+
+    let tuple_with_opaque = builder.tuple([int_ty, uuid_ty]);
+    let tuple_with_repr = builder.tuple([int_ty, str_ty]);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        tuple_with_opaque,
+        tuple_with_repr
+    ));
+}
+
+/// Union containing an opaque and its repr is unsafe when compared against any string-like type.
+///
+/// `Uuid | String` compared against `String`: the union arm `Uuid` vs `String` triggers
+/// the opaque-vs-non-opaque rejection.
+#[test]
+fn eq_unsafe_union_opaque_with_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let union_ty = builder.union([uuid_ty, str_ty]);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        union_ty,
+        str_ty
+    ));
+}
+
+/// Opaque with a compound repr: `Opaque("TaggedPair", (Int, String))` vs `(Int, String)`.
+///
+/// The opaque wraps a tuple. Compared against a bare tuple of the same shape,
+/// Postgres can't tell them apart in jsonb.
+#[test]
+fn eq_unsafe_opaque_compound_repr_vs_bare() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let tuple_ty = builder.tuple([int_ty, str_ty]);
+    let opaque_ty = builder.opaque("TaggedPair", tuple_ty);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_ty,
+        tuple_ty
+    ));
+}
+
+/// Two opaques with the same name and safe repr types are safe.
+///
+/// Both sides are `Opaque("Wrapper", Int)` with matching names.
+/// The repr types (both Int) are trivially equality-safe.
+#[test]
+fn eq_safe_same_named_opaques_safe_repr() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let opaque_a = builder.opaque("Wrapper", int_ty);
+    let opaque_b = builder.opaque("Wrapper", int_ty);
+
+    assert!(super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_a,
+        opaque_b
+    ));
+}
+
+/// Same-named opaques whose repr types have a collision are unsafe.
+///
+/// `Opaque("Wrapper", Dict<String, Int>)` vs `Opaque("Wrapper", (a: Int))`:
+/// same opaque name, but the repr types collide (dict vs struct).
+#[test]
+fn eq_unsafe_same_named_opaques_repr_collision() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let dict_repr = builder.dict(str_ty, int_ty);
+    let struct_repr = builder.r#struct([("a", int_ty)]);
+
+    let opaque_a = builder.opaque("Wrapper", dict_repr);
+    let opaque_b = builder.opaque("Wrapper", struct_repr);
+
+    assert!(!super::is_equality_safe(
+        &env,
+        &mut RecursionBoundary::new(),
+        opaque_a,
+        opaque_b
+    ));
+}
+
+// =============================================================================
+// Type serialization safety tests
+// =============================================================================
+
+/// Helper: checks whether a type is serialization-safe using `TypeSerializationSafety`.
+fn is_serialization_safe(env: &Environment<'_>, type_id: TypeId) -> bool {
+    let mut guard = RecursiveVisitorGuard::new();
+    super::TypeSerializationSafety {
+        env,
+        guard: &mut guard,
+    }
+    .visit_id(type_id)
+    .is_continue()
+}
+
+/// Non-union types are always serialization-safe.
+#[test]
+fn serialization_safe_primitive() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    assert!(is_serialization_safe(&env, builder.integer()));
+    assert!(is_serialization_safe(&env, builder.string()));
+    assert!(is_serialization_safe(&env, builder.boolean()));
+}
+
+/// Bare opaque type (not in a union) is serialization-safe.
+#[test]
+fn serialization_safe_bare_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let uuid_ty = builder.opaque("Uuid", builder.string());
+    assert!(is_serialization_safe(&env, uuid_ty));
+}
+
+/// Struct and tuple types are serialization-safe on their own.
+#[test]
+fn serialization_safe_struct_and_tuple() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let struct_ty = builder.r#struct([("a", int_ty), ("b", int_ty)]);
+    let tuple_ty = builder.tuple([int_ty, int_ty]);
+
+    assert!(is_serialization_safe(&env, struct_ty));
+    assert!(is_serialization_safe(&env, tuple_ty));
+}
+
+/// Union of primitives is serialization-safe (different jsonb scalar kinds).
+#[test]
+fn serialization_safe_union_primitives() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let union_ty = builder.union([builder.integer(), builder.boolean()]);
+    assert!(is_serialization_safe(&env, union_ty));
+}
+
+/// Union of struct and primitive is safe (jsonb object vs scalar).
+#[test]
+fn serialization_safe_union_struct_and_primitive() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let struct_ty = builder.r#struct([("a", int_ty)]);
+    let union_ty = builder.union([struct_ty, int_ty]);
+
+    assert!(is_serialization_safe(&env, union_ty));
+}
+
+/// Union containing an opaque is rejected.
+///
+/// The opaque's repr is likely a subtype of another variant, making them
+/// indistinguishable in jsonb.
+#[test]
+fn serialization_unsafe_union_with_opaque() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let union_ty = builder.union([uuid_ty, str_ty]);
+
+    assert!(!is_serialization_safe(&env, union_ty));
+}
+
+/// Union containing an opaque alongside an unrelated type is still rejected.
+///
+/// Even though `Uuid` (repr `String`) and `Int` have different jsonb representations,
+/// we reject conservatively because proving safety would require subtype checking.
+#[test]
+fn serialization_unsafe_union_opaque_with_unrelated() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let uuid_ty = builder.opaque("Uuid", builder.string());
+    let union_ty = builder.union([uuid_ty, builder.integer()]);
+
+    assert!(!is_serialization_safe(&env, union_ty));
+}
+
+/// Union of struct and dict is rejected (both serialize as jsonb objects).
+#[test]
+fn serialization_unsafe_union_struct_and_dict() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let struct_ty = builder.r#struct([("a", int_ty)]);
+    let dict_ty = builder.dict(str_ty, int_ty);
+    let union_ty = builder.union([struct_ty, dict_ty]);
+
+    assert!(!is_serialization_safe(&env, union_ty));
+}
+
+/// Union of tuple and list is rejected (both serialize as jsonb arrays).
+#[test]
+fn serialization_unsafe_union_tuple_and_list() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let tuple_ty = builder.tuple([int_ty, int_ty]);
+    let list_ty = builder.list(int_ty);
+    let union_ty = builder.union([tuple_ty, list_ty]);
+
+    assert!(!is_serialization_safe(&env, union_ty));
+}
+
+/// Nested union with a collision is rejected.
+///
+/// The outer type is a tuple, but one of its fields contains a union with a
+/// struct-vs-dict collision. The recursive walk catches it.
+#[test]
+fn serialization_unsafe_nested_union_collision() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let struct_ty = builder.r#struct([("a", int_ty)]);
+    let dict_ty = builder.dict(str_ty, int_ty);
+    let inner_union = builder.union([struct_ty, dict_ty]);
+
+    let outer_tuple = builder.tuple([int_ty, inner_union]);
+
+    assert!(!is_serialization_safe(&env, outer_tuple));
+}
+
+/// Deeply nested opaque in a union is rejected.
+///
+/// A struct contains a field whose type is a union with an opaque. The recursive
+/// walk through the struct fields finds the problematic union.
+#[test]
+fn serialization_unsafe_opaque_in_nested_union() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let str_ty = builder.string();
+    let uuid_ty = builder.opaque("Uuid", str_ty);
+    let inner_union = builder.union([uuid_ty, str_ty]);
+
+    let outer_struct = builder.r#struct([("id", inner_union), ("name", str_ty)]);
+
+    assert!(!is_serialization_safe(&env, outer_struct));
+}
+
+/// Union of two structs is safe (both are jsonb objects, but with potentially
+/// different key sets that the interpreter can use for disambiguation).
+#[test]
+fn serialization_safe_union_two_structs() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let struct_a = builder.r#struct([("a", int_ty)]);
+    let struct_b = builder.r#struct([("b", int_ty)]);
+    let union_ty = builder.union([struct_a, struct_b]);
+
+    assert!(is_serialization_safe(&env, union_ty));
+}
+
+/// Union of two dicts is safe (both are jsonb objects of the same structural kind).
+#[test]
+fn serialization_safe_union_two_dicts() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+    let builder = TypeBuilder::synthetic(&env);
+
+    let int_ty = builder.integer();
+    let str_ty = builder.string();
+    let dict_a = builder.dict(str_ty, int_ty);
+    let dict_b = builder.dict(str_ty, str_ty);
+    let union_ty = builder.union([dict_a, dict_b]);
+
+    assert!(is_serialization_safe(&env, union_ty));
+}
+
+// =============================================================================
+// Serialization safety: snapshot (integration) tests
+// =============================================================================
+
+/// Assignment to a serialization-unsafe type gets no cost, and downstream dependents
+/// are also rejected.
+///
+/// `ambig` has type `Uuid | String` (opaque in union: not serialization-safe).
+/// The load from the env field gets no cost because the result can't be round-tripped
+/// through jsonb. `derived`, which uses `ambig` as an operand, also gets no cost
+/// because `ambig` is not dispatchable. Meanwhile `safe` (type `Int`) gets costs
+/// throughout as a control.
+#[test]
+fn serialization_unsafe_statement_no_cost() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Union [Opaque "Uuid"; String], String], Int),
+             vertex: [Opaque sym::path::Entity; ?],
+             ambig: [Union [Opaque "Uuid"; String], String],
+             safe: Int,
+             derived: [Union [Opaque "Uuid"; String], String],
+             result: Bool;
+        @proj env_0 = env.0: [Union [Opaque "Uuid"; String], String],
+              env_1 = env.1: Int;
+
+        bb0() {
+            ambig = load env_0;
+            safe = load env_1;
+            derived = load ambig;
+            result = bin.> safe 42;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "serialization_unsafe_statement_no_cost",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
+/// Serialization-unsafe value flowing through a block param rejects downstream uses.
+///
+/// `ambig` (type `Uuid | String`) is loaded in bb0 and passed as a block param to bb1.
+/// The block param inherits the rejection via `transfer_edge`: the operand is not
+/// dispatchable AND the param's type is not serialization-safe. In bb1, `use_ambig`
+/// (which loads from the rejected param) gets no cost. The parallel `safe` path
+/// flows through with costs as a control.
+#[test]
+fn serialization_unsafe_edge_propagates() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: ([Union [Opaque "Uuid"; String], String], Int),
+             vertex: [Opaque sym::path::Entity; ?],
+             ambig: [Union [Opaque "Uuid"; String], String],
+             safe: Int,
+             use_ambig: [Union [Opaque "Uuid"; String], String],
+             use_safe: Bool;
+        @proj env_0 = env.0: [Union [Opaque "Uuid"; String], String],
+              env_1 = env.1: Int;
+
+        bb0() {
+            ambig = load env_0;
+            safe = load env_1;
+            goto bb1(ambig, safe);
+        },
+        bb1(ambig, safe) {
+            use_ambig = load ambig;
+            use_safe = bin.> safe 42;
+            return use_safe;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "serialization_unsafe_edge_propagates",
         "postgres",
         &body,
         &context,
