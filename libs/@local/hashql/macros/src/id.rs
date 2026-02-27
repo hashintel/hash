@@ -10,8 +10,8 @@ mod grammar {
     use unsynn::*;
 
     use crate::grammar::{
-        AngleTokenTree, Attribute, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep, KStruct,
-        ModPath, VerbatimUntil, Visibility,
+        AngleTokenTree, Attribute, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep, KStruct, KU8,
+        KU16, KU32, KU64, KU128, KUsize, ModPath, VerbatimUntil, Visibility,
     };
 
     pub(super) type AttributeIdBody = CommaDelimitedVec<IdAttribute>;
@@ -59,8 +59,17 @@ mod grammar {
             Inclusive(DotDotEq)
         }
 
+        pub(super) enum StructScalar {
+            U8(KU8),
+            U16(KU16),
+            U32(KU32),
+            U64(KU64),
+            U128(KU128),
+            Usize(KUsize),
+        }
+
         pub(super) struct StructBody {
-            pub r#type: ModPath,
+            pub r#type: StructScalar,
             pub _is: KIs,
 
             pub start: VerbatimUntil<RangeOp>,
@@ -182,14 +191,14 @@ fn expand_struct(
         max.to_token_stream()
     ));
 
-    let assert_in_bounds = quote! {
-        assert!(
-            value >= (#min as #inner_type) && value <= (#max as #inner_type),
-            #assert_message
-        );
+    let max_cmp = match op {
+        grammar::RangeOp::Exclusive(_) => quote!(<),
+        grammar::RangeOp::Inclusive(_) => quote!(<=),
     };
 
     output.extend(quote! {
+        #other_attributes
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #visibility struct #name {
             _internal_do_not_use: #inner_type
         }
@@ -202,7 +211,10 @@ fn expand_struct(
             /// If the value is outside the valid range
             #[must_use]
             #visibility const fn new(value: #inner_type) -> Self {
-                #assert_in_bounds
+                assert!(
+                    value >= #min && value #max_cmp #max,
+                    #assert_message
+                );
 
                 Self {
                     _internal_do_not_use: value,

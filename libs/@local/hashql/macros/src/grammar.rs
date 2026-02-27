@@ -15,6 +15,12 @@ keyword! {
     pub KStep = ["Step"];
     pub KIs = ["is"];
     pub KCrate = ["crate"];
+    pub KU8 = ["u8"];
+    pub KU16 = ["u16"];
+    pub KU32 = ["u32"];
+    pub KU64 = ["u64"];
+    pub KU128 = ["u128"];
+    pub KUsize = ["usize"];
 }
 
 pub type VerbatimUntil<C> = Many<Cons<Except<C>, AngleTokenTree>>;
