@@ -246,14 +246,14 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     pub fn depends_on(&self, local: Local) -> impl Iterator<Item = Local> {
         self.graph
-            .successors(NodeId::new(local.as_usize()))
-            .map(|node| Local::new(node.as_usize()))
+            .successors(NodeId::from_usize(local.as_usize()))
+            .map(|node| Local::from_usize(node.as_usize()))
     }
 
     pub fn dependent_on(&self, local: Local) -> impl Iterator<Item = Local> {
         self.graph
-            .predecessors(NodeId::new(local.as_usize()))
-            .map(|node| Local::new(node.as_usize()))
+            .predecessors(NodeId::from_usize(local.as_usize()))
+            .map(|node| Local::from_usize(node.as_usize()))
     }
 
     /// Creates a transient graph with all edges resolved to their ultimate sources.
@@ -277,7 +277,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         // Resolve each edge and add to the new graph or constant bindings.
         for edge in self.graph.edges() {
             let place = PlaceRef {
-                local: Local::new(edge.target().as_usize()),
+                local: Local::from_usize(edge.target().as_usize()),
                 projections: &edge.data.projections,
             };
 
@@ -285,7 +285,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                 Operand::Place(resolved) => {
                     graph.add_edge(
                         edge.source(),
-                        NodeId::new(resolved.local.as_usize()),
+                        NodeId::from_usize(resolved.local.as_usize()),
                         EdgeData {
                             kind: edge.data.kind,
                             projections: resolved.projections,
@@ -294,7 +294,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                 }
                 Operand::Constant(constant) => {
                     constant_bindings.insert(
-                        Local::new(edge.source().as_usize()),
+                        Local::from_usize(edge.source().as_usize()),
                         edge.data.kind,
                         constant,
                     );
@@ -369,7 +369,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         &'this self,
         local: Local,
     ) -> IncidentEdges<'this, Local, EdgeData<'heap>, A> {
-        let node_id = NodeId::new(local.as_usize());
+        let node_id = NodeId::from_usize(local.as_usize());
 
         self.graph.outgoing_edges(node_id)
     }

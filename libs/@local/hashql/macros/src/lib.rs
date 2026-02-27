@@ -8,27 +8,105 @@ mod id;
 
 use proc_macro::TokenStream;
 
-/// Defines a type as an [`Id`].
+/// Defines an enum as an [`Id`] type.
 ///
-/// Supports two shapes:
+/// This attribute macro works on enums with unit variants, generating sequential
+/// discriminants, conversion methods, and trait implementations.
 ///
-/// **Struct** (newtype wrapper around an integer with a valid range):
+/// For struct-based Id types, use [`define_id!`] instead, since attribute macros
+/// require syntactically valid Rust on the annotated item.
+///
+/// # Example
+///
 /// ```ignore
-/// #[hashql_core::id]
-/// #[id(steppable)]
-/// pub struct NodeId(u32 is 0..=0xFFFF_FF00);
-/// ```
-///
-/// **Enum** (unit variants mapped to sequential discriminants):
-/// ```ignore
-/// #[hashql_core::id]
+/// #[hashql_macros::id]
 /// pub enum TargetId {
 ///     Interpreter,
 ///     Postgres,
 ///     Embedding,
 /// }
 /// ```
+///
+/// # Attributes
+///
+/// Attributes can be passed either as arguments to `#[id(...)]` or as a
+/// separate `#[id(...)]` attribute on the item:
+///
+/// - `crate = path` — path to the `hashql_core` crate (default: `::hashql_core`)
+/// - `const` — add `const` to trait impl blocks
+/// - `derive(Step)` — implement [`core::iter::Step`]
+/// - `display = "format"` — implement [`Display`] with a format string
+/// - `display = "auto"` — implement [`Display`] using lowercased variant names
+/// - `display = !` — suppress the [`Display`] implementation
 #[proc_macro_attribute]
 pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
     id::expand(attr.into(), item.into()).into()
+}
+
+/// Defines a type as an [`Id`].
+///
+/// This is a function-like macro that supports both struct and enum shapes.
+/// Struct-based Id types must use this macro because their syntax (`u32 is 0..=MAX`)
+/// is not valid Rust, which precludes use of the `#[id]` attribute macro.
+///
+/// # Struct
+///
+/// Creates a newtype wrapper around an integer with a valid range:
+///
+/// ```ignore
+/// define_id! {
+///     /// A unique node identifier.
+///     #[id(derive(Step))]
+///     pub struct NodeId(u32 is 0..=0xFFFF_FF00)
+/// }
+/// ```
+///
+/// Supported backing types: `u8`, `u16`, `u32`, `u64`, `u128`.
+///
+/// The range bound determines valid values. Inclusive (`..=`) and exclusive (`..`)
+/// ranges are both supported.
+///
+/// # Enum
+///
+/// Creates an enum with sequential discriminants:
+///
+/// ```ignore
+/// define_id! {
+///     pub enum TargetId {
+///         Interpreter,
+///         Postgres,
+///         Embedding,
+///     }
+/// }
+/// ```
+///
+/// The backing integer type is inferred from the number of variants.
+///
+/// # Attributes
+///
+/// Placed inside an `#[id(...)]` annotation on the item:
+///
+/// - `crate = path` — path to the `hashql_core` crate (default: `::hashql_core`)
+/// - `const` — add `const` to trait impl blocks
+/// - `derive(Step)` — implement [`core::iter::Step`]
+/// - `display = "format"` — implement [`Display`] with a format string
+/// - `display = "auto"` — implement [`Display`] using the inner value (struct) or lowercased
+///   variant names (enum)
+/// - `display = !` — suppress the [`Display`] implementation
+///
+/// # Generated items
+///
+/// For both shapes, the macro generates:
+/// - [`Id`] trait implementation
+/// - [`HasId`] trait implementation
+/// - [`TryFrom<u32>`], [`TryFrom<u64>`], [`TryFrom<usize>`] implementations
+/// - [`Debug`] and (by default) [`Display`] implementations
+///
+/// Struct-specific: `new`, `new_unchecked` constructors.
+///
+/// Enum-specific: `VARIANT_COUNT`, `all`, `try_from_discriminant`,
+/// `from_discriminant`, `from_discriminant_unchecked`, `into_discriminant`.
+#[proc_macro]
+pub fn define_id(item: TokenStream) -> TokenStream {
+    id::expand(TokenStream::new().into(), item.into()).into()
 }

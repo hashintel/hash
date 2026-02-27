@@ -19,15 +19,15 @@ impl TestGraph {
         };
 
         for &(source, target) in edges {
-            let source = NodeId::new(source);
-            let target = NodeId::new(target);
+            let source = NodeId::from_usize(source);
+            let target = NodeId::from_usize(target);
 
             graph.node_count = graph
                 .node_count
                 .max(source.as_usize() + 1)
                 .max(target.as_usize() + 1);
 
-            let edge_id = EdgeId::new(graph.edge_count);
+            let edge_id = EdgeId::from_usize(graph.edge_count);
 
             graph
                 .successors
@@ -45,7 +45,7 @@ impl TestGraph {
         }
 
         for node in 0..graph.node_count {
-            let node = NodeId::new(node);
+            let node = NodeId::from_usize(node);
 
             graph.successors.entry(node).or_default();
             graph.predecessors.entry(node).or_default();
@@ -76,11 +76,11 @@ impl DirectedGraph for TestGraph {
     }
 
     fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
-        (0..self.node_count).map(NodeId::new)
+        (0..self.node_count).map(NodeId::from_usize)
     }
 
     fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
-        (0..self.edge_count).map(EdgeId::new)
+        (0..self.edge_count).map(EdgeId::from_usize)
     }
 }
 

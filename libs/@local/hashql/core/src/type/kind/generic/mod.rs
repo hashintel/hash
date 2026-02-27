@@ -14,8 +14,9 @@ pub use self::{
 use super::TypeKind;
 use crate::{
     collections::{SmallVec, TinyVec},
+    id::newtype,
     intern::Interned,
-    newtype, newtype_collections, newtype_producer,
+    newtype_collections, newtype_producer,
     pretty::display::DisplayBuilder,
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -32,6 +33,7 @@ use crate::{
 };
 
 newtype!(
+    #[id(crate = crate)]
     pub struct GenericArgumentId(u32 is 0..=0xFFFF_FF00)
 );
 

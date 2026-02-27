@@ -39,7 +39,7 @@ pub(super) fn expand_enum(
     let backing = IntegerScalar::from_variant_count(variant_count);
 
     let discriminant_arms = variants.iter().enumerate().map(|(index, variant)| {
-        let literal = Literal::usize_suffixed(index);
+        let literal = Literal::usize_unsuffixed(index);
 
         quote_spanned!(variant.span() => #literal => ::core::option::Option::Some(Self::#variant))
     });
@@ -94,11 +94,11 @@ pub(super) fn expand_enum(
             /// The value must be a valid discriminant for this enum.
             #[inline]
             #[expect(unsafe_code)]
-            #vis unsafe const fn from_discriminant_unchecked(value: #backing) -> Self {
+            #vis const unsafe fn from_discriminant_unchecked(value: #backing) -> Self {
                 match Self::try_from_discriminant(value) {
                     ::core::option::Option::Some(variant) => variant,
                     // SAFETY: The caller guarantees that the value is a valid discriminant.
-                    ::core::option::Option::None => unsafe { ::core::mem::unreachable_unchecked() },
+                    ::core::option::Option::None => unsafe { ::core::hint::unreachable_unchecked() },
                 }
             }
 

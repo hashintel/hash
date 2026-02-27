@@ -24,15 +24,16 @@ use alloc::rc::Rc;
 use core::{marker::PhantomData, ops::RangeBounds};
 
 use super::GrowableBitSet;
-use crate::{
-    id::{
-        Id as _,
-        bit_vec::{BitRelations as _, Chunk, ChunkedBitSet, DenseBitSet, WORD_BITS},
-    },
+use crate::id::{
+    Id as _,
+    bit_vec::{BitRelations as _, Chunk, ChunkedBitSet, DenseBitSet, WORD_BITS},
     newtype,
 };
 
-newtype!(struct TestId(usize is 0..=usize::MAX));
+newtype!(
+    #[id(crate = crate)]
+    struct TestId(u32 is 0..=u32::MAX)
+);
 
 #[test]
 fn new_filled() {

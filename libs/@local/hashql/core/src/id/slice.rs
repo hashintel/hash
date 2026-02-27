@@ -466,9 +466,12 @@ mod tests {
     use core::mem::MaybeUninit;
 
     use super::IdSlice;
-    use crate::{id::Id as _, newtype};
+    use crate::id::Id as _;
 
-    newtype!(struct TestId(u32 is 0..=0xFFFF_FF00));
+    hashql_macros::define_id! {
+        #[id(crate = crate)]
+        struct TestId(u32 is 0..=0xFFFF_FF00)
+    }
 
     #[test]
     fn from_raw_indexing() {

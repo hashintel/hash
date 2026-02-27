@@ -116,7 +116,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
 
         // The function args cannot be dead
         for index in 0..body.args {
-            dead.remove(Local::new(index));
+            dead.remove(Local::from_usize(index));
         }
 
         if dead.is_empty() {
@@ -145,7 +145,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
 
         // For an explanation of how this compression algorithm works, see the DBE implementation.
         let mut write_index = Local::new(0);
-        let local_count = Local::new(body.local_decls.len() - dead.count());
+        let local_count = Local::from_usize(body.local_decls.len() - dead.count());
 
         for read_index in body.local_decls.ids() {
             if write_index == local_count {

@@ -3830,6 +3830,7 @@ dependencies = [
  "hash-codec",
  "hashbrown 0.16.1",
  "hashql-diagnostics",
+ "hashql-macros",
  "insta",
  "lexical",
  "memchr",

@@ -146,7 +146,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
 
                     // Embedding backend cannot receive any arguments directly
                     for arg in 0..body.args {
-                        domain.remove(Local::new(arg));
+                        domain.remove(Local::from_usize(arg));
                     }
                 },
             ),

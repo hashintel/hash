@@ -7,7 +7,8 @@ use core::fmt::Display;
 
 use proc_macro::{Diagnostic, Level, Span};
 use proc_macro2::TokenStream;
-use unsynn::{Parse as _, ToTokenIter as _, ToTokens as _, quote};
+use quote::quote;
+use unsynn::{Parse as _, ToTokenIter as _};
 
 use self::{r#enum::expand_enum, r#struct::expand_struct};
 
@@ -67,8 +68,8 @@ mod grammar {
         }
 
         pub(super) enum RangeOp {
-            Exclusive(DotDot),
-            Inclusive(DotDotEq)
+            Inclusive(DotDotEq),
+            Exclusive(DotDot)
         }
 
         pub(super) enum StructScalar {
@@ -90,7 +91,7 @@ mod grammar {
 
         pub(super) struct ParsedStruct {
             pub attributes: Vec<Attribute<AttributeBody>>,
-            pub visibility: Visibility,
+            pub visibility: Option<Visibility>,
 
             pub _struct: KStruct,
 
@@ -101,7 +102,7 @@ mod grammar {
 
         pub(super) struct ParsedEnum {
             pub attributes: Vec<Attribute<AttributeBody>>,
-            pub visibility: Visibility,
+            pub visibility: Option<Visibility>,
 
             pub _enum: KEnum,
 
@@ -129,7 +130,6 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (attributes, parsed) = match parse(attr, item) {
         Ok(parsed) => parsed,
 
-        #[expect(clippy::collection_is_never_read, reason = "false positive")]
         Err(error) => {
             if let Some(token) = error.failed_at() {
                 emit_error(token.span().unwrap(), error);

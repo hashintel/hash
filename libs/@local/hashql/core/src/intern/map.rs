@@ -771,12 +771,14 @@ mod tests {
 
     use crate::{
         heap::Heap,
-        id::HasId,
+        id::{HasId, newtype},
         intern::{Decompose, InternMap, Interned},
-        newtype,
     };
 
-    newtype!(struct TaggedId(u32 is 0..=0xFFFF_FF00));
+    newtype!(
+        #[id(crate = crate)]
+        struct TaggedId(u32 is 0..=0xFFFF_FF00)
+    );
 
     #[derive(Debug, PartialEq, Eq, Hash)]
     struct TaggedValue {
@@ -803,7 +805,10 @@ mod tests {
         }
     }
 
-    newtype!(struct ListId(u32 is 0..=0xFFFF_FF00));
+    newtype!(
+        #[id(crate = crate)]
+        struct ListId(u32 is 0..=0xFFFF_FF00)
+    );
 
     // A recursive test type that can reference other TestNode instances by ID
     #[derive(Debug, PartialEq, Eq, Hash)]
@@ -877,7 +882,7 @@ mod tests {
         assert_eq!(retrieved, value);
 
         // Look up a non-existent ID
-        let non_existent = map.get(TaggedId(999));
+        let non_existent = map.get(TaggedId::new(999));
         assert!(non_existent.is_none());
 
         // Test the index method

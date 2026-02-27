@@ -17,11 +17,10 @@ use crate::{
         DirectedGraph as _, NodeId, Successors as _, algorithms::tarjan::Tarjan, tests::TestGraph,
     },
     heap::Scratch,
-    id::Id as _,
-    newtype,
+    id::{Id as _, newtype},
 };
 
-newtype!(struct SccId(usize is 0..=usize::MAX));
+newtype!(#[id(crate = crate)] struct SccId(u32 is 0..=u32::MAX));
 
 type Sccs<M = ()> = StronglyConnectedComponents<NodeId, SccId, M>;
 

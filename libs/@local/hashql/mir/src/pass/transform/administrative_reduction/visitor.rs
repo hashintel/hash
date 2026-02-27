@@ -6,7 +6,10 @@
 
 use core::{alloc::Allocator, convert::Infallible, mem};
 
-use hashql_core::{heap::Heap, id::IdVec};
+use hashql_core::{
+    heap::Heap,
+    id::{Id as _, IdVec},
+};
 
 use super::{Reducable, disjoint::DisjointIdSlice};
 use crate::{
@@ -237,7 +240,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
             .enumerate()
             .map(|(param, argument)| Statement {
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(local_offset + param)),
+                    lhs: Place::local(Local::from_usize(local_offset + param)),
                     rhs: RValue::Load(argument),
                 }),
                 span,

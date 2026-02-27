@@ -36,6 +36,7 @@ id::newtype!(
     /// The value space is restricted to `0..=0xFFFF_FF00`, reserving the last 256 for niches.
     /// As real pattern types are an experimental feature in Rust, these can currently only be
     /// used by directly modifying and accessing the `TypeId`'s internal value.
+    #[id(crate = crate)]
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
 
@@ -47,7 +48,7 @@ impl TypeId {
     /// The uniqueness constraint is not enforced by the type system, but rather just a statistical
     /// improbability, considering that 4.294.967.040 types would need to be generated, for a
     /// collision to occur.
-    pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
+    pub const PLACEHOLDER: Self = Self::new(0xFFFF_FF00);
 }
 
 id::newtype_collections!(pub type TypeId* from TypeId);

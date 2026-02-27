@@ -4,15 +4,13 @@ use core::hint::black_box;
 use codspeed_criterion_compat::{
     BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
-use hashql_core::{
-    id::{
-        Id as _,
-        bit_vec::{BitMatrix, SparseBitMatrix},
-    },
+use hashql_core::id::{
+    Id as _,
+    bit_vec::{BitMatrix, SparseBitMatrix},
     newtype,
 };
 
-newtype!(struct BenchId(usize is 0..=usize::MAX));
+newtype!(struct BenchId(u32 is 0..=u32::MAX));
 
 // =============================================================================
 // Dense BitMatrix

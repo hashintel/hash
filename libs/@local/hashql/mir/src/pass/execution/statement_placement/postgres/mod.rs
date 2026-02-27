@@ -3,7 +3,7 @@ use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
     debug_panic,
-    id::bit_vec::DenseBitSet,
+    id::{Id as _, bit_vec::DenseBitSet},
     symbol::sym,
     sync::lock::LocalLock,
     r#type::{
@@ -701,7 +701,7 @@ impl<'heap, S: Allocator> PostgresStatementPlacement<'heap, S> {
 
         for (index, &field) in env.fields.iter().enumerate() {
             let is_supported = visitor.visit_id(field).is_continue();
-            supported.set(FieldIndex::new(index), is_supported);
+            supported.set(FieldIndex::from_usize(index), is_supported);
         }
 
         supported

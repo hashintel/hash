@@ -1,8 +1,8 @@
 use core::cmp;
 
 use proc_macro2::{Ident, TokenStream};
-use quote::{ToTokens, format_ident, quote};
-use unsynn::{Ge, Gt, ToTokens as _};
+use quote::{format_ident, quote};
+use unsynn::ToTokens as _;
 
 use super::grammar::{self, StructBody, StructScalar};
 use crate::id::{
@@ -36,15 +36,6 @@ impl From<grammar::RangeOp> for RangeKind {
     }
 }
 
-impl ToTokens for RangeKind {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Inclusive => Ge::new().to_tokens(tokens),
-            Self::Exclusive => Gt::new().to_tokens(tokens),
-        }
-    }
-}
-
 struct Constraint {
     scalar: IntegerScalar,
 
@@ -56,27 +47,28 @@ struct Constraint {
 
 impl Constraint {
     fn message(&self) -> String {
-        format!(
-            "id value must be between {}{}{}",
-            self.min,
-            self.kind.to_token_stream(),
-            self.max
-        )
+        let op = match self.kind {
+            RangeKind::Inclusive => "<=",
+            RangeKind::Exclusive => "<",
+        };
+
+        format!("id value must be between {}{op}{}", self.min, self.max)
     }
 
     fn comparison(&self, ident: &Ident, ident_scalar: IntegerScalar) -> TokenStream {
-        let Self {
-            scalar,
-            min,
-            max,
-            kind,
-        } = self;
+        let width = cmp::max(self.scalar, ident_scalar);
+        let min = &self.min;
+        let max = &self.max;
 
-        let width = cmp::max(*scalar, ident_scalar);
-
-        quote! {
-            (#ident as #width) >= (#min as #width) &&
-            (#ident as #width) #kind (#max as #width)
+        match self.kind {
+            RangeKind::Inclusive => quote! {
+                (#ident as #width) >= (#min as #width) &&
+                (#ident as #width) <= (#max as #width)
+            },
+            RangeKind::Exclusive => quote! {
+                (#ident as #width) >= (#min as #width) &&
+                (#ident as #width) < (#max as #width)
+            },
         }
     }
 
@@ -85,7 +77,7 @@ impl Constraint {
         let message = self.message();
 
         quote! {
-            assert!(#comparison, #message)
+            assert!((#comparison), #message);
         }
     }
 }
@@ -115,7 +107,7 @@ pub(crate) fn expand_struct(
     grammar::ParsedStruct {
         attributes,
         visibility,
-        _struct: _,
+        _struct: r#struct,
         name,
         body,
     }: grammar::ParsedStruct,
@@ -129,6 +121,8 @@ pub(crate) fn expand_struct(
         extra,
     } = Attributes::parse(additional_attributes, attributes);
     let vis = visibility.into_token_stream();
+
+    let int = body.content.r#type.to_token_stream();
 
     let constraint = Constraint::from(body.content);
     let scalar = constraint.scalar;
@@ -150,12 +144,14 @@ pub(crate) fn expand_struct(
     let unchecked_safety_doc =
         format!("The caller must ensure that `value` is in `[{min}, {range_end}`.");
 
+    let kw = r#struct.into_token_stream();
+
     output.extend(quote! {
         #extra
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        #vis struct #name {
+        #vis #kw #name {
             #[doc(hidden)]
-            _internal_do_not_use: #scalar
+            _internal_do_not_use: #int
         }
 
         impl #name {
@@ -179,7 +175,7 @@ pub(crate) fn expand_struct(
             #[doc = #unchecked_safety_doc]
             #[must_use]
             #[inline]
-            #vis unsafe const fn new_unchecked(value: #scalar) -> Self {
+            #vis const unsafe fn new_unchecked(value: #scalar) -> Self {
                 Self { _internal_do_not_use: value }
             }
         }

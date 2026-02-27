@@ -59,7 +59,7 @@ impl Attributes {
         attributes: Vec<Attribute<AttributeBody>>,
     ) -> Self {
         let mut this = Self {
-            krate: quote!(crate),
+            krate: quote!(::hashql_core),
             r#const: TokenStream::new(),
             display: DisplayAttribute::Auto,
             traits: BTreeSet::new(),

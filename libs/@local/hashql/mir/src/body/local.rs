@@ -7,8 +7,6 @@
 use hashql_core::{id, span::SpanId, symbol::Symbol, r#type::TypeId};
 
 id::newtype!(
-    #[steppable]
-    #[display = "%{}"]
     /// A unique identifier for a local variable in the HashQL MIR.
     ///
     /// Local variables represent storage locations within a function's execution context.
@@ -28,12 +26,13 @@ id::newtype!(
     /// Each [`Local`] is valid within the scope of a single function body. The MIR
     /// uses explicit storage management through [`StorageLive`] and [`StorageDead`]
     /// statements to track when local variables are active.
-    pub struct Local(usize is 0..=usize::MAX)
+    #[id(derive(Step), display = "%{}")]
+    pub struct Local(u32 is 0..=u32::MAX)
 );
 
 impl Local {
-    pub const ENV: Self = Self(0);
-    pub const VERTEX: Self = Self(1);
+    pub const ENV: Self = Self::new(0);
+    pub const VERTEX: Self = Self::new(1);
 }
 
 id::newtype_collections!(pub type Local* from Local);

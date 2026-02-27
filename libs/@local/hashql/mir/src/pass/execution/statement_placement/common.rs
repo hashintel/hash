@@ -4,8 +4,8 @@ use hashql_core::{
     id::{
         Id as _,
         bit_vec::{BitRelations as _, DenseBitSet},
+        newtype,
     },
-    newtype,
     r#type::TypeId,
 };
 

@@ -62,7 +62,7 @@ use crate::id::{HasId, Id, IdSlice, IdVec};
 ///
 /// Uses the maximum [`EdgeId`] value, which can never be a valid edge ID since
 /// edge insertion would overflow before reaching this value.
-const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
+const TOMBSTONE: EdgeId = EdgeId::MAX;
 
 /// A node in a [`LinkedGraph`] with associated data.
 ///
