@@ -28,16 +28,6 @@ pub type VerbatimUntil<C> = Many<Cons<Except<C>, AngleTokenTree>>;
 pub type ModPath = Cons<Option<PathSep>, PathSepDelimited<Ident>>;
 pub type Visibility = Cons<KPub, Option<ParenthesisGroupContaining<Cons<Option<KIn>, ModPath>>>>;
 
-pub struct Bridge<T>(pub T);
-impl<T> ToTokens for Bridge<T>
-where
-    T: proc_macro::ToTokens,
-{
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        proc_macro::ToTokens::to_tokens(&self.0, tokens);
-    }
-}
-
 unsynn! {
     /// Parses either a `TokenTree` or `<...>` grouping (which is not a [`Group`] as far as proc-macros
     /// are concerned).

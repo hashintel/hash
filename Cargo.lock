@@ -3898,6 +3898,8 @@ dependencies = [
 name = "hashql-macros"
 version = "0.0.0"
 dependencies = [
+ "proc-macro2",
+ "quote",
  "unsynn",
 ]
 
@@ -9910,6 +9912,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "501a7adf1a4bd9951501e5c66621e972ef8874d787628b7f90e64f936ef7ec0a"
 dependencies = [
  "mutants",
+ "proc-macro2",
 ]
 
 [[package]]

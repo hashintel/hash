@@ -1,12 +1,11 @@
 #![feature(proc_macro_diagnostic, proc_macro_totokens)]
-#![recursion_limit = "512"]
 
 extern crate proc_macro;
 
 mod grammar;
 mod id;
 
-use proc_macro::{Diagnostic, TokenStream};
+use proc_macro::TokenStream;
 
 /// Defines a type as an [`Id`].
 ///
@@ -30,5 +29,5 @@ use proc_macro::{Diagnostic, TokenStream};
 /// ```
 #[proc_macro_attribute]
 pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
-    id::expand(attr, item)
+    id::expand(attr.into(), item.into()).into()
 }

@@ -4,10 +4,11 @@ mod r#struct;
 
 use core::fmt::Display;
 
-use proc_macro::{Diagnostic, Level, Span, TokenStream};
+use proc_macro::{Diagnostic, Level, Span};
+use proc_macro2::TokenStream;
 use unsynn::{Parse, ToTokenIter, ToTokens, quote};
 
-use crate::grammar::Bridge;
+use self::{r#enum::expand_enum, r#struct::expand_struct};
 
 mod grammar {
     #![expect(clippy::result_large_err)]
@@ -15,7 +16,7 @@ mod grammar {
 
     use crate::grammar::{
         AngleTokenTree, Attribute, KConst, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep,
-        KStruct, KU8, KU16, KU32, KU64, KU128, KUsize, ModPath, VerbatimUntil, Visibility,
+        KStruct, KU8, KU16, KU32, KU64, KU128, ModPath, VerbatimUntil, Visibility,
     };
 
     pub(super) type AttributeIdBody = CommaDelimitedVec<IdAttribute>;
@@ -72,7 +73,6 @@ mod grammar {
             U32(KU32),
             U64(KU64),
             U128(KU128),
-            Usize(KUsize),
         }
 
         pub(super) struct StructBody {
@@ -126,14 +126,14 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(parsed) => parsed,
         Err(error) => {
             if let Some(token) = error.failed_at() {
-                emit_error(token.span(), error);
+                emit_error(token.span().unwrap(), error);
 
                 return TokenStream::new();
             }
 
             // Unable to report a useful error (at a position)
-            let value = Bridge(error.to_string());
-            return quote!(compile_error!(#value));
+            let message = error.to_string();
+            return quote!(compile_error!(#message));
         }
     };
 
@@ -154,24 +154,6 @@ fn parse(
     let parsed = grammar::Parsed::parse_all(&mut item_tokens)?;
 
     Ok((additional.into(), parsed))
-}
-
-fn scalar_rank(scalar: &grammar::StructScalar) -> u32 {
-    match scalar {
-        grammar::StructScalar::U8(_) => u8::BITS,
-        grammar::StructScalar::U16(_) => u16::BITS,
-        grammar::StructScalar::U32(_) => u32::BITS,
-        grammar::StructScalar::Usize(_) => usize::BITS,
-        grammar::StructScalar::U64(_) => u64::BITS,
-        grammar::StructScalar::U128(_) => u128::BITS,
-    }
-}
-
-fn param_scalar(name: &str) -> grammar::StructScalar {
-    use unsynn::ToTokenIter;
-    let ts: TokenStream = name.parse().unwrap();
-    let mut iter = ts.to_token_iter();
-    unsynn::Parse::parse(&mut iter).unwrap()
 }
 
 fn emit_error(span: Span, message: impl Display) {
