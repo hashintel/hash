@@ -1,4 +1,5 @@
 mod attr;
+pub(crate) mod common;
 mod r#enum;
 mod r#struct;
 

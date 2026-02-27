@@ -1,20 +1,14 @@
 use core::cmp;
 
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use unsynn::{Ge, Gt, ToTokens as _};
 
 use super::grammar::{self, StructBody, StructScalar};
-use crate::id::attr::{Attributes, DisplayAttribute, Trait};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum IntegerScalar {
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-}
+use crate::id::{
+    attr::{Attributes, DisplayAttribute, Trait},
+    common::IntegerScalar,
+};
 
 impl From<StructScalar> for IntegerScalar {
     fn from(scalar: StructScalar) -> Self {
@@ -25,20 +19,6 @@ impl From<StructScalar> for IntegerScalar {
             StructScalar::U64(_) => Self::U64,
             StructScalar::U128(_) => Self::U128,
         }
-    }
-}
-
-impl ToTokens for IntegerScalar {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let ident = match self {
-            Self::U8 => Ident::new("u8", Span::call_site()),
-            Self::U16 => Ident::new("u16", Span::call_site()),
-            Self::U32 => Ident::new("u32", Span::call_site()),
-            Self::U64 => Ident::new("u64", Span::call_site()),
-            Self::U128 => Ident::new("u128", Span::call_site()),
-        };
-
-        tokens.extend([ident]);
     }
 }
 
@@ -154,10 +134,10 @@ pub(crate) fn expand_struct(
     let scalar = constraint.scalar;
 
     let value_ident = format_ident!("value");
-    let new_assertion = constraint.assertion(&value, scalar);
-    let u32_assertion = constraint.assertion(&value, IntegerScalar::U32);
-    let u64_assertion = constraint.assertion(&value, IntegerScalar::U64);
-    let usize_assertion = constraint.assertion(&value, IntegerScalar::U64); // u64 to be safe, even on 32-bit systems
+    let new_assertion = constraint.assertion(&value_ident, scalar);
+    let u32_assertion = constraint.assertion(&value_ident, IntegerScalar::U32);
+    let u64_assertion = constraint.assertion(&value_ident, IntegerScalar::U64);
+    let usize_assertion = constraint.assertion(&value_ident, IntegerScalar::U64); // u64 to be safe, even on 32-bit systems
 
     let min = &constraint.min;
     let max = &constraint.max;
@@ -199,47 +179,48 @@ pub(crate) fn expand_struct(
             #[doc = #unchecked_safety_doc]
             #[must_use]
             #[inline]
-            #vis const unsafe fn new_unchecked(value: #scalar) -> Self {
+            #vis unsafe const fn new_unchecked(value: #scalar) -> Self {
                 Self { _internal_do_not_use: value }
             }
         }
 
         #[automatically_derived]
+        #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
         impl #konst #krate::id::Id for #name {
             const MIN: Self = Self::new(#min);
             const MAX: Self = Self::new(#max);
 
-            fn from_u32(value: u32) -> Option<Self> {
+            fn from_u32(value: u32) -> Self {
                 #u32_assertion
 
-                Self { _internal_do_not_use: (value as #scalar) }
+                Self { _internal_do_not_use: value as #scalar }
             }
 
-            fn from_u64(value: u64) -> Option<Self> {
+            fn from_u64(value: u64) -> Self {
                 #u64_assertion
 
-                Self { _internal_do_not_use: (value as #scalar) }
+                Self { _internal_do_not_use: value as #scalar }
             }
 
-            fn from_usize(value: usize) -> Option<Self> {
+            fn from_usize(value: usize) -> Self {
                 #usize_assertion
 
-                Self { _internal_do_not_use: (value as #scalar) }
+                Self { _internal_do_not_use: value as #scalar }
             }
 
             #[inline]
-            fn as_u32(&self) -> u32 {
-                (self._internal_do_not_use as u32)
+            fn as_u32(self) -> u32 {
+                self._internal_do_not_use as u32
             }
 
             #[inline]
-            fn as_u64(&self) -> u64 {
-                (self._internal_do_not_use as u64)
+            fn as_u64(self) -> u64 {
+                self._internal_do_not_use as u64
             }
 
             #[inline]
-            fn as_usize(&self) -> usize {
-                (self._internal_do_not_use as usize)
+            fn as_usize(self) -> usize {
+                self._internal_do_not_use as usize
             }
 
             #[inline]
@@ -247,11 +228,12 @@ pub(crate) fn expand_struct(
                 if self._internal_do_not_use == #min {
                     ::core::option::Option::None
                 } else {
-                    ::core::option::Option::Some(Self { _internal_do_not_use: (self._internal_do_not_use - 1) })
+                    ::core::option::Option::Some(Self { _internal_do_not_use: self._internal_do_not_use - 1 })
                 }
             }
         }
 
+        #[automatically_derived]
         impl #krate::id::HasId for #name {
             type Id = Self;
 
