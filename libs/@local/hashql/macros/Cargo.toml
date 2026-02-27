@@ -13,6 +13,13 @@ proc-macro = true
 workspace = true
 
 [dependencies]
-proc-macro2.workspace = true
-quote                 = { workspace = true, features = ["proc-macro"] }
-unsynn                = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+proc-macro2 = { workspace = true }
+quote       = { workspace = true, features = ["proc-macro"] }
+unsynn      = { workspace = true }
