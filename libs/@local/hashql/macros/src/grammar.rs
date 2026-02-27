@@ -1,4 +1,8 @@
-use unsynn::*;
+#![expect(clippy::result_large_err)]
+use unsynn::{
+    BracketGroupContaining, Cons, Either, Except, Gt, Ident, Lt, Many, ParenthesisGroupContaining,
+    PathSep, PathSepDelimited, Pound, TokenTree, keyword, unsynn,
+};
 
 keyword! {
     /// The "pub" keyword.
@@ -24,9 +28,10 @@ keyword! {
     pub KUsize = ["usize"];
 }
 
-pub type VerbatimUntil<C> = Many<Cons<Except<C>, AngleTokenTree>>;
-pub type ModPath = Cons<Option<PathSep>, PathSepDelimited<Ident>>;
-pub type Visibility = Cons<KPub, Option<ParenthesisGroupContaining<Cons<Option<KIn>, ModPath>>>>;
+pub(crate) type VerbatimUntil<C> = Many<Cons<Except<C>, AngleTokenTree>>;
+pub(crate) type ModPath = Cons<Option<PathSep>, PathSepDelimited<Ident>>;
+pub(crate) type Visibility =
+    Cons<KPub, Option<ParenthesisGroupContaining<Cons<Option<KIn>, ModPath>>>>;
 
 unsynn! {
     /// Parses either a `TokenTree` or `<...>` grouping (which is not a [`Group`] as far as proc-macros

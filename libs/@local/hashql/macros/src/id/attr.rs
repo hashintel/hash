@@ -1,11 +1,11 @@
-use std::collections::BTreeSet;
+use alloc::collections::BTreeSet;
 
 use unsynn::{ToTokens as _, TokenStream, TokenTree, quote};
 
 use super::grammar::{self, AttributeBody, IdAttribute};
 use crate::grammar::Attribute;
 
-pub enum DisplayAttribute {
+pub(crate) enum DisplayAttribute {
     Auto,
     None,
     Format(TokenTree),
@@ -29,7 +29,7 @@ impl Attributes {
     fn parse_attribute(&mut self, attribute: IdAttribute) {
         match attribute {
             IdAttribute::Crate { _crate, _eq, path } => self.krate = path.into_token_stream(),
-            IdAttribute::Const { _const } => self.r#const = _const.into_token_stream(),
+            IdAttribute::Const { _const: r#const } => self.r#const = r#const.into_token_stream(),
             IdAttribute::Derive { _derive, traits } => {
                 for r#trait in traits.content {
                     match r#trait.value {

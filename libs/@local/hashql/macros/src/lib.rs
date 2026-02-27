@@ -1,5 +1,6 @@
 #![feature(proc_macro_diagnostic, proc_macro_totokens)]
 
+extern crate alloc;
 extern crate proc_macro;
 
 mod grammar;

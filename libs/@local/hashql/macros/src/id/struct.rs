@@ -129,6 +129,7 @@ impl From<StructBody> for Constraint {
     }
 }
 
+#[expect(clippy::too_many_lines, reason = "macro")]
 pub(crate) fn expand_struct(
     additional_attributes: Vec<grammar::IdAttribute>,
     grammar::ParsedStruct {
@@ -160,6 +161,14 @@ pub(crate) fn expand_struct(
     let min = &constraint.min;
     let max = &constraint.max;
 
+    let range_end = match constraint.kind {
+        RangeKind::Inclusive => format!("{max}]"),
+        RangeKind::Exclusive => format!("{max})"),
+    };
+    let new_panic_doc = format!("Panics if `value` is not in `[{min}, {range_end}`.");
+    let unchecked_safety_doc =
+        format!("The caller must ensure that `value` is in `[{min}, {range_end}`.");
+
     output.extend(quote! {
         #extra
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -169,6 +178,11 @@ pub(crate) fn expand_struct(
         }
 
         impl #name {
+            /// Creates a new id from a raw scalar value.
+            ///
+            /// # Panics
+            ///
+            #[doc = #new_panic_doc]
             #[must_use]
             #[inline]
             #vis const fn new(value: #scalar) -> Self {
@@ -177,6 +191,11 @@ pub(crate) fn expand_struct(
                 Self { _internal_do_not_use: value }
             }
 
+            /// Creates a new id from a raw scalar value without bounds checking.
+            ///
+            /// # Safety
+            ///
+            #[doc = #unchecked_safety_doc]
             #[must_use]
             #[inline]
             #vis const unsafe fn new_unchecked(value: #scalar) -> Self {
@@ -235,6 +254,7 @@ pub(crate) fn expand_struct(
         impl #krate::id::HasId for #name {
             type Id = Self;
 
+            #[inline]
             fn id(&self) -> Self::Id {
                 *self
             }
@@ -270,7 +290,9 @@ pub(crate) fn expand_struct(
                         ::core::result::Result::Ok(Self { _internal_do_not_use: value as #scalar })
                     } else {
                         ::core::result::Result::Err(#krate::id::IdError::OutOfRange {
-                            value: value as u64, min: #min as u64, max: #max as u64,
+                            value: value as u64,
+                            min: #min as u64,
+                            max: #max as u64,
                         })
                     }
                 }

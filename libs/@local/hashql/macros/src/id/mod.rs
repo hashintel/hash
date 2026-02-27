@@ -6,13 +6,16 @@ use core::fmt::Display;
 
 use proc_macro::{Diagnostic, Level, Span};
 use proc_macro2::TokenStream;
-use unsynn::{Parse, ToTokenIter, ToTokens, quote};
+use unsynn::{Parse as _, ToTokenIter as _, ToTokens as _, quote};
 
 use self::{r#enum::expand_enum, r#struct::expand_struct};
 
 mod grammar {
     #![expect(clippy::result_large_err)]
-    use unsynn::*;
+    use unsynn::{
+        Assign, Bang, BraceGroupContaining, CommaDelimitedVec, DotDot, DotDotEq, Ident,
+        ParenthesisGroupContaining, TokenTree, unsynn,
+    };
 
     use crate::grammar::{
         AngleTokenTree, Attribute, KConst, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep,
@@ -124,6 +127,8 @@ mod grammar {
 pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (attributes, parsed) = match parse(attr, item) {
         Ok(parsed) => parsed,
+
+        #[expect(clippy::collection_is_never_read, reason = "false positive")]
         Err(error) => {
             if let Some(token) = error.failed_at() {
                 emit_error(token.span().unwrap(), error);
@@ -143,6 +148,7 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 }
 
+#[expect(clippy::result_large_err)]
 fn parse(
     attr: TokenStream,
     item: TokenStream,
