@@ -460,7 +460,11 @@ async fn write_package_json_if_changed(
             tracing::debug!("Skipping unchanged package.json: {path}");
             return Ok(());
         }
-        Ok(_) | Err(_) => {}
+        Ok(_) => {}
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => {
+            tracing::warn!("Failed to read {path} for change detection, overwriting: {err}");
+        }
     }
 
     fs::write(path, &output)
