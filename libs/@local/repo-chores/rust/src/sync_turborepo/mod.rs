@@ -1,4 +1,4 @@
-use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::collections::BTreeMap;
 use core::{error, fmt::Display};
 
 use cargo_metadata::{
@@ -12,16 +12,12 @@ use guppy::{
     graph::{DependencyDirection, PackageGraph, PackageMetadata},
 };
 use nodejs_package_json::{PackageJson, VersionProtocol, WorkspaceProtocol};
-use tokio::{fs, process::Command};
+use tokio::fs;
 
 #[derive(Debug, Clone, derive_more::Display)]
 pub(crate) enum SyncTurborepoError {
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
-    #[display("Failed to list yarn workspaces")]
-    YarnWorkspacesList,
-    #[display("Failed to find git root")]
-    GitRoot,
     #[display("Malformed glob pattern")]
     MalformedGlob,
     #[display("Unexpected type expected {expected}, but found {actual} at {path}")]
@@ -283,44 +279,6 @@ fn is_ignored(metadata: PackageMetadata) -> bool {
         .unwrap_or(false)
 }
 
-async fn get_yarn_workspace_packages() -> Result<BTreeSet<String>, Report<SyncTurborepoError>> {
-    // We must first find the current cwd
-    let cwd = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .await
-        .change_context(SyncTurborepoError::GitRoot)?
-        .exit_ok()
-        .change_context(SyncTurborepoError::GitRoot)?;
-    let cwd = String::from_utf8(cwd.stdout).change_context(SyncTurborepoError::GitRoot)?;
-    let cwd = cwd.trim();
-    tracing::debug!(cwd, "Determined git root");
-
-    let output = Command::new("mise")
-        .args(["exec", "--", "yarn", "workspaces", "list", "--json"])
-        .current_dir(cwd)
-        .output()
-        .await
-        .change_context(SyncTurborepoError::YarnWorkspacesList)?
-        .exit_ok()
-        .change_context(SyncTurborepoError::YarnWorkspacesList)?;
-
-    let stdout =
-        String::from_utf8(output.stdout).change_context(SyncTurborepoError::YarnWorkspacesList)?;
-
-    let mut packages = BTreeSet::new();
-    for line in stdout.lines() {
-        let value: serde_json::Value =
-            serde_json::from_str(line).change_context(SyncTurborepoError::YarnWorkspacesList)?;
-        if let Some(name) = value.get("name").and_then(|name| name.as_str()) {
-            packages.insert(name.to_owned());
-        }
-    }
-
-    tracing::debug!(count = packages.len(), "Found yarn workspace packages");
-    Ok(packages)
-}
-
 async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTurborepoError>> {
     let exists = fs::try_exists(path)
         .await
@@ -348,7 +306,6 @@ fn version_protocol_from_str(version: &str) -> VersionProtocol {
 fn compute_package_json(
     metadata: PackageMetadata<'_>,
     mut package_json: PackageJson,
-    local_yarn_packages: &BTreeSet<String>,
 ) -> Result<PackageJson, Report<[SyncTurborepoError]>> {
     package_json.name = Some(package_name(metadata)?);
     package_json.version = Some(package_version(metadata));
@@ -373,12 +330,14 @@ fn compute_package_json(
         .other_fields
         .insert("private".to_owned(), true.into());
 
-    // Start with existing dependencies, but filter out local workspace packages
+    // Start with existing dependencies, but filter out workspace-protocol packages.
+    // These are always managed by the sync tool and will be re-added from Cargo.toml below.
+    // This ensures removed Cargo dependencies are also removed from package.json.
     let mut dependencies: BTreeMap<_, _> = package_json.dependencies.unwrap_or_default();
-    dependencies.retain(|name, _| !local_yarn_packages.contains(name));
+    dependencies.retain(|_, version| !matches!(version, VersionProtocol::Workspace(_)));
 
     let mut dev_dependencies: BTreeMap<_, _> = package_json.dev_dependencies.unwrap_or_default();
-    dev_dependencies.retain(|name, _| !local_yarn_packages.contains(name));
+    dev_dependencies.retain(|_, version| !matches!(version, VersionProtocol::Workspace(_)));
 
     // Add computed dependencies from Rust workspace
     for dependency in metadata.direct_links() {
@@ -453,10 +412,9 @@ async fn write_package_json_if_changed(
     Ok(())
 }
 
-#[tracing::instrument(level = "debug", skip(metadata, local_yarn_packages), fields(package = %metadata.name()))]
+#[tracing::instrument(level = "debug", skip(metadata), fields(package = %metadata.name()))]
 async fn sync_package_json(
     metadata: PackageMetadata<'_>,
-    local_yarn_packages: &BTreeSet<String>,
 ) -> Result<(), Report<[SyncTurborepoError]>> {
     let path = metadata
         .manifest_path()
@@ -465,7 +423,7 @@ async fn sync_package_json(
         .join("package.json");
 
     let package_json = read_package_json(&path).await?;
-    let package_json = compute_package_json(metadata, package_json, local_yarn_packages)?;
+    let package_json = compute_package_json(metadata, package_json)?;
     write_package_json_if_changed(&path, package_json).await?;
 
     Ok(())
@@ -475,9 +433,6 @@ async fn sync_package_json(
 pub(crate) async fn sync_turborepo(
     SyncTurborepoConfig { include }: SyncTurborepoConfig,
 ) -> Result<(), Report<[SyncTurborepoError]>> {
-    tracing::debug!("Retrieving yarn workspace packages");
-    let local_yarn_packages = get_yarn_workspace_packages().await?;
-
     tracing::debug!("Retrieving cargo metadata using guppy");
     let graph = PackageGraph::from_command(&mut MetadataCommand::new())
         .change_context(SyncTurborepoError::CargoMetadata)?;
@@ -509,7 +464,7 @@ pub(crate) async fn sync_turborepo(
     let mut failed = 0_usize;
 
     for package in packages {
-        if let Err(error) = sync_package_json(package, &local_yarn_packages).await {
+        if let Err(error) = sync_package_json(package).await {
             failed += 1;
             sink.append(error);
         }
