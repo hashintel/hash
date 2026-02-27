@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@rust/hash-codec": "workspace:*",
-    "@rust/hashql-diagnostics": "workspace:*"
+    "@rust/hashql-diagnostics": "workspace:*",
+    "@rust/hashql-macros": "workspace:*"
   },
   "devDependencies": {
     "@rust/darwin-kperf-criterion": "workspace:*"
