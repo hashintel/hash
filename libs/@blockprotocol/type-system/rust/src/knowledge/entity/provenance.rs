@@ -118,10 +118,7 @@ impl utoipa::ToSchema<'static> for InferredEntityProvenance {
                         Ref::from_schema_name("Timestamp"),
                     )
                     .required("createdAtTransactionTime")
-                    .property(
-                        "createdAtDecisionTime",
-                        Ref::from_schema_name("Timestamp"),
-                    )
+                    .property("createdAtDecisionTime", Ref::from_schema_name("Timestamp"))
                     .required("createdAtDecisionTime")
                     .property(
                         "firstNonDraftCreatedAtTransactionTime",
@@ -131,16 +128,12 @@ impl utoipa::ToSchema<'static> for InferredEntityProvenance {
                         "firstNonDraftCreatedAtDecisionTime",
                         Ref::from_schema_name("Timestamp"),
                     )
-                    // Flattened from `Option<EntityDeletionProvenance>` — all optional.
                     .property("deletedById", Ref::from_schema_name("ActorEntityUuid"))
                     .property(
                         "deletedAtTransactionTime",
                         Ref::from_schema_name("Timestamp"),
                     )
-                    .property(
-                        "deletedAtDecisionTime",
-                        Ref::from_schema_name("Timestamp"),
-                    )
+                    .property("deletedAtDecisionTime", Ref::from_schema_name("Timestamp"))
                     .build(),
             )
             .into(),
