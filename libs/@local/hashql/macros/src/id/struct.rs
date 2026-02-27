@@ -38,7 +38,7 @@ impl ToTokens for IntegerScalar {
             Self::U128 => Ident::new("u128", Span::call_site()),
         };
 
-        tokens.extend([ident])
+        tokens.extend([ident]);
     }
 }
 
@@ -59,8 +59,8 @@ impl From<grammar::RangeOp> for RangeKind {
 impl ToTokens for RangeKind {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            RangeKind::Inclusive => Ge::new().to_tokens(tokens),
-            RangeKind::Exclusive => Gt::new().to_tokens(tokens),
+            Self::Inclusive => Ge::new().to_tokens(tokens),
+            Self::Exclusive => Gt::new().to_tokens(tokens),
         }
     }
 }
@@ -100,8 +100,8 @@ impl Constraint {
         }
     }
 
-    fn assertion(&self, ident: Ident, ident_scalar: IntegerScalar) -> TokenStream {
-        let comparison = self.comparison(&ident, ident_scalar);
+    fn assertion(&self, ident: &Ident, ident_scalar: IntegerScalar) -> TokenStream {
+        let comparison = self.comparison(ident, ident_scalar);
         let message = self.message();
 
         quote! {
@@ -153,10 +153,11 @@ pub(crate) fn expand_struct(
     let constraint = Constraint::from(body.content);
     let scalar = constraint.scalar;
 
-    let new_assertion = constraint.assertion(format_ident!("value"), scalar);
-    let u32_assertion = constraint.assertion(format_ident!("value"), IntegerScalar::U32);
-    let u64_assertion = constraint.assertion(format_ident!("value"), IntegerScalar::U64);
-    let usize_assertion = constraint.assertion(format_ident!("value"), IntegerScalar::U64); // u64 to be safe, even on 32-bit systems
+    let value_ident = format_ident!("value");
+    let new_assertion = constraint.assertion(&value, scalar);
+    let u32_assertion = constraint.assertion(&value, IntegerScalar::U32);
+    let u64_assertion = constraint.assertion(&value, IntegerScalar::U64);
+    let usize_assertion = constraint.assertion(&value, IntegerScalar::U64); // u64 to be safe, even on 32-bit systems
 
     let min = &constraint.min;
     let max = &constraint.max;
@@ -278,7 +279,7 @@ pub(crate) fn expand_struct(
         (quote!(u64), IntegerScalar::U64),
         (quote!(usize), IntegerScalar::U64), // u64 to be safe on 32-bit
     ] {
-        let comparison = constraint.comparison(&format_ident!("value"), param_scalar);
+        let comparison = constraint.comparison(&value_ident, param_scalar);
 
         output.extend(quote! {
             #[automatically_derived]
