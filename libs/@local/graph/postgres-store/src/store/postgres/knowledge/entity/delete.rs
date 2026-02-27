@@ -29,7 +29,10 @@ use type_system::{
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use crate::store::{AsClient as _, PostgresStore, postgres::query::SelectCompiler};
+use crate::store::{
+    AsClient as _, PostgresStore,
+    postgres::query::{Distinctness, SelectCompiler},
+};
 
 /// Per-table row counts from [`delete_target_data`](PostgresStore::delete_target_data).
 #[derive(Default)]
@@ -107,9 +110,21 @@ impl PostgresStore<Transaction<'_>> {
             .add_filter(filter)
             .change_context(DeletionError::Store)?;
 
-        let web_id_index = compiler.add_selection_path(&EntityQueryPath::WebId);
-        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let draft_id_index = compiler.add_selection_path(&EntityQueryPath::DraftId);
+        let web_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::WebId,
+            Distinctness::Distinct,
+            None,
+        );
+        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::Uuid,
+            Distinctness::Distinct,
+            None,
+        );
+        let draft_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::DraftId,
+            Distinctness::Distinct,
+            None,
+        );
 
         let (statement, parameters) = compiler.compile();
 
@@ -140,7 +155,7 @@ impl PostgresStore<Transaction<'_>> {
                     }
                     (Entry::Occupied(mut entry), Some(draft_id)) => {
                         let tracked = entry.get_mut();
-                        if !tracked.is_empty() && !tracked.contains(&draft_id) {
+                        if !tracked.is_empty() {
                             tracked.push(draft_id);
                         }
                     }

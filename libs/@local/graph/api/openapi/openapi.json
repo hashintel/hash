@@ -5612,48 +5612,38 @@
         ]
       },
       "InferredEntityProvenance": {
-        "allOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityDeletionProvenance"
-              }
-            ]
+        "type": "object",
+        "required": [
+          "createdById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime"
+        ],
+        "properties": {
+          "createdAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           },
-          {
-            "type": "object",
-            "required": [
-              "createdById",
-              "createdAtTransactionTime",
-              "createdAtDecisionTime"
-            ],
-            "properties": {
-              "createdAtDecisionTime": {
-                "$ref": "#/components/schemas/Timestamp"
-              },
-              "createdAtTransactionTime": {
-                "$ref": "#/components/schemas/Timestamp"
-              },
-              "createdById": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              },
-              "firstNonDraftCreatedAtDecisionTime": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Timestamp"
-                  }
-                ]
-              },
-              "firstNonDraftCreatedAtTransactionTime": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Timestamp"
-                  }
-                ]
-              }
-            }
+          "createdAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "deletedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "firstNonDraftCreatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "firstNonDraftCreatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           }
-        ]
+        }
       },
       "JsonSchemaValueType": {
         "type": "string",

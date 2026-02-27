@@ -83,26 +83,69 @@ pub struct EntityDeletionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct InferredEntityProvenance {
     pub created_by_id: ActorEntityUuid,
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     pub created_at_transaction_time: Timestamp<TransactionTime>,
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     pub created_at_decision_time: Timestamp<DecisionTime>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, flatten, skip_serializing_if = "Option::is_none")]
     pub deletion: Option<EntityDeletionProvenance>,
+}
+
+/// Manual [`ToSchema`] implementation because utoipa's derive macro cannot correctly represent
+/// `#[serde(flatten)]` on `Option<EntityDeletionProvenance>`: it generates an `allOf` that makes
+/// the deletion fields required. The correct schema lists them as optional properties.
+#[cfg(feature = "utoipa")]
+impl utoipa::ToSchema<'static> for InferredEntityProvenance {
+    fn schema() -> (
+        &'static str,
+        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
+    ) {
+        use utoipa::openapi::{ObjectBuilder, Ref, Schema};
+
+        (
+            "InferredEntityProvenance",
+            Schema::Object(
+                ObjectBuilder::new()
+                    .property("createdById", Ref::from_schema_name("ActorEntityUuid"))
+                    .required("createdById")
+                    .property(
+                        "createdAtTransactionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    .required("createdAtTransactionTime")
+                    .property(
+                        "createdAtDecisionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    .required("createdAtDecisionTime")
+                    .property(
+                        "firstNonDraftCreatedAtTransactionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    .property(
+                        "firstNonDraftCreatedAtDecisionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    // Flattened from `Option<EntityDeletionProvenance>` — all optional.
+                    .property("deletedById", Ref::from_schema_name("ActorEntityUuid"))
+                    .property(
+                        "deletedAtTransactionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    .property(
+                        "deletedAtDecisionTime",
+                        Ref::from_schema_name("Timestamp"),
+                    )
+                    .build(),
+            )
+            .into(),
+        )
+    }
 }
 
 #[cfg(feature = "postgres")]
@@ -140,6 +183,47 @@ pub struct EntityProvenance {
     #[serde(flatten)]
     pub inferred: InferredEntityProvenance,
     pub edition: EntityEditionProvenance,
+}
+
+/// Override tsify's generated type for [`InferredEntityProvenance`].
+///
+/// The main struct's `derive(tsify::Tsify)` generates
+/// `type InferredEntityProvenance = { ... } & (EntityDeletionProvenance | {})` because of
+/// `#[serde(flatten)]` on `Option<EntityDeletionProvenance>`. That complex type alias cannot be
+/// used with `extends` in [`EntityProvenance`]'s interface declaration.
+///
+/// This patch generates a clean interface with the deletion fields as individually optional
+/// properties, which overrides the broken declaration in the wasm output.
+#[cfg(target_arch = "wasm32")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+mod inferred_entity_provenance_patch {
+    use super::*;
+
+    #[derive(tsify::Tsify)]
+    #[serde(rename_all = "camelCase")]
+    pub struct InferredEntityProvenance {
+        pub created_by_id: ActorEntityUuid,
+        #[tsify(type = "Timestamp")]
+        pub created_at_transaction_time: Timestamp<TransactionTime>,
+        #[tsify(type = "Timestamp")]
+        pub created_at_decision_time: Timestamp<DecisionTime>,
+        #[tsify(type = "Timestamp")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
+        #[tsify(type = "Timestamp")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
+        // Flattened from `Option<EntityDeletionProvenance>` — represented as individual optional
+        // fields instead of `& (EntityDeletionProvenance | {})`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub deleted_by_id: Option<ActorEntityUuid>,
+        #[tsify(type = "Timestamp")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub deleted_at_transaction_time: Option<Timestamp<TransactionTime>>,
+        #[tsify(type = "Timestamp")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub deleted_at_decision_time: Option<Timestamp<DecisionTime>>,
+    }
 }
 
 #[cfg(test)]
