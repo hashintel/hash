@@ -47,10 +47,10 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -59,7 +59,7 @@ use hash_graph_store::{
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -851,6 +851,14 @@ impl EntityStore for DatabaseApi<'_> {
         params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         self.store.patch_entity(actor_id, params).await
+    }
+
+    async fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        self.store.delete_entities(actor_id, params).await
     }
 
     async fn update_entity_embeddings(

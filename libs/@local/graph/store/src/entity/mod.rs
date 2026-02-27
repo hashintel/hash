@@ -4,12 +4,12 @@ pub use self::{
         EntityQuerySortingToken, EntityQueryToken,
     },
     store::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityPermissions, EntityStore, EntityValidationType,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityError,
-        ValidateEntityParams,
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams,
+        DeletionScope, DeletionSummary, DiffEntityParams, DiffEntityResult, EntityPermissions,
+        EntityStore, EntityValidationType, HasPermissionForEntitiesParams, LinkDeletionBehavior,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityError, ValidateEntityParams,
     },
     validation_report::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,
