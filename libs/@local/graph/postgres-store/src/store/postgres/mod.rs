@@ -40,7 +40,7 @@ use hash_graph_store::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
-        WebRetrievalError,
+        WebRetrievalError, WebUpdateError,
     },
     error::{InsertionError, UpdateError},
     filter::protection::PropertyProtectionFilterConfig,
@@ -3753,6 +3753,45 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     roles: role_ids.into_iter().collect(),
                 }
             }))
+    }
+
+    async fn update_web_shortname(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> Result<(), Report<WebUpdateError>> {
+        let rows_affected = self
+            .as_client()
+            .execute(
+                "
+                UPDATE web
+                SET shortname = $2
+                WHERE id = $1
+                ",
+                &[&id, &shortname],
+            )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .map_err(|error| match error.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => Report::new(error)
+                    .change_context(WebUpdateError::AlreadyExists {
+                        shortname: shortname.to_owned(),
+                    })
+                    .attach(StatusCode::AlreadyExists),
+                _ => Report::new(error).change_context(WebUpdateError::StoreError),
+            })?;
+
+        if rows_affected == 0 {
+            Err(Report::new(WebUpdateError::NotFound { web_id: id }).attach(StatusCode::NotFound))
+        } else {
+            Ok(())
+        }
     }
 
     async fn get_web_by_shortname(

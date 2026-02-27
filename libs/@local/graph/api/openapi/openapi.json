@@ -279,6 +279,53 @@
         }
       }
     },
+    "/actor-groups/webs/{web_id}/shortname": {
+      "put": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "update_web_shortname",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The ID of the web to update",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebShortnameParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The web shortname was updated successfully"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/actor-groups/{actor_group_id}/roles/actors/{actor_id}": {
       "get": {
         "tags": [
@@ -9353,6 +9400,18 @@
           },
           "typeToUpdate": {
             "$ref": "#/components/schemas/VersionedUrl"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateWebShortnameParams": {
+        "type": "object",
+        "required": [
+          "shortname"
+        ],
+        "properties": {
+          "shortname": {
+            "type": "string"
           }
         },
         "additionalProperties": false
