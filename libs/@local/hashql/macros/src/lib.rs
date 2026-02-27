@@ -5,8 +5,11 @@ extern crate proc_macro;
 
 mod grammar;
 mod id;
+mod sym;
 
-use proc_macro::TokenStream;
+use core::fmt::Display;
+
+use proc_macro::{Diagnostic, Level, Span, TokenStream};
 
 /// Defines an enum as an [`Id`] type.
 ///
@@ -109,4 +112,34 @@ pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn define_id(item: TokenStream) -> TokenStream {
     id::expand(TokenStream::new().into(), item.into()).into()
+}
+
+/// Generates a pre-interned symbol table.
+///
+/// Produces three artifacts from a symbol definition list:
+///
+/// 1. `SYMBOLS` — a static slice of string values for interner pre-population
+/// 2. Symbol constants — `Symbol<'static>` constants with companion `ConstantSymbol` modules
+/// 3. `LOOKUP` — a static slice mapping string values to their [`Repr`] for fast lookup
+///
+/// # Syntax
+///
+/// ```ignore
+/// define_symbols! {
+///     foo,                        // simple: name = string value
+///     r#true: "true",             // explicit string value
+///     symbol: { plus: "+", },     // module grouping
+/// }
+/// ```
+///
+/// The call site must have `Symbol` and `ConstantSymbol` in scope (e.g. via
+/// `use super::{ConstantSymbol, Symbol}`). The generated `LOOKUP` references
+/// `super::repr::Repr`.
+#[proc_macro]
+pub fn define_symbols(item: TokenStream) -> TokenStream {
+    sym::expand(item.into()).into()
+}
+
+fn emit_error(span: Span, message: impl Display) {
+    Diagnostic::spanned(span, Level::Error, message.to_string()).emit();
 }

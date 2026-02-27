@@ -3,14 +3,12 @@ pub(crate) mod common;
 mod r#enum;
 mod r#struct;
 
-use core::fmt::Display;
-
-use proc_macro::{Diagnostic, Level, Span};
 use proc_macro2::TokenStream;
 use quote::quote;
 use unsynn::{Parse as _, ToTokenIter as _};
 
 use self::{r#enum::expand_enum, r#struct::expand_struct};
+use crate::emit_error;
 
 mod grammar {
     #![expect(clippy::result_large_err)]
@@ -161,8 +159,4 @@ fn parse(
     let parsed = grammar::Parsed::parse_all(&mut item_tokens)?;
 
     Ok((additional.into(), parsed))
-}
-
-fn emit_error(span: Span, message: impl Display) {
-    Diagnostic::spanned(span, Level::Error, message.to_string()).emit();
 }
