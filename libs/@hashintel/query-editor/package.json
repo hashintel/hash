@@ -32,7 +32,7 @@
     "@local/eslint": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "eslint": "9.39.3",
+    "eslint": "10.0.2",
     "eslint-plugin-storybook": "10.2.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",

@@ -44,7 +44,7 @@
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "9.39.3",
+    "eslint": "10.0.2",
     "rimraf": "6.1.3",
     "typescript": "5.9.3",
     "wait-on": "9.0.1"

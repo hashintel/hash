@@ -36,7 +36,7 @@
     "@local/tsconfig": "workspace:*",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "^4",
-    "eslint": "9.39.3",
+    "eslint": "10.0.2",
     "typescript": "5.9.3"
   }
 }

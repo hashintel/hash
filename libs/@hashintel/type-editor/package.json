@@ -40,7 +40,7 @@
     "@mui/system": "5.18.0",
     "@types/lodash.memoize": "4.1.9",
     "@types/lodash.uniqueid": "4.0.9",
-    "eslint": "9.39.3",
+    "eslint": "10.0.2",
     "eslint-plugin-storybook": "10.2.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",
