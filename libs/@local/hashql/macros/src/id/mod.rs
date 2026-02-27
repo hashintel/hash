@@ -1,3 +1,7 @@
+mod attr;
+mod r#enum;
+mod r#struct;
+
 use core::fmt::Display;
 
 use proc_macro::{Diagnostic, Level, Span, TokenStream};
@@ -133,7 +137,10 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    todo!()
+    match parsed {
+        grammar::Parsed::Struct(parsed) => expand_struct(attributes, parsed),
+        grammar::Parsed::Enum(parsed) => expand_enum(attributes, parsed),
+    }
 }
 
 fn parse(
@@ -149,145 +156,22 @@ fn parse(
     Ok((additional.into(), parsed))
 }
 
-fn expand_struct(
-    additional_attributes: Vec<grammar::IdAttribute>,
-    grammar::ParsedStruct {
-        attributes,
-        visibility,
-        _struct: _,
-        name,
-        body,
-    }: grammar::ParsedStruct,
-) -> TokenStream {
-    let mut id_attributes = additional_attributes;
-    let mut other_attributes = TokenStream::new();
-    for attribute in attributes {
-        match attribute.body.content {
-            grammar::AttributeBody::Any(_) => {
-                other_attributes.extend(attribute.into_token_stream());
-            }
-            grammar::AttributeBody::Id { _id: _, inner } => {
-                id_attributes.extend(inner.content.into_iter().map(|attr| attr.value));
-            }
-        }
+fn scalar_rank(scalar: &grammar::StructScalar) -> u32 {
+    match scalar {
+        grammar::StructScalar::U8(_) => u8::BITS,
+        grammar::StructScalar::U16(_) => u16::BITS,
+        grammar::StructScalar::U32(_) => u32::BITS,
+        grammar::StructScalar::Usize(_) => usize::BITS,
+        grammar::StructScalar::U64(_) => u64::BITS,
+        grammar::StructScalar::U128(_) => u128::BITS,
     }
+}
 
-    let krate = id_attributes
-        .iter()
-        .find_map(|attr| match attr {
-            grammar::IdAttribute::Crate { _crate, _eq, path } => Some(quote!(#path)),
-            grammar::IdAttribute::Derive { .. }
-            | grammar::IdAttribute::Display { .. }
-            | &grammar::IdAttribute::Const { .. } => None,
-        })
-        .unwrap_or_else(|| quote!(::hashql_core));
-
-    let mut output = TokenStream::new();
-
-    let inner_type = body.content.r#type;
-    let min = body.content.start;
-    let op = body.content.op;
-    let max = body.content.end;
-
-    let assert_message = Bridge(format!(
-        "ID value must be between the range of {}{}{}",
-        min.to_token_stream(),
-        op.to_token_stream(),
-        max.to_token_stream()
-    ));
-
-    let max_cmp = match op {
-        grammar::RangeOp::Exclusive(_) => quote!(<),
-        grammar::RangeOp::Inclusive(_) => quote!(<=),
-    };
-
-    let konst = if id_attributes
-        .iter()
-        .any(|attr| matches!(attr, grammar::IdAttribute::Const { .. }))
-    {
-        quote!(const)
-    } else {
-        TokenStream::new()
-    };
-
-    output.extend(quote! {
-        #other_attributes
-        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        #visibility struct #name {
-            _internal_do_not_use: #inner_type
-        }
-    });
-
-    output.extend(quote! {
-        impl #name {
-            /// Creates a new ID with the given value
-            ///
-            /// # Panics
-            ///
-            /// If the value is outside the valid range
-            #[must_use]
-            #visibility const fn new(value: #inner_type) -> Self {
-                assert!(
-                    value >= #min && value #max_cmp #max,
-                    #assert_message
-                );
-
-                Self {
-                    _internal_do_not_use: value,
-                }
-            }
-
-            #[inline]
-            #visibility const unsafe fn new_unchecked(value: #inner_type) -> Self {
-                Self {
-                    _internal_do_not_use: value,
-                }
-            }
-        }
-
-        impl #konst #krate::id::Id for $name {
-            const MIN: Self = Self::new(#min);
-            const MAX: Self = Self::new(#max);
-
-            fn from_u32(value: u32) -> Self {
-                // TODO: we must check that the value is indeed
-            }
-
-            fn from_u64(value: u64) -> Self {
-
-            }
-
-            fn from_usize(value: usize) -> Self {
-
-            }
-
-            #[inline]
-            fn as_u32(self) -> u32 {
-                self._internal_do_not_use as u32
-            }
-
-            #[inline]
-            fn as_u64(self) -> u64 {
-                self._internal_do_not_use as u64
-            }
-
-            #[inline]
-            fn as_usize(self) -> usize {
-                self._internal_do_not_use as usize
-            }
-
-            #[inline]
-            fn prev(self) -> ::core::option::Option<Self> {
-                if self._internal_do_not_use == #min {
-                    None
-                } else {
-                    Some(unsafe { Self::new_unchecked(self._internal_do_not_use - 1) })
-                }
-            }
-        }
-    });
-
-    todo!()
+fn param_scalar(name: &str) -> grammar::StructScalar {
+    use unsynn::ToTokenIter;
+    let ts: TokenStream = name.parse().unwrap();
+    let mut iter = ts.to_token_iter();
+    unsynn::Parse::parse(&mut iter).unwrap()
 }
 
 fn emit_error(span: Span, message: impl Display) {

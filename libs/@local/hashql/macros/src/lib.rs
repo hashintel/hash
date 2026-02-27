@@ -1,4 +1,5 @@
 #![feature(proc_macro_diagnostic, proc_macro_totokens)]
+#![recursion_limit = "512"]
 
 extern crate proc_macro;
 
@@ -29,5 +30,5 @@ use proc_macro::{Diagnostic, TokenStream};
 /// ```
 #[proc_macro_attribute]
 pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
-    todo!()
+    id::expand(attr, item)
 }
