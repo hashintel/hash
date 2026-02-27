@@ -15,6 +15,7 @@ keyword! {
     pub KStep = ["Step"];
     pub KIs = ["is"];
     pub KCrate = ["crate"];
+    pub KConst = ["const"];
     pub KU8 = ["u8"];
     pub KU16 = ["u16"];
     pub KU32 = ["u32"];

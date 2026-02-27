@@ -10,8 +10,8 @@ mod grammar {
     use unsynn::*;
 
     use crate::grammar::{
-        AngleTokenTree, Attribute, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep, KStruct, KU8,
-        KU16, KU32, KU64, KU128, KUsize, ModPath, VerbatimUntil, Visibility,
+        AngleTokenTree, Attribute, KConst, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep,
+        KStruct, KU8, KU16, KU32, KU64, KU128, KUsize, ModPath, VerbatimUntil, Visibility,
     };
 
     pub(super) type AttributeIdBody = CommaDelimitedVec<IdAttribute>;
@@ -40,6 +40,9 @@ mod grammar {
                 _crate: KCrate,
                 _eq: Assign,
                 path: ModPath
+            },
+            Const {
+                _const: KConst
             },
             Derive {
                 _derive: KDerive,
@@ -173,7 +176,9 @@ fn expand_struct(
         .iter()
         .find_map(|attr| match attr {
             grammar::IdAttribute::Crate { _crate, _eq, path } => Some(quote!(#path)),
-            grammar::IdAttribute::Derive { .. } | grammar::IdAttribute::Display { .. } => None,
+            grammar::IdAttribute::Derive { .. }
+            | grammar::IdAttribute::Display { .. }
+            | &grammar::IdAttribute::Const { .. } => None,
         })
         .unwrap_or_else(|| quote!(::hashql_core));
 
@@ -196,13 +201,24 @@ fn expand_struct(
         grammar::RangeOp::Inclusive(_) => quote!(<=),
     };
 
+    let konst = if id_attributes
+        .iter()
+        .any(|attr| matches!(attr, grammar::IdAttribute::Const { .. }))
+    {
+        quote!(const)
+    } else {
+        TokenStream::new()
+    };
+
     output.extend(quote! {
         #other_attributes
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #visibility struct #name {
             _internal_do_not_use: #inner_type
         }
+    });
 
+    output.extend(quote! {
         impl #name {
             /// Creates a new ID with the given value
             ///
@@ -220,10 +236,54 @@ fn expand_struct(
                     _internal_do_not_use: value,
                 }
             }
+
+            #[inline]
+            #visibility const unsafe fn new_unchecked(value: #inner_type) -> Self {
+                Self {
+                    _internal_do_not_use: value,
+                }
+            }
         }
 
-        impl #krate::id::Id for $name {
+        impl #konst #krate::id::Id for $name {
+            const MIN: Self = Self::new(#min);
+            const MAX: Self = Self::new(#max);
 
+            fn from_u32(value: u32) -> Self {
+                // TODO: we must check that the value is indeed
+            }
+
+            fn from_u64(value: u64) -> Self {
+
+            }
+
+            fn from_usize(value: usize) -> Self {
+
+            }
+
+            #[inline]
+            fn as_u32(self) -> u32 {
+                self._internal_do_not_use as u32
+            }
+
+            #[inline]
+            fn as_u64(self) -> u64 {
+                self._internal_do_not_use as u64
+            }
+
+            #[inline]
+            fn as_usize(self) -> usize {
+                self._internal_do_not_use as usize
+            }
+
+            #[inline]
+            fn prev(self) -> ::core::option::Option<Self> {
+                if self._internal_do_not_use == #min {
+                    None
+                } else {
+                    Some(unsafe { Self::new_unchecked(self._internal_do_not_use - 1) })
+                }
+            }
         }
     });
 
