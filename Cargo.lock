@@ -3895,6 +3895,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashql-macros"
+version = "0.0.0"
+dependencies = [
+ "unsynn",
+]
+
+[[package]]
 name = "hashql-mir"
 version = "0.0.0"
 dependencies = [
@@ -5511,6 +5518,12 @@ dependencies = [
  "smallvec 1.15.1",
  "unsigned-varint 0.7.2",
 ]
+
+[[package]]
+name = "mutants"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc0287524726960e07b119cebd01678f852f147742ae0d925e6a520dca956126"
 
 [[package]]
 name = "napi"
@@ -9889,6 +9902,15 @@ name = "unsigned-varint"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb066959b24b5196ae73cb057f45598450d2c5f71460e98c49b738086eff9c06"
+
+[[package]]
+name = "unsynn"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "501a7adf1a4bd9951501e5c66621e972ef8874d787628b7f90e64f936ef7ec0a"
+dependencies = [
+ "mutants",
+]
 
 [[package]]
 name = "untrusted"

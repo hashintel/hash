@@ -1,0 +1,16 @@
+[package]
+name              = "hashql-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true
+
+[dependencies]
+unsynn = { version = "0.3.0", default-features = false }
