@@ -1,9 +1,6 @@
 use core::alloc::Allocator;
 
-use hashql_core::{
-    id::{Id as _, bit_vec::DenseBitSet},
-    symbol::sym,
-};
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use super::{
     StatementPlacement,
@@ -14,9 +11,10 @@ use crate::{
     context::MirContext,
     pass::{
         execution::{
-            Cost,
+            Cost, VertexType,
             cost::{StatementCostVec, TraversalCostVec},
-            statement_placement::lookup::{Access, entity_projection_access},
+            statement_placement::common::entity_projection_access,
+            storage::Access,
         },
         transform::Traversals,
     },
@@ -35,22 +33,19 @@ fn is_supported_place<'heap>(
     // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
     // projection path maps to an Embedding-accessible field.
     if matches!(body.source, Source::GraphReadFilter(_)) && place.local.as_usize() == 1 {
-        let local_type = body.local_decls[place.local].r#type;
-        let type_name = context
-            .env
-            .r#type(local_type)
-            .kind
-            .opaque()
-            .map_or_else(|| unreachable!(), |opaque| opaque.name);
+        let decl = &body.local_decls[place.local];
+        let Some(vertex_type) = VertexType::from_local(context.env, decl) else {
+            unimplemented!("lookup for declared type")
+        };
 
-        if type_name == sym::path::Entity {
-            return matches!(
-                entity_projection_access(&place.projections),
-                Some(Access::Embedding(_))
-            );
+        match vertex_type {
+            VertexType::Entity => {
+                return matches!(
+                    entity_projection_access(&place.projections),
+                    Some(Access::Embedding(_))
+                );
+            }
         }
-
-        unimplemented!("unimplemented lookup for declared type")
     }
 
     domain.contains(place.local)

@@ -15,6 +15,8 @@ mod splitting;
 mod statement_placement;
 mod target;
 mod terminator_placement;
+mod vertex;
+pub mod storage;
 
 use core::{alloc::Allocator, assert_matches};
 
@@ -24,6 +26,7 @@ pub use self::{
     cost::{ApproxCost, Cost},
     island::{Island, IslandId, IslandVec},
     placement::error::PlacementDiagnosticCategory,
+vertex::VertexType,
     target::TargetId,
 };
 use self::{

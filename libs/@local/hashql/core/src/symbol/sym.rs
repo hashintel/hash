@@ -23,6 +23,7 @@ hashql_macros::define_symbols! {
     created_at_decision_time,
     created_at_transaction_time,
     created_by_id,
+    base_url,
     decision_time,
     Dict,
     div,
@@ -110,6 +111,7 @@ hashql_macros::define_symbols! {
     unknown,
     Url,
     vectors,
+    version,
     web_id,
     // [tidy] sort alphabetically end
 

@@ -16,6 +16,7 @@ use crate::{
         local::Local,
         location::Location,
         operand::Operand,
+        place::Projection,
         rvalue::RValue,
         statement::{Assign, Statement, StatementKind},
         terminator::TerminatorKind,
@@ -29,6 +30,7 @@ use crate::{
         execution::{
             Cost,
             cost::{StatementCostVec, TraversalCostVec},
+            storage::{Access, EntityPath},
         },
     },
     visit::Visitor,
@@ -318,4 +320,18 @@ where
 
         Ok(())
     }
+}
+
+/// Determines which backend can access an entity field projection.
+///
+/// Walks the projection path through the entity schema trie to determine whether the field is
+/// stored in Postgres (as a column or JSONB path) or in the embedding store. Returns `None` if
+/// the path doesn't map to any supported backend storage.
+///
+/// For example:
+/// - `entity.properties.foo` → `Some(Access::Postgres(Direct))` (JSONB)
+/// - `entity.encodings.vectors` → `Some(Access::Embedding(Direct))`
+/// - `entity.metadata.record_id.entity_id.web_id` → `Some(Access::Postgres(Direct))`
+pub(crate) fn entity_projection_access(projections: &[Projection<'_>]) -> Option<Access> {
+    EntityPath::resolve(projections).map(|(path, _)| path.access())
 }
