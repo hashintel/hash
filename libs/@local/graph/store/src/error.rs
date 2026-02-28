@@ -36,15 +36,21 @@ impl fmt::Display for UpdateError {
 
 impl Error for UpdateError {}
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display)]
+#[display("Could not delete from the store: {_variant}")]
 #[must_use]
-pub struct DeletionError;
-
-impl fmt::Display for DeletionError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not delete from the store")
-    }
+pub enum DeletionError {
+    #[display("decision time must not exceed transaction time")]
+    InvalidDecisionTime,
+    #[display("{count} incoming links point to the target entities")]
+    IncomingLinksExist { count: u64 },
+    #[display("expected {expected} entity_ids rows affected, got {actual}")]
+    InconsistentEntityIds { expected: u64, actual: u64 },
+    #[display("store operation failed")]
+    Store,
 }
+
+impl Error for DeletionError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not check permissions: {_variant}")]

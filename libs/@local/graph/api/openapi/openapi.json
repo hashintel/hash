@@ -4447,6 +4447,26 @@
           }
         }
       },
+      "EntityDeletionProvenance": {
+        "type": "object",
+        "required": [
+          "deletedById",
+          "deletedAtTransactionTime",
+          "deletedAtDecisionTime"
+        ],
+        "properties": {
+          "deletedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
@@ -5608,22 +5628,22 @@
           "createdById": {
             "$ref": "#/components/schemas/ActorEntityUuid"
           },
+          "deletedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
           "firstNonDraftCreatedAtDecisionTime": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Timestamp"
-              }
-            ]
+            "$ref": "#/components/schemas/Timestamp"
           },
           "firstNonDraftCreatedAtTransactionTime": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Timestamp"
-              }
-            ]
+            "$ref": "#/components/schemas/Timestamp"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "JsonSchemaValueType": {
         "type": "string",
