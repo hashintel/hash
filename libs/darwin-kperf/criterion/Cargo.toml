@@ -1,10 +1,11 @@
 [package]
 name              = "darwin-kperf-criterion"
-version           = "0.1.0"
+version           = "0.1.1"
 authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
 publish           = true
+readme            = "../README.md"
 description       = "Criterion measurement plugin using Apple's hardware performance counters"
 documentation     = "https://docs.rs/darwin-kperf-criterion"
 repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf/criterion"
@@ -13,7 +14,7 @@ categories        = ["development-tools::profiling"]
 
 [dependencies]
 # Public workspace dependencies
-darwin-kperf-events = { version = "0.1.0", path = "../events", public = true }
+darwin-kperf-events = { workspace = true, public = true }
 
 # Public third-party dependencies
 codspeed-criterion-compat-walltime = { workspace = true, optional = true, public = true, default-features = false }

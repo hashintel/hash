@@ -1,6 +1,6 @@
 {
   "name": "@rust/darwin-kperf",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Safe Rust bindings for Apple's kperf/kpc hardware performance counters",
   "license": "MIT OR Apache-2.0",
