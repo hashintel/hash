@@ -74,15 +74,13 @@ enum DeletionTarget<'a> {
 ///
 /// All methods require a transaction to guarantee correctness of the locking protocol:
 ///
-/// 1. [`collect_entity_edition_ids`] acquires `FOR UPDATE` on `entity_temporal_metadata` rows,
+/// 1. `collect_entity_edition_ids` acquires `FOR UPDATE` on `entity_temporal_metadata` rows,
 ///    serializing with concurrent [`patch_entity`] calls (which use `FOR NO KEY UPDATE NOWAIT`).
-/// 2. [`lock_entity_ids_for_erase`] acquires `FOR UPDATE` on `entity_ids` rows (erase scope only),
+/// 2. `lock_entity_ids_for_erase` acquires `FOR UPDATE` on `entity_ids` rows (erase scope only),
 ///    serializing with concurrent link creation (which needs `KEY SHARE` for FK checks).
 ///
 /// Without a transaction these locks would be released immediately, defeating the purpose.
 ///
-/// [`collect_entity_edition_ids`]: Self::collect_entity_edition_ids
-/// [`lock_entity_ids_for_erase`]: Self::lock_entity_ids_for_erase
 /// [`patch_entity`]: hash_graph_store::entity::EntityStore::patch_entity
 impl PostgresStore<Transaction<'_>> {
     /// Finds entities matching `filter` and partitions them into full vs draft-only deletions.
