@@ -9,14 +9,11 @@ use super::{
 use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
     context::MirContext,
-    pass::{
-        execution::{
-            Cost, VertexType,
-            cost::{StatementCostVec, TraversalCostVec},
-            statement_placement::common::entity_projection_access,
-            traversal::Access,
-        },
-        transform::Traversals,
+    pass::execution::{
+        Cost, VertexType,
+        cost::{StatementCostVec, TraversalCostVec},
+        statement_placement::common::entity_projection_access,
+        traversal::{Access, Traversals},
     },
     visit::Visitor as _,
 };
@@ -110,7 +107,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        traversals: &Traversals<A>,
         alloc: A,
     ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
