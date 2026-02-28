@@ -39,20 +39,21 @@ graph TD
     27[<a href="../hashql_diagnostics/index.html">hashql-diagnostics</a>]
     28[<a href="../hashql_eval/index.html">hashql-eval</a>]
     29[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    30[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    31[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    32[<a href="../hash_status/index.html">hash-status</a>]
-    33[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
-    34[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    35[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
-    36[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
-    37[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
-    38[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
-    39[<a href="../error_stack/index.html">error-stack</a>]
-    40[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    30[<a href="../hashql_macros/index.html">hashql-macros</a>]
+    31[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    32[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    33[<a href="../hash_status/index.html">hash-status</a>]
+    34[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    35[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    36[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    37[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    38[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    39[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    40[<a href="../error_stack/index.html">error-stack</a>]
+    41[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 11
     1 --> 10
-    1 -.-> 40
+    1 -.-> 41
     2 -.-> 3
     2 --> 23
     4 --> 8
@@ -60,25 +61,25 @@ graph TD
     4 --> 13
     4 --> 19
     4 --> 28
-    4 --> 31
+    4 --> 32
     5 --> 1
     6 --> 7
-    6 --> 33
+    6 --> 34
     8 -.-> 6
     8 --> 15
-    8 --> 32
+    8 --> 33
     9 --> 5
     9 --> 14
-    9 --> 34
+    9 --> 35
     10 --> 2
     11 --> 4
-    12 --> 32
+    12 --> 33
     13 --> 9
-    14 -.-> 40
-    15 -.-> 40
+    14 -.-> 41
+    15 -.-> 41
     16 --> 20
     17 --> 22
-    17 --> 39
+    17 --> 40
     18 --> 2
     18 -.-> 17
     18 --> 17
@@ -89,24 +90,25 @@ graph TD
     21 --> 18
     23 -.-> 22
     23 --> 22
-    23 --> 39
+    23 --> 40
     24 -.-> 25
     25 --> 28
-    25 --> 30
     25 --> 31
-    25 --> 39
+    25 --> 32
+    25 --> 40
     26 --> 2
     26 --> 27
-    26 -.-> 36
+    26 --> 30
+    26 -.-> 37
     28 --> 9
     28 --> 29
     29 -.-> 25
-    30 --> 29
-    31 --> 24
-    31 --> 26
-    33 --> 39
-    34 --> 1
-    35 --> 37
-    35 --> 38
-    36 --> 35
-    40 --> 9
+    31 --> 29
+    32 --> 24
+    32 --> 26
+    34 --> 40
+    35 --> 1
+    36 --> 38
+    36 --> 39
+    37 --> 36
+    41 --> 9

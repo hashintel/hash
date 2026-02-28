@@ -33,13 +33,13 @@ id::newtype!(
     /// - Tuple elements (e.g., `tuple.0`, `tuple.1`)
     /// - Closed struct fields with known layout
     /// - Any structured type where field positions are stable and complete
-    pub struct FieldIndex(usize is 0..=usize::MAX)
+    pub struct FieldIndex(u32 is 0..=u32::MAX)
 );
 
 impl FieldIndex {
-    pub const ENV: Self = Self(1);
-    pub const FN_PTR: Self = Self(0);
-    pub const OPAQUE_VALUE: Self = Self(0);
+    pub const ENV: Self = Self::new(1);
+    pub const FN_PTR: Self = Self::new(0);
+    pub const OPAQUE_VALUE: Self = Self::new(0);
 }
 
 /// Context for reading from a [`Place`].

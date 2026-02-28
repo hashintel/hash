@@ -20,7 +20,7 @@ use super::{Id, index::IntoSliceIndex, vec::IdVec};
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::{IdSlice, Id as _}, newtype};
+/// # use hashql_core::id::{IdSlice, Id as _, newtype};
 /// # newtype!(struct UserId(u32 is 0..=0xFFFF_FF00));
 /// let data = [10, 20, 30];
 /// let slice = IdSlice::<UserId, _>::from_raw(&data);
@@ -303,7 +303,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// vec.insert(MyId::from_usize(0), "hello".to_string());
@@ -320,7 +320,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// vec.insert(MyId::from_usize(0), "hello".to_string());
@@ -338,7 +338,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// vec.insert(MyId::from_usize(0), "hello".to_string());
@@ -358,7 +358,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// vec.insert(MyId::from_usize(0), "hello".to_string());
@@ -466,9 +466,12 @@ mod tests {
     use core::mem::MaybeUninit;
 
     use super::IdSlice;
-    use crate::{id::Id as _, newtype};
+    use crate::id::Id as _;
 
-    newtype!(struct TestId(u32 is 0..=0xFFFF_FF00));
+    hashql_macros::define_id! {
+        #[id(crate = crate)]
+        struct TestId(u32 is 0..=0xFFFF_FF00)
+    }
 
     #[test]
     fn from_raw_indexing() {

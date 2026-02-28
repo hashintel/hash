@@ -19,7 +19,7 @@ use super::{Id, IdSlice};
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+/// # use hashql_core::id::{IdArray, Id as _, newtype};
 /// # newtype!(struct TargetId(u32 is 0..=3));
 /// // Create an array where each element is initialized based on its index
 /// let costs = IdArray::<TargetId, u32, 4>::from_fn(|id| id.as_u32() * 10);
@@ -41,7 +41,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, &str, 3>::from_raw(["a", "b", "c"]);
     /// assert_eq!(array[SlotId::new(1)], "b");
@@ -59,7 +59,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, i32, 3>::from_raw([1, 2, 3]);
     /// let raw: [i32; 3] = array.into_raw();
@@ -82,7 +82,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct NodeId(u32 is 0..=100));
     /// // Create an array where each element equals its index squared
     /// let squares = IdArray::<NodeId, u32, 5>::from_fn(|id| id.as_u32() * id.as_u32());
@@ -101,7 +101,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=4));
     /// let array = IdArray::<SlotId, i32, 5>::from_elem(42);
     ///
@@ -121,7 +121,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array =
     ///     IdArray::<SlotId, String, 3>::from_raw(["a".to_string(), "b".to_string(), "c".to_string()]);
@@ -138,7 +138,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let mut array = IdArray::<SlotId, i32, 3>::from_raw([1, 2, 3]);
     /// for elem in array.each_mut().into_raw() {
@@ -157,7 +157,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, i32, 3>::from_raw([1, 2, 3]);
     /// let doubled: IdArray<SlotId, i32, 3> = array.map(|x| x * 2);
@@ -175,7 +175,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=100));
     /// let array = IdArray::<SlotId, i32, 3>::from_raw([10, 20, 30]);
     /// let indexed: IdArray<SlotId, String, 3> =
@@ -202,7 +202,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, i32, 3>::from_raw([1, 2, 3]);
     /// let slice = array.as_slice();
@@ -220,7 +220,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let mut array = IdArray::<SlotId, i32, 3>::from_raw([1, 2, 3]);
     /// array.as_mut_slice()[SlotId::new(1)] = 42;
@@ -239,7 +239,7 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdArray, Id as _}, newtype};
+    /// # use hashql_core::id::{IdArray, Id as _, newtype};
     /// # newtype!(struct SlotId(u32 is 0..=2));
     /// let array = IdArray::<SlotId, &str, 3>::from_raw(["a", "b", "c"]);
     /// let pairs: Vec<_> = array.into_iter_enumerated().collect();

@@ -14948,6 +14948,7 @@ __metadata:
     "@rust/darwin-kperf-criterion": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hashql-diagnostics": "workspace:*"
+    "@rust/hashql-macros": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -14976,6 +14977,12 @@ __metadata:
     "@rust/hashql-ast": "workspace:*"
     "@rust/hashql-core": "workspace:*"
     "@rust/hashql-diagnostics": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@rust/hashql-macros@workspace:*, @rust/hashql-macros@workspace:libs/@local/hashql/macros":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-macros@workspace:libs/@local/hashql/macros"
   languageName: unknown
   linkType: soft
 

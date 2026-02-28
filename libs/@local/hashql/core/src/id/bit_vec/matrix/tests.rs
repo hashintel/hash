@@ -1,10 +1,10 @@
 use super::{BitMatrix, RowRef, SparseBitMatrix};
-use crate::{
-    id::{Id as _, bit_vec::DenseBitSet},
-    newtype,
-};
+use crate::id::{Id as _, bit_vec::DenseBitSet, newtype};
 
-newtype!(struct TestId(usize is 0..=usize::MAX));
+newtype!(
+    #[id(crate = crate)]
+    struct TestId(u32 is 0..=u32::MAX)
+);
 
 fn id(index: usize) -> TestId {
     TestId::from_usize(index)

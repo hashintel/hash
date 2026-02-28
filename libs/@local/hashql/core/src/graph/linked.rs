@@ -62,7 +62,7 @@ use crate::id::{HasId, Id, IdSlice, IdVec};
 ///
 /// Uses the maximum [`EdgeId`] value, which can never be a valid edge ID since
 /// edge insertion would overflow before reaching this value.
-const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
+const TOMBSTONE: EdgeId = EdgeId::MAX;
 
 /// A node in a [`LinkedGraph`] with associated data.
 ///
@@ -319,7 +319,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # use hashql_core::graph::LinkedGraph;
     /// # use hashql_core::id::{Id, IdVec};
     /// #
-    /// # hashql_core::id::newtype!(struct MyId(usize is 0..=usize::MAX));
+    /// # hashql_core::id::newtype!(struct MyId(u32 is 0..=u32::MAX));
     /// #
     /// let mut items: IdVec<MyId, &str> = IdVec::new();
     /// items.push("first");

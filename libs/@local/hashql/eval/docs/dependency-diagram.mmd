@@ -27,50 +27,52 @@ graph TD
     16[hashql-eval]
     class 16 root
     17[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    18[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    19[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    21[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
-    22[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
-    23[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
-    24[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
-    25[<a href="../error_stack/index.html">error-stack</a>]
-    26[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    27[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    18[<a href="../hashql_macros/index.html">hashql-macros</a>]
+    19[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    20[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    21[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    22[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    23[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    24[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    25[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    26[<a href="../error_stack/index.html">error-stack</a>]
+    27[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    28[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 8
     1 --> 7
-    1 -.-> 27
+    1 -.-> 28
     2 -.-> 3
     2 --> 11
     4 --> 16
-    4 --> 19
+    4 --> 20
     5 --> 1
     6 --> 5
     6 --> 9
-    6 --> 20
+    6 --> 21
     7 --> 2
     8 --> 4
-    9 -.-> 27
+    9 -.-> 28
     11 -.-> 10
     11 --> 10
-    11 --> 25
+    11 --> 26
     12 -.-> 13
     13 --> 16
-    13 --> 18
     13 --> 19
-    13 --> 25
+    13 --> 20
+    13 --> 26
     14 --> 2
     14 --> 15
-    14 -.-> 22
+    14 --> 18
+    14 -.-> 23
     16 --> 6
     16 --> 17
     17 -.-> 13
-    18 --> 17
-    19 --> 12
-    19 --> 14
-    20 --> 1
-    21 --> 23
-    21 --> 24
-    22 --> 21
-    26 -.-> 4
-    27 --> 6
+    19 --> 17
+    20 --> 12
+    20 --> 14
+    21 --> 1
+    22 --> 24
+    22 --> 25
+    23 --> 22
+    27 -.-> 4
+    28 --> 6

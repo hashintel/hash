@@ -18,13 +18,12 @@ use crate::{
     collections::{FastHashSet, fast_hash_set_in},
     graph::{DirectedGraph, EdgeId, Successors},
     heap::BumpAllocator,
-    id::{HasId, Id, IdSlice, IdVec},
-    newtype,
+    id::{HasId, Id, IdSlice, IdVec, newtype},
 };
 
-newtype!(pub struct SccId(u32 is 0..=u32::MAX));
+newtype!(#[id(crate = crate)] pub struct SccId(u32 is 0..=u32::MAX));
 
-newtype!(struct DiscoveryTime(usize is 0..=usize::MAX));
+newtype!(#[id(crate = crate)] struct DiscoveryTime(u32 is 0..=u32::MAX));
 
 /// Trait for attaching metadata to nodes and strongly connected components during traversal.
 ///
@@ -408,7 +407,7 @@ where
     }
 
     fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
-        (0..self.edge_count()).map(EdgeId::new)
+        (0..self.edge_count()).map(EdgeId::from_usize)
     }
 }
 

@@ -10,6 +10,7 @@ authors.workspace = true
 # Public workspace dependencies
 hash-codec         = { workspace = true, features = ["numeric"], public = true }
 hashql-diagnostics = { workspace = true, public = true }
+hashql-macros      = { workspace = true, public = true }
 
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }

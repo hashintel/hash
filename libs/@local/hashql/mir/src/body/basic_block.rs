@@ -9,7 +9,6 @@ use hashql_core::{heap, id, intern::Interned};
 use super::{local::Local, statement::Statement, terminator::Terminator};
 
 id::newtype!(
-    #[display = "bb{}"]
     /// A unique identifier for a basic block in the HashQL MIR.
     ///
     /// Basic blocks are identified by unique IDs that allow efficient referencing
@@ -20,12 +19,13 @@ id::newtype!(
     ///
     /// The value space is restricted to `0..=0xFFFF_FF00`, reserving the last 256
     /// values for niche optimizations in `Option<BasicBlockId>` and similar types.
+    #[id(display = "bb{}")]
     pub struct BasicBlockId(u32 is 0..=0xFFFF_FF00)
 );
 
 impl BasicBlockId {
-    pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
-    pub const START: Self = Self(0);
+    pub const PLACEHOLDER: Self = Self::new(0xFFFF_FF00);
+    pub const START: Self = Self::new(0);
 }
 
 id::newtype_collections!(pub type BasicBlock* from BasicBlockId);

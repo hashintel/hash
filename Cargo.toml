@@ -97,6 +97,7 @@ hashql-core.path                    = "libs/@local/hashql/core"
 hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
 hashql-eval.path                    = "libs/@local/hashql/eval"
 hashql-hir.path                     = "libs/@local/hashql/hir"
+hashql-macros.path                  = "libs/@local/hashql/macros"
 hashql-mir.path                     = "libs/@local/hashql/mir"
 hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
@@ -285,6 +286,7 @@ unicode-ident                      = { version = "1.0.22", default-features = fa
 unicode-normalization              = { version = "0.1.25", default-features = false }
 unicode-properties                 = { version = "0.1.4", default-features = false }
 unicode-segmentation               = { version = "1.12.0", default-features = false }
+unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
 uuid                               = { version = "1.18.1", default-features = false }
