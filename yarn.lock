@@ -28150,14 +28150,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-xml-parser@npm:5.3.6":
-  version: 5.3.6
-  resolution: "fast-xml-parser@npm:5.3.6"
+"fast-xml-parser@npm:5.3.8":
+  version: 5.3.8
+  resolution: "fast-xml-parser@npm:5.3.8"
   dependencies:
     strnum: "npm:^2.1.2"
   bin:
     fxparser: src/cli/cli.js
-  checksum: 10c0/0150cc0566f327a76115de8b11628d717fb179010ed9bb77c52e579a7e6055a0f92f42f83678a6f1ec5b74411faec09713cb1f9b94bc687068ad86884a9199fa
+  checksum: 10c0/7b85f1858f1a88e2c9b859ff8bae89ea47d2c6f749372db0ed8e9ed4b97d40fb5e2a2721012dbe6498295f755f3edc84942cd1c417caa96bf16a4e292394a9db
   languageName: node
   linkType: hard
 
