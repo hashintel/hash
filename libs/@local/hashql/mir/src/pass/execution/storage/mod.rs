@@ -4,6 +4,6 @@ mod entity;
 #[cfg(test)]
 mod tests;
 
-pub use entity::EntityPath;
+pub use entity::{EntityPath, EntityPathBitSet};
 
 pub(crate) use self::access::Access;
