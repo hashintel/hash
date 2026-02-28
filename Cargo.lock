@@ -3802,7 +3802,7 @@ dependencies = [
  "hashql-syntax-jexpr",
  "line-index",
  "nextest-filtering",
- "nextest-metadata",
+ "nextest-metadata 0.12.3",
  "ratatui",
  "rayon",
  "serde",
@@ -5648,14 +5648,14 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nextest-filtering"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b85e1a882a9edce41978737f2d4bfeeec671feda7e370d03dbf6c19e6493570"
+checksum = "c0a8dd976a0dba5487262a191aeb6175a3373c94861d05d22a261fa14500dbe0"
 dependencies = [
  "globset",
  "guppy",
  "miette",
- "nextest-metadata",
+ "nextest-metadata 0.13.3",
  "nextest-workspace-hack",
  "recursion",
  "regex",
@@ -5670,6 +5670,20 @@ name = "nextest-metadata"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2725d07ba30cabadad8e4219185a5a14dbc478e32ea72af4eb89d63f9705ca7f"
+dependencies = [
+ "camino",
+ "nextest-workspace-hack",
+ "serde",
+ "serde_json",
+ "smol_str",
+ "target-spec",
+]
+
+[[package]]
+name = "nextest-metadata"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6710108b0c76a3498451a5d4b8135d9fa9af190dc3a1314a4ac00739d902a798"
 dependencies = [
  "camino",
  "nextest-workspace-hack",
