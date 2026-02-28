@@ -1,5 +1,25 @@
 # @hashintel/petrinaut
 
+## 1.0.0
+
+### Minor Changes
+
+- [#8300](https://github.com/hashintel/hash/pull/8300) [`2b711ad`](https://github.com/hashintel/hash/commit/2b711adc178483069b02a349fb5822d6ecc735af) Thanks [@kube](https://github.com/kube)! - Add LSP-based language service layer for Monaco code editors with diagnostics, completions, hover, and signature help
+
+### Patch Changes
+
+- [#8439](https://github.com/hashintel/hash/pull/8439) [`9741121`](https://github.com/hashintel/hash/commit/9741121865f41557780d3bab873690a8074cad7f) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add TikZ export format
+
+- [#8360](https://github.com/hashintel/hash/pull/8360) [`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102) Thanks [@lunelson](https://github.com/lunelson)! - Revamp design token system: Radix-based color generation with semantic bg/fg/bd token structure, expanded 00–120 color scales with OKLCH interpolation, runtime-scalable spacing/radii/line-height via CSS variable factors, and extended conditions. Migrate all consumers to new token naming conventions.
+
+- [#8285](https://github.com/hashintel/hash/pull/8285) [`673ece2`](https://github.com/hashintel/hash/commit/673ece205d7622936980bf744574654026aad1c3) Thanks [@kube](https://github.com/kube)! - Fix read-only tooltips to always show during simulation mode
+
+- [#8295](https://github.com/hashintel/hash/pull/8295) [`4b22f76`](https://github.com/hashintel/hash/commit/4b22f7608491fe10a8b90753fe0cc47f99dbd296) Thanks [@kube](https://github.com/kube)! - Add configurable simulation playback speed and maximum run time
+
+- Updated dependencies [[`6fa6625`](https://github.com/hashintel/hash/commit/6fa662581e74a0aa8b6577a10258b2d3a81bcc30), [`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102), [`7ddaecb`](https://github.com/hashintel/hash/commit/7ddaecbc0f2b3ea1daff6ea584a3d9f418a3da53)]:
+  - @hashintel/ds-helpers@0.1.0
+  - @hashintel/ds-components@1.0.0
+
 ## 0.0.8
 
 ### Patch Changes
