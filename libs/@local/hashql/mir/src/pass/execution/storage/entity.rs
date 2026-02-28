@@ -192,11 +192,7 @@ fn resolve(projections: &[Projection<'_>]) -> Option<(EntityPath, usize)> {
                 return Some(($cond, index));
             }
 
-            let Some(value) = next!() else {
-                return None;
-            };
-
-            value
+            next!()?
         }};
     }
 

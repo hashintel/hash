@@ -1,4 +1,5 @@
 use hashql_core::{
+    debug_panic,
     symbol::sym,
     r#type::{
         TypeId,
@@ -20,7 +21,7 @@ fn peel<'heap>(
     // occur here is if apply and generic substitutions are the only members in a cycle, haven't
     // been resolved and simplified away. Which should've created a type error earlier anyway.
     if depth > 32 {
-        // debug_panic!("maximum opaque type recursion depth exceeded");
+        debug_panic!("maximum opaque type recursion depth exceeded");
 
         return None;
     }
