@@ -32,7 +32,7 @@ use crate::{
             VertexType,
             cost::{Cost, StatementCostVec, TraversalCostVec},
             statement_placement::common::entity_projection_access,
-            storage::Access,
+            traversal::Access,
         },
         transform::Traversals,
     },
