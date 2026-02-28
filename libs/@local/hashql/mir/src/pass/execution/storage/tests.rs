@@ -4,7 +4,10 @@ use hashql_core::{symbol::sym, r#type::TypeId};
 
 use super::access::{Access, AccessMode};
 use crate::{
-    body::place::{Projection, ProjectionKind},
+    body::{
+        local::Local,
+        place::{Projection, ProjectionKind},
+    },
     pass::execution::storage::EntityPath,
 };
 
@@ -176,6 +179,38 @@ fn index_for_composite_early_exit() {
         EntityPath::resolve(projections),
         Some((EntityPath::TemporalVersioning, 2))
     );
+}
+
+/// A non-FieldByName projection (e.g. `Index`) after a composite node must return `None`, not
+/// the composite path. Previously the `next!(else ...)` macro conflated "no more projections" with
+/// "non-FieldByName projection", bypassing the exhaustion guard.
+#[test]
+fn non_field_projection_after_composite_returns_none() {
+    let index_projection = Projection {
+        kind: ProjectionKind::Index(Local::new(0)),
+        r#type: TypeId::PLACEHOLDER,
+    };
+
+    // `.metadata.record_id` followed by an index projection: not a valid entity path
+    let projections = &[proj(sym::metadata), proj(sym::record_id), index_projection];
+    assert_eq!(EntityPath::resolve(projections), None);
+
+    // `.metadata.record_id.entity_id` followed by an index projection
+    let projections = &[
+        proj(sym::metadata),
+        proj(sym::record_id),
+        proj(sym::entity_id),
+        index_projection,
+    ];
+    assert_eq!(EntityPath::resolve(projections), None);
+
+    // `.metadata.temporal_versioning` followed by an index projection
+    let projections = &[
+        proj(sym::metadata),
+        proj(sym::temporal_versioning),
+        index_projection,
+    ];
+    assert_eq!(EntityPath::resolve(projections), None);
 }
 
 /// JSONB paths stop consuming at the storage boundary; sub-path projections are excess.

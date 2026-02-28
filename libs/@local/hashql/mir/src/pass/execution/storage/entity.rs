@@ -188,8 +188,12 @@ fn resolve(projections: &[Projection<'_>]) -> Option<(EntityPath, usize)> {
         };
 
         (else $cond:expr) => {{
-            let Some(value) = next!() else {
+            if index >= projections.len() {
                 return Some(($cond, index));
+            }
+
+            let Some(value) = next!() else {
+                return None;
             };
 
             value
