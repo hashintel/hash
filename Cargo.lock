@@ -3724,7 +3724,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "temporalio-client",
- "temporalio-common",
+ "temporalio-common 0.1.0 (git+https://github.com/temporalio/sdk-core?rev=c09a29014c257f932e40c20db955efe0bea45baa)",
  "thiserror 2.0.18",
  "type-system",
  "url",
@@ -6511,6 +6511,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "pbjson"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8edd1efdd8ab23ba9cb9ace3d9987a72663d5d7c9f74fa00b51d6213645cf6c"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
+name = "pbjson-build"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ed4d5c6ae95e08ac768883c8401cf0e8deb4e6e1d6a4e1fd3d2ec4f0ec63200"
+dependencies = [
+ "heck",
+ "itertools 0.14.0",
+ "prost 0.14.3",
+ "prost-types",
+]
+
+[[package]]
+name = "pbjson-types"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a14e2757d877c0f607a82ce1b8560e224370f159d66c5d52eb55ea187ef0350e"
+dependencies = [
+ "bytes",
+ "chrono",
+ "pbjson",
+ "pbjson-build",
+ "prost 0.14.3",
+ "prost-build",
+ "serde",
+]
+
+[[package]]
 name = "pem"
 version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8870,7 +8907,7 @@ dependencies = [
  "parking_lot",
  "rand 0.9.2",
  "slotmap",
- "temporalio-common",
+ "temporalio-common 0.1.0 (git+https://github.com/temporalio/sdk-core?rev=231e21c)",
  "thiserror 2.0.18",
  "tokio",
  "tonic 0.14.3",
@@ -8901,6 +8938,40 @@ dependencies = [
  "tonic-prost-build",
  "tracing",
  "tracing-core",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "temporalio-common"
+version = "0.1.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=c09a29014c257f932e40c20db955efe0bea45baa#c09a29014c257f932e40c20db955efe0bea45baa"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "bon",
+ "crc32fast",
+ "derive_more",
+ "erased-serde",
+ "futures",
+ "parking_lot",
+ "pbjson",
+ "pbjson-build",
+ "pbjson-types",
+ "prost 0.14.3",
+ "prost-types",
+ "prost-wkt",
+ "prost-wkt-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tonic 0.14.3",
+ "tonic-prost",
+ "tonic-prost-build",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -9598,6 +9669,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
+ "parking_lot",
  "regex-automata",
  "serde",
  "serde_json",
