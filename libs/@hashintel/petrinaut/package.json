@@ -70,7 +70,7 @@
     "@types/d3-scale": "4.0.9",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260216.1",
+    "@typescript/native-preview": "7.0.0-dev.20260225.1",
     "@vitejs/plugin-react": "5.1.4",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "9.39.3",
