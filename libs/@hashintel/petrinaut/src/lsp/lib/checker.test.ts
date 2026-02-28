@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "./checker";
+import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
+
+/** Create a server, sync the SDCPN, and run diagnostics. */
+function check(sdcpn: SDCPN) {
+  const server = new SDCPNLanguageServer();
+  server.syncFiles(sdcpn);
+  return checkSDCPN(sdcpn, server);
+}
 
 describe("checkSDCPN", () => {
   describe("Color IDs with special characters", () => {
@@ -43,7 +52,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - should be valid
       expect(result.isValid).toBe(true);
@@ -68,7 +77,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -101,7 +110,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -130,7 +139,7 @@ describe("checkSDCPN", () => {
       const de = sdcpn.differentialEquations[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -166,7 +175,7 @@ describe("checkSDCPN", () => {
       const de = sdcpn.differentialEquations[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -193,7 +202,7 @@ describe("checkSDCPN", () => {
       const de = sdcpn.differentialEquations[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -225,7 +234,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -253,7 +262,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -285,7 +294,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -313,7 +322,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -343,7 +352,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -372,7 +381,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -403,7 +412,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -437,7 +446,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(true);
@@ -472,7 +481,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - should error because Untyped is not in the input type
       expect(result.isValid).toBe(false);
@@ -511,7 +520,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - should error because Target is missing from the output type
       expect(result.isValid).toBe(false);
@@ -544,7 +553,7 @@ describe("checkSDCPN", () => {
       const transition = sdcpn.transitions[0]!;
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - should error because nonExistentProperty doesn't exist on the token type
       expect(result.isValid).toBe(false);
@@ -586,7 +595,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN
       expect(result.isValid).toBe(false);
@@ -643,7 +652,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - Should be valid because TransitionKernel is not checked when no output places
       expect(result.isValid).toBe(true);
@@ -678,7 +687,7 @@ describe("checkSDCPN", () => {
       });
 
       // WHEN
-      const result = checkSDCPN(sdcpn);
+      const result = check(sdcpn);
 
       // THEN - Should be valid because TransitionKernel is not checked when no coloured output places
       expect(result.isValid).toBe(true);

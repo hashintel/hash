@@ -37,14 +37,36 @@ export type VirtualFile = {
   content: string;
 };
 
+/** Controller for the virtual file system backing the LanguageServiceHost. */
+export type LanguageServiceHostController = {
+  host: ts.LanguageServiceHost;
+  /** Add a new file to the virtual file system. */
+  addFile: (fileName: string, file: VirtualFile) => void;
+  /** Remove a file from the virtual file system. */
+  removeFile: (fileName: string) => void;
+  /** Replace an entire file entry (prefix + content) and bump its version. */
+  updateFile: (fileName: string, file: VirtualFile) => void;
+  /** Update only the user content of an existing file (preserves prefix). */
+  updateContent: (fileName: string, content: string) => void;
+  /** Check whether a file exists in the virtual file system. */
+  hasFile: (fileName: string) => boolean;
+  /** Return all file names currently in the virtual file system. */
+  getFileNames: () => string[];
+  /** Get the VirtualFile entry for a given file name. */
+  getFile: (fileName: string) => VirtualFile | undefined;
+};
+
 /**
- * @private Used by `createSDCPNLanguageService`.
+ * Creates a TypeScript LanguageServiceHost backed by a virtual file system.
  *
- * Creates a TypeScript LanguageServiceHost for virtual SDCPN files
+ * The returned controller allows incremental mutations (add/remove/update)
+ * without recreating the host or the LanguageService that consumes it.
  */
 export function createLanguageServiceHost(
   files: Map<string, VirtualFile>,
-): ts.LanguageServiceHost {
+): LanguageServiceHostController {
+  const versions = new Map<string, number>();
+
   const getFileContent = (fileName: string): string | undefined => {
     const entry = files.get(fileName);
     if (entry) {
@@ -62,10 +84,37 @@ export function createLanguageServiceHost(
     return undefined;
   };
 
-  return {
+  const bumpVersion = (fileName: string) => {
+    versions.set(fileName, (versions.get(fileName) ?? 0) + 1);
+  };
+
+  const addFile = (fileName: string, file: VirtualFile) => {
+    files.set(fileName, file);
+    versions.set(fileName, 0);
+  };
+
+  const removeFile = (fileName: string) => {
+    files.delete(fileName);
+    versions.delete(fileName);
+  };
+
+  const updateFile = (fileName: string, file: VirtualFile) => {
+    files.set(fileName, file);
+    bumpVersion(fileName);
+  };
+
+  const updateContent = (fileName: string, content: string) => {
+    const entry = files.get(fileName);
+    if (entry) {
+      entry.content = content;
+      bumpVersion(fileName);
+    }
+  };
+
+  const host: ts.LanguageServiceHost = {
     getScriptFileNames: () => [...files.keys()],
     getCompilationSettings: () => COMPILER_OPTIONS,
-    getScriptVersion: () => "0",
+    getScriptVersion: (fileName) => String(versions.get(fileName) ?? 0),
     getCurrentDirectory: () => "/",
     getDefaultLibFileName: () => "/lib.es2015.core.d.ts",
 
@@ -81,5 +130,16 @@ export function createLanguageServiceHost(
     readFile(path: string) {
       return getFileContent(path);
     },
+  };
+
+  return {
+    host,
+    addFile,
+    removeFile,
+    updateFile,
+    updateContent,
+    hasFile: (fileName) => files.has(fileName),
+    getFileNames: () => [...files.keys()],
+    getFile: (fileName) => files.get(fileName),
   };
 }

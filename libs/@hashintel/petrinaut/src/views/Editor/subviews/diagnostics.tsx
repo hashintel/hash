@@ -1,10 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-import ts from "typescript";
+import type { Diagnostic } from "vscode-languageserver-types";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { CheckerContext } from "../../../state/checker-context";
+import { LanguageClientContext } from "../../../lsp/context";
+import { parseDocumentUri } from "../../../monaco/editor-paths";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 
@@ -94,22 +95,6 @@ const positionStyle = css({
   marginLeft: "[8px]",
 });
 
-// --- Helpers ---
-
-/**
- * Formats a TypeScript diagnostic message to a readable string
- */
-function formatDiagnosticMessage(
-  messageText: string | ts.DiagnosticMessageChain,
-): string {
-  if (typeof messageText === "string") {
-    return messageText;
-  }
-  return ts.flattenDiagnosticMessageText(messageText, "\n");
-}
-
-// --- Types ---
-
 type EntityType = "transition" | "differential-equation";
 
 interface GroupedDiagnostics {
@@ -119,7 +104,7 @@ interface GroupedDiagnostics {
   errorCount: number;
   items: Array<{
     subType: "lambda" | "kernel" | null;
-    diagnostics: ts.Diagnostic[];
+    diagnostics: Diagnostic[];
   }>;
 }
 
@@ -127,7 +112,9 @@ interface GroupedDiagnostics {
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
 const DiagnosticsContent: React.FC = () => {
-  const { checkResult, totalDiagnosticsCount } = use(CheckerContext);
+  const { diagnosticsByUri, totalDiagnosticsCount } = use(
+    LanguageClientContext,
+  );
   const { petriNetDefinition } = use(SDCPNContext);
   const { setSelectedResourceId } = use(EditorContext);
   // Track collapsed entities (all expanded by default)
@@ -147,13 +134,18 @@ const DiagnosticsContent: React.FC = () => {
   const groupedDiagnostics = useMemo(() => {
     const groups = new Map<string, GroupedDiagnostics>();
 
-    for (const item of checkResult.itemDiagnostics) {
-      const entityId = item.itemId;
+    for (const [uri, diagnostics] of diagnosticsByUri) {
+      const parsed = parseDocumentUri(uri);
+      if (!parsed) {
+        continue;
+      }
+
+      const entityId = parsed.itemId;
       let entityType: EntityType;
       let entityName: string;
       let subType: "lambda" | "kernel" | null;
 
-      if (item.itemType === "differential-equation") {
+      if (parsed.itemType === "differential-equation") {
         entityType = "differential-equation";
         const de = petriNetDefinition.differentialEquations.find(
           (deItem) => deItem.id === entityId,
@@ -166,7 +158,7 @@ const DiagnosticsContent: React.FC = () => {
           (tr) => tr.id === entityId,
         );
         entityName = transition?.name ?? entityId;
-        subType = item.itemType === "transition-lambda" ? "lambda" : "kernel";
+        subType = parsed.itemType === "transition-lambda" ? "lambda" : "kernel";
       }
 
       const key = `${entityType}:${entityId}`;
@@ -181,15 +173,15 @@ const DiagnosticsContent: React.FC = () => {
       }
 
       const group = groups.get(key)!;
-      group.errorCount += item.diagnostics.length;
+      group.errorCount += diagnostics.length;
       group.items.push({
         subType,
-        diagnostics: item.diagnostics,
+        diagnostics,
       });
     }
 
     return Array.from(groups.values());
-  }, [checkResult, petriNetDefinition]);
+  }, [diagnosticsByUri, petriNetDefinition]);
 
   const toggleEntity = useCallback((entityKey: string) => {
     setCollapsedEntities((prev) => {
@@ -256,11 +248,9 @@ const DiagnosticsContent: React.FC = () => {
 
                     {/* Diagnostics list */}
                     <ul className={diagnosticsListStyle}>
-                      {itemGroup.diagnostics.map((diagnostic, index) => (
+                      {itemGroup.diagnostics.map((diagnostic) => (
                         <li
-                          key={`${group.entityId}-${itemGroup.subType}-${
-                            diagnostic.start ?? index
-                          }`}
+                          key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
                           className={diagnosticItemStyle}
                         >
                           <button
@@ -269,12 +259,11 @@ const DiagnosticsContent: React.FC = () => {
                             className={diagnosticButtonStyle}
                           >
                             <span className={bulletStyle}>•</span>
-                            {formatDiagnosticMessage(diagnostic.messageText)}
-                            {diagnostic.start !== undefined && (
-                              <span className={positionStyle}>
-                                (pos: {diagnostic.start})
-                              </span>
-                            )}
+                            {diagnostic.message}
+                            <span className={positionStyle}>
+                              (Ln {diagnostic.range.start.line + 1}, Col{" "}
+                              {diagnostic.range.start.character + 1})
+                            </span>
                           </button>
                         </li>
                       ))}

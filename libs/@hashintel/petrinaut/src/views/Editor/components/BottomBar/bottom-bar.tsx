@@ -3,7 +3,7 @@ import { refractive } from "@hashintel/refractive";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { CheckerContext } from "../../../../state/checker-context";
+import { LanguageClientContext } from "../../../../lsp/context";
 import {
   EditorContext,
   type EditorState,
@@ -69,7 +69,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     bottomPanelHeight,
   } = use(EditorContext);
 
-  const { totalDiagnosticsCount } = use(CheckerContext);
+  const { totalDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;
 
   const showDiagnostics = useCallback(() => {

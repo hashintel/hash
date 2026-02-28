@@ -7829,6 +7829,7 @@ __metadata:
     vite: "npm:8.0.0-beta.14"
     vite-plugin-dts: "npm:4.5.4"
     vitest: "npm:4.0.18"
+    vscode-languageserver-types: "npm:3.17.5"
     web-worker: "npm:1.4.1"
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
@@ -45391,6 +45392,13 @@ __metadata:
   bin:
     vitest: vitest.mjs
   checksum: 10c0/b913cd32032c95f29ff08c931f4b4c6fd6d2da498908d6770952c561a1b8d75c62499a1f04cadf82fb89cc0f9a33f29fb5dfdb899f6dbb27686a9d91571be5fa
+  languageName: node
+  linkType: hard
+
+"vscode-languageserver-types@npm:3.17.5":
+  version: 3.17.5
+  resolution: "vscode-languageserver-types@npm:3.17.5"
+  checksum: 10c0/1e1260de79a2cc8de3e46f2e0182cdc94a7eddab487db5a3bd4ee716f67728e685852707d72c059721ce500447be9a46764a04f0611e94e4321ffa088eef36f8
   languageName: node
   linkType: hard
 

@@ -11,11 +11,11 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { LanguageClientProvider } from "./lsp/provider";
+import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
-import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -31,15 +31,6 @@ export type {
   Place,
   SDCPN,
   Transition,
-};
-
-/**
- * Internal component to initialize Monaco global typings.
- * Must be inside SDCPNProvider to access the store.
- */
-const MonacoSetup: React.FC = () => {
-  useMonacoGlobalTypings();
-  return null;
 };
 
 export type PetrinautProps = {
@@ -107,18 +98,19 @@ export const Petrinaut = ({
   return (
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
-        <CheckerProvider>
-          <SimulationProvider>
-            <PlaybackProvider>
-              <EditorProvider>
-                <MonacoSetup />
-                <EditorView
-                  hideNetManagementControls={hideNetManagementControls}
-                />
-              </EditorProvider>
-            </PlaybackProvider>
-          </SimulationProvider>
-        </CheckerProvider>
+        <LanguageClientProvider key={rest.petriNetId}>
+          <MonacoProvider>
+            <SimulationProvider>
+              <PlaybackProvider>
+                <EditorProvider>
+                  <EditorView
+                    hideNetManagementControls={hideNetManagementControls}
+                  />
+                </EditorProvider>
+              </PlaybackProvider>
+            </SimulationProvider>
+          </MonacoProvider>
+        </LanguageClientProvider>
       </SDCPNProvider>
     </NotificationsProvider>
   );
