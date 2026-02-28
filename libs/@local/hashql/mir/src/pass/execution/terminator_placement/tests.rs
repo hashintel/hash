@@ -127,7 +127,7 @@ fn format_edge_summary<A: core::alloc::Allocator>(
     edges: &TerminatorCostVec<A>,
 ) -> impl Display + '_ {
     fmt::from_fn(move |fmt| {
-        for block in 0..(edges.offsets.len() - 1) {
+        for block in 0..edges.block_count() {
             let block_id = BasicBlockId::from_usize(block);
             let matrices = edges.of(block_id);
             writeln!(fmt, "{block_id}:")?;
