@@ -1,4 +1,7 @@
-use hashql_core::symbol::{ConstantSymbol, sym};
+use hashql_core::{
+    id::{Id, bit_vec::FiniteBitSet},
+    symbol::{ConstantSymbol, sym},
+};
 
 use super::access::{Access, AccessMode};
 use crate::body::place::{Projection, ProjectionKind};
@@ -14,7 +17,7 @@ macro_rules! sym {
 /// Each variant identifies a specific storage location in the entity schema. Consumers can
 /// exhaustively match on this to generate backend-specific access (SQL expressions, placement
 /// decisions, etc.) without duplicating path resolution logic.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
 pub enum EntityPath {
     /// `properties.*` — JSONB column in `entity_editions`.
     Properties,
@@ -87,6 +90,16 @@ pub enum EntityPath {
     /// `entity_has_right_entity`).
     RightEntityProvenance,
 }
+
+type FiniteBitSetWidth = u32;
+const _: () = {
+    assert!(
+        (FiniteBitSetWidth::BITS as usize) >= core::mem::variant_count::<EntityPath>(),
+        "entity path count exceeds finite bitset width"
+    );
+};
+
+pub type EntityPathBitSet = FiniteBitSet<EntityPath, FiniteBitSetWidth>;
 
 impl EntityPath {
     #[must_use]
