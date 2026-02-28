@@ -14,7 +14,9 @@ pub(crate) enum IntegerScalar {
 
 impl IntegerScalar {
     pub(crate) const fn from_variant_count(count: usize) -> Self {
-        match count {
+        // Match on the maximum discriminant (count - 1) to find the smallest
+        // integer type that can represent all variants 0..count.
+        match count.saturating_sub(1) {
             0..=0xFF => Self::U8,
             0x100..=0xFFFF => Self::U16,
             0x1_0000..=0xFFFF_FFFF => Self::U32,

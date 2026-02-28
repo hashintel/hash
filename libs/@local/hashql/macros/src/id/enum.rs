@@ -8,7 +8,11 @@ use crate::id::{
     common::IntegerScalar,
 };
 
-#[expect(clippy::too_many_lines, reason = "macro")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "mostly mechanical quote! blocks with minimal logic; splitting would require \
+              threading many local variables for no clarity gain"
+)]
 pub(super) fn expand_enum(
     grammar::ParsedEnum {
         attributes,
