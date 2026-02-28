@@ -1,0 +1,137 @@
+use core::{
+    alloc::Allocator,
+    ops::{Index, IndexMut},
+};
+
+use hashql_core::r#type::environment::Environment;
+
+use super::TraversalPathBitSet;
+use crate::{
+    body::{
+        basic_block::BasicBlockId,
+        basic_blocks::BasicBlocks,
+        local::{Local, LocalDecl, LocalSlice},
+        location::Location,
+        place::{DefUse, Place, PlaceContext},
+    },
+    pass::execution::{
+        VertexType, block_partitioned_vec::BlockPartitionedVec, traversal::EntityPath,
+    },
+    visit::{self, Visitor},
+};
+/// Per-statement resolved traversal paths for a graph read filter body.
+///
+/// Stores a [`TraversalPathBitSet`] for every statement position, recording which vertex
+/// fields each statement accesses. Indexed by [`Location`] (1-based statement index).
+pub struct Traversals<A: Allocator> {
+    inner: BlockPartitionedVec<TraversalPathBitSet, A>,
+}
+
+impl<A: Allocator + Clone> Traversals<A> {
+    /// Creates a traversal map with space for all statements in the given blocks.
+    ///
+    /// All positions are initialized to an empty bitset for the given vertex type.
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) fn new_in(blocks: &BasicBlocks, vertex: VertexType, alloc: A) -> Self {
+        Self {
+            inner: BlockPartitionedVec::new(
+                blocks.iter().map(|block| block.statements.len() as u32),
+                TraversalPathBitSet::empty(vertex),
+                alloc,
+            ),
+        }
+    }
+}
+
+impl<A: Allocator> Traversals<A> {
+    /// Returns the traversal path sets for all statements in `block`.
+    ///
+    /// The returned slice is indexed by statement position (0-based within the block).
+    pub(crate) fn of(&self, block: BasicBlockId) -> &[TraversalPathBitSet] {
+        self.inner.of(block)
+    }
+
+    /// Returns a mutable slice of traversal path sets for all statements in `block`.
+    pub(crate) fn of_mut(&mut self, block: BasicBlockId) -> &mut [TraversalPathBitSet] {
+        self.inner.of_mut(block)
+    }
+
+    /// Rebuilds the offset table for a new block layout.
+    ///
+    /// Call after transforms that change statement counts per block. Does not resize or clear
+    /// the data; callers must ensure the total statement count remains unchanged.
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) fn remap(&mut self, blocks: &BasicBlocks)
+    where
+        A: Clone,
+    {
+        self.inner
+            .remap(blocks.iter().map(|block| block.statements.len() as u32));
+    }
+}
+
+impl<A: Allocator> Index<Location> for Traversals<A> {
+    type Output = TraversalPathBitSet;
+
+    fn index(&self, index: Location) -> &Self::Output {
+        &self.inner.of(index.block)[index.statement_index - 1]
+    }
+}
+
+impl<A: Allocator> IndexMut<Location> for Traversals<A> {
+    fn index_mut(&mut self, index: Location) -> &mut Self::Output {
+        &mut self.inner.of_mut(index.block)[index.statement_index - 1]
+    }
+}
+
+struct TraversalAnalysisVisitor<'env, 'heap, A: Allocator> {
+    env: &'env Environment<'heap>,
+    vertex: VertexType,
+    traversals: Traversals<A>,
+    locals: &'env LocalSlice<LocalDecl<'heap>>,
+}
+
+impl<'heap, A: Allocator> Visitor<'heap> for TraversalAnalysisVisitor<'_, 'heap, A> {
+    type Result = Result<(), !>;
+
+    fn visit_place(
+        &mut self,
+        location: Location,
+        context: PlaceContext,
+        place: &Place<'heap>,
+    ) -> Self::Result {
+        if place.local != Local::VERTEX {
+            // We do not target the vertex itself, so no traversals need to be recorded.
+            return Ok(());
+        }
+
+        if context.into_def_use() != Some(DefUse::Use) {
+            // We're only interested in `DefUse::Use`
+            return Ok(());
+        }
+
+        match self.vertex {
+            VertexType::Entity => {
+                let current = self.traversals[location]
+                    .as_entity_mut()
+                    .unwrap_or_else(|| {
+                        unreachable!("a graph body cannot traverse over multiple types")
+                    });
+
+                let path = EntityPath::resolve(&place.projections);
+
+                if let Some((path, _)) = path {
+                    current.insert(path);
+                } else {
+                    // The path leads to "nothing", indicating that we must hydrate the entire
+                    // entity.
+                    current.insert_range(..);
+                }
+            }
+        }
+
+        visit::r#ref::walk_place(self, location, context, place)
+    }
+}
+
+// TODO: proper pass that goes over the basic blocks, and does all the required stuff
