@@ -1,5 +1,6 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { token } from "@hashintel/ds-helpers/tokens";
 import type { ReactNode } from "react";
 
 import { withTooltip } from "./hoc/with-tooltip";
@@ -7,21 +8,26 @@ import { Tooltip } from "./tooltip";
 
 const rootStyle = cva({
   base: {
+    "--root-border-width": "1px",
     display: "flex",
     alignItems: "center",
     gap: "0.5",
-    backgroundColor: "neutral.s20",
-    borderWidth: "thin",
+    backgroundColor: "neutral.s15",
     borderColor: "neutral.s25",
     position: "relative",
+    borderRadius: "var(--root-border-radius)",
+    borderWidth: "var(--root-border-width)",
+    padding: "var(--root-padding)",
   },
   variants: {
     size: {
       md: {
-        borderRadius: "xl",
+        "--root-border-radius": token("radii.xl"),
+        "--root-padding": "1px",
       },
       sm: {
-        borderRadius: "lg",
+        "--root-border-radius": token("radii.lg"),
+        "--root-padding": "1px",
       },
     },
   },
@@ -30,31 +36,11 @@ const rootStyle = cva({
   },
 });
 
-const indicatorStyle = cva({
-  base: {
-    position: "absolute",
-    width: "var(--width)",
-    height: "var(--height)",
-    left: "var(--left)",
-    top: "var(--top)",
-    backgroundColor: "white",
-    boxShadow: "sm",
-    transition: "[all 200ms cubic-bezier(0.4, 0, 0.2, 1)]",
-    zIndex: 0,
-  },
-  variants: {
-    size: {
-      md: {
-        borderRadius: "md",
-      },
-      sm: {
-        borderRadius: "sm",
-      },
-    },
-  },
-  defaultVariants: {
-    size: "md",
-  },
+const indicatorStyle = css({
+  position: "absolute",
+  backgroundColor: "white",
+  zIndex: 0,
+  boxShadow: "[0 1px 2px 0 rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)]",
 });
 
 const itemStyle = cva({
@@ -168,7 +154,18 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
       }}
       className={rootStyle({ size })}
     >
-      <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
+      <ArkSegmentGroup.Indicator
+        className={indicatorStyle}
+        style={{
+          // ArkUI defines `top` as an inline style, so we need to override with inline styles.
+          width: "var(--width)",
+          height: "var(--height)",
+          top: "calc(var(--top) - var(--root-border-width))",
+          left: "calc(var(--left) - var(--root-border-width))",
+          borderRadius:
+            "calc(var(--root-border-radius) - var(--root-border-width) - var(--root-padding))",
+        }}
+      />
 
       {options.map((option) => {
         const isItemDisabled = disabled || option.disabled;
