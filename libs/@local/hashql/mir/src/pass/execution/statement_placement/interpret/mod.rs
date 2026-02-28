@@ -8,12 +8,10 @@ use crate::{
         statement::{Assign, Statement, StatementKind},
     },
     context::MirContext,
-    pass::{
-        execution::{
-            cost::{Cost, StatementCostVec, TraversalCostVec},
-            target::TargetArray,
-        },
-        transform::Traversals,
+    pass::execution::{
+        cost::{Cost, StatementCostVec, TraversalCostVec},
+        target::TargetArray,
+        traversal::Traversals,
     },
     visit::Visitor,
 };
@@ -92,7 +90,7 @@ impl<'heap, A: Allocator + Clone, B: Allocator> StatementPlacement<'heap, A>
         &mut self,
         _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        traversals: &Traversals<A>,
         alloc: A,
     ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());

@@ -14,6 +14,8 @@ mod analysis;
 #[cfg(test)]
 mod tests;
 
+pub(crate) use analysis::{TraversalAnalysis, Traversals};
+
 pub(crate) use self::access::Access;
 pub use self::entity::{EntityPath, EntityPathBitSet};
 use super::VertexType;

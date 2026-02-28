@@ -8,12 +8,14 @@ use hashql_core::r#type::environment::Environment;
 use super::TraversalPathBitSet;
 use crate::{
     body::{
+        Body, Source,
         basic_block::BasicBlockId,
         basic_blocks::BasicBlocks,
         local::{Local, LocalDecl, LocalSlice},
         location::Location,
         place::{DefUse, Place, PlaceContext},
     },
+    context::MirContext,
     pass::execution::{
         VertexType, block_partitioned_vec::BlockPartitionedVec, traversal::EntityPath,
     },
@@ -23,7 +25,7 @@ use crate::{
 ///
 /// Stores a [`TraversalPathBitSet`] for every statement position, recording which vertex
 /// fields each statement accesses. Indexed by [`Location`] (1-based statement index).
-pub struct Traversals<A: Allocator> {
+pub(crate) struct Traversals<A: Allocator> {
     inner: BlockPartitionedVec<TraversalPathBitSet, A>,
 }
 
@@ -131,6 +133,40 @@ impl<'heap, A: Allocator> Visitor<'heap> for TraversalAnalysisVisitor<'_, 'heap,
         }
 
         visit::r#ref::walk_place(self, location, context, place)
+    }
+}
+
+pub(crate) struct TraversalAnalysis;
+
+impl TraversalAnalysis {
+    pub(crate) fn traversal_analysis_in<'heap, A: Allocator + Clone>(
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        alloc: A,
+    ) -> Traversals<A> {
+        match body.source {
+            Source::GraphReadFilter(_) => {}
+            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+                panic!("traversal analysis may only be called on graph related operations")
+            }
+        };
+
+        let Some(vertex) = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
+        else {
+            unimplemented!("lookup for declared type")
+        };
+
+        let traversals = Traversals::new_in(&body.basic_blocks, vertex, alloc);
+
+        let mut visitor = TraversalAnalysisVisitor {
+            env: context.env,
+            vertex,
+            traversals,
+            locals: &body.local_decls,
+        };
+        Ok(()) = visitor.visit_body(body);
+
+        visitor.traversals
     }
 }
 

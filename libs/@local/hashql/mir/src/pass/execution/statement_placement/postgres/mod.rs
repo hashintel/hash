@@ -27,14 +27,11 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
     },
     context::MirContext,
-    pass::{
-        execution::{
-            VertexType,
-            cost::{Cost, StatementCostVec, TraversalCostVec},
-            statement_placement::common::entity_projection_access,
-            traversal::Access,
-        },
-        transform::Traversals,
+    pass::execution::{
+        VertexType,
+        cost::{Cost, StatementCostVec, TraversalCostVec},
+        statement_placement::common::entity_projection_access,
+        traversal::{Access, Traversals},
     },
     visit::Visitor as _,
 };
@@ -711,7 +708,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        traversals: &Traversals<A>,
         alloc: A,
     ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
         let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc.clone());
