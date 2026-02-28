@@ -102,8 +102,7 @@ impl From<StructBody> for Constraint {
 }
 
 #[expect(clippy::too_many_lines, reason = "macro")]
-pub(crate) fn expand_struct(
-    additional_attributes: Vec<grammar::IdAttribute>,
+pub(super) fn expand_struct(
     grammar::ParsedStruct {
         attributes,
         visibility,
@@ -119,7 +118,7 @@ pub(crate) fn expand_struct(
         display,
         traits,
         extra,
-    } = Attributes::parse(additional_attributes, attributes);
+    } = Attributes::parse(attributes);
     let vis = visibility.into_token_stream();
 
     let int = body.content.r#type.to_token_stream();

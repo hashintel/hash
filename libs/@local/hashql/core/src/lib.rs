@@ -54,5 +54,3 @@ pub mod symbol;
 pub mod sync;
 pub mod r#type;
 pub mod value;
-
-pub use hashql_macros::id;

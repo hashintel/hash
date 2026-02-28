@@ -25,6 +25,7 @@ mod grammar {
     pub(super) type AttributeIdBody = CommaDelimitedVec<IdAttribute>;
 
     unsynn! {
+        /// Content of an `#[...]` attribute: either `#[id(...)]` or any other attribute.
         pub(super) enum AttributeBody {
             Id {
                 _id: KId,
@@ -34,29 +35,36 @@ mod grammar {
             Any(Vec<TokenTree>)
         }
 
+        /// Traits that can appear inside `#[id(derive(...))]`.
         pub(super) enum IdDerive {
             Step(KStep)
         }
 
+        /// The value after `display =`: either `!` (suppress) or a format string.
         pub(super) enum IdDisplay {
             None(Bang),
             Format(TokenTree)
         }
 
+        /// A single key-value entry inside `#[id(...)]`.
         pub(super) enum IdAttribute {
+            /// `crate = path`: overrides the path to `hashql_core` in generated code.
             Crate {
                 _crate: KCrate,
                 _eq: Assign,
                 path: ModPath
             },
+            /// `const`: makes generated trait impl blocks const.
             Const {
                 _const: KConst
             },
+            /// `derive(Step, ...)`: generates additional trait implementations.
             Derive {
                 _derive: KDerive,
 
                 traits: ParenthesisGroupContaining<CommaDelimitedVec<IdDerive>>
             },
+            /// `display = "format"` or `display = !`: controls `Display` generation.
             Display {
                 _display: KDisplay,
                 _eq: Assign,
@@ -65,11 +73,13 @@ mod grammar {
             }
         }
 
+        /// The range operator in `start..end` or `start..=end`.
         pub(super) enum RangeOp {
             Inclusive(DotDotEq),
             Exclusive(DotDot)
         }
 
+        /// The backing integer type in a struct body (`u8`, `u16`, ...).
         pub(super) enum StructScalar {
             U8(KU8),
             U16(KU16),
@@ -78,6 +88,7 @@ mod grammar {
             U128(KU128),
         }
 
+        /// The parenthesized body of a struct: `(u32 is 0..=MAX)`.
         pub(super) struct StructBody {
             pub r#type: StructScalar,
             pub _is: KIs,
@@ -87,6 +98,7 @@ mod grammar {
             pub end: Vec<AngleTokenTree>
         }
 
+        /// A complete struct definition for `define_id!`.
         pub(super) struct ParsedStruct {
             pub attributes: Vec<Attribute<AttributeBody>>,
             pub visibility: Option<Visibility>,
@@ -98,6 +110,7 @@ mod grammar {
             pub body: ParenthesisGroupContaining<StructBody>
         }
 
+        /// A complete enum definition for `#[derive(Id)]`.
         pub(super) struct ParsedEnum {
             pub attributes: Vec<Attribute<AttributeBody>>,
             pub visibility: Option<Visibility>,
@@ -109,14 +122,14 @@ mod grammar {
             pub body: BraceGroupContaining<CommaDelimitedVec<UnitEnumVariant>>
         }
 
-        /// Represents a variant of an enum, including the optional discriminant value
+        /// A single unit variant with optional attributes.
         pub(super) struct UnitEnumVariant {
-            /// Attributes applied to the variant.
             pub attributes: Vec<Attribute<Vec<TokenTree>>>,
-            /// The name of the variant.
             pub name: Ident,
         }
 
+        /// Dispatches between struct and enum so each entry point can reject
+        /// the wrong shape with a helpful error message.
         pub(super) enum Parsed {
             Struct(ParsedStruct),
             Enum(ParsedEnum)
@@ -124,8 +137,9 @@ mod grammar {
     }
 }
 
-pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let (attributes, parsed) = match parse(attr, item) {
+/// Entry point for the `#[derive(Id)]` derive macro (enum only).
+pub(crate) fn expand_derive(item: TokenStream) -> TokenStream {
+    let parsed = match parse(item) {
         Ok(parsed) => parsed,
 
         Err(error) => {
@@ -135,28 +149,58 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 return TokenStream::new();
             }
 
-            // Unable to report a useful error (at a position)
             let message = error.to_string();
             return quote!(compile_error!(#message));
         }
     };
 
     match parsed {
-        grammar::Parsed::Struct(parsed) => expand_struct(attributes, parsed),
-        grammar::Parsed::Enum(parsed) => expand_enum(attributes, parsed),
+        grammar::Parsed::Enum(parsed) => expand_enum(parsed),
+        grammar::Parsed::Struct(parsed) => {
+            emit_error(
+                AsRef::<proc_macro2::Ident>::as_ref(&parsed._struct)
+                    .span()
+                    .unwrap(),
+                "use `define_id!` for struct Id types; `#[derive(Id)]` only supports enums",
+            );
+            TokenStream::new()
+        }
+    }
+}
+
+/// Entry point for the `define_id!` function-like macro (struct only).
+pub(crate) fn expand_define(item: TokenStream) -> TokenStream {
+    let parsed = match parse(item) {
+        Ok(parsed) => parsed,
+
+        Err(error) => {
+            if let Some(token) = error.failed_at() {
+                emit_error(token.span().unwrap(), error);
+
+                return TokenStream::new();
+            }
+
+            let message = error.to_string();
+            return quote!(compile_error!(#message));
+        }
+    };
+
+    match parsed {
+        grammar::Parsed::Struct(parsed) => expand_struct(parsed),
+        grammar::Parsed::Enum(parsed) => {
+            emit_error(
+                AsRef::<proc_macro2::Ident>::as_ref(&parsed._enum)
+                    .span()
+                    .unwrap(),
+                "use `#[derive(Id)]` for enum Id types; `define_id!` only supports structs",
+            );
+            TokenStream::new()
+        }
     }
 }
 
 #[expect(clippy::result_large_err)]
-fn parse(
-    attr: TokenStream,
-    item: TokenStream,
-) -> Result<(Vec<grammar::IdAttribute>, grammar::Parsed), unsynn::Error> {
-    let mut attr_tokens = attr.to_token_iter();
-    let mut item_tokens = item.to_token_iter();
-
-    let additional = grammar::AttributeIdBody::parse_all(&mut attr_tokens)?;
-    let parsed = grammar::Parsed::parse_all(&mut item_tokens)?;
-
-    Ok((additional.into(), parsed))
+fn parse(item: TokenStream) -> Result<grammar::Parsed, unsynn::Error> {
+    let mut tokens = item.to_token_iter();
+    grammar::Parsed::parse_all(&mut tokens)
 }

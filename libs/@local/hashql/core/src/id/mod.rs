@@ -13,6 +13,7 @@ use core::{
 };
 
 use ::core::sync::atomic;
+pub use hashql_macros::{Id, define_id as newtype};
 
 pub use self::{
     array::IdArray, index::IntoSliceIndex, slice::IdSlice, union_find::IdUnionFind, vec::IdVec,
@@ -432,7 +433,6 @@ macro_rules! newtype_collections {
     };
 }
 
-pub use hashql_macros::define_id as newtype;
 pub use newtype_collections;
 pub use newtype_counter;
 pub use newtype_producer;

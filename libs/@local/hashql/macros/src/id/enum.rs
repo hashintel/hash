@@ -10,7 +10,6 @@ use crate::id::{
 
 #[expect(clippy::too_many_lines, reason = "macro")]
 pub(super) fn expand_enum(
-    additional_attributes: Vec<grammar::IdAttribute>,
     grammar::ParsedEnum {
         attributes,
         visibility,
@@ -26,8 +25,8 @@ pub(super) fn expand_enum(
         r#const: konst,
         display,
         traits,
-        extra,
-    } = Attributes::parse(additional_attributes, attributes);
+        extra: _,
+    } = Attributes::parse(attributes);
     let vis = visibility.into_token_stream();
 
     let mut variants: Vec<_> = Vec::new();
@@ -47,14 +46,13 @@ pub(super) fn expand_enum(
         .iter()
         .map(|variant| quote_spanned!(variant.span() => Self::#variant));
 
-    let body = body.to_token_stream();
-
-    // 1. Enum definition
+    // 1. Size assertion: ensures the enum has the expected repr
+    let size_message = format!("expected `{name}` to be `{backing}`-sized");
     output.extend(quote! {
-        #extra
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        #[repr(#backing)]
-        #vis enum #name #body
+        const _: () = assert!(
+            ::core::mem::size_of::<#name>() == ::core::mem::size_of::<#backing>(),
+            #size_message
+        );
     });
 
     // 2. Inherent impl

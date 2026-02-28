@@ -5,27 +5,22 @@ use unsynn::{
 };
 
 keyword! {
-    /// The "pub" keyword.
-    pub KPub = ["pub"];
-    /// The "struct" keyword.
-    pub KStruct = ["struct"];
-    /// The "enum" keyword.
-    pub KEnum = ["enum"];
-    /// The "in" keyword.
-    pub KIn = ["in"];
-    pub KId = ["id"];
-    pub KDerive = ["derive"];
-    pub KDisplay = ["display"];
-    pub KStep = ["Step"];
-    pub KIs = ["is"];
-    pub KCrate = ["crate"];
-    pub KConst = ["const"];
-    pub KU8 = ["u8"];
-    pub KU16 = ["u16"];
-    pub KU32 = ["u32"];
-    pub KU64 = ["u64"];
-    pub KU128 = ["u128"];
-    pub KUsize = ["usize"];
+    pub KPub = "pub";
+    pub KStruct = "struct";
+    pub KEnum = "enum";
+    pub KIn = "in";
+    pub KId = "id";
+    pub KDerive = "derive";
+    pub KDisplay = "display";
+    pub KStep = "Step";
+    pub KIs = "is";
+    pub KCrate = "crate";
+    pub KConst = "const";
+    pub KU8 = "u8";
+    pub KU16 = "u16";
+    pub KU32 = "u32";
+    pub KU64 = "u64";
+    pub KU128 = "u128";
 }
 
 pub(crate) type VerbatimUntil<C> = Many<Cons<Except<C>, AngleTokenTree>>;
@@ -41,11 +36,9 @@ unsynn! {
         pub Either<Cons<Lt, Vec<Cons<Except<Gt>, AngleTokenTree>>, Gt>, TokenTree>,
     );
 
-    /// Represents an attribute annotation on a field, typically in the form `#[attr]`.
+    /// An attribute in the form `#[...]`.
     pub struct Attribute<B> {
-        /// The pound sign preceding the attribute.
         pub _pound: Pound,
-        /// The content of the attribute enclosed in square brackets.
         pub body: BracketGroupContaining<B>,
     }
 }

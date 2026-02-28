@@ -11,18 +11,19 @@ use core::fmt::Display;
 
 use proc_macro::{Diagnostic, Level, Span, TokenStream};
 
-/// Defines an enum as an [`Id`] type.
+/// Derives [`Id`] trait implementations for an enum with unit variants.
 ///
-/// This attribute macro works on enums with unit variants, generating sequential
-/// discriminants, conversion methods, and trait implementations.
+/// Generates sequential discriminants, conversion methods, and trait
+/// implementations. For struct-based Id types, use [`define_id!`] instead.
 ///
-/// For struct-based Id types, use [`define_id!`] instead, since attribute macros
-/// require syntactically valid Rust on the annotated item.
+/// The enum must have `#[repr(u8)]` (or the appropriate integer type for the
+/// variant count) and derive the standard traits required by [`Id`].
 ///
 /// # Example
 ///
 /// ```ignore
-/// #[hashql_macros::id]
+/// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+/// #[repr(u8)]
 /// pub enum TargetId {
 ///     Interpreter,
 ///     Postgres,
@@ -30,31 +31,32 @@ use proc_macro::{Diagnostic, Level, Span, TokenStream};
 /// }
 /// ```
 ///
+/// By default, a [`Display`] implementation is generated using lowercased
+/// variant names.
+///
 /// # Attributes
 ///
-/// Attributes can be passed either as arguments to `#[id(...)]` or as a
-/// separate `#[id(...)]` attribute on the item:
+/// Configuration is passed via `#[id(...)]` helper attributes:
 ///
 /// - `crate = path` — path to the `hashql_core` crate (default: `::hashql_core`)
 /// - `const` — add `const` to trait impl blocks
 /// - `derive(Step)` — implement [`core::iter::Step`]
 /// - `display = "format"` — implement [`Display`] with a format string
-/// - `display = "auto"` — implement [`Display`] using lowercased variant names
 /// - `display = !` — suppress the [`Display`] implementation
-#[proc_macro_attribute]
-pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
-    id::expand(attr.into(), item.into()).into()
+#[proc_macro_derive(Id, attributes(id))]
+pub fn derive_id(item: TokenStream) -> TokenStream {
+    id::expand_derive(item.into()).into()
 }
 
-/// Defines a type as an [`Id`].
+/// Defines a struct as an [`Id`] type.
 ///
-/// This is a function-like macro that supports both struct and enum shapes.
-/// Struct-based Id types must use this macro because their syntax (`u32 is 0..=MAX`)
-/// is not valid Rust, which precludes use of the `#[id]` attribute macro.
+/// Creates a newtype wrapper around an integer with a valid range. This is a
+/// function-like macro because the struct body syntax (`u32 is 0..=MAX`) is not
+/// valid Rust.
 ///
-/// # Struct
+/// For enum Id types, use `#[derive(Id)]` instead.
 ///
-/// Creates a newtype wrapper around an integer with a valid range:
+/// # Example
 ///
 /// ```ignore
 /// define_id! {
@@ -69,22 +71,6 @@ pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// The range bound determines valid values. Inclusive (`..=`) and exclusive (`..`)
 /// ranges are both supported.
 ///
-/// # Enum
-///
-/// Creates an enum with sequential discriminants:
-///
-/// ```ignore
-/// define_id! {
-///     pub enum TargetId {
-///         Interpreter,
-///         Postgres,
-///         Embedding,
-///     }
-/// }
-/// ```
-///
-/// The backing integer type is inferred from the number of variants.
-///
 /// # Attributes
 ///
 /// Placed inside an `#[id(...)]` annotation on the item:
@@ -93,25 +79,20 @@ pub fn id(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// - `const` — add `const` to trait impl blocks
 /// - `derive(Step)` — implement [`core::iter::Step`]
 /// - `display = "format"` — implement [`Display`] with a format string
-/// - `display = "auto"` — implement [`Display`] using the inner value (struct) or lowercased
-///   variant names (enum)
 /// - `display = !` — suppress the [`Display`] implementation
+///
+/// By default, a [`Display`] implementation is generated using the inner value.
 ///
 /// # Generated items
 ///
-/// For both shapes, the macro generates:
 /// - [`Id`] trait implementation
 /// - [`HasId`] trait implementation
 /// - [`TryFrom<u32>`], [`TryFrom<u64>`], [`TryFrom<usize>`] implementations
 /// - [`Debug`] and (by default) [`Display`] implementations
-///
-/// Struct-specific: `new`, `new_unchecked` constructors.
-///
-/// Enum-specific: `VARIANT_COUNT`, `all`, `try_from_discriminant`,
-/// `from_discriminant`, `from_discriminant_unchecked`, `into_discriminant`.
+/// - `new`, `new_unchecked` constructors
 #[proc_macro]
 pub fn define_id(item: TokenStream) -> TokenStream {
-    id::expand(TokenStream::new().into(), item.into()).into()
+    id::expand_define(item.into()).into()
 }
 
 /// Generates a pre-interned symbol table.

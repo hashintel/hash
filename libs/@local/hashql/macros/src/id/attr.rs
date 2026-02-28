@@ -54,10 +54,7 @@ impl Attributes {
         }
     }
 
-    pub(crate) fn parse(
-        additional: Vec<grammar::IdAttribute>,
-        attributes: Vec<Attribute<AttributeBody>>,
-    ) -> Self {
+    pub(crate) fn parse(attributes: Vec<Attribute<AttributeBody>>) -> Self {
         let mut this = Self {
             krate: quote!(::hashql_core),
             r#const: TokenStream::new(),
@@ -65,10 +62,6 @@ impl Attributes {
             traits: BTreeSet::new(),
             extra: TokenStream::new(),
         };
-
-        for attribute in additional {
-            this.parse_attribute(attribute);
-        }
 
         for attribute in attributes {
             match attribute.body.content {

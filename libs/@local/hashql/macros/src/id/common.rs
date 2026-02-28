@@ -1,3 +1,5 @@
+use core::fmt;
+
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 
@@ -18,6 +20,18 @@ impl IntegerScalar {
             0x1_0000..=0xFFFF_FFFF => Self::U32,
             _ => Self::U64,
         }
+    }
+}
+
+impl fmt::Display for IntegerScalar {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::U8 => "u8",
+            Self::U16 => "u16",
+            Self::U32 => "u32",
+            Self::U64 => "u64",
+            Self::U128 => "u128",
+        })
     }
 }
 
