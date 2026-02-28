@@ -20,10 +20,10 @@
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/node": "22.18.13",
-    "@vitest/coverage-istanbul": "3.2.4",
+    "@vitest/coverage-istanbul": "4.0.18",
     "eslint": "9.39.3",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "4.0.18"
   }
 }
