@@ -4,7 +4,6 @@
 #![feature(
     // Language Features
     coverage_attribute,
-    if_let_guard,
 
     // Library Features
     duration_millis_float,
