@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.8",
+  "version": "1.0.0",
   "description": "A visual editor for Petri nets",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
