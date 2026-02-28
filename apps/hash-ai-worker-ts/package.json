@@ -42,8 +42,8 @@
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/bedrock-sdk": "0.26.3",
-    "@anthropic-ai/sdk": "0.74.0",
+    "@anthropic-ai/bedrock-sdk": "0.26.4",
+    "@anthropic-ai/sdk": "0.78.0",
     "@apps/hash-graph": "workspace:*",
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
