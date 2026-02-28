@@ -137,7 +137,7 @@ criterion                          = { version = "0.8.0", default-features = fal
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
-deadpool                           = { version = "0.12.3", default-features = false }
+deadpool                           = { version = "0.13.0", default-features = false }
 deadpool-postgres                  = { version = "0.14.1", default-features = false }
 derive-where                       = { version = "1.6.0", default-features = false, features = ["nightly"] }
 derive_more                        = { version = "2.0.1", default-features = false }
