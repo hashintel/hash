@@ -319,7 +319,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # use hashql_core::graph::LinkedGraph;
     /// # use hashql_core::id::{Id, IdVec};
     /// #
-    /// # hashql_core::id::newtype!(struct MyId(usize is 0..=usize::MAX));
+    /// # hashql_core::id::newtype!(struct MyId(u32 is 0..=u32::MAX));
     /// #
     /// let mut items: IdVec<MyId, &str> = IdVec::new();
     /// items.push("first");

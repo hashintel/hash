@@ -149,7 +149,7 @@ where
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
 /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
 /// # struct Value {
@@ -239,7 +239,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct TypeId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct TypeInfo {
@@ -270,7 +270,7 @@ where
     /// Use case for compiler type systems:
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct TypeId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     /// # enum PrimitiveType { I32, I64, F32, F64, Bool, String }
@@ -392,7 +392,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {
@@ -434,7 +434,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {
@@ -523,7 +523,7 @@ where
     /// Creating a self-referential linked list node:
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct NodeId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     /// # struct PartialNode { value: i32, next: Option<NodeId> }
@@ -583,7 +583,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {
@@ -628,7 +628,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {
@@ -672,7 +672,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {
@@ -726,7 +726,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
     /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
     /// # struct Value {

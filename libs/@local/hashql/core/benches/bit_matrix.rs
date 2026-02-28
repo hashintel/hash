@@ -10,7 +10,7 @@ use hashql_core::id::{
     newtype,
 };
 
-newtype!(struct BenchId(u32 is 0..=u32::MAX));
+newtype!(struct BenchId(u64 is 0..=u64::MAX));
 
 // =============================================================================
 // Dense BitMatrix

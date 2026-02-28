@@ -166,7 +166,7 @@ pub trait Id:
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::{HasId, Id}, newtype};
+/// # use hashql_core::id::{HasId, Id, newtype};
 /// # newtype!(struct UserId(u32 is 0..=100));
 /// struct User {
 ///     id: UserId,
@@ -219,7 +219,7 @@ where
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::IdProducer, newtype};
+/// # use hashql_core::id::{IdProducer, newtype};
 /// # newtype!(struct NodeId(u32 is 0..=1000));
 /// let producer = IdProducer::<NodeId>::new();
 /// let id1 = producer.next();
@@ -280,7 +280,7 @@ impl<I> Default for IdProducer<I> {
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::IdCounter, newtype};
+/// # use hashql_core::id::{IdCounter, newtype};
 /// # newtype!(struct NodeId(u32 is 0..=1000));
 /// let mut counter = IdCounter::<NodeId>::new();
 /// let id1 = counter.next();
@@ -364,7 +364,7 @@ where
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{newtype, newtype_producer};
+/// # use hashql_core::id::{newtype, newtype_producer};
 /// # newtype!(struct NodeId(u32 is 0..=1000));
 /// newtype_producer!(pub struct NodeIdProducer(NodeId));
 /// ```
@@ -380,7 +380,7 @@ macro_rules! newtype_producer {
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{newtype, newtype_counter};
+/// # use hashql_core::id::{newtype, newtype_counter};
 /// # newtype!(struct NodeId(u32 is 0..=1000));
 /// newtype_counter!(pub struct NodeIdCounter(NodeId));
 /// ```
@@ -413,7 +413,7 @@ macro_rules! newtype_counter {
 /// ```
 /// # #![feature(allocator_api, macro_metavar_expr_concat)]
 /// # extern crate alloc;
-/// # use hashql_core::{newtype, newtype_collections};
+/// # use hashql_core::id::{newtype, newtype_collections};
 /// # newtype!(struct NodeId(u32 is 0..=1000));
 /// newtype_collections!(pub type Node* from NodeId);
 /// // Creates: NodeSlice, NodeVec, NodeUnionFind, NodeSet, NodeMap, etc.

@@ -66,7 +66,11 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Supported backing types: `u8`, `u16`, `u32`, `u64`, `u128`.
+/// Supported backing types: `u8`, `u16`, `u32`, `u64`, `u128`. `usize` is
+/// intentionally excluded: proc macros are compiled for and run on the host,
+/// so they cannot determine the target's pointer width. This makes it
+/// impossible to select the correct widening cast for range assertions during
+/// cross-compilation.
 ///
 /// The range bound determines valid values. Inclusive (`..=`) and exclusive (`..`)
 /// ranges are both supported.
@@ -86,7 +90,7 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// # Generated items
 ///
 /// - [`Id`] trait implementation
-/// - [`HasId`] trait implementation
+/// - `HasId` trait implementation
 /// - [`TryFrom<u32>`], [`TryFrom<u64>`], [`TryFrom<usize>`] implementations
 /// - [`Debug`] and (by default) [`Display`] implementations
 /// - `new`, `new_unchecked` constructors
@@ -101,7 +105,7 @@ pub fn define_id(item: TokenStream) -> TokenStream {
 ///
 /// 1. `SYMBOLS` — a static slice of string values for interner pre-population
 /// 2. Symbol constants — `Symbol<'static>` constants with companion `ConstantSymbol` modules
-/// 3. `LOOKUP` — a static slice mapping string values to their [`Repr`] for fast lookup
+/// 3. `LOOKUP` — a static slice mapping string values to their `Repr` for fast lookup
 ///
 /// # Syntax
 ///

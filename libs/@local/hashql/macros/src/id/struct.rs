@@ -135,6 +135,20 @@ pub(super) fn expand_struct(
     let min = &constraint.min;
     let max = &constraint.max;
 
+    let max_value = match constraint.kind {
+        RangeKind::Inclusive => quote! { #max },
+        RangeKind::Exclusive => quote! { #max - 1 },
+    };
+
+    let range_assertion = match constraint.kind {
+        RangeKind::Inclusive => quote! {
+            const _: () = assert!((#min as #scalar) <= (#max as #scalar), "inclusive range requires min <= max");
+        },
+        RangeKind::Exclusive => quote! {
+            const _: () = assert!((#min as #scalar) < (#max as #scalar), "exclusive range requires min < max");
+        },
+    };
+
     let range_end = match constraint.kind {
         RangeKind::Inclusive => format!("{max}]"),
         RangeKind::Exclusive => format!("{max})"),
@@ -179,11 +193,13 @@ pub(super) fn expand_struct(
             }
         }
 
+        #range_assertion
+
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
         impl #konst #krate::id::Id for #name {
             const MIN: Self = Self::new(#min);
-            const MAX: Self = Self::new(#max);
+            const MAX: Self = Self::new(#max_value);
 
             fn from_u32(value: u32) -> Self {
                 #u32_assertion
@@ -270,7 +286,7 @@ pub(super) fn expand_struct(
                         ::core::result::Result::Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,
                             min: #min as u64,
-                            max: #max as u64,
+                            max: (#max_value) as u64,
                         })
                     }
                 }

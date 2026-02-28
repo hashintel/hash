@@ -23,7 +23,7 @@ use crate::heap::{FromIteratorIn, TryCloneIn};
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+/// # use hashql_core::id::{IdVec, Id as _, newtype};
 /// # newtype!(struct UserId(u32 is 0..=0xFFFF_FF00));
 /// let mut users = IdVec::<UserId, String>::new();
 /// let user_id = users.push("Alice".to_string());
@@ -75,7 +75,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// let vec = IdVec::<MyId, i32>::from_elem(42, 5);
     /// assert_eq!(vec.len(), 5);
@@ -165,7 +165,7 @@ where
     ///
     /// ```
     /// # #![feature(allocator_api)]
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// use std::alloc::Global;
     /// let vec = IdVec::<MyId, i32>::from_elem_in(42, 5, Global);
@@ -188,7 +188,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// let domain = IdVec::<MyId, String>::from_elem("x".to_string(), 3);
     /// let vec = IdVec::<MyId, i32>::from_domain(0, &domain);
@@ -288,7 +288,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, String>::new();
     /// let id = vec.push("hello".to_string());
@@ -308,7 +308,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// let mut vec = IdVec::<MyId, String>::new();
     /// let id = vec.push_with(|id| format!("item_{}", id.as_u32()));
@@ -353,7 +353,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// let mut vec = IdVec::<MyId, i32>::new();
     /// let value = vec.fill_until(MyId::new(5), || 0);
@@ -442,7 +442,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// vec.insert(MyId::from_usize(5), "hello".to_string());
@@ -463,7 +463,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
     /// # newtype!(struct MyId(u32 is 0..=100));
     /// let mut vec = IdVec::<MyId, Option<String>>::new();
     /// let value = vec.get_or_insert_with(MyId::new(2), || "hello".to_string());
