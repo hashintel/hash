@@ -34,7 +34,6 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    iter,
     ops::{Index, IndexMut},
 };
 
@@ -52,6 +51,7 @@ use hashql_core::{
 
 use super::{
     Cost,
+    block_partitioned_vec::BlockPartitionedVec,
     target::{TargetBitSet, TargetId},
 };
 use crate::{
@@ -238,54 +238,16 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
 /// [`Return`]: TerminatorKind::Return
 /// [`Unreachable`]: TerminatorKind::Unreachable
 #[derive(Debug)]
-pub(crate) struct TerminatorCostVec<A: Allocator = Global> {
-    offsets: Box<BasicBlockSlice<u32>, A>,
-    matrices: Vec<TransMatrix, A>,
-}
+pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BlockPartitionedVec<TransMatrix, A>);
 
-impl<A: Allocator> TerminatorCostVec<A> {
-    #[expect(unsafe_code)]
-    fn compute_offsets(
-        mut iter: impl ExactSizeIterator<Item = u32>,
-        alloc: A,
-    ) -> (Box<BasicBlockSlice<u32>, A>, usize) {
-        let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc);
-        let mut running_offset = 0_u32;
-
-        offsets[0].write(0);
-
-        let (_, rest) = offsets[1..].write_iter(iter::from_fn(|| {
-            let successor_count = iter.next()?;
-            running_offset += successor_count;
-            Some(running_offset)
-        }));
-
-        debug_assert!(rest.is_empty());
-        debug_assert_eq!(iter.len(), 0);
-
-        // SAFETY: All elements initialized by write_iter loop.
-        let offsets = unsafe { offsets.assume_init() };
-        let offsets = BasicBlockSlice::from_boxed_slice(offsets);
-
-        (offsets, running_offset as usize)
-    }
-
-    fn from_successor_counts(iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self
-    where
-        A: Clone,
-    {
-        let (offsets, total_edges) = Self::compute_offsets(iter, alloc.clone());
-        let matrices = alloc::vec::from_elem_in(TransMatrix::new(), total_edges, alloc);
-
-        Self { offsets, matrices }
-    }
-
+impl<A: Allocator + Clone> TerminatorCostVec<A> {
     /// Creates a cost vector sized for `blocks`, with all transitions initially disallowed.
-    pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self
-    where
-        A: Clone,
-    {
-        Self::from_successor_counts(blocks.iter().map(Self::successor_count), alloc)
+    pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self {
+        Self(BlockPartitionedVec::new(
+            blocks.iter().map(|block| Self::successor_count(block)),
+            TransMatrix::new(),
+            alloc,
+        ))
     }
 
     #[expect(clippy::cast_possible_truncation)]
@@ -296,25 +258,27 @@ impl<A: Allocator> TerminatorCostVec<A> {
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => 0,
         }
     }
+}
 
+impl<A: Allocator> TerminatorCostVec<A> {
     pub(crate) const fn len(&self) -> usize {
-        self.matrices.len()
+        self.0.len()
+    }
+
+    /// Returns the number of blocks in the partition.
+    #[cfg(test)]
+    pub(crate) fn block_count(&self) -> usize {
+        self.0.block_count()
     }
 
     /// Returns the transition matrices for all successor edges of `block`.
     pub(crate) fn of(&self, block: BasicBlockId) -> &[TransMatrix] {
-        let start = self.offsets[block] as usize;
-        let end = self.offsets[block.plus(1)] as usize;
-
-        &self.matrices[start..end]
+        self.0.of(block)
     }
 
     /// Returns mutable transition matrices for all successor edges of `block`.
     pub(crate) fn of_mut(&mut self, block: BasicBlockId) -> &mut [TransMatrix] {
-        let start = self.offsets[block] as usize;
-        let end = self.offsets[block.plus(1)] as usize;
-
-        &mut self.matrices[start..end]
+        self.0.of_mut(block)
     }
 }
 

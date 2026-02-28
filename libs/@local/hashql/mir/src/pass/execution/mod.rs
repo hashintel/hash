@@ -7,15 +7,16 @@ macro_rules! cost {
 #[cfg(test)]
 mod tests;
 
+mod block_partitioned_vec;
 mod cost;
 mod fusion;
 mod island;
 mod placement;
 mod splitting;
 mod statement_placement;
-pub mod storage;
 mod target;
 mod terminator_placement;
+pub mod traversal;
 mod vertex;
 
 use core::{alloc::Allocator, assert_matches};

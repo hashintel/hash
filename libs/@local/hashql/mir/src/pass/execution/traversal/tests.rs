@@ -8,7 +8,7 @@ use crate::{
         local::Local,
         place::{Projection, ProjectionKind},
     },
-    pass::execution::storage::EntityPath,
+    pass::execution::traversal::EntityPath,
 };
 
 /// Helper to create a `FieldByName` projection.
