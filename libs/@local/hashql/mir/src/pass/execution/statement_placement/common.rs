@@ -324,9 +324,9 @@ where
 
 /// Determines which backend can access an entity field projection.
 ///
-/// Walks the projection path through the entity schema trie to determine whether the field is
-/// stored in Postgres (as a column or JSONB path) or in the embedding store. Returns `None` if
-/// the path doesn't map to any supported backend storage.
+/// Walks the projection path through the entity schema to determine whether the field is stored in
+/// Postgres (as a column or JSONB path) or in the embedding store. Returns `None` if the path
+/// doesn't map to any supported backend storage.
 ///
 /// For example:
 /// - `entity.properties.foo` → `Some(Access::Postgres(Direct))` (JSONB)
