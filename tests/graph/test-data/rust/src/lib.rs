@@ -9,7 +9,6 @@
 
     // Library Features
     unwrap_infallible,
-    assert_matches,
 )]
 
 extern crate alloc;

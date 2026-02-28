@@ -211,11 +211,11 @@ mod tests {
                     .enumerate()
                     .find(|(_, diff)| **diff == expected)
                     .unwrap_or_else(|| {
-                        panic!("unexpected diff found: {expected:#?}\n\nactual: {diff:#?}",)
+                        panic!("unexpected diff found: {expected:#?}\n\nactual: {diff:#?}")
                     });
                 diff.remove(idx);
             }
-            assert!(diff.is_empty(), "missing diffs: {diff:#?}",);
+            assert!(diff.is_empty(), "missing diffs: {diff:#?}");
         }
 
         fn create_base_url(property: usize) -> BaseUrl {

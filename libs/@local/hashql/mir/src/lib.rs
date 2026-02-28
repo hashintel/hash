@@ -7,7 +7,6 @@
     associated_type_defaults,
     coverage_attribute,
     exhaustive_patterns,
-    if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
     never_type,
@@ -15,7 +14,6 @@
 
     // Library Features
     allocator_api,
-    assert_matches,
     binary_heap_drain_sorted,
     clone_from_ref,
     const_type_name,
