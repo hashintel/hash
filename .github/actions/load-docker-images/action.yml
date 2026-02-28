@@ -48,28 +48,28 @@ runs:
 
     - name: Download hash-graph image
       if: inputs.hash-graph == 'true'
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
       with:
         name: hash-graph
         path: /tmp
 
     - name: Download hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
       with:
         name: hash-ai-worker-ts
         path: /tmp
 
     - name: Download hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
       with:
         name: hash-integration-worker
         path: /tmp
 
     - name: Download hash-api image
       if: inputs.hash-api == 'true'
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
       with:
         name: hash-api
         path: /tmp
