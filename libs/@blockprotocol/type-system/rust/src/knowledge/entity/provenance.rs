@@ -99,6 +99,8 @@ pub struct InferredEntityProvenance {
 /// Manual [`ToSchema`] implementation because utoipa's derive macro cannot correctly represent
 /// `#[serde(flatten)]` on `Option<EntityDeletionProvenance>`: it generates an `allOf` that makes
 /// the deletion fields required. The correct schema lists them as optional properties.
+///
+/// [`ToSchema`]: utoipa::ToSchema
 #[cfg(feature = "utoipa")]
 impl utoipa::ToSchema<'static> for InferredEntityProvenance {
     fn schema() -> (
