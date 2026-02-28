@@ -30,7 +30,7 @@ use crate::{
         execution::{
             Cost,
             cost::{StatementCostVec, TraversalCostVec},
-            storage::{Access, EntityPath},
+            traversal::{Access, EntityPath},
         },
     },
     visit::Visitor,

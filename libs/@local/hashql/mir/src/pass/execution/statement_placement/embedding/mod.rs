@@ -14,7 +14,7 @@ use crate::{
             Cost, VertexType,
             cost::{StatementCostVec, TraversalCostVec},
             statement_placement::common::entity_projection_access,
-            storage::Access,
+            traversal::Access,
         },
         transform::Traversals,
     },
