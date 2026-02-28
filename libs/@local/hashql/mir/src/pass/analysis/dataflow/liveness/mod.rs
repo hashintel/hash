@@ -68,12 +68,15 @@ use crate::{
         Body,
         local::Local,
         location::Location,
-        place::{DefUse, PlaceContext},
+        place::{DefUse, Place, PlaceContext},
         statement::{Assign, Statement, StatementKind},
         terminator::Terminator,
     },
-    pass::transform::Traversals,
-    visit::Visitor,
+    pass::{
+        execution::{VertexType, traversal::EntityPath},
+        transform::Traversals,
+    },
+    visit::{self, Visitor},
 };
 
 /// Traversal-aware liveness analysis.
@@ -163,6 +166,34 @@ impl Visitor<'_> for TraversalTransferFunction<'_> {
         };
 
         Ok(())
+    }
+
+    fn visit_place(
+        &mut self,
+        location: Location,
+        context: PlaceContext,
+        place: &Place<'_>,
+    ) -> Self::Result {
+        let Some(def_use) = context.into_def_use() else {
+            return Ok(());
+        };
+
+        let vertex = VertexType::Entity; // TODO: actually do this properly
+
+        // Check if the place is a vertex, and the vertex type results in a partial result, in that
+        // case we do *not* continue, because it is considered a partial traversal and does not
+        // contribute to the liveness analysis of the partially hydrated entity.
+        if def_use == DefUse::Use
+            && place.local == Local::VERTEX
+            && EntityPath::resolve(&place.projections).is_some()
+        {
+            // This is a *valid* partial traversal, and does therefore not contribute to the full
+            // liveness of the entity. (This is required to ensure that we're not evaluating the
+            // full size of the entity on transition if we don't need it.)
+            return Ok(());
+        }
+
+        visit::r#ref::walk_place(self, location, context, place)
     }
 }
 

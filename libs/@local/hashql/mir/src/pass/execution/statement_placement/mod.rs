@@ -23,14 +23,14 @@ pub(crate) use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::target::{TargetArray, TargetId};
+use super::{
+    target::{TargetArray, TargetId},
+    traversal::Traversals,
+};
 use crate::{
     body::Body,
     context::MirContext,
-    pass::{
-        execution::cost::{StatementCostVec, TraversalCostVec},
-        transform::Traversals,
-    },
+    pass::execution::cost::{StatementCostVec, TraversalCostVec},
 };
 
 /// Computes statement placement costs for a specific execution target.
@@ -55,7 +55,7 @@ pub(crate) trait StatementPlacement<'heap, A: Allocator> {
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        traversals: &Traversals<A>,
         alloc: A,
     ) -> (TraversalCostVec<A>, StatementCostVec<A>);
 }
@@ -91,7 +91,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        traversals: &Traversals<A>,
         alloc: A,
     ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
         match self {

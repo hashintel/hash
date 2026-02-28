@@ -38,6 +38,7 @@ use self::{
     statement_placement::{StatementPlacement as _, TargetPlacementStatement},
     target::TargetArray,
     terminator_placement::TerminatorPlacement,
+    traversal::TraversalAnalysis,
 };
 use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
 use crate::{
@@ -64,11 +65,10 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
     ) {
         assert_matches!(body.source, Source::GraphReadFilter(_));
 
-        let traversals = self
-            .traversals
-            .lookup(body.id)
-            .unwrap_or_else(|| unreachable!());
+        let mut traversals = TraversalAnalysis::traversal_analysis_in(context, body, &self.scratch);
 
+        // TODO: This is no longer fully needed, instead each target array should create a cost
+        // estimation, based on retrieval cost, not(!) size, for each item in the id.
         let mut traversal_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
@@ -79,7 +79,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             let mut statement =
                 TargetPlacementStatement::new_in(target, &traversal_costs, &self.scratch);
             let (traversal_cost, statement_cost) =
-                statement.statement_placement_in(context, body, traversals, &self.scratch);
+                statement.statement_placement_in(context, body, &traversals, &self.scratch);
 
             traversal_costs[target] = Some(traversal_cost);
             statement_costs[target] = Some(statement_cost);
@@ -94,6 +94,9 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             &mut statement_costs,
             &self.scratch,
         );
+
+        // The body has been split (sequentially) and like the statement costs needs to be remapped
+        traversals.remap(&body.basic_blocks);
 
         let terminators = TerminatorPlacement::new_in(InformationRange::full(), &self.scratch);
         let mut terminator_costs = terminators.terminator_placement_in(
