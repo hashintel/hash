@@ -33,7 +33,7 @@
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "eslint": "9.39.3",
-    "eslint-plugin-storybook": "10.2.10",
+    "eslint-plugin-storybook": "10.2.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "7.65.0",
