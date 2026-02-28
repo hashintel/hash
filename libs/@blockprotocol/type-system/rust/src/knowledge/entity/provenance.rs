@@ -83,7 +83,9 @@ pub struct EntityDeletionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+// `deny_unknown_fields` is intentionally absent: serde does not support it together with
+// `#[serde(flatten)]` (https://serde.rs/container-attrs.html#deny_unknown_fields).
+#[serde(rename_all = "camelCase")]
 pub struct InferredEntityProvenance {
     pub created_by_id: ActorEntityUuid,
     pub created_at_transaction_time: Timestamp<TransactionTime>,
@@ -173,7 +175,9 @@ impl ToSql for InferredEntityProvenance {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+// `deny_unknown_fields` is intentionally absent: serde does not support it together with
+// `#[serde(flatten)]` (https://serde.rs/container-attrs.html#deny_unknown_fields).
+#[serde(rename_all = "camelCase")]
 pub struct EntityProvenance {
     #[serde(flatten)]
     pub inferred: InferredEntityProvenance,
