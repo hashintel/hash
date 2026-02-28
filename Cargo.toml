@@ -106,10 +106,10 @@ type-system.path                    = "libs/@blockprotocol/type-system/rust"
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
 ansi-to-tui                        = { version = "8.0.1" }
-anstream                           = { version = "0.6.21", default-features = false }
+anstream                           = { version = "1.0.0", default-features = false }
 anstyle                            = { version = "1.0.13", default-features = false }
 anstyle-lossy                      = { version = "1.1.4", default-features = false }
-anstyle-svg                        = { version = "0.1.11", default-features = false }
+anstyle-svg                        = { version = "1.0.0", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.8.10" }
 aws-sdk-s3                         = { version = "1.110.0", default-features = false }
