@@ -59,7 +59,7 @@ export const createDataType: ImpureGraphFunction<
   const shortname =
     webShortname ??
     (await getWebShortname(ctx, authentication, {
-      accountOrAccountGroupId: params.webId,
+      accountOrAccountGroupId: webId,
     }));
 
   const { graphApi } = ctx;
@@ -81,7 +81,6 @@ export const createDataType: ImpureGraphFunction<
     authentication.actorId,
     {
       schema,
-      webId,
       provenance: {
         ...ctx.provenance,
         ...params.provenance,
