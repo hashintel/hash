@@ -11,7 +11,7 @@ use crate::{
     context::MirContext,
     pass::execution::{
         Cost, VertexType,
-        cost::{StatementCostVec, TraversalCostVec},
+        cost::StatementCostVec,
         statement_placement::common::entity_projection_access,
         traversal::{Access, Traversals},
     },
@@ -107,16 +107,15 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<A>,
+        _traversals: &Traversals<A>,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
-        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
-        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc);
+    ) -> StatementCostVec<A> {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return (traversal_costs, statement_costs);
+                return statement_costs;
             }
         }
 
@@ -152,12 +151,11 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             cost: self.statement_cost,
 
             statement_costs,
-            traversal_costs,
 
             supported: &EmbeddingSupported,
         };
         visitor.visit_body(body);
 
-        (visitor.traversal_costs, visitor.statement_costs)
+        visitor.statement_costs
     }
 }

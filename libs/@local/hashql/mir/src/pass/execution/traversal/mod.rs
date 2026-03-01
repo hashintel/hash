@@ -44,14 +44,12 @@ impl TraversalPathBitSet {
     #[must_use]
     pub const fn empty(vertex: VertexType) -> Self {
         match vertex {
-            #[expect(clippy::cast_possible_truncation)]
-            VertexType::Entity => Self::Entity(EntityPathBitSet::new_empty(
-                core::mem::variant_count::<EntityPath>() as u32,
-            )),
+            VertexType::Entity => Self::Entity(EntityPathBitSet::new_empty()),
         }
     }
 
     /// Returns the inner [`EntityPathBitSet`] if this is the [`Entity`](Self::Entity) variant.
+    #[inline]
     #[must_use]
     pub const fn as_entity(&self) -> Option<&EntityPathBitSet> {
         match self {
@@ -61,10 +59,39 @@ impl TraversalPathBitSet {
 
     /// Returns a mutable reference to the inner [`EntityPathBitSet`] if this is the
     /// [`Entity`](Self::Entity) variant.
+    #[inline]
     #[must_use]
     pub const fn as_entity_mut(&mut self) -> Option<&mut EntityPathBitSet> {
         match self {
             Self::Entity(bitset) => Some(bitset),
+        }
+    }
+
+    /// Returns `true` if no paths are set.
+    #[inline]
+    #[must_use]
+    pub const fn is_empty(self) -> bool {
+        match self {
+            Self::Entity(bitset) => bitset.is_empty(),
+        }
+    }
+
+    /// Returns the number of paths set.
+    #[inline]
+    #[must_use]
+    pub fn len(self) -> usize {
+        match self {
+            Self::Entity(bitset) => bitset.len(),
+        }
+    }
+
+    /// Inserts a resolved path with composite swallowing.
+    ///
+    /// If an ancestor composite is already present in the set, the insertion is a no-op.
+    /// If the path is a composite, any children already in the set are removed.
+    pub fn insert(&mut self, path: TraversalPath) {
+        match (self, path) {
+            (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.insert(path),
         }
     }
 }

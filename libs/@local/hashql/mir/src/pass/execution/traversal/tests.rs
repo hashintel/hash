@@ -1,4 +1,4 @@
-//! Unit tests for entity projection path lookup.
+//! Unit tests for entity projection path lookup and composite swallowing.
 
 use hashql_core::{symbol::sym, r#type::TypeId};
 
@@ -8,7 +8,7 @@ use crate::{
         local::Local,
         place::{Projection, ProjectionKind},
     },
-    pass::execution::traversal::EntityPath,
+    pass::execution::traversal::{EntityPath, EntityPathBitSet},
 };
 
 /// Helper to create a `FieldByName` projection.
@@ -235,4 +235,132 @@ fn jsonb_index_excludes_subpath() {
         EntityPath::resolve(projections),
         Some((EntityPath::ProvenanceInferred, 3))
     );
+}
+
+// --- Composite swallowing tests ---
+
+fn empty_bitset() -> EntityPathBitSet {
+    EntityPathBitSet::new_empty()
+}
+
+/// Inserting a leaf path into an empty set adds that path.
+#[test]
+fn insert_leaf_into_empty() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+
+    assert!(bitset.contains(EntityPath::WebId));
+    assert!(!bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::RecordId));
+}
+
+/// Inserting a composite removes any children already in the set.
+#[test]
+fn composite_swallows_children() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::EntityUuid);
+    bitset.insert(EntityPath::DraftId);
+
+    assert!(bitset.contains(EntityPath::WebId));
+    assert!(bitset.contains(EntityPath::EntityUuid));
+    assert!(bitset.contains(EntityPath::DraftId));
+
+    bitset.insert(EntityPath::EntityId);
+
+    assert!(bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::WebId));
+    assert!(!bitset.contains(EntityPath::EntityUuid));
+    assert!(!bitset.contains(EntityPath::DraftId));
+}
+
+/// Inserting a child when its ancestor composite is already present is a no-op.
+#[test]
+fn child_suppressed_by_ancestor() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::RecordId);
+
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::EntityId);
+    bitset.insert(EntityPath::EditionId);
+
+    assert!(bitset.contains(EntityPath::RecordId));
+    assert!(!bitset.contains(EntityPath::WebId));
+    assert!(!bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::EditionId));
+}
+
+/// A grandparent composite suppresses grandchildren.
+#[test]
+fn grandparent_suppresses_grandchild() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::RecordId);
+
+    // WebId is a grandchild of RecordId (through EntityId)
+    bitset.insert(EntityPath::WebId);
+
+    assert!(bitset.contains(EntityPath::RecordId));
+    assert!(!bitset.contains(EntityPath::WebId));
+}
+
+/// Inserting a top-level composite swallows the entire subtree.
+#[test]
+fn record_id_swallows_entire_subtree() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::EntityUuid);
+    bitset.insert(EntityPath::EditionId);
+
+    bitset.insert(EntityPath::RecordId);
+
+    assert!(bitset.contains(EntityPath::RecordId));
+    assert!(!bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::WebId));
+    assert!(!bitset.contains(EntityPath::EntityUuid));
+    assert!(!bitset.contains(EntityPath::DraftId));
+    assert!(!bitset.contains(EntityPath::EditionId));
+}
+
+/// `TemporalVersioning` swallows `DecisionTime` and `TransactionTime`.
+#[test]
+fn temporal_versioning_swallows_children() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::DecisionTime);
+    bitset.insert(EntityPath::TransactionTime);
+
+    bitset.insert(EntityPath::TemporalVersioning);
+
+    assert!(bitset.contains(EntityPath::TemporalVersioning));
+    assert!(!bitset.contains(EntityPath::DecisionTime));
+    assert!(!bitset.contains(EntityPath::TransactionTime));
+}
+
+/// Non-composite paths are unaffected by each other.
+#[test]
+fn independent_leaves_coexist() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::Properties);
+    bitset.insert(EntityPath::Archived);
+    bitset.insert(EntityPath::Vectors);
+
+    assert!(bitset.contains(EntityPath::Properties));
+    assert!(bitset.contains(EntityPath::Archived));
+    assert!(bitset.contains(EntityPath::Vectors));
+}
+
+/// Inserting `EntityId` into a set with `WebId` swallows `WebId`, but unrelated paths remain.
+#[test]
+fn swallow_selective() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::Properties);
+    bitset.insert(EntityPath::DecisionTime);
+
+    bitset.insert(EntityPath::EntityId);
+
+    assert!(bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::WebId));
+    // Unrelated paths untouched
+    assert!(bitset.contains(EntityPath::Properties));
+    assert!(bitset.contains(EntityPath::DecisionTime));
 }
