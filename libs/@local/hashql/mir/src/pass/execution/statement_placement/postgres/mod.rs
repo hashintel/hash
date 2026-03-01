@@ -31,7 +31,7 @@ use crate::{
         VertexType,
         cost::{Cost, StatementCostVec},
         statement_placement::common::entity_projection_access,
-        traversal::{Access, Traversals},
+        traversal::Access,
     },
     visit::Visitor as _,
 };
@@ -343,13 +343,7 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
     /// any other local (falls through to the regular domain check).
     ///
     /// [`GraphReadFilter`]: Source::GraphReadFilter
-    fn is_supported_place_graph_read_filter(
-        &self,
-        context: &MirContext<'_, 'heap>,
-        body: &Body<'heap>,
-
-        place: &Place<'heap>,
-    ) -> Option<bool> {
+    fn is_supported_place_graph_read_filter(&self, place: &Place<'heap>) -> Option<bool> {
         match place.local {
             Local::ENV => {
                 // The environment projections depend on the first projection, because that
@@ -382,7 +376,7 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
 
     fn is_supported_place(
         &self,
-        context: &MirContext<'_, 'heap>,
+        _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
         place: &Place<'heap>,
@@ -391,7 +385,7 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
         // env fields are checked against env_domain, vertex projections against entity
         // field access. Other locals fall through to the regular domain check.
         if matches!(body.source, Source::GraphReadFilter(_))
-            && let Some(result) = self.is_supported_place_graph_read_filter(context, body, place)
+            && let Some(result) = self.is_supported_place_graph_read_filter(place)
         {
             return result;
         }

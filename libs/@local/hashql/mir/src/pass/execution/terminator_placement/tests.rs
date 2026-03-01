@@ -31,7 +31,7 @@ use crate::{
     context::MirContext,
     intern::Interner,
     pass::{
-        analysis::size_estimation::{BodyFootprint, Footprint, InformationRange},
+        analysis::size_estimation::{BodyFootprint, Footprint, InformationRange, InformationUnit},
         execution::{
             VertexType,
             target::{TargetBitSet, TargetId},
@@ -695,6 +695,61 @@ fn path_cost_from_inferred_provenance() {
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
         Some(cost!(4))
+    );
+}
+
+/// Transfer cost sums both live locals and live entity paths.
+///
+/// A scalar local (`live`) costs 1. Two entity paths (`ProvenanceEdition` at 3..=20
+/// and `Properties` at 10..=10) sum to 13..=30, midpoint 21. Total = 1 + 21 = 22.
+#[test]
+fn transfer_cost_combines_locals_and_paths() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], live: Int, val1: ?, val2: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              edition = prov.edition: ?,
+              props = vertex.properties: ?;
+
+        bb0() {
+            live = load 42;
+            goto bb1();
+        },
+        bb1() {
+            val1 = load edition;
+            val2 = load props;
+            return live;
+        }
+    });
+
+    let targets = [
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+    ];
+
+    let footprint = make_scalar_footprint(&body, &heap);
+    let placement = TerminatorPlacement::new_in(
+        TransferCostConfig::new(InformationRange::value(InformationUnit::new(10))),
+        Global,
+    );
+    let costs = placement.terminator_placement(
+        &body,
+        VertexType::Entity,
+        &footprint,
+        build_targets(&body, &targets),
+    );
+
+    // local_cost: `live` scalar = 1
+    // path_cost: Properties(10..=10) + ProvenanceEdition(3..=20) = 13..=30, midpoint(13, 30) = 21
+    // total = 1 + 21 = 22
+    let matrix = costs.of(BasicBlockId::new(0))[0];
+    assert_eq!(
+        matrix.get(TargetId::Postgres, TargetId::Interpreter),
+        Some(cost!(22))
     );
 }
 

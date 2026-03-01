@@ -92,7 +92,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        vertex: VertexType,
+        _: VertexType,
         alloc: A,
     ) -> StatementCostVec<A> {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);

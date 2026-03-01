@@ -58,7 +58,7 @@ fn binary_unary_ops_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -98,7 +98,7 @@ fn aggregate_tuple_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -141,7 +141,7 @@ fn aggregate_closure_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -187,7 +187,7 @@ fn apply_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -226,7 +226,7 @@ fn input_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -267,7 +267,7 @@ fn env_with_closure_type_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -307,7 +307,7 @@ fn env_without_closure_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -346,7 +346,7 @@ fn entity_projection_column() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -386,7 +386,7 @@ fn entity_projection_jsonb() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -430,7 +430,7 @@ fn storage_statements_zero_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -492,7 +492,7 @@ fn diamond_must_analysis() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -609,7 +609,7 @@ fn env_closure_field_rejected_other_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -649,7 +649,7 @@ fn env_dict_non_string_key_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -688,7 +688,7 @@ fn env_dict_string_key_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -731,7 +731,7 @@ fn env_dict_opaque_string_key_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -800,7 +800,7 @@ fn fnptr_constant_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -845,7 +845,7 @@ fn eq_dict_vs_struct_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -890,7 +890,7 @@ fn eq_list_vs_tuple_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -935,7 +935,7 @@ fn eq_unknown_type_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -980,7 +980,7 @@ fn eq_same_type_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -1025,7 +1025,7 @@ fn ne_dict_vs_struct_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -1599,7 +1599,7 @@ fn eq_place_vs_constant_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -2134,7 +2134,7 @@ fn serialization_unsafe_statement_no_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -2188,7 +2188,7 @@ fn serialization_unsafe_edge_propagates() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
