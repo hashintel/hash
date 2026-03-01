@@ -31,13 +31,9 @@ pub use self::{
     vertex::VertexType,
 };
 use self::{
-    fusion::BasicBlockFusion,
-    island::IslandPlacement,
-    placement::{ArcConsistency, PlacementSolverContext},
     splitting::BasicBlockSplitting,
     statement_placement::{StatementPlacement as _, TargetPlacementStatement},
     target::TargetArray,
-    terminator_placement::TerminatorPlacement,
     traversal::TraversalAnalysis,
 };
 use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
@@ -45,7 +41,6 @@ use crate::{
     body::{Body, Source, basic_block::BasicBlockVec},
     context::MirContext,
     def::DefIdSlice,
-    pass::analysis::size_estimation::InformationRange,
 };
 
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
@@ -67,28 +62,23 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
 
         let mut traversals = TraversalAnalysis::traversal_analysis_in(context, body, &self.scratch);
 
-        // TODO: This is no longer fully needed, instead each target array should create a cost
-        // estimation, based on retrieval cost, not(!) size, for each item in the id.
-        let mut traversal_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
         let mut targets = TargetId::all();
         targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
 
         for target in targets {
-            let mut statement =
-                TargetPlacementStatement::new_in(target, &traversal_costs, &self.scratch);
-            let (traversal_cost, statement_cost) =
+            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
+            let statement_cost =
                 statement.statement_placement_in(context, body, &traversals, &self.scratch);
 
-            traversal_costs[target] = Some(traversal_cost);
             statement_costs[target] = Some(statement_cost);
         }
 
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
-        let mut possibilities = BasicBlockSplitting::new_in(&self.scratch).split_in(
+        let _possibilities = BasicBlockSplitting::new_in(&self.scratch).split_in(
             context,
             body,
             &mut statement_costs,
@@ -98,35 +88,38 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         // The body has been split (sequentially) and like the statement costs needs to be remapped
         traversals.remap(&body.basic_blocks);
 
-        let terminators = TerminatorPlacement::new_in(InformationRange::full(), &self.scratch);
-        let mut terminator_costs = terminators.terminator_placement_in(
-            body,
-            &self.footprints[body.id],
-            traversals,
-            &possibilities,
-            &self.scratch,
-        );
+        todo!()
 
-        ArcConsistency {
-            blocks: &mut possibilities,
-            terminators: &mut terminator_costs,
-        }
-        .run_in(body, &self.scratch);
+        // let terminators = TerminatorPlacement::new_in(InformationRange::full(), &self.scratch);
+        // let mut terminator_costs = terminators.terminator_placement_in(
+        //     body,
+        //     &self.footprints[body.id],
+        //     traversals,
+        //     &possibilities,
+        //     &self.scratch,
+        // );
 
-        let mut solver = PlacementSolverContext {
-            assignment: &possibilities,
-            statements: &statement_costs,
-            terminators: &terminator_costs,
-        }
-        .build_in(body, &self.scratch);
+        // ArcConsistency {
+        //     blocks: &mut possibilities,
+        //     terminators: &mut terminator_costs,
+        // }
+        // .run_in(body, &self.scratch);
 
-        let mut assignment = solver.run(context, body);
+        // let mut solver = PlacementSolverContext {
+        //     assignment: &possibilities,
+        //     statements: &statement_costs,
+        //     terminators: &terminator_costs,
+        // }
+        // .build_in(body, &self.scratch);
 
-        let fusion = BasicBlockFusion::new_in(&self.scratch);
-        fusion.fuse(body, &mut assignment);
+        // let mut assignment = solver.run(context, body);
 
-        let islands = IslandPlacement::new_in(&self.scratch).run(body, &assignment, context.heap);
+        // let fusion = BasicBlockFusion::new_in(&self.scratch);
+        // fusion.fuse(body, &mut assignment);
 
-        (assignment, islands)
+        // let islands = IslandPlacement::new_in(&self.scratch).run(body, &assignment,
+        // context.heap);
+
+        // (assignment, islands)
     }
 }

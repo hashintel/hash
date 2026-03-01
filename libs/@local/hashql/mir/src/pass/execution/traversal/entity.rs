@@ -99,8 +99,6 @@ const _: () = {
     );
 };
 
-pub type EntityPathBitSet = FiniteBitSet<EntityPath, FiniteBitSetWidth>;
-
 impl EntityPath {
     #[must_use]
     pub fn resolve(projections: &[Projection<'_>]) -> Option<(Self, usize)> {
@@ -140,6 +138,78 @@ impl EntityPath {
         }
     }
 
+    /// Returns the transitive children of this path in the composite hierarchy.
+    ///
+    /// Composites cover their children: [`RecordId`](Self::RecordId) covers
+    /// [`EntityId`](Self::EntityId) and all of its children, plus [`EditionId`](Self::EditionId).
+    /// Leaf paths return an empty slice.
+    const fn children(self) -> &'static [Self] {
+        match self {
+            Self::RecordId => &[
+                Self::EntityId,
+                Self::WebId,
+                Self::EntityUuid,
+                Self::DraftId,
+                Self::EditionId,
+            ],
+            Self::EntityId => &[Self::WebId, Self::EntityUuid, Self::DraftId],
+            Self::TemporalVersioning => &[Self::DecisionTime, Self::TransactionTime],
+            Self::Properties
+            | Self::Vectors
+            | Self::WebId
+            | Self::EntityUuid
+            | Self::DraftId
+            | Self::EditionId
+            | Self::DecisionTime
+            | Self::TransactionTime
+            | Self::EntityTypeIds
+            | Self::Archived
+            | Self::Confidence
+            | Self::ProvenanceInferred
+            | Self::ProvenanceEdition
+            | Self::PropertyMetadata
+            | Self::LeftEntityWebId
+            | Self::LeftEntityUuid
+            | Self::RightEntityWebId
+            | Self::RightEntityUuid
+            | Self::LeftEntityConfidence
+            | Self::RightEntityConfidence
+            | Self::LeftEntityProvenance
+            | Self::RightEntityProvenance => &[],
+        }
+    }
+
+    /// Returns the ancestor composites of this path, nearest first.
+    ///
+    /// For example, [`WebId`](Self::WebId) has ancestors
+    /// [`EntityId`](Self::EntityId) and [`RecordId`](Self::RecordId).
+    /// Top-level paths return an empty slice.
+    const fn ancestors(self) -> &'static [Self] {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId => &[Self::EntityId, Self::RecordId],
+            Self::EntityId | Self::EditionId => &[Self::RecordId],
+            Self::DecisionTime | Self::TransactionTime => &[Self::TemporalVersioning],
+            Self::Properties
+            | Self::Vectors
+            | Self::RecordId
+            | Self::TemporalVersioning
+            | Self::EntityTypeIds
+            | Self::Archived
+            | Self::Confidence
+            | Self::ProvenanceInferred
+            | Self::ProvenanceEdition
+            | Self::PropertyMetadata
+            | Self::LeftEntityWebId
+            | Self::LeftEntityUuid
+            | Self::RightEntityWebId
+            | Self::RightEntityUuid
+            | Self::LeftEntityConfidence
+            | Self::RightEntityConfidence
+            | Self::LeftEntityProvenance
+            | Self::RightEntityProvenance => &[],
+        }
+    }
+
     const fn is_jsonb(self) -> bool {
         matches!(
             self,
@@ -150,6 +220,90 @@ impl EntityPath {
                 | Self::LeftEntityProvenance
                 | Self::RightEntityProvenance
         )
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct EntityPathBitSet(FiniteBitSet<EntityPath, FiniteBitSetWidth>);
+
+impl EntityPathBitSet {
+    #[expect(clippy::cast_possible_truncation)]
+    #[must_use]
+    pub const fn new_empty() -> Self {
+        Self(FiniteBitSet::new_empty(
+            core::mem::variant_count::<EntityPath>() as u32,
+        ))
+    }
+
+    /// Inserts this path into `bitset` with composite swallowing.
+    ///
+    /// If an ancestor composite is already present, the insertion is a no-op (the ancestor
+    /// already implies this path). If this path is a composite, any children already in the
+    /// set are removed (the composite subsumes them).
+    pub(crate) fn insert(&mut self, path: EntityPath) {
+        for &ancestor in path.ancestors() {
+            if self.0.contains(ancestor) {
+                return;
+            }
+        }
+
+        self.0.insert(path);
+
+        for &child in path.children() {
+            self.0.remove(child);
+        }
+    }
+
+    pub(crate) fn insert_all(&mut self) {
+        const HAS_ANCESTOR_COUNT: usize = {
+            let mut count = 0;
+            let mut index = 0;
+            let paths = EntityPath::all();
+
+            while index < paths.len() {
+                if !paths[index].ancestors().is_empty() {
+                    count += 1;
+                }
+
+                index += 1;
+            }
+
+            count
+        };
+
+        const HAS_ANCESTORS: [EntityPath; HAS_ANCESTOR_COUNT] = {
+            let mut out = [EntityPath::Archived; HAS_ANCESTOR_COUNT];
+
+            let mut index = 0;
+            let mut ptr = 0;
+            let paths = EntityPath::all();
+
+            while ptr < paths.len() {
+                if !paths[ptr].ancestors().is_empty() {
+                    out[index] = paths[ptr];
+                    index += 1;
+                }
+
+                ptr += 1;
+            }
+
+            out
+        };
+
+        self.0.insert_range(..);
+
+        for path in HAS_ANCESTORS {
+            self.0.remove(path);
+        }
+    }
+}
+
+impl const core::ops::Deref for EntityPathBitSet {
+    type Target = FiniteBitSet<EntityPath, FiniteBitSetWidth>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
