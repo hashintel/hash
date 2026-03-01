@@ -1,4 +1,4 @@
-use core::debug_assert_matches;
+use core::{debug_assert_matches, num::NonZero, ops::Bound};
 
 use hashql_core::{
     id::{
@@ -14,7 +14,10 @@ use super::{
 };
 use crate::{
     body::place::{Projection, ProjectionKind},
-    pass::analysis::dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
+    pass::analysis::{
+        dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
+        size_estimation::{InformationRange, InformationUnit},
+    },
 };
 
 macro_rules! sym {
@@ -101,6 +104,63 @@ pub enum EntityPath {
     /// `link_data.right_entity_provenance` — JSONB in `entity_edge.provenance` (via
     /// `entity_has_right_entity`).
     RightEntityProvenance,
+}
+
+/// Configuration for entity field transfer cost estimation.
+///
+/// Separates the variable-size components (properties, embeddings, provenance) from the
+/// fixed-size schema fields. The fixed costs (UUIDs, timestamps, scalars) are constants on
+/// [`EntityPath::transfer_size`]; this config provides the values that vary per entity type
+/// or deployment.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct TransferCostConfig {
+    /// Size of the entity's properties (the `T` parameter in `Entity<T>`).
+    pub properties_size: InformationRange,
+    /// Size of a single embedding vector.
+    pub embedding_size: InformationRange,
+    /// Size of `EntityEditionProvenance` JSONB (`entity_editions.provenance`).
+    ///
+    /// Variable structure: `created_by_id` + optional `archived_by_id` + `actor_type` +
+    /// `OriginProvenance` (tag + optional strings) + `Vec<SourceProvenance>` (typically 0-2
+    /// items, each with optional entity ID, authors, location, and timestamps).
+    pub edition_provenance_size: InformationRange,
+    /// Size of `PropertyProvenance` JSONB on entity edges (`entity_edge.provenance`).
+    ///
+    /// Just `Vec<SourceProvenance>`. Incoming edges are always empty; outgoing edges
+    /// carry the caller-provided provenance, typically 0-1 sources.
+    pub edge_provenance_size: InformationRange,
+    /// Divisor for estimating property metadata size from properties size.
+    ///
+    /// Property metadata stores per-key metadata (confidence, provenance) rather than values,
+    /// so it is lighter than properties. The estimate is `properties_size / divisor`.
+    ///
+    /// This is a placeholder until the confirmed entity type set is available, at which point
+    /// the metadata size can be computed directly from the property key count.
+    pub property_metadata_divisor: NonZero<u32>,
+}
+
+impl TransferCostConfig {
+    /// Creates a config with the current HASH schema defaults.
+    ///
+    /// Uses the known embedding dimension (`vector(3072)`) and a metadata-to-properties ratio
+    /// of 1:4. Provenance sizes are derived from the actual JSONB structures stored by the
+    /// graph service. Only `properties_size` varies per entity type.
+    #[must_use]
+    pub(crate) const fn new(properties_size: InformationRange) -> Self {
+        Self {
+            properties_size,
+            embedding_size: InformationRange::value(InformationUnit::new(3072)),
+            edition_provenance_size: InformationRange::new(
+                InformationUnit::new(3),
+                Bound::Included(InformationUnit::new(20)),
+            ),
+            edge_provenance_size: InformationRange::new(
+                InformationUnit::new(0),
+                Bound::Included(InformationUnit::new(10)),
+            ),
+            property_metadata_divisor: NonZero::new(4).expect("infallible"),
+        }
+    }
 }
 
 type FiniteBitSetWidth = u32;
@@ -222,6 +282,73 @@ impl EntityPath {
         }
     }
 
+    /// Returns the estimated transfer size for this path in information units.
+    ///
+    /// Fixed-size fields (UUIDs, timestamps, scalars) return known constants derived from the
+    /// entity schema. [`Properties`](Self::Properties) depends on the entity's type parameter.
+    /// [`PropertyMetadata`](Self::PropertyMetadata) is estimated at 1/4 of properties size,
+    /// since it stores lightweight per-property-key metadata rather than values.
+    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
+        #[expect(clippy::match_same_arms, reason = "readability")]
+        #[expect(clippy::integer_division)]
+        match self {
+            Self::Properties => config.properties_size,
+            Self::PropertyMetadata => {
+                let divisor = config.property_metadata_divisor;
+                let min = InformationUnit::new(config.properties_size.min().as_u32() / divisor);
+                config.properties_size.inclusive_max().map_or_else(
+                    || InformationRange::new(min, Bound::Unbounded),
+                    |max| {
+                        InformationRange::new(
+                            min,
+                            Bound::Included(InformationUnit::new(max.as_u32() / divisor)),
+                        )
+                    },
+                )
+            }
+
+            Self::Vectors => config.embedding_size,
+
+            // Composites: sum of leaf children
+            Self::RecordId => InformationRange::value(InformationUnit::new(4)),
+            Self::EntityId => InformationRange::value(InformationUnit::new(3)),
+            Self::TemporalVersioning => InformationRange::value(InformationUnit::new(4)),
+
+            // UUID fields
+            Self::WebId
+            | Self::EntityUuid
+            | Self::DraftId
+            | Self::EditionId
+            | Self::LeftEntityWebId
+            | Self::LeftEntityUuid
+            | Self::RightEntityWebId
+            | Self::RightEntityUuid => InformationRange::one(),
+
+            // Temporal intervals (start + end timestamps)
+            Self::DecisionTime | Self::TransactionTime => {
+                InformationRange::value(InformationUnit::new(2))
+            }
+
+            // Type ID list (variable length, at least one type)
+            Self::EntityTypeIds => InformationRange::new(InformationUnit::new(1), Bound::Unbounded),
+
+            // Scalar metadata
+            Self::Archived
+            | Self::Confidence
+            | Self::LeftEntityConfidence
+            | Self::RightEntityConfidence => InformationRange::one(),
+
+            // Provenance: inferred is a fixed structure (3 required + 2 optional scalars)
+            Self::ProvenanceInferred => InformationRange::new(
+                InformationUnit::new(3),
+                Bound::Included(InformationUnit::new(5)),
+            ),
+            // Provenance: edition and edge have Vec<SourceProvenance>, sized from config
+            Self::ProvenanceEdition => config.edition_provenance_size,
+            Self::LeftEntityProvenance | Self::RightEntityProvenance => config.edge_provenance_size,
+        }
+    }
+
     const fn is_jsonb(self) -> bool {
         matches!(
             self,
@@ -328,6 +455,17 @@ impl EntityPathBitSet {
 
     pub(crate) const fn insert_all(&mut self) {
         *self = Self::TOP;
+    }
+
+    /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.
+    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
+        let mut total = InformationRange::zero();
+
+        for path in &self.0 {
+            total += path.transfer_size(config);
+        }
+
+        total
     }
 }
 

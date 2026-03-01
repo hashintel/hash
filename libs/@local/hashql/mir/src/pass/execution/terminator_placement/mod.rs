@@ -53,7 +53,7 @@ use super::{
     Cost, VertexType,
     block_partitioned_vec::BlockPartitionedVec,
     target::{TargetBitSet, TargetId},
-    traversal::{EntityPathBitSet, TraversalPathBitSet},
+    traversal::{EntityPathBitSet, TransferCostConfig, TraversalPathBitSet},
 };
 use crate::{
     body::{
@@ -420,20 +420,21 @@ impl PopulateEdgeMatrix {
 /// ```
 pub(crate) struct TerminatorPlacement<S: Allocator> {
     scratch: S,
-    entity_size: InformationRange,
+    transfer_config: TransferCostConfig,
 }
 
 impl<S: Allocator> TerminatorPlacement<S> {
     /// Creates a new placement analyzer.
     ///
-    /// The `entity_size` estimate is used when computing transfer costs — it represents the
-    /// expected size of entity data that may need to cross backend boundaries.
+    /// The [`TransferCostConfig`] provides size estimates for the variable-cost entity fields
+    /// (properties, embeddings, provenance). Fixed-size fields (UUIDs, timestamps, scalars)
+    /// use constants derived from the entity schema.
     #[inline]
     #[must_use]
-    pub(crate) const fn new_in(entity_size: InformationRange, scratch: S) -> Self {
+    pub(crate) const fn new_in(transfer_config: TransferCostConfig, scratch: S) -> Self {
         Self {
             scratch,
-            entity_size,
+            transfer_config,
         }
     }
 
@@ -524,9 +525,11 @@ impl<S: Allocator> TerminatorPlacement<S> {
 
     /// Computes the cost of transferring live data across an edge to `successor`.
     ///
-    /// The cost is the sum of estimated sizes for all locals that are:
-    /// - Live at the successor's entry
-    /// - Passed as parameters to the successor block
+    /// The cost has two components:
+    /// - **Local cost**: estimated sizes of all non-vertex locals that are live at the successor's
+    ///   entry or passed as block parameters.
+    /// - **Path cost**: estimated sizes of all live entity field paths, computed from per-path
+    ///   transfer sizes rather than the monolithic entity size.
     fn compute_transfer_cost(
         &self,
         required_locals: &mut DenseBitSet<Local>,
@@ -535,34 +538,28 @@ impl<S: Allocator> TerminatorPlacement<S> {
         live_in: &BasicBlockSlice<(DenseBitSet<Local>, TraversalPathBitSet)>,
         successor: BasicBlockId,
     ) -> Cost {
-        todo!()
-        // required_locals.clone_from(&live_in[successor]);
+        let (locals, paths) = &live_in[successor];
+        required_locals.clone_from(locals);
 
-        // for &param in body.basic_blocks[successor].params {
-        //     required_locals.insert(param);
-        // }
+        for &param in body.basic_blocks[successor].params {
+            required_locals.insert(param);
+        }
 
-        // self.sum_local_sizes(footprint, required_locals)
+        let local_cost = self.sum_local_sizes(footprint, required_locals);
 
-        // let (locals, paths) = &live_in[successor];
-        // required_locals.clone_from(locals);
+        if paths.is_empty() {
+            return local_cost;
+        }
 
-        // for &param in body.basic_blocks[successor].params {
-        //     required_locals.insert(param);
-        // }
+        let path_range = paths.transfer_size(&self.transfer_config);
 
-        // let local_cost = self.sum_local_sizes(footprint, required_locals);
+        let Some(max) = path_range.inclusive_max() else {
+            return Cost::MAX;
+        };
 
-        // if paths.is_empty() {
-        //     return local_cost;
-        // }
+        let path_cost = Cost::new_saturating(path_range.min().midpoint(max).as_u32());
 
-        // let Some(max) = self.entity_size.inclusive_max() else {
-        //     return Cost::MAX;
-        // };
-
-        // let avg = self.entity_size.min().midpoint(max);
-        // local_cost.saturating_add(Cost::new_saturating(avg.as_u32()))
+        local_cost.saturating_add(path_cost)
     }
 
     /// Sums the estimated sizes of all locals in the set.
@@ -578,7 +575,10 @@ impl<S: Allocator> TerminatorPlacement<S> {
 
         for local in locals {
             let Some(size_estimate) = footprint.locals[local].average(
-                &[InformationRange::zero(), self.entity_size],
+                &[
+                    InformationRange::zero(),
+                    self.transfer_config.properties_size,
+                ],
                 &[Cardinality::one(), Cardinality::one()],
             ) else {
                 return Cost::MAX;
