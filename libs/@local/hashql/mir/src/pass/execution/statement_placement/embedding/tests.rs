@@ -45,7 +45,7 @@ fn only_vectors_projection_supported() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "only_vectors_projection_supported",
@@ -125,7 +125,7 @@ fn non_vectors_entity_projection_rejected() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "non_vectors_entity_projection_rejected",
@@ -166,7 +166,7 @@ fn storage_statements_zero_cost() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "storage_statements_zero_cost",
@@ -219,7 +219,7 @@ fn other_operations_rejected() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "other_operations_rejected",
