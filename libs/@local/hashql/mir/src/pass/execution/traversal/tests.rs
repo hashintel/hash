@@ -8,7 +8,16 @@ use crate::{
         local::Local,
         place::{Projection, ProjectionKind},
     },
-    pass::execution::traversal::{EntityPath, EntityPathBitSet},
+    pass::{
+        analysis::dataflow::lattice::{
+            HasTop as _, JoinSemiLattice as _,
+            laws::{assert_bounded_join_semilattice, assert_is_top_consistent},
+        },
+        execution::{
+            VertexType,
+            traversal::{EntityPath, EntityPathBitSet, TraversalLattice, TraversalPathBitSet},
+        },
+    },
 };
 
 /// Helper to create a `FieldByName` projection.
@@ -459,4 +468,87 @@ fn len_decreases_on_swallow() {
     // EntityId swallows all three children
     bitset.insert(EntityPath::EntityId);
     assert_eq!(bitset.len(), 1);
+}
+
+// --- Lattice law tests ---
+
+/// Builds an `EntityPathBitSet` from a list of paths using `insert` (swallowing).
+fn bitset_of(paths: &[EntityPath]) -> EntityPathBitSet {
+    let mut bitset = empty_bitset();
+    for &path in paths {
+        bitset.insert(path);
+    }
+    bitset
+}
+
+/// `EntityPathBitSet` satisfies `BoundedJoinSemiLattice` laws.
+///
+/// Uses values that cross the composite hierarchy: leaves from different subtrees,
+/// a mid-level composite, and a top-level composite with a sibling leaf.
+#[test]
+fn entity_path_bitset_bounded_join_semilattice() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+
+    let set_a = bitset_of(&[EntityPath::WebId, EntityPath::DecisionTime]);
+    let set_b = bitset_of(&[EntityPath::EntityId, EntityPath::Properties]);
+    let set_c = bitset_of(&[EntityPath::RecordId, EntityPath::TransactionTime]);
+
+    assert_bounded_join_semilattice(&lattice, set_a, set_b, set_c);
+}
+
+/// `is_top(top())` is consistent for `EntityPathBitSet`.
+#[test]
+fn entity_path_bitset_top_consistent() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+    assert_is_top_consistent::<_, EntityPathBitSet>(&lattice);
+}
+
+/// `join(top, a) = top` for `EntityPathBitSet`.
+#[test]
+fn entity_path_bitset_top_absorbs_join() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+    let top: EntityPathBitSet = lattice.top();
+
+    for path in EntityPath::all() {
+        let singleton = bitset_of(&[path]);
+        let result = lattice.join_owned(top, &singleton);
+        assert_eq!(result, top);
+    }
+}
+
+/// `TraversalPathBitSet` satisfies `BoundedJoinSemiLattice` laws.
+#[test]
+fn traversal_path_bitset_bounded_join_semilattice() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+
+    let set_a =
+        TraversalPathBitSet::Entity(bitset_of(&[EntityPath::WebId, EntityPath::DecisionTime]));
+    let set_b =
+        TraversalPathBitSet::Entity(bitset_of(&[EntityPath::EntityId, EntityPath::Properties]));
+    let set_c = TraversalPathBitSet::Entity(bitset_of(&[
+        EntityPath::RecordId,
+        EntityPath::TransactionTime,
+    ]));
+
+    assert_bounded_join_semilattice(&lattice, set_a, set_b, set_c);
+}
+
+/// `is_top(top())` is consistent for `TraversalPathBitSet`.
+#[test]
+fn traversal_path_bitset_top_consistent() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+    assert_is_top_consistent::<_, TraversalPathBitSet>(&lattice);
+}
+
+/// `join(top, a) = top` for `TraversalPathBitSet`.
+#[test]
+fn traversal_path_bitset_top_absorbs_join() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+    let top: TraversalPathBitSet = lattice.top();
+
+    for path in EntityPath::all() {
+        let singleton = TraversalPathBitSet::Entity(bitset_of(&[path]));
+        let result = lattice.join_owned(top, &singleton);
+        assert_eq!(result, top);
+    }
 }
