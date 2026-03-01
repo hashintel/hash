@@ -16,10 +16,13 @@ mod tests;
 
 pub(crate) use analysis::{TraversalAnalysis, Traversals};
 
-pub(crate) use self::access::Access;
 pub use self::entity::{EntityPath, EntityPathBitSet};
+pub(crate) use self::{access::Access, entity::TransferCostConfig};
 use super::VertexType;
-use crate::pass::analysis::dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice};
+use crate::pass::analysis::{
+    dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
+    size_estimation::InformationRange,
+};
 
 /// Lattice structure for traversal path bitsets.
 ///
@@ -37,7 +40,7 @@ impl TraversalLattice {
     }
 
     #[must_use]
-    pub const fn vertex(&self) -> VertexType {
+    pub const fn vertex(self) -> VertexType {
         self.vertex
     }
 }
@@ -114,6 +117,13 @@ impl TraversalPathBitSet {
     pub fn insert(&mut self, path: TraversalPath) {
         match (self, path) {
             (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.insert(path),
+        }
+    }
+
+    /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.
+    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
+        match self {
+            Self::Entity(entity_paths) => entity_paths.transfer_size(config),
         }
     }
 }
