@@ -256,7 +256,7 @@ impl EntityPath {
     /// For example, [`WebId`](Self::WebId) has ancestors
     /// [`EntityId`](Self::EntityId) and [`RecordId`](Self::RecordId).
     /// Top-level paths return an empty slice.
-    const fn ancestors(self) -> &'static [Self] {
+    pub(crate) const fn ancestors(self) -> &'static [Self] {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId => &[Self::EntityId, Self::RecordId],
             Self::EntityId | Self::EditionId => &[Self::RecordId],
