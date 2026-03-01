@@ -396,7 +396,7 @@ fn vertex_excluded_from_local_bitset() {
     assert!(!bb0_locals.contains(Local::new(2)));
 }
 
-/// Vertex field accesses are recorded as EntityPaths in the path bitset.
+/// Vertex field accesses are recorded as `EntityPaths` in the path bitset.
 #[test]
 fn vertex_access_records_entity_path() {
     let heap = Heap::new();

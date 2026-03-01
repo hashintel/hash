@@ -3,27 +3,36 @@
 
 use alloc::alloc::Global;
 
-use hashql_core::{heap::Heap, r#type::environment::Environment};
+use hashql_core::{heap::Heap, symbol::sym, r#type::environment::Environment};
+use hashql_diagnostics::DiagnosticIssues;
 
 use crate::{
     body::basic_block::{BasicBlockId, BasicBlockVec},
     builder::body,
+    context::MirContext,
     intern::Interner,
     pass::execution::{
+        VertexType,
         island::{IslandId, IslandPlacement},
         target::TargetId,
+        traversal::{EntityPath, TraversalAnalysis, TraversalPathBitSet},
     },
 };
 
-fn make_targets<'heap>(
-    heap: &'heap Heap,
-    assignments: &[TargetId],
-) -> BasicBlockVec<TargetId, &'heap Heap> {
-    let mut targets = BasicBlockVec::with_capacity_in(assignments.len(), heap);
+fn make_targets(assignments: &[TargetId]) -> BasicBlockVec<TargetId, Global> {
+    let mut targets = BasicBlockVec::with_capacity_in(assignments.len(), Global);
     for &target in assignments {
         targets.push(target);
     }
     targets
+}
+
+fn empty_per_block_paths(block_count: usize) -> BasicBlockVec<TraversalPathBitSet, Global> {
+    BasicBlockVec::from_elem_in(
+        TraversalPathBitSet::empty(VertexType::Entity),
+        block_count,
+        Global,
+    )
 }
 
 /// Single block — produces exactly one island containing that block.
@@ -42,8 +51,9 @@ fn single_block() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter]);
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[TargetId::Interpreter]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Interpreter);
@@ -71,8 +81,9 @@ fn same_target_chain() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Postgres, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[TargetId::Postgres, TargetId::Postgres]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Postgres);
@@ -101,8 +112,9 @@ fn different_targets() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Postgres]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     assert_eq!(islands.len(), 2);
 
@@ -148,16 +160,14 @@ fn diamond_same_target() {
         }
     });
 
-    let targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-        ],
-    );
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+    ]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Interpreter);
@@ -196,16 +206,14 @@ fn diamond_mixed_targets() {
     // bb1 nor bb2 has the same target as bb3, so bb0 and bb3 are only connected
     // transitively through different-target blocks. No direct same-target edge between
     // bb0 and bb3, so they must be separate islands.
-    let targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Postgres,
-            TargetId::Embedding,
-            TargetId::Interpreter,
-        ],
-    );
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Postgres,
+        TargetId::Embedding,
+        TargetId::Interpreter,
+    ]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     // bb0 alone, bb1 alone, bb2 alone, bb3 alone — 4 islands, since no same-target
     // edges exist between any pair of connected blocks.
@@ -221,6 +229,9 @@ fn diamond_mixed_targets() {
 }
 
 /// Linear chain with alternating targets — each block is its own island.
+///
+/// Also verifies that same-target blocks separated by a different-target block (bb0 and bb2
+/// are both Interpreter but bb1 is Postgres between them) end up in separate islands.
 #[test]
 fn alternating_targets() {
     let heap = Heap::new();
@@ -248,79 +259,138 @@ fn alternating_targets() {
         }
     });
 
-    let targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Postgres,
-            TargetId::Interpreter,
-            TargetId::Postgres,
-        ],
-    );
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Postgres,
+        TargetId::Interpreter,
+        TargetId::Postgres,
+    ]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
     assert_eq!(islands.len(), 4);
     for island_id in islands.ids() {
         let island = &islands[island_id];
+        assert_eq!(island.count(), 1);
+
         let block = island.iter().next().expect("island is non-empty");
         assert_eq!(island.target(), targets[block]);
+        assert!(island.contains(block));
     }
+
+    // bb0 and bb2 share a target (Interpreter) but must be in different islands
+    // because no direct same-target edge connects them.
+    let bb0_island = islands
+        .ids()
+        .find(|&id| islands[id].contains(BasicBlockId::new(0)))
+        .unwrap();
+    let bb2_island = islands
+        .ids()
+        .find(|&id| islands[id].contains(BasicBlockId::new(2)))
+        .unwrap();
+    assert_ne!(bb0_island, bb2_island);
 }
 
-/// `Island::is_empty` is false for any island produced by the pass.
+/// Three same-target blocks in a chain — union-find transitively merges into one island.
 #[test]
-fn island_is_never_empty() {
+fn transitive_same_target_chain() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
     let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+        decl a: Int, b: Int, c: Int;
 
         bb0() {
-            x = load 1;
-            return x;
-        }
-    });
-
-    let targets = make_targets(&heap, &[TargetId::Interpreter]);
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
-
-    for island_id in islands.ids() {
-        assert!(!islands[island_id].is_empty());
-    }
-}
-
-/// `Island::iter` yields exactly the blocks reported by `contains`.
-#[test]
-fn iter_matches_contains() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, y: Int;
-
-        bb0() {
-            x = load 1;
+            a = load 1;
             goto bb1();
         },
         bb1() {
-            y = load 2;
-            return y;
+            b = load 2;
+            goto bb2();
+        },
+        bb2() {
+            c = load 3;
+            return c;
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, &targets, Global);
+    let targets = make_targets(&[TargetId::Postgres, TargetId::Postgres, TargetId::Postgres]);
+    let paths = empty_per_block_paths(body.basic_blocks.len());
+    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, &paths, Global);
 
-    for island_id in islands.ids() {
-        let island = &islands[island_id];
-        let members: Vec<_> = island.iter().collect();
-        assert_eq!(members.len(), island.count());
+    assert_eq!(islands.len(), 1);
+    assert_eq!(islands[IslandId::new(0)].count(), 3);
+    assert!(islands[IslandId::new(0)].contains(BasicBlockId::new(0)));
+    assert!(islands[IslandId::new(0)].contains(BasicBlockId::new(1)));
+    assert!(islands[IslandId::new(0)].contains(BasicBlockId::new(2)));
+}
 
-        for &block in &members {
-            assert!(island.contains(block));
+/// Island traversals are the join of per-block paths for all blocks in the island.
+///
+/// Two same-target blocks access different vertex paths (.properties and
+/// .metadata.provenance.edition). The island's traversals must contain both.
+#[test]
+fn island_joins_traversal_paths() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val1: ?, val2: ?;
+        @proj props = vertex.properties: ?,
+              metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              edition = prov.edition: ?;
+
+        bb0() {
+            val1 = load props;
+            goto bb1();
+        },
+        bb1() {
+            val2 = load edition;
+            return val2;
         }
-    }
+    });
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, Global);
+    let vertex = traversals.vertex();
+
+    // Fold per-location traversals into per-block bitsets (same logic as fusion's fuse_in).
+    use crate::pass::{
+        analysis::dataflow::lattice::{HasBottom as _, JoinSemiLattice as _},
+        execution::traversal::TraversalLattice,
+    };
+
+    let lattice = TraversalLattice::new(vertex);
+    let per_block_paths = BasicBlockVec::from_domain_derive_in(
+        |block_id, _| {
+            traversals
+                .of(block_id)
+                .iter()
+                .fold(lattice.bottom(), |lhs: TraversalPathBitSet, rhs| {
+                    lattice.join_owned(lhs, rhs)
+                })
+        },
+        &body.basic_blocks,
+        Global,
+    );
+
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
+    let islands = IslandPlacement::new().run(&body, vertex, &targets, &per_block_paths, Global);
+
+    assert_eq!(islands.len(), 1);
+    let island = &islands[IslandId::new(0)];
+    let traversal_paths = island.traversals();
+    let joined = traversal_paths.as_entity().expect("entity vertex");
+    assert!(joined.contains(EntityPath::Properties));
+    assert!(joined.contains(EntityPath::ProvenanceEdition));
 }
