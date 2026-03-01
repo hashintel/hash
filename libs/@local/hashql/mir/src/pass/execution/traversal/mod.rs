@@ -14,7 +14,7 @@ mod analysis;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use analysis::{TraversalAnalysis, Traversals};
+pub(crate) use analysis::{TraversalAnalysisVisitor, TraversalResult};
 
 pub use self::entity::{EntityPath, EntityPathBitSet};
 pub(crate) use self::{access::Access, entity::TransferCostConfig};
@@ -120,7 +120,16 @@ impl TraversalPathBitSet {
         }
     }
 
+    /// Inserts all possible paths into the set.
+    #[inline]
+    pub const fn insert_all(&mut self) {
+        match self {
+            Self::Entity(bitset) => bitset.insert_all(),
+        }
+    }
+
     /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.
+    #[inline]
     pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
         match self {
             Self::Entity(entity_paths) => entity_paths.transfer_size(config),
