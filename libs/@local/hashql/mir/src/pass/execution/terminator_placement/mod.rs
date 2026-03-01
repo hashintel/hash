@@ -241,7 +241,7 @@ pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BlockPartitionedVec<T
 impl<A: Allocator + Clone> TerminatorCostVec<A> {
     /// Creates a cost vector sized for `blocks`, with all transitions initially disallowed.
     pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self {
-        Self(BlockPartitionedVec::new(
+        Self(BlockPartitionedVec::new_in(
             blocks.iter().map(|block| Self::successor_count(block)),
             TransMatrix::new(),
             alloc,

@@ -70,7 +70,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             unreachable!("unsupported graph read target")
         };
 
-        let mut traversals = TraversalAnalysis::traversal_analysis_in(context, body, &self.scratch);
+        let traversals = TraversalAnalysis::new(vertex).traversal_analysis_in(body, &self.scratch);
 
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
@@ -95,9 +95,6 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             &mut statement_costs,
             &self.scratch,
         );
-
-        // The body has been split (sequentially) and like the statement costs needs to be remapped
-        traversals.remap(&body.basic_blocks);
 
         let terminators = TerminatorPlacement::new_in(
             TransferCostConfig::new(InformationRange::full()),
@@ -124,13 +121,18 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         }
         .build_in(body, &self.scratch);
 
-        // TODO: move to per island requirements here
         let mut assignment = solver.run(context, body);
 
-        let fusion = BasicBlockFusion::new_in(&self.scratch);
-        fusion.fuse(body, &mut assignment);
+        let fusion = BasicBlockFusion::new_in(traversals, &self.scratch);
+        let traversals = fusion.fuse_in(body, &mut assignment, context.heap);
 
-        let islands = IslandPlacement::new_in(&self.scratch).run(body, &assignment, context.heap);
+        let islands = IslandPlacement::new_in(&self.scratch).run(
+            body,
+            vertex,
+            &assignment,
+            &traversals,
+            context.heap,
+        );
 
         (assignment, islands)
     }
