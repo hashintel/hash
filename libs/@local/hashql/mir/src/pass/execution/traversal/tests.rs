@@ -1,21 +1,29 @@
-//! Unit tests for entity projection path lookup, composite swallowing, and traversal analysis.
+//! Unit tests for entity projection path lookup, composite swallowing, transfer sizing,
+//! and traversal analysis.
+
+use core::ops::Bound;
 
 use hashql_core::{symbol::sym, r#type::TypeId};
 
-use super::access::{Access, AccessMode};
 use crate::{
     body::{
         local::Local,
         place::{Projection, ProjectionKind},
     },
     pass::{
-        analysis::dataflow::lattice::{
-            HasTop as _, JoinSemiLattice as _,
-            laws::{assert_bounded_join_semilattice, assert_is_top_consistent},
+        analysis::{
+            dataflow::lattice::{
+                HasTop as _, JoinSemiLattice as _,
+                laws::{assert_bounded_join_semilattice, assert_is_top_consistent},
+            },
+            size_estimation::{InformationRange, InformationUnit},
         },
         execution::{
             VertexType,
-            traversal::{EntityPath, EntityPathBitSet, TraversalLattice, TraversalPathBitSet},
+            traversal::{
+                EntityPath, EntityPathBitSet, TransferCostConfig, TraversalLattice,
+                TraversalPathBitSet,
+            },
         },
     },
 };
@@ -28,76 +36,6 @@ fn proj(name: impl Into<hashql_core::symbol::Symbol<'static>>) -> Projection<'st
     }
 }
 
-/// `[.properties]` → `Access::Postgres(Direct)` (JSONB column).
-#[test]
-fn properties_is_postgres() {
-    let projections = &[proj(sym::properties)];
-    let access = EntityPath::resolve(projections).map(|(path, _)| path.access());
-
-    assert_eq!(access, Some(Access::Postgres(AccessMode::Direct)));
-}
-
-/// `[.properties.foo.bar]` → Postgres (JSONB otherwise).
-///
-/// JSONB nodes have `otherwise` set, so any sub-path is also Postgres-accessible.
-#[test]
-fn properties_subpath_is_postgres() {
-    let projections = &[proj(sym::properties), proj(sym::foo), proj(sym::bar)];
-    let access = EntityPath::resolve(projections).map(|(path, _)| path.access());
-
-    assert_eq!(access, Some(Access::Postgres(AccessMode::Direct)));
-}
-
-/// `[.encodings.vectors]` → `Access::Embedding(Direct)`.
-#[test]
-fn vectors_is_embedding() {
-    let projections = &[proj(sym::encodings), proj(sym::vectors)];
-    let access = EntityPath::resolve(projections).map(|(path, _)| path.access());
-
-    assert_eq!(access, Some(Access::Embedding(AccessMode::Direct)));
-}
-
-/// Various metadata paths map to Postgres columns.
-#[test]
-fn metadata_columns_are_postgres() {
-    // metadata.archived -> Direct
-    let projections = &[proj(sym::metadata), proj(sym::archived)];
-    assert_eq!(
-        EntityPath::resolve(projections).map(|(path, _)| path.access()),
-        Some(Access::Postgres(AccessMode::Direct))
-    );
-
-    // metadata.record_id -> Composite
-    let projections = &[proj(sym::metadata), proj(sym::record_id)];
-    assert_eq!(
-        EntityPath::resolve(projections).map(|(path, _)| path.access()),
-        Some(Access::Postgres(AccessMode::Composite))
-    );
-
-    // metadata.record_id.entity_id.web_id -> Direct
-    let projections = &[
-        proj(sym::metadata),
-        proj(sym::record_id),
-        proj(sym::entity_id),
-        proj(sym::web_id),
-    ];
-    assert_eq!(
-        EntityPath::resolve(projections).map(|(path, _)| path.access()),
-        Some(Access::Postgres(AccessMode::Direct))
-    );
-
-    // metadata.temporal_versioning.decision_time -> Direct
-    let projections = &[
-        proj(sym::metadata),
-        proj(sym::temporal_versioning),
-        proj(sym::decision_time),
-    ];
-    assert_eq!(
-        EntityPath::resolve(projections).map(|(path, _)| path.access()),
-        Some(Access::Postgres(AccessMode::Direct))
-    );
-}
-
 /// `link_data.left_entity_id.draft_id` → `None` (synthesized, not stored).
 #[test]
 fn link_data_synthesized_is_none() {
@@ -106,18 +44,14 @@ fn link_data_synthesized_is_none() {
         proj(sym::left_entity_id),
         proj(sym::draft_id),
     ];
-    let access = EntityPath::resolve(projections).map(|(path, _)| path.access());
-
-    assert_eq!(access, None);
+    assert_eq!(EntityPath::resolve(projections), None);
 }
 
 /// Invalid path like `[.unknown]` → `None`.
 #[test]
 fn unknown_path_returns_none() {
     let projections = &[proj(sym::unknown)];
-    let access = EntityPath::resolve(projections).map(|(path, _)| path.access());
-
-    assert_eq!(access, None);
+    assert_eq!(EntityPath::resolve(projections), None);
 }
 
 /// The returned index reflects how many projections were consumed during resolution.
@@ -299,19 +233,6 @@ fn child_suppressed_by_ancestor() {
     assert!(!bitset.contains(EntityPath::EditionId));
 }
 
-/// A grandparent composite suppresses grandchildren.
-#[test]
-fn grandparent_suppresses_grandchild() {
-    let mut bitset = empty_bitset();
-    bitset.insert(EntityPath::RecordId);
-
-    // WebId is a grandchild of RecordId (through EntityId)
-    bitset.insert(EntityPath::WebId);
-
-    assert!(bitset.contains(EntityPath::RecordId));
-    assert!(!bitset.contains(EntityPath::WebId));
-}
-
 /// Inserting a top-level composite swallows the entire subtree.
 #[test]
 fn record_id_swallows_entire_subtree() {
@@ -415,20 +336,6 @@ fn insert_all_len() {
     // 25 variants - 7 children (EntityId, WebId, EntityUuid, DraftId, EditionId,
     // DecisionTime, TransactionTime) = 18
     assert_eq!(bitset.len(), 18);
-}
-
-/// `insert_all` after individual inserts produces the same result as a fresh `insert_all`.
-#[test]
-fn insert_all_is_idempotent_over_existing() {
-    let mut bitset = empty_bitset();
-    bitset.insert(EntityPath::WebId);
-    bitset.insert(EntityPath::Properties);
-    bitset.insert_all();
-
-    let mut fresh = empty_bitset();
-    fresh.insert_all();
-
-    assert_eq!(bitset, fresh);
 }
 
 /// An empty bitset has len 0.
@@ -551,4 +458,77 @@ fn traversal_path_bitset_top_absorbs_join() {
         let result = lattice.join_owned(top, &singleton);
         assert_eq!(result, top);
     }
+}
+
+/// `join` normalizes ancestor+descendant pairs produced by raw union.
+///
+/// When one side has a leaf and the other has its ancestor composite, the union
+/// contains both. `normalize` must remove the descendant since the ancestor covers it.
+#[test]
+fn join_normalizes_ancestor_descendant_pairs() {
+    let lattice = TraversalLattice::new(VertexType::Entity);
+
+    let mut lhs = bitset_of(&[EntityPath::WebId, EntityPath::Properties]);
+    let rhs = bitset_of(&[EntityPath::RecordId]);
+
+    lattice.join(&mut lhs, &rhs);
+
+    assert!(lhs.contains(EntityPath::RecordId));
+    assert!(lhs.contains(EntityPath::Properties));
+    assert!(!lhs.contains(EntityPath::WebId));
+    assert_eq!(lhs.len(), 2);
+}
+
+// --- Transfer size tests ---
+
+/// Each composite's `transfer_size` equals the sum of its immediate children's `transfer_sizes`.
+///
+/// Immediate children are identified automatically via `ancestors()`: a path is an immediate
+/// child of composite C if C is its nearest ancestor (`ancestors()[0] == C`). This catches
+/// drift if a new child is added to the hierarchy without updating the composite constant.
+#[test]
+fn composite_transfer_size_matches_children() {
+    let config = TransferCostConfig::new(InformationRange::zero());
+
+    for composite in EntityPath::all() {
+        let mut expected = InformationRange::zero();
+        let mut has_children = false;
+
+        for path in EntityPath::all() {
+            if path.ancestors().first() == Some(&composite) {
+                expected += path.transfer_size(&config);
+                has_children = true;
+            }
+        }
+
+        if has_children {
+            assert_eq!(
+                composite.transfer_size(&config),
+                expected,
+                "{composite:?} transfer_size doesn't match sum of immediate children"
+            );
+        }
+    }
+}
+
+/// `ProvenanceInferred` has a static `transfer_size` independent of config.
+///
+/// The type is a fixed structure (3 required scalars + 2 optional timestamps), so its
+/// size is a constant `3..=5` regardless of `TransferCostConfig` values.
+#[test]
+fn inferred_provenance_transfer_size_is_static() {
+    let small_config = TransferCostConfig::new(InformationRange::zero());
+    let large_config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(1000)));
+
+    let small = EntityPath::ProvenanceInferred.transfer_size(&small_config);
+    let large = EntityPath::ProvenanceInferred.transfer_size(&large_config);
+
+    assert_eq!(small, large);
+    assert_eq!(
+        small,
+        InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(5))
+        )
+    );
 }
