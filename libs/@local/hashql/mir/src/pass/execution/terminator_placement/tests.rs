@@ -35,6 +35,7 @@ use crate::{
         execution::{
             VertexType,
             target::{TargetBitSet, TargetId},
+            traversal::TransferCostConfig,
         },
     },
     pretty::TextFormatOptions,
@@ -206,7 +207,8 @@ fn goto_allows_cross_backend_non_postgres() {
     ];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -250,7 +252,8 @@ fn switchint_blocks_cross_backend() {
     ];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -294,7 +297,8 @@ fn switchint_edge_targets_are_branch_specific() {
     ];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -377,7 +381,8 @@ fn graphread_interpreter_only() {
     let targets = [all_targets(), all_targets()];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -416,7 +421,8 @@ fn postgres_incoming_removed() {
     let targets = [all_targets(), all_targets()];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -454,7 +460,8 @@ fn postgres_removed_in_loops() {
     let targets = [all_targets(), all_targets()];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -489,7 +496,8 @@ fn postgres_removed_in_self_loops() {
     let targets = [all_targets()];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -534,7 +542,8 @@ fn transfer_cost_counts_live_and_params() {
     ];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -577,7 +586,8 @@ fn transfer_cost_is_max_for_unbounded() {
     ];
 
     let footprint = make_full_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
@@ -589,6 +599,102 @@ fn transfer_cost_is_max_for_unbounded() {
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
         Some(Cost::MAX)
+    );
+}
+
+/// Edition provenance live across a goto edge produces path-based transfer cost.
+///
+/// `edition_provenance_size` defaults to `3..=20`, midpoint 11. With no other live locals,
+/// the Postgres→Interpreter transition cost is purely the path cost.
+#[test]
+fn path_cost_from_edition_provenance() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              edition = prov.edition: ?;
+
+        bb0() {
+            goto bb1();
+        },
+        bb1() {
+            val = load edition;
+            return val;
+        }
+    });
+
+    let targets = [
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+    ];
+
+    let footprint = make_scalar_footprint(&body, &heap);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
+    let costs = placement.terminator_placement(
+        &body,
+        VertexType::Entity,
+        &footprint,
+        build_targets(&body, &targets),
+    );
+
+    // edition_provenance_size = 3..=20, midpoint(3, 20) = 11
+    let matrix = costs.of(BasicBlockId::new(0))[0];
+    assert_eq!(
+        matrix.get(TargetId::Postgres, TargetId::Interpreter),
+        Some(cost!(11))
+    );
+}
+
+/// Inferred provenance produces a different (lower) cost than edition provenance.
+///
+/// `ProvenanceInferred` has a static size `3..=5` (fixed structure, no config), midpoint 4.
+/// This verifies the split: without per-variant sizing, both would produce the same cost.
+#[test]
+fn path_cost_from_inferred_provenance() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              inferred = prov.inferred: ?;
+
+        bb0() {
+            goto bb1();
+        },
+        bb1() {
+            val = load inferred;
+            return val;
+        }
+    });
+
+    let targets = [
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
+    ];
+
+    let footprint = make_scalar_footprint(&body, &heap);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
+    let costs = placement.terminator_placement(
+        &body,
+        VertexType::Entity,
+        &footprint,
+        build_targets(&body, &targets),
+    );
+
+    // ProvenanceInferred is static 3..=5, midpoint(3, 5) = 4
+    let matrix = costs.of(BasicBlockId::new(0))[0];
+    assert_eq!(
+        matrix.get(TargetId::Postgres, TargetId::Interpreter),
+        Some(cost!(4))
     );
 }
 
@@ -621,7 +727,8 @@ fn terminator_placement_snapshot() {
     ];
 
     let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
+    let placement =
+        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
     let costs = placement.terminator_placement(
         &body,
         VertexType::Entity,
