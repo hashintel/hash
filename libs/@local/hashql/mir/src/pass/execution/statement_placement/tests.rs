@@ -25,7 +25,6 @@ use crate::{
         statement_placement::{
             EmbeddingStatementPlacement, InterpreterStatementPlacement, PostgresStatementPlacement,
         },
-        traversal::Traversals,
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
 };
@@ -144,10 +143,8 @@ fn non_graph_read_filter_returns_empty() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = Traversals::new_in(&body.basic_blocks, VertexType::Entity, &heap);
-
     let mut postgres = PostgresStatementPlacement::new_in(Global);
-    let mut interpreter = InterpreterStatementPlacement::new(&traversals);
+    let mut interpreter = InterpreterStatementPlacement::new();
     let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
     let vertex = VertexType::Entity;
