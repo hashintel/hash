@@ -15,7 +15,7 @@ use insta::{Settings, assert_snapshot};
 
 use super::StatementPlacement;
 use crate::{
-    body::{Body, location::Location, statement::Statement},
+    body::{Body, local::Local, location::Location, statement::Statement},
     builder::body,
     context::MirContext,
     intern::Interner,
@@ -25,7 +25,7 @@ use crate::{
         statement_placement::{
             EmbeddingStatementPlacement, InterpreterStatementPlacement, PostgresStatementPlacement,
         },
-        traversal::{TraversalAnalysis, Traversals},
+        traversal::Traversals,
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
 };
@@ -102,10 +102,10 @@ pub(crate) fn run_placement<'heap>(
     placement: &mut impl StatementPlacement<'heap, &'heap Heap>,
     body: Body<'heap>,
 ) -> (Body<'heap>, StatementCostVec<&'heap Heap>) {
-    let traversals = TraversalAnalysis::traversal_analysis_in(context, &body, context.heap);
+    let vertex = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
+        .unwrap_or_else(|| unimplemented!("lookup for declared type"));
 
-    let statement_costs =
-        placement.statement_placement_in(context, &body, &traversals, context.heap);
+    let statement_costs = placement.statement_placement_in(context, &body, vertex, context.heap);
 
     (body, statement_costs)
 }
@@ -147,13 +147,13 @@ fn non_graph_read_filter_returns_empty() {
     let traversals = Traversals::new_in(&body.basic_blocks, VertexType::Entity, &heap);
 
     let mut postgres = PostgresStatementPlacement::new_in(Global);
-    let mut interpreter = InterpreterStatementPlacement::new();
+    let mut interpreter = InterpreterStatementPlacement::new(&traversals);
     let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
-    let postgres_statement = postgres.statement_placement_in(&context, &body, &traversals, &heap);
-    let interpreter_statement =
-        interpreter.statement_placement_in(&context, &body, &traversals, &heap);
-    let embedding_statement = embedding.statement_placement_in(&context, &body, &traversals, &heap);
+    let vertex = VertexType::Entity;
+    let postgres_statement = postgres.statement_placement_in(&context, &body, vertex, &heap);
+    let interpreter_statement = interpreter.statement_placement_in(&context, &body, vertex, &heap);
+    let embedding_statement = embedding.statement_placement_in(&context, &body, vertex, &heap);
 
     assert!(postgres_statement.all_unassigned());
     assert!(interpreter_statement.all_unassigned());

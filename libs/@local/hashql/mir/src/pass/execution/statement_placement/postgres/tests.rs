@@ -32,7 +32,6 @@ use crate::{
             PostgresStatementPlacement, StatementPlacement as _,
             tests::{assert_placement, run_placement},
         },
-        traversal::Traversals,
     },
 };
 
@@ -575,10 +574,9 @@ fn graph_read_edge_unsupported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = Traversals::new_in(&body.basic_blocks, VertexType::Entity, &heap);
-
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let statement_costs = placement.statement_placement_in(&context, &body, &traversals, &heap);
+    let statement_costs =
+        placement.statement_placement_in(&context, &body, VertexType::Entity, &heap);
 
     assert_placement(
         "graph_read_edge_unsupported",

@@ -15,30 +15,28 @@
 //! This module provides two liveness analyses:
 //!
 //! - [`LivenessAnalysis`]: Standard liveness following the gen/kill semantics above.
-//! - [`TraversalLivenessAnalysis`]: Traversal-aware liveness that suppresses uses of a traversal
-//!   source when assigning to a known traversal destination.
+//! - [`TraversalLivenessAnalysis`]: Tracks local liveness alongside per-vertex path liveness.
 //!
 //! ## Traversal-Aware Liveness
 //!
-//! When performing traversal extraction, a source local (e.g., `entity`) may have multiple
-//! partial projections extracted into separate destination locals (e.g., `entity.uuid`,
-//! `entity.name`). Standard liveness would mark `entity` as live at every assignment to these
-//! destinations, even though only the projections are needed.
+//! In a [`GraphReadFilter`] body, the vertex local (`_1`) is an input representing a graph
+//! vertex. Rather than tracking the vertex as a monolithic live value, this analysis resolves
+//! each vertex projection to an [`EntityPath`] and records it in a [`TraversalPathBitSet`].
+//! The vertex local itself is never marked live in the local bitset.
 //!
-//! [`TraversalLivenessAnalysis`] takes a [`Traversals`] reference and modifies the transfer
-//! function: when an assignment's left-hand side is a full definition of a registered traversal
-//! destination, uses of the traversal source on the right-hand side are *not* generated.
+//! This allows edge cost computation to sum only the [`InformationRange`] of live paths,
+//! rather than charging the full entity size at every edge where the vertex is used.
 //!
 //! ```text
-//! // Given: traversals.source() = _1, traversals.contains(_2) = true
 //! bb0:
-//!     _2 = _1.uuid   // Standard: gens _1. Traversal-aware: skips _1 (full def of _2)
-//!     _3 = _1.name   // If _3 not in traversals: gens _1 normally
+//!     _2 = _1.metadata.archived  // gens EntityPath::Archived in path bitset, _1 stays dead
+//!     _3 = _1.properties         // gens EntityPath::Properties in path bitset, _1 stays dead
+//!     _4 = _1                    // unresolvable: insert_all in path bitset, _1 stays dead
 //!     return _2
 //! ```
 //!
-//! This allows dead code elimination to remove the source local when all its uses are through
-//! extracted traversals.
+//! [`GraphReadFilter`]: crate::body::Source::GraphReadFilter
+//! [`InformationRange`]: crate::pass::analysis::size_estimation::InformationRange
 //!
 //! # Example
 //!
@@ -57,7 +55,7 @@ mod tests;
 
 use core::alloc::Allocator;
 
-use hashql_core::{id::bit_vec::DenseBitSet, intern::Interned, r#type::environment::Environment};
+use hashql_core::{id::bit_vec::DenseBitSet, intern::Interned};
 
 use super::{
     framework::{DataflowAnalysis, Direction},
@@ -69,32 +67,31 @@ use crate::{
         local::Local,
         location::Location,
         place::{DefUse, Place, PlaceContext},
-        statement::{Assign, Statement, StatementKind},
+        statement::Statement,
         terminator::Terminator,
     },
-    pass::{
-        execution::{
-            VertexType,
-            traversal::{EntityPath, TraversalLattice, TraversalPathBitSet},
-        },
-        transform::Traversals,
+    pass::execution::{
+        VertexType,
+        traversal::{EntityPath, TraversalLattice, TraversalPathBitSet},
     },
     visit::{self, Visitor},
 };
 
-/// Traversal-aware liveness analysis.
+/// Liveness analysis that tracks local liveness and per-vertex path liveness in parallel.
 ///
-/// Extends standard liveness with special handling for traversal extraction. When the left-hand
-/// side of an assignment is a full definition of a traversal destination, uses of the traversal
-/// source on the right-hand side are suppressed (not added to the live set).
+/// The domain is `(DenseBitSet<Local>, TraversalPathBitSet)`:
+/// - The local bitset tracks which locals are live, with the vertex local excluded entirely.
+/// - The path bitset tracks which vertex field paths are live (resolved via [`EntityPath`]).
 ///
-/// This allows subsequent dead code elimination to remove the source local when its only uses
-/// are through extracted traversal projections.
+/// When the vertex is accessed through a resolvable projection (e.g., `_1.metadata.archived`),
+/// the corresponding [`EntityPath`] is gen'd in the path bitset. When the projection cannot be
+/// resolved (bare `_1` or unknown path), all paths are marked live via
+/// [`insert_all`](EntityPathBitSet::insert_all).
 pub struct TraversalLivenessAnalysis {
-    vertex: VertexType
+    pub vertex: VertexType,
 }
 
-impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
+impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis {
     type Domain<A: Allocator> = (DenseBitSet<Local>, TraversalPathBitSet);
     type Lattice<A: Allocator + Clone> = (PowersetLattice, TraversalLattice);
     type SwitchIntData = !;
@@ -103,9 +100,9 @@ impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
 
     fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, _: A) -> Self::Lattice<A> {
         let locals = PowersetLattice::new(body.local_decls.len());
+        let paths = TraversalLattice::new(self.vertex);
 
-        let vertex = VertexType::from_local(self.env, &body.local_decls[])
-        let paths = TraversalLattice::new(vertex)
+        (locals, paths)
     }
 
     fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {
@@ -118,7 +115,9 @@ impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
         params: Interned<'heap, [Local]>,
         state: &mut Self::Domain<A>,
     ) {
-        Ok(()) = TraversalTransferFunction(state, None).visit_basic_block_params(location, params);
+        let (locals, paths) = state;
+        Ok(()) =
+            TraversalTransferFunction { locals, paths }.visit_basic_block_params(location, params);
     }
 
     fn transfer_statement<A: Allocator>(
@@ -127,20 +126,8 @@ impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
         statement: &Statement<'heap>,
         state: &mut Self::Domain<A>,
     ) {
-        // This is the pattern that's exhibited by explicit traversal extraction, in particular.
-        // Meaning we skip any assignments to our local, as long as it is a `Def`, to the particular
-        // chosen source.
-        let skip_uses_of = if let StatementKind::Assign(Assign { lhs, rhs: _ }) = &statement.kind
-            && lhs.projections.is_empty()
-            && self.traversals.contains(lhs.local)
-        {
-            Some(self.traversals.source())
-        } else {
-            None
-        };
-
-        Ok(()) =
-            TraversalTransferFunction(state, skip_uses_of).visit_statement(location, statement);
+        let (locals, paths) = state;
+        Ok(()) = TraversalTransferFunction { locals, paths }.visit_statement(location, statement);
     }
 
     fn transfer_terminator<A: Allocator>(
@@ -149,11 +136,15 @@ impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
         terminator: &Terminator<'heap>,
         state: &mut Self::Domain<A>,
     ) {
-        Ok(()) = TraversalTransferFunction(state, None).visit_terminator(location, terminator);
+        let (locals, paths) = state;
+        Ok(()) = TraversalTransferFunction { locals, paths }.visit_terminator(location, terminator);
     }
 }
 
-struct TraversalTransferFunction<'mir>(&'mir mut DenseBitSet<Local>, Option<Local>);
+struct TraversalTransferFunction<'mir> {
+    locals: &'mir mut DenseBitSet<Local>,
+    paths: &'mir mut TraversalPathBitSet,
+}
 
 impl Visitor<'_> for TraversalTransferFunction<'_> {
     type Result = Result<(), !>;
@@ -163,12 +154,18 @@ impl Visitor<'_> for TraversalTransferFunction<'_> {
             return Ok(());
         };
 
+        if local == Local::VERTEX {
+            debug_assert_eq!(
+                def_use,
+                DefUse::Use,
+                "vertex local is immutable in GraphReadFilter bodies"
+            );
+            return Ok(());
+        }
+
         match def_use {
-            // Full definition kills liveness - the variable gets a new value
-            DefUse::Def => self.0.remove(local),
-            // Partial definitions and uses generate liveness - the current value is needed
-            DefUse::Use if Some(local) == self.1 => false,
-            DefUse::PartialDef | DefUse::Use => self.0.insert(local),
+            DefUse::Def => self.locals.remove(local),
+            DefUse::PartialDef | DefUse::Use => self.locals.insert(local),
         };
 
         Ok(())
@@ -180,23 +177,16 @@ impl Visitor<'_> for TraversalTransferFunction<'_> {
         context: PlaceContext,
         place: &Place<'_>,
     ) -> Self::Result {
-        let Some(def_use) = context.into_def_use() else {
-            return Ok(());
-        };
-
-        let _vertex = VertexType::Entity; // TODO: actually do this properly
-
-        // Check if the place is a vertex, and the vertex type results in a partial result, in that
-        // case we do *not* continue, because it is considered a partial traversal and does not
-        // contribute to the liveness analysis of the partially hydrated entity.
-        if def_use == DefUse::Use
-            && place.local == Local::VERTEX
-            && EntityPath::resolve(&place.projections).is_some()
-        {
-            // This is a *valid* partial traversal, and does therefore not contribute to the full
-            // liveness of the entity. (This is required to ensure that we're not evaluating the
-            // full size of the entity on transition if we don't need it.)
-            return Ok(());
+        if place.local == Local::VERTEX && Some(DefUse::Use) == context.into_def_use() {
+            match self.paths {
+                TraversalPathBitSet::Entity(bitset) => {
+                    if let Some((path, _)) = EntityPath::resolve(&place.projections) {
+                        bitset.insert(path);
+                    } else {
+                        bitset.insert_all();
+                    }
+                }
+            }
         }
 
         visit::r#ref::walk_place(self, location, context, place)

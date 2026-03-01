@@ -50,9 +50,10 @@ use hashql_core::{
 };
 
 use super::{
-    Cost,
+    Cost, VertexType,
     block_partitioned_vec::BlockPartitionedVec,
     target::{TargetBitSet, TargetId},
+    traversal::{EntityPathBitSet, TraversalPathBitSet},
 };
 use crate::{
     body::{
@@ -442,13 +443,13 @@ impl<S: Allocator> TerminatorPlacement<S> {
     fn compute_liveness<'heap>(
         &self,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
-    ) -> BasicBlockVec<DenseBitSet<Local>, &S> {
+        vertex: VertexType,
+    ) -> BasicBlockVec<(DenseBitSet<Local>, TraversalPathBitSet), &S> {
         let DataflowResults {
             analysis: _,
             entry_states: live_in,
             exit_states: _,
-        } = TraversalLivenessAnalysis { traversals }.iterate_to_fixpoint_in(body, &self.scratch);
+        } = TraversalLivenessAnalysis { vertex }.iterate_to_fixpoint_in(body, &self.scratch);
 
         live_in
     }
@@ -464,11 +465,11 @@ impl<S: Allocator> TerminatorPlacement<S> {
     pub(crate) fn terminator_placement<'heap>(
         &self,
         body: &Body<'heap>,
+        vertex: VertexType,
         footprint: &BodyFootprint<&'heap Heap>,
-        traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
     ) -> TerminatorCostVec<Global> {
-        self.terminator_placement_in(body, footprint, traversals, targets, Global)
+        self.terminator_placement_in(body, vertex, footprint, targets, Global)
     }
 
     /// Computes transition costs for all terminator edges in `body`.
@@ -483,12 +484,12 @@ impl<S: Allocator> TerminatorPlacement<S> {
     pub(crate) fn terminator_placement_in<'heap, A: Allocator + Clone>(
         &self,
         body: &Body<'heap>,
+        vertex: VertexType,
         footprint: &BodyFootprint<&'heap Heap>,
-        traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
         alloc: A,
     ) -> TerminatorCostVec<A> {
-        let live_in = self.compute_liveness(body, traversals);
+        let live_in = self.compute_liveness(body, vertex);
         let scc = self.compute_scc(body);
 
         let mut output = TerminatorCostVec::new(&body.basic_blocks, alloc);
@@ -534,16 +535,17 @@ impl<S: Allocator> TerminatorPlacement<S> {
         required_locals: &mut DenseBitSet<Local>,
         body: &Body,
         footprint: &BodyFootprint<&Heap>,
-        live_in: &BasicBlockSlice<DenseBitSet<Local>>,
+        live_in: &BasicBlockSlice<(DenseBitSet<Local>, TraversalPathBitSet)>,
         successor: BasicBlockId,
     ) -> Cost {
-        required_locals.clone_from(&live_in[successor]);
+        todo!()
+        // required_locals.clone_from(&live_in[successor]);
 
-        for &param in body.basic_blocks[successor].params {
-            required_locals.insert(param);
-        }
+        // for &param in body.basic_blocks[successor].params {
+        //     required_locals.insert(param);
+        // }
 
-        self.sum_local_sizes(footprint, required_locals)
+        // self.sum_local_sizes(footprint, required_locals)
     }
 
     /// Sums the estimated sizes of all locals in the set.
