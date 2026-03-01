@@ -67,7 +67,7 @@ fn binary_unary_ops_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "binary_unary_ops_supported",
@@ -107,7 +107,7 @@ fn aggregate_tuple_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "aggregate_tuple_supported",
@@ -150,7 +150,7 @@ fn aggregate_closure_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "aggregate_closure_rejected",
@@ -196,7 +196,7 @@ fn apply_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "apply_rejected",
@@ -235,7 +235,7 @@ fn input_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "input_supported",
@@ -276,7 +276,7 @@ fn env_with_closure_type_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_with_closure_type_rejected",
@@ -316,7 +316,7 @@ fn env_without_closure_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_without_closure_accepted",
@@ -355,7 +355,7 @@ fn entity_projection_column() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "entity_projection_column",
@@ -395,7 +395,7 @@ fn entity_projection_jsonb() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "entity_projection_jsonb",
@@ -439,7 +439,7 @@ fn storage_statements_zero_cost() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "storage_statements_zero_cost",
@@ -501,7 +501,7 @@ fn diamond_must_analysis() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "diamond_must_analysis",
@@ -619,7 +619,7 @@ fn env_closure_field_rejected_other_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_closure_field_rejected_other_accepted",
@@ -659,7 +659,7 @@ fn env_dict_non_string_key_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_non_string_key_rejected",
@@ -698,7 +698,7 @@ fn env_dict_string_key_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_string_key_accepted",
@@ -741,7 +741,7 @@ fn env_dict_opaque_string_key_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_opaque_string_key_accepted",
@@ -810,7 +810,7 @@ fn fnptr_constant_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "fnptr_constant_rejected",
@@ -855,7 +855,7 @@ fn eq_dict_vs_struct_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_dict_vs_struct_rejected",
@@ -900,7 +900,7 @@ fn eq_list_vs_tuple_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_list_vs_tuple_rejected",
@@ -945,7 +945,7 @@ fn eq_unknown_type_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_unknown_type_rejected",
@@ -990,7 +990,7 @@ fn eq_same_type_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_same_type_accepted",
@@ -1035,7 +1035,7 @@ fn ne_dict_vs_struct_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "ne_dict_vs_struct_rejected",
@@ -1609,7 +1609,7 @@ fn eq_place_vs_constant_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_place_vs_constant_accepted",
@@ -2144,7 +2144,7 @@ fn serialization_unsafe_statement_no_cost() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "serialization_unsafe_statement_no_cost",
@@ -2198,7 +2198,7 @@ fn serialization_unsafe_edge_propagates() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "serialization_unsafe_edge_propagates",

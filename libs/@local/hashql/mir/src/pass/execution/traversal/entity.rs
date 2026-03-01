@@ -290,7 +290,8 @@ impl EntityPathBitSet {
             out
         };
 
-        self.0.insert_range(..);
+        self.0
+            .insert_range(.., core::mem::variant_count::<EntityPath>());
 
         for path in HAS_ANCESTORS {
             self.0.remove(path);

@@ -98,7 +98,7 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
 /// Returns the body and statement cost vector for assertion.
 #[track_caller]
 pub(crate) fn run_placement<'heap>(
-    context: &mut MirContext<'_, 'heap>,
+    context: &MirContext<'_, 'heap>,
     placement: &mut impl StatementPlacement<'heap, &'heap Heap>,
     body: Body<'heap>,
 ) -> (Body<'heap>, StatementCostVec<&'heap Heap>) {

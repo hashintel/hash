@@ -50,7 +50,7 @@ fn target_set(targets: &[TargetId]) -> TargetBitSet {
 #[expect(clippy::cast_possible_truncation)]
 fn all_targets() -> TargetBitSet {
     let mut set = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
-    set.insert_range(TargetId::MIN..=TargetId::MAX);
+    set.insert_range(TargetId::MIN..=TargetId::MAX, TargetId::VARIANT_COUNT);
     set
 }
 

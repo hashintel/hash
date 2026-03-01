@@ -185,7 +185,8 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
 
             // Unlike other regions, these may be empty. Mark empty blocks as supported everywhere.
             if costs[TargetId::Interpreter].is_empty() {
-                targets[start_id].insert_range(TargetId::MIN..=TargetId::MAX);
+                targets[start_id]
+                    .insert_range(TargetId::MIN..=TargetId::MAX, TargetId::VARIANT_COUNT);
             } else {
                 targets[start_id] = supported(&costs, 0);
             }
