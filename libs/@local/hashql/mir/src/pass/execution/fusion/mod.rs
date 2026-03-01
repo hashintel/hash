@@ -21,15 +21,19 @@
 use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible, mem};
 
-use hashql_core::{graph::Predecessors as _, heap::Heap, id::Id as _};
+use hashql_core::{graph::Predecessors as _, id::Id as _};
 
-use super::target::TargetId;
+use super::{target::TargetId, traversal::Traversals};
 use crate::{
     body::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
         location::Location,
         terminator::TerminatorKind,
+    },
+    pass::{
+        analysis::dataflow::lattice::{HasBottom as _, JoinSemiLattice as _},
+        execution::traversal::{TraversalLattice, TraversalPathBitSet},
     },
     visit::{VisitorMut, r#mut::filter},
 };
@@ -131,6 +135,8 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
     scratch: S,
     body: &mut Body<'_>,
     targets: &mut BasicBlockVec<TargetId, A>,
+    per_block_paths: &mut BasicBlockVec<TraversalPathBitSet, A>,
+    lattice: TraversalLattice,
 ) {
     let reverse_postorder = body
         .basic_blocks
@@ -175,6 +181,11 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 
         // The tail block is now dead
         tail_block.terminator.kind = TerminatorKind::Unreachable;
+
+        // We effectively do the same we've done for the block and simply join the head with the
+        // joined tail paths. We dot need to do that with the targets, as the targets are the same.
+        let tail_paths = per_block_paths[block_id];
+        lattice.join(&mut per_block_paths[block_head], &tail_paths);
     }
 
     // Phase 3: compaction.
@@ -212,10 +223,12 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 
         body.basic_blocks.as_mut().swap(old_id, new_id);
         targets.swap(old_id, new_id);
+        per_block_paths.swap(old_id, new_id);
     }
 
     body.basic_blocks.as_mut().truncate(new_len);
     targets.truncate(new_len);
+    per_block_paths.truncate(new_len);
 }
 
 /// Fuses adjacent MIR [`BasicBlock`]s that share the same execution target.
@@ -226,47 +239,72 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 ///
 /// [`BasicBlock`]: crate::body::basic_block::BasicBlock
 /// [`BasicBlockSplitting`]: super::splitting::BasicBlockSplitting
-pub(crate) struct BasicBlockFusion<A: Allocator> {
-    alloc: A,
+pub(crate) struct BasicBlockFusion<S: Allocator> {
+    traversals: Traversals<S>,
+    scratch: S,
 }
 
 impl BasicBlockFusion<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
-    pub(crate) const fn new() -> Self {
-        Self::new_in(Global)
+    #[cfg(test)]
+    pub(crate) const fn new(traversals: Traversals<Global>) -> Self {
+        Self::new_in(traversals, Global)
     }
 }
 
-impl<A: Allocator> BasicBlockFusion<A> {
+impl<S: Allocator> BasicBlockFusion<S> {
     /// Creates a new pass using the provided allocator.
-    pub(crate) const fn new_in(alloc: A) -> Self {
-        Self { alloc }
+    pub(crate) const fn new_in(traversals: Traversals<S>, scratch: S) -> Self {
+        Self {
+            traversals,
+            scratch,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fuse(
+        &self,
+        body: &mut Body<'_>,
+        targets: &mut BasicBlockVec<TargetId, Global>,
+    ) -> BasicBlockVec<TraversalPathBitSet, Global> {
+        self.fuse_in(body, targets, Global)
     }
 
     /// Fuses blocks in `body` that share the same target assignment.
     ///
     /// Modifies both `body` and `targets` in place. The `targets` vec is compacted to match
     /// the new block layout.
-    pub(crate) fn fuse<'heap>(
+    pub(crate) fn fuse_in<A: Allocator>(
         &self,
-        body: &mut Body<'heap>,
-        targets: &mut BasicBlockVec<TargetId, &'heap Heap>,
-    ) where
-        A: Clone,
-    {
+        body: &mut Body<'_>,
+        targets: &mut BasicBlockVec<TargetId, A>,
+        alloc: A,
+    ) -> BasicBlockVec<TraversalPathBitSet, A> {
         debug_assert_eq!(
             body.basic_blocks.len(),
             targets.len(),
             "target vec length must match basic block count"
         );
 
-        fuse_blocks(self.alloc.clone(), body, targets);
-    }
-}
+        let vertex = self.traversals.vertex();
+        let lattice = TraversalLattice::new(vertex);
 
-impl Default for BasicBlockFusion<Global> {
-    fn default() -> Self {
-        Self::new()
+        let mut per_block_paths = BasicBlockVec::from_domain_derive_in(
+            |id, _| {
+                self.traversals
+                    .of(id)
+                    .iter()
+                    .fold(lattice.bottom(), |lhs: TraversalPathBitSet, rhs| {
+                        lattice.join_owned(lhs, rhs)
+                    })
+            },
+            &body.basic_blocks,
+            alloc,
+        );
+
+        fuse_blocks(&self.scratch, body, targets, &mut per_block_paths, lattice);
+
+        per_block_paths
     }
 }

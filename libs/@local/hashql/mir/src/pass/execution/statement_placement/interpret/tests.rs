@@ -10,6 +10,7 @@ use crate::{
     def::DefId,
     intern::Interner,
     pass::execution::{
+        VertexType,
         statement_placement::{
             InterpreterStatementPlacement,
             tests::{assert_placement, run_placement},
@@ -61,7 +62,8 @@ fn all_statements_supported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
@@ -102,7 +104,8 @@ fn traversal_single_path_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
@@ -145,7 +148,8 @@ fn traversal_multiple_paths_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
@@ -189,7 +193,8 @@ fn traversal_swallowing_reduces_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
@@ -232,7 +237,8 @@ fn non_traversal_unaffected_by_costs() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
@@ -277,7 +283,8 @@ fn storage_statements_zero_cost() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let traversals =
+        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, context.heap);
     let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 

@@ -24,6 +24,17 @@ pub(crate) struct BlockPartitionedVec<T, A: Allocator = alloc::alloc::Global> {
 }
 
 impl<T, A: Allocator> BlockPartitionedVec<T, A> {
+    pub(crate) fn new_in(counts: impl ExactSizeIterator<Item = u32>, value: T, alloc: A) -> Self
+    where
+        T: Clone,
+        A: Clone,
+    {
+        let (offsets, length) = Self::build_offsets(counts, alloc.clone());
+        let data = alloc::vec::from_elem_in(value, length, alloc);
+
+        Self { offsets, data }
+    }
+
     #[expect(unsafe_code)]
     fn build_offsets(
         mut iter: impl ExactSizeIterator<Item = u32>,
@@ -104,17 +115,6 @@ impl<T, A: Allocator> BlockPartitionedVec<T, A> {
     }
 }
 
-impl<T: Clone, A: Allocator + Clone> BlockPartitionedVec<T, A> {
-    /// Creates a new `BlockPartitionedVec` from per-block counts, with all values initialized
-    /// to `value`.
-    pub(crate) fn new(counts: impl ExactSizeIterator<Item = u32>, value: T, alloc: A) -> Self {
-        let (offsets, length) = Self::build_offsets(counts, alloc.clone());
-        let data = alloc::vec::from_elem_in(value, length, alloc);
-
-        Self { offsets, data }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     #![expect(clippy::cast_possible_truncation)]
@@ -126,7 +126,7 @@ mod tests {
     /// Single block with 5 elements: all accessible via `of()`/`of_mut()`.
     #[test]
     fn single_block() {
-        let mut vec = BlockPartitionedVec::new([5].into_iter(), 0_u32, Global);
+        let mut vec = BlockPartitionedVec::new_in([5].into_iter(), 0_u32, Global);
 
         assert_eq!(vec.len(), 5);
         assert_eq!(vec.block_count(), 1);
@@ -143,7 +143,7 @@ mod tests {
     /// Multiple blocks with varying sizes: elements are correctly partitioned.
     #[test]
     fn multiple_blocks() {
-        let mut vec = BlockPartitionedVec::new([2, 3, 1].into_iter(), 0_u32, Global);
+        let mut vec = BlockPartitionedVec::new_in([2, 3, 1].into_iter(), 0_u32, Global);
 
         assert_eq!(vec.len(), 6);
         assert_eq!(vec.block_count(), 3);
@@ -163,7 +163,7 @@ mod tests {
     /// Blocks with zero elements produce empty slices.
     #[test]
     fn empty_blocks() {
-        let vec = BlockPartitionedVec::new([0, 3, 0].into_iter(), 0_u32, Global);
+        let vec = BlockPartitionedVec::new_in([0, 3, 0].into_iter(), 0_u32, Global);
 
         assert_eq!(vec.len(), 3);
         assert_eq!(vec.block_count(), 3);
@@ -175,7 +175,7 @@ mod tests {
     /// Zero blocks is valid.
     #[test]
     fn no_blocks() {
-        let vec = BlockPartitionedVec::new(core::iter::empty::<u32>(), 0_u32, Global);
+        let vec = BlockPartitionedVec::new_in(core::iter::empty::<u32>(), 0_u32, Global);
 
         assert_eq!(vec.len(), 0);
         assert_eq!(vec.block_count(), 0);
@@ -184,7 +184,7 @@ mod tests {
     /// `iter()` yields all elements in flat order.
     #[test]
     fn iter_all_elements() {
-        let mut vec = BlockPartitionedVec::new([2, 1].into_iter(), 0_u32, Global);
+        let mut vec = BlockPartitionedVec::new_in([2, 1].into_iter(), 0_u32, Global);
 
         vec.of_mut(BasicBlockId::new(0))[0] = 1;
         vec.of_mut(BasicBlockId::new(0))[1] = 2;
@@ -197,7 +197,7 @@ mod tests {
     /// `remap()` rebuilds the offset table without changing data.
     #[test]
     fn remap_preserves_data() {
-        let mut vec = BlockPartitionedVec::new([3, 3].into_iter(), 0_u32, Global);
+        let mut vec = BlockPartitionedVec::new_in([3, 3].into_iter(), 0_u32, Global);
 
         // Write sequential values
         for (index, value) in vec.of_mut(BasicBlockId::new(0)).iter_mut().enumerate() {

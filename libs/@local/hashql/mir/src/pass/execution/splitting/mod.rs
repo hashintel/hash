@@ -306,9 +306,13 @@ impl<S: Allocator> BasicBlockSplitting<S> {
         self.split_in(context, body, statement_costs, Global)
     }
 
-    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
+    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities along with
+    /// the per-block region counts used during splitting.
     ///
-    /// The returned vector is indexed by the new [`BasicBlockId`]s.
+    /// The first element is indexed by the new [`BasicBlockId`]s. The second element maps
+    /// each original block to the number of blocks it was split into, which callers can use
+    /// to redistribute parallel data structures via
+    /// [`split_remap`](super::traversal::Traversals::split_remap).
     pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,
