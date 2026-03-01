@@ -319,7 +319,7 @@ pub(crate) struct StatementCostVec<A: Allocator = Global>(BlockPartitionedVec<Op
 impl<A: Allocator + Clone> StatementCostVec<A> {
     #[cfg(test)]
     pub(crate) fn from_iter(iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self {
-        Self(BlockPartitionedVec::new(iter, None, alloc))
+        Self(BlockPartitionedVec::new_in(iter, None, alloc))
     }
 
     /// Creates a cost map with space for all statements in the given blocks.
@@ -327,7 +327,7 @@ impl<A: Allocator + Clone> StatementCostVec<A> {
     /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
     #[expect(clippy::cast_possible_truncation)]
     pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self {
-        Self(BlockPartitionedVec::new(
+        Self(BlockPartitionedVec::new_in(
             blocks.iter().map(|block| block.statements.len() as u32),
             None,
             alloc,
