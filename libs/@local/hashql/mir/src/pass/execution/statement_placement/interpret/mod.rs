@@ -11,7 +11,7 @@ use crate::{
     pass::execution::{
         VertexType,
         cost::{Cost, StatementCostVec},
-        traversal::Traversals,
+        traversal::{TraversalAnalysisVisitor, TraversalPathBitSet, TraversalResult},
     },
     visit::Visitor,
 };
@@ -19,15 +19,15 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-struct CostVisitor<'ctx, A: Allocator, S: Allocator> {
+struct CostVisitor<A: Allocator> {
     cost: Cost,
+    vertex: VertexType,
     traversal_overhead: Cost,
 
     statement_costs: StatementCostVec<A>,
-    traversals: &'ctx Traversals<S>,
 }
 
-impl<'heap, A: Allocator, S: Allocator> Visitor<'heap> for CostVisitor<'_, A, S> {
+impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<A> {
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -37,7 +37,7 @@ impl<'heap, A: Allocator, S: Allocator> Visitor<'heap> for CostVisitor<'_, A, S>
     ) -> Self::Result {
         // All statements are supported; TraversalAnalysis provides backend data access
         match &statement.kind {
-            StatementKind::Assign(Assign { lhs, rhs: _ }) => {
+            StatementKind::Assign(Assign { lhs, rhs }) => {
                 // If it's a traversal load (aka we add the interpreter cost, as well as the cost to
                 // load the statement). We assume worst case for the traversal.
                 #[expect(
@@ -45,10 +45,15 @@ impl<'heap, A: Allocator, S: Allocator> Visitor<'heap> for CostVisitor<'_, A, S>
                     reason = "variant count is under u32::MAX"
                 )]
                 let cost = if lhs.projections.is_empty() {
-                    self.cost.saturating_add(
-                        self.traversal_overhead
-                            .saturating_mul(self.traversals.path_count(location) as u32),
-                    )
+                    let mut bitset = TraversalPathBitSet::empty(self.vertex);
+                    Ok(()) = TraversalAnalysisVisitor::new(self.vertex, |_, result| match result {
+                        TraversalResult::Path(path) => bitset.insert(path),
+                        TraversalResult::Complete => bitset.insert_all(),
+                    })
+                    .visit_rvalue(location, rhs);
+
+                    self.cost
+                        .saturating_add(self.traversal_overhead.saturating_mul(bitset.len() as u32))
                 } else {
                     self.cost
                 };
@@ -68,31 +73,26 @@ impl<'heap, A: Allocator, S: Allocator> Visitor<'heap> for CostVisitor<'_, A, S>
 /// target.
 ///
 /// Supports all statements unconditionally, serving as the universal fallback.
-pub(crate) struct InterpreterStatementPlacement<'ctx, S: Allocator> {
+pub(crate) struct InterpreterStatementPlacement {
     traversal_overhead: Cost,
     statement_cost: Cost,
-
-    traversals: &'ctx Traversals<S>,
 }
 
-impl<'ctx, S: Allocator> InterpreterStatementPlacement<'ctx, S> {
-    pub(crate) const fn new(traversals: &'ctx Traversals<S>) -> Self {
+impl InterpreterStatementPlacement {
+    pub(crate) const fn new() -> Self {
         Self {
             traversal_overhead: cost!(4),
             statement_cost: cost!(8),
-            traversals,
         }
     }
 }
 
-impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
-    for InterpreterStatementPlacement<'_, S>
-{
+impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
     fn statement_placement_in(
         &mut self,
         _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        _: VertexType,
+        vertex: VertexType,
         alloc: A,
     ) -> StatementCostVec<A> {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
@@ -108,7 +108,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             cost: self.statement_cost,
             statement_costs,
             traversal_overhead: self.traversal_overhead,
-            traversals: self.traversals,
+            vertex,
         };
         visitor.visit_body(body);
 

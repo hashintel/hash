@@ -38,7 +38,7 @@ use self::{
     statement_placement::{StatementPlacement as _, TargetPlacementStatement},
     target::TargetArray,
     terminator_placement::TerminatorPlacement,
-    traversal::{TransferCostConfig, TraversalAnalysis},
+    traversal::TransferCostConfig,
 };
 use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
 use crate::{
@@ -70,16 +70,13 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             unreachable!("unsupported graph read target")
         };
 
-        let traversals = TraversalAnalysis::new(vertex).traversal_analysis_in(body, &self.scratch);
-
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
         let mut targets = TargetId::all();
         targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
 
         for target in targets {
-            let mut statement =
-                TargetPlacementStatement::new_in(target, &traversals, &self.scratch);
+            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
             let statement_cost =
                 statement.statement_placement_in(context, body, vertex, &self.scratch);
 
@@ -123,16 +120,11 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
 
         let mut assignment = solver.run(context, body);
 
-        let fusion = BasicBlockFusion::new_in(traversals, &self.scratch);
-        let traversals = fusion.fuse_in(body, &mut assignment, context.heap);
+        let fusion = BasicBlockFusion::new_in(&self.scratch);
+        fusion.fuse(body, &mut assignment);
 
-        let islands = IslandPlacement::new_in(&self.scratch).run(
-            body,
-            vertex,
-            &assignment,
-            &traversals,
-            context.heap,
-        );
+        let islands =
+            IslandPlacement::new_in(&self.scratch).run(body, vertex, &assignment, context.heap);
 
         (assignment, islands)
     }

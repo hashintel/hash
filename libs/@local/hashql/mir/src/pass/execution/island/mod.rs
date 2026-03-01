@@ -18,14 +18,15 @@ use hashql_core::{
 use super::{
     VertexType,
     target::TargetId,
-    traversal::{TraversalLattice, TraversalPathBitSet},
+    traversal::{TraversalAnalysisVisitor, TraversalLattice, TraversalPathBitSet, TraversalResult},
 };
 use crate::{
     body::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockUnionFind, BasicBlockVec},
     },
-    pass::analysis::dataflow::lattice::{HasBottom as _, JoinSemiLattice as _},
+    pass::analysis::dataflow::lattice::HasBottom as _,
+    visit::Visitor as _,
 };
 
 #[cfg(test)]
@@ -133,7 +134,6 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
         vertex: VertexType,
 
         targets: &BasicBlockSlice<TargetId>,
-        traversals: &BasicBlockSlice<TraversalPathBitSet>,
 
         alloc: A,
     ) -> IslandVec<Island, A>
@@ -167,7 +167,17 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
             });
 
             islands[index].members.insert(bb);
-            lattice.join(&mut islands[index].traversals, &traversals[bb]);
+        }
+
+        for island in &mut islands {
+            let mut visitor = TraversalAnalysisVisitor::new(vertex, |_, result| match result {
+                TraversalResult::Path(path) => island.traversals.insert(path),
+                TraversalResult::Complete => island.traversals.insert_all(),
+            });
+
+            for id in &island.members {
+                Ok(()) = visitor.visit_basic_block(id, &body.basic_blocks[id]);
+            }
         }
 
         islands
