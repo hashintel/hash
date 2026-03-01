@@ -1,15 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use core::{
-    alloc::Allocator,
-    ops::{Index, IndexMut},
-};
-
-use super::{TraversalPath, TraversalPathBitSet};
+use super::TraversalPath;
 use crate::{
     body::{
-        basic_block::{BasicBlockId, BasicBlockVec},
         local::Local,
         location::Location,
         place::{DefUse, Place, PlaceContext},
