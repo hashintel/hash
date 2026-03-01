@@ -23,7 +23,7 @@ pub(crate) use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::{target::TargetId, traversal::Traversals};
+use super::{VertexType, target::TargetId, traversal::Traversals};
 use crate::{body::Body, context::MirContext, pass::execution::cost::StatementCostVec};
 
 /// Computes statement placement costs for a specific execution target.
@@ -48,22 +48,24 @@ pub(crate) trait StatementPlacement<'heap, A: Allocator> {
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<A>,
+        vertex: VertexType,
         alloc: A,
     ) -> StatementCostVec<A>;
 }
 
-pub(crate) enum TargetPlacementStatement<'heap, S: Allocator> {
-    Interpreter(InterpreterStatementPlacement),
+pub(crate) enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
+    Interpreter(InterpreterStatementPlacement<'ctx, S>),
     Postgres(PostgresStatementPlacement<'heap, S>),
     Embedding(EmbeddingStatementPlacement<S>),
 }
 
-impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
+impl<'ctx, S: Allocator + Clone> TargetPlacementStatement<'ctx, '_, S> {
     #[must_use]
-    pub(crate) fn new_in(target: TargetId, scratch: S) -> Self {
+    pub(crate) fn new_in(target: TargetId, traversals: &'ctx Traversals<S>, scratch: S) -> Self {
         match target {
-            TargetId::Interpreter => Self::Interpreter(InterpreterStatementPlacement::new()),
+            TargetId::Interpreter => {
+                Self::Interpreter(InterpreterStatementPlacement::new(traversals))
+            }
             TargetId::Postgres => Self::Postgres(PostgresStatementPlacement::new_in(scratch)),
             TargetId::Embedding => Self::Embedding(EmbeddingStatementPlacement::new_in(scratch)),
         }
@@ -71,25 +73,25 @@ impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
 }
 
 impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
-    for TargetPlacementStatement<'heap, S>
+    for TargetPlacementStatement<'_, 'heap, S>
 {
     #[inline]
     fn statement_placement_in(
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<A>,
+        vertex: VertexType,
         alloc: A,
     ) -> StatementCostVec<A> {
         match self {
             TargetPlacementStatement::Interpreter(placement) => {
-                placement.statement_placement_in(context, body, traversals, alloc)
+                placement.statement_placement_in(context, body, vertex, alloc)
             }
             TargetPlacementStatement::Postgres(placement) => {
-                placement.statement_placement_in(context, body, traversals, alloc)
+                placement.statement_placement_in(context, body, vertex, alloc)
             }
             TargetPlacementStatement::Embedding(placement) => {
-                placement.statement_placement_in(context, body, traversals, alloc)
+                placement.statement_placement_in(context, body, vertex, alloc)
             }
         }
     }
