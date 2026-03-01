@@ -86,7 +86,7 @@ fn all_args_excluded() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "all_args_excluded",

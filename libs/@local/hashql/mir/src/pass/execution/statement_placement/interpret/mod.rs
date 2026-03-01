@@ -34,7 +34,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, A> {
         location: Location,
         statement: &Statement<'heap>,
     ) -> Self::Result {
-        // All statements are supported; TraversalExtraction provides backend data access
+        // All statements are supported; TraversalAnalysis provides backend data access
         match &statement.kind {
             StatementKind::Assign(Assign { lhs, rhs: _ }) => {
                 // If it's a traversal load (aka we add the interpreter cost, as well as the cost to
