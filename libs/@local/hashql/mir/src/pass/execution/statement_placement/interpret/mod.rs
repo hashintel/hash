@@ -9,6 +9,7 @@ use crate::{
     },
     context::MirContext,
     pass::execution::{
+        VertexType,
         cost::{Cost, StatementCostVec},
         traversal::Traversals,
     },
@@ -18,15 +19,15 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-struct CostVisitor<'ctx, A: Allocator> {
+struct CostVisitor<'ctx, A: Allocator, S: Allocator> {
     cost: Cost,
     traversal_overhead: Cost,
 
     statement_costs: StatementCostVec<A>,
-    traversals: &'ctx Traversals<A>,
+    traversals: &'ctx Traversals<S>,
 }
 
-impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, A> {
+impl<'heap, A: Allocator, S: Allocator> Visitor<'heap> for CostVisitor<'_, A, S> {
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -67,26 +68,31 @@ impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<'_, A> {
 /// target.
 ///
 /// Supports all statements unconditionally, serving as the universal fallback.
-pub(crate) struct InterpreterStatementPlacement {
+pub(crate) struct InterpreterStatementPlacement<'ctx, S: Allocator> {
     traversal_overhead: Cost,
     statement_cost: Cost,
+
+    traversals: &'ctx Traversals<S>,
 }
 
-impl InterpreterStatementPlacement {
-    pub(crate) const fn new() -> Self {
+impl<'ctx, S: Allocator> InterpreterStatementPlacement<'ctx, S> {
+    pub(crate) const fn new(traversals: &'ctx Traversals<S>) -> Self {
         Self {
             traversal_overhead: cost!(4),
             statement_cost: cost!(8),
+            traversals,
         }
     }
 }
 
-impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
+impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
+    for InterpreterStatementPlacement<'_, S>
+{
     fn statement_placement_in(
         &mut self,
         _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<A>,
+        vertex: VertexType,
         alloc: A,
     ) -> StatementCostVec<A> {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
@@ -102,7 +108,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterSt
             cost: self.statement_cost,
             statement_costs,
             traversal_overhead: self.traversal_overhead,
-            traversals,
+            traversals: self.traversals,
         };
         visitor.visit_body(body);
 

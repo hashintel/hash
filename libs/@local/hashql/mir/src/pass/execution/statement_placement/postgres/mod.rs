@@ -331,6 +331,7 @@ struct PostgresSupported<'ctx, 'heap, A: Allocator> {
     ///
     /// Fields containing closures or dicts with non-string keys are excluded.
     env_domain: &'ctx DenseBitSet<FieldIndex>,
+    vertex: VertexType,
 
     guard: LocalLock<&'ctx mut RecursiveVisitorGuard<'heap, A>>,
 }
@@ -369,19 +370,12 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
 
                 Some(self.env_domain.contains(field))
             }
-            Local::VERTEX => {
-                let decl = &body.local_decls[place.local];
-                let Some(vertex_type) = VertexType::from_local(context.env, decl) else {
-                    unimplemented!("lookup for declared type")
-                };
-
-                match vertex_type {
-                    VertexType::Entity => Some(matches!(
-                        entity_projection_access(&place.projections),
-                        Some(Access::Postgres(_))
-                    )),
-                }
-            }
+            Local::VERTEX => match self.vertex {
+                VertexType::Entity => Some(matches!(
+                    entity_projection_access(&place.projections),
+                    Some(Access::Postgres(_))
+                )),
+            },
             _ => None,
         }
     }
@@ -708,7 +702,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        _: &Traversals<A>,
+        vertex: VertexType,
         alloc: A,
     ) -> StatementCostVec<A> {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
@@ -724,6 +718,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
 
         let supported = PostgresSupported {
             env_domain: &env_domain,
+            vertex,
             guard: LocalLock::new(&mut self.type_visitor_guard),
         };
 

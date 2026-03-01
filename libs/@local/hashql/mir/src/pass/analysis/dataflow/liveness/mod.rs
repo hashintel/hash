@@ -57,7 +57,7 @@ mod tests;
 
 use core::alloc::Allocator;
 
-use hashql_core::{id::bit_vec::DenseBitSet, intern::Interned};
+use hashql_core::{id::bit_vec::DenseBitSet, intern::Interned, r#type::environment::Environment};
 
 use super::{
     framework::{DataflowAnalysis, Direction},
@@ -73,7 +73,10 @@ use crate::{
         terminator::Terminator,
     },
     pass::{
-        execution::{VertexType, traversal::EntityPath},
+        execution::{
+            VertexType,
+            traversal::{EntityPath, TraversalLattice, TraversalPathBitSet},
+        },
         transform::Traversals,
     },
     visit::{self, Visitor},
@@ -87,19 +90,22 @@ use crate::{
 ///
 /// This allows subsequent dead code elimination to remove the source local when its only uses
 /// are through extracted traversal projections.
-pub struct TraversalLivenessAnalysis<'ctx, 'heap> {
-    pub traversals: &'ctx Traversals<'heap>,
+pub struct TraversalLivenessAnalysis {
+    vertex: VertexType
 }
 
 impl<'heap> DataflowAnalysis<'heap> for TraversalLivenessAnalysis<'_, '_> {
-    type Domain<A: Allocator> = DenseBitSet<Local>;
-    type Lattice<A: Allocator + Clone> = PowersetLattice;
+    type Domain<A: Allocator> = (DenseBitSet<Local>, TraversalPathBitSet);
+    type Lattice<A: Allocator + Clone> = (PowersetLattice, TraversalLattice);
     type SwitchIntData = !;
 
     const DIRECTION: Direction = Direction::Backward;
 
     fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, _: A) -> Self::Lattice<A> {
-        PowersetLattice::new(body.local_decls.len())
+        let locals = PowersetLattice::new(body.local_decls.len());
+
+        let vertex = VertexType::from_local(self.env, &body.local_decls[])
+        let paths = TraversalLattice::new(vertex)
     }
 
     fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {
