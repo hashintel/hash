@@ -11,7 +11,6 @@
 //! [`DenseBitSet`]: super::DenseBitSet
 #![expect(
     clippy::cast_possible_truncation,
-    clippy::cast_lossless,
     reason = "Integral conversions in macro expansions may truncate or widen depending on target \
               type"
 )]
@@ -19,7 +18,7 @@
 use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    marker::PhantomData,
+    marker::{Destruct, PhantomData},
     ops::{BitAnd, BitAndAssign, BitOrAssign, Not, RangeBounds, Shl, Shr, Sub},
 };
 
@@ -34,17 +33,17 @@ use crate::id::{Id, bit_vec::inclusive_start_end};
 ///
 /// The "integral" in the name refers to the mathematical concept of integers, distinguishing
 /// these types from other potential backing stores like arrays of integers.
-pub trait FiniteBitSetIntegral:
+pub const trait FiniteBitSetIntegral:
     Copy
     + Clone
     + Hash
-    + BitAnd<Output = Self>
-    + BitOrAssign
-    + BitAndAssign
-    + Shl<Output = Self>
-    + Shr<Output = Self>
-    + Sub<Output = Self>
-    + Not<Output = Self>
+    + const BitAnd<Output = Self>
+    + const BitOrAssign
+    + const BitAndAssign
+    + const Shl<Output = Self>
+    + const Shr<Output = Self>
+    + const Sub<Output = Self>
+    + const Not<Output = Self>
     + const PartialEq
     + fmt::Binary
 {
@@ -66,7 +65,7 @@ pub trait FiniteBitSetIntegral:
     const ZERO: Self;
 
     /// Converts an [`Id`] to this integral type.
-    fn from_id<I: Id>(id: I) -> Self;
+    fn from_id<I: [const] Id>(id: I) -> Self;
 
     /// Converts a `usize` to this integral type.
     fn from_usize(value: usize) -> Self;
@@ -86,14 +85,14 @@ macro_rules! impl_trait {
         $(impl_trait!(@impl $integral);)*
     };
     (@impl $integral:ty) => {
-        impl FiniteBitSetIntegral for $integral {
+        impl const FiniteBitSetIntegral for $integral {
             const EMPTY: Self = Self::MIN;
             const FILLED: Self = Self::MAX;
             const MAX_DOMAIN_SIZE: u32 = <$integral>::BITS;
             const ONE: Self = 1;
             const ZERO: Self = 0;
 
-            fn from_id<I: Id>(id: I) -> Self {
+            fn from_id<I: [const] Id>(id: I) -> Self {
                 id.as_u32() as Self
             }
 
@@ -207,7 +206,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn insert(&mut self, index: I) {
+    pub const fn insert(&mut self, index: I)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         assert!(index.as_u32() < T::MAX_DOMAIN_SIZE);
 
         self.store |= T::ONE << T::from_id(index);
@@ -221,7 +224,12 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if the range end exceeds the capacity of the underlying integral type.
     #[inline]
-    pub fn insert_range(&mut self, bounds: impl RangeBounds<I>, domain_size: usize) {
+    pub const fn insert_range<R>(&mut self, bounds: R, domain_size: usize)
+    where
+        R: [const] RangeBounds<I> + [const] Destruct,
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         let Some((start, end)) = inclusive_start_end(bounds, domain_size) else {
             return;
         };
@@ -240,7 +248,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn remove(&mut self, index: I) {
+    pub const fn remove(&mut self, index: I)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         assert!(index.as_u32() < T::MAX_DOMAIN_SIZE);
 
         self.store &= !(T::ONE << T::from_id(index));
@@ -252,7 +264,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn set(&mut self, index: I, value: bool) {
+    pub const fn set(&mut self, index: I, value: bool)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         if value {
             self.insert(index);
         } else {
@@ -265,7 +281,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     /// Returns `false` if `index` is out of bounds (rather than panicking).
     #[inline]
     #[must_use]
-    pub fn contains(&self, index: I) -> bool {
+    pub const fn contains(&self, index: I) -> bool
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         if index.as_u32() >= T::MAX_DOMAIN_SIZE {
             false
         } else {
