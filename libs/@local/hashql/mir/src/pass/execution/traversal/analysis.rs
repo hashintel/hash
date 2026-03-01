@@ -3,15 +3,13 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use hashql_core::r#type::environment::Environment;
-
 use super::TraversalPathBitSet;
 use crate::{
     body::{
         Body, Source,
         basic_block::BasicBlockId,
         basic_blocks::BasicBlocks,
-        local::{Local, LocalDecl, LocalSlice},
+        local::Local,
         location::Location,
         place::{DefUse, Place, PlaceContext},
     },
@@ -58,6 +56,13 @@ impl<A: Allocator> Traversals<A> {
         self.inner.of_mut(block)
     }
 
+    /// Returns the number of vertex paths accessed by the statement at `location`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn path_count(&self, location: Location) -> usize {
+        self[location].len()
+    }
+
     /// Rebuilds the offset table for a new block layout.
     ///
     /// Call after transforms that change statement counts per block. Does not resize or clear
@@ -86,14 +91,12 @@ impl<A: Allocator> IndexMut<Location> for Traversals<A> {
     }
 }
 
-struct TraversalAnalysisVisitor<'env, 'heap, A: Allocator> {
-    env: &'env Environment<'heap>,
+struct TraversalAnalysisVisitor<A: Allocator> {
     vertex: VertexType,
     traversals: Traversals<A>,
-    locals: &'env LocalSlice<LocalDecl<'heap>>,
 }
 
-impl<'heap, A: Allocator> Visitor<'heap> for TraversalAnalysisVisitor<'_, 'heap, A> {
+impl<'heap, A: Allocator> Visitor<'heap> for TraversalAnalysisVisitor<A> {
     type Result = Result<(), !>;
 
     fn visit_place(
@@ -127,7 +130,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for TraversalAnalysisVisitor<'_, 'heap,
                 } else {
                     // The path leads to "nothing", indicating that we must hydrate the entire
                     // entity.
-                    current.insert_range(..);
+                    current.insert_all();
                 }
             }
         }
@@ -149,7 +152,7 @@ impl TraversalAnalysis {
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
                 panic!("traversal analysis may only be called on graph related operations")
             }
-        };
+        }
 
         let Some(vertex) = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
         else {
@@ -158,16 +161,9 @@ impl TraversalAnalysis {
 
         let traversals = Traversals::new_in(&body.basic_blocks, vertex, alloc);
 
-        let mut visitor = TraversalAnalysisVisitor {
-            env: context.env,
-            vertex,
-            traversals,
-            locals: &body.local_decls,
-        };
+        let mut visitor = TraversalAnalysisVisitor { vertex, traversals };
         Ok(()) = visitor.visit_body(body);
 
         visitor.traversals
     }
 }
-
-// TODO: proper pass that goes over the basic blocks, and does all the required stuff

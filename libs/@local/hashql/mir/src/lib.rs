@@ -2,6 +2,7 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![allow(unused)]
 #![feature(
     // Language Features
     associated_type_defaults,
