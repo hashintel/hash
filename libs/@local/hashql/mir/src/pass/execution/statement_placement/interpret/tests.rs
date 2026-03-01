@@ -9,9 +9,12 @@ use crate::{
     context::MirContext,
     def::DefId,
     intern::Interner,
-    pass::execution::statement_placement::{
-        InterpreterStatementPlacement, StatementPlacement as _,
-        tests::{assert_placement, run_placement},
+    pass::execution::{
+        statement_placement::{
+            InterpreterStatementPlacement, StatementPlacement as _,
+            tests::{assert_placement, run_placement},
+        },
+        traversal::TraversalAnalysis,
     },
 };
 
@@ -51,14 +54,15 @@ fn all_statements_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
@@ -91,14 +95,15 @@ fn traversal_single_path_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
@@ -133,14 +138,15 @@ fn traversal_multiple_paths_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
@@ -176,14 +182,15 @@ fn traversal_swallowing_reduces_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
@@ -218,14 +225,15 @@ fn non_traversal_unaffected_by_costs() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
@@ -262,14 +270,15 @@ fn storage_statements_zero_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut placement = InterpreterStatementPlacement::new();
+    let traversals = TraversalAnalysis::traversal_analysis_in(&context, &body, context.heap);
+    let mut placement = InterpreterStatementPlacement::new(&traversals);
     let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(

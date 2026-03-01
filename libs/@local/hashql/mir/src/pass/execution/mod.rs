@@ -38,7 +38,7 @@ use self::{
 };
 use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
 use crate::{
-    body::{Body, Source, basic_block::BasicBlockVec},
+    body::{Body, Source, basic_block::BasicBlockVec, local::Local},
     context::MirContext,
     def::DefIdSlice,
 };
@@ -60,6 +60,11 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
     ) {
         assert_matches!(body.source, Source::GraphReadFilter(_));
 
+        let Some(vertex) = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
+        else {
+            unreachable!("unsupported graph read target")
+        };
+
         let mut traversals = TraversalAnalysis::traversal_analysis_in(context, body, &self.scratch);
 
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
@@ -68,9 +73,10 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
 
         for target in targets {
-            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
+            let mut statement =
+                TargetPlacementStatement::new_in(target, &traversals, &self.scratch);
             let statement_cost =
-                statement.statement_placement_in(context, body, &traversals, &self.scratch);
+                statement.statement_placement_in(context, body, vertex, &self.scratch);
 
             statement_costs[target] = Some(statement_cost);
         }
