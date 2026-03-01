@@ -20,6 +20,9 @@
     clone_from_ref,
     const_cmp,
     const_trait_impl,
+<<<<<<< HEAD
+    extend_one,
+=======
     const_range,
     const_clone,
     const_convert,
@@ -28,6 +31,7 @@
     extend_one,
     bound_copied,
     formatting_options,
+>>>>>>> afe96f0dd9 (feat: define lattice over the entity)
     get_disjoint_mut_helpers,
     iter_intersperse,
     iter_map_windows,

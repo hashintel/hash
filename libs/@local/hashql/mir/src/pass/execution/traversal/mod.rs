@@ -19,6 +19,28 @@ pub(crate) use analysis::{TraversalAnalysis, Traversals};
 pub(crate) use self::access::Access;
 pub use self::entity::{EntityPath, EntityPathBitSet};
 use super::VertexType;
+use crate::pass::analysis::dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice};
+
+/// Lattice structure for traversal path bitsets.
+///
+/// Carries the [`VertexType`] so that [`bottom`](HasBottom::bottom) and [`top`](HasTop::top)
+/// construct the correct variant of [`TraversalPathBitSet`].
+#[derive(Debug, Copy, Clone)]
+pub struct TraversalLattice {
+    vertex: VertexType,
+}
+
+impl TraversalLattice {
+    #[must_use]
+    pub const fn new(vertex: VertexType) -> Self {
+        Self { vertex }
+    }
+
+    #[must_use]
+    pub const fn vertex(&self) -> VertexType {
+        self.vertex
+    }
+}
 
 /// Set of resolved traversal paths for a single vertex type.
 ///
@@ -92,6 +114,56 @@ impl TraversalPathBitSet {
     pub fn insert(&mut self, path: TraversalPath) {
         match (self, path) {
             (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.insert(path),
+        }
+    }
+}
+
+impl HasBottom<TraversalPathBitSet> for TraversalLattice {
+    fn bottom(&self) -> TraversalPathBitSet {
+        match self.vertex {
+            VertexType::Entity => TraversalPathBitSet::Entity(self.bottom()),
+        }
+    }
+
+    fn is_bottom(&self, value: &TraversalPathBitSet) -> bool {
+        match value {
+            TraversalPathBitSet::Entity(bitset) => self.is_bottom(bitset),
+        }
+    }
+}
+
+impl HasTop<TraversalPathBitSet> for TraversalLattice {
+    fn top(&self) -> TraversalPathBitSet {
+        match self.vertex {
+            VertexType::Entity => TraversalPathBitSet::Entity(self.top()),
+        }
+    }
+
+    fn is_top(&self, value: &TraversalPathBitSet) -> bool {
+        match value {
+            TraversalPathBitSet::Entity(bitset) => self.is_top(bitset),
+        }
+    }
+}
+
+impl JoinSemiLattice<TraversalPathBitSet> for TraversalLattice {
+    fn join(&self, lhs: &mut TraversalPathBitSet, rhs: &TraversalPathBitSet) -> bool {
+        match (lhs, rhs) {
+            (TraversalPathBitSet::Entity(lhs), TraversalPathBitSet::Entity(rhs)) => {
+                self.join(lhs, rhs)
+            }
+        }
+    }
+
+    fn join_owned(
+        &self,
+        lhs: TraversalPathBitSet,
+        rhs: &TraversalPathBitSet,
+    ) -> TraversalPathBitSet {
+        match (lhs, rhs) {
+            (TraversalPathBitSet::Entity(lhs), TraversalPathBitSet::Entity(rhs)) => {
+                TraversalPathBitSet::Entity(self.join_owned(lhs, rhs))
+            }
         }
     }
 }
