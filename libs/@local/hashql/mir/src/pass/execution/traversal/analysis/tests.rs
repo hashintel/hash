@@ -133,7 +133,7 @@ fn bare_vertex_sets_all_bits() {
     assert!(!stmt.contains(EntityPath::EntityId));
     assert!(!stmt.contains(EntityPath::WebId));
     assert!(!stmt.contains(EntityPath::DecisionTime));
-    // 24 total variants - 6 children = 18 top-level paths
+    // 25 variants - 7 children = 18 top-level paths
     assert_eq!(stmt.len(), 18);
 }
 
@@ -375,13 +375,13 @@ fn paths_across_blocks() {
     assert!(bb2_term.is_empty());
 }
 
-/// Composite swallowing works end-to-end through the analysis pass.
+/// Each statement records paths independently; no cross-statement interaction.
 ///
 /// A statement loading `_1.metadata.record_id` followed by one loading
 /// `_1.metadata.record_id.entity_id.web_id`: the first records `{RecordId}`,
-/// the second records `{WebId}`. No cross-statement interaction.
+/// the second records `{WebId}`. Swallowing only applies within a single statement.
 #[test]
-fn swallowing_across_statements() {
+fn paths_recorded_independently_per_statement() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
@@ -422,6 +422,118 @@ fn swallowing_across_statements() {
         .expect("should be an entity path bitset");
     assert!(stmt1.contains(EntityPath::WebId));
     assert_eq!(stmt1.len(), 1);
+}
+
+/// An unresolvable vertex projection (e.g., `_1.unknown`) triggers `insert_all`.
+///
+/// When `EntityPath::resolve` returns `None`, the analysis conservatively assumes the
+/// entire entity is needed and sets all bits.
+#[test]
+fn unresolvable_projection_sets_all_bits() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj unknown = vertex.unknown: ?;
+
+        bb0() {
+            val = load unknown;
+            return val;
+        }
+    });
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let traversals = analyze(&context, &body);
+
+    let stmt = traversals[location(0, 1)]
+        .as_entity()
+        .expect("should be an entity path bitset");
+    // Unresolvable path → insert_all → 25 variants - 7 children = 18
+    assert_eq!(stmt.len(), 18);
+    assert!(stmt.contains(EntityPath::Properties));
+    assert!(stmt.contains(EntityPath::RecordId));
+}
+
+/// `link_data.left_entity_id.web_id` resolves to `{LeftEntityWebId}`.
+#[test]
+fn link_data_path_recorded() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj link_data = vertex.link_data: ?,
+              left_entity_id = link_data.left_entity_id: ?,
+              web_id = left_entity_id.web_id: ?;
+
+        bb0() {
+            val = load web_id;
+            return val;
+        }
+    });
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let traversals = analyze(&context, &body);
+
+    let stmt = traversals[location(0, 1)]
+        .as_entity()
+        .expect("should be an entity path bitset");
+    assert!(stmt.contains(EntityPath::LeftEntityWebId));
+    assert_eq!(stmt.len(), 1);
+}
+
+/// `TemporalVersioning` composite swallowing works end-to-end through analysis.
+///
+/// A tuple referencing both `_1.metadata.temporal_versioning.decision_time` and
+/// `_1.metadata.temporal_versioning`: `TemporalVersioning` swallows `DecisionTime`.
+#[test]
+fn temporal_versioning_swallowing_through_analysis() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> (?, ?) {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], result: (?, ?);
+        @proj metadata = vertex.metadata: ?,
+              temporal_versioning = metadata.temporal_versioning: ?,
+              decision_time = temporal_versioning.decision_time: ?;
+
+        bb0() {
+            result = tuple decision_time, temporal_versioning;
+            return result;
+        }
+    });
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let traversals = analyze(&context, &body);
+
+    let stmt = traversals[location(0, 1)]
+        .as_entity()
+        .expect("should be an entity path bitset");
+    assert!(stmt.contains(EntityPath::TemporalVersioning));
+    assert!(!stmt.contains(EntityPath::DecisionTime));
+    assert_eq!(stmt.len(), 1);
 }
 
 /// Within a single statement, inserting a composite after its child swallows the child.
