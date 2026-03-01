@@ -12,6 +12,7 @@ use hashql_core::{
     heap::Heap,
     id::{Id as _, bit_vec::FiniteBitSet},
     pretty::Formatter,
+    symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, builder::TypeBuilder, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -22,9 +23,8 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice},
-        local::{Local, LocalVec},
+        local::LocalVec,
         operand::Operand,
-        place::{FieldIndex, Place, ProjectionKind},
         terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
     },
     builder::{BodyBuilder, body},
@@ -32,8 +32,10 @@ use crate::{
     intern::Interner,
     pass::{
         analysis::size_estimation::{BodyFootprint, Footprint, InformationRange},
-        execution::target::{TargetBitSet, TargetId},
-        transform::Traversals,
+        execution::{
+            VertexType,
+            target::{TargetBitSet, TargetId},
+        },
     },
     pretty::TextFormatOptions,
 };
@@ -82,10 +84,6 @@ fn make_full_footprint<'heap>(body: &Body<'heap>, heap: &'heap Heap) -> BodyFoot
         locals: LocalVec::from_elem_in(Footprint::full(), body.local_decls.len(), heap),
         returns: Footprint::full(),
     }
-}
-
-fn empty_traversals<'heap>(body: &Body<'heap>, heap: &'heap Heap) -> Traversals<'heap> {
-    Traversals::with_capacity_in(Local::new(0), body.local_decls.len(), heap)
 }
 
 fn assert_snapshot<'heap>(
@@ -191,8 +189,8 @@ fn goto_allows_cross_backend_non_postgres() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl param: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], param: Int;
 
         bb0() {
             goto bb1(1);
@@ -209,11 +207,10 @@ fn goto_allows_cross_backend_non_postgres() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -230,8 +227,8 @@ fn switchint_blocks_cross_backend() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl selector: Int, param: Int, result: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], selector: Int, param: Int, result: Int;
 
         bb0() {
             selector = load 1;
@@ -254,11 +251,10 @@ fn switchint_blocks_cross_backend() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -276,8 +272,8 @@ fn switchint_edge_targets_are_branch_specific() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl selector: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], selector: Int;
 
         bb0() {
             selector = load 1;
@@ -299,11 +295,10 @@ fn switchint_edge_targets_are_branch_specific() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -383,11 +378,10 @@ fn graphread_interpreter_only() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -407,8 +401,8 @@ fn postgres_incoming_removed() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl value: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], value: Int;
 
         bb0() {
             goto bb1();
@@ -423,11 +417,10 @@ fn postgres_incoming_removed() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -446,8 +439,8 @@ fn postgres_removed_in_loops() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl value: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], value: Int;
 
         bb0() {
             value = load 0;
@@ -462,11 +455,10 @@ fn postgres_removed_in_loops() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -485,8 +477,8 @@ fn postgres_removed_in_self_loops() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl value: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], value: Int;
 
         bb0() {
             value = load 0;
@@ -498,11 +490,10 @@ fn postgres_removed_in_self_loops() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -521,8 +512,8 @@ fn transfer_cost_counts_live_and_params() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl live: Int, param: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], live: Int, param: Int;
 
         bb0() {
             live = load 10;
@@ -544,11 +535,10 @@ fn transfer_cost_counts_live_and_params() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -560,78 +550,13 @@ fn transfer_cost_counts_live_and_params() {
 }
 
 #[test]
-fn traversal_assignment_skips_source_transfer_cost() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl source: (Int, Int), dest: Int;
-        @proj source_0 = source.0: Int;
-
-        bb0() {
-            goto bb1();
-        },
-        bb1() {
-            dest = load source_0;
-            return 0;
-        }
-    });
-
-    // _0 = source, _1 = dest
-    let source = Local::new(0);
-    let dest = Local::new(1);
-
-    let mut traversals = Traversals::with_capacity_in(source, body.local_decls.len(), &heap);
-    traversals.insert(
-        dest,
-        Place::local(source).project(
-            &interner,
-            TypeBuilder::synthetic(&env).integer(),
-            ProjectionKind::Field(FieldIndex::new(0)),
-        ),
-    );
-
-    let targets = [
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-    ];
-
-    let footprint = make_scalar_footprint(&body, &heap);
-    let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversal_costs = placement.terminator_placement(
-        &body,
-        &footprint,
-        &traversals,
-        build_targets(&body, &targets),
-    );
-    let standard_costs = placement.terminator_placement(
-        &body,
-        &footprint,
-        &empty_traversals(&body, &heap),
-        build_targets(&body, &targets),
-    );
-
-    let traversal_matrix = traversal_costs.of(BasicBlockId::new(0))[0];
-    let standard_matrix = standard_costs.of(BasicBlockId::new(0))[0];
-    assert_eq!(
-        traversal_matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(0))
-    );
-    assert_eq!(
-        standard_matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(1))
-    );
-}
-
-#[test]
 fn transfer_cost_is_max_for_unbounded() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl arg: [List Int], param: [List Int];
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], arg: [List Int], param: [List Int];
 
         bb0() {
             arg = list 1, 2;
@@ -653,11 +578,10 @@ fn transfer_cost_is_max_for_unbounded() {
 
     let footprint = make_full_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
@@ -674,8 +598,8 @@ fn terminator_placement_snapshot() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl selector: Int, live: Int, param: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], selector: Int, live: Int, param: Int;
 
         bb0() {
             live = load 10;
@@ -698,11 +622,10 @@ fn terminator_placement_snapshot() {
 
     let footprint = make_scalar_footprint(&body, &heap);
     let placement = TerminatorPlacement::new_in(InformationRange::zero(), Global);
-    let traversals = empty_traversals(&body, &heap);
     let costs = placement.terminator_placement(
         &body,
+        VertexType::Entity,
         &footprint,
-        &traversals,
         build_targets(&body, &targets),
     );
 
