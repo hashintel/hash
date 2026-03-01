@@ -13,7 +13,3 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
         return %3
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

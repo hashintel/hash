@@ -19,23 +19,26 @@ use crate::{
     },
     visit::{self, Visitor},
 };
-/// Per-statement resolved traversal paths for a graph read filter body.
+/// Per-location resolved traversal paths for a graph read filter body.
 ///
-/// Stores a [`TraversalPathBitSet`] for every statement position, recording which vertex
-/// fields each statement accesses. Indexed by [`Location`] (1-based statement index).
+/// Stores a [`TraversalPathBitSet`] for every statement and terminator position, recording
+/// which vertex fields each location accesses. Indexed by [`Location`] (1-based statement
+/// index, with the terminator at `statements.len() + 1`).
 pub(crate) struct Traversals<A: Allocator> {
     inner: BlockPartitionedVec<TraversalPathBitSet, A>,
 }
 
 impl<A: Allocator + Clone> Traversals<A> {
-    /// Creates a traversal map with space for all statements in the given blocks.
+    /// Creates a traversal map with space for all statements and terminators in the given blocks.
     ///
     /// All positions are initialized to an empty bitset for the given vertex type.
     #[expect(clippy::cast_possible_truncation)]
     pub(crate) fn new_in(blocks: &BasicBlocks, vertex: VertexType, alloc: A) -> Self {
         Self {
             inner: BlockPartitionedVec::new(
-                blocks.iter().map(|block| block.statements.len() as u32),
+                blocks
+                    .iter()
+                    .map(|block| (block.statements.len() + 1) as u32),
                 TraversalPathBitSet::empty(vertex),
                 alloc,
             ),
@@ -72,8 +75,11 @@ impl<A: Allocator> Traversals<A> {
     where
         A: Clone,
     {
-        self.inner
-            .remap(blocks.iter().map(|block| block.statements.len() as u32));
+        self.inner.remap(
+            blocks
+                .iter()
+                .map(|block| (block.statements.len() + 1) as u32),
+        );
     }
 }
 
