@@ -11,7 +11,7 @@ use crate::{
     intern::Interner,
     pass::execution::{
         statement_placement::{
-            InterpreterStatementPlacement, StatementPlacement as _,
+            InterpreterStatementPlacement,
             tests::{assert_placement, run_placement},
         },
         traversal::TraversalAnalysis,
