@@ -178,7 +178,7 @@ impl Visitor<'_> for TraversalTransferFunction<'_> {
             return Ok(());
         };
 
-        let vertex = VertexType::Entity; // TODO: actually do this properly
+        let _vertex = VertexType::Entity; // TODO: actually do this properly
 
         // Check if the place is a vertex, and the vertex type results in a partial result, in that
         // case we do *not* continue, because it is considered a partial traversal and does not

@@ -23,15 +23,8 @@ pub(crate) use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::{
-    target::{TargetArray, TargetId},
-    traversal::Traversals,
-};
-use crate::{
-    body::Body,
-    context::MirContext,
-    pass::execution::cost::{StatementCostVec, TraversalCostVec},
-};
+use super::{target::TargetId, traversal::Traversals};
+use crate::{body::Body, context::MirContext, pass::execution::cost::StatementCostVec};
 
 /// Computes statement placement costs for a specific execution target.
 ///
@@ -57,26 +50,20 @@ pub(crate) trait StatementPlacement<'heap, A: Allocator> {
         body: &Body<'heap>,
         traversals: &Traversals<A>,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>);
+    ) -> StatementCostVec<A>;
 }
 
-pub(crate) enum TargetPlacementStatement<'ctx, 'heap, S: Allocator> {
-    Interpreter(InterpreterStatementPlacement<'ctx, S>),
+pub(crate) enum TargetPlacementStatement<'heap, S: Allocator> {
+    Interpreter(InterpreterStatementPlacement),
     Postgres(PostgresStatementPlacement<'heap, S>),
     Embedding(EmbeddingStatementPlacement<S>),
 }
 
-impl<'ctx, S: Allocator + Clone> TargetPlacementStatement<'ctx, '_, S> {
+impl<S: Allocator + Clone> TargetPlacementStatement<'_, S> {
     #[must_use]
-    pub(crate) fn new_in(
-        target: TargetId,
-        traversals: &'ctx TargetArray<Option<TraversalCostVec<S>>>,
-        scratch: S,
-    ) -> Self {
+    pub(crate) fn new_in(target: TargetId, scratch: S) -> Self {
         match target {
-            TargetId::Interpreter => {
-                Self::Interpreter(InterpreterStatementPlacement::new(traversals))
-            }
+            TargetId::Interpreter => Self::Interpreter(InterpreterStatementPlacement::new()),
             TargetId::Postgres => Self::Postgres(PostgresStatementPlacement::new_in(scratch)),
             TargetId::Embedding => Self::Embedding(EmbeddingStatementPlacement::new_in(scratch)),
         }
@@ -84,7 +71,7 @@ impl<'ctx, S: Allocator + Clone> TargetPlacementStatement<'ctx, '_, S> {
 }
 
 impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
-    for TargetPlacementStatement<'_, 'heap, S>
+    for TargetPlacementStatement<'heap, S>
 {
     #[inline]
     fn statement_placement_in(
@@ -93,7 +80,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         body: &Body<'heap>,
         traversals: &Traversals<A>,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+    ) -> StatementCostVec<A> {
         match self {
             TargetPlacementStatement::Interpreter(placement) => {
                 placement.statement_placement_in(context, body, traversals, alloc)

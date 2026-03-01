@@ -195,6 +195,19 @@ macro_rules! impl_bitset {
 
 impl_bitset!(DenseBitSet, ChunkedBitSet, MixedBitSet);
 
+impl<T, U, V> HasBottom<(T, U)> for V
+where
+    V: HasBottom<T> + HasBottom<U>,
+{
+    fn bottom(&self) -> (T, U) {
+        (self.bottom(), self.bottom())
+    }
+
+    fn is_bottom(&self, value: &(T, U)) -> bool {
+        self.is_bottom(&value.0) && self.is_bottom(&value.1)
+    }
+}
+
 impl<T, U> MeetSemiLattice<T> for Reverse<U>
 where
     U: JoinSemiLattice<T>,

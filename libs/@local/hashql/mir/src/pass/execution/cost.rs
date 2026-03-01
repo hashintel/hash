@@ -12,19 +12,10 @@ use core::{
 };
 use std::f32;
 
-use hashql_core::id::bit_vec::DenseBitSet;
-
 use super::block_partitioned_vec::BlockPartitionedVec;
 use crate::{
-    body::{
-        Body,
-        basic_block::BasicBlockId,
-        basic_blocks::BasicBlocks,
-        local::{Local, LocalVec},
-        location::Location,
-    },
+    body::{basic_block::BasicBlockId, basic_blocks::BasicBlocks, location::Location},
     macros::{forward_ref_binop, forward_ref_op_assign},
-    pass::transform::Traversals,
 };
 
 /// Execution cost for a statement on a particular target.
@@ -115,6 +106,14 @@ impl Cost {
         let raw = self.0.as_inner();
 
         Self::new_saturating(raw.saturating_add(other.0.as_inner()))
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn saturating_mul(self, other: u32) -> Self {
+        let raw = self.0.as_inner();
+
+        Self::new_saturating(raw.saturating_mul(other))
     }
 
     #[expect(clippy::cast_precision_loss)]
@@ -306,61 +305,6 @@ impl Sum for ApproxCost {
 impl Sum<Cost> for ApproxCost {
     fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
         iter.fold(Self::ZERO, Add::add)
-    }
-}
-
-/// Sparse cost map for traversal locals.
-///
-/// Traversals are locals that require data fetching from a backend (e.g., entity field access).
-/// This map only stores costs for locals marked as traversals; insertions for non-traversal
-/// locals are ignored. This allows the execution planner to focus on the operations that actually
-/// require backend coordination.
-pub struct TraversalCostVec<A: Allocator = Global> {
-    traversals: DenseBitSet<Local>,
-    costs: LocalVec<Option<Cost>, A>,
-}
-
-impl<A: Allocator> TraversalCostVec<A> {
-    /// Creates an empty traversal cost map for the given body.
-    ///
-    /// Only locals that are enabled traversals (per [`Traversals::enabled`]) will accept cost
-    /// insertions; other locals are silently ignored.
-    pub fn new_in<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
-        Self {
-            traversals: traversals.enabled(body),
-            costs: LocalVec::new_in(alloc),
-        }
-    }
-
-    /// Returns the cost assigned to `local`, or `None` if unassigned or not a traversal.
-    pub fn get(&self, local: Local) -> Option<Cost> {
-        self.costs.lookup(local).copied()
-    }
-
-    /// Records a cost for a traversal local.
-    ///
-    /// If `local` is not a traversal, the insertion is silently ignored.
-    pub fn insert(&mut self, local: Local, cost: Cost) {
-        if self.traversals.contains(local) {
-            self.costs.insert(local, cost);
-        }
-    }
-
-    /// Iterates over all (local, cost) pairs that have assigned costs.
-    pub fn iter(&self) -> impl Iterator<Item = (Local, Cost)> {
-        self.costs
-            .iter_enumerated()
-            .filter_map(|(local, cost)| cost.map(|cost| (local, cost)))
-    }
-}
-
-impl<A: Allocator> IntoIterator for &TraversalCostVec<A> {
-    type Item = (Local, Cost);
-
-    type IntoIter = impl Iterator<Item = (Local, Cost)>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
 }
 
