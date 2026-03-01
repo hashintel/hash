@@ -1,20 +1,46 @@
 #![expect(clippy::min_ident_chars)]
 use hashql_core::{heap::Heap, id::Id as _, symbol::sym, r#type::environment::Environment};
-use hashql_diagnostics::DiagnosticIssues;
 
+use super::{TraversalAnalysisVisitor, TraversalResult};
 use crate::{
     body::{Body, basic_block::BasicBlockId, location::Location},
     builder::body,
-    context::MirContext,
     intern::Interner,
-    pass::execution::traversal::{
-        EntityPath,
-        analysis::{TraversalAnalysis, Traversals},
+    pass::execution::{
+        VertexType,
+        traversal::{EntityPath, TraversalPathBitSet},
     },
+    visit::Visitor as _,
 };
 
-fn analyze<'heap>(context: &MirContext<'_, 'heap>, body: &Body<'heap>) -> Traversals<&'heap Heap> {
-    TraversalAnalysis::traversal_analysis_in(context, body, context.heap)
+struct TestTraversals(Vec<Vec<TraversalPathBitSet>>);
+
+impl core::ops::Index<Location> for TestTraversals {
+    type Output = TraversalPathBitSet;
+
+    fn index(&self, index: Location) -> &TraversalPathBitSet {
+        &self.0[index.block.as_usize()][index.statement_index - 1]
+    }
+}
+
+fn analyze(body: &Body<'_>) -> TestTraversals {
+    let vertex = VertexType::Entity;
+    let mut result: Vec<Vec<TraversalPathBitSet>> = body
+        .basic_blocks
+        .iter()
+        .map(|block| vec![TraversalPathBitSet::empty(vertex); block.statements.len() + 1])
+        .collect();
+
+    let mut visitor = TraversalAnalysisVisitor::new(vertex, |location: Location, trav_result| {
+        let entry = &mut result[location.block.as_usize()][location.statement_index - 1];
+        match trav_result {
+            TraversalResult::Path(path) => entry.insert(path),
+            TraversalResult::Complete => entry.insert_all(),
+        }
+    });
+    let Ok(()) = visitor.visit_body(body);
+
+    TestTraversals(result)
 }
 
 fn location(block: usize, statement_index: usize) -> Location {
@@ -41,14 +67,7 @@ fn single_leaf_path() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     // statement 0: props = load _1.properties
     let stmt = traversals[location(0, 1)]
@@ -81,14 +100,7 @@ fn multi_segment_path() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -113,14 +125,7 @@ fn bare_vertex_sets_all_bits() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -156,14 +161,7 @@ fn multiple_paths_same_statement() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -189,14 +187,7 @@ fn terminator_vertex_access() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     // 0 statements, terminator at index 1
     let term = traversals[location(0, 1)]
@@ -223,14 +214,7 @@ fn non_vertex_access_ignored() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -261,14 +245,7 @@ fn composite_path_recorded() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -295,14 +272,7 @@ fn embedding_path_recorded() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -339,14 +309,7 @@ fn paths_across_blocks() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     // bb0[0]: props = load _1.properties
     let bb0_s0 = traversals[location(0, 1)]
@@ -401,14 +364,7 @@ fn paths_recorded_independently_per_statement() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     // Each statement records independently
     let stmt0 = traversals[location(0, 1)]
@@ -444,14 +400,7 @@ fn unresolvable_projection_sets_all_bits() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -481,14 +430,7 @@ fn link_data_path_recorded() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -519,14 +461,7 @@ fn temporal_versioning_swallowing_through_analysis() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     let stmt = traversals[location(0, 1)]
         .as_entity()
@@ -556,14 +491,7 @@ fn swallowing_within_statement() {
         }
     });
 
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let traversals = analyze(&context, &body);
+    let traversals = analyze(&body);
 
     // Both operands reference _1. WebId is inserted first, then RecordId swallows it.
     let stmt = traversals[location(0, 1)]

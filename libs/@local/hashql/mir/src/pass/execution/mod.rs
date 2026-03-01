@@ -40,7 +40,7 @@ use self::{
     terminator_placement::TerminatorPlacement,
     traversal::TransferCostConfig,
 };
-use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
+use super::analysis::size_estimation::BodyFootprint;
 use crate::{
     body::{Body, Source, basic_block::BasicBlockVec, local::Local},
     context::MirContext,
@@ -49,7 +49,6 @@ use crate::{
 };
 
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
-    pub traversals: &'ctx DefIdSlice<Option<Traversals<'heap>>>,
     pub footprints: &'ctx DefIdSlice<BodyFootprint<&'heap Heap>>,
     pub scratch: S,
 }
