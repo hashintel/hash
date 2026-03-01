@@ -210,6 +210,21 @@ where
     }
 }
 
+impl<T, U> HasTop<(T, U)> for PowersetLattice
+where
+    Self: HasTop<T> + HasTop<U>,
+{
+    #[inline]
+    fn top(&self) -> (T, U) {
+        (self.top(), self.top())
+    }
+
+    #[inline]
+    fn is_top(&self, value: &(T, U)) -> bool {
+        self.is_top(&value.0) && self.is_top(&value.1)
+    }
+}
+
 impl<T, U> JoinSemiLattice<(T, U)> for PowersetLattice
 where
     Self: JoinSemiLattice<T> + JoinSemiLattice<U>,
@@ -226,7 +241,27 @@ where
 
     #[inline]
     fn join(&self, lhs: &mut (T, U), rhs: &(T, U)) -> bool {
-        self.join(&mut lhs.0, &rhs.0) || self.join(&mut lhs.1, &rhs.1)
+        self.join(&mut lhs.0, &rhs.0) | self.join(&mut lhs.1, &rhs.1)
+    }
+}
+
+impl<T, U> MeetSemiLattice<(T, U)> for PowersetLattice
+where
+    Self: MeetSemiLattice<T> + MeetSemiLattice<U>,
+{
+    #[inline]
+    fn meet_owned(&self, mut lhs: (T, U), rhs: &(T, U)) -> (T, U)
+    where
+        (T, U): Sized,
+    {
+        self.meet(&mut lhs.0, &rhs.0);
+        self.meet(&mut lhs.1, &rhs.1);
+        lhs
+    }
+
+    #[inline]
+    fn meet(&self, lhs: &mut (T, U), rhs: &(T, U)) -> bool {
+        self.meet(&mut lhs.0, &rhs.0) | self.meet(&mut lhs.1, &rhs.1)
     }
 }
 
@@ -337,5 +372,45 @@ mod tests {
         c.insert(TestId::from_usize(6));
 
         assert_bounded_lattice(&lattice, a, b, c);
+    }
+
+    #[test]
+    fn powerset_lattice_tuple() {
+        id::newtype!(struct Left(u32 is 0..=31));
+        id::newtype!(struct Right(u32 is 0..=31));
+
+        let lattice = PowersetLattice::new(32);
+
+        let mut left_a: DenseBitSet<Left> = DenseBitSet::new_empty(32);
+        let mut left_b: DenseBitSet<Left> = DenseBitSet::new_empty(32);
+        let mut left_c: DenseBitSet<Left> = DenseBitSet::new_empty(32);
+
+        left_a.insert(Left::from_usize(0));
+        left_a.insert(Left::from_usize(1));
+
+        left_b.insert(Left::from_usize(1));
+        left_b.insert(Left::from_usize(2));
+
+        left_c.insert(Left::from_usize(2));
+        left_c.insert(Left::from_usize(3));
+
+        let mut right_a: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_b: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_c: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+
+        right_a.insert(Right::from_usize(10));
+        right_a.insert(Right::from_usize(11));
+
+        right_b.insert(Right::from_usize(11));
+        right_b.insert(Right::from_usize(12));
+
+        right_c.insert(Right::from_usize(12));
+        right_c.insert(Right::from_usize(13));
+
+        let tuple_a = (left_a, right_a);
+        let tuple_b = (left_b, right_b);
+        let tuple_c = (left_c, right_c);
+
+        assert_bounded_lattice(&lattice, tuple_a, tuple_b, tuple_c);
     }
 }

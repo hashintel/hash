@@ -1,10 +1,21 @@
+use core::debug_assert_matches;
+
 use hashql_core::{
-    id::{Id, bit_vec::FiniteBitSet},
+    id::{
+        Id,
+        bit_vec::{BitRelations as _, FiniteBitSet},
+    },
     symbol::{ConstantSymbol, sym},
 };
 
-use super::access::{Access, AccessMode};
-use crate::body::place::{Projection, ProjectionKind};
+use super::{
+    TraversalLattice, VertexType,
+    access::{Access, AccessMode},
+};
+use crate::{
+    body::place::{Projection, ProjectionKind},
+    pass::analysis::dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
+};
 
 macro_rules! sym {
     ($($sym:tt)::*) => {
@@ -18,6 +29,7 @@ macro_rules! sym {
 /// exhaustively match on this to generate backend-specific access (SQL expressions, placement
 /// decisions, etc.) without duplicating path resolution logic.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
+#[id(const)]
 pub enum EntityPath {
     /// `properties.*` — JSONB column in `entity_editions`.
     Properties,
@@ -223,10 +235,60 @@ impl EntityPath {
     }
 }
 
+const HAS_ANCESTORS: [EntityPath; HAS_ANCESTOR_COUNT] = {
+    let mut out = [EntityPath::Archived; HAS_ANCESTOR_COUNT];
+
+    let mut index = 0;
+    let mut ptr = 0;
+    let paths = EntityPath::all();
+
+    while ptr < paths.len() {
+        if !paths[ptr].ancestors().is_empty() {
+            out[index] = paths[ptr];
+            index += 1;
+        }
+
+        ptr += 1;
+    }
+
+    out
+};
+const HAS_ANCESTOR_COUNT: usize = {
+    let mut count = 0;
+    let mut index = 0;
+    let paths = EntityPath::all();
+
+    while index < paths.len() {
+        if !paths[index].ancestors().is_empty() {
+            count += 1;
+        }
+
+        index += 1;
+    }
+
+    count
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EntityPathBitSet(FiniteBitSet<EntityPath, FiniteBitSetWidth>);
 
 impl EntityPathBitSet {
+    const BOTTOM: Self = Self::new_empty();
+    #[expect(clippy::cast_possible_truncation)]
+    const TOP: Self = {
+        let mut set = FiniteBitSet::new_empty(core::mem::variant_count::<EntityPath>() as u32);
+
+        set.insert_range(.., core::mem::variant_count::<EntityPath>());
+
+        let mut index = 0;
+        while index < HAS_ANCESTOR_COUNT {
+            set.remove(HAS_ANCESTORS[index]);
+            index += 1;
+        }
+
+        Self(set)
+    };
+
     #[expect(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn new_empty() -> Self {
@@ -254,48 +316,69 @@ impl EntityPathBitSet {
         }
     }
 
-    pub(crate) fn insert_all(&mut self) {
-        const HAS_ANCESTOR_COUNT: usize = {
-            let mut count = 0;
-            let mut index = 0;
-            let paths = EntityPath::all();
-
-            while index < paths.len() {
-                if !paths[index].ancestors().is_empty() {
-                    count += 1;
+    fn normalize(&mut self) {
+        for path in &self.0 {
+            for &ancestor in path.ancestors() {
+                if self.0.contains(ancestor) {
+                    self.0.remove(path);
                 }
-
-                index += 1;
             }
-
-            count
-        };
-
-        const HAS_ANCESTORS: [EntityPath; HAS_ANCESTOR_COUNT] = {
-            let mut out = [EntityPath::Archived; HAS_ANCESTOR_COUNT];
-
-            let mut index = 0;
-            let mut ptr = 0;
-            let paths = EntityPath::all();
-
-            while ptr < paths.len() {
-                if !paths[ptr].ancestors().is_empty() {
-                    out[index] = paths[ptr];
-                    index += 1;
-                }
-
-                ptr += 1;
-            }
-
-            out
-        };
-
-        self.0
-            .insert_range(.., core::mem::variant_count::<EntityPath>());
-
-        for path in HAS_ANCESTORS {
-            self.0.remove(path);
         }
+    }
+
+    pub(crate) const fn insert_all(&mut self) {
+        *self = Self::TOP;
+    }
+}
+
+impl HasTop<EntityPathBitSet> for TraversalLattice {
+    fn top(&self) -> EntityPathBitSet {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+        EntityPathBitSet::TOP
+    }
+
+    fn is_top(&self, value: &EntityPathBitSet) -> bool {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+        *value == EntityPathBitSet::TOP
+    }
+}
+
+impl HasBottom<EntityPathBitSet> for TraversalLattice {
+    fn bottom(&self) -> EntityPathBitSet {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+        EntityPathBitSet::BOTTOM
+    }
+
+    fn is_bottom(&self, value: &EntityPathBitSet) -> bool {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+        *value == EntityPathBitSet::BOTTOM
+    }
+}
+
+impl JoinSemiLattice<EntityPathBitSet> for TraversalLattice {
+    fn join(&self, lhs: &mut EntityPathBitSet, rhs: &EntityPathBitSet) -> bool {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+
+        let mut new = *lhs;
+
+        new.0.union(&rhs.0);
+        new.normalize();
+
+        let has_changed = new != *lhs;
+        *lhs = new;
+        has_changed
+    }
+
+    fn join_owned(&self, mut lhs: EntityPathBitSet, rhs: &EntityPathBitSet) -> EntityPathBitSet
+    where
+        EntityPathBitSet: Sized,
+    {
+        debug_assert_matches!(self.vertex(), VertexType::Entity);
+
+        lhs.0.union(&rhs.0);
+        lhs.normalize();
+
+        lhs
     }
 }
 
