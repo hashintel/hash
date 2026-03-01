@@ -37,7 +37,7 @@ fn only_vectors_projection_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -78,7 +78,7 @@ fn all_args_excluded() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -117,7 +117,7 @@ fn non_vectors_entity_projection_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -158,7 +158,7 @@ fn storage_statements_zero_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -211,7 +211,7 @@ fn other_operations_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,

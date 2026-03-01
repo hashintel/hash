@@ -53,7 +53,7 @@ use super::{
     Cost, VertexType,
     block_partitioned_vec::BlockPartitionedVec,
     target::{TargetBitSet, TargetId},
-    traversal::{EntityPathBitSet, TransferCostConfig, TraversalPathBitSet},
+    traversal::{TransferCostConfig, TraversalPathBitSet},
 };
 use crate::{
     body::{
