@@ -453,6 +453,7 @@ impl EntityPathBitSet {
         }
     }
 
+    #[inline]
     pub(crate) const fn insert_all(&mut self) {
         *self = Self::TOP;
     }
