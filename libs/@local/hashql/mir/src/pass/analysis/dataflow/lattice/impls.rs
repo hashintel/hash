@@ -195,16 +195,38 @@ macro_rules! impl_bitset {
 
 impl_bitset!(DenseBitSet, ChunkedBitSet, MixedBitSet);
 
-impl<T, U, V> HasBottom<(T, U)> for V
+impl<T, U> HasBottom<(T, U)> for PowersetLattice
 where
-    V: HasBottom<T> + HasBottom<U>,
+    Self: HasBottom<T> + HasBottom<U>,
 {
+    #[inline]
     fn bottom(&self) -> (T, U) {
         (self.bottom(), self.bottom())
     }
 
+    #[inline]
     fn is_bottom(&self, value: &(T, U)) -> bool {
         self.is_bottom(&value.0) && self.is_bottom(&value.1)
+    }
+}
+
+impl<T, U> JoinSemiLattice<(T, U)> for PowersetLattice
+where
+    Self: JoinSemiLattice<T> + JoinSemiLattice<U>,
+{
+    #[inline]
+    fn join_owned(&self, mut lhs: (T, U), rhs: &(T, U)) -> (T, U)
+    where
+        (T, U): Sized,
+    {
+        self.join(&mut lhs.0, &rhs.0);
+        self.join(&mut lhs.1, &rhs.1);
+        lhs
+    }
+
+    #[inline]
+    fn join(&self, lhs: &mut (T, U), rhs: &(T, U)) -> bool {
+        self.join(&mut lhs.0, &rhs.0) || self.join(&mut lhs.1, &rhs.1)
     }
 }
 

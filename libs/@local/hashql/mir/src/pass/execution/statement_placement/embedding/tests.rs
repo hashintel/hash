@@ -45,8 +45,7 @@ fn only_vectors_projection_supported() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
 
     assert_placement(
         "only_vectors_projection_supported",
@@ -54,7 +53,6 @@ fn only_vectors_projection_supported() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -88,8 +86,7 @@ fn all_args_excluded() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
 
     assert_placement(
         "all_args_excluded",
@@ -97,7 +94,6 @@ fn all_args_excluded() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -129,8 +125,7 @@ fn non_vectors_entity_projection_rejected() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
 
     assert_placement(
         "non_vectors_entity_projection_rejected",
@@ -138,7 +133,6 @@ fn non_vectors_entity_projection_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -172,8 +166,7 @@ fn storage_statements_zero_cost() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
 
     assert_placement(
         "storage_statements_zero_cost",
@@ -181,7 +174,6 @@ fn storage_statements_zero_cost() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -227,8 +219,7 @@ fn other_operations_rejected() {
     };
 
     let mut placement = EmbeddingStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&mut context, &mut placement, body);
 
     assert_placement(
         "other_operations_rejected",
@@ -236,6 +227,5 @@ fn other_operations_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
