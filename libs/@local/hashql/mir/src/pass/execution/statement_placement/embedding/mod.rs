@@ -10,10 +10,8 @@ use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
     context::MirContext,
     pass::execution::{
-        Cost, VertexType,
-        cost::StatementCostVec,
-        statement_placement::common::entity_projection_access,
-        traversal::{Access, Traversals},
+        Cost, VertexType, cost::StatementCostVec,
+        statement_placement::common::entity_projection_access, traversal::Access,
     },
     visit::Visitor as _,
 };
@@ -28,7 +26,6 @@ struct EmbeddingSupported {
 impl EmbeddingSupported {
     fn is_supported_place<'heap>(
         &self,
-        context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
         place: &Place<'heap>,
@@ -70,13 +67,13 @@ impl<'heap> Supported<'heap> for EmbeddingSupported {
 
     fn is_supported_operand(
         &self,
-        context: &MirContext<'_, 'heap>,
+        _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
         operand: &Operand<'heap>,
     ) -> bool {
         match operand {
-            Operand::Place(place) => self.is_supported_place(context, body, domain, place),
+            Operand::Place(place) => self.is_supported_place(body, domain, place),
             Operand::Constant(_) => false,
         }
     }
