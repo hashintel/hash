@@ -63,15 +63,12 @@ use crate::{
         local::Local,
         terminator::TerminatorKind,
     },
-    pass::{
-        analysis::{
-            dataflow::{
-                TraversalLivenessAnalysis,
-                framework::{DataflowAnalysis as _, DataflowResults},
-            },
-            size_estimation::{BodyFootprint, Cardinality, InformationRange},
+    pass::analysis::{
+        dataflow::{
+            TraversalLivenessAnalysis,
+            framework::{DataflowAnalysis as _, DataflowResults},
         },
-        transform::Traversals,
+        size_estimation::{BodyFootprint, Cardinality, InformationRange},
     },
 };
 
@@ -440,9 +437,9 @@ impl<S: Allocator> TerminatorPlacement<S> {
         }
     }
 
-    fn compute_liveness<'heap>(
+    fn compute_liveness(
         &self,
-        body: &Body<'heap>,
+        body: &Body<'_>,
         vertex: VertexType,
     ) -> BasicBlockVec<(DenseBitSet<Local>, TraversalPathBitSet), &S> {
         let DataflowResults {
@@ -546,6 +543,26 @@ impl<S: Allocator> TerminatorPlacement<S> {
         // }
 
         // self.sum_local_sizes(footprint, required_locals)
+
+        // let (locals, paths) = &live_in[successor];
+        // required_locals.clone_from(locals);
+
+        // for &param in body.basic_blocks[successor].params {
+        //     required_locals.insert(param);
+        // }
+
+        // let local_cost = self.sum_local_sizes(footprint, required_locals);
+
+        // if paths.is_empty() {
+        //     return local_cost;
+        // }
+
+        // let Some(max) = self.entity_size.inclusive_max() else {
+        //     return Cost::MAX;
+        // };
+
+        // let avg = self.entity_size.min().midpoint(max);
+        // local_cost.saturating_add(Cost::new_saturating(avg.as_u32()))
     }
 
     /// Sums the estimated sizes of all locals in the set.
