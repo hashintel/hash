@@ -8,7 +8,6 @@ use std::{io::Write as _, path::PathBuf};
 use hashql_core::{
     heap::Heap,
     pretty::Formatter,
-    symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -24,11 +23,7 @@ use crate::{
     builder::body,
     context::MirContext,
     intern::Interner,
-    pass::execution::{
-        VertexType,
-        target::TargetId,
-        traversal::{EntityPath, TraversalAnalysis, Traversals},
-    },
+    pass::execution::target::TargetId,
     pretty::TextFormatOptions,
 };
 
@@ -38,10 +33,6 @@ fn make_targets(assignments: &[TargetId]) -> BasicBlockVec<TargetId, Global> {
         targets.push(target);
     }
     targets
-}
-
-fn empty_traversals(body: &Body<'_>) -> Traversals<Global> {
-    Traversals::new_in(&body.basic_blocks, VertexType::Entity, Global)
 }
 
 #[track_caller]
@@ -247,12 +238,10 @@ fn fuse_no_changes_needed() {
 
     let mut targets = make_targets(&[TargetId::Interpreter]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_fusion("fuse_no_changes_needed", &context, &body, &targets);
 }
 
@@ -284,12 +273,10 @@ fn fuse_two_same_target_blocks() {
 
     let mut targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_eq!(targets[BasicBlockId::START], TargetId::Interpreter);
     assert_matches!(
         body.basic_blocks[BasicBlockId::START].terminator.kind,
@@ -330,12 +317,10 @@ fn fuse_chain_of_three() {
 
     let mut targets = make_targets(&[TargetId::Postgres, TargetId::Postgres, TargetId::Postgres]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_eq!(targets[BasicBlockId::START], TargetId::Postgres);
     assert_eq!(body.basic_blocks[BasicBlockId::START].statements.len(), 3);
     assert_fusion("fuse_chain_of_three", &context, &body, &targets);
@@ -378,12 +363,10 @@ fn fuse_preserves_different_targets() {
         TargetId::Postgres,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_eq!(targets[BasicBlockId::new(0)], TargetId::Interpreter);
     assert_eq!(targets[BasicBlockId::new(1)], TargetId::Postgres);
     assert_fusion(
@@ -436,12 +419,10 @@ fn fuse_partial_chain() {
         TargetId::Postgres,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_eq!(targets[BasicBlockId::new(0)], TargetId::Interpreter);
     assert_eq!(targets[BasicBlockId::new(1)], TargetId::Postgres);
     assert_eq!(body.basic_blocks[BasicBlockId::new(0)].statements.len(), 2);
@@ -491,12 +472,10 @@ fn fuse_updates_branch_references() {
         TargetId::Interpreter,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_eq!(targets.len(), 3);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
 
     // The fused bb0 should have a SwitchInt terminator pointing to remapped bb2→bb1 and bb3→bb2
     let fused = &body.basic_blocks[BasicBlockId::START];
@@ -546,12 +525,10 @@ fn fuse_does_not_fuse_join_points() {
         TargetId::Interpreter,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     assert_eq!(body.basic_blocks.len(), 4);
     assert_eq!(targets.len(), 4);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_fusion("fuse_does_not_fuse_join_points", &context, &body, &targets);
 }
 
@@ -582,13 +559,11 @@ fn fuse_goto_with_args_not_fused() {
 
     let mut targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     // Both blocks survive because the Goto carries arguments.
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_fusion("fuse_goto_with_args_not_fused", &context, &body, &targets);
 }
 
@@ -651,28 +626,15 @@ fn fuse_diamond_non_monotonic_rpo() {
         TargetId::Interpreter,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     // Surviving: bb0(→0), bb1(→1), bb2(→2), bb5(→3)
     assert_eq!(body.basic_blocks.len(), 4);
     assert_eq!(targets.len(), 4);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
     assert_eq!(targets[BasicBlockId::new(0)], TargetId::Interpreter);
     assert_eq!(targets[BasicBlockId::new(1)], TargetId::Postgres);
     assert_eq!(targets[BasicBlockId::new(2)], TargetId::Interpreter);
     assert_eq!(targets[BasicBlockId::new(3)], TargetId::Interpreter);
-
-    // Verify per_block_paths survived swap-based compaction at the correct indices.
-    // With empty traversals all entries are empty, but this exercises the swap codepath.
-    for index in 0..4 {
-        assert!(
-            per_block_paths[BasicBlockId::new(index)]
-                .as_entity()
-                .expect("entity vertex")
-                .is_empty(),
-        );
-    }
 
     // bb1 absorbed bb4's statements.
     assert_eq!(body.basic_blocks[BasicBlockId::new(1)].statements.len(), 2);
@@ -726,13 +688,11 @@ fn fuse_backward_chain() {
         TargetId::Interpreter,
     ]);
 
-    let traversals = empty_traversals(&body);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
+    BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
     // Surviving: bb0(→0), bb2(→1), bb3(→2). bb1 fused into bb2.
     assert_eq!(body.basic_blocks.len(), 3);
     assert_eq!(targets.len(), 3);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
 
     // bb2 absorbed bb1's return terminator.
     assert_matches!(
@@ -747,53 +707,4 @@ fn fuse_backward_chain() {
     );
 
     assert_fusion("fuse_backward_chain", &context, &body, &targets);
-}
-
-#[test]
-fn fuse_joins_traversal_paths() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let mut body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?], val1: ?, val2: ?;
-        @proj props = vertex.properties: ?,
-              metadata = vertex.metadata: ?,
-              prov = metadata.provenance: ?,
-              edition = prov.edition: ?;
-
-        bb0() {
-            val1 = load props;
-            goto bb1();
-        },
-        bb1() {
-            val2 = load edition;
-            return val2;
-        }
-    });
-
-    let context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let mut targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
-
-    let traversals =
-        TraversalAnalysis::new(VertexType::Entity).traversal_analysis_in(&body, Global);
-    let per_block_paths = BasicBlockFusion::new(traversals).fuse(&mut body, &mut targets);
-
-    assert_eq!(body.basic_blocks.len(), 1);
-    assert_eq!(targets.len(), 1);
-    assert_eq!(per_block_paths.len(), body.basic_blocks.len());
-
-    let fused = per_block_paths[BasicBlockId::START]
-        .as_entity()
-        .expect("entity vertex");
-    assert!(fused.contains(EntityPath::Properties));
-    assert!(fused.contains(EntityPath::ProvenanceEdition));
-
-    assert_fusion("fuse_joins_traversal_paths", &context, &body, &targets);
 }
