@@ -1,4 +1,4 @@
-//! Unit tests for entity projection path lookup and composite swallowing.
+//! Unit tests for entity projection path lookup, composite swallowing, and traversal analysis.
 
 use hashql_core::{symbol::sym, r#type::TypeId};
 
@@ -363,4 +363,100 @@ fn swallow_selective() {
     // Unrelated paths untouched
     assert!(bitset.contains(EntityPath::Properties));
     assert!(bitset.contains(EntityPath::DecisionTime));
+}
+
+// --- insert_all tests ---
+
+/// `insert_all` sets exactly the top-level paths (composites replace their children).
+#[test]
+fn insert_all_sets_top_level_paths() {
+    let mut bitset = empty_bitset();
+    bitset.insert_all();
+
+    // Top-level and childless paths are present
+    assert!(bitset.contains(EntityPath::Properties));
+    assert!(bitset.contains(EntityPath::Vectors));
+    assert!(bitset.contains(EntityPath::RecordId));
+    assert!(bitset.contains(EntityPath::TemporalVersioning));
+    assert!(bitset.contains(EntityPath::EntityTypeIds));
+    assert!(bitset.contains(EntityPath::Archived));
+    assert!(bitset.contains(EntityPath::Confidence));
+    assert!(bitset.contains(EntityPath::ProvenanceInferred));
+    assert!(bitset.contains(EntityPath::ProvenanceEdition));
+    assert!(bitset.contains(EntityPath::PropertyMetadata));
+    assert!(bitset.contains(EntityPath::LeftEntityWebId));
+    assert!(bitset.contains(EntityPath::RightEntityWebId));
+
+    // Children subsumed by composites are absent
+    assert!(!bitset.contains(EntityPath::EntityId));
+    assert!(!bitset.contains(EntityPath::WebId));
+    assert!(!bitset.contains(EntityPath::EntityUuid));
+    assert!(!bitset.contains(EntityPath::DraftId));
+    assert!(!bitset.contains(EntityPath::EditionId));
+    assert!(!bitset.contains(EntityPath::DecisionTime));
+    assert!(!bitset.contains(EntityPath::TransactionTime));
+}
+
+/// `insert_all` produces the correct count: total variants minus children with ancestors.
+#[test]
+fn insert_all_len() {
+    let mut bitset = empty_bitset();
+    bitset.insert_all();
+
+    // 25 variants - 7 children (EntityId, WebId, EntityUuid, DraftId, EditionId,
+    // DecisionTime, TransactionTime) = 18
+    assert_eq!(bitset.len(), 18);
+}
+
+/// `insert_all` after individual inserts produces the same result as a fresh `insert_all`.
+#[test]
+fn insert_all_is_idempotent_over_existing() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::Properties);
+    bitset.insert_all();
+
+    let mut fresh = empty_bitset();
+    fresh.insert_all();
+
+    assert_eq!(bitset, fresh);
+}
+
+/// An empty bitset has len 0.
+#[test]
+fn empty_bitset_len() {
+    let bitset = empty_bitset();
+    assert_eq!(bitset.len(), 0);
+    assert!(bitset.is_empty());
+}
+
+/// `len` tracks individual inserts correctly.
+#[test]
+fn len_after_inserts() {
+    let mut bitset = empty_bitset();
+    assert_eq!(bitset.len(), 0);
+
+    bitset.insert(EntityPath::Properties);
+    assert_eq!(bitset.len(), 1);
+
+    bitset.insert(EntityPath::Archived);
+    assert_eq!(bitset.len(), 2);
+
+    // Duplicate insert doesn't change count
+    bitset.insert(EntityPath::Properties);
+    assert_eq!(bitset.len(), 2);
+}
+
+/// Composite swallowing decreases `len` when children are removed.
+#[test]
+fn len_decreases_on_swallow() {
+    let mut bitset = empty_bitset();
+    bitset.insert(EntityPath::WebId);
+    bitset.insert(EntityPath::EntityUuid);
+    bitset.insert(EntityPath::DraftId);
+    assert_eq!(bitset.len(), 3);
+
+    // EntityId swallows all three children
+    bitset.insert(EntityPath::EntityId);
+    assert_eq!(bitset.len(), 1);
 }

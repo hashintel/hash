@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use core::{
     alloc::Allocator,
     ops::{Index, IndexMut},
