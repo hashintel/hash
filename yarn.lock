@@ -14703,6 +14703,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-benches@workspace:tests/graph/benches"
   dependencies:
+    "@apps/hash-graph": "workspace:*"
     "@blockprotocol/type-system-rs": "workspace:*"
     "@rust/error-stack": "workspace:*"
     "@rust/hash-graph-api": "workspace:*"

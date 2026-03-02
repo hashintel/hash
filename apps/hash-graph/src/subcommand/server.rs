@@ -489,6 +489,8 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
     )
     .await
     .change_context(HealthcheckError::Timeout)?
+    .change_context(HealthcheckError::NotHealthy)?
+    .error_for_status()
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())

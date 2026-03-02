@@ -170,6 +170,8 @@ pub async fn healthcheck(address: AdminAddress) -> Result<(), Report<Healthcheck
     )
     .await
     .change_context(HealthcheckError::Timeout)?
+    .change_context(HealthcheckError::NotHealthy)?
+    .error_for_status()
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())

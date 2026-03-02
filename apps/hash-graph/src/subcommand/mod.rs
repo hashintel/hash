@@ -70,7 +70,7 @@ impl ServerLifecycle {
         self.tracker.spawn(async move {
             let _guard = ShutdownGuard {
                 name,
-                shutdown: shutdown.clone(),
+                shutdown,
                 abort,
             };
             if let Err(report) = future.await {
