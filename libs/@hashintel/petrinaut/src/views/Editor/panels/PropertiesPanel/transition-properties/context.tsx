@@ -63,7 +63,7 @@ export const TransitionPropertiesProvider: React.FC<
   children,
 }) => {
   return (
-    <TransitionPropertiesContext.Provider
+    <TransitionPropertiesContext
       value={{
         transition,
         places,
@@ -74,6 +74,6 @@ export const TransitionPropertiesProvider: React.FC<
       }}
     >
       {children}
-    </TransitionPropertiesContext.Provider>
+    </TransitionPropertiesContext>
   );
 };
