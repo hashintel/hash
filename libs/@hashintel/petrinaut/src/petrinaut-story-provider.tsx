@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import type { MinimalNetMetadata, SDCPN } from "./core/types/sdcpn";
 import { Petrinaut } from "./petrinaut";
@@ -47,55 +47,48 @@ export const PetrinautStoryProvider = ({
 
   const currentNet = nets[currentNetId]!;
 
-  const existingNets: MinimalNetMetadata[] = useMemo(
-    () =>
-      Object.values(nets).map((net) => ({ netId: net.id, title: net.title })),
-    [nets],
-  );
+  const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
+    netId: net.id,
+    title: net.title,
+  }));
 
-  const createNewNet = useCallback(
-    (params: { petriNetDefinition: SDCPN; title: string }) => {
-      const id = `net-${Date.now()}`;
-      setNets((prev) => ({
-        ...prev,
-        [id]: { id, title: params.title, sdcpn: params.petriNetDefinition },
-      }));
-      setCurrentNetId(id);
-    },
-    [],
-  );
+  const createNewNet = (params: {
+    petriNetDefinition: SDCPN;
+    title: string;
+  }) => {
+    const id = `net-${Date.now()}`;
+    setNets((prev) => ({
+      ...prev,
+      [id]: { id, title: params.title, sdcpn: params.petriNetDefinition },
+    }));
+    setCurrentNetId(id);
+  };
 
-  const loadPetriNet = useCallback((petriNetId: string) => {
+  const loadPetriNet = (petriNetId: string) => {
     setCurrentNetId(petriNetId);
-  }, []);
+  };
 
-  const setTitle = useCallback(
-    (title: string) => {
-      setNets((prev) => {
-        const net = prev[currentNetId];
-        if (!net) {
-          return prev;
-        }
-        return { ...prev, [currentNetId]: { ...net, title } };
-      });
-    },
-    [currentNetId],
-  );
+  const setTitle = (title: string) => {
+    setNets((prev) => {
+      const net = prev[currentNetId];
+      if (!net) {
+        return prev;
+      }
+      return { ...prev, [currentNetId]: { ...net, title } };
+    });
+  };
 
-  const mutatePetriNetDefinition = useCallback(
-    (mutationFn: (draft: SDCPN) => void) => {
-      setNets((prev) => {
-        const net = prev[currentNetId];
-        if (!net) {
-          return prev;
-        }
-        const clonedSdcpn = structuredClone(net.sdcpn);
-        mutationFn(clonedSdcpn);
-        return { ...prev, [currentNetId]: { ...net, sdcpn: clonedSdcpn } };
-      });
-    },
-    [currentNetId],
-  );
+  const mutatePetriNetDefinition = (mutationFn: (draft: SDCPN) => void) => {
+    setNets((prev) => {
+      const net = prev[currentNetId];
+      if (!net) {
+        return prev;
+      }
+      const clonedSdcpn = structuredClone(net.sdcpn);
+      mutationFn(clonedSdcpn);
+      return { ...prev, [currentNetId]: { ...net, sdcpn: clonedSdcpn } };
+    });
+  };
 
   return (
     <>
