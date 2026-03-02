@@ -82,8 +82,8 @@ fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
 
 /// Input data for placement solving.
 ///
-/// Bundles the per-block target domains (`assignment`), per-target statement costs
-/// (`statements`), and terminator transition costs (`terminators`).
+/// Bundles the precomputed per-block costs (`blocks`) and terminator transition costs
+/// (`terminators`).
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementSolverContext<'ctx, A: Allocator> {
     pub blocks: &'ctx BasicBlockCostVec<A>,

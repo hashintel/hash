@@ -501,10 +501,10 @@ fn rewind_skips_exhausted_region() {
     assert_eq!(result[bb(3)], I);
 }
 
-/// Verifies the trivial region fast path picks the cheapest target by statement cost.
+/// Verifies the trivial region fast path picks the cheapest target by block cost.
 ///
 /// Single block with a return terminator and no edges. The solver should select
-/// the target with the lowest per-statement cost without consulting any neighbors.
+/// the target with the lowest block cost without consulting any neighbors.
 #[test]
 fn single_block_trivial_region() {
     let heap = Heap::new();
@@ -606,7 +606,7 @@ fn cyclic_region_in_forward_backward() {
 /// Verifies that rewind walks back into a cyclic region and uses `retry()` to find an alternative.
 ///
 /// The SCC exit edge is diagonal, so the SCC solver sees both all-I and all-P
-/// as feasible (each can reach some target in bb3's domain). Statement costs
+/// as feasible (each can reach some target in bb3's domain). Block costs
 /// bias the SCC toward all-I. With SCC=all-I, the diagonal exit forces bb3
 /// to match bb2=I, but bb3→bb4 only allows P→I, making bb3 infeasible for
 /// both I (outgoing fails) and P (incoming fails). Rewind reaches the SCC,
@@ -1244,7 +1244,7 @@ fn cyclic_failure_emits_diagnostic() {
 /// Path premiums steer the solver toward origin backends.
 ///
 /// bb0 accesses `vertex.encodings.vectors` (Embedding-origin) and `vertex.properties`
-/// (Postgres-origin). With equal base statement costs and permissive transitions, the solver
+/// (Postgres-origin). With equal base block costs and permissive transitions, the solver
 /// picks the backend that minimizes the combined path premium. Embedding avoids the Vectors
 /// premium (3072) but pays the Properties premium. Postgres avoids the Properties premium
 /// but pays the Vectors premium. Interpreter pays both.

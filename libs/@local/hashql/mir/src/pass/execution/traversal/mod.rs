@@ -1,11 +1,17 @@
-//! Traversal path resolution and storage mapping.
+//! Traversal path resolution, storage mapping, and transfer cost estimation.
 //!
 //! Maps property access projections on graph vertices to their backend storage locations.
 //! Each vertex type has its own path enum ([`EntityPath`] for entities) that resolves
 //! dot-notation field accesses to specific columns, JSONB paths, or embedding stores.
 //!
+//! Each path knows its origin backend ([`EntityPath::origin`]) and estimated transfer size
+//! ([`EntityPath::estimate_size`]). The cost analysis uses these to charge a transfer premium
+//! on targets that are not the natural origin for a path.
+//!
 //! [`TraversalPathBitSet`] and [`TraversalPath`] wrap the per-vertex-type path types so that
-//! the execution pipeline can handle different vertex types uniformly.
+//! the execution pipeline can handle different vertex types uniformly. [`TransferCostConfig`]
+//! carries the variable-size parameters (properties, embeddings, provenance) needed for cost
+//! estimation.
 
 mod access;
 mod entity;
@@ -205,6 +211,7 @@ pub enum TraversalPath {
 }
 
 impl TraversalPath {
+    /// Returns the set of execution targets that natively serve this path.
     #[inline]
     #[must_use]
     pub const fn origin(self) -> TargetBitSet {
@@ -213,6 +220,7 @@ impl TraversalPath {
         }
     }
 
+    /// Returns the estimated transfer size for this path.
     #[inline]
     pub(crate) fn estimate_size(self, config: &TransferCostConfig) -> InformationRange {
         match self {
