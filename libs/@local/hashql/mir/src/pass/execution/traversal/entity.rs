@@ -113,7 +113,7 @@ pub enum EntityPath {
 ///
 /// Separates the variable-size components (properties, embeddings, provenance) from the
 /// fixed-size schema fields. The fixed costs (UUIDs, timestamps, scalars) are constants on
-/// [`EntityPath::transfer_size`]; this config provides the values that vary per entity type
+/// [`EntityPath::estimate_size`]; this config provides the values that vary per entity type
 /// or deployment.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TransferCostConfig {

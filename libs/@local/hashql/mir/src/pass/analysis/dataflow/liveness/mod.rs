@@ -86,7 +86,7 @@ use crate::{
 /// When the vertex is accessed through a resolvable projection (e.g., `_1.metadata.archived`),
 /// the corresponding [`EntityPath`] is gen'd in the path bitset. When the projection cannot be
 /// resolved (bare `_1` or unknown path), all paths are marked live via
-/// [`insert_all`](EntityPathBitSet::insert_all).
+/// [`TraversalPathBitSet::insert_all`].
 pub struct TraversalLivenessAnalysis {
     pub vertex: VertexType,
 }

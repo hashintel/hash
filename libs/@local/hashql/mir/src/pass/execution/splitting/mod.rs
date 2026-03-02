@@ -311,8 +311,7 @@ impl<S: Allocator> BasicBlockSplitting<S> {
     ///
     /// The first element is indexed by the new [`BasicBlockId`]s. The second element maps
     /// each original block to the number of blocks it was split into, which callers can use
-    /// to redistribute parallel data structures via
-    /// [`split_remap`](super::traversal::Traversals::split_remap).
+    /// to redistribute parallel data structures.
     pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,
