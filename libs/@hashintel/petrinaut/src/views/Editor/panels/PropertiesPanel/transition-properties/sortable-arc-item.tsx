@@ -1,8 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
-import { NumberInput } from "../../../../components/number-input";
+import { IconButton } from "../../../../../components/icon-button";
+import { NumberInput } from "../../../../../components/number-input";
 
 const containerStyle = css({
   display: "flex",

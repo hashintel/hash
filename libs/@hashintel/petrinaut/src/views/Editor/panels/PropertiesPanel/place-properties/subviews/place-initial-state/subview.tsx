@@ -2,13 +2,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
-import { NumberInput } from "../../../components/number-input";
-import type { SubView } from "../../../components/sub-view/types";
-import { UI_MESSAGES } from "../../../constants/ui-messages";
-import { PlaybackContext } from "../../../playback/context";
-import { SimulationContext } from "../../../simulation/context";
-import { InitialStateEditor } from "../panels/PropertiesPanel/initial-state-editor";
-import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
+import { NumberInput } from "../../../../../../../components/number-input";
+import type { SubView } from "../../../../../../../components/sub-view/types";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { PlaybackContext } from "../../../../../../../playback/context";
+import { SimulationContext } from "../../../../../../../simulation/context";
+import { usePlacePropertiesContext } from "../../context";
+import { InitialStateEditor } from "./initial-state-editor";
 
 const fieldLabelStyle = css({
   fontWeight: "medium",

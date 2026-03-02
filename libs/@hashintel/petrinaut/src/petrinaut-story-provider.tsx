@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import type { MinimalNetMetadata, SDCPN } from "./core/types/sdcpn";
@@ -49,7 +48,8 @@ export const PetrinautStoryProvider = ({
   const currentNet = nets[currentNetId]!;
 
   const existingNets: MinimalNetMetadata[] = useMemo(
-    () => Object.values(nets).map((n) => ({ netId: n.id, title: n.title })),
+    () =>
+      Object.values(nets).map((net) => ({ netId: net.id, title: net.title })),
     [nets],
   );
 
@@ -71,29 +71,28 @@ export const PetrinautStoryProvider = ({
 
   const setTitle = useCallback(
     (title: string) => {
-      setNets((prev) =>
-        produce(prev, (draft) => {
-          if (draft[currentNetId]) {
-            draft[currentNetId].title = title;
-          }
-        }),
-      );
+      setNets((prev) => {
+        const net = prev[currentNetId];
+        if (!net) {
+          return prev;
+        }
+        return { ...prev, [currentNetId]: { ...net, title } };
+      });
     },
     [currentNetId],
   );
 
   const mutatePetriNetDefinition = useCallback(
     (mutationFn: (draft: SDCPN) => void) => {
-      setNets((prev) =>
-        produce(prev, (draft) => {
-          if (draft[currentNetId]) {
-            draft[currentNetId].sdcpn = produce(
-              draft[currentNetId].sdcpn,
-              mutationFn,
-            );
-          }
-        }),
-      );
+      setNets((prev) => {
+        const net = prev[currentNetId];
+        if (!net) {
+          return prev;
+        }
+        const clonedSdcpn = structuredClone(net.sdcpn);
+        mutationFn(clonedSdcpn);
+        return { ...prev, [currentNetId]: { ...net, sdcpn: clonedSdcpn } };
+      });
     },
     [currentNetId],
   );

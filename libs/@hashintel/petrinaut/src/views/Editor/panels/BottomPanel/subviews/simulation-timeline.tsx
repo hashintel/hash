@@ -2,15 +2,15 @@ import { css } from "@hashintel/ds-helpers/css";
 import { scaleLinear } from "d3-scale";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { SegmentGroup } from "../../../components/segment-group";
-import type { SubView } from "../../../components/sub-view/types";
-import { PlaybackContext } from "../../../playback/context";
-import { SimulationContext } from "../../../simulation/context";
+import { SegmentGroup } from "../../../../../components/segment-group";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { PlaybackContext } from "../../../../../playback/context";
+import { SimulationContext } from "../../../../../simulation/context";
 import {
   EditorContext,
   type TimelineChartType,
-} from "../../../state/editor-context";
-import { SDCPNContext } from "../../../state/sdcpn-context";
+} from "../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
 
 /**
  * Computes the maximum value from an array using a selector function.

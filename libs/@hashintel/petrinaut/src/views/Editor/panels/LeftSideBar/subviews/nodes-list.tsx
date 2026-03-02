@@ -2,9 +2,9 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { FaCircle, FaSquare } from "react-icons/fa6";
 
-import type { SubView } from "../../../components/sub-view/types";
-import { EditorContext } from "../../../state/editor-context";
-import { SDCPNContext } from "../../../state/sdcpn-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { EditorContext } from "../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
 
 const listContainerStyle = css({
   display: "flex",

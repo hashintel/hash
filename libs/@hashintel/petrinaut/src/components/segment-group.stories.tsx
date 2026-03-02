@@ -6,9 +6,11 @@ import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
 import type { SegmentOption } from "./segment-group";
 import { SegmentGroup } from "./segment-group";
 
-export default {
+const meta: Meta<typeof SegmentGroup> = {
   title: "Components / SegmentGroup",
 } satisfies Meta;
+
+export default meta;
 
 type Story = StoryObj<typeof meta>;
 

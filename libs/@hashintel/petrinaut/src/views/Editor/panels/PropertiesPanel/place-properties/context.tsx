@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place } from "../../../../core/types/sdcpn";
+import type { Color, Place } from "../../../../../core/types/sdcpn";
 
 /**
  * Context for providing place-specific data to subview components

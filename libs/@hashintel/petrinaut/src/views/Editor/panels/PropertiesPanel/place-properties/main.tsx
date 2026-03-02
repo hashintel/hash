@@ -2,25 +2,22 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import { TbArrowRight, TbTrash } from "react-icons/tb";
 
-import { Button } from "../../../../components/button";
-import { IconButton } from "../../../../components/icon-button";
-import { Input } from "../../../../components/input";
-import { Select } from "../../../../components/select";
-import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { Switch } from "../../../../components/switch";
-import { InfoIconTooltip } from "../../../../components/tooltip";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import type { Color, Place } from "../../../../core/types/sdcpn";
-import { EditorContext } from "../../../../state/editor-context";
-import { SDCPNContext } from "../../../../state/sdcpn-context";
-import { useIsReadOnly } from "../../../../state/use-is-read-only";
-import { placeInitialStateSubView } from "../../subviews/place-initial-state";
-import { placeVisualizerSubView } from "../../subviews/place-visualizer";
-import {
-  PlacePropertiesProvider,
-  usePlacePropertiesContext,
-} from "./place-properties-context";
+import { Button } from "../../../../../components/button";
+import { IconButton } from "../../../../../components/icon-button";
+import { Input } from "../../../../../components/input";
+import { Select } from "../../../../../components/select";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { Switch } from "../../../../../components/switch";
+import { InfoIconTooltip } from "../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import type { Color, Place } from "../../../../../core/types/sdcpn";
+import { EditorContext } from "../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
+import { PlacePropertiesProvider, usePlacePropertiesContext } from "./context";
+import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
+import { placeVisualizerSubView } from "./subviews/place-visualizer/subview";
 
 const containerStyle = css({
   display: "flex",

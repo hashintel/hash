@@ -4,25 +4,25 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { createContext, use, useMemo, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { Button } from "../../../../components/button";
-import { Input } from "../../../../components/input";
-import { Menu } from "../../../../components/menu";
-import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { Tooltip } from "../../../../components/tooltip";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
+import { Button } from "../../../../../components/button";
+import { Input } from "../../../../../components/input";
+import { Menu } from "../../../../../components/menu";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { Tooltip } from "../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
-} from "../../../../core/default-codes";
+} from "../../../../../core/default-codes";
 import type {
   Color,
   DifferentialEquation,
   Place,
-} from "../../../../core/types/sdcpn";
-import { CodeEditor } from "../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../monaco/editor-paths";
-import { useIsReadOnly } from "../../../../state/use-is-read-only";
+} from "../../../../../core/types/sdcpn";
+import { CodeEditor } from "../../../../../monaco/code-editor";
+import { getDocumentUri } from "../../../../../monaco/editor-paths";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const containerStyle = css({
   display: "flex",

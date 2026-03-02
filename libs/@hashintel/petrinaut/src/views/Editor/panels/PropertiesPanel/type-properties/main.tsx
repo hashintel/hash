@@ -2,14 +2,14 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { createContext, use, useMemo, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button } from "../../../../components/button";
-import { Input } from "../../../../components/input";
-import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { Tooltip } from "../../../../components/tooltip";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import type { Color } from "../../../../core/types/sdcpn";
-import { useIsReadOnly } from "../../../../state/use-is-read-only";
+import { Button } from "../../../../../components/button";
+import { Input } from "../../../../../components/input";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { Tooltip } from "../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import type { Color } from "../../../../../core/types/sdcpn";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import { ColorSelect } from "./color-select";
 
 const containerStyle = css({

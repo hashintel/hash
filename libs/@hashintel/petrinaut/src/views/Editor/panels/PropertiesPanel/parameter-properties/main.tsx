@@ -1,12 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use, useMemo } from "react";
 
-import { Input } from "../../../../components/input";
-import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import type { Parameter } from "../../../../core/types/sdcpn";
-import { useIsReadOnly } from "../../../../state/use-is-read-only";
+import { Input } from "../../../../../components/input";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import type { Parameter } from "../../../../../core/types/sdcpn";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const containerStyle = css({
   display: "flex",
