@@ -4,14 +4,12 @@
 //! Each vertex type has its own path enum ([`EntityPath`] for entities) that resolves
 //! dot-notation field accesses to specific columns, JSONB paths, or embedding stores.
 //!
-//! Each path knows its origin backend ([`EntityPath::origin`]) and estimated transfer size
-//! ([`EntityPath::estimate_size`]). The cost analysis uses these to charge a transfer premium
-//! on targets that are not the natural origin for a path.
+//! Each path carries its origin backend (which execution targets serve it natively) and an
+//! estimated transfer size used by the cost analysis to charge a transfer premium on targets
+//! that are not the natural origin for a path.
 //!
 //! [`TraversalPathBitSet`] and [`TraversalPath`] wrap the per-vertex-type path types so that
-//! the execution pipeline can handle different vertex types uniformly. [`TransferCostConfig`]
-//! carries the variable-size parameters (properties, embeddings, provenance) needed for cost
-//! estimation.
+//! the execution pipeline can handle different vertex types uniformly.
 
 mod access;
 mod entity;

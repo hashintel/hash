@@ -72,10 +72,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
 
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
-        let mut targets = TargetId::all();
-        targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
-
-        for target in targets {
+        for target in TargetId::all() {
             let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
             let statement_cost =
                 statement.statement_placement_in(context, body, vertex, &self.scratch);
