@@ -7,8 +7,8 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> (?, Boolean) {
     let %3: (?, Boolean)
 
     bb0(): {
-        %2 = %1.properties                                                      // cost: 12
-        %3 = (%1.properties, %1.metadata.archived)                              // cost: 16
+        %2 = %1.properties                                                      // cost: 8
+        %3 = (%1.properties, %1.metadata.archived)                              // cost: 8
 
         return %3
     }
