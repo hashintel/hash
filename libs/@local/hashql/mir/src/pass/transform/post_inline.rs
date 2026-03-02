@@ -1,9 +1,6 @@
 //! Post-inlining optimization pass.
 //!
-//! Runs [`Canonicalization`] to clean up redundancy from inlining, then [`TraversalExtraction`]
-//! to materialize vertex projections in graph read filter bodies.
-//!
-//! After running, call [`PostInline::finish`] to retrieve the [`Traversals`] maps.
+//! Runs [`Canonicalization`] to clean up redundancy from inlining.
 
 use core::alloc::Allocator;
 
