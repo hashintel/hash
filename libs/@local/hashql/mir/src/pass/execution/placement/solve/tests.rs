@@ -5,6 +5,7 @@ use core::alloc::Allocator;
 use hashql_core::{
     heap::{BumpAllocator, Heap},
     id::{IdArray, bit_vec::FiniteBitSet},
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::severity::Severity;
@@ -207,8 +208,8 @@ fn forward_pass_assigns_all_blocks() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -271,8 +272,8 @@ fn backward_pass_improves_suboptimal_forward() {
     // bb1=P look cheap. But bb3 ultimately gets I (because bb2=I with diagonal-
     // only forces bb3=I after backward). Backward then re-evaluates bb1 with
     // bb3=I known and sees P→I=50, correcting bb1 to I.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -349,8 +350,8 @@ fn rewind_triggers_on_join_with_conflicting_predecessors() {
     //   bb3=I: bb1→bb3 I→I ok, bb2→bb3 I→I missing → infeasible
     //   bb3=P: bb1→bb3 I→P missing → infeasible
     // bb3 heap empty → rewind flips bb2 (or bb1) to resolve the conflict.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -434,8 +435,8 @@ fn rewind_skips_exhausted_region() {
     // Rewind: bb2 has no alternatives (domain {I}) → skip. bb1 has alternative P.
     //   bb1=P, resume. bb2=I (re-estimated). bb3: bb1→bb3 P→I ok, bb2→bb3 I→I ok.
     //   bb3=I succeeds.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             x = load 0;
@@ -497,8 +498,8 @@ fn single_block_trivial_region() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int;
 
         bb0() {
             x = load 0;
@@ -533,8 +534,8 @@ fn cyclic_region_in_forward_backward() {
     let env = Environment::new(&heap);
 
     // bb0 → bb1, bb1 → bb2, bb2 → bb1 (loop), bb2 → bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -612,8 +613,8 @@ fn rewind_retries_cyclic_region() {
     //   bb3=P: diagonal I→P missing → infeasible.
     // Rewind reaches the SCC; retry() picks all-P. With SCC=all-P:
     //   bb3=P: diagonal P→P ok, bb3→bb4 P→I ok → feasible.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -712,8 +713,8 @@ fn rewind_skips_exhausted_cyclic_region() {
     // With bb0=P:
     //   SCC: all-P (forced). bb3 predecessors: bb0=P, bb2=P.
     //   bb3=I: bb0→bb3 P→I ok. bb2→bb3 P→I ok. bb3→bb4 I→I ok. Feasible!
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             cond = load true;
@@ -792,8 +793,8 @@ fn rewind_exhausts_all_regions() {
     let env = Environment::new(&heap);
 
     // Diamond: bb0→bb1(then), bb0→bb2(else), bb1→bb3, bb2→bb3. All trivial SCCs.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -855,8 +856,8 @@ fn forward_pass_rewinds_on_cyclic_failure() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -924,8 +925,8 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -1030,8 +1031,8 @@ fn backward_pass_adopts_better_cyclic_solution() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -1106,8 +1107,8 @@ fn trivial_failure_emits_diagnostic() {
     // bb1→bb3: diagonal only. bb2→bb3: swap only (I→P, P→I).
     // No assignment for bb3 satisfies both predecessors simultaneously, and
     // rewind exhausts all alternatives.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -1173,8 +1174,8 @@ fn cyclic_failure_emits_diagnostic() {
 
     // bb0 branches to bb1(then) and bb2(else). bb1→bb0 closes the cycle.
     // bb2 is the exit. SCC = {bb0, bb1}, processed first.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
