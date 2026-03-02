@@ -52,10 +52,10 @@ export const PlacePropertiesProvider: React.FC<
   PlacePropertiesProviderProps
 > = ({ place, placeType, types, isReadOnly, updatePlace, children }) => {
   return (
-    <PlacePropertiesContext.Provider
+    <PlacePropertiesContext
       value={{ place, placeType, types, isReadOnly, updatePlace }}
     >
       {children}
-    </PlacePropertiesContext.Provider>
+    </PlacePropertiesContext>
   );
 };

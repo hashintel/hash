@@ -41,9 +41,9 @@ export const DifferentialEquationProperties: React.FC<
 
   return (
     <div className={containerStyle}>
-      <DiffEqPropertiesContext.Provider value={value}>
+      <DiffEqPropertiesContext value={value}>
         <VerticalSubViewsContainer subViews={subViews} />
-      </DiffEqPropertiesContext.Provider>
+      </DiffEqPropertiesContext>
     </div>
   );
 };
