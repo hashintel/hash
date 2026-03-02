@@ -12,6 +12,7 @@ pub mod principal;
 pub mod property_type;
 pub mod status;
 
+pub mod admin;
 pub mod http_tracing_layer;
 
 mod entity_query_request;

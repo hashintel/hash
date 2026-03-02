@@ -402,42 +402,6 @@ where
         Ok(())
     }
 
-    /// Deletes all entities from the database.
-    ///
-    /// This function removes all entities along with their associated metadata,
-    /// including temporal data, embeddings, drafts, and relationships.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeletionError::Store`] if the database deletion operation fails.
-    #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_all_entities(&self) -> Result<(), Report<DeletionError>> {
-        tracing::debug!("Deleting all entities");
-        self.as_client()
-            .client()
-            .simple_query(
-                "
-                    DELETE FROM entity_edge;
-                    DELETE FROM entity_is_of_type;
-                    DELETE FROM entity_temporal_metadata;
-                    DELETE FROM entity_editions;
-                    DELETE FROM entity_embeddings;
-                    DELETE FROM entity_drafts;
-                    DELETE FROM entity_ids;
-                ",
-            )
-            .instrument(tracing::info_span!(
-                "DELETE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(DeletionError::Store)?;
-
-        Ok(())
-    }
-
     async fn convert_entity_properties<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,

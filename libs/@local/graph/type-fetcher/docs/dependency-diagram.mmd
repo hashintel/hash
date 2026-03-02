@@ -16,33 +16,31 @@ graph TD
     5[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
     6[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
     7[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    8[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    9[hash-graph-type-fetcher]
-    class 9 root
-    10[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    11[<a href="../harpc_types/index.html">harpc-types</a>]
-    12[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    14[<a href="../error_stack/index.html">error-stack</a>]
-    15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    16[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    0 --> 8
+    8[hash-graph-type-fetcher]
+    class 8 root
+    9[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    10[<a href="../harpc_types/index.html">harpc-types</a>]
+    11[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    12[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    13[<a href="../error_stack/index.html">error-stack</a>]
+    14[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    15[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 4
     1 --> 7
-    1 -.-> 16
+    1 -.-> 15
     2 -.-> 3
-    2 --> 12
-    4 --> 9
+    2 --> 11
+    4 --> 8
     5 --> 1
     6 --> 5
-    6 --> 10
-    6 --> 13
+    6 --> 9
+    6 --> 12
     7 --> 2
-    8 --> 4
-    9 --> 6
-    10 -.-> 16
-    12 -.-> 11
-    12 --> 11
-    12 --> 14
-    13 --> 1
-    15 -.-> 4
-    16 --> 6
+    8 --> 6
+    9 -.-> 15
+    11 -.-> 10
+    11 --> 10
+    11 --> 13
+    12 --> 1
+    14 -.-> 4
+    15 --> 6

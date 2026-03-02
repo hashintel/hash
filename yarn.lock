@@ -688,7 +688,6 @@ __metadata:
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-    "@rust/hash-graph-test-server": "workspace:*"
     "@rust/hash-graph-type-fetcher": "workspace:*"
     "@rust/hash-telemetry": "workspace:*"
     "@rust/hash-temporal-client": "workspace:*"
@@ -14813,22 +14812,6 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@rust/hash-graph-test-server@workspace:*, @rust/hash-graph-test-server@workspace:libs/@local/graph/test-server":
-  version: 0.0.0-use.local
-  resolution: "@rust/hash-graph-test-server@workspace:libs/@local/graph/test-server"
-  dependencies:
-    "@blockprotocol/type-system-rs": "workspace:*"
-    "@rust/error-stack": "workspace:*"
-    "@rust/hash-codec": "workspace:*"
-    "@rust/hash-graph-api": "workspace:*"
-    "@rust/hash-graph-authorization": "workspace:*"
-    "@rust/hash-graph-postgres-store": "workspace:*"
-    "@rust/hash-graph-store": "workspace:*"
-    "@rust/hash-graph-type-defs": "workspace:*"
-    "@rust/hash-status": "workspace:*"
   languageName: unknown
   linkType: soft
 

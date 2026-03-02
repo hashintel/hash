@@ -2,7 +2,11 @@ use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PolicyStore as _;
-use hash_graph_store::pool::StorePool as _;
+use hash_graph_store::{
+    entity::{DeleteEntitiesParams, DeletionScope, EntityStore as _},
+    filter::Filter,
+    pool::StorePool as _,
+};
 use type_system::principal::actor::ActorEntityUuid;
 
 use crate::scenario::runner::Runner;
@@ -81,7 +85,15 @@ impl ResetDbStage {
 
             if self.entities {
                 store
-                    .delete_all_entities()
+                    .delete_entities(
+                        ActorEntityUuid::new(uuid::Uuid::nil()),
+                        DeleteEntitiesParams {
+                            filter: Filter::All(Vec::new()),
+                            include_drafts: true,
+                            scope: DeletionScope::Erase,
+                            decision_time: None,
+                        },
+                    )
                     .await
                     .change_context(ResetDbError::DeleteEntities)?;
                 reset_db_result.deleted_entities = true;

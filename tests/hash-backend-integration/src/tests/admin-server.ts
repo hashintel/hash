@@ -4,7 +4,8 @@ import { StatusCode } from "@local/status";
 import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 import fetch from "node-fetch";
 
-const port = 4001;
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";
 
 const deleteRecords = async (endpoint: string) => {
   await fetch(`http://127.0.0.1:${port}/${endpoint}`, {
@@ -59,7 +60,23 @@ export const deleteEntityTypes = async () => {
  * Delete all entities from the Graph.
  */
 export const deleteEntities = async () => {
-  await deleteRecords("entities");
+  await fetch(`http://127.0.0.1:${port}/entities/delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+    },
+    body: JSON.stringify({
+      filter: { all: [] },
+      includeDrafts: true,
+      scope: "erase",
+    }),
+  }).then(async (response) => {
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Could not remove entities: ${body}`);
+    }
+  });
 };
 
 /**

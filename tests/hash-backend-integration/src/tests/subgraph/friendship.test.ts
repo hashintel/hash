@@ -63,7 +63,7 @@ import {
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph, restoreSnapshot } from "../test-server";
+import { resetGraph, restoreSnapshot } from "../admin-server";
 import { createTestImpureGraphContext } from "../util";
 
 export const temporalAxesForTimestamp = (
