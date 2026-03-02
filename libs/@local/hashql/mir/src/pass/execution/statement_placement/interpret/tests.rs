@@ -70,10 +70,9 @@ fn all_statements_supported() {
     );
 }
 
-/// A single vertex projection yields cost 12 (base 8 + overhead 4 × 1 path).
+/// All assignments get uniform cost 8 regardless of vertex projections.
 ///
-/// Tests that `path_count` from `TraversalAnalysis` feeds into the interpreter cost
-/// formula. A constant load at the same location has cost 8 (zero paths).
+/// Path costs are charged at the block level via `BasicBlockCostVec`, not per statement.
 #[test]
 fn traversal_single_path_cost() {
     let heap = Heap::new();
@@ -110,9 +109,9 @@ fn traversal_single_path_cost() {
     );
 }
 
-/// Two vertex projections in a single statement yield cost 16 (base 8 + overhead 4 × 2 paths).
+/// Multiple vertex projections in a statement still get uniform cost 8.
 ///
-/// A tuple referencing both `_1.properties` and `_1.metadata.archived` has `path_count = 2`.
+/// Path costs from `_1.properties` and `_1.metadata.archived` are charged at the block level.
 #[test]
 fn traversal_multiple_paths_cost() {
     let heap = Heap::new();
@@ -152,11 +151,9 @@ fn traversal_multiple_paths_cost() {
     );
 }
 
-/// Composite swallowing reduces `path_count` and therefore interpreter cost.
+/// Composite swallowing is handled at the block level by `BasicBlockCostVec`.
 ///
-/// A tuple referencing `_1.metadata.record_id.entity_id.web_id` and
-/// `_1.metadata.record_id`: `RecordId` swallows `WebId`, so `path_count = 1`
-/// and cost = 12, not 16.
+/// The interpreter assigns uniform cost 8 to all assignments.
 #[test]
 fn traversal_swallowing_reduces_cost() {
     let heap = Heap::new();
@@ -195,10 +192,9 @@ fn traversal_swallowing_reduces_cost() {
     );
 }
 
-/// Statements without vertex access are unaffected by traversal costing.
+/// All assignments get uniform cost 8 whether or not they access vertex projections.
 ///
-/// A body with vertex projections in one statement and pure constants in another.
-/// The constant-only statement still gets base cost 8 (`path_count = 0`).
+/// Path-based cost differentiation is handled at the block level.
 #[test]
 fn non_traversal_unaffected_by_costs() {
     let heap = Heap::new();
