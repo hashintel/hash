@@ -1,0 +1,18 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
+assertion_line: 92
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: ?
+    let %3: Integer
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.properties                                                      // cost: 8
+        %3 = 42                                                                 // cost: 8
+        %4 = %3 > 10                                                            // cost: 8
+
+        return %4
+    }
+}
