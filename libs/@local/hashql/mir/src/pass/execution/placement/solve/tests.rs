@@ -25,7 +25,7 @@ use crate::{
     error::MirDiagnosticCategory,
     intern::Interner,
     pass::{
-        analysis::size_estimation::InformationRange,
+        analysis::size_estimation::{InformationRange, InformationUnit},
         execution::{
             ApproxCost, Cost, VertexType,
             cost::{BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec},
@@ -124,21 +124,34 @@ pub(crate) fn make_block_costs<'heap>(
     statements: &TargetArray<StatementCostVec<&'heap Heap>>,
     alloc: &'heap Heap,
 ) -> BasicBlockCostVec<&'heap Heap> {
+    make_block_costs_with_config(
+        body,
+        domains,
+        statements,
+        &TransferCostConfig::new(InformationRange::full()),
+        alloc,
+    )
+}
+
+pub(crate) fn make_block_costs_with_config<'heap>(
+    body: &Body<'_>,
+    domains: &[TargetBitSet],
+    statements: &TargetArray<StatementCostVec<&'heap Heap>>,
+    config: &TransferCostConfig,
+    alloc: &'heap Heap,
+) -> BasicBlockCostVec<&'heap Heap> {
     let assignments = BasicBlockSlice::from_raw(domains);
     BasicBlockCostAnalysis {
         vertex: VertexType::Entity,
         assignments,
         costs: statements,
     }
-    .analyze_in(
-        &TransferCostConfig::new(InformationRange::full()),
-        &body.basic_blocks,
-        alloc,
-    )
+    .analyze_in(config, &body.basic_blocks, alloc)
 }
 
 const I: TargetId = TargetId::Interpreter;
 const P: TargetId = TargetId::Postgres;
+const E: TargetId = TargetId::Embedding;
 
 pub(crate) fn run_solver<'heap>(
     body: &Body<'heap>,
@@ -1225,5 +1238,152 @@ fn cyclic_failure_emits_diagnostic() {
     assert_eq!(
         diagnostic.category,
         MirDiagnosticCategory::Placement(PlacementDiagnosticCategory::UnsatisfiablePlacement),
+    );
+}
+
+/// Path premiums steer the solver toward origin backends.
+///
+/// bb0 accesses `vertex.encodings.vectors` (Embedding-origin) and `vertex.properties`
+/// (Postgres-origin). With equal base statement costs and permissive transitions, the solver
+/// picks the backend that minimizes the combined path premium. Embedding avoids the Vectors
+/// premium (3072) but pays the Properties premium. Postgres avoids the Properties premium
+/// but pays the Vectors premium. Interpreter pays both.
+///
+/// The solver should not pick Interpreter for bb0 since both specialized backends have lower
+/// total cost.
+#[test]
+fn path_premiums_influence_placement() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> (?, ?) {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], result: (?, ?);
+        @proj properties = vertex.properties: ?,
+              encodings = vertex.encodings: ?,
+              vectors = encodings.vectors: ?;
+
+        bb0() {
+            result = tuple properties, vectors;
+            return result;
+        }
+    });
+
+    let all = target_set(&[I, P, E]);
+    let domains = [all];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
+
+    // Equal base costs so the path premium is the deciding factor.
+    stmt_costs! { statements; bb(0): I = 1, P = 1, E = 1 }
+
+    let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+
+    let config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(100)));
+    let block_costs = make_block_costs_with_config(&body, &domains, &statements, &config, &heap);
+
+    // Verify the premiums are as expected: Interpreter pays both, others pay one each.
+    let interp_cost = block_costs.cost(bb(0), I);
+    let pg_cost = block_costs.cost(bb(0), P);
+    let emb_cost = block_costs.cost(bb(0), E);
+
+    assert!(
+        interp_cost > pg_cost,
+        "Interpreter ({interp_cost}) should be more expensive than Postgres ({pg_cost})"
+    );
+    assert!(
+        interp_cost > emb_cost,
+        "Interpreter ({interp_cost}) should be more expensive than Embedding ({emb_cost})"
+    );
+
+    // Run the solver end-to-end.
+    let data = PlacementSolverContext {
+        blocks: &block_costs,
+        terminators: &terminators,
+    };
+    let mut context = MirContext::new(&env, &interner);
+    let mut solver = data.build_in(&body, &heap);
+    let result = solver.run(&mut context, &body);
+
+    assert_ne!(
+        result[bb(0)],
+        I,
+        "solver should prefer a specialized backend over Interpreter when path premiums dominate"
+    );
+}
+
+/// Provenance variants produce different path premiums due to different size estimates.
+///
+/// `ProvenanceEdition` has size `3..=20` (midpoint 11) while `ProvenanceInferred` has size
+/// `3..=5` (midpoint 4). A block accessing edition provenance should have a higher load cost
+/// than one accessing inferred provenance, and this difference should be visible in the
+/// solver's block cost inputs.
+#[test]
+fn provenance_variants_produce_different_premiums() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body_edition = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              edition = prov.edition: ?;
+
+        bb0() {
+            val = load edition;
+            return val;
+        }
+    });
+
+    let body_inferred = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              inferred = prov.inferred: ?;
+
+        bb0() {
+            val = load inferred;
+            return val;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip];
+
+    let config = TransferCostConfig::new(InformationRange::zero());
+
+    let statements_edition: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body_edition.basic_blocks, &heap));
+    let edition_costs =
+        make_block_costs_with_config(&body_edition, &domains, &statements_edition, &config, &heap);
+
+    let statements_inferred: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| {
+            StatementCostVec::new_in(&body_inferred.basic_blocks, &heap)
+        });
+    let inferred_costs = make_block_costs_with_config(
+        &body_inferred,
+        &domains,
+        &statements_inferred,
+        &config,
+        &heap,
+    );
+
+    // Both are Postgres-origin, so Interpreter pays the premium, Postgres doesn't.
+    let edition_interp = edition_costs.cost(bb(0), I);
+    let edition_pg = edition_costs.cost(bb(0), P);
+    let inferred_interp = inferred_costs.cost(bb(0), I);
+    let inferred_pg = inferred_costs.cost(bb(0), P);
+
+    // Postgres pays no premium for either (it's the origin).
+    assert_eq!(edition_pg, inferred_pg, "Postgres is origin for both");
+
+    // Edition premium (midpoint 11) > Inferred premium (midpoint 4) on Interpreter.
+    assert!(
+        edition_interp > inferred_interp,
+        "Edition ({edition_interp}) should cost more than Inferred ({inferred_interp}) on \
+         Interpreter"
     );
 }

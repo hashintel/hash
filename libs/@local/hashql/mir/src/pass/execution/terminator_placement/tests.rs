@@ -602,108 +602,12 @@ fn transfer_cost_is_max_for_unbounded() {
     );
 }
 
-/// Edition provenance live across a goto edge produces path-based transfer cost.
+/// Edge transfer cost only accounts for live locals; path costs are charged at block level.
 ///
-/// `edition_provenance_size` defaults to `3..=20`, midpoint 11. With no other live locals,
-/// the Postgres→Interpreter transition cost is purely the path cost.
+/// A scalar local (`live`) costs 1. Entity paths (`ProvenanceEdition`, `Properties`) are live
+/// in bb1 but do not contribute to edge transfer cost (path costs moved to `BasicBlockCostVec`).
 #[test]
-fn path_cost_from_edition_provenance() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
-        @proj metadata = vertex.metadata: ?,
-              prov = metadata.provenance: ?,
-              edition = prov.edition: ?;
-
-        bb0() {
-            goto bb1();
-        },
-        bb1() {
-            val = load edition;
-            return val;
-        }
-    });
-
-    let targets = [
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-    ];
-
-    let footprint = make_scalar_footprint(&body, &heap);
-    let placement =
-        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
-    let costs = placement.terminator_placement(
-        &body,
-        VertexType::Entity,
-        &footprint,
-        build_targets(&body, &targets),
-    );
-
-    // edition_provenance_size = 3..=20, midpoint(3, 20) = 11
-    let matrix = costs.of(BasicBlockId::new(0))[0];
-    assert_eq!(
-        matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(11))
-    );
-}
-
-/// Inferred provenance produces a different (lower) cost than edition provenance.
-///
-/// `ProvenanceInferred` has a static size `3..=5` (fixed structure, no config), midpoint 4.
-/// This verifies the split: without per-variant sizing, both would produce the same cost.
-#[test]
-fn path_cost_from_inferred_provenance() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
-        @proj metadata = vertex.metadata: ?,
-              prov = metadata.provenance: ?,
-              inferred = prov.inferred: ?;
-
-        bb0() {
-            goto bb1();
-        },
-        bb1() {
-            val = load inferred;
-            return val;
-        }
-    });
-
-    let targets = [
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-        target_set(&[TargetId::Interpreter, TargetId::Postgres]),
-    ];
-
-    let footprint = make_scalar_footprint(&body, &heap);
-    let placement =
-        TerminatorPlacement::new_in(TransferCostConfig::new(InformationRange::zero()), Global);
-    let costs = placement.terminator_placement(
-        &body,
-        VertexType::Entity,
-        &footprint,
-        build_targets(&body, &targets),
-    );
-
-    // ProvenanceInferred is static 3..=5, midpoint(3, 5) = 4
-    let matrix = costs.of(BasicBlockId::new(0))[0];
-    assert_eq!(
-        matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(4))
-    );
-}
-
-/// Transfer cost sums both live locals and live entity paths.
-///
-/// A scalar local (`live`) costs 1. Two entity paths (`ProvenanceEdition` at 3..=20
-/// and `Properties` at 10..=10) sum to 13..=30, midpoint 21. Total = 1 + 21 = 22.
-#[test]
-fn transfer_cost_combines_locals_and_paths() {
+fn transfer_cost_from_live_locals() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
@@ -744,12 +648,10 @@ fn transfer_cost_combines_locals_and_paths() {
     );
 
     // local_cost: `live` scalar = 1
-    // path_cost: Properties(10..=10) + ProvenanceEdition(3..=20) = 13..=30, midpoint(13, 30) = 21
-    // total = 1 + 21 = 22
     let matrix = costs.of(BasicBlockId::new(0))[0];
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(22))
+        Some(cost!(1))
     );
 }
 
