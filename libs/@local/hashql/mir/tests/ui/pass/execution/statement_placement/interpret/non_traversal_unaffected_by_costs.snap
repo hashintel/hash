@@ -8,7 +8,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
     let %4: Boolean
 
     bb0(): {
-        %2 = %1.properties                                                      // cost: 12
+        %2 = %1.properties                                                      // cost: 8
         %3 = 42                                                                 // cost: 8
         %4 = %3 > 10                                                            // cost: 8
 

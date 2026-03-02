@@ -141,6 +141,7 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::min_ident_chars)]
     use alloc::alloc::Global;
 
     use hashql_core::{heap::Heap, symbol::sym, r#type::environment::Environment};
@@ -151,7 +152,8 @@ mod tests {
         builder::body,
         intern::Interner,
         pass::{
-            analysis::size_estimation::InformationRange, execution::traversal::TransferCostConfig,
+            analysis::size_estimation::{InformationRange, InformationUnit},
+            execution::traversal::TransferCostConfig,
         },
     };
 
@@ -353,7 +355,9 @@ mod tests {
             costs: &costs,
         };
 
-        let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
+        // Use a bounded properties size so both premiums are finite and comparable.
+        let config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(100)));
+        let result = analysis.analyze_in(&config, &body.basic_blocks, Global);
         let bb0 = BasicBlockId::new(0);
 
         let interpreter_cost = result.cost(bb0, TargetId::Interpreter);
