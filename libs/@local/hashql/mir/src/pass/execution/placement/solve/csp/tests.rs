@@ -327,12 +327,12 @@ fn replay_narrowing_resets_then_repropagates() {
 
 // --- Group 4: Lower Bound ---
 
-/// Lower bound sums the minimum statement cost across each unfixed block's domain.
+/// Lower bound sums the minimum block cost across each unfixed block's domain.
 ///
 /// With zero transition costs, the bound reduces to the sum of per-block minimum
-/// statement costs: min(10, 20) + min(5, 15) = 15.
+/// block costs: min(10, 20) + min(5, 15) = 15.
 #[test]
-fn lower_bound_min_statement_cost_per_block() {
+fn lower_bound_min_block_cost_per_block() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
@@ -390,7 +390,7 @@ fn lower_bound_min_statement_cost_per_block() {
 
 /// Lower bound includes the minimum valid transition cost for each inter-block edge.
 ///
-/// With zero statement costs, the bound is determined by the cheapest compatible
+/// With zero block costs, the bound is determined by the cheapest compatible
 /// transition across each edge between unfixed blocks.
 #[test]
 fn lower_bound_min_transition_cost_per_edge() {
@@ -768,7 +768,7 @@ fn mrv_skips_fixed_blocks() {
 
 /// Greedy solver assigns both blocks in a 2-block SCC to the cheapest same-target.
 ///
-/// Both blocks prefer P (statement cost 3 vs 8). Same-target transitions cost 0,
+/// Both blocks prefer P (block cost 3 vs 8). Same-target transitions cost 0,
 /// so greedy converges on all-P without rollback.
 #[test]
 fn greedy_solves_two_block_loop() {

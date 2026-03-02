@@ -326,7 +326,7 @@ fn infeasible_transition_returns_none() {
 /// Verifies that unassigned neighbors use the heuristic minimum over their domain.
 ///
 /// When a neighbor has no committed target, the estimator picks the cheapest
-/// `(statement_cost + transition_cost)` combination across the neighbor's
+/// `(block_cost + transition_cost)` combination across the neighbor's
 /// domain to produce an optimistic lower bound.
 #[test]
 fn unassigned_neighbor_uses_heuristic_minimum() {
