@@ -1,6 +1,6 @@
 #![expect(clippy::min_ident_chars)]
 
-use hashql_core::{heap::Heap, id::IdArray, r#type::environment::Environment};
+use hashql_core::{heap::Heap, id::IdArray, symbol::sym, r#type::environment::Environment};
 
 use super::{
     super::{
@@ -135,8 +135,8 @@ fn self_loop_edges_excluded_from_cost() {
     let env = Environment::new(&heap);
 
     // bb0: self-loop via `if cond then bb0() else bb1()`, bb1: return
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -199,8 +199,8 @@ fn boundary_multiplier_applied_to_cross_region_edges() {
     let env = Environment::new(&heap);
 
     // bb0 → bb1 → bb2, three trivial SCCs
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int;
 
         bb0() {
             x = load 0;
@@ -277,8 +277,8 @@ fn infeasible_transition_returns_none() {
     let env = Environment::new(&heap);
 
     // bb0 → bb1, two trivial SCCs
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int;
 
         bb0() {
             x = load 0;
@@ -335,8 +335,8 @@ fn unassigned_neighbor_uses_heuristic_minimum() {
     let env = Environment::new(&heap);
 
     // bb0 → bb1, two trivial SCCs
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int;
 
         bb0() {
             x = load 0;

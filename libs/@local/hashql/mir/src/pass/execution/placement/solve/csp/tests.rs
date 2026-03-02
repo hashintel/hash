@@ -2,7 +2,7 @@
 
 use core::mem;
 
-use hashql_core::{heap::Heap, id::IdArray, r#type::environment::Environment};
+use hashql_core::{heap::Heap, id::IdArray, symbol::sym, r#type::environment::Environment};
 
 use super::{super::PlacementSolver, CyclicPlacementRegion};
 use crate::{
@@ -59,8 +59,8 @@ fn narrow_restricts_successor_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -109,8 +109,8 @@ fn narrow_restricts_predecessor_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -161,8 +161,8 @@ fn narrow_to_empty_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -209,8 +209,8 @@ fn narrow_multiple_edges_intersect() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb2, bb2→bb0, bb2→bb3
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -271,8 +271,8 @@ fn replay_narrowing_resets_then_repropagates() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -337,8 +337,8 @@ fn lower_bound_min_statement_cost_per_block() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -398,8 +398,8 @@ fn lower_bound_min_transition_cost_per_edge() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -456,8 +456,8 @@ fn lower_bound_skips_self_loop_edges() {
     let env = Environment::new(&heap);
 
     // bb0→bb0 (self-loop), bb0→bb1, bb1→bb0, bb1→bb2 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb0() else bb1(); },
         bb1() { cond = load true; if cond then bb0() else bb2(); },
         bb2() { x = load 0; return x; }
@@ -505,8 +505,8 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -564,8 +564,8 @@ fn lower_bound_all_fixed_returns_zero() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -617,8 +617,8 @@ fn mrv_selects_smallest_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -670,8 +670,8 @@ fn mrv_tiebreak_by_constraint_degree() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb0, bb2→bb0, bb0→bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; switch cond [0 => bb1(), 1 => bb2(), _ => bb3()]; },
         bb1() { x = load 0; goto bb0(); },
         bb2() { x = load 0; goto bb0(); },
@@ -720,8 +720,8 @@ fn mrv_skips_fixed_blocks() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -776,8 +776,8 @@ fn greedy_solves_two_block_loop() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { cond = load true; if cond then bb0() else bb2(); },
         bb2() { return x; }
@@ -830,8 +830,8 @@ fn greedy_rollback_finds_alternative() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -894,8 +894,8 @@ fn greedy_fails_when_infeasible() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -940,8 +940,8 @@ fn bnb_finds_optimal() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb0, bb2→bb0, bb0→bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; switch cond [0 => bb1(), 1 => bb2(), _ => bb3()]; },
         bb1() { x = load 0; goto bb0(); },
         bb2() { x = load 0; goto bb0(); },
@@ -1000,8 +1000,8 @@ fn bnb_retains_ranked_solutions() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1069,8 +1069,8 @@ fn bnb_pruning_preserves_optimal() {
     let env = Environment::new(&heap);
 
     // 4-block SCC: bb0→bb1→bb2→bb3→bb0, plus bb4 exit
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { x = load 0; goto bb3(); },
@@ -1131,8 +1131,8 @@ fn retry_returns_ranked_solutions_in_order() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1202,8 +1202,8 @@ fn retry_exhausts_then_perturbs() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1266,8 +1266,8 @@ fn greedy_rollback_on_empty_heap() {
 
     // 2-block SCC: bb0↔bb1, bb2 exit
     // bb0: `if cond then bb1 else bb2` → [bb2(arm0), bb1(arm1)]
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1338,8 +1338,8 @@ fn retry_perturbation_after_ranked_exhaustion() {
     let env = Environment::new(&heap);
 
     // 2-block SCC: bb0↔bb1, bb2 exit
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
