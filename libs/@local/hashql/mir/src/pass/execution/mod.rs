@@ -23,14 +23,8 @@ use core::{alloc::Allocator, assert_matches};
 
 use hashql_core::heap::{BumpAllocator, Heap};
 
-pub use self::{
-    cost::{ApproxCost, Cost},
-    island::{Island, IslandId, IslandVec},
-    placement::error::PlacementDiagnosticCategory,
-    target::TargetId,
-    vertex::VertexType,
-};
 use self::{
+    cost::BasicBlockCostAnalysis,
     fusion::BasicBlockFusion,
     island::IslandPlacement,
     placement::{ArcConsistency, PlacementSolverContext},
@@ -39,6 +33,13 @@ use self::{
     target::TargetArray,
     terminator_placement::TerminatorPlacement,
     traversal::TransferCostConfig,
+};
+pub use self::{
+    cost::{ApproxCost, Cost},
+    island::{Island, IslandId, IslandVec},
+    placement::error::PlacementDiagnosticCategory,
+    target::TargetId,
+    vertex::VertexType,
 };
 use super::analysis::size_estimation::BodyFootprint;
 use crate::{
@@ -85,10 +86,21 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
-        let mut possibilities = BasicBlockSplitting::new_in(&self.scratch).split_in(
+        let mut assignments = BasicBlockSplitting::new_in(&self.scratch).split_in(
             context,
             body,
             &mut statement_costs,
+            &self.scratch,
+        );
+
+        let block_costs = BasicBlockCostAnalysis {
+            vertex,
+            assignments: &assignments,
+            costs: &statement_costs,
+        }
+        .analyze_in(
+            &TransferCostConfig::new(InformationRange::full()),
+            &body.basic_blocks,
             &self.scratch,
         );
 
@@ -100,19 +112,18 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             body,
             vertex,
             &self.footprints[body.id],
-            &possibilities,
+            &assignments,
             &self.scratch,
         );
 
         ArcConsistency {
-            blocks: &mut possibilities,
+            blocks: &mut assignments,
             terminators: &mut terminator_costs,
         }
         .run_in(body, &self.scratch);
 
         let mut solver = PlacementSolverContext {
-            assignment: &possibilities,
-            statements: &statement_costs,
+            blocks: &block_costs,
             terminators: &terminator_costs,
         }
         .build_in(body, &self.scratch);
