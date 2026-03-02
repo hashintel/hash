@@ -70,8 +70,9 @@ where
                         TraversalResult::Path(TraversalPath::Entity(path)),
                     );
                 } else {
-                    // The path leads to "nothing", indicating that we must hydrate the entire
-                    // entity.
+                    // The path doesn't map to any known storage location (e.g.
+                    // `link_data.*.draft_id` is synthesized, not stored). To use the value at
+                    // runtime we must fully hydrate the entity so the runtime can construct it.
                     (self.on_traversal)(location, TraversalResult::Complete);
                 }
             }

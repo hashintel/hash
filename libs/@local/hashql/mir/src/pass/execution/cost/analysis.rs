@@ -138,8 +138,8 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
         let targets = self.assignments[id];
         let mut costs = TargetArray::from_raw([BasicBlockTargetCost::ZERO; _]);
 
-        // We do not expand to the leave nodes on purpose, we work under the assumption that any
-        // composite path that is given is more efficient than it's individual components and will
+        // We do not expand to the leaf nodes on purpose, we work under the assumption that any
+        // composite path that is given is more efficient than its individual components and will
         // always be fetched together, therefore the cost of the parent must be used to accurately
         // describe the cost. If a node can be used in multiple places at the same time, then fetch
         // from the composite will always be preferred.
