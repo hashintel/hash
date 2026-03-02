@@ -14,9 +14,12 @@ use super::{
 };
 use crate::{
     body::place::{Projection, ProjectionKind},
-    pass::analysis::{
-        dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
-        size_estimation::{InformationRange, InformationUnit},
+    pass::{
+        analysis::{
+            dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
+            size_estimation::{InformationRange, InformationUnit},
+        },
+        execution::target::{TargetArray, TargetBitSet, TargetId},
     },
 };
 
@@ -137,6 +140,11 @@ pub(crate) struct TransferCostConfig {
     /// This is a placeholder until the confirmed entity type set is available, at which point
     /// the metadata size can be computed directly from the property key count.
     pub property_metadata_divisor: NonZero<u32>,
+    /// Multiplier for the cost of transferring an entity to a target.
+    ///
+    /// For example, if the multiplier for Postgres is 2, then transferring an entity to Postgres
+    /// costs twice as much as transferring it to the interpreter.
+    pub target_multiplier: TargetArray<NonZero<u16>>,
 }
 
 impl TransferCostConfig {
@@ -159,6 +167,7 @@ impl TransferCostConfig {
                 Bound::Included(InformationUnit::new(10)),
             ),
             property_metadata_divisor: NonZero::new(4).expect("infallible"),
+            target_multiplier: TargetArray::from_raw([NonZero::new(1).expect("infallible"); _]),
         }
     }
 }
@@ -175,6 +184,18 @@ impl EntityPath {
     #[must_use]
     pub fn resolve(projections: &[Projection<'_>]) -> Option<(Self, usize)> {
         resolve(projections)
+    }
+
+    /// Returns the set of execution targets that natively serve this path.
+    pub(crate) const fn origin(self) -> TargetBitSet {
+        let mut set = TargetBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
+
+        match self.access() {
+            Access::Postgres(_) => set.insert(TargetId::Postgres),
+            Access::Embedding(_) => set.insert(TargetId::Embedding),
+        }
+
+        set
     }
 
     /// Returns the backend access mode for this path.
@@ -456,6 +477,36 @@ impl EntityPathBitSet {
     #[inline]
     pub(crate) const fn insert_all(&mut self) {
         *self = Self::TOP;
+    }
+
+    /// Expands composite paths to their leaf descendants.
+    ///
+    /// Composites like [`RecordId`](EntityPath::RecordId) are replaced by their leaf children
+    /// (e.g. [`WebId`](EntityPath::WebId), [`EntityUuid`](EntityPath::EntityUuid), etc.).
+    /// Leaf paths are kept as-is.
+    ///
+    /// This works because the costs are purely cumulative, therefore any composite path can be
+    /// expanded to its leaf descendants without affecting the total cost. This allows for greater
+    /// precision during cost estimation, to allow for attributing the cost if something is
+    /// available on multiple backends.
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) fn to_leaves(self) -> FiniteBitSet<EntityPath, FiniteBitSetWidth> {
+        let mut result = FiniteBitSet::new_empty(core::mem::variant_count::<EntityPath>() as u32);
+
+        for path in &self.0 {
+            if path.children().is_empty() {
+                result.insert(path);
+                continue;
+            }
+
+            for &child in path.children() {
+                if child.children().is_empty() {
+                    result.insert(child);
+                }
+            }
+        }
+
+        result
     }
 
     /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.

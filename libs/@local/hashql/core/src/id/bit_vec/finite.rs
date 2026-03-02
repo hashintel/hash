@@ -293,6 +293,28 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         }
     }
 
+    /// Flips all bits within the domain, turning set bits off and unset bits on.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `domain_size` is greater than `T::MAX_DOMAIN_SIZE`.
+    #[inline]
+    pub const fn negate(&mut self, domain_size: u32)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
+        assert!(domain_size <= T::MAX_DOMAIN_SIZE);
+
+        let mask = if domain_size == T::MAX_DOMAIN_SIZE {
+            !T::EMPTY
+        } else {
+            (T::ONE << T::from_u32(domain_size)) - T::ONE
+        };
+
+        self.store = !self.store & mask;
+    }
+
     /// Returns an iterator over the indices of set bits.
     #[inline]
     pub fn iter(&self) -> FiniteBitIter<I, T> {
@@ -704,5 +726,85 @@ mod tests {
 
         assert!(a.intersect(&b));
         assert!(a.is_empty());
+    }
+
+    #[test]
+    fn negate_empty_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(4);
+        set.negate(4);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(set.contains(TestId::from_usize(3)));
+        assert!(!set.contains(TestId::from_usize(4)));
+        assert_eq!(set.len(), 4);
+    }
+
+    #[test]
+    fn negate_full_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(4);
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(3), 4);
+        set.negate(4);
+
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn negate_partial_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(1));
+        set.insert(TestId::from_usize(3));
+        set.insert(TestId::from_usize(5));
+        set.negate(8);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(!set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(!set.contains(TestId::from_usize(3)));
+        assert!(set.contains(TestId::from_usize(4)));
+        assert!(!set.contains(TestId::from_usize(5)));
+        assert!(set.contains(TestId::from_usize(6)));
+        assert!(set.contains(TestId::from_usize(7)));
+        assert_eq!(set.len(), 5);
+    }
+
+    #[test]
+    fn negate_masks_above_domain() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(3);
+        set.negate(3);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(!set.contains(TestId::from_usize(3)));
+        assert_eq!(set.len(), 3);
+    }
+
+    #[test]
+    fn negate_is_involution() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(6);
+        set.insert(TestId::from_usize(2));
+        set.insert(TestId::from_usize(4));
+
+        let original = set;
+        set.negate(6);
+        set.negate(6);
+
+        assert_eq!(set, original);
+    }
+
+    #[test]
+    fn negate_full_width() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(0));
+        set.insert(TestId::from_usize(7));
+        set.negate(8);
+
+        assert!(!set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(6)));
+        assert!(!set.contains(TestId::from_usize(7)));
+        assert_eq!(set.len(), 6);
     }
 }
