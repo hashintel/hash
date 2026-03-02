@@ -395,17 +395,17 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
     /// Computes a lower bound on the cost of completing the current partial assignment.
     ///
-    /// Sums `min(statement_cost)` and `min(transition_cost)` independently over unfixed blocks.
+    /// Sums `min(block_cost)` and `min(transition_cost)` independently over unfixed blocks.
     /// Used for `BnB` pruning: a branch is skipped when `cost_so_far + lower_bound ≥
     /// worst_retained`.
     ///
     /// This is *not* redundant with [`CostEstimation`] despite operating on the same data.
     /// [`CostEstimation::estimate`] computes a per-block heuristic that jointly optimizes
-    /// `statement + transition` costs and double-counts edges (both predecessor and successor
+    /// `block + transition` costs and double-counts edges (both predecessor and successor
     /// sides) for join-point influence. This method instead:
     ///
-    /// - **Independently minimizes** statement and transition costs (`min(stmt) + min(trans) ≤
-    ///   min(stmt + trans)`), producing a weaker but valid lower bound.
+    /// - **Independently minimizes** block and transition costs (`min(block) + min(trans) ≤
+    ///   min(block + trans)`), producing a weaker but valid lower bound.
     /// - **Single-counts edges** — only outgoing edges from each unfixed block — to avoid inflating
     ///   the bound when both endpoints are unfixed.
     /// - **Omits boundary dampening** — the bound should be optimistic, not weighted.
@@ -413,16 +413,16 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         let unfixed = &self.region.blocks[self.depth..];
         let mut bound = ApproxCost::ZERO;
 
-        // Per-unassigned-block: minimum statement cost over remaining domain
+        // Per-unassigned-block: minimum block cost over remaining domain
         for block in unfixed {
-            let mut min_stmt = ApproxCost::INF;
+            let mut min_block = ApproxCost::INF;
 
             for target in &block.possible {
-                min_stmt = cmp::min(min_stmt, self.solver.data.blocks.cost(block.id, target));
+                min_block = cmp::min(min_block, self.solver.data.blocks.cost(block.id, target));
             }
 
-            if min_stmt < ApproxCost::INF {
-                bound += min_stmt;
+            if min_block < ApproxCost::INF {
+                bound += min_block;
             }
         }
 
