@@ -1,0 +1,476 @@
+/* eslint-disable id-length */
+
+import { css, cva } from "@hashintel/ds-helpers/css";
+import { useState } from "react";
+import { TbDotsVertical, TbSparkles } from "react-icons/tb";
+
+import { Button } from "../../../../../../components/button";
+import { Input } from "../../../../../../components/input";
+import { Menu } from "../../../../../../components/menu";
+import type { SubView } from "../../../../../../components/sub-view/types";
+import { Tooltip } from "../../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import {
+  DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  generateDefaultDifferentialEquationCode,
+} from "../../../../../../core/default-codes";
+import { CodeEditor } from "../../../../../../monaco/code-editor";
+import { getDocumentUri } from "../../../../../../monaco/editor-paths";
+import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
+import { useDiffEqPropertiesContext } from "../context";
+
+const mainContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+  gap: "[12px]",
+});
+
+const fieldLabelStyle = css({
+  fontWeight: "medium",
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const typeDropdownButtonStyle = cva({
+  base: {
+    width: "[100%]",
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    display: "flex",
+    justifyContent: "flex-start",
+    gap: "[8px]",
+    textAlign: "left",
+  },
+  variants: {
+    isDisabled: {
+      true: {},
+      false: {},
+    },
+  },
+});
+
+const colorDotStyle = css({
+  width: "[12px]",
+  height: "[12px]",
+  borderRadius: "[50%]",
+  flexShrink: 0,
+});
+
+const placeholderStyle = css({
+  color: "[rgba(0, 0, 0, 0.4)]",
+});
+
+const dropdownMenuStyle = css({
+  position: "absolute",
+  top: "[100%]",
+  left: "[0]",
+  right: "[0]",
+  marginTop: "[4px]",
+  backgroundColor: "[white]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+  maxHeight: "[300px]",
+  overflowY: "auto",
+  zIndex: 1000,
+});
+
+const dropdownItemStyle = css({
+  width: "[100%]",
+  padding: "[8px 12px]",
+  border: "none",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  fontSize: "[14px]",
+  textAlign: "left",
+});
+
+const confirmDialogOverlayStyle = css({
+  position: "absolute",
+  top: "[0]",
+  left: "[0]",
+  right: "[0]",
+  bottom: "[0]",
+  backgroundColor: "[rgba(0, 0, 0, 0.5)]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 10000,
+});
+
+const confirmDialogStyle = css({
+  backgroundColor: "[white]",
+  borderRadius: "[8px]",
+  padding: "[24px]",
+  maxWidth: "[400px]",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.2)]",
+});
+
+const confirmDialogTitleStyle = css({
+  fontWeight: "semibold",
+  fontSize: "[16px]",
+  marginBottom: "[12px]",
+});
+
+const confirmDialogTextStyle = css({
+  fontSize: "[14px]",
+  color: "[#666]",
+  marginBottom: "[16px]",
+});
+
+const confirmDialogListStyle = css({
+  fontSize: "[13px]",
+  color: "[#666]",
+  marginBottom: "[16px]",
+  paddingLeft: "[20px]",
+});
+
+const confirmDialogHintStyle = css({
+  fontSize: "[13px]",
+  color: "[#999]",
+  marginBottom: "[20px]",
+});
+
+const confirmDialogButtonsStyle = css({
+  display: "flex",
+  gap: "[8px]",
+  justifyContent: "flex-end",
+});
+
+const cancelButtonStyle = css({
+  padding: "[8px 16px]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  backgroundColor: "[white]",
+  cursor: "pointer",
+  fontSize: "[14px]",
+});
+
+const confirmButtonStyle = css({
+  padding: "[8px 16px]",
+  border: "none",
+  borderRadius: "[4px]",
+  backgroundColor: "[#2563eb]",
+  color: "[white]",
+  cursor: "pointer",
+  fontSize: "[14px]",
+});
+
+const codeContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+const menuButtonStyle = css({
+  background: "[transparent]",
+  border: "none",
+  cursor: "pointer",
+  padding: "[4px]",
+  display: "flex",
+  alignItems: "center",
+  fontSize: "[18px]",
+  color: "[rgba(0, 0, 0, 0.6)]",
+});
+
+const aiMenuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const aiIconStyle = css({
+  fontSize: "[16px]",
+});
+
+const DiffEqMainContent: React.FC = () => {
+  const { differentialEquation, types, places, updateDifferentialEquation } =
+    useDiffEqPropertiesContext();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+
+  const isReadOnly = useIsReadOnly();
+
+  const associatedType = types.find(
+    (type) => type.id === differentialEquation.colorId,
+  );
+
+  const placesUsingEquation = places.filter((place) => {
+    if (!place.differentialEquationId) {
+      return false;
+    }
+    if (typeof place.differentialEquationId === "object") {
+      return place.differentialEquationId === differentialEquation.id;
+    }
+    return false;
+  });
+
+  const handleTypeChange = (newTypeId: string) => {
+    if (placesUsingEquation.length > 0) {
+      setPendingTypeId(newTypeId);
+      setShowConfirmDialog(true);
+    } else {
+      updateDifferentialEquation(
+        differentialEquation.id,
+        (existingEquation) => {
+          existingEquation.colorId = newTypeId;
+        },
+      );
+    }
+  };
+
+  const confirmTypeChange = () => {
+    if (pendingTypeId !== null) {
+      updateDifferentialEquation(
+        differentialEquation.id,
+        (existingEquation) => {
+          existingEquation.colorId = pendingTypeId;
+        },
+      );
+    }
+    setShowConfirmDialog(false);
+    setPendingTypeId(null);
+  };
+
+  const cancelTypeChange = () => {
+    setShowConfirmDialog(false);
+    setPendingTypeId(null);
+  };
+
+  return (
+    <div className={mainContentStyle}>
+      <div>
+        <div className={fieldLabelStyle}>Name</div>
+        <Input
+          value={differentialEquation.name}
+          onChange={(event) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.name = event.target.value;
+              },
+            );
+          }}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+      </div>
+
+      <div>
+        <div className={fieldLabelStyle}>Associated Type</div>
+        <div style={{ position: "relative" }}>
+          <Button
+            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+            onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
+            disabled={isReadOnly}
+            className={typeDropdownButtonStyle({ isDisabled: isReadOnly })}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            {associatedType ? (
+              <>
+                <div
+                  className={colorDotStyle}
+                  style={{ backgroundColor: associatedType.displayColor }}
+                />
+                <span>{associatedType.name}</span>
+              </>
+            ) : (
+              <span className={placeholderStyle}>Select a type</span>
+            )}
+          </Button>
+          {showTypeDropdown && !isReadOnly && (
+            <div className={dropdownMenuStyle}>
+              {types.length === 0 ? (
+                <div
+                  className={dropdownItemStyle}
+                  style={{ color: "rgba(0, 0, 0, 0.4)" }}
+                >
+                  Create a type first
+                </div>
+              ) : (
+                types.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => {
+                      handleTypeChange(type.id);
+                      setShowTypeDropdown(false);
+                    }}
+                    className={dropdownItemStyle}
+                    style={{
+                      backgroundColor:
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent",
+                    }}
+                    onMouseEnter={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        "rgba(0, 0, 0, 0.05)";
+                    }}
+                    onMouseLeave={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent";
+                    }}
+                  >
+                    <div
+                      className={colorDotStyle}
+                      style={{ backgroundColor: type.displayColor }}
+                    />
+                    <span>{type.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div className={confirmDialogOverlayStyle} onClick={cancelTypeChange}>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+          <div
+            className={confirmDialogStyle}
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <div className={confirmDialogTitleStyle}>
+              Change Associated Type?
+            </div>
+            <div className={confirmDialogTextStyle}>
+              {placesUsingEquation.length === 1 ? (
+                <>
+                  <strong>1 place</strong> is currently using this differential
+                  equation:
+                </>
+              ) : (
+                <>
+                  <strong>{placesUsingEquation.length} places</strong> are
+                  currently using this differential equation:
+                </>
+              )}
+            </div>
+            <ul className={confirmDialogListStyle}>
+              {placesUsingEquation.map((place) => (
+                <li key={place.id}>{place.name}</li>
+              ))}
+            </ul>
+            <div className={confirmDialogHintStyle}>
+              Changing the type may affect how these places behave. Are you sure
+              you want to continue?
+            </div>
+            <div className={confirmDialogButtonsStyle}>
+              <Button onClick={cancelTypeChange} className={cancelButtonStyle}>
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmTypeChange}
+                className={confirmButtonStyle}
+              >
+                Change Type
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={codeContainerStyle}>
+        <CodeEditor
+          path={getDocumentUri(
+            "differential-equation",
+            differentialEquation.id,
+          )}
+          language="typescript"
+          value={differentialEquation.code}
+          height="100%"
+          onChange={(newCode) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = newCode ?? "";
+              },
+            );
+          }}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+      </div>
+    </div>
+  );
+};
+
+const DiffEqCodeAction: React.FC = () => {
+  const { differentialEquation, types, updateDifferentialEquation } =
+    useDiffEqPropertiesContext();
+  const isReadOnly = useIsReadOnly();
+
+  if (isReadOnly) {
+    return null;
+  }
+
+  return (
+    <Menu
+      trigger={
+        <button type="button" className={menuButtonStyle}>
+          <TbDotsVertical />
+        </button>
+      }
+      items={[
+        {
+          id: "load-default",
+          label: "Load default template",
+          onClick: () => {
+            const equationType = types.find(
+              (t) => t.id === differentialEquation.colorId,
+            );
+
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = equationType
+                  ? generateDefaultDifferentialEquationCode(equationType)
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+              },
+            );
+          },
+        },
+        {
+          id: "generate-ai",
+          label: (
+            <Tooltip
+              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+              display="inline"
+            >
+              <div className={aiMenuItemStyle}>
+                <TbSparkles className={aiIconStyle} />
+                Generate with AI
+              </div>
+            </Tooltip>
+          ),
+          disabled: true,
+          onClick: () => {
+            // TODO: Implement AI generation
+          },
+        },
+      ]}
+    />
+  );
+};
+
+export const diffEqMainContentSubView: SubView = {
+  id: "diff-eq-main-content",
+  title: "Differential Equation",
+  main: true,
+  component: DiffEqMainContent,
+  renderHeaderAction: () => <DiffEqCodeAction />,
+};
