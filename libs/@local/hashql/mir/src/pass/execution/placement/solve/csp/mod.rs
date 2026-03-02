@@ -156,7 +156,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 id: member,
                 heap: TargetHeap::new(),
                 target: HeapElement::EMPTY,
-                possible: self.solver.data.assignment[member],
+                possible: self.solver.data.blocks.assignments(member),
             }
         }
     }
@@ -283,7 +283,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     fn replay_narrowing(&mut self, body: &Body<'_>) {
         // Reset unfixed domains to their original AC-3 state
         for block in &mut self.region.blocks[self.depth..] {
-            block.possible = self.solver.data.assignment[block.id];
+            block.possible = self.solver.data.blocks.assignments(block.id);
         }
 
         self.region.fixed.clear();
@@ -418,10 +418,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             let mut min_stmt = ApproxCost::INF;
 
             for target in &block.possible {
-                min_stmt = cmp::min(
-                    min_stmt,
-                    self.solver.data.statements[target].sum_approx(block.id),
-                );
+                min_stmt = cmp::min(min_stmt, self.solver.data.blocks.cost(block.id, target));
             }
 
             if min_stmt < ApproxCost::INF {

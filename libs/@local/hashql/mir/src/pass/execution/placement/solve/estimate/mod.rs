@@ -190,13 +190,12 @@ where
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for target in &self.solver.data.assignment[edge.target.block] {
+                for target in &self.solver.data.blocks.assignments(edge.target.block) {
                     let Some(cost) = edge.matrix.get(source, target) else {
                         continue;
                     };
 
-                    let mut block_cost =
-                        self.solver.data.statements[target].sum_approx(edge.target.block);
+                    let mut block_cost = self.solver.data.blocks.cost(edge.target.block, target);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -212,13 +211,12 @@ where
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for source in &self.solver.data.assignment[edge.source.block] {
+                for source in &self.solver.data.blocks.assignments(edge.source.block) {
                     let Some(cost) = edge.matrix.get(source, target) else {
                         continue;
                     };
 
-                    let mut block_cost =
-                        self.solver.data.statements[source].sum_approx(edge.source.block);
+                    let mut block_cost = self.solver.data.blocks.cost(edge.source.block, source);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -252,7 +250,7 @@ where
         // so that join edges get proportional influence without frequency data.
         // If a neighbor has no assignment yet, we optimistically assume its best local option.
         // Returns `None` if any assigned neighbor lacks a valid transition to this target.
-        let mut cost = self.solver.data.statements[target].sum_approx(block);
+        let mut cost = self.solver.data.blocks.cost(block, target);
 
         for pred in body.basic_blocks.predecessors(block) {
             if pred == block {
@@ -328,7 +326,7 @@ where
     ) -> TargetHeap {
         let mut heap = TargetHeap::new();
 
-        for target in &self.solver.data.assignment[block] {
+        for target in &self.solver.data.blocks.assignments(block) {
             if let Some(cost) = self.estimate_target(body, region, block, target) {
                 heap.insert(target, cost);
             }

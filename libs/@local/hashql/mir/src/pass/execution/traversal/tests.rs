@@ -496,14 +496,14 @@ fn composite_transfer_size_matches_children() {
 
         for path in EntityPath::all() {
             if path.ancestors().first() == Some(&composite) {
-                expected += path.transfer_size(&config);
+                expected += path.estimate_size(&config);
                 has_children = true;
             }
         }
 
         if has_children {
             assert_eq!(
-                composite.transfer_size(&config),
+                composite.estimate_size(&config),
                 expected,
                 "{composite:?} transfer_size doesn't match sum of immediate children"
             );
@@ -520,8 +520,8 @@ fn inferred_provenance_transfer_size_is_static() {
     let small_config = TransferCostConfig::new(InformationRange::zero());
     let large_config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(1000)));
 
-    let small = EntityPath::ProvenanceInferred.transfer_size(&small_config);
-    let large = EntityPath::ProvenanceInferred.transfer_size(&large_config);
+    let small = EntityPath::ProvenanceInferred.estimate_size(&small_config);
+    let large = EntityPath::ProvenanceInferred.estimate_size(&large_config);
 
     assert_eq!(small, large);
     assert_eq!(
