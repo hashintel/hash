@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -11,32 +12,7 @@ import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 
-const mainContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[12px]",
-});
-
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-});
-
-const dimensionsHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[8px]",
-});
-
-const dimensionsLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-});
-
 const dimensionsHintStyle = css({
-  marginLeft: "[6px]",
   fontSize: "[11px]",
   color: "[#666]",
   fontWeight: "normal",
@@ -319,9 +295,8 @@ const TypeMainContent: React.FC = () => {
   };
 
   return (
-    <div className={mainContentStyle}>
-      <div>
-        <div className={fieldLabelStyle}>Name</div>
+    <SectionList>
+      <Section title="Name">
         <Input
           value={type.name}
           onChange={(event) => {
@@ -332,10 +307,9 @@ const TypeMainContent: React.FC = () => {
           disabled={isDisabled}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
+      </Section>
 
-      <div>
-        <div className={fieldLabelStyle}>Color</div>
+      <Section title="Color">
         <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <ColorSelect
             value={type.displayColor}
@@ -347,26 +321,25 @@ const TypeMainContent: React.FC = () => {
             disabled={isDisabled}
           />
         </Tooltip>
-      </div>
+      </Section>
 
-      {/* Dimensions Section - Editable with drag-to-reorder */}
-      <div>
-        <div className={dimensionsHeaderStyle}>
-          <div className={dimensionsLabelStyle}>
-            Dimensions
+      <Section
+        title="Dimensions"
+        renderHeaderAction={() => (
+          <>
             <span className={dimensionsHintStyle}>(order matters)</span>
-          </div>
-          <Button
-            onClick={handleAddElement}
-            disabled={isDisabled}
-            className={addDimensionButtonStyle({ isDisabled })}
-            aria-label="Add dimension"
-            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            +
-          </Button>
-        </div>
-
+            <Button
+              onClick={handleAddElement}
+              disabled={isDisabled}
+              className={addDimensionButtonStyle({ isDisabled })}
+              aria-label="Add dimension"
+              tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            >
+              +
+            </Button>
+          </>
+        )}
+      >
         {type.elements.length === 0 ? (
           <div className={emptyDimensionsStyle}>
             No dimensions defined. Click + to add.
@@ -441,8 +414,8 @@ const TypeMainContent: React.FC = () => {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Section>
+    </SectionList>
   );
 };
 

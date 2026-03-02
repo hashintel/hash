@@ -1,5 +1,3 @@
-/* eslint-disable id-length */
-
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
@@ -7,6 +5,7 @@ import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
 import { Menu } from "../../../../../../components/menu";
+import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -18,20 +17,6 @@ import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
-
-const mainContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  gap: "[12px]",
-});
-
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-});
 
 const typeDropdownButtonStyle = cva({
   base: {
@@ -160,13 +145,6 @@ const confirmButtonStyle = css({
   fontSize: "[14px]",
 });
 
-const codeContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
-
 const menuButtonStyle = css({
   background: "[transparent]",
   border: "none",
@@ -244,9 +222,8 @@ const DiffEqMainContent: React.FC = () => {
   };
 
   return (
-    <div className={mainContentStyle}>
-      <div>
-        <div className={fieldLabelStyle}>Name</div>
+    <SectionList>
+      <Section title="Name">
         <Input
           value={differentialEquation.name}
           onChange={(event) => {
@@ -260,10 +237,9 @@ const DiffEqMainContent: React.FC = () => {
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
+      </Section>
 
-      <div>
-        <div className={fieldLabelStyle}>Associated Type</div>
+      <Section title="Associated Type">
         <div style={{ position: "relative" }}>
           <Button
             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
@@ -333,7 +309,7 @@ const DiffEqMainContent: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      </Section>
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
@@ -384,7 +360,7 @@ const DiffEqMainContent: React.FC = () => {
         </div>
       )}
 
-      <div className={codeContainerStyle}>
+      <Section title="Code" fillHeight>
         <CodeEditor
           path={getDocumentUri(
             "differential-equation",
@@ -404,8 +380,8 @@ const DiffEqMainContent: React.FC = () => {
           options={{ readOnly: isReadOnly }}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
-    </div>
+      </Section>
+    </SectionList>
   );
 };
 
@@ -431,7 +407,7 @@ const DiffEqCodeAction: React.FC = () => {
           label: "Load default template",
           onClick: () => {
             const equationType = types.find(
-              (t) => t.id === differentialEquation.colorId,
+              (tp) => tp.id === differentialEquation.colorId,
             );
 
             updateDifferentialEquation(
