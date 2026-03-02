@@ -1,31 +1,15 @@
-/* eslint-disable id-length */
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../context";
 import { ArcItem } from "../sortable-arc-item";
-
-const mainContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[12px]",
-});
-
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-});
-
-const sectionContainerStyle = css({
-  marginTop: "[20px]",
-});
 
 const emptyArcMessageStyle = css({
   fontSize: "[12px]",
@@ -70,9 +54,8 @@ const TransitionMainContent: React.FC = () => {
   };
 
   return (
-    <div className={mainContentStyle}>
-      <div>
-        <div className={fieldLabelStyle}>Name</div>
+    <SectionList>
+      <Section title="Name">
         <Input
           value={transition.name}
           onChange={(event) => {
@@ -83,10 +66,9 @@ const TransitionMainContent: React.FC = () => {
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
+      </Section>
 
-      <div className={sectionContainerStyle}>
-        <div className={fieldLabelStyle}>Input Arcs</div>
+      <Section title="Input Arcs" collapsible>
         {transition.inputArcs.length === 0 ? (
           <div className={emptyArcMessageStyle}>
             Connect inputs to the transition's left side.
@@ -118,10 +100,9 @@ const TransitionMainContent: React.FC = () => {
             })}
           </div>
         )}
-      </div>
+      </Section>
 
-      <div>
-        <div className={fieldLabelStyle}>Output Arcs</div>
+      <Section title="Output Arcs" collapsible>
         {transition.outputArcs.length === 0 ? (
           <div className={emptyArcMessageStyle}>
             Connect outputs to the transition's right side.
@@ -153,8 +134,8 @@ const TransitionMainContent: React.FC = () => {
             })}
           </div>
         )}
-      </div>
-    </div>
+      </Section>
+    </SectionList>
   );
 };
 

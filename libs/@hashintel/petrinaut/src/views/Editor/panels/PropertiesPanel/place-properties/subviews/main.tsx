@@ -5,36 +5,14 @@ import { TbArrowRight, TbTrash } from "react-icons/tb";
 import { Button } from "../../../../../../components/button";
 import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
 import { Select } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
-import { InfoIconTooltip } from "../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { usePlacePropertiesContext } from "../context";
-
-const mainContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  gap: "[12px]",
-});
-
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-});
-
-const fieldLabelWithTooltipStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-  display: "flex",
-  alignItems: "center",
-});
 
 const errorMessageStyle = css({
   fontSize: "[12px]",
@@ -50,31 +28,10 @@ const jumpIconStyle = css({
   fontSize: "[14px]",
 });
 
-const sectionContainerStyle = css({
-  marginTop: "[10px]",
-});
-
-const switchRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-  marginBottom: "[8px]",
-});
-
-const switchContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-});
-
 const hintTextStyle = css({
   fontSize: "[11px]",
   color: "[#999]",
   fontStyle: "italic",
-  marginTop: "[4px]",
-});
-
-const diffEqContainerStyle = css({
-  marginBottom: "[25px]",
 });
 
 /**
@@ -164,157 +121,163 @@ const PlaceMainContent: React.FC = () => {
     : [];
 
   return (
-    <div ref={rootDivRef} className={mainContentStyle}>
-      <div>
-        <div className={fieldLabelStyle}>Name</div>
-        <Input
-          ref={nameInputRef}
-          value={nameInputValue}
-          onChange={(event) => {
-            setNameInputValue(event.target.value);
-            // Clear error when user starts typing
-            if (nameError) {
-              setNameError(null);
-            }
-          }}
-          onFocus={() => setIsNameInputFocused(true)}
-          onBlur={() => {
-            setIsNameInputFocused(false);
-            handleNameBlur();
-          }}
-          disabled={isReadOnly}
-          hasError={!!nameError}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
-      </div>
-
-      <div>
-        <div className={fieldLabelStyle}>
-          Accepted token type
-          <InfoIconTooltip
-            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-              availableTypes.length === 0
-                ? " You must create a data type in the left-hand sidebar first."
-                : ""
-            } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
-          />
-        </div>
-        <Select
-          value={place.colorId ?? ""}
-          onChange={(event) => {
-            const value = event.target.value;
-            const newType = value === "" ? null : value;
-            updatePlace(place.id, (existingPlace) => {
-              existingPlace.colorId = newType;
-              // Disable dynamics if type is being set to null
-              if (newType === null && existingPlace.dynamicsEnabled) {
-                existingPlace.dynamicsEnabled = false;
+    <div ref={rootDivRef}>
+      <SectionList>
+        <Section title="Name">
+          <Input
+            ref={nameInputRef}
+            value={nameInputValue}
+            onChange={(event) => {
+              setNameInputValue(event.target.value);
+              // Clear error when user starts typing
+              if (nameError) {
+                setNameError(null);
               }
-            });
-          }}
-          disabled={isReadOnly}
-          style={place.colorId ? { marginBottom: "8px" } : undefined}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            }}
+            onFocus={() => setIsNameInputFocused(true)}
+            onBlur={() => {
+              setIsNameInputFocused(false);
+              handleNameBlur();
+            }}
+            disabled={isReadOnly}
+            hasError={!!nameError}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+          {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+        </Section>
+
+        <Section
+          title="Accepted token type"
+          tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
+            availableTypes.length === 0
+              ? " You must create a data type in the left-hand sidebar first."
+              : ""
+          } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
         >
-          <option value="">None</option>
-          {types.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </Select>
+          <Select
+            value={place.colorId ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              const newType = value === "" ? null : value;
+              updatePlace(place.id, (existingPlace) => {
+                existingPlace.colorId = newType;
+                // Disable dynamics if type is being set to null
+                if (newType === null && existingPlace.dynamicsEnabled) {
+                  existingPlace.dynamicsEnabled = false;
+                }
+              });
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            <option value="">None</option>
+            {types.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
 
-        {place.colorId && (
-          <div className={jumpButtonContainerStyle}>
-            <Button
-              onClick={() => {
-                setSelectedResourceId(place.colorId);
-              }}
-            >
-              Jump to Type
-              <TbArrowRight className={jumpIconStyle} />
-            </Button>
-          </div>
-        )}
-      </div>
+          {place.colorId && (
+            <div className={jumpButtonContainerStyle}>
+              <Button
+                onClick={() => {
+                  setSelectedResourceId(place.colorId);
+                }}
+              >
+                Jump to Type
+                <TbArrowRight className={jumpIconStyle} />
+              </Button>
+            </div>
+          )}
+        </Section>
 
-      <div className={sectionContainerStyle}>
-        <div className={switchRowStyle}>
-          <div className={switchContainerStyle}>
+        <Section
+          title="Dynamics"
+          tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
+          renderHeaderAction={() => (
             <Switch
               checked={!!place.colorId && place.dynamicsEnabled}
-              disabled={isReadOnly || place.colorId === null}
+              disabled={
+                isReadOnly ||
+                place.colorId === null ||
+                availableDiffEqs.length === 0
+              }
               tooltip={
                 isReadOnly
                   ? UI_MESSAGES.READ_ONLY_MODE
                   : place.colorId === null
                     ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                    : undefined
+                    : availableDiffEqs.length === 0
+                      ? "Create a differential equation for this type first"
+                      : undefined
               }
               onCheckedChange={(checked) => {
                 updatePlace(place.id, (existingPlace) => {
                   existingPlace.dynamicsEnabled = checked;
+                  if (checked) {
+                    // Auto-select first available diff eq if none selected or previous no longer exists
+                    const currentIsValid = availableDiffEqs.some(
+                      (eq) => eq.id === existingPlace.differentialEquationId,
+                    );
+                    if (!currentIsValid && availableDiffEqs.length > 0) {
+                      existingPlace.differentialEquationId =
+                        availableDiffEqs[0]!.id;
+                    }
+                  }
                 });
               }}
             />
-          </div>
-          <div className={fieldLabelWithTooltipStyle}>
-            Dynamics
-            <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
-          </div>
-        </div>
-        {(place.colorId === null || availableDiffEqs.length === 0) && (
-          <div className={hintTextStyle}>
-            {place.colorId !== null
-              ? "Create a differential equation for the selected type in the left-hand sidebar first"
-              : availableTypes.length === 0
+          )}
+        >
+          {place.colorId === null ? (
+            <div className={hintTextStyle}>
+              {availableTypes.length === 0
                 ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
                 : "Select a type to enable dynamics"}
-          </div>
-        )}
-      </div>
-
-      {place.colorId &&
-        place.dynamicsEnabled &&
-        availableDiffEqs.length > 0 && (
-          <div className={diffEqContainerStyle}>
-            <div className={fieldLabelStyle}>Differential Equation</div>
-            <Select
-              value={place.differentialEquationId ?? undefined}
-              onChange={(event) => {
-                const value = event.target.value;
-
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.differentialEquationId = value || null;
-                });
-              }}
-              disabled={isReadOnly}
-              style={{ marginBottom: "8px" }}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              <option value="">None</option>
-              {availableDiffEqs.map((eq) => (
-                <option key={eq.id} value={eq.id}>
-                  {eq.name}
-                </option>
-              ))}
-            </Select>
-
-            {place.differentialEquationId && (
-              <div className={jumpButtonContainerStyle}>
-                <Button
-                  onClick={() => {
-                    setSelectedResourceId(place.differentialEquationId);
+            </div>
+          ) : availableDiffEqs.length === 0 ? (
+            <div className={hintTextStyle}>
+              Create a differential equation for the selected type in the
+              left-hand sidebar first
+            </div>
+          ) : (
+            place.dynamicsEnabled && (
+              <>
+                <Select
+                  value={place.differentialEquationId ?? undefined}
+                  onChange={(event) => {
+                    updatePlace(place.id, (existingPlace) => {
+                      existingPlace.differentialEquationId = event.target.value;
+                    });
                   }}
+                  disabled={isReadOnly}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                 >
-                  Jump to Differential Equation
-                  <TbArrowRight className={jumpIconStyle} />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+                  {availableDiffEqs.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.name}
+                    </option>
+                  ))}
+                </Select>
+
+                {place.differentialEquationId && (
+                  <div className={jumpButtonContainerStyle}>
+                    <Button
+                      onClick={() => {
+                        setSelectedResourceId(place.differentialEquationId);
+                      }}
+                    >
+                      Jump to Differential Equation
+                      <TbArrowRight className={jumpIconStyle} />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )
+          )}
+        </Section>
+      </SectionList>
     </div>
   );
 };

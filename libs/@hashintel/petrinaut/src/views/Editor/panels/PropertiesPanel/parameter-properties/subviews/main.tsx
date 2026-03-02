@@ -1,22 +1,9 @@
-import { css } from "@hashintel/ds-helpers/css";
-
 import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { useParameterPropertiesContext } from "../context";
-
-const mainContentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[12px]",
-});
-
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "[12px]",
-  marginBottom: "[4px]",
-});
 
 const slugifyToIdentifier = (str: string): string => {
   return str
@@ -72,21 +59,17 @@ const ParameterMainContent: React.FC = () => {
   };
 
   return (
-    <div className={mainContentStyle}>
-      {/* Name field */}
-      <div>
-        <div className={fieldLabelStyle}>Name</div>
+    <SectionList>
+      <Section title="Name">
         <Input
           value={parameter.name}
           onChange={handleUpdateName}
           disabled={isDisabled}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
+      </Section>
 
-      {/* Variable Name field */}
-      <div>
-        <div className={fieldLabelStyle}>Variable Name</div>
+      <Section title="Variable Name">
         <Input
           value={parameter.variableName}
           onChange={handleUpdateVariableName}
@@ -95,11 +78,9 @@ const ParameterMainContent: React.FC = () => {
           monospace
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
+      </Section>
 
-      {/* Default Value field */}
-      <div>
-        <div className={fieldLabelStyle}>Default Value</div>
+      <Section title="Default Value">
         <Input
           value={parameter.defaultValue}
           onChange={handleUpdateDefaultValue}
@@ -107,8 +88,8 @@ const ParameterMainContent: React.FC = () => {
           monospace
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </div>
-    </div>
+      </Section>
+    </SectionList>
   );
 };
 
