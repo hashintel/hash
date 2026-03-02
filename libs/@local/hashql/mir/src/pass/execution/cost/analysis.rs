@@ -16,9 +16,17 @@ use crate::{
     visit::Visitor as _,
 };
 
+/// Cost of running a single basic block on one target.
+///
+/// Separates the statement cost sum (`base`) from the path transfer premium (`load`) so that
+/// callers can inspect or log each component independently, even though the solver only sees
+/// the combined [`total`](Self::total).
 #[derive(Debug, Copy, Clone)]
 struct BasicBlockTargetCost {
+    /// Sum of per-statement costs for this target (from [`StatementCostVec::sum_approx`]).
     base: ApproxCost,
+    /// Transfer premium for vertex paths accessed in this block whose origin is a different
+    /// backend. Zero when the target is the natural origin for every accessed path.
     load: ApproxCost,
 }
 
@@ -33,22 +41,38 @@ impl BasicBlockTargetCost {
     }
 }
 
+/// Precomputed cost for one basic block across all candidate targets.
 #[derive(Debug, Copy, Clone)]
 struct BasicBlockCost {
+    /// Which targets can execute this block (copied from the domain after AC-3).
     targets: TargetBitSet,
+    /// Per-target cost (only entries where `targets` is set are meaningful).
     costs: TargetArray<BasicBlockTargetCost>,
 }
 
+/// Per-block cost map for the entire body.
+///
+/// Indexed by [`BasicBlockId`]. Each entry stores the set of candidate targets and the
+/// combined (statement + path transfer) cost for each candidate.
+///
+/// Produced by [`BasicBlockCostAnalysis::analyze_in`] and consumed by the placement solver.
 #[derive(Debug)]
 pub(crate) struct BasicBlockCostVec<A: Allocator> {
     inner: BasicBlockVec<BasicBlockCost, A>,
 }
 
 impl<A: Allocator> BasicBlockCostVec<A> {
+    /// Returns the set of candidate targets for `block`.
     pub(crate) fn assignments(&self, block: BasicBlockId) -> TargetBitSet {
         self.inner[block].targets
     }
 
+    /// Returns the total cost (statement base + path transfer load) of placing `block` on
+    /// `target`.
+    ///
+    /// # Panics
+    ///
+    /// Debug-asserts that `target` is in the block's candidate domain.
     pub(crate) fn cost(&self, block: BasicBlockId, target: TargetId) -> ApproxCost {
         let entry = &self.inner[block];
 
@@ -61,6 +85,16 @@ impl<A: Allocator> BasicBlockCostVec<A> {
     }
 }
 
+/// Computes per-block costs by combining statement costs with path transfer premiums.
+///
+/// For each block, walks the MIR statements to discover which vertex paths are accessed,
+/// then charges a transfer premium on every target that is not the natural origin for those
+/// paths. The premium is the estimated transfer size multiplied by the target's cost
+/// multiplier.
+///
+/// Path premiums are charged once per block (intra-block dedup), not once per statement.
+/// Composite paths are kept as-is rather than expanded to leaves, under the assumption that
+/// a composite fetch is cheaper than fetching each leaf independently.
 pub(crate) struct BasicBlockCostAnalysis<'ctx, A: Allocator> {
     pub vertex: VertexType,
     pub assignments: &'ctx BasicBlockSlice<TargetBitSet>,
@@ -123,6 +157,7 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
         BasicBlockCost { targets, costs }
     }
 
+    /// Computes per-block costs for every block in `blocks`.
     pub(crate) fn analyze_in(
         &self,
         config: &TransferCostConfig,

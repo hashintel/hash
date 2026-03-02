@@ -1,7 +1,12 @@
 //! Cost tracking for execution planning.
 //!
-//! Provides data structures for recording the execution cost of statements on different targets.
-//! The execution planner uses these costs to select optimal targets for each statement.
+//! Two levels of cost representation:
+//!
+//! - **Per-statement**: [`StatementCostVec`] records the [`Cost`] of each statement on a given
+//!   target. Produced by the statement placement pass and consumed by [`BasicBlockCostAnalysis`].
+//!
+//! - **Per-block**: [`BasicBlockCostVec`] aggregates statement costs and adds a path transfer
+//!   premium for non-origin backends. This is what the placement solver operates on.
 
 use alloc::alloc::Global;
 use core::{
