@@ -98,13 +98,13 @@ impl TransMatrix {
     }
 
     #[inline]
-    fn offset(from: TargetId, to: TargetId) -> usize {
+    const fn offset(from: TargetId, to: TargetId) -> usize {
         from.as_usize() * TargetId::VARIANT_COUNT + to.as_usize()
     }
 
     #[inline]
     #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
-    fn from_offset(offset: usize) -> (TargetId, TargetId) {
+    const fn from_offset(offset: usize) -> (TargetId, TargetId) {
         let from = TargetId::from_usize(offset / TargetId::VARIANT_COUNT);
         let to = TargetId::from_usize(offset % TargetId::VARIANT_COUNT);
         (from, to)
@@ -113,13 +113,13 @@ impl TransMatrix {
     /// Returns the cost for transitioning from `from` to `to`, or `None` if disallowed.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, from: TargetId, to: TargetId) -> Option<Cost> {
+    pub(crate) const fn get(&self, from: TargetId, to: TargetId) -> Option<Cost> {
         self.matrix[Self::offset(from, to)]
     }
 
     #[inline]
     #[must_use]
-    pub(crate) fn contains(&self, from: TargetId, to: TargetId) -> bool {
+    pub(crate) const fn contains(&self, from: TargetId, to: TargetId) -> bool {
         self.matrix[Self::offset(from, to)].is_some()
     }
 
@@ -538,28 +538,14 @@ impl<S: Allocator> TerminatorPlacement<S> {
         live_in: &BasicBlockSlice<(DenseBitSet<Local>, TraversalPathBitSet)>,
         successor: BasicBlockId,
     ) -> Cost {
-        let (locals, paths) = &live_in[successor];
+        let (locals, _) = &live_in[successor];
         required_locals.clone_from(locals);
 
         for &param in body.basic_blocks[successor].params {
             required_locals.insert(param);
         }
 
-        let local_cost = self.sum_local_sizes(footprint, required_locals);
-
-        if paths.is_empty() {
-            return local_cost;
-        }
-
-        let path_range = paths.transfer_size(&self.transfer_config);
-
-        let Some(max) = path_range.inclusive_max() else {
-            return Cost::MAX;
-        };
-
-        let path_cost = Cost::new_saturating(path_range.min().midpoint(max).as_u32());
-
-        local_cost.saturating_add(path_cost)
+        self.sum_local_sizes(footprint, required_locals)
     }
 
     /// Sums the estimated sizes of all locals in the set.

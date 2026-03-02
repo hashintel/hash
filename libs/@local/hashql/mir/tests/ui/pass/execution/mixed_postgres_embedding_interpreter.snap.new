@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/tests.rs
+assertion_line: 65
+expression: output
+---
+Assignment:
+  bb0: interpreter
+
+Islands:
+  0: target=interpreter, blocks=[BasicBlockId(0)]

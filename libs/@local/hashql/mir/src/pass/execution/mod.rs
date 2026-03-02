@@ -85,29 +85,12 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
-        // DEBUG: statement costs before splitting
-        for target in TargetId::all() {
-            eprintln!("=== Statement costs for {target} ===");
-            for (block_id, block) in body.basic_blocks.iter_enumerated() {
-                eprintln!("  {block_id:?}: {} statements", block.statements.len());
-            }
-        }
-
         let mut possibilities = BasicBlockSplitting::new_in(&self.scratch).split_in(
             context,
             body,
             &mut statement_costs,
             &self.scratch,
         );
-
-        // DEBUG: possibilities after splitting
-        eprintln!(
-            "=== Possibilities after splitting ({} blocks) ===",
-            body.basic_blocks.len()
-        );
-        for (block_id, _) in body.basic_blocks.iter_enumerated() {
-            eprintln!("  {block_id:?}: {:?}", possibilities[block_id]);
-        }
 
         let terminators = TerminatorPlacement::new_in(
             TransferCostConfig::new(InformationRange::full()),
@@ -121,31 +104,11 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             &self.scratch,
         );
 
-        // DEBUG: terminator costs
-        eprintln!("=== Terminator costs ===");
-        for (block_id, _) in body.basic_blocks.iter_enumerated() {
-            let matrices = terminator_costs.of(block_id);
-            for (edge_idx, matrix) in matrices.iter().enumerate() {
-                eprintln!("  {block_id:?} edge {edge_idx}:");
-                for (from, to, cost) in matrix.iter() {
-                    if let Some(cost) = cost {
-                        eprintln!("    {from} -> {to}: {cost}");
-                    }
-                }
-            }
-        }
-
         ArcConsistency {
             blocks: &mut possibilities,
             terminators: &mut terminator_costs,
         }
         .run_in(body, &self.scratch);
-
-        // DEBUG: after arc consistency
-        eprintln!("=== Possibilities after arc consistency ===");
-        for (block_id, _) in body.basic_blocks.iter_enumerated() {
-            eprintln!("  {block_id:?}: {:?}", possibilities[block_id]);
-        }
 
         let mut solver = PlacementSolverContext {
             assignment: &possibilities,
