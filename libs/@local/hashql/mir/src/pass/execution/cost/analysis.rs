@@ -61,6 +61,37 @@ impl<A: Allocator> BasicBlockCostVec<A> {
     }
 }
 
+impl<A: Allocator> BasicBlockCostVec<A> {
+    /// Constructs a `BasicBlockCostVec` from per-block target domains and per-target statement
+    /// costs, without traversal analysis.
+    #[cfg(test)]
+    pub(crate) fn from_statements(
+        domains: &[TargetBitSet],
+        statements: &TargetArray<StatementCostVec<impl Allocator>>,
+        alloc: A,
+    ) -> Self {
+        let inner = BasicBlockVec::from_fn_in(
+            domains.len(),
+            |id: BasicBlockId| {
+                let targets = domains[id.as_usize()];
+                let mut costs = TargetArray::from_raw([BasicBlockTargetCost::ZERO; _]);
+
+                for target in &targets {
+                    costs[target] = BasicBlockTargetCost {
+                        base: statements[target].sum_approx(id),
+                        load: ApproxCost::ZERO,
+                    };
+                }
+
+                BasicBlockCost { targets, costs }
+            },
+            alloc,
+        );
+
+        Self { inner }
+    }
+}
+
 pub(crate) struct BasicBlockCostAnalysis<'ctx, A: Allocator> {
     pub vertex: VertexType,
     pub assignments: &'ctx BasicBlockSlice<TargetBitSet>,
