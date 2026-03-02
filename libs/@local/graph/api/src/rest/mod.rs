@@ -327,7 +327,7 @@ where
     S: StorePool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
-    pub temporal_client: Option<TemporalClient>,
+    pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
 }
@@ -374,7 +374,7 @@ where
         )
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
-        .layer(Extension(dependencies.temporal_client.map(Arc::new)))
+        .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.domain_regex));
 
     if let Some(query_logger) = dependencies.query_logger {

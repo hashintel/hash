@@ -18,7 +18,7 @@ use tracing::Instrument as _;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerTaskTracker, wait_healthcheck},
+    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
 };
 
 /// Address configuration for the type fetcher server.
@@ -86,12 +86,17 @@ pub(crate) async fn run_type_fetcher(
     let shutdown_ref = &shutdown;
 
     // Allow listener to accept up to 255 connections at a time.
-    //
-    // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
-    // useful information we would like to store or report on.
     let server_task = async move {
         listener
-            .filter_map(|result| future::ready(result.ok()))
+            .filter_map(|result| {
+                future::ready(match result {
+                    Ok(conn) => Some(conn),
+                    Err(error) => {
+                        tracing::warn!("Failed to accept type fetcher connection: {error}");
+                        None
+                    }
+                })
+            })
             .map(server::BaseChannel::with_defaults)
             .map(|channel| {
                 channel
@@ -132,18 +137,19 @@ pub(crate) async fn run_type_fetcher(
     Ok(())
 }
 
-/// Spawns the type fetcher server as a background task with graceful shutdown support.
-pub(crate) fn start_type_fetcher(config: TypeFetcherConfig) -> ServerTaskTracker {
-    let (handle, shutdown) = ServerTaskTracker::new();
-    handle.spawn(async move {
-        if let Err(report) = run_type_fetcher(config, shutdown).await {
-            tracing::error!(error = ?report, "Type fetcher server failed");
-        }
+/// Spawns the type fetcher server as a background task with lifecycle management.
+pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLifecycle) {
+    let shutdown = lifecycle.shutdown.clone();
+    lifecycle.spawn("Type fetcher", async move {
+        run_type_fetcher(config, shutdown).await
     });
-    handle
 }
 
 /// Standalone `type-fetcher` subcommand entrypoint.
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "False positive on tokio::select!"
+)]
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
@@ -154,21 +160,35 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
         .change_context(GraphError);
     }
 
-    let handle = start_type_fetcher(args.config);
+    let lifecycle = ServerLifecycle::new();
+    start_type_fetcher(args.config, &lifecycle);
 
-    // Wait for shutdown signal
-    match signal::ctrl_c().await {
-        Ok(()) => {}
-        Err(error) => {
-            tracing::error!("Failed to install Ctrl+C handler: {error}");
+    // Wait for shutdown signal or unexpected server exit
+    let aborted = tokio::select! {
+        result = signal::ctrl_c() => {
+            match result {
+                Ok(()) => false,
+                Err(error) => {
+                    tracing::error!("Failed to install Ctrl+C handler: {error}");
+                    true
+                }
+            }
         }
-    }
+        () = lifecycle.abort.cancelled() => {
+            tracing::error!("Type fetcher exited unexpectedly");
+            true
+        }
+    };
 
     tracing::info!("Shutting down...");
-    handle.await;
+    lifecycle.shutdown_and_wait().await;
     tracing::info!("Shutdown complete");
 
-    Ok(())
+    if aborted {
+        Err(GraphError.into())
+    } else {
+        Ok(())
+    }
 }
 
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {

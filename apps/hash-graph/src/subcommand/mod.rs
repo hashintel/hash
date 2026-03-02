@@ -15,44 +15,75 @@ use hash_telemetry::{TracingConfig, init_tracing};
 use tokio::time::sleep;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-/// A handle to a spawned server task that supports graceful shutdown.
+/// Drop guard that fires the `abort` token when a server task exits unexpectedly.
 ///
-/// When awaited (via [`IntoFuture`]), it cancels the server's shutdown token and waits for the
-/// task to complete.
-#[must_use = "server task must be awaited to ensure graceful shutdown"]
-pub(crate) struct ServerTaskTracker {
-    tracker: TaskTracker,
-    cancellation_token: CancellationToken,
+/// "Unexpectedly" means the `shutdown` token has not been cancelled yet. This covers both
+/// error returns and panics (which drop the future and thus the guard).
+struct ShutdownGuard {
+    name: &'static str,
+    shutdown: CancellationToken,
+    abort: CancellationToken,
 }
 
-impl ServerTaskTracker {
-    pub(crate) fn new() -> (Self, CancellationToken) {
-        let cancellation_token = CancellationToken::new();
-        (
-            Self {
-                tracker: TaskTracker::new(),
-                cancellation_token: cancellation_token.clone(),
-            },
-            cancellation_token,
-        )
-    }
-
-    pub(crate) fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
-        self.tracker.spawn(future);
-    }
-}
-
-impl IntoFuture for ServerTaskTracker {
-    type Output = ();
-
-    type IntoFuture = impl Future<Output = Self::Output>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        async move {
-            self.tracker.close();
-            self.cancellation_token.cancel();
-            self.tracker.wait().await;
+impl Drop for ShutdownGuard {
+    fn drop(&mut self) {
+        if !self.shutdown.is_cancelled() {
+            tracing::error!("{} exited unexpectedly, initiating shutdown", self.name);
+            self.abort.cancel();
         }
+    }
+}
+
+/// Shared tokens for coordinating server lifecycle.
+///
+/// - `shutdown`: signals all server components to stop gracefully.
+/// - `abort`: fired when a component exits unexpectedly (crash or panic), which triggers shutdown
+///   of all remaining components.
+#[derive(Clone)]
+pub(crate) struct ServerLifecycle {
+    pub shutdown: CancellationToken,
+    pub abort: CancellationToken,
+    tracker: TaskTracker,
+}
+
+impl ServerLifecycle {
+    pub(crate) fn new() -> Self {
+        Self {
+            shutdown: CancellationToken::new(),
+            abort: CancellationToken::new(),
+            tracker: TaskTracker::new(),
+        }
+    }
+
+    /// Spawns a named server task.
+    ///
+    /// If the future completes while `shutdown` has not been requested, this is treated as an
+    /// unexpected exit and `abort` is cancelled to trigger shutdown of all remaining components.
+    /// This also fires on panics via the [`ShutdownGuard`] drop implementation.
+    pub(crate) fn spawn(
+        &self,
+        name: &'static str,
+        future: impl Future<Output = Result<(), Report<GraphError>>> + Send + 'static,
+    ) {
+        let shutdown = self.shutdown.clone();
+        let abort = self.abort.clone();
+        self.tracker.spawn(async move {
+            let _guard = ShutdownGuard {
+                name,
+                shutdown: shutdown.clone(),
+                abort,
+            };
+            if let Err(report) = future.await {
+                tracing::error!(error = ?report, "{name} failed");
+            }
+        });
+    }
+
+    /// Initiates graceful shutdown and waits for all tasks to drain.
+    pub(crate) async fn shutdown_and_wait(&self) {
+        self.shutdown.cancel();
+        self.tracker.close();
+        self.tracker.wait().await;
     }
 }
 

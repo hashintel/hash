@@ -13,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerTaskTracker, wait_healthcheck},
+    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
 };
 
 /// Address configuration for the admin server.
@@ -70,15 +70,15 @@ pub(crate) async fn run_admin_server(
     config: AdminConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    SnapshotEntry::install_error_stack_hook();
-
     let router = hash_graph_api::rest::admin::routes(pool);
 
+    let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
+        .await
+        .change_context(GraphError)?;
     tracing::info!("Admin server listening on {}", config.address);
+
     axum::serve(
-        TcpListener::bind((config.address.admin_host, config.address.admin_port))
-            .await
-            .change_context(GraphError)?,
+        listener,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown.cancelled_owned())
@@ -88,21 +88,25 @@ pub(crate) async fn run_admin_server(
     Ok(())
 }
 
-/// Spawns the admin server as a background task with graceful shutdown support.
+/// Spawns the admin server as a background task with lifecycle management.
 pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
-) -> ServerTaskTracker {
-    let (handle, shutdown) = ServerTaskTracker::new();
-    handle.spawn(async move {
-        if let Err(report) = run_admin_server(pool, config, shutdown).await {
-            tracing::error!(error = ?report, "Admin server failed");
-        }
+    lifecycle: &ServerLifecycle,
+) {
+    SnapshotEntry::install_error_stack_hook();
+
+    let shutdown = lifecycle.shutdown.clone();
+    lifecycle.spawn("Admin server", async move {
+        run_admin_server(pool, config, shutdown).await
     });
-    handle
 }
 
 /// Standalone `admin-server` subcommand entrypoint.
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "False positive on tokio::select!"
+)]
 pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
@@ -126,21 +130,35 @@ pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError
         report
     })?;
 
-    let handle = start_admin_server(pool, args.config);
+    let lifecycle = ServerLifecycle::new();
+    start_admin_server(pool, args.config, &lifecycle);
 
-    // Wait for shutdown signal
-    match signal::ctrl_c().await {
-        Ok(()) => {}
-        Err(error) => {
-            tracing::error!("Failed to install Ctrl+C handler: {error}");
+    // Wait for shutdown signal or unexpected server exit
+    let aborted = tokio::select! {
+        result = signal::ctrl_c() => {
+            match result {
+                Ok(()) => false,
+                Err(error) => {
+                    tracing::error!("Failed to install Ctrl+C handler: {error}");
+                    true
+                }
+            }
         }
-    }
+        () = lifecycle.abort.cancelled() => {
+            tracing::error!("Admin server exited unexpectedly");
+            true
+        }
+    };
 
     tracing::info!("Shutting down...");
-    handle.await;
+    lifecycle.shutdown_and_wait().await;
     tracing::info!("Shutdown complete");
 
-    Ok(())
+    if aborted {
+        Err(GraphError.into())
+    } else {
+        Ok(())
+    }
 }
 
 pub async fn healthcheck(address: AdminAddress) -> Result<(), Report<HealthcheckError>> {

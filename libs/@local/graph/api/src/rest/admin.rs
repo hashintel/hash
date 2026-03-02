@@ -147,8 +147,9 @@ async fn delete_entities(
     // Deserialize into `Value` first so that `DeleteEntitiesParams` (which borrows via
     // `Filter<'a>`) can reference the owned data.  `Json<DeleteEntitiesParams>` would not compile
     // because the borrowed data would be dropped before use.
-    let params = DeleteEntitiesParams::deserialize(&body)
-        .map_err(|error| report_to_response(Report::new(error)))?;
+    let params = DeleteEntitiesParams::deserialize(&body).map_err(|error| {
+        report_to_response(Report::new(error).attach(StatusCode::InvalidArgument))
+    })?;
 
     pool.acquire(None)
         .await

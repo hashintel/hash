@@ -35,7 +35,7 @@ use type_system::ontology::json_schema::DomainValidator;
 use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
-        HealthcheckArgs, ServerTaskTracker,
+        HealthcheckArgs, ServerLifecycle,
         admin_server::{AdminConfig, start_admin_server},
         type_fetcher::{TypeFetcherConfig, start_type_fetcher},
         wait_healthcheck,
@@ -208,11 +208,13 @@ async fn run_rest_server(
     address: HttpAddress,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
+    let listener = TcpListener::bind((&*address.api_host, address.api_port))
+        .await
+        .change_context(GraphError)?;
     tracing::info!("REST server listening on {address}");
+
     axum::serve(
-        TcpListener::bind((address.api_host, address.api_port))
-            .await
-            .change_context(GraphError)?,
+        listener,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown.cancelled_owned())
@@ -238,20 +240,18 @@ async fn create_temporal_client(
     }
 }
 
-fn start_rest_server(router: axum::Router, address: HttpAddress) -> ServerTaskTracker {
-    let (handle, shutdown) = ServerTaskTracker::new();
-    handle.spawn(async move {
-        if let Err(report) = run_rest_server(router, address, shutdown).await {
-            tracing::error!(error = ?report, "REST server failed");
-        }
+fn start_rest_server(router: axum::Router, address: HttpAddress, lifecycle: &ServerLifecycle) {
+    let shutdown = lifecycle.shutdown.clone();
+    lifecycle.spawn("REST server", async move {
+        run_rest_server(router, address, shutdown).await
     });
-    handle
 }
 
 fn start_rpc_server<S>(
     address: RpcAddress,
     dependencies: Dependencies<S, ()>,
-) -> Result<ServerTaskTracker, Report<GraphError>>
+    lifecycle: &ServerLifecycle,
+) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -268,13 +268,17 @@ where
         server.events(),
     );
 
-    let (handle, shutdown) = ServerTaskTracker::new();
-    handle.spawn(task.into_future());
+    lifecycle.spawn("RPC task", async move {
+        task.await;
+        Ok(())
+    });
 
     // Bridge: when our shutdown token fires, cancel the harpc server's internal token
-    handle.spawn(async move {
+    let shutdown = lifecycle.shutdown.clone();
+    lifecycle.spawn("RPC shutdown bridge", async move {
         shutdown.cancelled().await;
         cancellation_token.cancel();
+        Ok(())
     });
 
     let socket_address: SocketAddr = SocketAddr::try_from(address).change_context(GraphError)?;
@@ -291,61 +295,69 @@ where
     }
 
     #[expect(clippy::significant_drop_tightening, reason = "false positive")]
-    handle.spawn(async move {
-        let stream = server
-            .listen(address)
-            .await
-            .expect("server should be able to listen on address");
+    lifecycle.spawn("RPC server", async move {
+        let stream = server.listen(address).await.change_context(GraphError)?;
 
         harpc_server::serve::serve(stream, router).await;
+        Ok(())
     });
 
-    Ok(handle)
+    Ok(())
 }
 
 /// Starts the main graph API server (REST + optional RPC).
-///
-/// Returns handles for the REST server and the optional RPC server.
 async fn start_server<S>(
     pool: S,
     config: ServerConfig,
     query_logger: Option<QueryLogger>,
-) -> Result<(ServerTaskTracker, Option<ServerTaskTracker>), Report<GraphError>>
+    lifecycle: &ServerLifecycle,
+) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
     let store = Arc::new(pool);
+    let temporal_client = create_temporal_client(&config.temporal)
+        .await?
+        .map(Arc::new);
 
-    let dependencies = RestRouterDependencies {
-        store: Arc::clone(&store),
-        domain_regex: DomainValidator::new(config.allowed_url_domain),
-        temporal_client: create_temporal_client(&config.temporal).await?,
-        query_logger,
-    };
-
-    let rpc_server_handle = if config.rpc_enabled {
+    if config.rpc_enabled {
         tracing::info!("Starting RPC server...");
 
-        Some(start_rpc_server(
+        start_rpc_server(
             config.rpc_address,
             Dependencies {
-                store,
-                temporal_client: create_temporal_client(&config.temporal).await?,
+                store: Arc::clone(&store),
+                temporal_client: temporal_client.clone(),
                 codec: (),
             },
-        )?)
-    } else {
-        None
-    };
+            lifecycle,
+        )?;
+    }
 
-    let router = rest_api_router(dependencies);
-    let rest_server_handle = start_rest_server(router, config.http_address);
+    let router = rest_api_router(RestRouterDependencies {
+        store,
+        domain_regex: DomainValidator::new(config.allowed_url_domain),
+        temporal_client,
+        query_logger,
+    });
+    start_rest_server(router, config.http_address, lifecycle);
 
-    Ok((rest_server_handle, rpc_server_handle))
+    Ok(())
 }
 
-#[expect(clippy::too_many_lines, reason = "Subcommand entrypoint")]
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "False positive on tokio::select!"
+)]
+#[expect(
+    clippy::exit,
+    reason = "Force shutdown on double ctrl-c is intentional"
+)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Sequential startup flow, no natural split point"
+)]
 pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
@@ -384,13 +396,15 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         .change_context(GraphError)
         .attach("Connection to database failed")?;
 
-    let admin_server_handle = args
-        .embed_admin
-        .then(|| start_admin_server(pool.clone(), args.admin));
+    let lifecycle = ServerLifecycle::new();
 
-    let type_fetcher_handle = args
-        .embed_type_fetcher
-        .then(|| start_type_fetcher(args.type_fetcher.clone()));
+    if args.embed_admin {
+        start_admin_server(pool.clone(), args.admin, &lifecycle);
+    }
+
+    if args.embed_type_fetcher {
+        start_type_fetcher(args.type_fetcher.clone(), &lifecycle);
+    }
 
     let pool = FetchingPool::new(
         pool,
@@ -403,71 +417,67 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     let log_queries = args.config.log_queries.take();
 
-    let (query_logger, log_queries_handle) = if let Some(query_log_file) = log_queries {
+    let query_logger = if let Some(query_log_file) = log_queries {
         let file = tokio::fs::File::create(query_log_file)
             .await
             .change_context(GraphError)?;
         let write = FramedWrite::new(io::BufWriter::new(file), JsonLinesEncoder::default());
         let (tx, rx) = mpsc::channel(1000);
-        let (handle, _shutdown) = ServerTaskTracker::new();
-        handle.spawn(async move {
+        lifecycle.spawn("Query logger", async move {
             if let Err(error) = rx.map(Ok).forward(write).await {
                 tracing::error!("Failed to write query log: {error}");
             }
+            Ok(())
         });
-        (Some(QueryLogger::new(tx)), Some(handle))
+        Some(QueryLogger::new(tx))
     } else {
-        (None, None)
+        None
     };
 
-    let (rest_server_handle, rpc_server_handle) =
-        start_server(pool, args.config, query_logger).await?;
+    if let Err(error) = start_server(pool, args.config, query_logger, &lifecycle).await {
+        lifecycle.shutdown_and_wait().await;
+        return Err(error);
+    }
 
-    // Wait for shutdown signal
-    match signal::ctrl_c().await {
-        Ok(()) => {}
-        Err(error) => {
-            tracing::error!("Failed to install Ctrl+C handler: {error}");
+    // Wait for shutdown signal or unexpected server exit
+    let aborted = tokio::select! {
+        result = signal::ctrl_c() => {
+            match result {
+                Ok(()) => {
+                    tracing::info!("Shutdown signal received, shutting down gracefully...");
+                    false
+                }
+                Err(error) => {
+                    tracing::error!("Failed to install Ctrl+C handler: {error}");
+                    true
+                }
+            }
+        }
+        () = lifecycle.abort.cancelled() => {
+            tracing::error!("Server component exited unexpectedly, initiating shutdown...");
+            true
+        }
+    };
+
+    // Double ctrl-c for force shutdown
+    tokio::select! {
+        () = lifecycle.shutdown_and_wait() => {}
+        result = signal::ctrl_c() => {
+            if let Err(error) = result {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+            }
+            tracing::warn!("Forced shutdown");
+            std::process::exit(1);
         }
     }
 
-    tracing::info!("Shutting down...");
-
-    // Graceful shutdown of all servers concurrently
-    tokio::join!(
-        async {
-            rest_server_handle.await;
-            tracing::info!("REST server shut down");
-        },
-        async {
-            if let Some(handle) = rpc_server_handle {
-                handle.await;
-                tracing::info!("RPC server shut down");
-            }
-        },
-        async {
-            if let Some(handle) = admin_server_handle {
-                handle.await;
-                tracing::info!("Admin server shut down");
-            }
-        },
-        async {
-            if let Some(handle) = type_fetcher_handle {
-                handle.await;
-                tracing::info!("Type fetcher shut down");
-            }
-        },
-        async {
-            if let Some(handle) = log_queries_handle {
-                handle.await;
-                tracing::info!("Query logger shut down");
-            }
-        },
-    );
-
     tracing::info!("Shutdown complete");
 
-    Ok(())
+    if aborted {
+        Err(GraphError.into())
+    } else {
+        Ok(())
+    }
 }
 
 pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
