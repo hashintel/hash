@@ -20,6 +20,11 @@ export type RuntimeDistribution =
     })
   | (DistributionBase & { type: "uniform"; min: number; max: number })
   | (DistributionBase & {
+      type: "lognormal";
+      mu: number;
+      sigma: number;
+    })
+  | (DistributionBase & {
       type: "mapped";
       inner: RuntimeDistribution;
       fn: (value: number) => number;
@@ -55,6 +60,9 @@ export const distributionRuntimeCode = `
     },
     Uniform: function(min, max) {
       return __addMap({ __brand: "distribution", type: "uniform", min: min, max: max });
+    },
+    Lognormal: function(mu, sigma) {
+      return __addMap({ __brand: "distribution", type: "lognormal", mu: mu, sigma: sigma });
     }
   };
 `;
@@ -91,6 +99,15 @@ export function sampleDistribution(
       const [sample, newRng] = nextRandom(rngState);
       value = distribution.min + sample * (distribution.max - distribution.min);
       nextRng = newRng;
+      break;
+    }
+    case "lognormal": {
+      // Lognormal(μ, σ): if X ~ Normal(μ, σ), then e^X ~ Lognormal(μ, σ)
+      const [u1, rng1] = nextRandom(rngState);
+      const [u2, rng2] = nextRandom(rng1);
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      value = Math.exp(distribution.mu + z * distribution.sigma);
+      nextRng = rng2;
       break;
     }
     case "mapped": {
