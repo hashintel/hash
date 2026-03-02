@@ -91,3 +91,37 @@ Instructions:
 - Do NOT preemptively load all references - use lazy loading based on actual need
 - When loaded, treat content as mandatory instructions that override defaults
 - Follow references recursively when needed
+
+## Cursor Cloud specific instructions
+
+### Service architecture
+
+The HASH dev environment consists of:
+
+| Service | Port | How to start |
+|---|---|---|
+| External services (Postgres, Redis, Kratos, Hydra, Temporal, Vault, etc.) | Various | `yarn external-services up -d --wait` |
+| hash-graph (Rust binary) | 4000 (HTTP), 4002 (RPC) | Build with `cargo build --bin hash-graph --all-features`, then migrate + run |
+| hash-graph type-fetcher | 4455 | `./target/debug/hash-graph type-fetcher` |
+| hash-api (Node.js) | 5001 | `yarn dev:backend` or direct tsx invocation |
+| hash-frontend (Next.js) | 3000 | `yarn dev:frontend` or `cd apps/hash-frontend && npx next dev` |
+
+### Startup order
+
+1. Docker must be running (`sudo dockerd` if not started)
+2. External services: `yarn external-services up -d --wait`
+3. Build hash-graph: `cargo build --bin hash-graph --all-features`
+4. Migrate hash-graph: `./target/debug/hash-graph migrate --user postgres --password postgres`
+5. Start hash-graph server: `./target/debug/hash-graph server`
+6. Start hash-graph type-fetcher: `./target/debug/hash-graph type-fetcher`
+7. Run API migrations: `NODE_ENV=development npx tsx ./apps/hash-api/src/ensure-system-graph-is-initialized.ts`
+8. Start API and frontend: `yarn dev`
+
+### Important caveats
+
+- **RUSTUP_TOOLCHAIN**: When running turbo commands that invoke cargo (e.g., codegen, build:types), set `export RUSTUP_TOOLCHAIN=nightly-2026-02-09` to prevent concurrent rustup toolchain downloads from failing in the nested container environment.
+- **Turbo concurrency**: For codegen tasks that invoke Rust builds, use `--concurrency=1` and `--env-mode=loose` to avoid parallel rustup download conflicts.
+- **`.env.local`**: Must exist (even if empty) before starting external services. Create with `touch .env.local` if missing.
+- **`/workspace/var/api`**: The API writes email dumps to this directory. If it doesn't exist with write permissions, create it: `sudo mkdir -p /workspace/var/api/dummy-email-transporter && sudo chmod -R 777 /workspace/var`.
+- **Seeded dev accounts**: `alice@example.com`, `bob@example.com`, `admin@example.com` — all with password `password`.
+- **`redocly` CLI**: Required for `@local/hash-graph-client` codegen. Install via `mise install "npm:@redocly/cli"` if missing.
