@@ -3,13 +3,13 @@
  */
 
 import type { SubView } from "../components/sub-view/types";
-import { diagnosticsSubView } from "../views/Editor/subviews/diagnostics";
-import { differentialEquationsListSubView } from "../views/Editor/subviews/differential-equations-list";
-import { nodesListSubView } from "../views/Editor/subviews/nodes-list";
-import { parametersListSubView } from "../views/Editor/subviews/parameters-list";
-import { simulationSettingsSubView } from "../views/Editor/subviews/simulation-settings";
-import { simulationTimelineSubView } from "../views/Editor/subviews/simulation-timeline";
-import { typesListSubView } from "../views/Editor/subviews/types-list";
+import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
+import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
+import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
+import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
+import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
+import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
+import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
 
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;

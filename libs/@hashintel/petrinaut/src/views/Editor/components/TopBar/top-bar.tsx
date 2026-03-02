@@ -10,9 +10,9 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
-import { FloatingTitle } from "../../panels/LeftSideBar/floating-title";
-import { HamburgerMenu } from "../../panels/LeftSideBar/hamburger-menu";
-import { ModeSelector } from "../mode-selector";
+import { FloatingTitle } from "./floating-title";
+import { HamburgerMenu } from "./hamburger-menu";
+import { ModeSelector } from "./mode-selector";
 
 const topBarStyle = css({
   display: "flex",

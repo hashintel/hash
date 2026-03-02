@@ -3,21 +3,21 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useMemo } from "react";
 import { TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
-import { Input } from "../../../../components/input";
-import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
-import { SDCPNContext } from "../../../../state/sdcpn-context";
-import { useIsReadOnly } from "../../../../state/use-is-read-only";
-import { transitionFiringTimeSubView } from "../../subviews/transition-firing-time";
-import { transitionResultsSubView } from "../../subviews/transition-results";
-import { ArcItem } from "./sortable-arc-item";
+import { IconButton } from "../../../../../components/icon-button";
+import { Input } from "../../../../../components/input";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import type { Color, Place, Transition } from "../../../../../core/types/sdcpn";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
   TransitionPropertiesProvider,
   useTransitionPropertiesContext,
-} from "./transition-properties-context";
+} from "./context";
+import { ArcItem } from "./sortable-arc-item";
+import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";
+import { transitionResultsSubView } from "./subviews/transition-results/subview";
 
 const containerStyle = css({
   display: "flex",

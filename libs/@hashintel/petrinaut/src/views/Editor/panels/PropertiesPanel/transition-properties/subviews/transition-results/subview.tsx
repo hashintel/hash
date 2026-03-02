@@ -3,15 +3,15 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { Menu } from "../../../components/menu";
-import type { SubView } from "../../../components/sub-view/types";
-import { Tooltip } from "../../../components/tooltip";
-import { UI_MESSAGES } from "../../../constants/ui-messages";
-import { generateDefaultTransitionKernelCode } from "../../../core/default-codes";
-import { CodeEditor } from "../../../monaco/code-editor";
-import { getDocumentUri } from "../../../monaco/editor-paths";
-import { EditorContext } from "../../../state/editor-context";
-import { useTransitionPropertiesContext } from "../panels/PropertiesPanel/transition-properties-context";
+import { Menu } from "../../../../../../../components/menu";
+import type { SubView } from "../../../../../../../components/sub-view/types";
+import { Tooltip } from "../../../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { generateDefaultTransitionKernelCode } from "../../../../../../../core/default-codes";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { EditorContext } from "../../../../../../../state/editor-context";
+import { useTransitionPropertiesContext } from "../../context";
 
 const menuButtonStyle = css({
   background: "[transparent]",

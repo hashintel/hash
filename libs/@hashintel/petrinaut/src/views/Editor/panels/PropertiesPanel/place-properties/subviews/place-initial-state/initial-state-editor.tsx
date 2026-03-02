@@ -1,9 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 
-import type { Color } from "../../../../core/types/sdcpn";
-import { PlaybackContext } from "../../../../playback/context";
-import { SimulationContext } from "../../../../simulation/context";
+import type { Color } from "../../../../../../../core/types/sdcpn";
+import { PlaybackContext } from "../../../../../../../playback/context";
+import { SimulationContext } from "../../../../../../../simulation/context";
 
 const wrapperStyle = css({
   display: "flex",

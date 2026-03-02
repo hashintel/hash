@@ -1,12 +1,12 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
-import type { SubView } from "../../../components/sub-view/types";
-import { Tooltip } from "../../../components/tooltip";
-import { UI_MESSAGES } from "../../../constants/ui-messages";
-import { EditorContext } from "../../../state/editor-context";
-import { SDCPNContext } from "../../../state/sdcpn-context";
-import { useIsReadOnly } from "../../../state/use-is-read-only";
+import type { SubView } from "../../../../../components/sub-view/types";
+import { Tooltip } from "../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { EditorContext } from "../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const listContainerStyle = css({
   display: "flex",

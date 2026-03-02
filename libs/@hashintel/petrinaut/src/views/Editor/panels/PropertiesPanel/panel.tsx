@@ -10,11 +10,11 @@ import {
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
-import { DifferentialEquationProperties } from "./differential-equation-properties";
-import { ParameterProperties } from "./parameter-properties";
-import { PlaceProperties } from "./place-properties";
-import { TransitionProperties } from "./transition-properties";
-import { TypeProperties } from "./type-properties";
+import { DifferentialEquationProperties } from "./differential-equation-properties/main";
+import { ParameterProperties } from "./parameter-properties/main";
+import { PlaceProperties } from "./place-properties/main";
+import { TransitionProperties } from "./transition-properties/main";
+import { TypeProperties } from "./type-properties/main";
 
 const glassPanelStyle = css({
   position: "absolute",

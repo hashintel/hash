@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
+import type { Color, Place, Transition } from "../../../../../core/types/sdcpn";
 
 interface TransitionPropertiesContextValue {
   transition: Transition;

@@ -1,7 +1,7 @@
 import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
 
-import type { SegmentOption } from "../../../components/segment-group";
-import { SegmentGroup } from "../../../components/segment-group";
+import type { SegmentOption } from "../../../../components/segment-group";
+import { SegmentGroup } from "../../../../components/segment-group";
 
 export interface ModeSelectorProps {
   mode: "edit" | "simulate";

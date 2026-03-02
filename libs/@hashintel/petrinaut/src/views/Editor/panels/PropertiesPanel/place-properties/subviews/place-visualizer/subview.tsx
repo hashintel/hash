@@ -2,27 +2,27 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { Menu } from "../../../components/menu";
-import { SegmentGroup } from "../../../components/segment-group";
-import type { SubView } from "../../../components/sub-view/types";
-import { Switch } from "../../../components/switch";
-import { Tooltip } from "../../../components/tooltip";
-import { UI_MESSAGES } from "../../../constants/ui-messages";
+import { Menu } from "../../../../../../../components/menu";
+import { SegmentGroup } from "../../../../../../../components/segment-group";
+import type { SubView } from "../../../../../../../components/sub-view/types";
+import { Switch } from "../../../../../../../components/switch";
+import { Tooltip } from "../../../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
-} from "../../../core/default-codes";
+} from "../../../../../../../core/default-codes";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
-} from "../../../hooks/use-default-parameter-values";
-import { CodeEditor } from "../../../monaco/code-editor";
-import { PlaybackContext } from "../../../playback/context";
-import { SimulationContext } from "../../../simulation/context";
-import { compileVisualizer } from "../../../simulation/simulator/compile-visualizer";
-import { EditorContext } from "../../../state/editor-context";
-import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
-import { VisualizerErrorBoundary } from "../panels/PropertiesPanel/visualizer-error-boundary";
+} from "../../../../../../../hooks/use-default-parameter-values";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { PlaybackContext } from "../../../../../../../playback/context";
+import { SimulationContext } from "../../../../../../../simulation/context";
+import { compileVisualizer } from "../../../../../../../simulation/simulator/compile-visualizer";
+import { EditorContext } from "../../../../../../../state/editor-context";
+import { usePlacePropertiesContext } from "../../context";
+import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 type ViewMode = "code" | "preview" | "split";
 
