@@ -6,7 +6,7 @@ use hashql_core::{heap::Heap, id::IdArray, r#type::environment::Environment};
 
 use super::{super::PlacementSolver, CyclicPlacementRegion};
 use crate::{
-    body::{basic_block::BasicBlockSlice, location::Location},
+    body::location::Location,
     builder::body,
     intern::Interner,
     pass::execution::{
@@ -16,7 +16,9 @@ use crate::{
             PlacementRegionId, PlacementSolverContext,
             condensation::PlacementRegionKind,
             csp::ConstraintSatisfaction,
-            tests::{all_targets, bb, fix_block, stmt_costs, target_set, terminators},
+            tests::{
+                all_targets, bb, fix_block, make_block_costs, stmt_costs, target_set, terminators,
+            },
         },
         target::{TargetArray, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
@@ -78,10 +80,9 @@ fn narrow_restricts_successor_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -129,10 +130,9 @@ fn narrow_restricts_predecessor_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -180,10 +180,9 @@ fn narrow_to_empty_domain() {
         bb(1): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -234,10 +233,9 @@ fn narrow_multiple_edges_intersect() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -294,10 +292,9 @@ fn replay_narrowing_resets_then_repropagates() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -373,10 +370,9 @@ fn lower_bound_min_statement_cost_per_block() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -429,10 +425,9 @@ fn lower_bound_min_transition_cost_per_edge() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -484,10 +479,9 @@ fn lower_bound_skips_self_loop_edges() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -538,10 +532,9 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -595,10 +588,9 @@ fn lower_bound_all_fixed_returns_zero() {
         bb(1): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -651,10 +643,9 @@ fn mrv_selects_smallest_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -702,10 +693,9 @@ fn mrv_tiebreak_by_constraint_degree() {
         bb(2): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -756,10 +746,9 @@ fn mrv_skips_fixed_blocks() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -814,10 +803,9 @@ fn greedy_solves_two_block_loop() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -869,10 +857,9 @@ fn greedy_rollback_finds_alternative() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -927,10 +914,9 @@ fn greedy_fails_when_infeasible() {
         bb(1): [P->P = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -985,10 +971,9 @@ fn bnb_finds_optimal() {
         bb(2): [diagonal(0), I->P = 20, P->I = 20]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1041,10 +1026,9 @@ fn bnb_retains_ranked_solutions() {
         bb(1): [diagonal(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1118,10 +1102,9 @@ fn bnb_pruning_preserves_optimal() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1175,10 +1158,9 @@ fn retry_returns_ranked_solutions_in_order() {
         bb(1): [diagonal(0), I->P = 5, P->I = 5]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1246,10 +1228,9 @@ fn retry_exhausts_then_perturbs() {
         bb(1): [diagonal(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1314,10 +1295,9 @@ fn greedy_rollback_on_empty_heap() {
         bb(1): [I->P = 0, I->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1385,10 +1365,9 @@ fn retry_perturbation_after_ranked_exhaustion() {
         bb(1): [complete(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);

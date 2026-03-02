@@ -23,12 +23,16 @@ use crate::{
     context::MirContext,
     error::MirDiagnosticCategory,
     intern::Interner,
-    pass::execution::{
-        ApproxCost, Cost,
-        cost::StatementCostVec,
-        placement::error::PlacementDiagnosticCategory,
-        target::{TargetArray, TargetBitSet, TargetId},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
+    pass::{
+        analysis::size_estimation::InformationRange,
+        execution::{
+            ApproxCost, Cost, VertexType,
+            cost::{BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec},
+            placement::error::PlacementDiagnosticCategory,
+            target::{TargetArray, TargetBitSet, TargetId},
+            terminator_placement::{TerminatorCostVec, TransMatrix},
+            traversal::TransferCostConfig,
+        },
     },
 };
 
@@ -113,6 +117,25 @@ pub(crate) fn bb(index: u32) -> BasicBlockId {
     BasicBlockId::new(index)
 }
 
+pub(crate) fn make_block_costs<'heap>(
+    body: &Body<'_>,
+    domains: &[TargetBitSet],
+    statements: &TargetArray<StatementCostVec<&'heap Heap>>,
+    alloc: &'heap Heap,
+) -> BasicBlockCostVec<&'heap Heap> {
+    let assignments = BasicBlockSlice::from_raw(domains);
+    BasicBlockCostAnalysis {
+        vertex: VertexType::Entity,
+        assignments,
+        costs: statements,
+    }
+    .analyze_in(
+        &TransferCostConfig::new(InformationRange::full()),
+        &body.basic_blocks,
+        alloc,
+    )
+}
+
 const I: TargetId = TargetId::Interpreter;
 const P: TargetId = TargetId::Postgres;
 
@@ -125,10 +148,9 @@ pub(crate) fn run_solver<'heap>(
     terminators: &TerminatorCostVec<&'heap Heap>,
 ) -> BasicBlockVec<TargetId, &'heap Heap> {
     let mut context = MirContext::new(env, interner);
-    let assignment = BasicBlockSlice::from_raw(domains);
+    let block_costs = make_block_costs(body, domains, statements, env.heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements,
+        blocks: &block_costs,
         terminators,
     };
     let mut solver = data.build_in(body, env.heap);
@@ -803,10 +825,9 @@ fn rewind_exhausts_all_regions() {
         bb(2): [I->P = 0, P->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -955,10 +976,9 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
         bb(3): [complete(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1119,10 +1139,9 @@ fn trivial_failure_emits_diagnostic() {
         bb(2): [I->P = 0, P->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1189,10 +1208,9 @@ fn cyclic_failure_emits_diagnostic() {
         bb(1): [I->P = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
