@@ -32,6 +32,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       `declare namespace Distribution {`,
       `  function Gaussian(mean: number, deviation: number): Distribution;`,
       `  function Uniform(min: number, max: number): Distribution;`,
+      `  function Lognormal(mu: number, sigma: number): Distribution;`,
       `}`,
     ].join("\n"),
   });
