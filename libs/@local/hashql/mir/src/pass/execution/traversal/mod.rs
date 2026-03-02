@@ -18,7 +18,7 @@ pub(crate) use analysis::{TraversalAnalysisVisitor, TraversalResult};
 
 pub use self::entity::{EntityPath, EntityPathBitSet};
 pub(crate) use self::{access::Access, entity::TransferCostConfig};
-use super::VertexType;
+use super::{VertexType, target::TargetBitSet};
 use crate::pass::analysis::{
     dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
     size_estimation::InformationRange,
@@ -128,11 +128,21 @@ impl TraversalPathBitSet {
         }
     }
 
-    /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.
+    #[must_use]
     #[inline]
-    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = TraversalPath> {
+        self.into_iter()
+    }
+}
+
+impl IntoIterator for &TraversalPathBitSet {
+    type Item = TraversalPath;
+
+    type IntoIter = impl ExactSizeIterator<Item = TraversalPath>;
+
+    fn into_iter(self) -> Self::IntoIter {
         match self {
-            Self::Entity(entity_paths) => entity_paths.transfer_size(config),
+            TraversalPathBitSet::Entity(bitset) => bitset.into_iter().map(TraversalPath::Entity),
         }
     }
 }
@@ -192,4 +202,21 @@ impl JoinSemiLattice<TraversalPathBitSet> for TraversalLattice {
 pub enum TraversalPath {
     /// A path into the entity schema.
     Entity(EntityPath),
+}
+
+impl TraversalPath {
+    #[inline]
+    #[must_use]
+    pub const fn origin(self) -> TargetBitSet {
+        match self {
+            Self::Entity(path) => path.origin(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn estimate_size(self, config: &TransferCostConfig) -> InformationRange {
+        match self {
+            Self::Entity(path) => path.estimate_size(config),
+        }
+    }
 }

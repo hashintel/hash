@@ -309,7 +309,7 @@ impl EntityPath {
     /// entity schema. [`Properties`](Self::Properties) depends on the entity's type parameter.
     /// [`PropertyMetadata`](Self::PropertyMetadata) is estimated at 1/4 of properties size,
     /// since it stores lightweight per-property-key metadata rather than values.
-    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
+    pub(crate) fn estimate_size(self, config: &TransferCostConfig) -> InformationRange {
         #[expect(clippy::match_same_arms, reason = "readability")]
         #[expect(clippy::integer_division)]
         match self {
@@ -477,47 +477,6 @@ impl EntityPathBitSet {
     #[inline]
     pub(crate) const fn insert_all(&mut self) {
         *self = Self::TOP;
-    }
-
-    /// Expands composite paths to their leaf descendants.
-    ///
-    /// Composites like [`RecordId`](EntityPath::RecordId) are replaced by their leaf children
-    /// (e.g. [`WebId`](EntityPath::WebId), [`EntityUuid`](EntityPath::EntityUuid), etc.).
-    /// Leaf paths are kept as-is.
-    ///
-    /// This works because the costs are purely cumulative, therefore any composite path can be
-    /// expanded to its leaf descendants without affecting the total cost. This allows for greater
-    /// precision during cost estimation, to allow for attributing the cost if something is
-    /// available on multiple backends.
-    #[expect(clippy::cast_possible_truncation)]
-    pub(crate) fn to_leaves(self) -> FiniteBitSet<EntityPath, FiniteBitSetWidth> {
-        let mut result = FiniteBitSet::new_empty(core::mem::variant_count::<EntityPath>() as u32);
-
-        for path in &self.0 {
-            if path.children().is_empty() {
-                result.insert(path);
-                continue;
-            }
-
-            for &child in path.children() {
-                if child.children().is_empty() {
-                    result.insert(child);
-                }
-            }
-        }
-
-        result
-    }
-
-    /// Sums the [`transfer_size`](EntityPath::transfer_size) of every path in this set.
-    pub(crate) fn transfer_size(self, config: &TransferCostConfig) -> InformationRange {
-        let mut total = InformationRange::zero();
-
-        for path in &self.0 {
-            total += path.transfer_size(config);
-        }
-
-        total
     }
 }
 

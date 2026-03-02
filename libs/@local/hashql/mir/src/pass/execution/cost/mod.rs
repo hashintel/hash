@@ -8,32 +8,21 @@ use core::{
     alloc::Allocator,
     fmt,
     iter::Sum,
-    mem,
     ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
 };
 use std::f32;
 
-use hashql_core::id::{IdSlice, bit_vec::FiniteBitSet};
-
-use super::{
-    TargetId, VertexType, block_partitioned_vec::BlockPartitionedVec, target::TargetArray,
-    traversal::TransferCostConfig,
-};
+pub(crate) use self::analysis::{BasicBlockCostAnalysis, BasicBlockCostVec};
+use super::block_partitioned_vec::BlockPartitionedVec;
 use crate::{
-    body::{
-        basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
-        basic_blocks::BasicBlocks,
-        location::Location,
-    },
+    body::{basic_block::BasicBlockId, basic_blocks::BasicBlocks, location::Location},
     macros::{forward_ref_binop, forward_ref_op_assign},
-    pass::{
-        analysis::size_estimation::{InformationRange, range::SaturatingMul},
-        execution::traversal::{
-            EntityPathBitSet, TraversalAnalysisVisitor, TraversalPathBitSet, TraversalResult,
-        },
-    },
-    visit::Visitor,
+    pass::analysis::size_estimation::InformationUnit,
 };
+
+mod analysis;
+#[cfg(test)]
+mod tests;
 
 /// Execution cost for a statement on a particular target.
 ///
@@ -248,6 +237,13 @@ impl From<Cost> for ApproxCost {
     }
 }
 
+impl From<InformationUnit> for ApproxCost {
+    fn from(value: InformationUnit) -> Self {
+        #[expect(clippy::cast_precision_loss)]
+        Self(value.as_u32() as f32)
+    }
+}
+
 impl fmt::Display for ApproxCost {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
@@ -407,173 +403,5 @@ impl<A: Allocator> IndexMut<Location> for StatementCostVec<A> {
     fn index_mut(&mut self, index: Location) -> &mut Self::Output {
         // statement_index is 1-based
         &mut self.0.of_mut(index.block)[index.statement_index - 1]
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct BlockCost {
-    base: ApproxCost,
-    load: TargetArray<ApproxCost>,
-}
-
-impl BlockCost {
-    fn zero() -> Self {
-        Self {
-            base: ApproxCost::ZERO,
-            load: TargetArray::from_raw([ApproxCost::ZERO; _]),
-        }
-    }
-
-    fn of(&self, target: TargetId) -> ApproxCost {
-        self.base + self.load[target]
-    }
-}
-
-pub struct BlockCostVec<A: Allocator> {
-    inner: BasicBlockVec<BlockCost, A>,
-}
-
-impl<A: Allocator> BlockCostVec<A> {
-    pub fn new_in<'heap>(
-        vertex: VertexType,
-        blocks: &BasicBlockSlice<BasicBlock<'heap>>,
-        statement: &StatementCostVec<impl Allocator>,
-        config: &TransferCostConfig,
-        alloc: A,
-    ) -> Self {
-        let inner = BasicBlockVec::from_domain_derive_in(
-            |id, block| {
-                let base = statement.sum_approx(id);
-
-                let mut bitset = TraversalPathBitSet::empty(vertex);
-                let mut visitor = TraversalAnalysisVisitor::new(vertex, |_, result| match result {
-                    TraversalResult::Path(path) => bitset.insert(path),
-                    TraversalResult::Complete => bitset.insert_all(),
-                });
-                Ok(()) = visitor.visit_basic_block(id, block);
-
-                let mut load = TargetArray::from_raw([InformationRange::zero(); _]);
-
-                match bitset {
-                    TraversalPathBitSet::Entity(bitset) => {
-                        let leafs = bitset.to_leaves();
-
-                        for leaf in &leafs {
-                            let mut remote = leaf.origin();
-                            remote.negate(TargetId::VARIANT_COUNT_U32);
-
-                            for remote in &remote {
-                                let cost = leaf
-                                    .transfer_size(config)
-                                    .saturating_mul(config.target_multiplier[remote].get());
-
-                                load[remote] += cost;
-                            }
-                        }
-                    }
-                }
-
-                // for each load calculate the cost, assuming a cardinality of 1 (entity size does
-                // not effect the cost analytics, because each entity is processed individually in
-                // the closure context)
-                #[expect(clippy::cast_precision_loss)]
-                let load = load.map(|range| {
-                    let Some(average) = range.midpoint() else {
-                        return ApproxCost::INF;
-                    };
-
-                    ApproxCost::new(average.as_u32() as f32)
-                        .unwrap_or_else(|| unreachable!("the value is always non-NaN"))
-                });
-
-                BlockCost { base, load }
-            },
-            blocks,
-            alloc,
-        );
-
-        Self { inner }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::alloc::Global;
-
-    use super::{Cost, StatementCostVec};
-    use crate::body::{basic_block::BasicBlockId, location::Location};
-
-    /// `Cost::new` succeeds for valid values (0 and 100).
-    #[test]
-    fn cost_new_valid_values() {
-        let zero = Cost::new(0);
-        assert!(zero.is_some());
-
-        let hundred = Cost::new(100);
-        assert!(hundred.is_some());
-    }
-
-    /// `Cost::new(u32::MAX)` returns `None` (reserved as niche for `Option<Cost>`).
-    #[test]
-    fn cost_new_max_returns_none() {
-        let max = Cost::new(u32::MAX);
-        assert!(max.is_none());
-    }
-
-    /// `Cost::new(u32::MAX - 1)` succeeds (largest valid cost value).
-    #[test]
-    fn cost_new_max_minus_one_valid() {
-        let max_valid = Cost::new(u32::MAX - 1);
-        assert!(max_valid.is_some());
-    }
-
-    /// `Cost::new_unchecked` with valid values works correctly.
-    ///
-    /// This test exercises unsafe code and should be run under Miri.
-    #[test]
-    #[expect(unsafe_code)]
-    fn cost_new_unchecked_valid() {
-        // SAFETY: 0 is not u32::MAX
-        let zero = unsafe { Cost::new_unchecked(0) };
-        assert_eq!(Cost::new(0), Some(zero));
-
-        // SAFETY: 100 is not u32::MAX
-        let hundred = unsafe { Cost::new_unchecked(100) };
-        assert_eq!(Cost::new(100), Some(hundred));
-    }
-
-    /// `StatementCostVec` uses 1-based `Location` indexing to address the underlying
-    /// 0-based `BlockPartitionedVec`.
-    #[test]
-    fn statement_cost_vec_location_indexing() {
-        let mut costs = StatementCostVec::from_iter([2, 3].into_iter(), Global);
-
-        let loc_0_1 = Location {
-            block: BasicBlockId::new(0),
-            statement_index: 1,
-        };
-        let loc_0_2 = Location {
-            block: BasicBlockId::new(0),
-            statement_index: 2,
-        };
-        let loc_1_2 = Location {
-            block: BasicBlockId::new(1),
-            statement_index: 2,
-        };
-
-        costs[loc_0_1] = Some(cost!(10));
-        costs[loc_0_2] = Some(cost!(20));
-        costs[loc_1_2] = Some(cost!(30));
-
-        assert_eq!(costs.get(loc_0_1), Some(cost!(10)));
-        assert_eq!(costs.get(loc_0_2), Some(cost!(20)));
-        assert_eq!(costs.get(loc_1_2), Some(cost!(30)));
-
-        // Unassigned location returns None
-        let loc_1_1 = Location {
-            block: BasicBlockId::new(1),
-            statement_index: 1,
-        };
-        assert_eq!(costs.get(loc_1_1), None);
     }
 }
