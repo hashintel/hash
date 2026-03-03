@@ -27,25 +27,39 @@ use uuid::Uuid;
 
 use super::{
     AuthenticatedUserHeader, http_tracing_layer,
+    jwt::{JwtValidator, OptionalJwtAuthentication},
     status::{BoxedResponse, status_to_response},
 };
 use crate::rest::status::report_to_response;
 
 /// Creates the admin API router.
-pub fn routes(store_pool: PostgresStorePool) -> Router {
-    Router::new()
-        .route("/health", get(async || "Healthy"))
+///
+/// When `jwt_validator` is `Some`, all endpoints except `/health` require a valid
+/// JWT token. When `None`, JWT authentication is disabled (development mode).
+pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
+    // Health endpoint is always public (used by load balancers and healthchecks)
+    let public = Router::new().route("/health", get(async || "Healthy"));
+
+    let mut protected = Router::new()
         .route("/snapshot", post(restore_snapshot))
         .route("/accounts", delete(delete_accounts))
         .route("/data-types", delete(delete_data_types))
         .route("/property-types", delete(delete_property_types))
         .route("/entity-types", delete(delete_entity_types))
-        .route("/entities/delete", post(delete_entities))
+        .route("/entities/delete", post(delete_entities));
+
+    if let Some(validator) = jwt_validator {
+        protected = protected.layer(Extension(validator));
+    }
+
+    public
+        .merge(protected)
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(Arc::new(store_pool)))
 }
 
 async fn restore_snapshot(
+    _jwt: OptionalJwtAuthentication,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -71,6 +85,7 @@ async fn restore_snapshot(
 }
 
 async fn delete_accounts(
+    _jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
@@ -88,6 +103,7 @@ async fn delete_accounts(
 }
 
 async fn delete_data_types(
+    _jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
@@ -105,6 +121,7 @@ async fn delete_data_types(
 }
 
 async fn delete_property_types(
+    _jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
@@ -122,6 +139,7 @@ async fn delete_property_types(
 }
 
 async fn delete_entity_types(
+    _jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
@@ -140,6 +158,7 @@ async fn delete_entity_types(
 
 /// Deletes entities matching the given filter and scope with full provenance tracking.
 async fn delete_entities(
+    _jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Json(body): Json<serde_json::Value>,

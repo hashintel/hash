@@ -82,7 +82,7 @@ pub enum StatusCode {
     /// The request does not have valid authentication credentials for the operation.
     ///
     /// HTTP Mapping: 401 Unauthorized.
-    Unauthenticated,
+    Unauthorized,
 
     /// Some resource has been exhausted, perhaps a per-user quota, or perhaps the entire file
     /// system is out of space.

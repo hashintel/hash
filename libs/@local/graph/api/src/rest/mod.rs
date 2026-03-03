@@ -14,6 +14,7 @@ pub mod status;
 
 pub mod admin;
 pub mod http_tracing_layer;
+pub mod jwt;
 
 mod entity_query_request;
 mod json;

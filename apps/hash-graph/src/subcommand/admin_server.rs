@@ -1,12 +1,14 @@
+use alloc::sync::Arc;
 use core::{fmt, net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use hash_graph_api::rest::jwt::JwtValidator;
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
-use reqwest::Client;
+use reqwest::{Client, Url};
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
@@ -37,6 +39,42 @@ impl fmt::Display for AdminAddress {
     }
 }
 
+/// JWT authentication configuration for the admin server.
+///
+/// When `jwks_url` is not set, JWT authentication is disabled. This is the
+/// default for local development and tests.
+#[derive(Debug, Clone, Parser)]
+pub struct JwtConfig {
+    /// JWKS endpoint URL for JWT signature validation.
+    ///
+    /// When set, all admin endpoints (except `/health`) require a valid JWT.
+    /// For Cloudflare Access, this is typically
+    /// `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`.
+    #[clap(long = "jwt-jwks-url", env = "HASH_GRAPH_JWT_JWKS_URL")]
+    pub jwks_url: Option<Url>,
+
+    /// Expected JWT audience claim.
+    ///
+    /// For Cloudflare Access, this is the Application Audience (AUD) Tag.
+    #[clap(
+        long = "jwt-audience",
+        env = "HASH_GRAPH_JWT_AUDIENCE",
+        requires = "jwks_url"
+    )]
+    pub audience: Option<String>,
+
+    /// Expected JWT issuer claim.
+    ///
+    /// For Cloudflare Access, this is typically
+    /// `https://<team>.cloudflareaccess.com`.
+    #[clap(
+        long = "jwt-issuer",
+        env = "HASH_GRAPH_JWT_ISSUER",
+        requires = "jwks_url"
+    )]
+    pub issuer: Option<String>,
+}
+
 /// Configuration for the admin server.
 ///
 /// Shared between the standalone `admin-server` subcommand and the `server`
@@ -45,6 +83,9 @@ impl fmt::Display for AdminAddress {
 pub struct AdminConfig {
     #[clap(flatten)]
     pub address: AdminAddress,
+
+    #[clap(flatten)]
+    pub jwt: JwtConfig,
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
@@ -70,7 +111,25 @@ pub(crate) async fn run_admin_server(
     config: AdminConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let router = hash_graph_api::rest::admin::routes(pool);
+    let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
+        (Some(jwks_url), Some(audience), Some(issuer)) => {
+            tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
+            Some(Arc::new(JwtValidator::new(jwks_url, audience, issuer)))
+        }
+        (Some(_), _, _) => {
+            tracing::warn!(
+                "JWT JWKS URL is set but audience or issuer is missing -- JWT authentication \
+                 disabled"
+            );
+            None
+        }
+        _ => {
+            tracing::warn!("JWT authentication disabled for admin API -- no JWKS URL configured");
+            None
+        }
+    };
+
+    let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
 
     let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
         .await

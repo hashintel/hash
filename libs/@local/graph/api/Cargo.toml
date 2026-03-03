@@ -57,10 +57,12 @@ frunk                              = { workspace = true }
 futures                            = { workspace = true }
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
+jsonwebtoken                       = { workspace = true, features = ["aws_lc_rs"] }
 mime                               = { workspace = true }
 opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
 opentelemetry_sdk                  = { workspace = true, features = ["rt-tokio"] }
+reqwest                            = { workspace = true }
 sentry                             = { workspace = true }
 serde                              = { workspace = true, features = ['derive'] }
 serde_json                         = { workspace = true, features = ["raw_value"] }
