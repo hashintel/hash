@@ -4,10 +4,8 @@
 #![feature(
     // Language Features
     coverage_attribute,
-    if_let_guard,
 
     // Library Features
-    assert_matches,
     duration_millis_float,
     exitcode_exit_method,
     file_buffered,

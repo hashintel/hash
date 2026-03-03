@@ -10,7 +10,7 @@
     // Library Features
     error_generic_member_access,
 )]
-#![cfg_attr(test, feature(assert_matches, macro_metavar_expr))]
+#![cfg_attr(test, feature(macro_metavar_expr))]
 
 extern crate alloc;
 
