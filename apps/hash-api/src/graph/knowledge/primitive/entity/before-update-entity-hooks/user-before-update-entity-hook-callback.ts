@@ -87,8 +87,13 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
      */
     for (const patch of propertyPatches) {
       const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+      if (targetBaseUrl === undefined) {
+        throw Error.badUserInput(
+          "Cannot replace the entire property object on a user entity",
+        );
+      }
+
       if (
-        targetBaseUrl !== undefined &&
         !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
         !speciallyHandledPropertyBaseUrls.has(targetBaseUrl)
       ) {
