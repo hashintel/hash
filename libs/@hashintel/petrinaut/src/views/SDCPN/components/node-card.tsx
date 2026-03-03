@@ -8,6 +8,7 @@ export type SelectionVariant = "resource" | "reactflow" | "none";
 
 const containerStyle = css({
   position: "relative",
+  transform: "translate(-50%, -50%)",
 });
 
 /**
