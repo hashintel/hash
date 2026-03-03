@@ -4,7 +4,7 @@
 use alloc::alloc::Global;
 
 use hashql_core::{
-    graph::DirectedGraph, heap::Heap, symbol::sym, r#type::environment::Environment,
+    graph::DirectedGraph as _, heap::Heap, symbol::sym, r#type::environment::Environment,
 };
 
 use crate::{
