@@ -40,6 +40,36 @@ pub(crate) fn build_graph(body: &Body<'_>, targets: &[TargetId]) -> IslandGraph<
     graph
 }
 
+fn find_island(graph: &IslandGraph<Global>, target: TargetId) -> IslandId {
+    (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .find(|&island_id| graph[island_id].target() == target)
+        .unwrap_or_else(|| panic!("no island with target {target:?}"))
+}
+
+fn find_data_island(graph: &IslandGraph<Global>, target: TargetId) -> IslandId {
+    (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .find(|&island_id| {
+            matches!(graph[island_id].kind(), IslandKind::Data)
+                && graph[island_id].target() == target
+        })
+        .unwrap_or_else(|| panic!("no data island with target {target:?}"))
+}
+
+fn has_edge(
+    graph: &IslandGraph<Global>,
+    source: IslandId,
+    target: IslandId,
+    kind: IslandEdge,
+) -> bool {
+    graph.iter_edges().any(|edge| {
+        edge.source().as_u32() == source.as_u32()
+            && edge.target().as_u32() == target.as_u32()
+            && edge.data == kind
+    })
+}
+
 /// Single Postgres island accessing properties: no fetch island needed because the island
 /// itself is on the origin backend for that path.
 #[test]
@@ -59,10 +89,20 @@ fn single_island_no_fetch() {
     });
 
     let graph = build_graph(&body, &[TargetId::Postgres]);
+    let island = &graph[IslandId::new(0)];
 
     assert_eq!(graph.node_count(), 1);
-    assert_matches!(graph[IslandId::new(0)].kind(), IslandKind::Exec(_));
     assert_eq!(graph.edge_count(), 0);
+    assert_matches!(island.kind(), IslandKind::Exec(_));
+    assert_eq!(island.target(), TargetId::Postgres);
+
+    let provides = island.provides();
+    assert!(
+        provides
+            .as_entity()
+            .expect("entity vertex")
+            .contains(EntityPath::Properties),
+    );
 }
 
 /// Postgres island followed by Interpreter island that needs properties.
@@ -90,33 +130,40 @@ fn data_edge_from_predecessor() {
 
     let graph = build_graph(&body, &[TargetId::Postgres, TargetId::Interpreter]);
 
-    // Two exec nodes, no data islands.
     assert_eq!(graph.node_count(), 2);
 
-    let control_flow_count = graph
-        .iter_edges()
-        .filter(|edge| edge.data == IslandEdge::ControlFlow)
-        .count();
-    assert_eq!(control_flow_count, 1);
+    let postgres = find_island(&graph, TargetId::Postgres);
+    let interpreter = find_island(&graph, TargetId::Interpreter);
 
-    let data_flow_count = graph
-        .iter_edges()
-        .filter(|edge| edge.data == IslandEdge::DataFlow)
-        .count();
-    assert_eq!(data_flow_count, 1);
+    assert_matches!(graph[postgres].kind(), IslandKind::Exec(_));
+    assert_matches!(graph[interpreter].kind(), IslandKind::Exec(_));
 
-    // The Postgres island should provide Properties.
-    let postgres_island = (0..graph.node_count())
-        .map(IslandId::from_usize)
-        .find(|&island_id| graph[island_id].target() == TargetId::Postgres)
-        .expect("postgres island exists");
+    // Postgres self-provides Properties (it's the origin).
     assert!(
-        graph[postgres_island]
+        graph[postgres]
             .provides()
             .as_entity()
             .expect("entity vertex")
             .contains(EntityPath::Properties)
     );
+
+    // ControlFlow edge: Postgres → Interpreter (CFG successor).
+    assert!(has_edge(
+        &graph,
+        postgres,
+        interpreter,
+        IslandEdge::ControlFlow
+    ));
+
+    // DataFlow edge: Postgres → Interpreter (Postgres provides Properties to Interpreter).
+    assert!(has_edge(
+        &graph,
+        postgres,
+        interpreter,
+        IslandEdge::DataFlow
+    ));
+
+    assert_eq!(graph.edge_count(), 2);
 }
 
 /// Interpreter island needs embedding data but has no Embedding predecessor.
@@ -140,22 +187,25 @@ fn fetch_island_for_unsatisfied_requirement() {
 
     let graph = build_graph(&body, &[TargetId::Interpreter]);
 
-    // One exec node plus one data island for Embedding.
     assert_eq!(graph.node_count(), 2);
 
-    let data_island = (0..graph.node_count())
-        .map(IslandId::from_usize)
-        .find(|&island_id| matches!(graph[island_id].kind(), IslandKind::Data))
-        .expect("data island exists");
+    let exec = find_island(&graph, TargetId::Interpreter);
+    let data = find_data_island(&graph, TargetId::Embedding);
 
-    assert_eq!(graph[data_island].target(), TargetId::Embedding);
+    assert_matches!(graph[exec].kind(), IslandKind::Exec(_));
+    assert_matches!(graph[data].kind(), IslandKind::Data);
+
+    // Data island provides Vectors.
     assert!(
-        graph[data_island]
+        graph[data]
             .provides()
             .as_entity()
             .expect("entity vertex")
             .contains(EntityPath::Vectors)
     );
+
+    // DataFlow edge: Embedding data island → Interpreter exec island.
+    assert!(has_edge(&graph, data, exec, IslandEdge::DataFlow));
 }
 
 /// Diamond CFG: Postgres branches to Interpreter and Embedding, both merge into a
@@ -203,20 +253,49 @@ fn diamond_branch_needs_fetch() {
         ],
     );
 
-    // The Embedding island (bb2) only runs on one branch and doesn't dominate bb3,
-    // so a data island for Embedding must be inserted.
-    let has_embedding_data_island =
-        (0..graph.node_count())
-            .map(IslandId::from_usize)
-            .any(|island_id| {
-                matches!(graph[island_id].kind(), IslandKind::Data)
-                    && graph[island_id].target() == TargetId::Embedding
-            });
+    // 4 exec islands + 1 data island for Embedding.
+    assert_eq!(graph.node_count(), 5);
 
+    let data = find_data_island(&graph, TargetId::Embedding);
+    assert_matches!(graph[data].kind(), IslandKind::Data);
+
+    // The data island provides Vectors.
     assert!(
-        has_embedding_data_island,
-        "expected a data island for Embedding"
+        graph[data]
+            .provides()
+            .as_entity()
+            .expect("entity vertex")
+            .contains(EntityPath::Vectors)
     );
+
+    // bb3 (second Postgres island) consumes Vectors from the data island.
+    // Find both Postgres exec islands: bb0 is the entry, bb3 is the merge point.
+    let postgres_islands: Vec<_> = (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .filter(|&island_id| {
+            graph[island_id].target() == TargetId::Postgres
+                && matches!(graph[island_id].kind(), IslandKind::Exec(_))
+        })
+        .collect();
+    assert_eq!(postgres_islands.len(), 2);
+
+    // The merge-point Postgres island (bb3) should have a DataFlow edge from the data island.
+    let merge_postgres = postgres_islands
+        .iter()
+        .find(|&&island_id| has_edge(&graph, data, island_id, IslandEdge::DataFlow))
+        .expect("data island should have DataFlow edge to a Postgres island");
+
+    // bb3 also inherits from bb0 (both Postgres, bb0 dominates bb3).
+    let entry_postgres = postgres_islands
+        .iter()
+        .find(|&&island_id| island_id != *merge_postgres)
+        .expect("two distinct Postgres islands");
+    assert!(has_edge(
+        &graph,
+        *entry_postgres,
+        *merge_postgres,
+        IslandEdge::Inherits,
+    ));
 }
 
 /// Inherits edge: when two same-target islands are in a dominator relationship,
@@ -255,12 +334,49 @@ fn inherits_edge_same_target_dominator() {
         ],
     );
 
-    let inherits_count = graph
-        .iter_edges()
-        .filter(|edge| edge.data == IslandEdge::Inherits)
-        .count();
+    assert_eq!(graph.node_count(), 3);
+
+    // Find the two Postgres exec islands.
+    let postgres_islands: Vec<_> = (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .filter(|&island_id| graph[island_id].target() == TargetId::Postgres)
+        .collect();
+    assert_eq!(postgres_islands.len(), 2);
+
+    // Determine which is the dominator (bb0) and which is the child (bb2).
+    // The Inherits edge points dominator → child.
+    let (dominator, child) = if has_edge(
+        &graph,
+        postgres_islands[0],
+        postgres_islands[1],
+        IslandEdge::Inherits,
+    ) {
+        (postgres_islands[0], postgres_islands[1])
+    } else {
+        assert!(has_edge(
+            &graph,
+            postgres_islands[1],
+            postgres_islands[0],
+            IslandEdge::Inherits,
+        ));
+        (postgres_islands[1], postgres_islands[0])
+    };
+
+    // The dominator self-provides Properties (origin backend, first to resolve it).
     assert!(
-        inherits_count > 0,
-        "expected an Inherits edge between same-target dominating islands"
+        graph[dominator]
+            .provides()
+            .as_entity()
+            .expect("entity vertex")
+            .contains(EntityPath::Properties),
+    );
+
+    // The child also self-provides Properties (it's on the origin backend and requires it).
+    assert!(
+        graph[child]
+            .provides()
+            .as_entity()
+            .expect("entity vertex")
+            .contains(EntityPath::Properties),
     );
 }
