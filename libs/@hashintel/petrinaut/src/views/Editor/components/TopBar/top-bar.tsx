@@ -22,10 +22,11 @@ const topBarStyle = css({
   boxSizing: "border-box",
   padding: "[16px]",
   backgroundColor: "[white]",
-  borderBottomWidth: "thin",
-  borderColor: "neutral.s40",
+  outlineWidth: "[1px]",
+  outlineStyle: "solid",
+  outlineColor: "neutral.s40",
   flexShrink: 0,
-  zIndex: 1003,
+  zIndex: 999,
 });
 
 const leftSectionStyle = css({
