@@ -34,6 +34,7 @@ const positionerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  pointerEvents: "auto",
   zIndex: "[1100]",
 });
 
@@ -49,6 +50,7 @@ const outerStyle = css({
   width: "[90vw]",
   maxHeight: "[85vh]",
   overflow: "clip",
+  userSelect: "none",
   boxShadow:
     "[0px 0px 1px 0px rgba(0,0,0,0.02), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 6px 6px -3px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.03), 0px 24px 24px -12px rgba(0,0,0,0.02)]",
   "&[data-state=open]": {
