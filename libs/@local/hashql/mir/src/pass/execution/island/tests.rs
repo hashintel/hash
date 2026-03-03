@@ -343,6 +343,7 @@ fn island_joins_traversal_paths() {
     let island = &islands[IslandId::new(0)];
     let traversal_paths = island.traversals();
     let joined = traversal_paths.as_entity().expect("entity vertex");
+    assert_eq!(joined.len(), 2);
     assert!(joined.contains(EntityPath::Properties));
     assert!(joined.contains(EntityPath::ProvenanceEdition));
 }
