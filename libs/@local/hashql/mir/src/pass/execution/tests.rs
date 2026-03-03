@@ -65,7 +65,7 @@ fn assert_execution<'heap>(
     assert_snapshot!(name, output);
 }
 
-/// Runs `TraversalExtraction` and `SizeEstimationAnalysis`, then `ExecutionAnalysis`.
+/// Runs `SizeEstimationAnalysis`, then `ExecutionAnalysis`.
 #[track_caller]
 fn run_execution<'heap>(
     context: &mut MirContext<'_, 'heap>,
