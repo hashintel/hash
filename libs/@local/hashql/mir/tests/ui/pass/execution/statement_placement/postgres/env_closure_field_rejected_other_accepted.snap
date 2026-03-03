@@ -15,7 +15,3 @@ fn {graph::read::filter@4294967040}(%0: (Integer, (Integer) -> Integer), %1: Ent
         return %4
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

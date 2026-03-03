@@ -15,10 +15,18 @@ use hashql_core::{
     id::{self, bit_vec::DenseBitSet},
 };
 
-use super::target::TargetId;
-use crate::body::{
-    Body,
-    basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockUnionFind, BasicBlockVec},
+use super::{
+    VertexType,
+    target::TargetId,
+    traversal::{TraversalAnalysisVisitor, TraversalLattice, TraversalPathBitSet, TraversalResult},
+};
+use crate::{
+    body::{
+        Body,
+        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockUnionFind, BasicBlockVec},
+    },
+    pass::analysis::dataflow::lattice::HasBottom as _,
+    visit::Visitor as _,
 };
 
 #[cfg(test)]
@@ -43,6 +51,7 @@ id::newtype_collections!(pub type Island* from IslandId);
 pub struct Island {
     target: TargetId,
     members: DenseBitSet<BasicBlockId>,
+    traversals: TraversalPathBitSet,
 }
 
 impl Island {
@@ -72,6 +81,11 @@ impl Island {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.members.is_empty()
+    }
+
+    #[must_use]
+    pub const fn traversals(&self) -> TraversalPathBitSet {
+        self.traversals
     }
 
     /// Iterates over the [`BasicBlockId`]s in this island in ascending order.
@@ -117,12 +131,16 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
     pub(crate) fn run<A>(
         &self,
         body: &Body<'_>,
+        vertex: VertexType,
+
         targets: &BasicBlockSlice<TargetId>,
+
         alloc: A,
     ) -> IslandVec<Island, A>
     where
         A: Allocator,
     {
+        let lattice = TraversalLattice::new(vertex);
         let mut union = BasicBlockUnionFind::new_in(body.basic_blocks.len(), self.scratch.clone());
 
         for bb in body.basic_blocks.ids() {
@@ -144,10 +162,22 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
                 islands.push(Island {
                     target: targets[root],
                     members: DenseBitSet::new_empty(body.basic_blocks.len()),
+                    traversals: lattice.bottom(),
                 })
             });
 
             islands[index].members.insert(bb);
+        }
+
+        for island in &mut islands {
+            let mut visitor = TraversalAnalysisVisitor::new(vertex, |_, result| match result {
+                TraversalResult::Path(path) => island.traversals.insert(path),
+                TraversalResult::Complete => island.traversals.insert_all(),
+            });
+
+            for id in &island.members {
+                Ok(()) = visitor.visit_basic_block(id, &body.basic_blocks[id]);
+            }
         }
 
         islands

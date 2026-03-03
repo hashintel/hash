@@ -2,11 +2,11 @@
 
 use core::mem;
 
-use hashql_core::{heap::Heap, id::IdArray, r#type::environment::Environment};
+use hashql_core::{heap::Heap, id::IdArray, symbol::sym, r#type::environment::Environment};
 
 use super::{super::PlacementSolver, CyclicPlacementRegion};
 use crate::{
-    body::{basic_block::BasicBlockSlice, location::Location},
+    body::location::Location,
     builder::body,
     intern::Interner,
     pass::execution::{
@@ -16,7 +16,9 @@ use crate::{
             PlacementRegionId, PlacementSolverContext,
             condensation::PlacementRegionKind,
             csp::ConstraintSatisfaction,
-            tests::{all_targets, bb, fix_block, stmt_costs, target_set, terminators},
+            tests::{
+                all_targets, bb, fix_block, make_block_costs, stmt_costs, target_set, terminators,
+            },
         },
         target::{TargetArray, TargetId},
         terminator_placement::{TerminatorCostVec, TransMatrix},
@@ -57,8 +59,8 @@ fn narrow_restricts_successor_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -78,10 +80,9 @@ fn narrow_restricts_successor_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -108,8 +109,8 @@ fn narrow_restricts_predecessor_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -129,10 +130,9 @@ fn narrow_restricts_predecessor_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -161,8 +161,8 @@ fn narrow_to_empty_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -180,10 +180,9 @@ fn narrow_to_empty_domain() {
         bb(1): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -210,8 +209,8 @@ fn narrow_multiple_edges_intersect() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb2, bb2→bb0, bb2→bb3
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -234,10 +233,9 @@ fn narrow_multiple_edges_intersect() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -273,8 +271,8 @@ fn replay_narrowing_resets_then_repropagates() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -294,10 +292,9 @@ fn replay_narrowing_resets_then_repropagates() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -330,18 +327,18 @@ fn replay_narrowing_resets_then_repropagates() {
 
 // --- Group 4: Lower Bound ---
 
-/// Lower bound sums the minimum statement cost across each unfixed block's domain.
+/// Lower bound sums the minimum block cost across each unfixed block's domain.
 ///
 /// With zero transition costs, the bound reduces to the sum of per-block minimum
-/// statement costs: min(10, 20) + min(5, 15) = 15.
+/// block costs: min(10, 20) + min(5, 15) = 15.
 #[test]
-fn lower_bound_min_statement_cost_per_block() {
+fn lower_bound_min_block_cost_per_block() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -373,10 +370,9 @@ fn lower_bound_min_statement_cost_per_block() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -394,7 +390,7 @@ fn lower_bound_min_statement_cost_per_block() {
 
 /// Lower bound includes the minimum valid transition cost for each inter-block edge.
 ///
-/// With zero statement costs, the bound is determined by the cheapest compatible
+/// With zero block costs, the bound is determined by the cheapest compatible
 /// transition across each edge between unfixed blocks.
 #[test]
 fn lower_bound_min_transition_cost_per_edge() {
@@ -402,8 +398,8 @@ fn lower_bound_min_transition_cost_per_edge() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -429,10 +425,9 @@ fn lower_bound_min_transition_cost_per_edge() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -461,8 +456,8 @@ fn lower_bound_skips_self_loop_edges() {
     let env = Environment::new(&heap);
 
     // bb0→bb0 (self-loop), bb0→bb1, bb1→bb0, bb1→bb2 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb0() else bb1(); },
         bb1() { cond = load true; if cond then bb0() else bb2(); },
         bb2() { x = load 0; return x; }
@@ -484,10 +479,9 @@ fn lower_bound_skips_self_loop_edges() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -511,8 +505,8 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -538,10 +532,9 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -571,8 +564,8 @@ fn lower_bound_all_fixed_returns_zero() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -595,10 +588,9 @@ fn lower_bound_all_fixed_returns_zero() {
         bb(1): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -625,8 +617,8 @@ fn mrv_selects_smallest_domain() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -651,10 +643,9 @@ fn mrv_selects_smallest_domain() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -679,8 +670,8 @@ fn mrv_tiebreak_by_constraint_degree() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb0, bb2→bb0, bb0→bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; switch cond [0 => bb1(), 1 => bb2(), _ => bb3()]; },
         bb1() { x = load 0; goto bb0(); },
         bb2() { x = load 0; goto bb0(); },
@@ -702,10 +693,9 @@ fn mrv_tiebreak_by_constraint_degree() {
         bb(2): [complete(1)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -730,8 +720,8 @@ fn mrv_skips_fixed_blocks() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -756,10 +746,9 @@ fn mrv_skips_fixed_blocks() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -779,7 +768,7 @@ fn mrv_skips_fixed_blocks() {
 
 /// Greedy solver assigns both blocks in a 2-block SCC to the cheapest same-target.
 ///
-/// Both blocks prefer P (statement cost 3 vs 8). Same-target transitions cost 0,
+/// Both blocks prefer P (block cost 3 vs 8). Same-target transitions cost 0,
 /// so greedy converges on all-P without rollback.
 #[test]
 fn greedy_solves_two_block_loop() {
@@ -787,8 +776,8 @@ fn greedy_solves_two_block_loop() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { cond = load true; if cond then bb0() else bb2(); },
         bb2() { return x; }
@@ -814,10 +803,9 @@ fn greedy_solves_two_block_loop() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -842,8 +830,8 @@ fn greedy_rollback_finds_alternative() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { cond = load true; if cond then bb0() else bb3(); },
@@ -869,10 +857,9 @@ fn greedy_rollback_finds_alternative() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -907,8 +894,8 @@ fn greedy_fails_when_infeasible() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -927,10 +914,9 @@ fn greedy_fails_when_infeasible() {
         bb(1): [P->P = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -954,8 +940,8 @@ fn bnb_finds_optimal() {
     let env = Environment::new(&heap);
 
     // bb0→bb1, bb0→bb2, bb1→bb0, bb2→bb0, bb0→bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; switch cond [0 => bb1(), 1 => bb2(), _ => bb3()]; },
         bb1() { x = load 0; goto bb0(); },
         bb2() { x = load 0; goto bb0(); },
@@ -985,10 +971,9 @@ fn bnb_finds_optimal() {
         bb(2): [diagonal(0), I->P = 20, P->I = 20]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1015,8 +1000,8 @@ fn bnb_retains_ranked_solutions() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1041,10 +1026,9 @@ fn bnb_retains_ranked_solutions() {
         bb(1): [diagonal(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1085,8 +1069,8 @@ fn bnb_pruning_preserves_optimal() {
     let env = Environment::new(&heap);
 
     // 4-block SCC: bb0→bb1→bb2→bb3→bb0, plus bb4 exit
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; goto bb1(); },
         bb1() { x = load 0; goto bb2(); },
         bb2() { x = load 0; goto bb3(); },
@@ -1118,10 +1102,9 @@ fn bnb_pruning_preserves_optimal() {
         ]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1148,8 +1131,8 @@ fn retry_returns_ranked_solutions_in_order() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1175,10 +1158,9 @@ fn retry_returns_ranked_solutions_in_order() {
         bb(1): [diagonal(0), I->P = 5, P->I = 5]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1220,8 +1202,8 @@ fn retry_exhausts_then_perturbs() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { x = load 0; cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1246,10 +1228,9 @@ fn retry_exhausts_then_perturbs() {
         bb(1): [diagonal(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1285,8 +1266,8 @@ fn greedy_rollback_on_empty_heap() {
 
     // 2-block SCC: bb0↔bb1, bb2 exit
     // bb0: `if cond then bb1 else bb2` → [bb2(arm0), bb1(arm1)]
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1314,10 +1295,9 @@ fn greedy_rollback_on_empty_heap() {
         bb(1): [I->P = 0, I->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1358,8 +1338,8 @@ fn retry_perturbation_after_ranked_exhaustion() {
     let env = Environment::new(&heap);
 
     // 2-block SCC: bb0↔bb1, bb2 exit
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
         bb0() { cond = load true; if cond then bb1() else bb2(); },
         bb1() { x = load 0; goto bb0(); },
         bb2() { return x; }
@@ -1385,10 +1365,9 @@ fn retry_perturbation_after_ranked_exhaustion() {
         bb(1): [complete(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);

@@ -11,7 +11,6 @@
 //! [`DenseBitSet`]: super::DenseBitSet
 #![expect(
     clippy::cast_possible_truncation,
-    clippy::cast_lossless,
     reason = "Integral conversions in macro expansions may truncate or widen depending on target \
               type"
 )]
@@ -19,7 +18,7 @@
 use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    marker::PhantomData,
+    marker::{Destruct, PhantomData},
     ops::{BitAnd, BitAndAssign, BitOrAssign, Not, RangeBounds, Shl, Shr, Sub},
 };
 
@@ -34,17 +33,17 @@ use crate::id::{Id, bit_vec::inclusive_start_end};
 ///
 /// The "integral" in the name refers to the mathematical concept of integers, distinguishing
 /// these types from other potential backing stores like arrays of integers.
-pub trait FiniteBitSetIntegral:
+pub const trait FiniteBitSetIntegral:
     Copy
     + Clone
     + Hash
-    + BitAnd<Output = Self>
-    + BitOrAssign
-    + BitAndAssign
-    + Shl<Output = Self>
-    + Shr<Output = Self>
-    + Sub<Output = Self>
-    + Not<Output = Self>
+    + const BitAnd<Output = Self>
+    + const BitOrAssign
+    + const BitAndAssign
+    + const Shl<Output = Self>
+    + const Shr<Output = Self>
+    + const Sub<Output = Self>
+    + const Not<Output = Self>
     + const PartialEq
     + fmt::Binary
 {
@@ -66,7 +65,7 @@ pub trait FiniteBitSetIntegral:
     const ZERO: Self;
 
     /// Converts an [`Id`] to this integral type.
-    fn from_id<I: Id>(id: I) -> Self;
+    fn from_id<I: [const] Id>(id: I) -> Self;
 
     /// Converts a `usize` to this integral type.
     fn from_usize(value: usize) -> Self;
@@ -86,14 +85,14 @@ macro_rules! impl_trait {
         $(impl_trait!(@impl $integral);)*
     };
     (@impl $integral:ty) => {
-        impl FiniteBitSetIntegral for $integral {
+        impl const FiniteBitSetIntegral for $integral {
             const EMPTY: Self = Self::MIN;
             const FILLED: Self = Self::MAX;
             const MAX_DOMAIN_SIZE: u32 = <$integral>::BITS;
             const ONE: Self = 1;
             const ZERO: Self = 0;
 
-            fn from_id<I: Id>(id: I) -> Self {
+            fn from_id<I: [const] Id>(id: I) -> Self {
                 id.as_u32() as Self
             }
 
@@ -207,7 +206,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn insert(&mut self, index: I) {
+    pub const fn insert(&mut self, index: I)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         assert!(index.as_u32() < T::MAX_DOMAIN_SIZE);
 
         self.store |= T::ONE << T::from_id(index);
@@ -221,8 +224,13 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if the range end exceeds the capacity of the underlying integral type.
     #[inline]
-    pub fn insert_range(&mut self, bounds: impl RangeBounds<I>) {
-        let Some((start, end)) = inclusive_start_end(bounds, T::MAX_DOMAIN_SIZE as usize) else {
+    pub const fn insert_range<R>(&mut self, bounds: R, domain_size: usize)
+    where
+        R: [const] RangeBounds<I> + [const] Destruct,
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
+        let Some((start, end)) = inclusive_start_end(bounds, domain_size) else {
             return;
         };
 
@@ -240,7 +248,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn remove(&mut self, index: I) {
+    pub const fn remove(&mut self, index: I)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         assert!(index.as_u32() < T::MAX_DOMAIN_SIZE);
 
         self.store &= !(T::ONE << T::from_id(index));
@@ -252,7 +264,11 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     ///
     /// Panics if `index` is out of bounds for the underlying integral type.
     #[inline]
-    pub fn set(&mut self, index: I, value: bool) {
+    pub const fn set(&mut self, index: I, value: bool)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         if value {
             self.insert(index);
         } else {
@@ -265,12 +281,38 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
     /// Returns `false` if `index` is out of bounds (rather than panicking).
     #[inline]
     #[must_use]
-    pub fn contains(&self, index: I) -> bool {
+    pub const fn contains(&self, index: I) -> bool
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
         if index.as_u32() >= T::MAX_DOMAIN_SIZE {
             false
         } else {
             self.store & (T::ONE << T::from_id(index)) != T::EMPTY
         }
+    }
+
+    /// Flips all bits within the domain, turning set bits off and unset bits on.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `domain_size` is greater than `T::MAX_DOMAIN_SIZE`.
+    #[inline]
+    pub const fn negate(&mut self, domain_size: u32)
+    where
+        I: [const] Id,
+        T: [const] FiniteBitSetIntegral,
+    {
+        assert!(domain_size <= T::MAX_DOMAIN_SIZE);
+
+        let mask = if domain_size == T::MAX_DOMAIN_SIZE {
+            !T::EMPTY
+        } else {
+            (T::ONE << T::from_u32(domain_size)) - T::ONE
+        };
+
+        self.store = !self.store & mask;
     }
 
     /// Returns an iterator over the indices of set bits.
@@ -416,7 +458,7 @@ mod tests {
     #[test]
     fn remove() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
 
         set.remove(TestId::from_usize(0));
         set.remove(TestId::from_usize(7));
@@ -442,7 +484,7 @@ mod tests {
     fn insert_range_basic() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
 
-        set.insert_range(TestId::from_usize(2)..TestId::from_usize(5));
+        set.insert_range(TestId::from_usize(2)..TestId::from_usize(5), 8);
 
         assert!(!set.contains(TestId::from_usize(0)));
         assert!(!set.contains(TestId::from_usize(1)));
@@ -457,7 +499,7 @@ mod tests {
     fn insert_range_inclusive() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
 
-        set.insert_range(TestId::from_usize(2)..=TestId::from_usize(5));
+        set.insert_range(TestId::from_usize(2)..=TestId::from_usize(5), 8);
 
         assert!(set.contains(TestId::from_usize(2)));
         assert!(set.contains(TestId::from_usize(5)));
@@ -468,7 +510,7 @@ mod tests {
     fn insert_range_full() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
 
-        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
 
         assert_eq!(set.len(), 8);
         assert_eq!(set.into_inner(), u8::MAX);
@@ -478,7 +520,7 @@ mod tests {
     fn insert_range_empty() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
 
-        set.insert_range(TestId::from_usize(5)..TestId::from_usize(5));
+        set.insert_range(TestId::from_usize(5)..TestId::from_usize(5), 8);
 
         assert!(set.is_empty());
     }
@@ -516,7 +558,7 @@ mod tests {
     #[test]
     fn clear() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
         set.clear();
         assert!(set.is_empty());
     }
@@ -524,7 +566,7 @@ mod tests {
     #[test]
     fn contains_out_of_bounds_returns_false() {
         let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
         assert!(!set.contains(TestId::from_usize(100)));
     }
 
@@ -538,19 +580,19 @@ mod tests {
     #[test]
     fn different_integral_types() {
         let mut set8: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        set8.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        set8.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
         assert_eq!(set8.len(), 8);
 
         let mut set16: FiniteBitSet<TestId, u16> = FiniteBitSet::new_empty(16);
-        set16.insert_range(TestId::from_usize(0)..=TestId::from_usize(15));
+        set16.insert_range(TestId::from_usize(0)..=TestId::from_usize(15), 16);
         assert_eq!(set16.len(), 16);
 
         let mut set64: FiniteBitSet<TestId, u64> = FiniteBitSet::new_empty(64);
-        set64.insert_range(TestId::from_usize(0)..=TestId::from_usize(63));
+        set64.insert_range(TestId::from_usize(0)..=TestId::from_usize(63), 64);
         assert_eq!(set64.len(), 64);
 
         let mut set128: FiniteBitSet<TestId, u128> = FiniteBitSet::new_empty(128);
-        set128.insert_range(TestId::from_usize(0)..=TestId::from_usize(127));
+        set128.insert_range(TestId::from_usize(0)..=TestId::from_usize(127), 128);
         assert_eq!(set128.len(), 128);
     }
 
@@ -561,7 +603,7 @@ mod tests {
             for start in 0..bits.min(8) {
                 for end in start..bits.min(16) {
                     let mut set: FiniteBitSet<TestId, u64> = FiniteBitSet::new_empty(64);
-                    set.insert_range(TestId::from_u32(start)..=TestId::from_u32(end.min(63)));
+                    set.insert_range(TestId::from_u32(start)..=TestId::from_u32(end.min(63)), 64);
 
                     for i in 0..64 {
                         let expected = i >= start && i <= end.min(63);
@@ -611,7 +653,7 @@ mod tests {
     #[test]
     fn subtract_removes_bits() {
         let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(4));
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(4), 8);
 
         let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
         b.insert(TestId::from_usize(1));
@@ -632,10 +674,10 @@ mod tests {
     #[test]
     fn subtract_disjoint_sets() {
         let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(3));
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(3), 8);
 
         let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        b.insert_range(TestId::from_usize(4)..=TestId::from_usize(7));
+        b.insert_range(TestId::from_usize(4)..=TestId::from_usize(7), 8);
 
         assert!(!a.subtract(&b));
         assert_eq!(a.len(), 4);
@@ -644,10 +686,10 @@ mod tests {
     #[test]
     fn intersect_keeps_common_bits() {
         let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(4));
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(4), 8);
 
         let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        b.insert_range(TestId::from_usize(2)..=TestId::from_usize(6));
+        b.insert_range(TestId::from_usize(2)..=TestId::from_usize(6), 8);
 
         assert!(a.intersect(&b));
         assert!(!a.contains(TestId::from_usize(0)));
@@ -666,10 +708,10 @@ mod tests {
     #[test]
     fn intersect_disjoint_sets() {
         let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(3));
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(3), 8);
 
         let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        b.insert_range(TestId::from_usize(4)..=TestId::from_usize(7));
+        b.insert_range(TestId::from_usize(4)..=TestId::from_usize(7), 8);
 
         assert!(a.intersect(&b));
         assert!(a.is_empty());
@@ -678,11 +720,91 @@ mod tests {
     #[test]
     fn intersect_with_empty() {
         let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
-        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(7));
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
 
         let b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
 
         assert!(a.intersect(&b));
         assert!(a.is_empty());
+    }
+
+    #[test]
+    fn negate_empty_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(4);
+        set.negate(4);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(set.contains(TestId::from_usize(3)));
+        assert!(!set.contains(TestId::from_usize(4)));
+        assert_eq!(set.len(), 4);
+    }
+
+    #[test]
+    fn negate_full_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(4);
+        set.insert_range(TestId::from_usize(0)..=TestId::from_usize(3), 4);
+        set.negate(4);
+
+        assert!(set.is_empty());
+    }
+
+    #[test]
+    fn negate_partial_set() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(1));
+        set.insert(TestId::from_usize(3));
+        set.insert(TestId::from_usize(5));
+        set.negate(8);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(!set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(!set.contains(TestId::from_usize(3)));
+        assert!(set.contains(TestId::from_usize(4)));
+        assert!(!set.contains(TestId::from_usize(5)));
+        assert!(set.contains(TestId::from_usize(6)));
+        assert!(set.contains(TestId::from_usize(7)));
+        assert_eq!(set.len(), 5);
+    }
+
+    #[test]
+    fn negate_masks_above_domain() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(3);
+        set.negate(3);
+
+        assert!(set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(2)));
+        assert!(!set.contains(TestId::from_usize(3)));
+        assert_eq!(set.len(), 3);
+    }
+
+    #[test]
+    fn negate_is_involution() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(6);
+        set.insert(TestId::from_usize(2));
+        set.insert(TestId::from_usize(4));
+
+        let original = set;
+        set.negate(6);
+        set.negate(6);
+
+        assert_eq!(set, original);
+    }
+
+    #[test]
+    fn negate_full_width() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(0));
+        set.insert(TestId::from_usize(7));
+        set.negate(8);
+
+        assert!(!set.contains(TestId::from_usize(0)));
+        assert!(set.contains(TestId::from_usize(1)));
+        assert!(set.contains(TestId::from_usize(6)));
+        assert!(!set.contains(TestId::from_usize(7)));
+        assert_eq!(set.len(), 6);
     }
 }

@@ -15,7 +15,3 @@ fn {graph::read::filter@4294967040}(%0: (Dict<String, Integer>, (a: Integer)), %
         return %4
     }
 }
-
-=================== Traversals ===================
-
-Traversals:
