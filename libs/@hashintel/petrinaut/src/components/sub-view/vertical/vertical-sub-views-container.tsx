@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -14,11 +14,15 @@ const DEFAULT_MIN_PANEL_HEIGHT = 100;
 const containerStyle = css({
   flex: "[1]",
   minHeight: "[0]",
-  /**
-   * Animate programmatic collapse/expand via CSS transition on flex-grow.
-   * Disabled when a separator is actively being dragged (data-separator="active")
-   * so drag-to-resize stays snappy.
-   */
+});
+
+/**
+ * Animate programmatic collapse/expand via CSS transition on flex-grow.
+ * Only applied after a user toggle so the initial mount doesn't animate.
+ * Disabled when a separator is actively being dragged (data-separator="active")
+ * so drag-to-resize stays snappy.
+ */
+const panelTransitionStyle = css({
   "& [data-panel]": {
     transition: "[flex-grow 200ms ease-out]",
   },
@@ -148,6 +152,25 @@ const mainTitleStyle = css({
 });
 
 /**
+ * Temporarily enables a boolean flag for `durationMs` after each call to
+ * `trigger()`. Useful for enabling CSS transitions only during programmatic
+ * state changes (e.g. collapse/expand) while keeping them disabled during
+ * mount, resize, or drag interactions.
+ */
+const useTransientTransition = (durationMs = 200) => {
+  const [active, setActive] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const trigger = () => {
+    setActive(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setActive(false), durationMs);
+  };
+
+  return { active, trigger };
+};
+
+/**
  * Wraps children in a scrollable container with top/bottom gradient shadows
  * that fade in when content overflows in that direction.
  */
@@ -158,14 +181,14 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
 
-  const updateShadows = useCallback(() => {
+  const updateShadows = () => {
     const el = scrollRef.current;
     if (!el) {
       return;
     }
     setCanScrollUp(el.scrollTop > 0);
     setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  }, []);
+  };
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -285,9 +308,13 @@ export const VerticalSubViewsContainer: React.FC<
     () => Object.fromEntries(subViews.map((sv) => [sv.id, !defaultExpanded])),
   );
 
-  const toggleSection = useCallback((id: string) => {
+  const { active: isAnimating, trigger: triggerTransition } =
+    useTransientTransition(200);
+
+  const toggleSection = (id: string) => {
+    triggerTransition();
     setCollapsedState((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+  };
 
   const allCollapsed = subViews.every((sv) => {
     const isCollapsible = !sv.main && (sv.collapsible ?? true);
@@ -295,7 +322,10 @@ export const VerticalSubViewsContainer: React.FC<
   });
 
   return (
-    <Group orientation="vertical" className={containerStyle}>
+    <Group
+      orientation="vertical"
+      className={cx(containerStyle, isAnimating && panelTransitionStyle)}
+    >
       {subViews.map((subView, index) => {
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);

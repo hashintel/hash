@@ -42,6 +42,7 @@ export default [
       // Disabled because React Compiler handles optimization automatically
       "react/jsx-no-bind": "off",
       "react/jsx-no-constructed-context-values": "off",
+      "react-hooks/exhaustive-deps": "off",
       "no-restricted-imports": [
         "error",
         {
