@@ -202,6 +202,41 @@ describe("User model class", () => {
     });
   });
 
+  it("rejects replacing the entire property object via empty path", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const maliciousProperties = structuredClone(
+      createdUser.entity.propertiesWithMetadata,
+    );
+    maliciousProperties.value[
+      "https://hash.ai/@h/types/property-type/enabled-feature-flags/"
+    ] = {
+      value: [
+        {
+          value: "admin-flag",
+          metadata: {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        },
+      ],
+    };
+
+    await expect(
+      updateEntity(graphContext, authentication, {
+        entity: createdUser.entity,
+        propertyPatches: [
+          {
+            op: "replace",
+            path: [],
+            property: maliciousProperties,
+          },
+        ],
+      }),
+    ).rejects.toThrowError(
+      "Cannot replace the entire property object on a user entity",
+    );
+  });
+
   let incompleteUser: User;
 
   it("can create an incomplete user", async () => {
