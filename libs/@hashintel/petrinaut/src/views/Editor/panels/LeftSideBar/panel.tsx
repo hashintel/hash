@@ -16,18 +16,8 @@ const glassPanelBaseStyle = css({
   top: "0",
   left: "0",
   bottom: "0",
-  height: "full",
   borderRightWidth: "thin",
   boxSizing: "border-box",
-});
-
-const panelContentStyle = css({
-  display: "flex",
-  height: "[100%]",
-  paddingBottom: "[0]",
-  flexDirection: "column",
-  gap: "[4px]",
-  alignItems: "stretch",
 });
 
 /**
@@ -50,7 +40,6 @@ export const LeftSideBar: React.FC = () => {
     <GlassPanel
       className={glassPanelBaseStyle}
       style={{ width: leftSidebarWidth }}
-      contentClassName={panelContentStyle}
       resizable={{
         edge: "right",
         size: leftSidebarWidth,
