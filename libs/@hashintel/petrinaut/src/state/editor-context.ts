@@ -36,6 +36,7 @@ export type EditorState = {
   selectedItemIds: Set<string>;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
+  isPanelAnimating: boolean;
 };
 
 /**
@@ -63,6 +64,7 @@ export type EditorActions = {
   resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
+  triggerPanelAnimation: () => void;
   __reinitialize: () => void;
 };
 
@@ -81,6 +83,7 @@ export const initialEditorState: EditorState = {
   selectedItemIds: new Set(),
   draggingStateByNodeId: {},
   timelineChartType: "run",
+  isPanelAnimating: false,
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
@@ -104,6 +107,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
+  triggerPanelAnimation: () => {},
   __reinitialize: () => {},
 };
 

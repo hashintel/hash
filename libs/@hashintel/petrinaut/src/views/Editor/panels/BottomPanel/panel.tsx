@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
@@ -26,6 +26,27 @@ const glassPanelBaseStyle = css({
   zIndex: 1001,
   borderTopWidth: "thin",
   boxSizing: "border-box",
+});
+
+const panelStyle = cva({
+  base: {},
+  variants: {
+    open: {
+      true: {
+        transform: "translateY(0)",
+      },
+      false: {
+        transform: "translateY(100%)",
+        pointerEvents: "none",
+      },
+    },
+    animating: {
+      true: {
+        transition:
+          "[width 150ms ease-in-out, opacity 150ms ease-in-out, height 150ms ease-in-out, top 150ms ease-in-out, left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out, transform 150ms ease-in-out]",
+      },
+    },
+  },
 });
 
 const panelContainerStyle = css({
@@ -83,6 +104,7 @@ export const BottomPanel: React.FC = () => {
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
+    isPanelAnimating,
   } = use(EditorContext);
 
   // Simulation state for conditional subviews
@@ -137,13 +159,12 @@ export const BottomPanel: React.FC = () => {
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
     <GlassPanel
-      className={glassPanelBaseStyle}
+      className={cx(
+        glassPanelBaseStyle,
+        panelStyle({ open: isOpen, animating: isPanelAnimating }),
+      )}
       style={{
         bottom: PANEL_MARGIN,
         left: leftOffset,

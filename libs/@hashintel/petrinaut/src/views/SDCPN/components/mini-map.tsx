@@ -80,7 +80,8 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { selectedResourceId, propertiesPanelWidth } = use(EditorContext);
+  const { selectedResourceId, propertiesPanelWidth, isPanelAnimating } =
+    use(EditorContext);
 
   const isPropertiesPanelVisible = selectedResourceId !== null;
   const minimapOffset = 12;
@@ -100,6 +101,7 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
         left: "auto",
         width: 130,
         height: 73,
+        transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
       }}
       maskColor="rgba(0, 0, 0, 0.15)"
       maskStrokeWidth={0}

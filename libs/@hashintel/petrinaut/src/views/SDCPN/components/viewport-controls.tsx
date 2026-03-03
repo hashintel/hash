@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import {
   TbLockOpen,
@@ -22,6 +22,17 @@ const containerStyle = css({
   flexDirection: "column",
   gap: "1",
   zIndex: "[900]",
+});
+
+const animatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition: "[right 150ms ease-in-out, bottom 150ms ease-in-out]",
+      },
+    },
+  },
 });
 
 const buttonStyle = css({
@@ -56,6 +67,7 @@ export const ViewportControls: React.FC = () => {
     propertiesPanelWidth,
     isBottomPanelOpen,
     bottomPanelHeight,
+    isPanelAnimating,
   } = use(EditorContext);
 
   const isPropertiesPanelVisible = selectedResourceId !== null;
@@ -67,7 +79,7 @@ export const ViewportControls: React.FC = () => {
 
   return (
     <div
-      className={containerStyle}
+      className={`${containerStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
       style={{ right: rightOffset, bottom: bottomOffset }}
     >
       <Tooltip content="Zoom in" display="inline" placement="left">
