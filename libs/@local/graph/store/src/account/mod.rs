@@ -132,6 +132,18 @@ pub trait AccountStore {
         id: UserId,
     ) -> impl Future<Output = Result<Option<User>, Report<GetActorError>>> + Send;
 
+    /// Returns the [`UserId`] for a user with the given email address.
+    ///
+    /// Looks up the email in entity properties, bypassing property masking.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> impl Future<Output = Result<Option<UserId>, Report<GetActorError>>> + Send;
+
     /// Returns a [`Machine`] actor by its [`MachineId`].
     ///
     /// # Errors

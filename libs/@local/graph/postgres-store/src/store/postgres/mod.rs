@@ -3449,6 +3449,34 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             }))
     }
 
+    async fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<UserId>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT user_actor.id
+                FROM user_actor
+                JOIN entity_temporal_metadata ON user_actor.id = entity_temporal_metadata.entity_uuid
+                JOIN entity_editions ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+                WHERE entity_temporal_metadata.decision_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_editions.properties -> 'https://hash.ai/@h/types/property-type/email/' @> to_jsonb($1::text)",
+                &[&email],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(GetActorError)?
+            .map(|row| UserId::new(row.get::<_, Uuid>(0))))
+    }
+
     async fn get_machine_by_id(
         &self,
         _actor_id: ActorEntityUuid,

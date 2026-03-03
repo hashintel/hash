@@ -43,7 +43,7 @@ async fn decision_time_exceeds_transaction_time() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -106,7 +106,7 @@ async fn decision_time_in_past_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -152,7 +152,7 @@ async fn decision_time_defaults_to_transaction_time() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -207,7 +207,7 @@ async fn decision_time_before_creation_finds_nothing() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -310,7 +310,7 @@ async fn past_decision_time_deletes_all_editions() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,

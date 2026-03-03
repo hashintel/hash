@@ -8,13 +8,18 @@ use alloc::sync::Arc;
 use axum::{
     Extension, Json, Router,
     body::Body,
+    extract::FromRequestParts,
+    http::request::Parts,
+    response::IntoResponse as _,
     routing::{delete, get, post},
 };
 use error_stack::Report;
 use futures::TryStreamExt as _;
 use hash_codec::bytes::JsonLinesDecoder;
+use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::{snapshot::SnapshotStore, store::PostgresStorePool};
 use hash_graph_store::{
+    account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
 };
@@ -56,6 +61,64 @@ pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValida
         .merge(protected)
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(Arc::new(store_pool)))
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+enum AdminActorError {
+    #[display("JWT claims do not contain an email address")]
+    MissingEmail,
+    #[display("no user account found for the authenticated email")]
+    UserNotFound,
+}
+
+/// Resolves the authenticated admin actor from JWT claims.
+///
+/// When JWT authentication is configured, resolves the actor ID by looking up the email from the
+/// token claims. When JWT is disabled (dev mode), falls back to the `X-Authenticated-User-Actor-Id`
+/// header.
+struct AdminActorId(AuthenticatedActor);
+
+impl<S: Sync> FromRequestParts<S> for AdminActorId {
+    type Rejection = BoxedResponse;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let jwt = OptionalJwtAuthentication::from_request_parts(parts, state).await?;
+
+        let Some(claims) = jwt.0 else {
+            // No JWT configured (dev mode) — fall back to header
+            let AuthenticatedUserHeader(actor_id) =
+                AuthenticatedUserHeader::from_request_parts(parts, state)
+                    .await
+                    .map_err(|rejection| BoxedResponse::from(rejection.into_response()))?;
+            return Ok(Self(actor_id.into()));
+        };
+
+        let email = claims.email.ok_or_else(|| {
+            report_to_response(
+                Report::new(AdminActorError::MissingEmail).attach(StatusCode::Unauthorized),
+            )
+        })?;
+
+        let pool = parts
+            .extensions
+            .get::<Arc<PostgresStorePool>>()
+            .expect("store pool must be configured on admin routes");
+
+        let user_id = pool
+            .acquire(None)
+            .await
+            .map_err(report_to_response)?
+            .get_user_id_by_email(&email)
+            .await
+            .map_err(report_to_response)?
+            .ok_or_else(|| {
+                report_to_response(
+                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::Unauthorized),
+                )
+            })?;
+
+        Ok(Self(user_id.into()))
+    }
 }
 
 async fn restore_snapshot(
@@ -158,13 +221,12 @@ async fn delete_entity_types(
 
 /// Deletes entities matching the given filter and scope with full provenance tracking.
 async fn delete_entities(
-    _jwt: OptionalJwtAuthentication,
+    AdminActorId(actor_id): AdminActorId,
     pool: Extension<Arc<PostgresStorePool>>,
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeletionSummary>, BoxedResponse> {
     // Deserialize into `Value` first so that `DeleteEntitiesParams` (which borrows via
-    // `Filter<'a>`) can reference the owned data.  `Json<DeleteEntitiesParams>` would not compile
+    // `Filter<'a>`) can reference the owned data. `Json<DeleteEntitiesParams>` would not compile
     // because the borrowed data would be dropped before use.
     let params = DeleteEntitiesParams::deserialize(&body).map_err(|error| {
         report_to_response(Report::new(error).attach(StatusCode::InvalidArgument))

@@ -2308,7 +2308,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn delete_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: AuthenticatedActor,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
         // TODO: Authorization — check delete permission via PolicyComponents
@@ -2318,7 +2318,7 @@ where
             .await
             .change_context(DeletionError::Store)?;
         let summary = transaction
-            .execute_entity_deletion(actor_id, params)
+            .execute_entity_deletion(actor_id.into(), params)
             .await?;
         transaction
             .commit()
