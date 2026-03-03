@@ -62,6 +62,101 @@ export type AffiliatedWithPropertiesWithMetadata =
   };
 
 /**
+ * A vehicle designed for air travel, such as an airplane or helicopter.
+ */
+export type Aircraft = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/aircraft/v/1"];
+  properties: AircraftProperties;
+  propertiesWithMetadata: AircraftPropertiesWithMetadata;
+};
+
+export type AircraftOutgoingLinkAndTarget = never;
+
+export type AircraftOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A vehicle designed for air travel, such as an airplane or helicopter.
+ */
+export type AircraftProperties = {
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValue;
+};
+
+export type AircraftPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A company that provides air transport services for passengers and/or cargo.
+ */
+export type Airline = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/airline/v/1"];
+  properties: AirlineProperties;
+  propertiesWithMetadata: AirlinePropertiesWithMetadata;
+};
+
+export type AirlineOutgoingLinkAndTarget = never;
+
+export type AirlineOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A company that provides air transport services for passengers and/or cargo.
+ */
+export type AirlineProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+};
+
+export type AirlinePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A facility where aircraft take off and land, with infrastructure for passenger and cargo services.
+ */
+export type Airport = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/airport/v/1"];
+  properties: AirportProperties;
+  propertiesWithMetadata: AirportPropertiesWithMetadata;
+};
+
+export type AirportOutgoingLinkAndTarget = never;
+
+export type AirportOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A facility where aircraft take off and land, with infrastructure for passenger and cargo services.
+ */
+export type AirportProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
+  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValue;
+};
+
+export type AirportPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValueWithMetadata;
+  };
+};
+
+/**
  * A user or other entity's preferences for how an application should behave or appear
  */
 export type ApplicationPreferencesPropertyValue = ObjectDataType;
@@ -250,6 +345,13 @@ export type BytesDataTypeMetadata = {
 };
 
 /**
+ * The city where something is located, occurred, etc.
+ */
+export type CityPropertyValue = TextDataType;
+
+export type CityPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * Comment associated with the issue.
  */
 export type Comment = {
@@ -340,6 +442,28 @@ export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
 export type DOIPropertyValue = DOIDataType;
 
 export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
+
+/**
+ * The data sources configuration for an AI flow.
+ */
+export type DataSourcesPropertyValue = ObjectDataType;
+
+export type DataSourcesPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+
+/**
+ * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
+ */
+export type DateDataType = TextDataType;
+
+export type DateDataTypeWithMetadata = {
+  value: DateDataType;
+  metadata: DateDataTypeMetadata;
+};
+export type DateDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1";
+};
 
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
@@ -449,6 +573,21 @@ export type DraftNotePropertyValue = TextDataType;
 export type DraftNotePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * A measure of the length of time.
+ */
+export type DurationDataType = NumberDataType;
+
+export type DurationDataTypeWithMetadata = {
+  value: DurationDataType;
+  metadata: DurationDataTypeMetadata;
+};
+export type DurationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1";
+};
+
+/**
  * An identifier for an email box to which messages are delivered.
  */
 export type EmailDataType = TextDataType;
@@ -493,6 +632,13 @@ export type EntityEditionIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type ExpiredAtPropertyValue = DateTimeDataType;
 
 export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
+ * An explanation or justification for something.
+ */
+export type ExplanationPropertyValue = TextDataType;
+
+export type ExplanationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The name of a feature
@@ -636,12 +782,47 @@ export type FileURLPropertyValue = URIDataType;
 export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
- * The ID of the flow definition (the `entityId` of the flow definition entity).
+ * The definition of a HASH flow.
+ */
+export type FlowDefinition = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/1"];
+  properties: FlowDefinitionProperties;
+  propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
+};
+
+/**
+ * The ID of a flow definition.
  */
 export type FlowDefinitionIDPropertyValue = TextDataType;
 
 export type FlowDefinitionIDPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
+
+export type FlowDefinitionOutgoingLinkAndTarget = never;
+
+export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The definition of a HASH flow.
+ */
+export type FlowDefinitionProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
+};
+
+export type FlowDefinitionPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
+  };
+};
 
 /**
  * An execution run of a flow.
@@ -652,9 +833,14 @@ export type FlowRun = {
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
 
-export type FlowRunOutgoingLinkAndTarget = never;
+export type FlowRunOutgoingLinkAndTarget =
+  | FlowRunScheduledByLink
+  | FlowRunUsesLink;
 
-export type FlowRunOutgoingLinksByLinkEntityTypeId = {};
+export type FlowRunOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@h/types/entity-type/scheduled-by/v/1": FlowRunScheduledByLink;
+  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowRunUsesLink;
+};
 
 /**
  * An execution run of a flow.
@@ -665,6 +851,7 @@ export type FlowRunProperties = {
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@h/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+  "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
 export type FlowRunPropertiesWithMetadata = {
@@ -675,8 +862,92 @@ export type FlowRunPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/step/": StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
+
+export type FlowRunScheduledByLink = {
+  linkEntity: ScheduledBy;
+  rightEntity: FlowSchedule;
+};
+
+export type FlowRunUsesLink = { linkEntity: Uses; rightEntity: FlowDefinition };
+
+/**
+ * A schedule that triggers recurring executions of a flow definition.
+ */
+export type FlowSchedule = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-schedule/v/1"];
+  properties: FlowScheduleProperties;
+  propertiesWithMetadata: FlowSchedulePropertiesWithMetadata;
+};
+
+export type FlowScheduleOutgoingLinkAndTarget = FlowScheduleUsesLink;
+
+export type FlowScheduleOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowScheduleUsesLink;
+};
+
+/**
+ * A schedule that triggers recurring executions of a flow definition.
+ */
+export type FlowScheduleProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValue;
+  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
+  "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValue;
+  "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+};
+
+export type FlowSchedulePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+  };
+};
+
+export type FlowScheduleUsesLink = {
+  linkEntity: Uses;
+  rightEntity: FlowDefinition;
+};
+
+/**
+ * The type of a flow, determining which task queue it runs on.
+ */
+export type FlowTypeDataType = "ai" | "integration";
+
+export type FlowTypeDataTypeWithMetadata = {
+  value: FlowTypeDataType;
+  metadata: FlowTypeDataTypeMetadata;
+};
+export type FlowTypeDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1";
+};
+
+/**
+ * The type of a flow, determining which task queue it runs on.
+ */
+export type FlowTypePropertyValue = FlowTypeDataType;
+
+export type FlowTypePropertyValueWithMetadata = FlowTypeDataTypeWithMetadata;
 
 /**
  * The fractional index indicating the current position of something.
@@ -927,6 +1198,20 @@ export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
+
+/**
+ * A code assigned by the International Air Transport Association (IATA) to identify airports, airlines, or aircraft types.
+ */
+export type IATACodePropertyValue = TextDataType;
+
+export type IATACodePropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A code assigned by the International Civil Aviation Organization (ICAO) to identify airports, airlines, or aircraft types.
+ */
+export type ICAOCodePropertyValue = TextDataType;
+
+export type ICAOCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * An emoji icon.
@@ -1219,6 +1504,21 @@ export type MethodologyPropertyValue = TextDataType;
 export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.
+ */
+export type MillisecondDataType = DurationDataType;
+
+export type MillisecondDataTypeWithMetadata = {
+  value: MillisecondDataType;
+  metadata: MillisecondDataTypeMetadata;
+};
+export type MillisecondDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1";
+};
+
+/**
  * A word or set of words by which something is known, addressed, or referred to.
  */
 export type NamePropertyValue = TextDataType;
@@ -1472,6 +1772,16 @@ export type OriginalURLPropertyValue = URIDataType;
 export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
+ * The output definitions of something.
+ */
+export type OutputDefinitionsPropertyValue = ObjectDataType[];
+
+export type OutputDefinitionsPropertyValueWithMetadata = {
+  value: ObjectDataTypeWithMetadata[];
+  metadata?: ArrayMetadata;
+};
+
+/**
  * The cost of an output unit
  */
 export type OutputUnitCostPropertyValue = NumberDataType;
@@ -1528,6 +1838,21 @@ export type PagePropertiesWithMetadata =
       "https://hash.ai/@h/types/property-type/title/": TitlePropertyValueWithMetadata;
     };
   };
+
+/**
+ * Whether to automatically pause something when it fails.
+ */
+export type PauseOnFailurePropertyValue = BooleanDataType;
+
+export type PauseOnFailurePropertyValueWithMetadata =
+  BooleanDataTypeWithMetadata;
+
+/**
+ * The timestamp at which something was paused.
+ */
+export type PausedAtPropertyValue = DateTimeDataType;
+
+export type PausedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A human being
@@ -1655,9 +1980,10 @@ export type ProfileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 /**
  * The year in which something was first published.
  */
-export type PublicationYearPropertyValue = YearDataType;
+export type PublicationYearPropertyValue = CalendarYearDataType;
 
-export type PublicationYearPropertyValueWithMetadata = YearDataTypeWithMetadata;
+export type PublicationYearPropertyValueWithMetadata =
+  CalendarYearDataTypeWithMetadata;
 
 /**
  * The timestamp of when something was read.
@@ -1667,11 +1993,123 @@ export type ReadAtPropertyValue = DateTimeDataType;
 export type ReadAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
+ * A unique alphanumeric code assigned to an aircraft, also known as a tail number (e.g. 'N123AB').
+ */
+export type RegistrationNumberPropertyValue = TextDataType;
+
+export type RegistrationNumberPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
+
+/**
  * Stringified timestamp of when something was resolved.
  */
 export type ResolvedAtPropertyValue = DateTimeDataType;
 
 export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
+ * How far back to catch up missed runs after downtime.
+ */
+export type ScheduleCatchupWindowPropertyValue = MillisecondDataType;
+
+export type ScheduleCatchupWindowPropertyValueWithMetadata =
+  MillisecondDataTypeWithMetadata;
+
+/**
+ * The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.
+ */
+export type ScheduleOverlapPolicyDataType =
+  | "SKIP"
+  | "BUFFER_ONE"
+  | "ALLOW_ALL"
+  | "CANCEL_OTHER";
+
+export type ScheduleOverlapPolicyDataTypeWithMetadata = {
+  value: ScheduleOverlapPolicyDataType;
+  metadata: ScheduleOverlapPolicyDataTypeMetadata;
+};
+export type ScheduleOverlapPolicyDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-overlap-policy/v/1";
+};
+
+/**
+ * The policy for handling overlapping runs when a new scheduled execution is due but the previous one is still running.
+ */
+export type ScheduleOverlapPolicyPropertyValue = ScheduleOverlapPolicyDataType;
+
+export type ScheduleOverlapPolicyPropertyValueWithMetadata =
+  ScheduleOverlapPolicyDataTypeWithMetadata;
+
+/**
+ * The state of a paused schedule, including when it was paused and an optional note.
+ */
+export type SchedulePauseStatePropertyValue = {
+  "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValue;
+  "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValue;
+};
+
+export type SchedulePauseStatePropertyValueWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValueWithMetadata;
+  };
+};
+
+/**
+ * The scheduling specification for a recurring flow.
+ */
+export type ScheduleSpecPropertyValue = ObjectDataType;
+
+export type ScheduleSpecPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+
+/**
+ * The status of a schedule, indicating whether it is currently running or has been temporarily stopped.
+ */
+export type ScheduleStatusDataType = "active" | "paused";
+
+export type ScheduleStatusDataTypeWithMetadata = {
+  value: ScheduleStatusDataType;
+  metadata: ScheduleStatusDataTypeMetadata;
+};
+export type ScheduleStatusDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1";
+};
+
+/**
+ * The current status of a schedule - either active or paused.
+ */
+export type ScheduleStatusPropertyValue = ScheduleStatusDataType;
+
+export type ScheduleStatusPropertyValueWithMetadata =
+  ScheduleStatusDataTypeWithMetadata;
+
+/**
+ * Something that was scheduled by something.
+ */
+export type ScheduledBy = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/scheduled-by/v/1"];
+  properties: ScheduledByProperties;
+  propertiesWithMetadata: ScheduledByPropertiesWithMetadata;
+};
+
+export type ScheduledByOutgoingLinkAndTarget = never;
+
+export type ScheduledByOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that was scheduled by something.
+ */
+export type ScheduledByProperties = LinkProperties & {};
+
+export type ScheduledByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * A service account.
@@ -1769,6 +2207,16 @@ export type ShortnamePropertyValue = TextDataType;
 export type ShortnamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * The step definitions of a flow.
+ */
+export type StepDefinitionsPropertyValue = ObjectDataType[];
+
+export type StepDefinitionsPropertyValueWithMetadata = {
+  value: ObjectDataTypeWithMetadata[];
+  metadata?: ArrayMetadata;
+};
+
+/**
  * A step in a flow run.
  */
 export type StepPropertyValue = ObjectDataType[];
@@ -1840,6 +2288,13 @@ export type TextualContentPropertyValueWithMetadata =
     };
 
 /**
+ * A time zone identifier (e.g. 'America/Los_Angeles', 'Europe/London').
+ */
+export type TimezonePropertyValue = TextDataType;
+
+export type TimezonePropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The title of something.
  */
 export type TitlePropertyValue = TextDataType;
@@ -1853,6 +2308,22 @@ export type TriggerDefinitionIDPropertyValue = TextDataType;
 
 export type TriggerDefinitionIDPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
+
+/**
+ * The trigger definition of a flow.
+ */
+export type TriggerDefinitionPropertyValue = {
+  "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
+};
+
+export type TriggerDefinitionPropertyValueWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
+  };
+};
 
 /**
  * The trigger of a flow.
@@ -2071,6 +2542,29 @@ export type UserSecretPropertiesWithMetadata = {
 };
 
 /**
+ * Something that uses something else.
+ */
+export type Uses = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses/v/1"];
+  properties: UsesProperties;
+  propertiesWithMetadata: UsesPropertiesWithMetadata;
+};
+
+export type UsesOutgoingLinkAndTarget = never;
+
+export type UsesOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that uses something else.
+ */
+export type UsesProperties = LinkProperties & {};
+
+export type UsesPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
  * The path to a secret in Hashicorp Vault.
  */
 export type VaultPathPropertyValue = TextDataType;
@@ -2085,16 +2579,23 @@ export type WebsiteURLPropertyValue = URIDataType;
 export type WebsiteURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
+ * An identifier for a workflow.
+ */
+export type WorkflowIDPropertyValue = TextDataType;
+
+export type WorkflowIDPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * A year in the Gregorian calendar.
  */
-export type YearDataType = IntegerDataType;
+export type CalendarYearDataType = IntegerDataType;
 
-export type YearDataTypeWithMetadata = {
-  value: YearDataType;
-  metadata: YearDataTypeMetadata;
+export type CalendarYearDataTypeWithMetadata = {
+  value: CalendarYearDataType;
+  metadata: CalendarYearDataTypeMetadata;
 };
-export type YearDataTypeMetadata = {
+export type CalendarYearDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/calendar-year/v/1";
 };

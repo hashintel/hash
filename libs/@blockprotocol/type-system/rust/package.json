@@ -2,13 +2,9 @@
   "name": "@blockprotocol/type-system-rs",
   "version": "0.0.0-private",
   "private": true,
+  "description": "Definitions of types within the Block Protocol Type System",
   "license": "MIT OR Apache-2.0",
   "type": "module",
-  "exports": {
-    ".": "./pkg/type-system.js",
-    "./types": "./types/index.snap.js",
-    "./wasm": "./pkg/type-system_bg.wasm"
-  },
   "typesVersions": {
     "*": {
       "*": [
@@ -22,6 +18,11 @@
       ]
     }
   },
+  "exports": {
+    ".": "./pkg/type-system.js",
+    "./types": "./types/index.snap.js",
+    "./wasm": "./pkg/type-system_bg.wasm"
+  },
   "scripts": {
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",
     "build:wasm": "mise exec --env prod cargo:wasm-pack -- wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
@@ -32,15 +33,13 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@local/advanced-types": "0.0.0-private",
-    "@rust/error-stack": "0.5.0",
-    "@rust/hash-codec": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-codec": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/hash-codegen": "0.0.0-private",
-    "@rust/hash-graph-test-data": "0.0.0-private",
-    "typescript": "5.7.3"
+    "@local/tsconfig": "workspace:*",
+    "@rust/hash-codegen": "workspace:*",
+    "typescript": "5.9.3"
   }
 }

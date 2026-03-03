@@ -1,5 +1,6 @@
+import type { CreateFlowActivities } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
 import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity.js";
@@ -11,19 +12,14 @@ import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities
 import { inferMetadataFromDocumentAction } from "./flow-activities/infer-metadata-from-document-action.js";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
 import { persistEntityAction } from "./flow-activities/persist-entity-action.js";
-import { persistFlowActivity } from "./flow-activities/persist-flow-activity.js";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action.js";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
-import type { FlowActionActivity } from "./flow-activities/types.js";
-import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity.js";
 import { webSearchAction } from "./flow-activities/web-search-action.js";
 import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action.js";
 
-export const createFlowActionActivities = ({
-  vaultClient,
-}: {
-  vaultClient: VaultClient;
-}): Record<`${ActionDefinitionId}Action`, FlowActionActivity> => ({
+export const createFlowActionActivities: CreateFlowActivities<
+  AiFlowActionDefinitionId
+> = ({ vaultClient }: { vaultClient: VaultClient }) => ({
   generateWebQueriesAction,
   webSearchAction,
   getWebPageByUrlAction,
@@ -50,6 +46,4 @@ export const createFlowActivities = ({
 }) => ({
   ...createFlowActionActivities({ vaultClient }),
   generateFlowRunName,
-  persistFlowActivity,
-  userHasPermissionToRunFlowInWebActivity,
 });

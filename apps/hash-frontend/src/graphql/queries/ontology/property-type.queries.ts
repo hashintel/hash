@@ -1,44 +1,15 @@
 import { gql } from "@apollo/client";
-import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
-
-export const getPropertyTypeQuery = gql`
-  query getPropertyType(
-    $propertyTypeId: VersionedUrl!
-    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-    $includeArchived: Boolean = false
-  ) {
-    getPropertyType(
-      propertyTypeId: $propertyTypeId
-      constrainsValuesOn: $constrainsValuesOn
-      constrainsPropertiesOn: $constrainsPropertiesOn
-      includeArchived: $includeArchived
-    ) {
-      ...SubgraphFields
-    }
-  }
-  ${subgraphFieldsFragment}
-`;
 
 export const queryPropertyTypesQuery = gql`
-  query queryPropertyTypes(
-    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-    $filter: Filter
-    $latestOnly: Boolean = true
-    $includeArchived: Boolean = false
-  ) {
-    queryPropertyTypes(
-      constrainsValuesOn: $constrainsValuesOn
-      constrainsPropertiesOn: $constrainsPropertiesOn
-      filter: $filter
-      latestOnly: $latestOnly
-      includeArchived: $includeArchived
-    ) {
-      ...SubgraphFields
-    }
+  query queryPropertyTypes($request: QueryPropertyTypesParams!) {
+    queryPropertyTypes(request: $request)
   }
-  ${subgraphFieldsFragment}
+`;
+
+export const queryPropertyTypeSubgraphQuery = gql`
+  query queryPropertyTypeSubgraph($request: QueryPropertyTypeSubgraphParams!) {
+    queryPropertyTypeSubgraph(request: $request)
+  }
 `;
 
 export const createPropertyTypeMutation = gql`

@@ -1,6 +1,6 @@
 import {
-  type Chunk,
   type Scope,
+  Chunk,
   Deferred,
   Duration,
   Effect,
@@ -13,6 +13,7 @@ import {
   Stream,
 } from "effect";
 import { GenericTag } from "effect/Context";
+import { isUint8ArrayList, Uint8ArrayList } from "uint8arraylist";
 
 import { createProto } from "../utils.js";
 import {
@@ -219,10 +220,10 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
 
   const readStream = pipe(
     Stream.fromAsyncIterable(
-      stream.source,
+      stream,
       (cause) => new Transport.TransportError({ cause }),
     ),
-    Stream.mapConcat((list) => list),
+    Stream.mapConcat((list) => (isUint8ArrayList(list) ? list : [list])),
     // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
     Stream.map((array) =>
       // take the underlying buffer and slice it to the correct view
@@ -236,9 +237,16 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
 
   const writeSink = pipe(
     Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
-      Effect.try({
-        try: () => stream.sink(chunk),
-        catch: (cause) => new Transport.TransportError({ cause }),
+      Effect.gen(function* () {
+        const shouldContinue = yield* Effect.try({
+          try: () =>
+            stream.send(Uint8ArrayList.fromUint8Arrays(Chunk.toArray(chunk))),
+          catch: (cause) => new Transport.TransportError({ cause }),
+        });
+
+        if (!shouldContinue) {
+          yield* Effect.promise((signal) => stream.onDrain({ signal }));
+        }
       }),
     ),
     Sink.mapInputEffect((request: WireRequest.Request) =>

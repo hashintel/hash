@@ -23,6 +23,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
+import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 
@@ -70,7 +71,7 @@ export type QueryPropertyTypesRequest = {
   latestOnly?: boolean;
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
-    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+    Pick<GraphResolveDepths, "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
@@ -84,7 +85,7 @@ export type QueryPropertyTypesMessageCallback = MessageCallback<
 export type GetPropertyTypeRequest = {
   propertyTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
-    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+    Pick<GraphResolveDepths, "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
@@ -123,7 +124,7 @@ export type QueryEntityTypesRequest = {
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<
-      Subgraph["depths"],
+      GraphResolveDepths,
       | "constrainsValuesOn"
       | "constrainsPropertiesOn"
       | "constrainsLinksOn"
@@ -143,7 +144,7 @@ export type GetEntityTypeRequest = {
   entityTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<
-      Subgraph["depths"],
+      GraphResolveDepths,
       | "constrainsValuesOn"
       | "constrainsPropertiesOn"
       | "constrainsLinksOn"

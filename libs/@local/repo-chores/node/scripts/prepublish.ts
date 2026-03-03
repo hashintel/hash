@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
-import execa from "execa";
+import { execa } from "execa";
 import fs from "fs-extra";
 
 import { UserFriendlyError } from "./shared/errors";
@@ -38,9 +38,19 @@ const script = async () => {
   await fs.remove(path.resolve(packageInfo.path, "dist"));
 
   process.stdout.write(" Done\n");
+
+  process.stdout.write(
+    "Ensuring .js extensions present in local import statements...",
+  );
+  await execa("fix-esm-import-path", ["./src"], {
+    cwd: packageInfo.path,
+    stdout: "inherit",
+  });
+  process.stdout.write(" Done\n");
+
   process.stdout.write(`Building...`);
 
-  // tsconfig.json is supposed to configured for local development and linting.
+  // tsconfig.json is supposed to be configured for local development and linting.
   // We need to override some options to generate a build that is ready for publishing.
   await execa(
     "tsc",
@@ -53,6 +63,7 @@ const script = async () => {
       "--noEmit", "false",
       "--outDir", "dist",
       "--target", "es2020",
+      "--paths", "null"
     ],
     {
       cwd: packageInfo.path,

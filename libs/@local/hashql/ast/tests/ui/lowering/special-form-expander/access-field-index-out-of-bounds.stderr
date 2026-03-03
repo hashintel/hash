@@ -1,0 +1,7 @@
+error[special-form-expander::field-index-out-of-bounds]: Field index out of bounds
+  ╭▸ 
+3 │ ["::kernel::special_form::access", "data", { "#literal": 18446744073709551616 }]
+  │                                                          ━━━━━━━━━━━━━━━━━━━━ Use a valid field index within usize bounds
+  │
+  ├ help: Field indices must be non-negative integers that fit within the bounds of usize. Very large numbers or negative numbers cannot be used as field indices.
+  ╰ note: Field indexing in HashQL uses zero-based indexing where the first field is at index 0, the second at index 1, and so on. The maximum valid index depends on the system's architecture, which is 64-bit.

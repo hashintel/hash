@@ -9,10 +9,10 @@ authors.workspace = true
 
 [package.metadata.sync.turborepo]
 extra-dependencies = [
-    { name = "@local/status", version = "0.0.0-private" },
+    { name = "@local/status", version = "workspace:*" },
 ]
 extra-dev-dependencies = [
-    { name = "@local/eslint", version = "0.0.0-private" },
+    { name = "@local/eslint", version = "workspace:*" },
 ]
 
 [dependencies]

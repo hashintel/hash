@@ -1,10 +1,5 @@
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
-import { stringify } from "../../shared/stringify.js";
-
-const generateErrorMessage = (err: unknown) =>
-  err instanceof Error ? err.message : stringify(err);
-
 const isTrueObject = (obj: unknown): obj is object =>
   obj !== null && typeof obj === "object";
 
@@ -73,5 +68,5 @@ export const extractErrorMessage = (err: unknown) => {
     // eslint-disable-next-line no-console
     console.error(`Unexpected error message structure: ${stringifyError(err)}`);
   }
-  return generateErrorMessage(err);
+  return stringifyError(err);
 };

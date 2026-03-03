@@ -1,19 +1,17 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-    ╭─[ <unknown>:9:3 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  9 │ │     { "#literal": true }
-    │ │     ──────────┬─────────  
-    │ │               ╰─────────── Remove this argument
-    ┆ ┆   
- 11 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this `let` special form call
-    │     
-    │     Help: Use either:
-    │           - let/3: (let name value body)
-    │           - let/4: (let name type value body)
-    │     
-    │     Note: The let function has 2 variants: let/3, let/4
-────╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+   ╭▸ 
+ 3 │ ┌ [
+ 4 │ │   "::kernel::special_form::let",
+ 5 │ │   "x",
+ 6 │ │   "Boolean",
+   ‡ │
+ 9 │ │   { "#literal": true }
+   │ │   ━━━━━━━━━━━━━━━━━━━━ Remove this argument
+10 │ │   //~^ ERROR Remove this argument
+11 │ │ ]
+   │ └─┘ In this `let` special form call
+   │
+   ├ help: Use either:
+   │       - let/3: (let name value body)
+   │       - let/4: (let name type value body)
+   ╰ note: The let function has 2 variants: let/3, let/4

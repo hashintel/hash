@@ -2,6 +2,8 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -17,7 +19,6 @@ import {
 } from "./research-entities-action/checkpoints.js";
 import { runCoordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
-import type { FlowActionActivity } from "./types.js";
 
 /**
  * An action to research entities of requested types according to the user's research goal.
@@ -29,13 +30,16 @@ import type { FlowActionActivity } from "./types.js";
  * unless (a) the action was reset to a specific time, and (b) the claims were created prior to this time.
  * LLM usage is never archived.
  */
-export const researchEntitiesAction: FlowActionActivity<{
-  testingParams?: {
-    humanInputCanBeRequested?: boolean;
-    persistState?: (state: CoordinatingAgentState) => void;
-    resumeFromState?: CoordinatingAgentState;
-  };
-}> = async (params) => {
+export const researchEntitiesAction: AiFlowActionActivity<
+  "researchEntities",
+  {
+    testingParams?: {
+      humanInputCanBeRequested?: boolean;
+      persistState?: (state: CoordinatingAgentState) => void;
+      resumeFromState?: CoordinatingAgentState;
+    };
+  }
+> = async (params) => {
   const stateAtResetCheckpoint = await getCheckpoint();
 
   const state: CoordinatingAgentState = params.testingParams?.resumeFromState ??
@@ -78,8 +82,9 @@ export const researchEntitiesAction: FlowActionActivity<{
     const { createEntitiesAsDraft, userAuthentication, flowEntityId, stepId } =
       await getFlowContext();
 
-    const persistedClaims = await graphApiClient.getEntities(
-      userAuthentication.actorId,
+    const { entities: persistedClaims } = await queryEntities(
+      { graphApi: graphApiClient },
+      userAuthentication,
       {
         includeDrafts: createEntitiesAsDraft,
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -111,6 +116,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             },
           ],
         },
+        includePermissions: false,
       },
     );
 
@@ -124,7 +130,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     };
 
     await Promise.all(
-      persistedClaims.data.entities
+      persistedClaims
         .filter(
           (claim) =>
             !state.inferredClaims.some(

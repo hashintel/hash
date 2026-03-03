@@ -23,9 +23,9 @@ use type_system::{
 
 use crate::util::{StoreWrapper, seed};
 
-// SEE: This is quite temporary at the moment. We'll want a lot more variation, a greater
-//  quantity of types, increased number of versions, etc.
-//  See https://linear.app/hash/issue/H-1628
+// TODO: Make this more representative. We'll want a lot more variation, a greater quantity of
+//       types, increased number of versions, etc.
+//   see https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
 const SEED_DATA_TYPES: [&str; 7] = [
@@ -122,10 +122,6 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
 #[expect(clippy::too_many_lines)]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "transaction is committed which consumes the object"
-)]
 pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
@@ -286,7 +282,7 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
     );
 }
 
-/// DOC - TODO
+/// DOC - TODO.
 pub struct Samples {
     pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
     pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,

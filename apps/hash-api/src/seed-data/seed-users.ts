@@ -91,6 +91,7 @@ export const ensureUsersAreSeeded = async ({
           },
         },
       },
+      verifyEmails: isDevEnv || isTestEnv,
     }).catch((error: AxiosError) => {
       if (error.response?.status === 409) {
         // The user already exists on 409 CONFLICT, which is fine

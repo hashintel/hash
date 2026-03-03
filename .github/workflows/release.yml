@@ -10,9 +10,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.repository == 'hashintel/hash'
+    permissions:
+      id-token: write
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
 
@@ -20,6 +22,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -28,16 +31,41 @@ jobs:
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         with:
           publish: yarn changeset publish
+          version: yarn changeset:version
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_LOGLEVEL: verbose
+          TURBO_LOG_LEVEL: debug
+          TURBO_TELEMETRY_DISABLED: 1
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error releasing NPM packages <@U0143NL4GMP>" # Notifies C
+          SLACK_MESSAGE: "Error releasing NPM packages <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Package release failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
+
+      - name: Print npm logs on failure
+        if: failure()
+        run: |
+          echo "🪵 Dumping npm debug logs..."
+          find /home/runner/.npm/_logs -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No npm logs found."
+
+      - name: Print Turbo logs on failure
+        if: failure()
+        run: |
+          echo "🔍 Searching for turbo logs..."
+          find . -type f -path "*/.turbo/*.log" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
+
+      - name: Upload debug logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-debug-logs
+          path: |
+            /home/runner/.npm/_logs/
+            **/.turbo/*.log

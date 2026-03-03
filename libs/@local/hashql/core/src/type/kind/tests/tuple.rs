@@ -1,12 +1,12 @@
-use core::assert_matches::assert_matches;
+use core::assert_matches;
 
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
         PartialType,
+        builder::lazy,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
@@ -20,17 +20,18 @@ use crate::{
             intersection::IntersectionType,
             primitive::PrimitiveType,
             test::{assert_equiv, generic, intersection, primitive, tuple, union},
+            tests::{assert_is_subtype, assert_join, assert_meet},
             union::UnionType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-        tests::{instantiate, instantiate_infer, instantiate_param},
+        tests::{instantiate, instantiate_infer, instantiate_param, scaffold},
     },
 };
 
 #[test]
 fn join_identical_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     tuple!(
         env,
@@ -69,7 +70,7 @@ fn join_identical_tuples() {
 #[test]
 fn join_different_length_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     tuple!(
         env,
@@ -118,7 +119,7 @@ fn join_different_length_tuples() {
 #[test]
 fn join_tuple_single_element() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     tuple!(env, a, [primitive!(env, PrimitiveType::Number)]);
     tuple!(env, b, [primitive!(env, PrimitiveType::Integer)]);
@@ -144,7 +145,7 @@ fn join_tuple_single_element() {
 #[test]
 fn join_tuples_with_different_field_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     tuple!(
         env,
@@ -190,7 +191,7 @@ fn join_tuples_with_different_field_types() {
 #[test]
 fn meet_identical_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     tuple!(
         env,
@@ -229,7 +230,7 @@ fn meet_identical_tuples() {
 #[test]
 fn meet_different_length_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuples of different lengths
     tuple!(env, a, [primitive!(env, PrimitiveType::Number)]);
@@ -252,7 +253,7 @@ fn meet_different_length_tuples() {
 #[test]
 fn meet_tuples_with_different_field_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuples with same length but different field types
     tuple!(
@@ -293,7 +294,7 @@ fn meet_tuples_with_different_field_types() {
 #[test]
 fn uninhabited_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a normal tuple with inhabited types
     tuple!(
@@ -333,7 +334,7 @@ fn uninhabited_tuples() {
 #[test]
 fn subtype_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuple types for testing
     let number = primitive!(env, PrimitiveType::Number);
@@ -369,7 +370,7 @@ fn subtype_relationship() {
 #[test]
 fn equivalence_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuples with same structure but different TypeIds
     tuple!(
@@ -418,7 +419,7 @@ fn equivalence_relationship() {
 #[test]
 fn simplify_tuple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a tuple with fields
     tuple!(
@@ -443,7 +444,7 @@ fn simplify_tuple() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct single-element tuples for testing lattice laws
     // We need these to have different element types for proper lattice testing
@@ -458,7 +459,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Concrete tuple (with all concrete fields)
@@ -480,7 +481,7 @@ fn is_concrete() {
 #[test]
 fn simplify_tuple_with_never() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a tuple with a Never field
     tuple!(
@@ -510,7 +511,7 @@ fn simplify_tuple_with_never() {
 #[test]
 fn nested_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested tuple
     tuple!(env, inner, [primitive!(env, PrimitiveType::Number)]);
@@ -539,7 +540,7 @@ fn nested_tuples() {
 #[test]
 fn simplify_with_and_without_flag() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuples for testing
     let a = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -581,7 +582,7 @@ fn simplify_with_and_without_flag() {
 #[test]
 fn tuple_with_disjoint_field_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let number = primitive!(env, PrimitiveType::Number);
     let string = primitive!(env, PrimitiveType::String);
@@ -610,7 +611,7 @@ fn tuple_with_disjoint_field_types() {
 #[test]
 fn distribute_union_empty_tuple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create an empty tuple
@@ -624,7 +625,7 @@ fn distribute_union_empty_tuple() {
 #[test]
 fn distribute_union_single_field() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -655,7 +656,7 @@ fn distribute_union_single_field() {
 #[test]
 fn distribute_union_multiple_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -690,7 +691,7 @@ fn distribute_union_multiple_fields() {
 #[test]
 fn distribute_union_nested_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -725,7 +726,7 @@ fn distribute_union_nested_tuples() {
 #[test]
 fn distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -751,7 +752,7 @@ fn distribute_intersection() {
 #[test]
 fn collect_constraints_lower_bound() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a tuple type with an element containing a concrete type
     let number = primitive!(env, PrimitiveType::Number);
@@ -781,7 +782,7 @@ fn collect_constraints_lower_bound() {
 #[test]
 fn collect_constraints_different_length_tuples() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Note: Tuples are actually width invariant in the type system,
     // but during constraint collection we check common elements to provide better error
@@ -822,7 +823,7 @@ fn collect_constraints_different_length_tuples() {
 #[test]
 fn collect_constraints_missing_element() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a shorter tuple with one element
     let string = primitive!(env, PrimitiveType::String);
@@ -848,7 +849,7 @@ fn collect_constraints_missing_element() {
 #[test]
 fn collect_constraints_nested() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested tuple with inference variable
     let hole = HoleId::new(0);
@@ -881,7 +882,7 @@ fn collect_constraints_nested() {
 #[test]
 fn collect_constraints_generic_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let arg1 = GenericArgumentId::new(0);
     let arg2 = GenericArgumentId::new(1);
@@ -930,7 +931,7 @@ fn collect_constraints_generic_params() {
 #[test]
 fn collect_constraints_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let integer = primitive!(env, PrimitiveType::Integer);
     let number = primitive!(env, PrimitiveType::Number);
@@ -956,7 +957,7 @@ fn collect_constraints_concrete() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables for multiple elements
     let hole1 = HoleId::new(0);
@@ -996,7 +997,7 @@ fn collect_dependencies() {
 #[test]
 fn simplify_recursive_tuple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1020,7 +1021,7 @@ fn simplify_recursive_tuple() {
 #[test]
 fn instantiate_tuple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
 
@@ -1061,7 +1062,7 @@ fn instantiate_tuple() {
 #[test]
 fn projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1076,7 +1077,7 @@ fn projection() {
 #[test]
 fn projection_out_of_bounds() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1097,7 +1098,7 @@ fn projection_out_of_bounds() {
 #[test]
 fn projection_not_a_number() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1118,7 +1119,7 @@ fn projection_not_a_number() {
 #[test]
 fn subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     let mut inference = InferenceEnvironment::new(&env);
@@ -1136,4 +1137,59 @@ fn subscript() {
         diagnostics[0].category,
         TypeCheckDiagnosticCategory::UnsupportedSubscript
     );
+}
+
+#[test]
+fn meet_recursive_tuple() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.number(), this.value()]));
+
+    assert_meet(&mut lattice, lhs, rhs, &[lhs]);
+    assert_meet(&mut lattice, rhs, lhs, &[lhs]);
+}
+
+#[test]
+fn meet_recursive_tuple_unrelated() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.string(), this.value()]));
+
+    let never = builder.never();
+
+    assert_meet(&mut lattice, lhs, rhs, &[never]);
+    assert_meet(&mut lattice, rhs, lhs, &[never]);
+}
+
+#[test]
+fn join_recursive_tuple() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.number(), this.value()]));
+
+    assert_join(&mut lattice, lhs, rhs, &[rhs]);
+    assert_join(&mut lattice, rhs, lhs, &[rhs]);
+}
+
+#[test]
+fn join_recursive_tuple_unrelated() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.string(), this.value()]));
+
+    // The type itself is a bit larger than one might like (this is of the recursive property of
+    // the match), but the type approximation is still valid, as proven below and is actually
+    // *smaller* than the naive approximation.
+    let union = builder.union([builder.integer(), builder.string()]);
+    let expected = builder.tuple([union, builder.tuple([union, builder.union([lhs, rhs])])]);
+
+    assert_join(&mut lattice, lhs, rhs, &[expected]);
+    assert_join(&mut lattice, rhs, lhs, &[expected]);
+
+    assert_is_subtype(&env, lhs, expected);
+    assert_is_subtype(&env, rhs, expected);
 }

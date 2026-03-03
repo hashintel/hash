@@ -13,8 +13,8 @@ const unsupportedPayloadKinds = [
   "ActorType",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
-  "PersistedEntities",
-  "PersistedEntity",
+  "PersistedEntitiesMetadata",
+  "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
   "FormattedText",
@@ -45,6 +45,7 @@ export type LocalInputValues = Subtype<
   Record<LocalPayloadKind, LocalInputValue>,
   {
     ActorType: ActorTypeDataType;
+    Date: string;
     Entity: HashEntity;
     FormattedText: FormattedText;
     GoogleAccountId: string;

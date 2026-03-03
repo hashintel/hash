@@ -3,7 +3,7 @@ use core::{cell::RefCell, hash::Hash};
 
 use smallvec::SmallVec;
 
-use crate::collection::FastHashMap;
+use crate::collections::FastHashMap;
 
 pub struct ReplacementGuard<T: Copy + Eq + Hash> {
     inner: Rc<ReplacementScope<T>>,

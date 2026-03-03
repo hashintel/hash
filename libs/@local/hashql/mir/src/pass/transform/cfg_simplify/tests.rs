@@ -1,0 +1,465 @@
+#![expect(clippy::min_ident_chars, reason = "tests")]
+
+use std::{io::Write as _, path::PathBuf};
+
+use bstr::ByteVec as _;
+use hashql_core::{
+    heap::Heap,
+    pretty::Formatter,
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
+};
+use hashql_diagnostics::DiagnosticIssues;
+use insta::{Settings, assert_snapshot};
+
+use super::CfgSimplify;
+use crate::{
+    body::Body,
+    builder::body,
+    context::MirContext,
+    def::DefIdSlice,
+    error::MirDiagnosticCategory,
+    intern::Interner,
+    pass::{TransformPass as _, transform::error::TransformationDiagnosticCategory},
+    pretty::TextFormatOptions,
+};
+
+#[track_caller]
+fn assert_cfg_simplify_pass<'heap>(
+    name: &'static str,
+    body: Body<'heap>,
+    context: &mut MirContext<'_, 'heap>,
+) {
+    let formatter = Formatter::new(context.heap);
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        context.env,
+        TypeFormatterOptions::terse().with_qualified_opaque_names(true),
+    );
+    let mut text_format = TextFormatOptions {
+        writer: Vec::new(),
+        indent: 4,
+        sources: (),
+        types: &mut formatter,
+        annotations: (),
+    }
+    .build();
+
+    let mut bodies = [body];
+
+    text_format
+        .format(DefIdSlice::from_raw(&bodies), &[])
+        .expect("should be able to write bodies");
+
+    let changed = CfgSimplify::new().run(context, &mut bodies[0]);
+    write!(
+        text_format.writer,
+        "\n\n{:=^50}\n\n",
+        format!(" Changed: {changed:?} ")
+    )
+    .expect("infallible");
+
+    text_format
+        .format(DefIdSlice::from_raw(&bodies), &[])
+        .expect("should be able to write bodies");
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut settings = Settings::clone_current();
+    settings.set_snapshot_path(dir.join("tests/ui/pass/cfg_simplify"));
+    settings.set_prepend_module_to_snapshot(false);
+
+    let _drop = settings.bind_to_scope();
+
+    let value = text_format.writer.into_string_lossy();
+    assert_snapshot!(name, value);
+}
+
+/// Tests that a switch where all arms point to the same block degenerates to a goto.
+#[test]
+fn identical_switch_targets() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 0;
+            switch selector [0 => bb1(), 1 => bb1(), _ => bb1()];
+        },
+        bb1() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "identical_switch_targets",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that a switch with only an otherwise branch degenerates to a goto.
+#[test]
+fn only_otherwise_switch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 0;
+            switch selector [_ => bb1()];
+        },
+        bb1() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "only_otherwise_switch",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that switch cases matching the otherwise target are removed.
+#[test]
+fn redundant_cases_removal() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 0;
+            switch selector [0 => bb1(), 1 => bb2(), 2 => bb2(), _ => bb2()];
+        },
+        bb1() {
+            return null;
+        },
+        bb2() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "redundant_cases_removal",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that goto to a non-noop block with multiple predecessors is NOT simplified.
+#[test]
+fn no_inline_non_noop_multiple_preds() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Null {
+        decl x: Int, a: Int, b: Int, c: Int;
+
+        bb0() {
+            switch x [0 => bb1(), 1 => bb2()];
+        },
+        bb1() {
+            a = load 1;
+            goto bb3();
+        },
+        bb2() {
+            b = load 2;
+            goto bb3();
+        },
+        bb3() {
+            c = load 3;
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "no_inline_non_noop_multiple_preds",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that goto self-loops are preserved (not simplified).
+#[test]
+fn self_loop_preservation() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl;
+
+        bb0() {
+            goto bb1();
+        },
+        bb1() {
+            goto bb1();
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "self_loop_preservation",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that goto self-loops with parameters are preserved.
+#[test]
+fn self_loop_preservation_with_params() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl p: Int;
+
+        bb0() {
+            goto bb1(0);
+        },
+        bb1(p) {
+            goto bb1(p);
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "self_loop_preservation_with_params",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that goto through a noop block with multiple predecessors is simplified.
+#[test]
+fn noop_block_multiple_predecessors() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl cond: Bool;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3();
+        },
+        bb2() {
+            goto bb3();
+        },
+        bb3() {
+            goto bb4();
+        },
+        bb4() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "noop_block_multiple_predecessors",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that switch target promotion works through noop blocks.
+#[test]
+fn switch_target_promotion() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 0;
+            switch selector [0 => bb1(), 1 => bb2(), _ => bb3()];
+        },
+        bb1() {
+            goto bb4();
+        },
+        bb2() {
+            goto bb4();
+        },
+        bb3() {
+            return null;
+        },
+        bb4() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "switch_target_promotion",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that switch self-loops are preserved (not simplified).
+#[test]
+fn switch_self_loop_preservation() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 0;
+            goto bb1();
+        },
+        bb1() {
+            switch selector [0 => bb1(), _ => bb2()];
+        },
+        bb2() {
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "switch_self_loop_preservation",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that a constant discriminant with no matching case and no otherwise emits a diagnostic.
+#[test]
+fn unreachable_switch_arm_ice() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl;
+
+        bb0() {
+            switch 5 [0 => bb1(), 1 => bb2()];
+        },
+        bb1() {
+            return null;
+        },
+        bb2() {
+            return null;
+        }
+    });
+
+    let diagnostics = DiagnosticIssues::new();
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics,
+    };
+
+    assert_cfg_simplify_pass("unreachable_switch_arm_ice", body, &mut context);
+
+    let diagnostics = context.diagnostics.into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        MirDiagnosticCategory::Transformation(
+            TransformationDiagnosticCategory::UnreachableSwitchArm
+        )
+    );
+}
+
+/// Tests that switch target promotion works through noop blocks that pass arguments.
+#[test]
+fn switch_promotion_with_goto_params() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl selector: Int, result: Int, p: Int;
+
+        bb0() {
+            selector = load 0;
+            switch selector [0 => bb1(), 1 => bb2(), _ => bb3()];
+        },
+        bb1() {
+            goto bb4(1);
+        },
+        bb2() {
+            goto bb4(2);
+        },
+        bb3() {
+            return null;
+        },
+        bb4(p) {
+            result = bin.== p p;
+            return null;
+        }
+    });
+
+    assert_cfg_simplify_pass(
+        "switch_promotion_with_goto_params",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}

@@ -3,16 +3,12 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects invalid dict format (not object or array)
 expression: "{\"#dict\": \"invalid\"}"
 ---
-[31m[parser::object::dict-expected-format] Error:[0m Expected valid dictionary format
-   ╭─[ <unknown>:1:11 ]
-   │
- 1 │ {"#dict": "invalid"}
-   │           ────┬────  
-   │               ╰────── Expected an object or array of pairs here
-   │ 
-   │ Help: Found string, but the #dict construct requires either an object {key: value, ...} or an array of pairs [[key, value], ...]
-   │ 
-   │ Note: Valid dictionary formats:
-   │           1. Object syntax: {"key1": value1, "key2": value2, ...}
-   │           2. Array of pairs: [[key1, value1], [key2, value2], ...]
-───╯
+error[parser::object::dict-expected-format]: Expected valid dictionary format
+  ╭▸ 
+1 │ {"#dict": "invalid"}
+  │           ━━━━━━━━━ Expected an object or array of pairs here
+  │
+  ├ help: Found string, but the #dict construct requires either an object {key: value, ...} or an array of pairs [[key, value], ...]
+  ╰ note: Valid dictionary formats:
+              1. Object syntax: {"key1": value1, "key2": value2, ...}
+              2. Array of pairs: [[key1, value1], [key2, value2], ...]

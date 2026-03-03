@@ -1,0 +1,84 @@
+use core::ops::Deref;
+
+use super::base::BaseBuilder;
+use crate::{
+    body::{operand::Operand, place::Place},
+    def::DefId,
+};
+
+pub trait BuildOperand<'heap, T> {
+    fn build_operand(&self, value: T) -> Operand<'heap>;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct OperandBuilder<'env, 'heap> {
+    pub(super) base: BaseBuilder<'env, 'heap>,
+}
+
+impl<'heap> BuildOperand<'heap, f64> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: f64) -> Operand<'heap> {
+        self.base.const_float(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, i128> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: i128) -> Operand<'heap> {
+        self.base.const_int(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, bool> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: bool) -> Operand<'heap> {
+        self.base.const_bool(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, ()> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, (): ()) -> Operand<'heap> {
+        self.base.const_unit()
+    }
+}
+
+impl<'heap> BuildOperand<'heap, DefId> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: DefId) -> Operand<'heap> {
+        self.base.const_fn(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, Place<'heap>> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: Place<'heap>) -> Operand<'heap> {
+        Operand::Place(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, Operand<'heap>> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: Operand<'heap>) -> Operand<'heap> {
+        value
+    }
+}
+
+impl<'env, 'heap> Deref for OperandBuilder<'env, 'heap> {
+    type Target = BaseBuilder<'env, 'heap>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! operand {
+    ($b:expr; $value:tt) => {{
+        let o = $b.operands();
+
+        $crate::builder::_private::operand!(@impl o; $value)
+    }};
+    (@impl $o:expr; null) => {
+        $o.const_null()
+    };
+    (@impl $o:expr; $value:expr) => {
+        $crate::builder::_private::BuildOperand::build_operand(&$o, $value)
+    };
+}
+
+pub use operand;

@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const flowTypedef = gql`
   enum FlowRunStatus {
@@ -52,8 +52,19 @@ export const flowTypedef = gql`
   scalar ExternalInputRequest
   scalar FlowInputs
   scalar StepInput
-  scalar StepRunOutput
+  scalar ResolvedStepRunOutput
   scalar StepProgressLog
+  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
+  # as we need to pass it to FlowDefinition.
+  scalar FlowActionDefinitionId
+  scalar FlowDefinition
+  scalar FlowDataSources
+  scalar FlowTypeDataType
+  scalar FlowTrigger
+  scalar ExternalInputResponseWithoutUser
+  scalar ScheduleSpec
+  scalar CreateFlowScheduleInput
+  scalar UpdateFlowScheduleInput
 
   type StepRun {
     """
@@ -111,24 +122,20 @@ export const flowTypedef = gql`
     """
     Outputs of the step
     """
-    outputs: [StepRunOutput!]
+    outputs: [ResolvedStepRunOutput!]
   }
 
   type FlowRun {
     """
-    The uuid of the flow run
-    This corresponds to:
-    - the EntityUuid of the Flow entity
-    - the workflowId of the Temporal workflow, which is unique among all currently-executing Temporal workflow executions
-
-    There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs), OR fails and is retried.
-    – the same workflowId/flowRunId is the mechanism by which consecutive runs which continue from/retry a previous can be identified.
-
-    While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them, and they are only re-used:
-    1. in the 'continue as new' case, in which case we will need to combine the history of those runs to form a complete picture of the flow's execution.
-    2. in the retry case, in which case the failed runs are only important if we want to expose past failures to the user.
+    The uuid of the flow run.
+    This is equivalent to the EntityUuid of the Flow entity.
     """
     flowRunId: EntityUuid!
+    """
+    The id of the schedule that triggered this run, if any.
+    Only present for flow runs triggered by a FlowSchedule.
+    """
+    flowScheduleId: EntityUuid
     """
     The id for the definition of the flow this run is executing (the template for the flow)
     """
@@ -169,7 +176,7 @@ export const flowTypedef = gql`
     """
     Outputs of the flow run
     """
-    outputs: [StepRunOutput!]
+    outputs: [ResolvedStepRunOutput!]
     """
     Any requests for external input made by steps within the Flow
     """
@@ -178,6 +185,17 @@ export const flowTypedef = gql`
     The steps in the flow
     """
     steps: [StepRun!]!
+  }
+
+  type PaginatedFlowRuns {
+    """
+    The flow runs for the requested page
+    """
+    flowRuns: [FlowRun!]!
+    """
+    The total number of flow runs matching the filters (before pagination)
+    """
+    totalCount: Int!
   }
 
   extend type Query {
@@ -190,24 +208,30 @@ export const flowTypedef = gql`
       Return only flows that match the given status
       """
       executionStatus: FlowRunStatus
-    ): [FlowRun!]!
+      """
+      Number of flow runs to skip (for offset-based pagination).
+      When omitted, all matching flow runs are returned.
+      """
+      offset: Int
+      """
+      Maximum number of flow runs to return (for offset-based pagination).
+      When omitted, all matching flow runs are returned.
+      """
+      limit: Int
+    ): PaginatedFlowRuns!
 
     getFlowRunById(flowRunId: String!): FlowRun!
   }
-
-  scalar FlowDefinition
-  scalar FlowDataSources
-  scalar FlowTrigger
-  scalar ExternalInputResponseWithoutUser
 
   extend type Mutation {
     """
     Start a new flow run, and return its flowRunId to allow for identifying it later.
     """
     startFlow(
-      dataSources: FlowDataSources!
+      dataSources: FlowDataSources
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
+      flowType: FlowTypeDataType!
       webId: WebId!
     ): EntityUuid!
 
@@ -235,5 +259,30 @@ export const flowTypedef = gql`
       response: ExternalInputResponseWithoutUser!
       flowUuid: ID!
     ): Boolean!
+
+    """
+    Create a new flow schedule for recurring executions
+    """
+    createFlowSchedule(input: CreateFlowScheduleInput!): EntityUuid!
+
+    """
+    Update an existing flow schedule
+    """
+    updateFlowSchedule(scheduleEntityId: EntityId!, input: UpdateFlowScheduleInput!): Boolean!
+
+    """
+    Pause a flow schedule, stopping future executions until resumed
+    """
+    pauseFlowSchedule(scheduleEntityId: EntityId!, note: String): Boolean!
+
+    """
+    Resume a paused flow schedule
+    """
+    resumeFlowSchedule(scheduleEntityId: EntityId!): Boolean!
+
+    """
+    Archive a flow schedule, permanently stopping executions
+    """
+    archiveFlowSchedule(scheduleEntityId: EntityId!): Boolean!
   }
 `;

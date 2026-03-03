@@ -1,6 +1,6 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { InputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { InputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { expect, test } from "vitest";
@@ -15,7 +15,8 @@ test(
     const status = await getWebPageSummaryAction({
       inputs: [
         {
-          inputName: "url" satisfies InputNameForAction<"getWebPageSummary">,
+          inputName:
+            "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
           payload: { kind: "Text", value: url },
         },
         ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(

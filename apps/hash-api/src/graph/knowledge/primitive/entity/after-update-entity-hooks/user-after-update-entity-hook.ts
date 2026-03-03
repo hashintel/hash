@@ -19,19 +19,23 @@ export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
       "https://hash.ai/@h/types/property-type/email/",
     );
 
-    const { shortname, displayName } = simplifyProperties(
+    const { shortname, displayName, email } = simplifyProperties(
       updatedEntity.properties as UserProperties,
     );
 
-    if (updatedEmails?.[0] && isProdEnv) {
+    const hasEmailChanged =
+      updatedEmails &&
+      updatedEmails.sort().join(",") !== email.sort().join(",");
+
+    if (hasEmailChanged && isProdEnv) {
       /**
        * @todo H-4936: when we allow users to have more than one email, come up with
        * a better way of determining which to use for mailchimp.
        */
-      const email = updatedEmails[0];
+      const newEmail = updatedEmails[0];
 
       await createOrUpdateMailchimpUser({
-        email,
+        email: newEmail,
         shortname,
         displayName,
       });
@@ -39,7 +43,7 @@ export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
 
     const user = getUserFromEntity({ entity: updatedEntity });
 
-    if (updatedEmails) {
+    if (hasEmailChanged) {
       await updateUserKratosIdentityTraits(
         context,
         { actorId: user.accountId },

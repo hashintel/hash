@@ -1,11 +1,52 @@
-Hi,
-
-Please continue with the recovery of your HASH account by entering the following code:
-
-{{ .RecoveryCode }}
-
-You should enter this code in HASH directly. Do not share this code with anybody else. 
-
-If you did not request this code, please contact <a href="mailto:support@hash.ai">support@hash.ai</a>
-
-HASH
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: 'Inter', sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f5f7;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e4e9; overflow: hidden; padding: 48px;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 48px 48px 0 48px;">
+              <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: #1a1c23; line-height: 1.3; font-family: 'Inter', sans-serif;">
+                Recover your account
+              </h1>
+              <p style="margin: 0 0 28px 0; font-size: 15px; color: #6b7280; line-height: 1.5; font-family: 'Inter', sans-serif;">
+                Enter the code below in HASH to recover access to your account.
+              </p>
+            </td>
+          </tr>
+          <!-- Code -->
+          <tr>
+            <td style="padding: 0 48px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f5f7; border-radius: 8px;">
+                <tr>
+                  <td align="center" style="padding: 32px 24px;">
+                    <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1a1c23; font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;">{{ .RecoveryCode }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Warning -->
+          <tr>
+            <td style="padding: 32px 48px 48px 48px;">
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280; line-height: 1.5; font-family: 'Inter', sans-serif;">
+                Enter this code in HASH directly. Do not share this code with anyone.
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5; font-family: 'Inter', sans-serif;">
+                If you didn't request this, please contact <a href="mailto:support@hash.ai" style="color: #0775e3; text-decoration: none; font-family: 'Inter', sans-serif;">support@hash.ai</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

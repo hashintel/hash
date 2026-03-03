@@ -1,13 +1,18 @@
 use hashql_core::{
     heap::Heap,
-    intern::{InternMap, InternSet, Interned},
+    intern::{InternSet, Interned},
     span::Spanned,
     symbol::Ident,
     r#type::TypeId,
 };
 
 use crate::node::{
-    Node, PartialNode, call::CallArgument, closure::ClosureParam, graph::read::GraphReadBody,
+    Node, NodeData,
+    call::CallArgument,
+    closure::ClosureParam,
+    data::{DictField, StructField},
+    graph::read::GraphReadBody,
+    r#let::Binding,
 };
 
 #[derive(Debug)]
@@ -18,8 +23,12 @@ pub struct Interner<'heap> {
     pub closure_params: InternSet<'heap, [ClosureParam<'heap>]>,
     pub call_arguments: InternSet<'heap, [CallArgument<'heap>]>,
     pub graph_read_body: InternSet<'heap, [GraphReadBody<'heap>]>,
+    pub bindings: InternSet<'heap, [Binding<'heap>]>,
 
-    pub node: InternMap<'heap, Node<'heap>>,
+    pub node: InternSet<'heap, NodeData<'heap>>,
+
+    struct_fields: InternSet<'heap, [StructField<'heap>]>,
+    pub dict_fields: InternSet<'heap, [DictField<'heap>]>,
 }
 
 impl<'heap> Interner<'heap> {
@@ -32,8 +41,11 @@ impl<'heap> Interner<'heap> {
             closure_params: InternSet::new(heap),
             call_arguments: InternSet::new(heap),
             graph_read_body: InternSet::new(heap),
+            struct_fields: InternSet::new(heap),
+            dict_fields: InternSet::new(heap),
+            bindings: InternSet::new(heap),
 
-            node: InternMap::new(heap),
+            node: InternSet::new(heap),
         }
     }
 
@@ -66,7 +78,42 @@ impl<'heap> Interner<'heap> {
         self.call_arguments.intern_slice(call_args)
     }
 
-    pub fn intern_node(&self, node: PartialNode<'heap>) -> Node<'heap> {
-        self.node.intern_partial(node)
+    /// Interns a slice of struct fields.
+    ///
+    /// # Panics
+    ///
+    /// With debug assertions enabled, this function will panic if there are duplicate field names.
+    pub fn intern_struct_fields(
+        &self,
+        fields: &mut [StructField<'heap>],
+    ) -> Interned<'heap, [StructField<'heap>]> {
+        if cfg!(debug_assertions) {
+            // Ensure that struct fields do not have duplicate field names
+            let mut seen = hashql_core::collections::fast_hash_set_with_capacity(fields.len());
+            for field in &*fields {
+                assert!(
+                    seen.insert(field.name.value),
+                    "Duplicate field name: {}",
+                    field.name.value
+                );
+            }
+        }
+
+        // We can safely use unstable_by_key here because struct fields do not have duplicate field
+        // names
+        fields.sort_unstable_by_key(|field| field.name.value);
+
+        self.struct_fields.intern_slice(fields)
+    }
+
+    pub fn intern_dict_fields(
+        &self,
+        fields: &[DictField<'heap>],
+    ) -> Interned<'heap, [DictField<'heap>]> {
+        self.dict_fields.intern_slice(fields)
+    }
+
+    pub fn intern_node(&self, node: NodeData<'heap>) -> Interned<'heap, NodeData<'heap>> {
+        self.node.intern(node)
     }
 }

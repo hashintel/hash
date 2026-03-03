@@ -1,0 +1,20 @@
+//@ run: pass
+//@ description: Cascading optimization from switch fold to goto merge
+// First the switch folds (constant true), then the resulting goto chains merge.
+// Tests that simplifications trigger re-processing of predecessors.
+[
+  "let",
+  "x",
+  { "#literal": 10 },
+  [
+    "let",
+    "y",
+    [
+      "if",
+      { "#literal": true },
+      ["<=", "x", { "#literal": 100 }],
+      [">=", "x", { "#literal": 100 }]
+    ],
+    "y"
+  ]
+]

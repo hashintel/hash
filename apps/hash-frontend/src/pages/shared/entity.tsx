@@ -5,17 +5,14 @@ import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
+  deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
   HashEntity,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
@@ -24,13 +21,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
-  getEntitySubgraphQuery,
+  queryEntitySubgraphQuery,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { EditBarEntityEditor } from "./entity/edit-bar";
@@ -251,17 +248,17 @@ export const Entity = ({
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
-  const { data: getEntitySubgraphData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+  const { data: queryEntitySubgraphData, refetch } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.getEntitySubgraph.subgraph);
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
-      const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
+      const { definitions, closedMultiEntityTypes } = data.queryEntitySubgraph;
 
       if (!definitions || !closedMultiEntityTypes) {
         throw new Error(
@@ -325,15 +322,30 @@ export const Entity = ({
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { incoming: 1, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
+          },
+          {
+            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+          },
+        ],
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
+        includePermissions: true,
       },
-      includePermissions: true,
     },
     skip: !!draftLocalEntity || !!proposedEntitySubgraph,
   });
@@ -366,9 +378,9 @@ export const Entity = ({
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
-      !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
+      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
         entityId
-      ]?.edit);
+      ]?.update);
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),

@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::{
-    ContextBuilder, Policy, PolicyId,
+    ContextBuilder, Policy, PolicyId, ResolvedPolicy,
     principal::actor::AuthenticatedActor,
     resource::{DataTypeResource, EntityResource, EntityTypeResource, PropertyTypeResource},
     store::{
@@ -25,35 +25,36 @@ use hash_graph_store::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
-        WebRetrievalError,
+        WebRetrievalError, WebUpdateError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
-        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
+        CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        QueryEntityTypeSubgraphParams, QueryEntityTypeSubgraphResponse, QueryEntityTypesParams,
+        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        HasPermissionForPropertyTypesParams, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        QueryPropertyTypeSubgraphResponse, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
@@ -94,6 +95,9 @@ use type_system::{
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
 
+const MAX_FETCH_RECURSION_DEPTH: usize = 10;
+const MAX_FETCH_URLS_PER_OPERATION: usize = 100;
+
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
     fn insert_external_ontology_type(
@@ -103,13 +107,14 @@ pub trait TypeFetcher {
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Report<InsertionError>>> + Send;
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TypeFetcherConnectionInfo<A> {
     address: A,
     config: tarpc::client::Config,
     domain_validator: DomainValidator,
 }
 
+#[derive(Debug, Clone)]
 pub struct FetchingPool<P, A> {
     pool: P,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
@@ -301,7 +306,7 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         params: ResolvePoliciesParams<'_>,
-    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+    ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>> {
         self.store
             .resolve_policies_for_actor(authenticated_actor, params)
             .await
@@ -427,12 +432,6 @@ struct FetchedOntologyTypes {
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
-#[derive(Debug)]
-enum FetchBehavior {
-    IncludeProvidedReferences,
-    ExcludeProvidedReferences,
-}
-
 impl<S, A> FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -458,9 +457,9 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(
+                .query_data_types(
                     actor_id,
-                    GetDataTypesParams {
+                    QueryDataTypesParams {
                         filter: Filter::for_versioned_url(url),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -468,7 +467,6 @@ where
                         },
                         after: None,
                         limit: None,
-                        include_drafts: true,
                         include_count: false,
                     },
                 )
@@ -476,9 +474,9 @@ where
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(
+                .query_property_types(
                     actor_id,
-                    GetPropertyTypesParams {
+                    QueryPropertyTypesParams {
                         filter: Filter::for_versioned_url(url),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -486,7 +484,6 @@ where
                         },
                         after: None,
                         limit: None,
-                        include_drafts: true,
                         include_count: false,
                     },
                 )
@@ -494,30 +491,31 @@ where
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(
+                .query_entity_types(
                     actor_id,
-                    GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                    QueryEntityTypesParams {
+                        request: CommonQueryEntityTypesParams {
+                            filter: Filter::for_versioned_url(url),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            after: None,
+                            limit: None,
+                            include_count: false,
+                            include_web_ids: false,
+                            include_edition_created_by_ids: false,
                         },
-                        include_drafts: true,
-                        after: None,
-                        limit: None,
                         include_entity_types: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
                     },
                 )
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
-        .attach_printable("Could not check if ontology type exists")
+        .attach("Could not check if ontology type exists")
     }
 
-    #[tracing::instrument(level = "trace", skip(self, ontology_type))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type))]
     async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
         actor_id: ActorEntityUuid,
@@ -539,22 +537,26 @@ where
         Ok(references)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_type_references))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type_references, bypassed_types))]
     #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
         actor_id: ActorEntityUuid,
         ontology_type_references: impl IntoIterator<Item = VersionedUrl> + Send,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, Report<QueryError>> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
-        let mut seen = match fetch_behavior {
-            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
-            FetchBehavior::ExcludeProvidedReferences => {
-                queue.iter().cloned().collect::<HashSet<_>>()
-            }
-        };
+        // Always seed `seen` with initial URLs to prevent re-fetching them if they
+        // appear as transitive dependencies (e.g. circular references).
+        let mut seen: HashSet<VersionedUrl> = queue.iter().cloned().collect();
+
+        let mut total_urls_scheduled = queue.len();
+        if total_urls_scheduled > MAX_FETCH_URLS_PER_OPERATION {
+            return Err(Report::new(QueryError).attach(format!(
+                "Exceeded type fetch limit: attempted to fetch {total_urls_scheduled} URLs, but \
+                 at most {MAX_FETCH_URLS_PER_OPERATION} are allowed per operation"
+            )));
+        }
 
         let mut fetched_ontology_types = FetchedOntologyTypes::default();
         if queue.is_empty() {
@@ -564,7 +566,7 @@ where
         let fetcher = self
             .fetcher_client()
             .await
-            .attach_printable_lazy(|| {
+            .attach_with(|| {
                 queue
                     .iter()
                     .map(ToString::to_string)
@@ -572,10 +574,17 @@ where
                     .join(", ")
             })
             .change_context(QueryError)?;
+        let mut recursion_depth: usize = 0;
         loop {
             let ontology_urls = mem::take(&mut queue);
             if ontology_urls.is_empty() {
                 break;
+            }
+
+            if recursion_depth >= MAX_FETCH_RECURSION_DEPTH {
+                return Err(Report::new(QueryError).attach(format!(
+                    "Exceeded maximum type fetch recursion depth of {MAX_FETCH_RECURSION_DEPTH}"
+                )));
             }
 
             let ontology_types = {
@@ -592,83 +601,92 @@ where
             };
 
             for (ontology_type, fetched_at) in ontology_types {
-                match ontology_type {
+                // Collect referenced URLs and store the fetched type
+                let referenced_urls: Vec<VersionedUrl> = match ontology_type {
                     FetchedOntologyType::DataType(data_type) => {
-                        let metadata = PartialDataTypeMetadata {
-                            record_id: data_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .data_types
-                            .push((*data_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = data_type.id().clone().into();
+                        fetched_ontology_types.data_types.push((
+                            *data_type,
+                            PartialDataTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
-                        let metadata = PartialPropertyTypeMetadata {
-                            record_id: property_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*property_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
-
-                        fetched_ontology_types
-                            .property_types
-                            .push((*property_type, metadata));
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = property_type.id().clone().into();
+                        fetched_ontology_types.property_types.push((
+                            *property_type,
+                            PartialPropertyTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
-                        let metadata = PartialEntityTypeMetadata {
-                            record_id: entity_type.id().clone().into(),
-                            ownership: OntologyOwnership::Remote { fetched_at },
-                        };
-
-                        for referenced_ontology_type in self
+                        let urls = self
                             .collect_external_ontology_types(
                                 actor_id,
                                 &*entity_type,
                                 bypassed_types,
                             )
                             .await?
-                        {
-                            if !seen.contains(referenced_ontology_type.url()) {
-                                queue.push(referenced_ontology_type.url().clone());
-                                seen.insert(referenced_ontology_type.url().clone());
-                            }
-                        }
+                            .iter()
+                            .map(|ref_| ref_.url().clone())
+                            .collect();
+                        let record_id = entity_type.id().clone().into();
+                        fetched_ontology_types.entity_types.push((
+                            *entity_type,
+                            PartialEntityTypeMetadata {
+                                record_id,
+                                ownership: OntologyOwnership::Remote { fetched_at },
+                            },
+                        ));
+                        urls
+                    }
+                };
 
-                        fetched_ontology_types
-                            .entity_types
-                            .push((*entity_type, metadata));
+                // Enqueue unseen references (single place, no duplication)
+                for url in referenced_urls {
+                    if !seen.contains(&url) {
+                        if total_urls_scheduled >= MAX_FETCH_URLS_PER_OPERATION {
+                            return Err(Report::new(QueryError).attach(format!(
+                                "Exceeded type fetch limit: attempted to fetch more than \
+                                 {MAX_FETCH_URLS_PER_OPERATION} URLs"
+                            )));
+                        }
+                        seen.insert(url.clone());
+                        queue.push(url);
+                        total_urls_scheduled += 1;
                     }
                 }
             }
+
+            recursion_depth += 1;
         }
 
         Ok(fetched_ontology_types)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_types))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -696,12 +714,7 @@ where
         }
 
         let fetched_ontology_types = self
-            .fetch_external_ontology_types(
-                actor_id,
-                ontology_type_ids,
-                FetchBehavior::ExcludeProvidedReferences,
-                bypassed_types,
-            )
+            .fetch_external_ontology_types(actor_id, ontology_type_ids, bypassed_types)
             .await
             .change_context(InsertionError)?;
 
@@ -778,7 +791,6 @@ where
         actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
-        fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeMetadata>, Report<InsertionError>> {
         if on_conflict == ConflictBehavior::Fail
@@ -788,12 +800,7 @@ where
                 .change_context(InsertionError)?
         {
             let fetched_ontology_types = self
-                .fetch_external_ontology_types(
-                    actor_id,
-                    [reference.url().clone()],
-                    fetch_behavior,
-                    bypassed_types,
-                )
+                .fetch_external_ontology_types(actor_id, [reference.url().clone()], bypassed_types)
                 .await
                 .change_context(InsertionError)?;
 
@@ -900,7 +907,6 @@ where
             actor_id,
             reference,
             ConflictBehavior::Fail,
-            FetchBehavior::IncludeProvidedReferences,
             &HashSet::new(),
         )
         .await?
@@ -911,7 +917,7 @@ where
             record_id.base_url == reference.base_url && record_id.version == reference.version
         })
         .ok_or_else(|| {
-            Report::new(InsertionError).attach_printable(format!(
+            Report::new(InsertionError).attach(format!(
                 "external type was not fetched: {}",
                 reference.url()
             ))
@@ -1059,6 +1065,17 @@ where
         self.store.get_web_by_id(actor_id, id).await
     }
 
+    async fn update_web_shortname(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> Result<(), Report<WebUpdateError>> {
+        self.store
+            .update_web_shortname(actor_id, id, shortname)
+            .await
+    }
+
     async fn get_web_by_shortname(
         &self,
         actor_id: ActorEntityUuid,
@@ -1127,7 +1144,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1148,20 +1165,20 @@ where
         self.store.count_data_types(actor_id, params).await
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
-        self.store.get_data_types(actor_id, params).await
+        params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
+        self.store.query_data_types(actor_id, params).await
     }
 
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
-        self.store.get_data_type_subgraph(actor_id, params).await
+        params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
+        self.store.query_data_type_subgraph(actor_id, params).await
     }
 
     async fn update_data_types<P>(
@@ -1187,7 +1204,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1226,13 +1243,13 @@ where
             .await
     }
 
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
-            .get_data_type_conversion_targets(actor_id, params)
+            .find_data_type_conversion_targets(actor_id, params)
             .await
     }
 
@@ -1278,7 +1295,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1299,21 +1316,21 @@ where
         self.store.count_property_types(actor_id, params).await
     }
 
-    async fn get_property_types(
+    async fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
-        self.store.get_property_types(actor_id, params).await
+        params: QueryPropertyTypesParams<'_>,
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
+        self.store.query_property_types(actor_id, params).await
     }
 
-    async fn get_property_type_subgraph(
+    async fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryPropertyTypeSubgraphParams<'_>,
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         self.store
-            .get_property_type_subgraph(actor_id, params)
+            .query_property_type_subgraph(actor_id, params)
             .await
     }
 
@@ -1340,7 +1357,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1420,7 +1437,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1441,12 +1458,12 @@ where
         self.store.count_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
-        self.store.get_entity_types(actor_id, params).await
+        params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
+        self.store.query_entity_types(actor_id, params).await
     }
 
     async fn get_closed_multi_entity_types<I, J>(
@@ -1470,12 +1487,14 @@ where
             .await
     }
 
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
-        self.store.get_entity_type_subgraph(actor_id, params).await
+        params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
+        self.store
+            .query_entity_type_subgraph(actor_id, params)
+            .await
     }
 
     async fn update_entity_types<P>(
@@ -1501,7 +1520,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1581,7 +1600,6 @@ where
                 actor_uuid,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await?;
@@ -1598,20 +1616,20 @@ where
         self.store.validate_entities(actor_id, params).await
     }
 
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        self.store.get_entities(actor_id, params).await
+        params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+        self.store.query_entities(actor_id, params).await
     }
 
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        self.store.get_entity_subgraph(actor_id, params).await
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        self.store.query_entity_subgraph(actor_id, params).await
     }
 
     async fn get_entity_by_id(
@@ -1646,7 +1664,6 @@ where
                     url: entity_type_id.clone(),
                 }),
                 ConflictBehavior::Skip,
-                FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),
             )
             .await
@@ -1654,6 +1671,14 @@ where
         }
 
         self.store.patch_entity(actor_id, params).await
+    }
+
+    async fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        self.store.delete_entities(actor_id, params).await
     }
 
     async fn update_entity_embeddings(

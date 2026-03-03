@@ -170,7 +170,7 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: testingParams?.model ?? "claude-3-5-sonnet-20240620",
+      model: testingParams?.model ?? "claude-sonnet-4-6",
       toolChoice: toolNames[0],
       temperature: 0,
       messages: [

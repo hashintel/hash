@@ -77,5 +77,5 @@ Expr#4294967040@50
                                         Expr#4294967040@45
                                           ExprKind (Literal)
                                             LiteralExpr#4294967040@44
-                                              LiteralKind (Integer)
-                                                IntegerLiteral (2)
+                                              Primitive (Integer)
+                                                Integer (2)

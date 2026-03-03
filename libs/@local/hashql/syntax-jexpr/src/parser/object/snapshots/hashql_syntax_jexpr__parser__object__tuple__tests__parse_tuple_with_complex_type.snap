@@ -10,14 +10,14 @@ Expr#4294967040@17
         Expr#4294967040@1
           ExprKind (Literal)
             LiteralExpr#4294967040@0
-              LiteralKind (String)
-                StringLiteral (key)
+              Primitive (String)
+                String (key)
       TupleElement#4294967040@3
         Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@2
-              LiteralKind (Integer)
-                IntegerLiteral (42)
+              Primitive (Integer)
+                Integer (42)
       Type#4294967040@16
         TypeKind (Struct)
           StructType#4294967040@16

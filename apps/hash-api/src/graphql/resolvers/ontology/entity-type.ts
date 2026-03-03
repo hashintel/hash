@@ -4,28 +4,27 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
-import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
+import type {
+  GetClosedMultiEntityTypesResponse,
+  QueryEntityTypesResponse,
+  SerializedQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
 import {
-  currentTimeInstantTemporalAxes,
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { ApolloError } from "apollo-server-express";
+  getClosedMultiEntityTypes,
+  queryEntityTypes,
+  queryEntityTypeSubgraph,
+  serializeQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
 
 import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedMultiEntityTypes,
-  getEntityTypeSubgraph,
-  getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
   updateEntityTypes,
 } from "../../../graph/ontology/primitive/entity-type";
 import type {
-  GetClosedMultiEntityTypesResponse,
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
@@ -33,8 +32,8 @@ import type {
   MutationUpdateEntityTypesArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
   QueryGetClosedMultiEntityTypesArgs,
-  QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
+  QueryQueryEntityTypeSubgraphArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
@@ -60,129 +59,40 @@ export const createEntityTypeResolver: ResolverFn<
 };
 
 export const queryEntityTypesResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryQueryEntityTypesArgs
-> = async (
-  _,
-  {
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    constrainsLinksOn,
-    constrainsLinkDestinationsOn,
-    filter,
-    inheritsFrom,
-    latestOnly = true,
-    includeArchived = false,
-  },
-  { dataSources, authentication, provenance, temporal },
-  __,
-) => {
-  const { graphApi } = dataSources;
-
-  const latestOnlyFilter = {
-    equal: [{ path: ["version"] }, { parameter: "latest" }],
-  };
-
-  return serializeSubgraph(
-    await getEntityTypeSubgraph(
-      { graphApi, provenance, temporalClient: temporal },
-      authentication,
-      {
-        filter: latestOnly
-          ? filter
-            ? { all: [filter, latestOnlyFilter] }
-            : latestOnlyFilter
-          : (filter ?? { all: [] }),
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
-      },
-    ),
-  );
-};
-
-export const getEntityTypeResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
+  Promise<QueryEntityTypesResponse>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetEntityTypeArgs
-> = async (
-  _,
-  {
-    entityTypeId,
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    constrainsLinksOn,
-    constrainsLinkDestinationsOn,
-    inheritsFrom,
-    includeArchived,
-  },
-  graphQLContext,
-  __,
-) =>
-  serializeSubgraph(
-    await getEntityTypeSubgraphById(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        entityTypeId,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
-      },
-    ),
+  QueryQueryEntityTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  queryEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
   );
+
+export const queryEntityTypeSubgraphResolver: ResolverFn<
+  Promise<SerializedQueryEntityTypeSubgraphResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryEntityTypeSubgraphArgs
+> = async (_, { request }, graphQLContext) =>
+  queryEntityTypeSubgraph(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  ).then(serializeQueryEntityTypeSubgraphResponse);
 
 export const getClosedMultiEntityTypesResolver: ResolverFn<
   Promise<GetClosedMultiEntityTypesResponse>,
   Record<string, never>,
   GraphQLContext,
   QueryGetClosedMultiEntityTypesArgs
-> = async (_, args, graphQLContext) => {
-  const { entityTypeIds, includeArchived } = args;
-
-  const { closedMultiEntityTypes, definitions } =
-    await getClosedMultiEntityTypes(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        entityTypeIds,
-        // All references to other types are resolved, and those types provided under 'definitions' in the response,
-        // including the children of any data types which are resolved (to allow picking more specific types)
-        includeResolved: "resolvedWithDataTypeChildren",
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
-      },
-    );
-
-  if (!definitions) {
-    throw new ApolloError("No definitions found for closed multi entity type");
-  }
-
-  return {
-    closedMultiEntityTypes,
-    definitions,
-  };
-};
+> = async (_, { request }, graphQLContext) =>
+  getClosedMultiEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  );
 
 export const updateEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,

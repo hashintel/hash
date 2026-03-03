@@ -5,9 +5,7 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/libs#
 [hash]: https://github.com/hashintel/hash/tree/main/apps/hash
 [antsi]: antsi
-[chonky]: chonky
 [error-stack]: error-stack
-[sarif]: sarif
 [@hashintel/type-editor]: @hashintel/type-editor
 [@hashintel/query-editor]: @hashintel/query-editor
 [@hashintel/design-system]: @hashintel/design-system
@@ -26,10 +24,8 @@ Contains the source code for software development libraries which HASH has publi
 | Directory                 | Language(s) | Publication URL                                              | Docs URL                                                   | Description                                                                                                                                    |
 | ------------------------- | ----------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | [antsi]                   | Rust        | [Crates.io](https://crates.io/crates/antsi)                  | [Docs.rs](https://docs.rs/antsi/latest/antsi/)             | Supports coloring Select Graphic Rendition (as defined in ISO 6429) with no external dependencies                                              |
-| [chonky]                  | Rust        | [Crates.io](https://crates.io/crates/chonky)                 | [Docs.rs](https://docs.rs/chonky/latest/chonky/)           | Assists in the segmentation, chunking and embedding of information contained within arbitrary files                                       |
-| [error-stack]             | Rust        | [Crates.io](https://crates.io/crates/error-stack)            | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                           |
-| [sarif]                   | Rust        | [Crates.io](https://crates.io/crates/sarif)                  | [Docs.rs](https://docs.rs/sarif/latest/sarif/)             | Representation of the SARIF specification in Rust                                                                                            |
-| [@hashintel/type-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)  | To be written                                              | UI for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types)        |
+| [error-stack]             | Rust        | [Crates.io](https://crates.io/crates/error-stack)            | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                                |
+| [@hashintel/type-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)  | To be written                                              | UI for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types)         |
 | [@hashintel/query-editor] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/query-editor) | To be written                                              | UI for editing queries (a specific entity type used heavily inside of [HASH])                                                                  |
 
 ## Internal Libraries
@@ -45,14 +41,14 @@ Those packages inside of [`@local`](./@local) are libraries used inside this rep
 
 The following list is a non-exhaustive list of packages in `@local`:
 
-| Package                                                         | Language(s) | Docs URL      | Description                                                            |
-| --------------------------------------------------------------- | ----------- | ------------- | ---------------------------------------------------------------------- |
-| [@rust/hash-codec](@local/codec)                                | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
-| [@rust/hash-graph-authorization](@local/graph/authorization)    | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
-| [@local/hash-graph-client](@local/graph/client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
-| [@rust/hash-graph-types](@local/graph/types)                    | Rust        | Not hosted    | Types used inside of the Graph API                                     |
-| [@rust/hash-temporal-client](@local/temporal-client)            | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
-| [@rust/hash-graph-temporal-versioning](@local/graph/temporal-versioning)| Rust        | Not hosted    | Implementation of temporal versioning                                  |
+| Package                                                                  | Language(s) | Docs URL      | Description                                                            |
+| ------------------------------------------------------------------------ | ----------- | ------------- | ---------------------------------------------------------------------- |
+| [@rust/hash-codec](@local/codec)                                         | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
+| [@rust/hash-graph-authorization](@local/graph/authorization)             | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
+| [@local/hash-graph-client](@local/graph/client/typescript)               | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
+| [@rust/hash-graph-types](@local/graph/types)                             | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [@rust/hash-temporal-client](@local/temporal-client)                     | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
+| [@rust/hash-graph-temporal-versioning](@local/graph/temporal-versioning) | Rust        | Not hosted    | Implementation of temporal versioning                                  |
 
 ## Contributing
 

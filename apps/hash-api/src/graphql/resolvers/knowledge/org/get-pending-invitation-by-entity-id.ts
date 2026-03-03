@@ -33,16 +33,20 @@ export const getPendingInvitationByEntityIdResolver: ResolverFn<
     systemAccountAuthentication,
     {
       entityId,
-      graphResolveDepths: {
-        hasLeftEntity: {
-          incoming: 0,
-          outgoing: 1,
+      traversalPaths: [
+        {
+          edges: [
+            {
+              kind: "has-right-entity",
+              direction: "incoming",
+            },
+            {
+              kind: "has-left-entity",
+              direction: "outgoing",
+            },
+          ],
         },
-        hasRightEntity: {
-          incoming: 1,
-          outgoing: 0,
-        },
-      },
+      ],
     },
   );
 

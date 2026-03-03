@@ -55,35 +55,30 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll metadata sender")?;
-        ready!(self.principal.poll_ready_unpin(cx))
-            .attach_printable("could not poll principal sender")?;
-        ready!(self.action.poll_ready_unpin(cx))
-            .attach_printable("could not poll action sender")?;
-        ready!(self.policy_edition.poll_ready_unpin(cx))
-            .attach_printable("could not poll policy sender")?;
+            .attach("could not poll metadata sender")?;
+        ready!(self.principal.poll_ready_unpin(cx)).attach("could not poll principal sender")?;
+        ready!(self.action.poll_ready_unpin(cx)).attach("could not poll action sender")?;
+        ready!(self.policy_edition.poll_ready_unpin(cx)).attach("could not poll policy sender")?;
         ready!(self.policy_action.poll_ready_unpin(cx))
-            .attach_printable("could not poll policy action sender")?;
-        ready!(self.data_type.poll_ready_unpin(cx))
-            .attach_printable("could not poll data type sender")?;
+            .attach("could not poll policy action sender")?;
+        ready!(self.data_type.poll_ready_unpin(cx)).attach("could not poll data type sender")?;
         ready!(self.data_type_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll data type embedding sender")?;
+            .attach("could not poll data type embedding sender")?;
         ready!(self.property_type.poll_ready_unpin(cx))
-            .attach_printable("could not poll property type sender")?;
+            .attach("could not poll property type sender")?;
         ready!(self.property_type_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll property type embedding sender")?;
+            .attach("could not poll property type embedding sender")?;
         ready!(self.entity_type.poll_ready_unpin(cx))
-            .attach_printable("could not poll entity type sender")?;
+            .attach("could not poll entity type sender")?;
         ready!(self.entity_type_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity type embedding sender")?;
-        ready!(self.entity.poll_ready_unpin(cx))
-            .attach_printable("could not poll entity sender")?;
+            .attach("could not poll entity type embedding sender")?;
+        ready!(self.entity.poll_ready_unpin(cx)).attach("could not poll entity sender")?;
         ready!(self.entity_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity embedding sender")?;
+            .attach("could not poll entity embedding sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -94,27 +89,27 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .metadata
                 .start_send_unpin(snapshot)
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send snapshot metadata"),
+                .attach("could not send snapshot metadata"),
             SnapshotEntry::Principal(principal) => self
                 .principal
                 .start_send_unpin(principal)
-                .attach_printable("could not send principal"),
+                .attach("could not send principal"),
             SnapshotEntry::Action(action) => self
                 .action
                 .start_send_unpin(action)
-                .attach_printable("could not send action"),
+                .attach("could not send action"),
             SnapshotEntry::Policy(policy) => self
                 .policy_edition
                 .start_send_unpin(policy)
-                .attach_printable("could not send policy"),
+                .attach("could not send policy"),
             SnapshotEntry::PolicyActions(action) => self
                 .policy_action
                 .start_send_unpin(action)
-                .attach_printable("could not send policy action"),
+                .attach("could not send policy action"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
                 .start_send_unpin(*data_type)
-                .attach_printable("could not send data type"),
+                .attach("could not send data type"),
             SnapshotEntry::DataTypeEmbedding(embedding) => self
                 .data_type_embedding
                 .start_send_unpin(DataTypeEmbeddingRow {
@@ -123,11 +118,11 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send data type embedding"),
+                .attach("could not send data type embedding"),
             SnapshotEntry::PropertyType(property_type) => self
                 .property_type
                 .start_send_unpin(*property_type)
-                .attach_printable("could not send property type"),
+                .attach("could not send property type"),
             SnapshotEntry::PropertyTypeEmbedding(embedding) => self
                 .property_type_embedding
                 .start_send_unpin(PropertyTypeEmbeddingRow {
@@ -136,11 +131,11 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send property type embedding"),
+                .attach("could not send property type embedding"),
             SnapshotEntry::EntityType(entity_type) => self
                 .entity_type
                 .start_send_unpin(*entity_type)
-                .attach_printable("could not send entity type"),
+                .attach("could not send entity type"),
             SnapshotEntry::EntityTypeEmbedding(embedding) => self
                 .entity_type_embedding
                 .start_send_unpin(EntityTypeEmbeddingRow {
@@ -149,11 +144,11 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity type embedding"),
+                .attach("could not send entity type embedding"),
             SnapshotEntry::Entity(entity) => self
                 .entity
                 .start_send_unpin(*entity)
-                .attach_printable("could not send entity"),
+                .attach("could not send entity"),
             SnapshotEntry::EntityEmbedding(embedding) => self
                 .entity_embedding
                 .start_send_unpin(EntityEmbeddingRow {
@@ -166,7 +161,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                     updated_at_decision_time: embedding.updated_at_decision_time,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity embedding"),
+                .attach("could not send entity embedding"),
         }
     }
 
@@ -176,35 +171,30 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush metadata sender")?;
-        ready!(self.principal.poll_flush_unpin(cx))
-            .attach_printable("could not flush principal sender")?;
-        ready!(self.action.poll_flush_unpin(cx))
-            .attach_printable("could not flush action sender")?;
-        ready!(self.policy_edition.poll_flush_unpin(cx))
-            .attach_printable("could not flush policy sender")?;
+            .attach("could not flush metadata sender")?;
+        ready!(self.principal.poll_flush_unpin(cx)).attach("could not flush principal sender")?;
+        ready!(self.action.poll_flush_unpin(cx)).attach("could not flush action sender")?;
+        ready!(self.policy_edition.poll_flush_unpin(cx)).attach("could not flush policy sender")?;
         ready!(self.policy_action.poll_flush_unpin(cx))
-            .attach_printable("could not flush policy action sender")?;
-        ready!(self.data_type.poll_flush_unpin(cx))
-            .attach_printable("could not flush data type sender")?;
+            .attach("could not flush policy action sender")?;
+        ready!(self.data_type.poll_flush_unpin(cx)).attach("could not flush data type sender")?;
         ready!(self.data_type_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush data type embedding sender")?;
+            .attach("could not flush data type embedding sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
-            .attach_printable("could not flush property type sender")?;
+            .attach("could not flush property type sender")?;
         ready!(self.property_type_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush property type embedding sender")?;
+            .attach("could not flush property type embedding sender")?;
         ready!(self.entity_type.poll_flush_unpin(cx))
-            .attach_printable("could not flush entity type sender")?;
+            .attach("could not flush entity type sender")?;
         ready!(self.entity_type_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity type embedding sender")?;
-        ready!(self.entity.poll_flush_unpin(cx))
-            .attach_printable("could not flush entity sender")?;
+            .attach("could not flush entity type embedding sender")?;
+        ready!(self.entity.poll_flush_unpin(cx)).attach("could not flush entity sender")?;
         ready!(self.entity_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity embedding sender")?;
+            .attach("could not flush entity embedding sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -215,35 +205,30 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close metadata sender")?;
-        ready!(self.principal.poll_close_unpin(cx))
-            .attach_printable("could not close principal sender")?;
-        ready!(self.action.poll_close_unpin(cx))
-            .attach_printable("could not close action sender")?;
-        ready!(self.policy_edition.poll_close_unpin(cx))
-            .attach_printable("could not close policy sender")?;
+            .attach("could not close metadata sender")?;
+        ready!(self.principal.poll_close_unpin(cx)).attach("could not close principal sender")?;
+        ready!(self.action.poll_close_unpin(cx)).attach("could not close action sender")?;
+        ready!(self.policy_edition.poll_close_unpin(cx)).attach("could not close policy sender")?;
         ready!(self.policy_action.poll_close_unpin(cx))
-            .attach_printable("could not close policy action sender")?;
-        ready!(self.data_type.poll_close_unpin(cx))
-            .attach_printable("could not close data type sender")?;
+            .attach("could not close policy action sender")?;
+        ready!(self.data_type.poll_close_unpin(cx)).attach("could not close data type sender")?;
         ready!(self.data_type_embedding.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close data type embedding sender")?;
+            .attach("could not close data type embedding sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
-            .attach_printable("could not close property type sender")?;
+            .attach("could not close property type sender")?;
         ready!(self.property_type_embedding.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close property type embedding sender")?;
+            .attach("could not close property type embedding sender")?;
         ready!(self.entity_type.poll_close_unpin(cx))
-            .attach_printable("could not close entity type sender")?;
+            .attach("could not close entity type sender")?;
         ready!(self.entity_type_embedding.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity type embedding sender")?;
-        ready!(self.entity.poll_close_unpin(cx))
-            .attach_printable("could not close entity sender")?;
+            .attach("could not close entity type embedding sender")?;
+        ready!(self.entity.poll_close_unpin(cx)).attach("could not close entity sender")?;
         ready!(self.entity_embedding.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity embedding sender")?;
+            .attach("could not close entity embedding sender")?;
 
         Poll::Ready(Ok(()))
     }

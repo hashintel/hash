@@ -111,7 +111,7 @@ export const QuestionModal = ({
       open={open}
       onClose={onClose}
       header={{
-        title: `Your worker has asked you 
+        title: `Your agent has asked you 
             ${multipleQuestions ? "questions" : "a question"}`,
       }}
     >

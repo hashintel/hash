@@ -6,8 +6,8 @@ expression: "{\"#literal\": 42, \"#type\": \"Int\"}"
 Expr#4294967040@5
   ExprKind (Literal)
     LiteralExpr#4294967040@0
-      LiteralKind (Integer)
-        IntegerLiteral (42)
+      Primitive (Integer)
+        Integer (42)
       Type#4294967040@4
         TypeKind (Path)
           Path#4294967040@4 (rooted: false)

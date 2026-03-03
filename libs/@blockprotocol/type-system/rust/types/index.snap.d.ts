@@ -1,46 +1,46 @@
 // This file was generated from `libs/@blockprotocol/type-system/rust/tests/codegen.rs`
 
 import type { Real } from "@rust/hash-codec/types";
-import type { Brand } from "@local/advanced-types/brand";
+import type { Brand } from "@blockprotocol/type-system-rs";
 export type DraftId = Brand<string, "DraftId">;
 export type EntityEditionId = Brand<string, "EntityEditionId">;
 export type EntityUuid = Brand<string, "EntityUuid">;
 export type PropertyValue = null | boolean | string | Real | PropertyValue[] | {
-	[key: string]: PropertyValue
+	[key: string]: PropertyValue;
 };
 export type BaseUrl = Brand<string, "BaseUrl">;
 export type OntologyTypeVersion = Brand<string, "OntologyTypeVersion">;
 export type Principal = {
-	principalType: "actor"
+	principalType: "actor";
 } & Actor | {
-	principalType: "actorGroup"
+	principalType: "actorGroup";
 } & ActorGroup | {
-	principalType: "role"
+	principalType: "role";
 } & Role;
 export type PrincipalId = {
-	principalType: "actor"
+	principalType: "actor";
 } & ActorId | {
-	principalType: "actorGroup"
+	principalType: "actorGroup";
 } & ActorGroupId | {
-	principalType: "role"
+	principalType: "role";
 } & RoleId;
 export type Actor = {
-	actorType: "user"
+	actorType: "user";
 } & User | {
-	actorType: "machine"
+	actorType: "machine";
 } & Machine | {
-	actorType: "ai"
+	actorType: "ai";
 } & Ai;
 export type ActorEntityUuid = Brand<EntityUuid, "ActorEntityUuid">;
 export type ActorId = {
-	actorType: "user"
-	id: UserId
+	actorType: "user";
+	id: UserId;
 } | {
-	actorType: "machine"
-	id: MachineId
+	actorType: "machine";
+	id: MachineId;
 } | {
-	actorType: "ai"
-	id: AiId
+	actorType: "ai";
+	id: AiId;
 };
 export type ActorType = "user" | "machine" | "ai";
 export interface Ai {
@@ -58,17 +58,17 @@ export interface User {
 }
 export type UserId = Brand<ActorEntityUuid & WebId, "UserId">;
 export type ActorGroup = {
-	actorGroupType: "web"
+	actorGroupType: "web";
 } & Web | {
-	actorGroupType: "team"
+	actorGroupType: "team";
 } & Team;
 export type ActorGroupEntityUuid = Brand<EntityUuid, "ActorGroupEntityUuid">;
 export type ActorGroupId = {
-	actorGroupType: "web"
-	id: WebId
+	actorGroupType: "web";
+	id: WebId;
 } | {
-	actorGroupType: "team"
-	id: TeamId
+	actorGroupType: "team";
+	id: TeamId;
 };
 export type ActorGroupType = "web" | "team";
 export interface Team {
@@ -83,16 +83,16 @@ export interface Web {
 }
 export type WebId = Brand<ActorGroupEntityUuid | ActorEntityUuid, "WebId">;
 export type Role = {
-	roleType: "web"
+	roleType: "web";
 } & WebRole | {
-	roleType: "team"
+	roleType: "team";
 } & TeamRole;
 export type RoleId = {
-	roleType: "web"
-	id: WebRoleId
+	roleType: "web";
+	id: WebRoleId;
 } | {
-	roleType: "team"
-	id: TeamRoleId
+	roleType: "team";
+	id: TeamRoleId;
 };
 export type RoleName = "administrator" | "member";
 export type RoleType = "web" | "team";

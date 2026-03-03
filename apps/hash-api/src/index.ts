@@ -2,6 +2,7 @@ import http from "node:http";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import KeyvRedis from "@keyv/redis";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -11,27 +12,36 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
+import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
-import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import {
+  getHashClientTypeFromRequest,
+  hashClientHeaderKey,
+} from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler } from "express";
+import type { ErrorRequestHandler, Request, Response } from "express";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
-import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
+import {
+  createProxyMiddleware,
+  fixRequestBody,
+  responseInterceptor,
+} from "http-proxy-middleware";
 import httpTerminator from "http-terminator";
+import Keyv from "keyv";
 import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
@@ -43,6 +53,7 @@ import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
+// import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
 import {
   oauthConsentRequestHandler,
@@ -51,7 +62,6 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
-import { RedisCache } from "./cache";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
@@ -66,9 +76,16 @@ import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watch
 import {
   CORS_CONFIG,
   getEnvStorageType,
+  GRAPHQL_PATH,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
+import {
+  isDevEnv,
+  isProdEnv,
+  isStatsDEnabled,
+  isTestEnv,
+  port,
+} from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -79,11 +96,13 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 
 const app = express();
 
+const httpServer = http.createServer(app);
+
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
-  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 30, // 30 seconds
-  limit: 10, // Limit each IP to 10 requests every 30 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 10, // 10 seconds
+  limit: 12, // Limit each IP to 12 requests every 10 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 };
@@ -94,24 +113,151 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
 
 /**
+ * A rate limiter for the GraphQL endpoint.
+ *
+ * Authenticated users get a higher limit because normal page loads
+ * can generate 5–10+ individual GraphQL requests (context providers,
+ * page content, comments, etc.), and navigating between pages or
+ * using features like flows can produce rapid bursts.
+ *
+ * Unauthenticated users are given a tighter limit because they
+ * access far less functionality.
+ */
+const graphqlRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
+  limit: (req) => (req.user ? 300 : 60),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user) {
+      return getActorIdFromRequest(req);
+    }
+    return ipKeyGenerator(req.ip!);
+  },
+  message: {
+    errors: [
+      {
+        message: "Too many requests, please try again later.",
+        extensions: { code: "RATE_LIMITED" },
+      },
+    ],
+  },
+});
+
+/**
  * A rate limit which throttles requests based on the user identifier rather than the IP address.
  */
 const userIdentifierRateLimiter = rateLimit({
   ...baseRateLimitOptions,
   keyGenerator: (req) => {
-    if (req.body.identifier) {
+    if (req.body?.identifier) {
       /**
        * 'identifier' is the field which identifies the user on a signin attempt.
        * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
-      return req.body.identifier;
+      return req.body.identifier as string;
     }
-    return req.ip;
+    return ipKeyGenerator(req.ip!);
   },
 });
 
-const hydraProxy = proxy(hydraPublicUrl ?? "", {
-  proxyReqPathResolver: (req) => req.originalUrl,
+/**
+ * A rate limiter for the GPT endpoints. These are OAuth-protected but
+ * should still be limited to prevent abuse by a compromised or misbehaving client.
+ */
+const gptRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
+  limit: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user) {
+      return getActorIdFromRequest(req);
+    }
+    return ipKeyGenerator(req.ip!);
+  },
+});
+
+const hydraProxy = createProxyMiddleware<Request, Response>({
+  target: hydraPublicUrl ?? "",
+  pathRewrite: (_, req) => req.originalUrl,
+});
+
+const redactAuthQueryParams = (value: string): string =>
+  value
+    /**
+     * Fail closed for auth logs by replacing complete query strings.
+     * This avoids relying on an allowlist of sensitive key names.
+     */
+    .replace(/\?[^#\s]*/g, "?[REDACTED_QUERY]");
+
+const sanitizeProxyLogArgs = (args: unknown[]): unknown[] =>
+  args.map((arg) =>
+    typeof arg === "string" ? redactAuthQueryParams(arg) : arg,
+  );
+
+const kratosProxyLogger = {
+  /**
+   * `http-proxy-middleware` logs include request URLs.
+   *
+   * `/auth/*` requests can include Ory self-service query parameters, so we
+   * sanitize all forwarded log levels consistently.
+   */
+  info: (...args: unknown[]) => {
+    logger.info(sanitizeProxyLogArgs(args));
+  },
+  warn: (...args: unknown[]) => {
+    logger.warn(sanitizeProxyLogArgs(args));
+  },
+  error: (...args: unknown[]) => {
+    logger.error(sanitizeProxyLogArgs(args));
+  },
+};
+
+const kratosProxy = createProxyMiddleware<Request, Response>({
+  target: kratosPublicUrl,
+  pathRewrite: {
+    /**
+     * Remove the `/auth` prefix from the request path, so the path is
+     * formatted correctly for the Ory Kratos API.
+     */
+    "^/auth": "",
+  },
+  logger: kratosProxyLogger,
+  selfHandleResponse: true,
+  on: {
+    proxyReq: fixRequestBody,
+    /**
+     * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+     * by default, which is not permitted by browsers when including credentials
+     * in requests.
+     *
+     * When setting the value of the `Access-Control-Allow-Origin` header in
+     * the Ory Kratos configuration, the frontend URL is included twice in the
+     * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+     * which is also not permitted by browsers when including credentials in requests.
+     *
+     * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+     * expected value here before returning the response, to prevent CORS errors
+     * in modern browsers.
+     */
+    proxyRes: (proxyRes, req, res) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "access-control-allow-origin",
+      );
+
+      return responseInterceptor((responseBuffer, _, __, inflightRes) => {
+        if (typeof expectedAccessControlAllowOriginHeader === "string") {
+          inflightRes.setHeader(
+            "access-control-allow-origin",
+            expectedAccessControlAllowOriginHeader,
+          );
+        }
+
+        return Promise.resolve(responseBuffer);
+      })(proxyRes, req, res);
+    },
+  },
 });
 
 const main = async () => {
@@ -120,11 +266,11 @@ const main = async () => {
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const [spEmitter] = setupTelemetry();
+    const snowplowTracker = await setupTelemetry();
 
     shutdown.addCleanup("Snowplow Telemetry", async () => {
       logger.info("Flushing [Snowplow] telemetry");
-      spEmitter.flush();
+      await snowplowTracker.flush();
     });
   }
 
@@ -157,6 +303,19 @@ const main = async () => {
 
   app.use(cors(CORS_CONFIG));
 
+  if (isProdEnv && !isSelfHostedInstance) {
+    /**
+     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     */
+    Object.defineProperty(app.request, "ip", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return this.get("cf-connecting-ip");
+      },
+    });
+  }
+
   // Add logging of requests
   app.use((req, res, next) => {
     const requestId = nanoid();
@@ -165,10 +324,13 @@ const main = async () => {
       JSON.stringify({
         requestId,
         method: req.method,
+        origin: req.headers.origin,
         ip: req.ip,
         path: req.path,
         userAgent: req.headers["user-agent"],
-        graphqlClient: req.headers["apollographql-client-name"],
+        graphqlClient:
+          req.headers[hashClientHeaderKey] ??
+          req.headers["apollographql-client-name"],
       }),
     );
 
@@ -179,6 +341,7 @@ const main = async () => {
   const redisPort = Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const redisEncryptedTransit =
     process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
+  const redisUrl = `redis${redisEncryptedTransit ? "s" : ""}://${redisHost}:${redisPort}`;
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
   const graphApiPort = Number.parseInt(
@@ -192,11 +355,8 @@ const main = async () => {
   ]);
 
   // Connect to Redis
-  const redis = new RedisCache(logger, {
-    host: redisHost,
-    port: redisPort,
-    tls: redisEncryptedTransit,
-  });
+  const redis = await createRedisClient({ url: redisUrl, logger }).connect();
+  const keyv = new Keyv({ store: new KeyvRedis(redis) });
   shutdown.addCleanup("Redis", async () => redis.close());
 
   // Connect to the Graph API
@@ -264,25 +424,73 @@ const main = async () => {
   await seedOrgsAndUsers({ logger, context: userActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
-  // Temporarily disable contentSecurityPolicy for the GraphQL playground
-  // Longer-term we can set rules which allow only the playground to load
-  // Potentially only in development mode
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // Hardening directives that helmet sets by default but are lost when providing
+  // a custom contentSecurityPolicy (which replaces rather than merges directives).
+  const cspHardeningDirectives = {
+    baseUri: ["'self'"],
+    objectSrc: ["'none'"],
+    scriptSrcAttr: ["'none'"],
+    frameAncestors: ["'self'"],
+  } as const;
+
+  const defaultHelmet = helmet();
+
+  const graphqlExplorerHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+        ],
+        frameSrc: ["'self'", "https://sandbox.embed.apollographql.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        manifestSrc: [
+          "'self'",
+          "https://apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        ...cspHardeningDirectives,
+      },
+    },
+  });
+
+  // The OAuth consent page (views/consent.hbs) loads normalize.css from cdnjs
+  // and consent.js from the local public directory.
+  const oauthConsentHelmet = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        ...cspHardeningDirectives,
+      },
+    },
+  });
+
+  app.use((req, res, next) => {
+    if (req.path === GRAPHQL_PATH && req.method === "GET") {
+      return graphqlExplorerHelmet(req, res, next);
+    }
+    if (req.path === "/oauth2/consent") {
+      return oauthConsentHelmet(req, res, next);
+    }
+    return defaultHelmet(req, res, next);
+  });
 
   app.use(express.static("public"));
-
-  if (isProdEnv && !isSelfHostedInstance) {
-    /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
-     */
-    Object.defineProperty(app.request, "ip", {
-      configurable: true,
-      enumerable: true,
-      get() {
-        return this.get("cf-connecting-ip");
-      },
-    });
-  }
 
   const jsonParser = bodyParser.json({
     // default is 100kb
@@ -325,51 +533,11 @@ const main = async () => {
    * we check the body in this process in order to rate limit requests based on the user attempting to log in.
    */
   app.use(
-    "/auth/*",
+    "/auth",
     authRouteRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
-    (req, res, next) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "Access-Control-Allow-Origin",
-      );
-
-      if (!kratosPublicUrl) {
-        throw new Error("No kratosPublicUrl provided");
-      }
-
-      return proxy(kratosPublicUrl, {
-        /**
-         * Remove the `/auth` prefix from the request path, so the path is
-         * formatted correctly for the Ory Kratos API.
-         */
-        proxyReqPathResolver: ({ originalUrl }) =>
-          originalUrl.replace("/auth", ""),
-        /**
-         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-         * by default, which is not permitted by browsers when including credentials
-         * in requests.
-         *
-         * When setting the value of the `Access-Control-Allow-Origin` header in
-         * the Ory Kratos configuration, the frontend URL is included twice in the
-         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-         * which is also not permitted by browsers when including credentials in requests.
-         *
-         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-         * expected value here before returning the response, to prevent CORS errors
-         * in modern browsers.
-         */
-        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
-          if (typeof expectedAccessControlAllowOriginHeader === "string") {
-            userRes.set(
-              "Access-Control-Allow-Origin",
-              expectedAccessControlAllowOriginHeader,
-            );
-          }
-          return proxyResData;
-        },
-      })(req, res, next);
-    },
+    kratosProxy,
   );
 
   // Set up authentication related middleware and routes
@@ -430,34 +598,16 @@ const main = async () => {
 
   const emailTransporter = createEmailTransporter();
 
-  let search: OpenSearch | undefined;
-  if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
-    const searchAuth =
-      process.env.HASH_OPENSEARCH_USERNAME === undefined
-        ? undefined
-        : {
-            username: process.env.HASH_OPENSEARCH_USERNAME,
-            password: process.env.HASH_OPENSEARCH_PASSWORD || "",
-          };
-    search = await OpenSearch.connect(logger, {
-      host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
-      port: Number.parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
-      auth: searchAuth,
-      httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
-    });
-    shutdown.addCleanup("OpenSearch", async () => search!.close());
-  }
-
-  const apolloServer = createApolloServer({
+  const [apolloServer, apolloMiddleware] = await createApolloServer({
     graphApi,
-    search,
     uploadProvider,
     temporalClient,
     vaultClient,
-    cache: redis,
+    cache: keyv,
     emailTransporter,
     logger,
     statsd,
+    httpServer,
   });
 
   // Make the data sources/clients available to REST controllers
@@ -481,7 +631,32 @@ const main = async () => {
     next();
   });
 
-  setupFileDownloadProxyHandler(app, redis);
+  /**
+   * Debugging endpoint to check how the server resolves the client's IP.
+   * Restricted to instance admins as it reveals proxy/CDN configuration details.
+   */
+  app.get("/my-ip", async (req, res) => {
+    const { user } = req;
+    if (!user) {
+      res.status(401).send("Not authenticated");
+      return;
+    }
+
+    const isAdmin = await isUserHashInstanceAdmin(
+      req.context,
+      { actorId: user.accountId },
+      { userAccountId: user.accountId },
+    );
+
+    if (!isAdmin) {
+      res.status(403).send("Forbidden");
+      return;
+    }
+
+    res.send(req.ip);
+  });
+
+  setupFileDownloadProxyHandler(app, keyv);
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 
@@ -570,26 +745,6 @@ const main = async () => {
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 
-  app.use((req, res, next) => {
-    const requestId = nanoid();
-    res.set("x-hash-request-id", requestId);
-    if (isProdEnv) {
-      logger.info(
-        JSON.stringify({
-          requestId,
-          method: req.method,
-          origin: req.headers.origin,
-          ip: req.ip,
-          path: req.path,
-          message: "request",
-          userAgent: req.headers["user-agent"],
-          graphqlClient: req.headers["apollographql-client-name"],
-        }),
-      );
-    }
-    next();
-  });
-
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {
       if (!req.user?.isAccountSignupComplete) {
@@ -617,10 +772,14 @@ const main = async () => {
   );
 
   // Endpoints used by HashGPT or in support of it
-  app.post("/gpt/entities/query", gptQueryEntities);
-  app.post("/gpt/entities/query-types", gptQueryTypes);
-  app.get("/gpt/user-webs", gptGetUserWebs);
-  app.post("/gpt/upsert-gpt-oauth-client", upsertGptOauthClient);
+  app.post("/gpt/entities/query", gptRateLimiter, gptQueryEntities);
+  app.post("/gpt/entities/query-types", gptRateLimiter, gptQueryTypes);
+  app.get("/gpt/user-webs", gptRateLimiter, gptGetUserWebs);
+  app.post(
+    "/gpt/upsert-gpt-oauth-client",
+    gptRateLimiter,
+    upsertGptOauthClient,
+  );
 
   /**
    * This middleware MUST:
@@ -644,11 +803,9 @@ const main = async () => {
   };
   app.use(errorHandler);
 
-  // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
   // close active connections. This can result in the server hanging indefinitely. We
   // use the `http-terminator` library to shut down the server properly.
-  const httpServer = http.createServer(app);
   const terminator = httpTerminator.createHttpTerminator({
     server: httpServer,
   });
@@ -658,17 +815,20 @@ const main = async () => {
     context: machineActorContext,
     httpServer,
     logger,
+    storageProvider: uploadProvider,
     temporalClient,
   });
 
   // Start the Apollo GraphQL server.
-  // Note: the server must be started before the middleware can be applied
-  await apolloServer.start();
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
-  apolloServer.applyMiddleware({
-    app,
-    cors: CORS_CONFIG,
-  });
+
+  app.use(
+    GRAPHQL_PATH,
+    cors<cors.CorsRequest>(CORS_CONFIG),
+    graphqlRateLimiter,
+    express.json(),
+    apolloMiddleware,
+  );
 
   // Start the HTTP server before setting up the integration listener
   // This is done because the Redis client blocks when instantiated
@@ -676,10 +836,25 @@ const main = async () => {
   await new Promise<void>((resolve) => {
     httpServer.listen({ host: "0.0.0.0", port }, () => {
       logger.info(`Listening on port ${port}`);
-      logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
+      logger.info(`GraphQL path: ${GRAPHQL_PATH}`);
       resolve();
     });
   });
+
+  if (!isTestEnv) {
+    /**
+     * H-6218 – introduce this after optimising the query and doing more testing
+     */
+    // const unverifiedEmailCleanupJob = createUnverifiedEmailCleanupJob({
+    //   context: machineActorContext,
+    //   logger,
+    // });
+    // await unverifiedEmailCleanupJob.start();
+    // shutdown.addCleanup(
+    //   "Unverified email cleanup job",
+    //   unverifiedEmailCleanupJob.stop,
+    // );
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
@@ -691,6 +866,7 @@ const main = async () => {
 
     const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
       graphApi,
+      redis,
       logger,
       vaultClient,
     });

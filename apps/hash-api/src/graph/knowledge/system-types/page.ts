@@ -1,9 +1,10 @@
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-  HashLinkEntity,
+import {
+  type CreateEntityParameters,
+  type HashEntity,
+  type HashLinkEntity,
+  queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -26,16 +27,15 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
+import * as GraphQlError from "../../../graphql/error";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
 import {
   createEntity,
-  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntity,
@@ -273,7 +273,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   true
 > = async (ctx, authentication, params) => {
   const { webId, includeArchived = false, includeDrafts = false } = params;
-  const pageEntities = await getEntities(ctx, authentication, {
+  const { entities: pageEntities } = await queryEntities(ctx, authentication, {
     filter: {
       all: [
         pageEntityTypeFilter,
@@ -284,6 +284,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
@@ -425,9 +426,8 @@ export const setPageParentPage: ImpureGraphFunction<
         parentPage: page,
       })
     ) {
-      throw new ApolloError(
+      throw GraphQlError.cyclicTree(
         `Could not set '${parentPage.entity.metadata.recordId.entityId}' as parent of '${page.entity.metadata.recordId.entityId}', this would create a cyclic dependency.`,
-        "CYCLIC_TREE",
       );
     }
 

@@ -1,0 +1,39 @@
+//@ run: pass
+//@ description: Comprehensive DSE showcase - dead assignments eliminated, live values preserved
+//@ suite#d2: true
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "input_a",
+    { "#literal": 10 },
+    [
+      "let",
+      "input_b",
+      { "#literal": 20 },
+      [
+        "let",
+        "live_cmp",
+        ["==", "input_a", "input_b"],
+        [
+          "let",
+          "dead_lt",
+          ["<", "input_a", "input_b"],
+          [
+            "let",
+            "dead_gt",
+            [">", "input_a", "input_b"],
+            [
+              "let",
+              "dead_unused",
+              { "#literal": 999 },
+              ["if", "live_cmp", { "#literal": 1 }, { "#literal": 0 }]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ],
+  { "#literal": 0 }
+]

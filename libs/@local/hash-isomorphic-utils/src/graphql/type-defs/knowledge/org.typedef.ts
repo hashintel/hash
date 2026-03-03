@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const orgTypedef = gql`
   type AcceptInvitationResult {
@@ -59,15 +59,7 @@ export const orgTypedef = gql`
       The website of the organization.
       """
       websiteUrl: String
-      """
-      The depths that \`hasLeftEntity\` edges are resolved to.
-      """
-      hasLeftEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
-      """
-      The depths that \`hasRightEntity\` edges are resolved to.
-      """
-      hasRightEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
-    ): GqlSubgraph!
+    ): Entity!
 
     """
     Invite a user to an organization.

@@ -38,7 +38,7 @@ export const WorkingContents = () => {
             >
               HASH for {browserName}
             </Typography>{" "}
-            worker is conducting research in this window
+            agent is conducting research in this window
           </Typography>
           <Stack direction="row" alignItems="center" mt={6}>
             <Box

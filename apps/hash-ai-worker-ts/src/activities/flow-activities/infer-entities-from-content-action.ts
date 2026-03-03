@@ -11,11 +11,13 @@ import {
   entityIdFromComponents,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { StatusCode } from "@local/status";
@@ -31,22 +33,21 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 import { isPermittedOpenAiModel } from "../shared/openai-client.js";
-import type { FlowActionActivity } from "./types.js";
 
-export const inferEntitiesFromContentAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const inferEntitiesFromContentAction: AiFlowActionActivity<
+  "inferEntitiesFromContent"
+> = async ({ inputs }) => {
   const {
     content,
     entityTypeIds,
     model: modelAlias,
     relevantEntitiesPrompt,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
+  const { flowEntityId, userAuthentication, stepId, webId, workflowId, runId } =
     await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
@@ -211,17 +212,27 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     }),
   );
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: proposedEntities,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
       {
         outputs: [
           {
-            outputName:
-              "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+            outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: proposedEntities,
+              value: storedRef,
             },
           },
         ],

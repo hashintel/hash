@@ -1,11 +1,10 @@
 import type { ActorType, OriginProvenance } from "@blockprotocol/type-system";
-import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { DataSource } from "apollo-datasource";
 
-export type GraphApi = GraphApiClient & DataSource;
+export type GraphApi = GraphApiClient;
 
 export type ImpureGraphContext<
   RequiresUpload extends boolean = false,
@@ -17,8 +16,8 @@ export type ImpureGraphContext<
     origin: OriginProvenance;
   };
 } & (RequiresUpload extends true
-  ? { uploadProvider: UploadableStorageProvider }
-  : { uploadProvider?: UploadableStorageProvider }) &
+  ? { uploadProvider: FileStorageProvider }
+  : { uploadProvider?: FileStorageProvider }) &
   (RequiresTemporal extends true
     ? { temporalClient: TemporalClient }
     : { temporalClient?: TemporalClient });

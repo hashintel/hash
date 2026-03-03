@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
 description: "Rejects duplicate #literal keys"
 expression: "{\"#literal\": 42, \"#literal\": 24}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
-   ╭─[ <unknown>:1:18 ]
-   │
- 1 │ {"#literal": 42, "#literal": 24}
-   │  ─────┬────      ─────┬────  
-   │       │               ╰────── Duplicate key
-   │       │                      
-   │       ╰────────────────────── First occurrence of `#literal`
-   │ 
-   │ Help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.
-───╯
+error[parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#literal": 42, "#literal": 24}
+  │  ┬─────────      ━━━━━━━━━━ Duplicate key
+  │  │
+  │  First occurrence of `#literal`
+  │
+  ╰ help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.

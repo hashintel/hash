@@ -21,17 +21,17 @@ Expr#4294967040@29
                 Expr#4294967040@23
                   ExprKind (Literal)
                     LiteralExpr#4294967040@22
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)
               Argument#4294967040@25
                 Expr#4294967040@25
                   ExprKind (Literal)
                     LiteralExpr#4294967040@24
-                      LiteralKind (Integer)
-                        IntegerLiteral (3)
+                      Primitive (Integer)
+                        Integer (3)
       Argument#4294967040@28
         Expr#4294967040@28
           ExprKind (Literal)
             LiteralExpr#4294967040@27
-              LiteralKind (Integer)
-                IntegerLiteral (4)
+              Primitive (Integer)
+                Integer (4)

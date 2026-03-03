@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Primitive value return thunking transformation
+{ "#literal": 2 }

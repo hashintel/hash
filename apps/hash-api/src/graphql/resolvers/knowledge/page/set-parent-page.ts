@@ -1,5 +1,3 @@
-import { ApolloError } from "apollo-server-express";
-
 import {
   getPageById,
   setPageParentPage,
@@ -9,6 +7,7 @@ import type {
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
 import { mapPageToGQL } from "../graphql-mapping";
@@ -32,7 +31,7 @@ export const setParentPageResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (pageEntityId === parentPageEntityId) {
-    throw new ApolloError("A page cannot be the parent of itself");
+    throw Error.badUserInput("A page cannot be the parent of itself");
   }
 
   const page = await getPageById(context, authentication, {

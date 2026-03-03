@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Empty list inference
+{ "#list": [], "#type": "List<Integer>" }

@@ -4,6 +4,7 @@ use core::fmt::Display;
 pub(crate) struct CanonicalDiagnosticCategoryId<C>(C);
 
 impl<C> CanonicalDiagnosticCategoryId<C> {
+    #[cfg(feature = "render")]
     pub(crate) const fn new(category: C) -> Self {
         Self(category)
     }
@@ -69,6 +70,7 @@ where
     CanonicalDiagnosticCategoryName(category)
 }
 
+#[cfg(feature = "render")]
 pub(crate) fn category_display_name(mut category: &dyn DiagnosticCategory) -> Cow<'_, str> {
     while let Some(child) = category.subcategory() {
         category = child;
@@ -201,6 +203,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_single_category() {
         let category = TestCategory {
             id: "parser",
@@ -213,6 +216,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_nested_categories() {
         let nested_category = TestCategory {
             id: "syntax",
@@ -231,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_deeply_nested_categories() {
         let inner_category = TestCategory {
             id: "unexpected",

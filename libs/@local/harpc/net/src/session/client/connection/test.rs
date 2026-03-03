@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{
-    assert_matches::assert_matches,
+    assert_matches,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };

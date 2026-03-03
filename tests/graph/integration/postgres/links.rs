@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityStore as _, GetEntitiesParams, PatchEntityParams,
+        EntityStore as _, PatchEntityParams, QueryEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, Parameter},
@@ -68,7 +68,10 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let alice_entity = api
@@ -124,7 +127,10 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     api.create_entity(
@@ -157,96 +163,95 @@ async fn insert() {
     .await
     .expect("could not create link");
 
-    let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::All(vec![
-                    Filter::Equal(
-                        Some(FilterExpression::Path {
-                            path: EntityQueryPath::EntityEdge {
-                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                path: Box::new(EntityQueryPath::Uuid),
-                                direction: EdgeDirection::Outgoing,
-                            },
-                        }),
-                        Some(FilterExpression::Parameter {
-                            parameter: Parameter::Uuid(
-                                alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
-                            ),
-                            convert: None,
-                        }),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path {
-                            path: EntityQueryPath::EntityEdge {
-                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                path: Box::new(EntityQueryPath::WebId),
-                                direction: EdgeDirection::Outgoing,
-                            },
-                        }),
-                        Some(FilterExpression::Parameter {
-                            parameter: Parameter::Uuid(
-                                alice_entity.metadata.record_id.entity_id.web_id.into(),
-                            ),
-                            convert: None,
-                        }),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path {
-                            path: EntityQueryPath::EntityTypeEdge {
-                                edge_kind: SharedEdgeKind::IsOfType,
-                                path: EntityTypeQueryPath::BaseUrl,
-                                inheritance_depth: Some(0),
-                            },
-                        }),
-                        Some(FilterExpression::Parameter {
-                            parameter: Parameter::Text(Cow::Borrowed(
-                                friend_of_type_id.base_url.as_str(),
-                            )),
-                            convert: None,
-                        }),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path {
-                            path: EntityQueryPath::EntityTypeEdge {
-                                edge_kind: SharedEdgeKind::IsOfType,
-                                path: EntityTypeQueryPath::Version,
-                                inheritance_depth: Some(0),
-                            },
-                        }),
-                        Some(FilterExpression::Parameter {
-                            parameter: Parameter::OntologyTypeVersion(friend_of_type_id.version),
-                            convert: None,
-                        }),
-                    ),
-                ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::All(vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(
+                            alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
+                        ),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::WebId),
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(
+                            alice_entity.metadata.record_id.entity_id.web_id.into(),
+                        ),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: Some(0),
+                        },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            friend_of_type_id.base_url.as_str(),
+                        )),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::Version,
+                            inheritance_depth: Some(0),
+                        },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                            &friend_of_type_id.version,
+                        )),
+                        convert: None,
+                    },
+                ),
+            ]),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
 
     let link_entity = match entities.len() {
         1 => entities.into_iter().next().unwrap(),
@@ -303,7 +308,10 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -311,7 +319,10 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let acquaintance_entity_link_type_id = VersionedUrl {
@@ -319,7 +330,10 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let alice_entity = api
@@ -454,48 +468,48 @@ async fn get_entity_links() {
     .await
     .expect("could not create link");
 
-    let links_from_source = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        },
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(
-                            alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
-                        ),
-                        convert: None,
-                    }),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+    let links_from_source = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::Uuid),
+                        direction: EdgeDirection::Outgoing,
+                    },
                 },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
+                FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(
+                        alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
+                    ),
+                    convert: None,
                 },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
+            ),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert!(links_from_source.iter().any(|link_entity| {
         link_entity
@@ -566,7 +580,10 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -574,7 +591,10 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
 
     let alice_entity = api
@@ -662,28 +682,28 @@ async fn remove_link() {
             CountEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: EntityQueryPath::EntityEdge {
                                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                                 path: Box::new(EntityQueryPath::Uuid),
                                 direction: EdgeDirection::Outgoing,
                             },
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
                                 alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                             ),
                             convert: None,
-                        }),
+                        },
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: EntityQueryPath::Archived,
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Boolean(false),
                             convert: None,
-                        }),
+                        },
                     ),
                 ]),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -724,28 +744,28 @@ async fn remove_link() {
             CountEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: EntityQueryPath::EntityEdge {
                                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                                 path: Box::new(EntityQueryPath::Uuid),
                                 direction: EdgeDirection::Outgoing,
                             },
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
                                 alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                             ),
                             convert: None,
-                        }),
+                        },
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: EntityQueryPath::Archived,
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Boolean(false),
                             convert: None,
-                        }),
+                        },
                     ),
                 ]),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {

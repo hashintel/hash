@@ -75,26 +75,36 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         );
       }
 
-      const valueParts = formatValue(
-        value,
-        valueMetadata,
-        permittedDataTypesIncludingChildren,
-      );
+      try {
+        const valueParts = formatValue(
+          value,
+          valueMetadata,
+          permittedDataTypesIncludingChildren,
+        );
 
-      let textOffset = left;
-      for (const [index, part] of valueParts.entries()) {
-        ctx.fillStyle = part.color;
-        ctx.fillText(part.text, textOffset, yCenter);
+        let textOffset = left;
+        for (const [index, part] of valueParts.entries()) {
+          ctx.fillStyle = part.color;
+          ctx.fillText(part.text, textOffset, yCenter);
 
-        const additionalRightPadding =
-          part.type === "leftLabel"
-            ? 0.5
-            : part.type === "value" &&
-                valueParts[index + 1]?.type === "rightLabel"
+          const additionalRightPadding =
+            part.type === "leftLabel"
               ? 0.5
-              : 0;
+              : part.type === "value" &&
+                  valueParts[index + 1]?.type === "rightLabel"
+                ? 0.5
+                : 0;
 
-        textOffset += ctx.measureText(part.text).width + additionalRightPadding;
+          textOffset +=
+            ctx.measureText(part.text).width + additionalRightPadding;
+        }
+      } catch {
+        /**
+         * Fall back to string representation – formatValue will fail if dataTypeId is not present,
+         * which is true for ProposedEntitys from a Flow.
+         * @todo H-3359 always ensure dataTypeId is present on all values.
+         */
+        ctx.fillText((value as number).toString(), left, yCenter);
       }
     }
 

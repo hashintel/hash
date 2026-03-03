@@ -7,14 +7,14 @@ import { buildStamp } from "./buildstamp";
 import { isProduction } from "./src/lib/config";
 import {
   SENTRY_DSN,
+  SENTRY_ENVIRONMENT,
   SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
-  VERCEL_ENV,
 } from "./src/lib/public-env";
 
 Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
-  environment: VERCEL_ENV || "development",
+  environment: SENTRY_ENVIRONMENT,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserProfilingIntegration(),

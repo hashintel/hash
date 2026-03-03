@@ -1,8 +1,6 @@
-#![expect(deprecated, reason = "`report!` is deprecated")]
-
 use core::{error::Error, fmt};
 
-use error_stack::{Report, bail, ensure, report};
+use error_stack::{Report, bail, ensure};
 
 #[derive(Debug)]
 pub struct RootError;
@@ -14,12 +12,6 @@ impl fmt::Display for RootError {
 }
 
 impl Error for RootError {}
-
-fn empty_report_arg() -> Result<(), Report<RootError>> {
-    let _ = report!();
-
-    Ok(())
-}
 
 fn empty_bail_arg() -> Result<(), Report<RootError>> {
     bail!()

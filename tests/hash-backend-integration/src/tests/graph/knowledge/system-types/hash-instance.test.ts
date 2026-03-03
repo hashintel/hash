@@ -3,10 +3,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import type { TeamId } from "@blockprotocol/type-system";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
-import {
-  getHashInstance,
-  getInstanceAdminsTeam,
-} from "@local/hash-backend-utils/hash-instance";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
@@ -16,6 +13,7 @@ import {
   getActorGroupRole,
   removeActorGroupMember,
 } from "@local/hash-graph-sdk/principal/actor-group";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { beforeAll, describe, expect, it } from "vitest";
 

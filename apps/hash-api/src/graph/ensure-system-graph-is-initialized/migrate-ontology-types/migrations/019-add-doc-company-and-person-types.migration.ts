@@ -136,13 +136,13 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const yearDataType = await createSystemDataTypeIfNotExists(
+  const calendarYearDataType = await createSystemDataTypeIfNotExists(
     context,
     authentication,
     {
       dataTypeDefinition: {
         allOf: [{ $ref: integerDataType.schema.$id }],
-        title: "Year",
+        title: "Calendar Year",
         description: "A year in the Gregorian calendar.",
         type: "number",
       },
@@ -159,7 +159,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Publication Year",
         description: "The year in which something was first published.",
-        possibleValues: [{ dataTypeId: yearDataType.schema.$id }],
+        possibleValues: [{ dataTypeId: calendarYearDataType.schema.$id }],
       },
       migrationState,
       webShortname: "h",

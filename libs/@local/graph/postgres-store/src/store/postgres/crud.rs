@@ -206,8 +206,10 @@ where
 
         match rows.as_slice() {
             [row] => Ok(R::decode(row, &record_indices)),
-            rows => Err(Report::new(QueryError)
-                .attach_printable(format!("Expected 1 result, got {}", rows.len()))),
+            rows => {
+                Err(Report::new(QueryError)
+                    .attach(format!("Expected 1 result, got {}", rows.len())))
+            }
         }
     }
 }

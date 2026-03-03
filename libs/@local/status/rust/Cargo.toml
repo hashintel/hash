@@ -8,17 +8,18 @@ publish.workspace = true
 authors.workspace = true
 
 [package.metadata.sync.turborepo]
-extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
+extra-dependencies = [{ name = "@local/status", version = "workspace:*" }]
 
 [dependencies]
 # Public workspace dependencies
 
 # Public third-party dependencies
-serde = { workspace = true, public = true, features = ["alloc", "derive"] }
+serde_core = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+serde          = { workspace = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
 
 [lints]

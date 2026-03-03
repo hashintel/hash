@@ -8,14 +8,14 @@ Expr#0@38
               Expr#5@27
                 ExprKind (Literal)
                   LiteralExpr#6@26
-                    LiteralKind (String)
-                      StringLiteral (Alice)
+                    Primitive (String)
+                      String (Alice)
             StructEntry#7@33 (key: age)
               Expr#8@32
                 ExprKind (Literal)
                   LiteralExpr#9@31
-                    LiteralKind (Integer)
-                      IntegerLiteral (30)
+                    Primitive (Integer)
+                      Integer (30)
       Type#10@22
         TypeKind (Struct)
           StructType#11@22

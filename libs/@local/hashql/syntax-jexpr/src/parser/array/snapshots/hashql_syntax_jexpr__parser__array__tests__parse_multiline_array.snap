@@ -14,14 +14,14 @@ Expr#4294967040@17
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
-              LiteralKind (String)
-                StringLiteral (x)
+              Primitive (String)
+                String (x)
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@6
-              LiteralKind (Integer)
-                IntegerLiteral (10)
+              Primitive (Integer)
+                Integer (10)
       Argument#4294967040@16
         Expr#4294967040@16
           ExprKind (Call)
@@ -34,11 +34,11 @@ Expr#4294967040@17
                 Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@12
-                      LiteralKind (String)
-                        StringLiteral (x)
+                      Primitive (String)
+                        String (x)
               Argument#4294967040@15
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
-                      LiteralKind (Integer)
-                        IntegerLiteral (5)
+                      Primitive (Integer)
+                        Integer (5)

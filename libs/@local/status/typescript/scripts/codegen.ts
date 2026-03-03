@@ -5,7 +5,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { argv } from "node:process";
 
-import execa from "execa";
+import { execa } from "execa";
 import { snakeCase } from "lodash-es";
 import yargs from "yargs";
 

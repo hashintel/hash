@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Alias replacement with generics should work
+["let", "foo", "core::math::add<Integer>", ["let", "bar", "foo", "bar"]]

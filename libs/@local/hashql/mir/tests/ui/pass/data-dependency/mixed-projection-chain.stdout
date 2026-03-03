@@ -1,0 +1,45 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+*thunk {thunk#3}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: (Integer,)
+    let %3: (field: (Integer,))
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 42
+        %2 = (%1)
+        %3 = (field: %2)
+
+        goto -> bb3(%3.field.0)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%2 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Field(FieldIndex(0), Symbol("field"))]
+%0 -> %3 [Param, projections: .field.0]
+%0 -> 0 [Param]
+%1 -> 42 [Load]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%3 -> %2 [Field(FieldIndex(0), Symbol("field"))]
+%0 -> 0 [Param]
+%0 -> 42 [Param]
+%1 -> 42 [Load]
+%2 -> 42 [Index(FieldIndex(0))]
+

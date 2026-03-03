@@ -28,13 +28,13 @@ impl DiagnosticCategory for JExprDiagnosticCategory {
     }
 }
 
-/// Extension trait for changing diagnostic categories in results
+/// Extension trait for changing diagnostic categories in results.
 pub(crate) trait ResultExt {
     type Ok;
     type DiagnosticCategory;
     type Span;
 
-    /// Transforms the diagnostic category of an error while preserving the rest of the diagnostic
+    /// Transforms the diagnostic category of an error while preserving the rest of the diagnostic.
     fn change_category<C>(
         self,
         category: impl FnOnce(Self::DiagnosticCategory) -> C,

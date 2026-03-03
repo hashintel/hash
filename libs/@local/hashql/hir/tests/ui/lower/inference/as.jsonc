@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Verifies that the placeholder type '_' in a type assertion ('as' expression) is correctly inferred from the value's type.
+["as", { "#literal": "42" }, "_"]

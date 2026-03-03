@@ -4,15 +4,15 @@
   "private": true,
   "license": "AGPL-3",
   "type": "module",
-  "exports": {
-    "./types": "./types/index.snap.js"
-  },
   "typesVersions": {
     "*": {
       "types": [
         "./types/index.snap.d.ts"
       ]
     }
+  },
+  "exports": {
+    "./types": "./types/index.snap.js"
   },
   "scripts": {
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen,numeric --test codegen",
@@ -23,13 +23,13 @@
     "test:unit": "mise run test:unit @rust/hash-codec"
   },
   "dependencies": {
-    "@rust/error-stack": "0.5.0",
-    "@rust/harpc-wire-protocol": "0.0.0-private"
+    "@rust/error-stack": "workspace:*",
+    "@rust/harpc-wire-protocol": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private",
-    "@rust/hash-codegen": "0.0.0-private",
-    "typescript": "5.7.3"
+    "@local/tsconfig": "workspace:*",
+    "@rust/harpc-types": "workspace:*",
+    "@rust/hash-codegen": "workspace:*",
+    "typescript": "5.9.3"
   }
 }

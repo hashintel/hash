@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Parses with a sudden EOF
 expression: "{\"#dict\": "
 ---
-[31m[lexer::unexpected-eof] Error:[0m Unexpected end of file
-   ╭─[ <unknown>:1:11 ]
-   │
- 1 │ {"#dict":
-   │           │ 
-   │           ╰─ Unexpected end of file, expected `{` or `[`
-   │ 
-   │ Help: The file ended where an opening bracket was expected. Complete the expression structure.
-───╯
+error[lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ {"#dict": 
+  │           ━ Unexpected end of file, expected `{` or `[`
+  │
+  ╰ help: The file ended where an opening bracket was expected. Complete the expression structure.

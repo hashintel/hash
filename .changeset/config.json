@@ -6,7 +6,16 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@apps/*", "@blocks/*", "@local/*", "@rust/*", "@tests/*"],
+  "ignore": [
+    "@apps/*",
+    "@local/*",
+    "@rust/*",
+    "@tests/*",
+    "@hashintel/block-design-system",
+    "@hashintel/design-system",
+    "@hashintel/query-editor",
+    "@hashintel/type-editor"
+  ],
   "snapshot": {
     "useCalculatedVersion": true
   },

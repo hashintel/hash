@@ -8,7 +8,7 @@ extern crate alloc;
 mod definitions;
 
 use alloc::borrow::Cow;
-use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
+use core::{assert_matches, error::Error, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use hash_graph_authorization::policies::{
@@ -415,6 +415,9 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     let user_machine_policy_set = PolicySet::default()
         .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
         .with_policies(policy_store.get_policies(ActorId::Machine(user.web.machine.id))?)?;
+    let system_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+        .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("user_machine_policy_set:\n{user_machine_policy_set:?}");
 
     eprintln!("context:\n{context:?}");
@@ -481,7 +484,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         Authorized::Always
     );
     assert_matches!(
-        user_machine_policy_set.evaluate(
+        system_machine_policy_set.evaluate(
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::View,
@@ -518,7 +521,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         Authorized::Always
     );
     assert_matches!(
-        user_machine_policy_set.evaluate(
+        system_machine_policy_set.evaluate(
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Update,

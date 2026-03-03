@@ -13,13 +13,21 @@ export const getTypeBaseUrl = ({
   kind: "entity-type" | "data-type";
 }): BaseUrl =>
   `${
-    // To be removed in H-1172: Temporary provision until https://app.hash.ai migrated to https://hash.ai
-    // To be replaced with simply 'frontendUrl'
+    /**
+     * The localhost:3000/stage.hash.ai condition handles system types correctly having
+     * a https://hash.ai generated, despite being served from a different domain.
+     */
     (
-      [...systemTypeWebShortnames, "ftse"].includes(
+      systemTypeWebShortnames.includes(
         namespaceWithAt.slice(1) as SystemTypeWebShortname,
-      ) && frontendUrl === "http://localhost:3000"
-    ) || frontendUrl === "https://app.hash.ai"
+      ) &&
+        ["http://localhost:3000", "https://stage.hash.ai"].includes(frontendUrl)
+    ) ||
+    /**
+     * @todo H-1172 – Once app is migrated to https://hash.ai, remove this https://app.hash.ai condition.
+     * app.hash.ai uses hash.ai as the base domain for ALL types, despite being served from a different domain.
+     */
+    frontendUrl === "https://app.hash.ai"
       ? "https://hash.ai"
       : frontendUrl
   }/${namespaceWithAt}/types/${kind}/${slug}/` as BaseUrl;

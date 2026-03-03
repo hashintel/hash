@@ -8,14 +8,12 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Heap,
     module::{ModuleRegistry, namespace::ModuleNamespace},
-    span::SpanId,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::Diagnostic;
 
-use super::{Suite, SuiteDiagnostic};
+use super::{RunContext, Suite, SuiteDiagnostic};
 
 pub(crate) struct AstLoweringImportResolverContinueSuite;
 
@@ -24,13 +22,18 @@ impl Suite for AstLoweringImportResolverContinueSuite {
         "ast/lowering/import-resolver/continue"
     }
 
+    fn description(&self) -> &'static str {
+        "Import resolution with non-fatal error handling"
+    }
+
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);

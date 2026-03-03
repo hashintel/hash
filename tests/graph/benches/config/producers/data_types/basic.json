@@ -1,0 +1,51 @@
+{
+  "schema": {
+    "domain": {
+      "local": { "index": { "sampling": "uniform" } },
+      "remote": {
+        "domain": {
+          "type": "weighted",
+          "distribution": [
+            {
+              "name": "https://example.com",
+              "weight": 1,
+              "shortnames": { "type": "const", "value": "example" }
+            }
+          ]
+        },
+        "fetchedAt": "2000-01-01T00:00:00Z"
+      }
+    },
+    "title": { "length": [4, 8] },
+    "description": { "length": [40, 50] },
+    "constraints": {
+      "type": "weighted",
+      "weights": [
+        { "weight": 60, "distribution": { "type": "number" } },
+        { "weight": 30, "distribution": { "type": "boolean" } },
+        {
+          "weight": 10,
+          "distribution": {
+            "type": "string",
+            "minLength": { "probability": 1, "range": [4, 8] },
+            "maxLength": {
+              "probability": 1,
+              "offset": [2, 4],
+              "range": [10, 12]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "provenance": {
+      "value": {
+        "sources": [],
+        "actorType": "machine",
+        "origin": { "type": "api" }
+      }
+    }
+  },
+  "config": { "conflict_behavior": { "value": "Fail" } }
+}

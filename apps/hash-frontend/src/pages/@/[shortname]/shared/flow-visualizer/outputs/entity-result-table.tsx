@@ -16,15 +16,14 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import {
-  getClosedMultiEntityTypeFromMap,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type { GetClosedMultiEntityTypesResponse } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, TableCell } from "@mui/material";
@@ -241,7 +240,7 @@ type EntityResultRow = {
   propertiesMetadata: PropertyObjectMetadata;
   relevance: "Yes" | "No";
   researchOngoing: boolean;
-  status: "Proposed" | "Created" | "Updated";
+  status: "Proposed" | "Created" | "Updated" | "Unmodified";
 };
 
 const TableRow = memo(
@@ -449,24 +448,24 @@ const createRowContent: CreateVirtualizedRowContentFn<
 
 type EntityResultTableProps = {
   dataIsLoading: boolean;
-  persistedEntities: PersistedEntity[];
+  persistedEntitiesWithOperation: {
+    entity: HashEntity;
+    operation: PersistedEntityMetadata["operation"];
+  }[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   persistedEntitiesTypesInfo?: {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+    entityTypes: ClosedMultiEntityTypesRootMap;
     definitions: ClosedMultiEntityTypesDefinitions;
   };
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesInfo?: {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
-    definitions: ClosedMultiEntityTypesDefinitions;
-  };
+  proposedEntitiesTypesInfo?: GetClosedMultiEntityTypesResponse;
   relevantEntityIds: EntityId[];
 };
 
 export const EntityResultTable = memo(
   ({
     dataIsLoading,
-    persistedEntities,
+    persistedEntitiesWithOperation,
     persistedEntitiesSubgraph,
     persistedEntitiesTypesInfo,
     proposedEntities,
@@ -478,7 +477,9 @@ export const EntityResultTable = memo(
       direction: "asc",
     });
 
-    const hasEntities = !!(persistedEntities.length || proposedEntities.length);
+    const hasEntities = !!(
+      persistedEntitiesWithOperation.length || proposedEntities.length
+    );
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -545,8 +546,8 @@ export const EntityResultTable = memo(
       const dynamicFilterDefs: VirtualizedTableFilterDefinitionsByFieldId<VersionedUrl> =
         {};
 
-      const entityRecords = persistedEntities.length
-        ? persistedEntities
+      const entityRecords = persistedEntitiesWithOperation.length
+        ? persistedEntitiesWithOperation
         : proposedEntities;
 
       /**
@@ -571,7 +572,8 @@ export const EntityResultTable = memo(
       const entitiesByEntityId: Record<
         EntityId,
         {
-          record: ProposedEntityOutput | PersistedEntity;
+          operation: PersistedEntityMetadata["operation"] | "proposed";
+          researchOngoing: boolean;
           closedMultiEntityType: ClosedMultiEntityType;
           entityLabel: string;
           entity:
@@ -590,20 +592,12 @@ export const EntityResultTable = memo(
       for (const record of entityRecords) {
         const isProposed = "localEntityId" in record;
 
-        const entity = isProposed
-          ? record
-          : record.entity
-            ? new HashEntity(record.entity)
-            : undefined;
-
-        if (!entity) {
-          throw new Error("Entity is undefined");
-        }
+        const entity = isProposed ? record : record.entity;
 
         const entityId =
-          "localEntityId" in entity
-            ? entity.localEntityId
-            : entity.metadata.recordId.entityId;
+          "localEntityId" in record
+            ? record.localEntityId
+            : record.entity.entityId;
 
         const linkData =
           "linkData" in entity && !!entity.linkData
@@ -671,37 +665,46 @@ export const EntityResultTable = memo(
 
         const closedMultiEntityType =
           closedTypesByKey[typeKey] ??
-          getClosedMultiEntityTypeFromMap(
-            typeInfo.closedMultiEntityTypes,
-            entityTypeIds,
-          );
+          getClosedMultiEntityTypeFromMap(typeInfo.entityTypes, entityTypeIds);
 
         closedTypesByKey[typeKey] ??= closedMultiEntityType;
 
-        const entityLabel = generateEntityLabel(closedMultiEntityType, {
-          properties: entity.properties,
-          metadata: {
-            entityTypeIds,
-            recordId: {
-              entityId,
-              editionId: "irrelevant-here" as EntityEditionId,
+        let entityLabel: string;
+        try {
+          entityLabel = generateEntityLabel(closedMultiEntityType, {
+            properties: entity.properties,
+            metadata: {
+              entityTypeIds,
+              recordId: {
+                entityId,
+                editionId: "irrelevant-here" as EntityEditionId,
+              },
             },
-          },
-        });
+          });
+        } catch {
+          entityLabel = "";
+        }
 
         entitiesByEntityId[entityId] = {
+          researchOngoing: isProposed ? record.researchOngoing : false,
           closedMultiEntityType,
           entity,
           entityLabel,
-          record,
+          operation: isProposed ? "proposed" : record.operation,
         };
       }
 
       for (const [
         entityId,
-        { closedMultiEntityType, entity, entityLabel, record },
+        {
+          closedMultiEntityType,
+          entity,
+          entityLabel,
+          operation,
+          researchOngoing,
+        },
       ] of typedEntries(entitiesByEntityId)) {
-        const isProposed = "localEntityId" in record;
+        const isProposed = operation === "proposed";
 
         const typeInfo = isProposed
           ? proposedEntitiesTypesInfo
@@ -773,7 +776,7 @@ export const EntityResultTable = memo(
           for (const linkTypeId of typedKeys(
             closedMultiEntityType.links ?? {},
           )) {
-            const linkType = typeInfo.definitions.entityTypes[linkTypeId];
+            const linkType = typeInfo.definitions?.entityTypes[linkTypeId];
 
             if (!linkType) {
               throw new Error(
@@ -833,7 +836,7 @@ export const EntityResultTable = memo(
               "$ref" in schema ? schema.$ref : schema.items.$ref;
 
             const propertyType =
-              typeInfo.definitions.propertyTypes[propertyTypeId];
+              typeInfo.definitions?.propertyTypes[propertyTypeId];
 
             if (!propertyType) {
               throw new Error(
@@ -874,9 +877,11 @@ export const EntityResultTable = memo(
 
         const status = isProposed
           ? "Proposed"
-          : record.operation === "update"
+          : operation === "update"
             ? "Updated"
-            : "Created";
+            : operation === "create"
+              ? "Created"
+              : "Unmodified";
 
         const relevance = relevantEntityIds.find((relevantEntityId) =>
           entityId.startsWith(relevantEntityId),
@@ -930,8 +935,7 @@ export const EntityResultTable = memo(
                 ? entity.propertiesMetadata
                 : entity.propertyMetadata,
             relevance,
-            researchOngoing:
-              "researchOngoing" in record && record.researchOngoing,
+            researchOngoing,
             status,
           },
         });
@@ -991,7 +995,7 @@ export const EntityResultTable = memo(
         unsortedRows: rowData,
       };
     }, [
-      persistedEntities,
+      persistedEntitiesWithOperation,
       persistedEntitiesSubgraph,
       persistedEntitiesTypesInfo,
       proposedEntities,
@@ -1135,14 +1139,14 @@ export const EntityResultTable = memo(
       () =>
         generateColumns({
           closedMultiEntityTypes,
-          definitions: persistedEntities.length
+          definitions: persistedEntitiesWithOperation.length
             ? persistedEntitiesTypesInfo?.definitions
             : proposedEntitiesTypesInfo?.definitions,
           hasRelevantEntities: relevantEntityIds.length > 0,
         }),
       [
         closedMultiEntityTypes,
-        persistedEntities.length,
+        persistedEntitiesWithOperation.length,
         persistedEntitiesTypesInfo?.definitions,
         proposedEntitiesTypesInfo?.definitions,
         relevantEntityIds.length,

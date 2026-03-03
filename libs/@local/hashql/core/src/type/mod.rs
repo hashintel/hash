@@ -1,32 +1,57 @@
 // HashQL type system
 
 pub mod builder;
-mod collection;
+mod collections;
 pub mod environment;
 pub mod error;
 pub mod inference;
 pub mod kind;
 pub mod lattice;
+mod pretty;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod tests;
 pub mod visit;
 
-use core::ops::Receiver;
+use core::ops::{Deref, Receiver};
 
-pub use self::builder::TypeBuilder;
-use self::{environment::Environment, inference::Variable, kind::TypeKind};
+pub use self::{
+    builder::TypeBuilder,
+    pretty::{RecursionGuardStrategy, TypeFormatter, TypeFormatterOptions},
+    recursion::RecursionBoundary,
+};
+use self::{inference::Variable, kind::TypeKind};
 use crate::{
-    id::HasId,
+    id::{self, HasId},
     intern::{Decompose, Interned},
-    newtype,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
 };
 
-newtype!(
+id::newtype!(
+    /// A unique identifier for a type in the HashQL Type System
+    ///
+    /// Each type inside the HashQL Type System is identified by a unique `TypeId`.
+    /// This identifier is used to refer to types throughout the system.
+    ///
+    /// The value space is restricted to `0..=0xFFFF_FF00`, reserving the last 256 for niches.
+    /// As real pattern types are an experimental feature in Rust, these can currently only be
+    /// used by directly modifying and accessing the `TypeId`'s internal value.
+    #[id(crate = crate)]
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
+
+impl TypeId {
+    /// `TypeId` which is never valid.
+    ///
+    /// This is used as a placeholder throughout the system if required.
+    ///
+    /// The uniqueness constraint is not enforced by the type system, but rather just a statistical
+    /// improbability, considering that 4.294.967.040 types would need to be generated, for a
+    /// collision to occur.
+    pub const PLACEHOLDER: Self = Self::new(0xFFFF_FF00);
+}
+
+id::newtype_collections!(pub type TypeId* from TypeId);
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Type<'heap, K: ?Sized = TypeKind<'heap>> {
@@ -76,28 +101,6 @@ impl Type<'_> {
     }
 }
 
-impl<'heap, K> PrettyPrint<'heap> for Type<'heap, K>
-where
-    K: PrettyPrint<'heap>,
-{
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        self.kind.pretty(env, boundary)
-    }
-
-    fn pretty_generic(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-        arguments: kind::GenericArguments<'heap>,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        self.kind.pretty_generic(env, boundary, arguments)
-    }
-}
-
 impl<K> HasId for Type<'_, K> {
     type Id = TypeId;
 
@@ -127,5 +130,59 @@ impl<'heap> Decompose<'heap> for Type<'heap> {
             span: partial.span,
             kind,
         }
+    }
+}
+
+/// A value paired with its type information.
+///
+/// [`Typed<T>`] is a wrapper that associates a value of type `T` with its corresponding [`TypeId`]
+/// in the type system.
+///
+/// # Use Cases
+///
+/// Use [`Typed`] when:
+/// - Passing values between compilation phases where type information must be preserved
+/// - Returning values where the type cannot be inferred from context alone
+/// - Building data structures where each element may have a different type
+///
+/// # Ergonomics
+///
+/// [`Typed<T>`] implements [`Deref`] to `T`, allowing transparent access to the
+/// wrapped value without explicit unwrapping:
+///
+/// ```
+/// # use hashql_core::r#type::{Typed, TypeId};
+/// let typed_value = Typed {
+///     r#type: TypeId::PLACEHOLDER,
+///     value: 42,
+/// };
+/// assert_eq!(*typed_value, 42); // Deref coercion works
+/// ```
+///
+/// # Example
+///
+/// ```
+/// # use hashql_core::r#type::{Typed, TypeId};
+/// # use hashql_core::id::Id;
+/// fn process_value(typed: Typed<i32>) -> i32 {
+///     // Can use type_id for type checking
+///     println!("Processing value with type {:?}", typed.r#type);
+///     // Can access value directly via Deref
+///     typed.value * 2
+/// }
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Typed<T> {
+    /// The type identifier for this value in the type system.
+    pub r#type: TypeId,
+    /// The actual value being wrapped.
+    pub value: T,
+}
+
+impl<T> Deref for Typed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }

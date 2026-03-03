@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident};
+use hashql_core::{intern::Interned, symbol::Ident};
 
 use crate::node::Node;
 
@@ -31,7 +31,5 @@ pub struct StructField<'heap> {
 ///   value.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Struct<'heap> {
-    pub span: SpanId,
-
     pub fields: Interned<'heap, [StructField<'heap>]>,
 }

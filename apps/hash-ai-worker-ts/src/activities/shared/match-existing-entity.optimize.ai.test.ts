@@ -419,7 +419,7 @@ test(
   "Match new entity with existing entity",
   async () => {
     const models: LlmParams["model"][] = [
-      "claude-3-haiku-20240307",
+      "claude-haiku-4-5-20251001",
       "gpt-4o-2024-08-06",
     ];
 

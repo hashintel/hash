@@ -18,7 +18,7 @@ use type_system::{
 };
 
 use super::{
-    Context, ContextBuilder, Effect, Policy, PolicySet,
+    Context, ContextBuilder, Effect, PolicySet, ResolvedPolicy,
     action::ActionName,
     principal::actor::AuthenticatedActor,
     resource::{
@@ -39,15 +39,15 @@ use super::{
     reason = "We want to add `forbid` fields in the future as well"
 )]
 pub struct OptimizationData {
-    /// Entity UUIDs that can be optimized to IN clause for exact entity permits
+    /// Entity UUIDs that can be optimized to IN clause for exact entity permits.
     pub permitted_entity_uuids: Vec<EntityUuid>,
-    /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits
+    /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits.
     pub permitted_entity_type_uuids: Vec<EntityTypeUuid>,
-    /// Property Type UUIDs that can be optimized to IN clause for exact property type permits
+    /// Property Type UUIDs that can be optimized to IN clause for exact property type permits.
     pub permitted_property_type_uuids: Vec<PropertyTypeUuid>,
-    /// Data Type UUIDs that can be optimized to IN clause for exact data type permits
+    /// Data Type UUIDs that can be optimized to IN clause for exact data type permits.
     pub permitted_data_type_uuids: Vec<DataTypeUuid>,
-    /// Web IDs that can be optimized to IN clause for web resource permits
+    /// Web IDs that can be optimized to IN clause for web resource permits.
     pub permitted_web_ids: Vec<WebId>,
 }
 
@@ -65,7 +65,8 @@ pub enum MergePolicies {
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
-    policies: Vec<Policy>,
+    is_instance_admin: bool,
+    policies: Vec<ResolvedPolicy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
     tracked_entity_types: HashSet<VersionedUrl>,
     tracked_property_types: HashSet<VersionedUrl>,
@@ -83,6 +84,15 @@ impl PolicyComponents {
     #[must_use]
     pub const fn actor_id(&self) -> Option<ActorId> {
         self.actor_id
+    }
+
+    /// Returns `true` if the actor is an instance admin.
+    ///
+    /// Instance admins have elevated privileges, such as bypassing filter protection
+    /// on sensitive properties like email addresses.
+    #[must_use]
+    pub const fn is_instance_admin(&self) -> bool {
+        self.is_instance_admin
     }
 
     /// Returns a reference to the Cedar evaluation context.
@@ -117,9 +127,9 @@ impl PolicyComponents {
     ///
     /// This data contains vectors of identifiers that can be optimized from multiple
     /// OR conditions to efficient IN clauses. For example, multiple entity permits
-    /// for exact entity UUIDs can be converted from:
+    /// for exact entity UUIDs can be converted from
     /// `entity_uuid = a OR entity_uuid = b OR entity_uuid = c`
-    /// to: `entity_uuid = ANY([a, b, c])`
+    /// to `entity_uuid = ANY([a, b, c])`.
     #[must_use]
     pub fn optimization_data(&self, action: ActionName) -> &OptimizationData {
         const EMPTY_OPTIMIZATION_DATA: &OptimizationData = &OptimizationData {
@@ -272,7 +282,7 @@ impl PolicyComponents {
             if let Some(optimization_data) = self.tracked_actions.get(action) {
                 if optimization_data.is_some() {
                     return Err(
-                        Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                        Report::new(super::set::PolicySetInsertionError).attach(format!(
                             "Action `{action}` has been optimized and cannot be used to create a \
                              `PolicySet`"
                         )),
@@ -280,7 +290,7 @@ impl PolicyComponents {
                 }
             } else {
                 return Err(
-                    Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                    Report::new(super::set::PolicySetInsertionError).attach(format!(
                         "Action `{action}` is not tracked in this `PolicyComponents`"
                     )),
                 );
@@ -694,6 +704,7 @@ where
 
             let mut policy_components = PolicyComponents {
                 actor_id,
+                is_instance_admin: self.context.is_instance_admin(),
                 policies,
                 tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
                 tracked_entity_types,
@@ -726,22 +737,19 @@ mod tests {
 
     use super::PolicyComponents;
     use crate::policies::{
-        Context, Effect, Policy, PolicyId,
+        Context, Effect, PolicyId, ResolvedPolicy,
         action::ActionName,
         resource::{EntityResourceConstraint, ResourceConstraint},
     };
 
-    fn create_test_entity_permit_policy(entity_uuid: EntityUuid) -> Policy {
-        Policy {
-            id: PolicyId(Uuid::new_v4()),
-            name: Some(format!("permit-entity-{entity_uuid}")),
+    fn create_test_entity_permit_policy(entity_uuid: EntityUuid) -> ResolvedPolicy {
+        ResolvedPolicy {
+            original_policy_id: PolicyId(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: None,
             actions: vec![ActionName::View],
             resource: Some(ResourceConstraint::Entity(
                 EntityResourceConstraint::Exact { id: entity_uuid },
             )),
-            constraints: None,
         }
     }
 
@@ -761,6 +769,7 @@ mod tests {
 
         let mut policy_components = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
@@ -814,6 +823,7 @@ mod tests {
 
         let policy_components_without_optimization = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies: policies_without_optimization,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
@@ -841,6 +851,7 @@ mod tests {
 
         let mut policy_components_with_optimization = PolicyComponents {
             actor_id: None,
+            is_instance_admin: false,
             policies: policies_with_optimization,
             tracked_actions: HashMap::new(),
             tracked_entity_types: HashSet::new(),
@@ -876,6 +887,7 @@ mod tests {
             actor_id: Some(ActorId::User(type_system::principal::actor::UserId::new(
                 Uuid::new_v4(),
             ))),
+            is_instance_admin: false,
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),

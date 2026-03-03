@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Block param receiving same constant from all branches resolves to that constant
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    [
+      "if",
+      ["<=", { "#literal": 1 }, { "#literal": 2 }],
+      { "#literal": 100 },
+      { "#literal": 100 }
+    ],
+    ["let", "wrapped", { "#tuple": ["x"] }, "wrapped.0"]
+  ],
+  { "#literal": 0 }
+]

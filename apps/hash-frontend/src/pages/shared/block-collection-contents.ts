@@ -1,8 +1,4 @@
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -11,10 +7,7 @@ import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -26,8 +19,12 @@ import type {
   HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type {
+  EntityTraversalPath,
+  GraphResolveDepths,
+} from "@rust/hash-graph-store/types";
 
-import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
+import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
@@ -46,22 +43,36 @@ import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.ge
  * Equivalent to providing each block with the graph resolved to a depth of 2 around the block entity.
  * Most blocks will require at least 1 (e.g. a table entity with an attached query), and many 2
  */
-export const blockCollectionContentsDepths: GraphResolveDepths = {
-  ...zeroedGraphResolveDepths,
-  hasLeftEntity: { incoming: 4, outgoing: 4 },
-  hasRightEntity: { incoming: 4, outgoing: 4 },
-  isOfType: { outgoing: 1 },
-};
-
-export const blockCollectionContentsGetEntityVariables = {
-  ...blockCollectionContentsDepths,
-  includePermissions: true,
+export const blockCollectionContentsTraversalParams: {
+  graphResolveDepths: GraphResolveDepths;
+  traversalPaths: EntityTraversalPath[];
+} = {
+  graphResolveDepths: {
+    isOfType: true,
+  },
+  traversalPaths: [
+    {
+      edges: Array(4)
+        .fill([
+          { kind: "has-left-entity", direction: "incoming" },
+          { kind: "has-right-entity", direction: "outgoing" },
+        ])
+        .flat(),
+    },
+    {
+      edges: Array(4)
+        .fill([
+          { kind: "has-right-entity", direction: "incoming" },
+          { kind: "has-left-entity", direction: "outgoing" },
+        ])
+        .flat(),
+    },
+  ],
 };
 
 export const getBlockCollectionContentsStructuralQueryVariables = (
   pageEntityUuid: EntityUuid,
-): GetEntitySubgraphQueryVariables => ({
-  includePermissions: true,
+): QueryEntitySubgraphQueryVariables => ({
   request: {
     filter: {
       all: [
@@ -75,9 +86,10 @@ export const getBlockCollectionContentsStructuralQueryVariables = (
         },
       ],
     },
-    graphResolveDepths: blockCollectionContentsDepths,
-    includeDrafts: false,
+    ...blockCollectionContentsTraversalParams,
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: true,
   },
 });
 

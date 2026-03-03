@@ -2,16 +2,18 @@ import type {
   DataTypeRootType,
   Edges,
   EntityRevisionId,
+  EntityRootType,
   EntityTypeRootType,
   EntityVertexId,
-  GraphResolveDepths,
   OntologyVertices,
   PropertyTypeRootType,
+  Subgraph,
   SubgraphTemporalAxes,
 } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   BaseUrl,
+  Brand,
   ClosedEntityType,
   ClosedMultiEntityType,
   Entity,
@@ -39,31 +41,59 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   isArrayMetadata,
   isBaseUrl,
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
-import type { Brand } from "@local/advanced-types/brand";
+import type {
+  DistributiveOmit,
+  DistributiveReplaceProperties,
+  ExclusiveUnion,
+} from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedMultiEntityTypeMap,
   CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
-  GetEntitiesRequest as GetEntitiesRequestGraphApi,
-  GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
+  QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
+  QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
+  QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
+  QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
+import type {
+  CreateEntityPolicyParams,
+  EntityPermissions,
+} from "@rust/hash-graph-store/types";
+import type { Client as TemporalClient } from "@temporalio/client";
+import { Predicate } from "effect";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+import { rewriteSemanticFilter } from "./embeddings.js";
+import {
+  mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
+  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
+} from "./entity-type.js";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
+  EntityTypeResolveDefinitions,
 } from "./ontology.js";
+import {
+  deserializeGraphVertices,
+  mapGraphApiSubgraphToSubgraph,
+  serializeGraphVertices,
+} from "./subgraph.js";
+import {
+  userEntityTypeBaseUrl,
+  userSelfUpdatablePropertyBaseUrls,
+} from "./user-entity-restrictions.js";
 import type { EntityValidationReport } from "./validation.js";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
@@ -111,7 +141,6 @@ export type SerializedSubgraph<
   roots: RootType["vertexId"][];
   vertices: SerializedVertices;
   edges: Edges;
-  depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };
 
@@ -151,6 +180,17 @@ export type PatchEntityParameters = Omit<
 > & {
   propertyPatches?: PropertyPatchOperation[];
   provenance: ProvidedEntityEditionProvenance;
+  /**
+   * Additional property base URLs to allow when patching user entities,
+   * beyond those in the default {@link userSelfUpdatablePropertyBaseUrls} set.
+   *
+   * This is useful for properties that are conditionally updatable, such as:
+   * - shortname (set once during account signup)
+   * - enabledFeatureFlags (requires instance admin privileges)
+   *
+   * For non-user entities, this parameter has no effect.
+   */
+  additionalAllowedPropertyBaseUrls?: ReadonlySet<BaseUrl>;
 };
 
 export type DiffEntityInput = Subtype<
@@ -170,19 +210,193 @@ export type ConversionRequest = {
   dataTypeId: VersionedUrl;
 };
 
-export type GetEntitiesRequest = Omit<
-  GetEntitiesRequestGraphApi,
+export type QueryEntitiesRequest = DistributiveOmit<
+  QueryEntitiesRequestGraphApi,
   "conversions"
 > & {
   conversions?: ConversionRequest[];
 };
 
-export type GetEntitySubgraphRequest = Omit<
-  GetEntitySubgraphRequestGraphApi,
-  "conversions"
+export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
+
+export type QueryEntitiesResponse<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  QueryEntitiesResponseGraphApi,
+  | "entities"
+  | "closedMultiEntityTypes"
+  | "definitions"
+  | "webIds"
+  | "createdByIds"
+  | "editionCreatedByIds"
+  | "typeIds"
+  | "typeTitles"
+  | "permissions"
 > & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+  entities: HashEntity<PropertyMap>[];
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+  definitions?: EntityTypeResolveDefinitions;
+  webIds?: Record<WebId, number>;
+  createdByIds?: Record<ActorEntityUuid, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
+  permissions?: EntityPermissionsMap;
 };
+
+export type SerializedQueryEntitiesResponse<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = DistributiveReplaceProperties<
+  QueryEntitiesResponse<PropertyMap>,
+  {
+    entities: SerializedEntity<PropertyMap>[];
+  }
+>;
+
+export type QueryEntitySubgraphRequest = ExclusiveUnion<
+  DistributiveReplaceProperties<
+    QueryEntitySubgraphRequestGraphApi,
+    {
+      conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+    }
+  >
+>;
+
+export type QueryEntitySubgraphResponse<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  QueryEntitySubgraphResponseGraphApi,
+  | "subgraph"
+  | "closedMultiEntityTypes"
+  | "definitions"
+  | "webIds"
+  | "createdByIds"
+  | "editionCreatedByIds"
+  | "typeIds"
+  | "typeTitles"
+> & {
+  subgraph: Subgraph<EntityRootType<HashEntity<PropertyMap>>, HashEntity>;
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+  definitions?: EntityTypeResolveDefinitions;
+  webIds?: Record<WebId, number>;
+  createdByIds?: Record<ActorEntityUuid, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
+  entityPermissions?: EntityPermissionsMap;
+};
+
+export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
+  QueryEntitySubgraphResponse<TypeIdsAndPropertiesForEntity>,
+  "subgraph"
+> & {
+  subgraph: SerializedSubgraph<SerializedEntityRootType>;
+};
+
+/**
+ * Get entities by a structural query.
+ *
+ * @param params.query the structural query to filter entities by.
+ */
+export const queryEntitySubgraph = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: { graphApi: GraphApi; temporalClient?: TemporalClient },
+  authentication: AuthenticationContext,
+  params: QueryEntitySubgraphRequest,
+): Promise<QueryEntitySubgraphResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  return await context.graphApi
+    .queryEntitySubgraph(authentication.actorId, params)
+    .then(({ data }) => {
+      const { subgraph: unfilteredSubgraph, ...response } = data;
+
+      const subgraph = mapGraphApiSubgraphToSubgraph<
+        EntityRootType<HashEntity<PropertyMap>>,
+        PropertyMap
+      >(unfilteredSubgraph);
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
+        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
+
+        if (
+          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
+          //                    the latest revision
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
+            .archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          delete subgraph.vertices[entityId];
+        }
+      }
+
+      return {
+        ...response,
+        subgraph,
+        closedMultiEntityTypes: response.closedMultiEntityTypes
+          ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+              response.closedMultiEntityTypes,
+            )
+          : undefined,
+        definitions: response.definitions
+          ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+              response.definitions,
+            )
+          : undefined,
+        webIds: response.webIds as Record<WebId, number> | undefined,
+        createdByIds: response.createdByIds as
+          | Record<ActorEntityUuid, number>
+          | undefined,
+        editionCreatedByIds: response.editionCreatedByIds as
+          | Record<ActorEntityUuid, number>
+          | undefined,
+        typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+        typeTitles: response.typeTitles as
+          | Record<VersionedUrl, string>
+          | undefined,
+        entityPermissions: response.entityPermissions as
+          | EntityPermissionsMap
+          | undefined,
+      };
+    });
+};
+
+export const serializeQueryEntitySubgraphResponse = (
+  response: QueryEntitySubgraphResponse<TypeIdsAndPropertiesForEntity>,
+): SerializedQueryEntitySubgraphResponse => ({
+  ...response,
+  subgraph: {
+    roots: response.subgraph.roots,
+    vertices: serializeGraphVertices(response.subgraph.vertices),
+    edges: response.subgraph.edges,
+    temporalAxes: response.subgraph.temporalAxes,
+  },
+});
+
+export const deserializeQueryEntitySubgraphResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedQueryEntitySubgraphResponse,
+): QueryEntitySubgraphResponse<PropertyMap> => ({
+  ...response,
+  subgraph: {
+    roots: response.subgraph.roots,
+    vertices: deserializeGraphVertices(response.subgraph.vertices),
+    edges: response.subgraph.edges,
+    temporalAxes: response.subgraph.temporalAxes,
+  },
+});
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
@@ -210,24 +424,6 @@ type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is SerializedEntity => {
-  return (
-    "entityTypeId" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
-
-const isGraphApiEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is GraphApiEntity => {
-  return (
-    "entityTypeIds" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
-
 export const propertyObjectToPatches = (
   object: PropertyObjectWithMetadata,
 ): PropertyPatchOperation[] =>
@@ -245,15 +441,18 @@ export const propertyObjectToPatches = (
  *
  * @deprecated this is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
- *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
+ *   directly. IF you use this, bear in mind that if removeProperties is true,
+ *   newProperties MUST represent ALL the properties that the entity will
  *   have after the patch. Any properties not specified in newProperties will be removed.
  */
 export const patchesFromPropertyObjects = ({
   oldProperties,
   newProperties,
+  removeProperties = true,
 }: {
   oldProperties: PropertyObject;
   newProperties: PropertyObjectWithMetadata;
+  removeProperties?: boolean;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
@@ -276,12 +475,14 @@ export const patchesFromPropertyObjects = ({
     }
   }
 
-  for (const key of typedKeys(oldProperties)) {
-    if (typeof newProperties.value[key] === "undefined") {
-      patches.push({
-        op: "remove",
-        path: [key],
-      });
+  if (removeProperties) {
+    for (const key of typedKeys(oldProperties)) {
+      if (typeof newProperties.value[key] === "undefined") {
+        patches.push({
+          op: "remove",
+          path: [key],
+        });
+      }
     }
   }
 
@@ -326,6 +527,26 @@ export const getDefinedPropertyFromPatchesGetter = <
 
     if (!foundPatch || foundPatch.op === "remove") {
       return;
+    }
+
+    if (Array.isArray(foundPatch.property.value)) {
+      return foundPatch.property.value.map((arrayEntry) => {
+        if (
+          typeof arrayEntry === "object" &&
+          arrayEntry !== null &&
+          "value" in arrayEntry
+        ) {
+          return arrayEntry.value;
+        }
+
+        throw new Error(
+          `Expected array entry to be a value, but got metadata for array entry: ${JSON.stringify(
+            arrayEntry,
+            null,
+            2,
+          )}. Nested arrays/objects are not supported.`,
+        );
+      }) as Properties[Key];
     }
 
     return foundPatch.property.value as Properties[Key];
@@ -890,13 +1111,7 @@ export class HashEntity<
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
-    if (isSerializedEntity(entity) || isGraphApiEntity(entity)) {
-      this.#entity = entity as EntityData<PropertyMap>;
-    } else {
-      throw new Error(
-        `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,
-      );
-    }
+    this.#entity = entity as EntityData<PropertyMap>;
   }
 
   public static async create<T extends TypeIdsAndPropertiesForEntity>(
@@ -948,7 +1163,12 @@ export class HashEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
+    {
+      entityTypeIds,
+      propertyPatches,
+      additionalAllowedPropertyBaseUrls,
+      ...params
+    }: PatchEntityParameters,
     /**
      * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
      *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
@@ -960,6 +1180,32 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
+    if (propertyPatches) {
+      const isUserEntity = this.metadata.entityTypeIds.some(
+        (id) => extractBaseUrl(id) === userEntityTypeBaseUrl,
+      );
+
+      if (isUserEntity) {
+        for (const patch of propertyPatches) {
+          const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (targetBaseUrl === undefined) {
+            throw new Error(
+              "Cannot replace the entire property object on a user entity",
+            );
+          }
+
+          if (
+            !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
+            !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
+          ) {
+            throw new Error(
+              `Property patch targeting '${targetBaseUrl}' is not allowed on a user entity. Allowed properties: ${[...userSelfUpdatablePropertyBaseUrls, ...(additionalAllowedPropertyBaseUrls ?? [])].join(", ")}`,
+            );
+          }
+        }
+      }
+    }
+
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
@@ -1119,8 +1365,38 @@ export class HashLinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
+    {
+      entityTypeIds,
+      propertyPatches,
+      additionalAllowedPropertyBaseUrls,
+      ...params
+    }: PatchEntityParameters,
   ): Promise<this> {
+    if (propertyPatches) {
+      const isUserEntity = this.metadata.entityTypeIds.some((id) =>
+        id.startsWith(userEntityTypeBaseUrl as string),
+      );
+
+      if (isUserEntity) {
+        for (const patch of propertyPatches) {
+          const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (targetBaseUrl === undefined) {
+            throw new Error(
+              "Cannot replace the entire property object on a user entity",
+            );
+          }
+          if (
+            !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
+            !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
+          ) {
+            throw new Error(
+              `Property patch targeting '${targetBaseUrl}' is not allowed on a user entity. Allowed properties: ${[...userSelfUpdatablePropertyBaseUrls, ...(additionalAllowedPropertyBaseUrls ?? [])].join(", ")}`,
+            );
+          }
+        }
+      }
+    }
+
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
@@ -1135,3 +1411,69 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
+export const queryEntities = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: {
+    graphApi: GraphApi;
+    temporalClient?: TemporalClient;
+  },
+  authentication: AuthenticationContext,
+  params: QueryEntitiesRequest,
+): Promise<QueryEntitiesResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  return context.graphApi
+    .queryEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) => new HashEntity(entity)),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      createdByIds: response.createdByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+      typeTitles: response.typeTitles as
+        | Record<VersionedUrl, string>
+        | undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
+    }));
+};
+
+export const serializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: QueryEntitiesResponse<PropertyMap>,
+): SerializedQueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => entity.toJSON()),
+});
+
+export const deserializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedQueryEntitiesResponse<PropertyMap>,
+): QueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => new HashEntity(entity)),
+});

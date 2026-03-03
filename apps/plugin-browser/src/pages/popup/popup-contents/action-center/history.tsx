@@ -61,7 +61,7 @@ export const History = (panelProps: TabPanelProps) => {
           variant="microText"
           sx={{ fontSize: 13, mb: 1 }}
         >
-          The above tables show worker activity triggered from or using this
+          The above tables show agent activity triggered from or using this
           browser.
         </Typography>
         <Typography component="p" variant="microText" sx={{ fontSize: 13 }}>
@@ -71,7 +71,7 @@ export const History = (panelProps: TabPanelProps) => {
             sx={{ textDecoration: "none", fontWeight: 600 }}
             target="_blank"
           >
-            workers
+            agents
           </Link>{" "}
           page.
         </Typography>

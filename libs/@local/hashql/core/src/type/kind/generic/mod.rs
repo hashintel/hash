@@ -1,9 +1,11 @@
 pub mod apply;
 pub mod param;
 
-use core::{fmt::Display, hash::Hash, ops::Deref};
-
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
+use core::{
+    fmt::{self, Display},
+    hash::Hash,
+    ops::Deref,
+};
 
 pub use self::{
     apply::{Apply, GenericSubstitution, GenericSubstitutions},
@@ -11,10 +13,11 @@ pub use self::{
 };
 use super::TypeKind;
 use crate::{
-    collection::{SmallVec, TinyVec},
+    collections::{SmallVec, TinyVec},
+    id::newtype,
     intern::Interned,
-    newtype, newtype_producer,
-    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},
+    newtype_collections, newtype_producer,
+    pretty::display::DisplayBuilder,
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{
@@ -30,10 +33,13 @@ use crate::{
 };
 
 newtype!(
+    #[id(crate = crate)]
     pub struct GenericArgumentId(u32 is 0..=0xFFFF_FF00)
 );
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
+
+newtype_collections!(pub type GenericArgument* from GenericArgumentId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GenericArgumentReference<'heap> {
@@ -59,6 +65,23 @@ impl<'heap> GenericArgumentReference<'heap> {
             .separated(", ")
             .delimited("<", ">")
     }
+
+    #[must_use]
+    pub fn display_mangled(references: &[Self]) -> impl Display {
+        DisplayBuilder::new(
+            references
+                .iter()
+                .map(|GenericArgumentReference { id, name }| {
+                    fmt::from_fn(|fmt| {
+                        Display::fmt(name, fmt)?;
+                        fmt.write_str("?")?;
+                        Display::fmt(id, fmt)
+                    })
+                }),
+        )
+        .separated(", ")
+        .delimited("<", ">")
+    }
 }
 
 impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
@@ -67,16 +90,6 @@ impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
             id: argument.id,
             name: argument.name,
         }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for GenericArgumentReference<'heap> {
-    fn pretty(
-        &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
     }
 }
 
@@ -111,28 +124,6 @@ impl<'heap> GenericArgument<'heap> {
             id: self.id,
             name: self.name,
         }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        let name = format!("{}?{}", self.name, self.id);
-
-        let mut doc = RcDoc::text(name).annotate(ORANGE).group();
-
-        if let Some(constraint) = self.constraint {
-            doc = doc
-                .append(RcDoc::text(":"))
-                .append(RcDoc::softline())
-                .append(boundary.pretty_type(env, constraint).group())
-                .group();
-        }
-
-        doc
     }
 }
 
@@ -197,29 +188,6 @@ impl<'heap> Deref for GenericArguments<'heap> {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.as_slice() {
-            [] => return RcDoc::nil(),
-            arguments => RcAllocator.intersperse(
-                arguments
-                    .iter()
-                    .map(|argument| argument.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            ),
-        }
-        .nest(1)
-        .group()
-        .angles()
-        .group()
-        .into_doc()
     }
 }
 
@@ -341,7 +309,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if base.len() == 1 {
-            return smallvec::SmallVec::from_slice(&[self.id]);
+            return smallvec::SmallVec::from_slice_copy(&[self.id]);
         }
 
         base.into_iter()
@@ -366,7 +334,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if base.len() == 1 {
-            return smallvec::SmallVec::from_slice(&[self.id]);
+            return smallvec::SmallVec::from_slice_copy(&[self.id]);
         }
 
         base.into_iter()
@@ -539,15 +507,5 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
                 kind: env.intern_kind(TypeKind::Generic(Self { base, arguments })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for Generic<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        boundary.pretty_generic_type(env, self.base, self.arguments)
     }
 }

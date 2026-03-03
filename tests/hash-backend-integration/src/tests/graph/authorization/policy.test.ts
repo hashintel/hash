@@ -13,6 +13,7 @@ import {
 import type {
   Policy,
   PolicyCreationParams,
+  ResolvedPolicy,
 } from "@rust/hash-graph-authorization/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -132,25 +133,41 @@ describe("Policy CRUD", () => {
       await resolvePoliciesForActor(graphApi, authentication, {
         actions: ["createWeb"],
       }),
-    ).not.toContainEqual(testPolicy);
+    ).not.toContainEqual({
+      effect: testPolicy.effect,
+      actions: ["createWeb"],
+      resource: testPolicy.resource,
+    } satisfies ResolvedPolicy);
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
         actions: [],
       }),
-    ).not.toContainEqual(testPolicy);
+    ).not.toContainEqual({
+      effect: testPolicy.effect,
+      actions: [],
+      resource: testPolicy.resource,
+    } satisfies ResolvedPolicy);
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
         actions: ["instantiate"],
       }),
-    ).toContainEqual(testPolicy);
+    ).toContainEqual({
+      effect: testPolicy.effect,
+      actions: ["instantiate"],
+      resource: testPolicy.resource,
+    } satisfies ResolvedPolicy);
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
         actions: ["createWeb", "instantiate"],
       }),
-    ).toContainEqual(testPolicy);
+    ).toContainEqual({
+      effect: testPolicy.effect,
+      actions: ["instantiate"],
+      resource: testPolicy.resource,
+    } satisfies ResolvedPolicy);
   });
 
   it("can update a policy", async () => {

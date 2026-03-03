@@ -4,10 +4,10 @@
   "private": true,
   "description": "Performance testing for the HASH backend",
   "license": "AGPL-3.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
-  "exports": {
-    ".": "./dist/esm/main.mjs"
-  },
   "main": "./dist/esm/main.mjs",
   "types": "./dist/esm/main.d.ts",
   "typesVersions": {
@@ -17,9 +17,9 @@
       ]
     }
   },
-  "files": [
-    "dist"
-  ],
+  "exports": {
+    ".": "./dist/esm/main.mjs"
+  },
   "scripts": {
     "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --output reports/$(basename ${file%.*}).json --quiet --environment local; done",
     "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
@@ -30,33 +30,33 @@
     "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-graph-sdk": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@blockprotocol/type-system": "workspace:*",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/hash-graph-client": "workspace:*",
+    "@local/hash-graph-sdk": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
     "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/exporter-trace-otlp-grpc": "0.57.2",
-    "@opentelemetry/resources": "1.30.1",
-    "@opentelemetry/sdk-node": "0.57.2",
-    "@opentelemetry/sdk-trace-node": "1.30.1",
-    "@opentelemetry/semantic-conventions": "1.30.0",
-    "@ory/client": "1.1.41",
-    "artillery": "2.0.23",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.207.0",
+    "@opentelemetry/resources": "2.2.0",
+    "@opentelemetry/sdk-node": "0.207.0",
+    "@opentelemetry/sdk-trace-node": "2.2.0",
+    "@opentelemetry/semantic-conventions": "1.37.0",
+    "@ory/client": "1.22.7",
+    "artillery": "2.0.30",
     "dotenv-flow": "3.3.0",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
-    "@apps/hash-api": "0.0.0-private",
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
-    "@rollup/plugin-commonjs": "28.0.6",
-    "@rollup/plugin-node-resolve": "16.0.1",
-    "@rollup/plugin-typescript": "12.1.4",
+    "@apps/hash-api": "workspace:*",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@rollup/plugin-commonjs": "29.0.0",
+    "@rollup/plugin-node-resolve": "16.0.3",
+    "@rollup/plugin-typescript": "12.3.0",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "9.20.1",
-    "rimraf": "6.0.1",
-    "rollup": "4.45.1",
-    "typescript": "5.7.3"
+    "eslint": "9.39.3",
+    "rimraf": "6.1.3",
+    "rollup": "4.59.0",
+    "typescript": "5.9.3"
   }
 }

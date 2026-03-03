@@ -7,18 +7,28 @@
     impl_trait_in_assoc_type,
 )]
 
-pub use self::error::{ConfigError, ConnectionError, WorkflowError};
+use core::fmt;
+
+pub use self::error::{ConnectionError, WorkflowError};
 
 mod ai;
 mod error;
 
 use error_stack::{Report, ResultExt as _};
-use temporal_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};
+use temporalio_client::{Client, ClientOptions, NamespacedClient as _, RetryClient};
 use url::Url;
 
-#[derive(Debug)]
 pub struct TemporalClient {
     client: RetryClient<Client>,
+}
+
+impl fmt::Debug for TemporalClient {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("TemporalClient")
+            .field("namespace", &self.client.get_client().namespace())
+            .field("identity", &self.client.get_client().identity())
+            .finish()
+    }
 }
 
 pub struct TemporalClientConfig {
@@ -44,19 +54,13 @@ impl IntoFuture for TemporalClientConfig {
 }
 
 impl TemporalClientConfig {
-    /// Creates a new Temporal client configuration.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the configuration is invalid.
-    pub fn new(url: impl Into<Url>) -> Result<Self, Report<ConfigError>> {
-        Ok(Self {
-            options: ClientOptionsBuilder::default()
+    pub fn new(url: impl Into<Url>) -> Self {
+        Self {
+            options: ClientOptions::builder()
                 .client_name("HASH Temporal client")
                 .client_version(env!("CARGO_PKG_VERSION"))
                 .target_url(url)
-                .build()
-                .change_context(ConfigError)?,
-        })
+                .build(),
+        }
     }
 }

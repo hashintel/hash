@@ -297,7 +297,8 @@ pub fn expect_count(mut count: usize) -> usize {
 ///
 /// Therefore this macro generates logic to accommodate for that problem.
 ///
-/// The input is
+/// The input is:
+///
 /// ```no_run
 /// assert_kinds!(report, [
 ///     prefix_patterns

@@ -8,32 +8,6 @@ sidebarTitle: "Core Concepts"
 sidebarIcon: https://app.hash.ai/icons/docs/introduction-coreconcepts.svg
 ---
 
-import {
-  AsteriskIcon,
-  AtomSimpleIcon,
-  BarcodeIcon,
-  CircleNodesIcon,
-  ClockRotateLeftIcon,
-  DatabaseIcon,
-  LinkIcon,
-  TagIcon,
-  UserIcon,
-  UsersIcon,
-  BrowserOutlinedIcon,
-  ShareIcon,
-  CubeIcon,
-  KeyIcon,
-  SyncIcon,
-  PageIcon,
-  ZapThinIcon,
-  InboxIcon,
-  BullsEyeIcon,
-  PlugRegularIcon,
-  InfinityIcon,
-} from "@/shared/icons";
-import { Box, Typography } from "@mui/material";
-import { palette } from "src/app/layout/theme/palette";
-
 # Overview
 
 You don't need to understand all of the concepts outlined on this page in order to [Get Started](/guide/introduction/get-started) with HASH, but being familiar with them will help you learn HASH faster.
@@ -43,21 +17,38 @@ We recommend having a quick scan of this page as you start out, and returning to
 # Where information lives
 
 <ParagraphIconWrapper boxContent={
-    <Box sx={{ display: "flex", columnGap: 1, alignItems: "center", flexDirection: { xs: "column", sm: "row" } }}>
+    <>
+    <style>{`
+      .core-concepts-account-icons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 8px;
+      }
+
+      @media (min-width: 600px) {
+        .core-concepts-account-icons {
+          flex-direction: row;
+          column-gap: 8px;
+        }
+      }
+    `}</style>
+    <div className="core-concepts-account-icons">
         <UserIcon />
-        <Typography sx={{
-            color: palette.gray[60],
+        <span style={{
+            color: "#758AA1",
             textAlign: "center",
             fontFamily: "Inter, sans-serif",
-            fontSize: 32,
+            fontSize: "32px",
             fontStyle: "normal",
             fontWeight: 400,
             lineHeight: 1.5,
-            letterSpacing: -0.64,
-            width: 24,
-         }}>+</Typography>
+            letterSpacing: "-0.64px",
+            width: "24px",
+         }}>+</span>
          <UsersIcon />
-    </Box>
+    </div>
+    </>
 }>
 
 ## Accounts
@@ -159,11 +150,11 @@ While property types provide semantic meaning to property values, [data types](/
 
 <ParagraphIconWrapper boxContent={<ZapThinIcon />}>
 
-## Workers
+## Agents
 
-HASH [workers](/guide/workers) are AI agents which work for you. They perform tasks on your behalf, helping grow your web with useful information, and keep it up to date.
+HASH [agents](/guide/agents) are AI agents which work for you. They perform tasks on your behalf, helping grow your web with useful information, and keep it up to date.
 
-You can ask also ask your worker questions about the data in your web, helping you find and use relevant information more effectively.
+You can ask also ask your agent questions about the data in your web, helping you find and use relevant information more effectively.
 
 </ParagraphIconWrapper>
 
@@ -171,7 +162,7 @@ You can ask also ask your worker questions about the data in your web, helping y
 
 ## Goals
 
-Workers can be given [goals](/guide/workers/goals). When provided with a goal, available workers will analyze your aims, develop a plan, and execute it autonomously upon your behalf, much as a capable human colleague might.
+Agents can be given [goals](/guide/agents/goals). When provided with a goal, available agents will analyze your aims, develop a plan, and execute it autonomously upon your behalf, much as a capable human colleague might.
 
 Right now, HASH supports **research and analysis** goals, helping you capture and process information about the world.
 
@@ -181,7 +172,7 @@ Right now, HASH supports **research and analysis** goals, helping you capture an
 
 ## Flows
 
-Workers can also reliably and automatically execute sequences of steps, known [flows](/guide/flows). In contrast to goals, the actions involved in a flow are predefined ahead of time.
+Agents can also reliably and automatically execute sequences of steps, known [flows](/guide/flows). In contrast to goals, the actions involved in a flow are predefined ahead of time.
 
 Flows can be triggered on-demand, in response to observed events, or on a recurring schedule.
 
@@ -193,7 +184,7 @@ Flows can be triggered on-demand, in response to observed events, or on a recurr
 
 Your [inbox](/guide/inbox) contains notifications, messages, and actions (including drafts).
 
-For example, if a worker requires you to clarify some part of a stated goal, a question from it will appear here.
+For example, if an agent requires you to clarify some part of a stated goal, a question from it will appear here.
 
 </ParagraphIconWrapper>
 
@@ -203,7 +194,7 @@ For example, if a worker requires you to clarify some part of a stated goal, a q
 
 [Plugins](/guide/plugins) allow you to interact with your web within other applications, and typically provide HASH with additional capabilities.
 
-For example, installing the [HASH browser extension](/download) lets you (optionally) allow workers to browse websites using any accounts you may be logged into. This can let them bypass paywalls, and access other protected content.
+For example, installing the [HASH browser extension](/download) lets you (optionally) allow your agents to browse websites using any accounts you may be logged into. This can let them bypass paywalls, and access other protected content, exclusively on your behalf.
 
 </ParagraphIconWrapper>
 

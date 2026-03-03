@@ -2,7 +2,7 @@ import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { DeprecatedProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -480,7 +480,7 @@ export const proposeEntities = async (params: {
 
           const validProposedEntitiesByType = Object.fromEntries(
             typedEntries(proposedEntitiesByType).map<
-              [VersionedUrl, ProposedEntity[]]
+              [VersionedUrl, DeprecatedProposedEntity[]]
             >(([simplifiedEntityTypeId, entities]) => {
               const entityTypeId =
                 simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];

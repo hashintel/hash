@@ -5,7 +5,11 @@ use hash_graph_store::{
     filter::{JsonPath, PathToken, QueryPath},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use hashql_core::{heap::Heap, literal::LiteralKind, symbol::Symbol, value::Value};
+use hashql_core::{
+    heap::Heap,
+    symbol::{Symbol, sym},
+    value::{Primitive, Value},
+};
 
 pub(crate) trait CompleteQueryPath<'heap>: QueryPath {
     type PartialQueryPath: PartialQueryPath<'heap, QueryPath = Self>;
@@ -14,11 +18,39 @@ pub(crate) trait CompleteQueryPath<'heap>: QueryPath {
 pub(crate) trait PartialQueryPath<'heap>: Sized {
     type QueryPath;
 
+    const UNSUPPORTED: bool = false;
+
     fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self>;
     fn access_field(self, heap: &'heap Heap, field: Symbol<'heap>) -> Result<Self, Self>;
     fn from_index(heap: &'heap Heap, index: Cow<'_, Value<'heap>>) -> Option<Self>;
     fn access_index(self, heap: &'heap Heap, index: Cow<'_, Value<'heap>>) -> Result<Self, Self>;
     fn finish(self) -> Option<Self::QueryPath>;
+}
+
+impl<'heap> PartialQueryPath<'heap> for ! {
+    type QueryPath = !;
+
+    const UNSUPPORTED: bool = true;
+
+    fn from_field(_: &'heap Heap, _: Symbol<'heap>) -> Option<Self> {
+        None
+    }
+
+    fn access_field(self, _: &'heap Heap, _: Symbol<'heap>) -> Result<Self, Self> {
+        self
+    }
+
+    fn from_index(_: &'heap Heap, _: Cow<'_, Value<'heap>>) -> Option<Self> {
+        None
+    }
+
+    fn access_index(self, _: &'heap Heap, _: Cow<'_, Value<'heap>>) -> Result<Self, Self> {
+        self
+    }
+
+    fn finish(self) -> Option<Self::QueryPath> {
+        None
+    }
 }
 
 impl<'heap> CompleteQueryPath<'heap> for EntityQueryPath<'heap> {
@@ -64,20 +96,12 @@ pub(crate) enum PartialEntityIdQueryPath {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityIdQueryPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        // see: https://linear.app/hash/issue/H-4512/hashql-use-symbol-sym-constants-instead-of-string-literals
-        let web_id = heap.intern_symbol("web_id");
-        let entity_uuid = heap.intern_symbol("entity_uuid");
-        let draft_id = heap.intern_symbol("draft_id");
-
-        if field == web_id {
-            Some(Self::WebId)
-        } else if field == entity_uuid {
-            Some(Self::EntityUuid)
-        } else if field == draft_id {
-            Some(Self::DraftId)
-        } else {
-            None
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        match field.as_constant()? {
+            sym::web_id::CONST => Some(Self::WebId),
+            sym::entity_uuid::CONST => Some(Self::EntityUuid),
+            sym::draft_id::CONST => Some(Self::DraftId),
+            _ => None,
         }
     }
 
@@ -111,17 +135,11 @@ pub(crate) enum PartialEntityRecordIdPath {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityRecordIdPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        // see: https://linear.app/hash/issue/H-4512/hashql-use-symbol-sym-constants-instead-of-string-literals
-        let entity_id = heap.intern_symbol("entity_id");
-        let entity_edition_id = heap.intern_symbol("entity_edition_id");
-
-        if field == entity_id {
-            Some(Self::EntityId(None))
-        } else if field == entity_edition_id {
-            Some(Self::EntityEditionId)
-        } else {
-            None
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        match field.as_constant()? {
+            sym::entity_id::CONST => Some(Self::EntityId(None)),
+            sym::entity_edition_id::CONST => Some(Self::EntityEditionId),
+            _ => None,
         }
     }
 
@@ -167,16 +185,11 @@ pub(crate) enum PartialLinkDataPath {
 impl<'heap> PartialQueryPath<'heap> for PartialLinkDataPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        let left_entity_id = heap.intern_symbol("left_entity_id");
-        let right_entity_id = heap.intern_symbol("right_entity_id");
-
-        if field == left_entity_id {
-            Some(Self::LeftEntityId(None))
-        } else if field == right_entity_id {
-            Some(Self::RightEntityId(None))
-        } else {
-            None
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        match field.as_constant()? {
+            sym::left_entity_id::CONST => Some(Self::LeftEntityId(None)),
+            sym::right_entity_id::CONST => Some(Self::RightEntityId(None)),
+            _ => None,
         }
     }
 
@@ -232,8 +245,8 @@ impl<'heap> PartialQueryPath<'heap> for PartialLinkDataPath {
 
 fn value_as_usize(value: &Value<'_>) -> Option<usize> {
     match value {
-        Value::Primitive(LiteralKind::Integer(integer)) => integer.as_usize(),
-        Value::Primitive(LiteralKind::Float(float)) if let Some(integer) = float.as_integer() => {
+        Value::Primitive(Primitive::Integer(integer)) => integer.as_usize(),
+        Value::Primitive(Primitive::Float(float)) if let Some(integer) = float.as_integer() => {
             integer.as_usize()
         }
         Value::Primitive(_)
@@ -289,19 +302,12 @@ pub(crate) enum PartialEntityQueryPath<'heap> {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityQueryPath<'heap> {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        let id = heap.intern_symbol("id");
-        let properties = heap.intern_symbol("properties");
-        let link_data = heap.intern_symbol("link_data");
-
-        if field == id {
-            Some(PartialEntityQueryPath::Id(None))
-        } else if field == properties {
-            Some(PartialEntityQueryPath::Properties(None))
-        } else if field == link_data {
-            Some(PartialEntityQueryPath::LinkData(None))
-        } else {
-            None
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        match field.as_constant()? {
+            sym::id::CONST => Some(PartialEntityQueryPath::Id(None)),
+            sym::properties::CONST => Some(PartialEntityQueryPath::Properties(None)),
+            sym::link_data::CONST => Some(PartialEntityQueryPath::LinkData(None)),
+            _ => None,
         }
     }
 

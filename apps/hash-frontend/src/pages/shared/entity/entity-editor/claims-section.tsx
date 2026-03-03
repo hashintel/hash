@@ -4,22 +4,21 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinksIcon } from "../../../../shared/icons/svg";
 import { SectionEmptyState } from "../../../@/[shortname]/shared/section-empty-state";
 import { ClaimsTable } from "../../claims-table";
@@ -39,11 +38,10 @@ export const ClaimsSection = () => {
   }, [entity]);
 
   const { data: claimsData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -63,13 +61,23 @@ export const ClaimsSection = () => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     },
     skip: !entityUuid || isLocalDraftOnly,
@@ -79,7 +87,7 @@ export const ClaimsSection = () => {
   const { claimsSubgraph, numberOfClaims } = useMemo(() => {
     if (claimsData) {
       const subgraph = deserializeSubgraph<EntityRootType<HashEntity<Claim>>>(
-        claimsData.getEntitySubgraph.subgraph,
+        claimsData.queryEntitySubgraph.subgraph,
       );
 
       const roots = getRoots(subgraph);

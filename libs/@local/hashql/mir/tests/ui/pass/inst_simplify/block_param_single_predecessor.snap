@@ -1,0 +1,35 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        goto -> bb1(5)
+    }
+
+    bb1(%0): {
+        %1 = %0 == 5
+
+        return %1
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        goto -> bb1(5)
+    }
+
+    bb1(%0): {
+        %1 = 1
+
+        return %1
+    }
+}

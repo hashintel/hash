@@ -10,7 +10,7 @@ pub(crate) trait IsCancelled {
     fn is_cancelled(&self) -> bool;
 }
 
-/// Garbage Collector for stale connections
+/// Garbage Collector for stale connections.
 ///
 /// This isn't strictly required, as it should never happen, but in the case that there are
 /// connections that are not cleaned up properly, this will remove them.

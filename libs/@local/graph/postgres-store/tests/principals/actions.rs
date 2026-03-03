@@ -1,4 +1,4 @@
-use core::{assert_matches::assert_matches, error::Error};
+use core::{assert_matches, error::Error};
 
 use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_postgres_store::permissions::ActionError;

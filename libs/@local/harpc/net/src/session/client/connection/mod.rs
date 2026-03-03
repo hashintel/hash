@@ -28,7 +28,7 @@ pub use self::stream::ResponseStream;
 use super::{config::SessionConfig, transaction::TransactionTask};
 use crate::session::{error::ConnectionPartiallyClosedError, gc::ConnectionGarbageCollectorTask};
 
-/// Delegate requests to the respective transaction
+/// Delegate requests to the respective transaction.
 ///
 /// This is a 1-n task, which takes requests from the individual transactions and forwards them to
 /// the connection.
@@ -58,9 +58,9 @@ where
     }
 }
 
-/// Delgate responses to the respective transaction
+/// Delegate responses to the respective transaction.
 ///
-/// Takes into account the [`RequestId`] to route the response to the correct transaction
+/// Takes into account the [`RequestId`] to route the response to the correct transaction.
 ///
 /// [`RequestId`]: harpc_wire_protocol::request::id::RequestId
 struct ConnectionResponseDelegateTask<S> {
@@ -320,14 +320,14 @@ impl Connection {
         }
     }
 
-    /// Check if the connection is healthy
+    /// Check if the connection is healthy.
     ///
     /// This returns false if either the underlying read or write stream have been closed.
     pub fn is_healthy(&self) -> bool {
         !self.request_delegate_handle.is_finished() && !self.response_delegate_handle.is_finished()
     }
 
-    /// Call a service procedure
+    /// Call a service procedure.
     ///
     /// # Errors
     ///

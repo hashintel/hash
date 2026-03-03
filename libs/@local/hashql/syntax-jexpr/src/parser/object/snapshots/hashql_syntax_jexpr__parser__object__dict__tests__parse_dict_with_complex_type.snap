@@ -10,13 +10,13 @@ Expr#4294967040@19
         Expr#4294967040@0
           ExprKind (Literal)
             LiteralExpr#4294967040@0
-              LiteralKind (String)
-                StringLiteral (key)
+              Primitive (String)
+                String (key)
         Expr#4294967040@2
           ExprKind (Literal)
             LiteralExpr#4294967040@1
-              LiteralKind (String)
-                StringLiteral (value)
+              Primitive (String)
+                String (value)
       Type#4294967040@18
         TypeKind (Path)
           Path#4294967040@18 (rooted: false)

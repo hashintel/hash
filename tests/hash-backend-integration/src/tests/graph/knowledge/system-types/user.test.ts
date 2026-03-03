@@ -10,8 +10,7 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
-  getUserByKratosIdentityId,
-  getUserByShortname,
+  getUser,
   isUserMemberOfOrg,
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -44,6 +43,12 @@ const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
 
+/**
+ * Email addresses that are permitted to sign up in a test environment.
+ * See USER_EMAIL_ALLOW_LIST in .env.local
+ */
+const allowListedEmail = "charlie@example.com";
+
 describe("User model class", () => {
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({
@@ -66,6 +71,7 @@ describe("User model class", () => {
       traits: {
         emails: ["test-user@example.com"],
       },
+      verifyEmails: true,
     });
 
     createdUser = await createUser(graphContext, authentication, {
@@ -115,7 +121,7 @@ describe("User model class", () => {
   it("can get a user by its shortname", async () => {
     const authentication = { actorId: createdUser.accountId };
 
-    const fetchedUser = await getUserByShortname(graphContext, authentication, {
+    const fetchedUser = await getUser(graphContext, authentication, {
       shortname,
     });
 
@@ -127,13 +133,9 @@ describe("User model class", () => {
   it("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 
-    const fetchedUser = await getUserByKratosIdentityId(
-      graphContext,
-      authentication,
-      {
-        kratosIdentityId: createdUser.kratosIdentityId,
-      },
-    );
+    const fetchedUser = await getUser(graphContext, authentication, {
+      kratosIdentityId: createdUser.kratosIdentityId,
+    });
 
     expect(fetchedUser).not.toBeNull();
 
@@ -200,6 +202,41 @@ describe("User model class", () => {
     });
   });
 
+  it("rejects replacing the entire property object via empty path", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const maliciousProperties = structuredClone(
+      createdUser.entity.propertiesWithMetadata,
+    );
+    maliciousProperties.value[
+      "https://hash.ai/@h/types/property-type/enabled-feature-flags/"
+    ] = {
+      value: [
+        {
+          value: "admin-flag",
+          metadata: {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        },
+      ],
+    };
+
+    await expect(
+      updateEntity(graphContext, authentication, {
+        entity: createdUser.entity,
+        propertyPatches: [
+          {
+            op: "replace",
+            path: [],
+            property: maliciousProperties,
+          },
+        ],
+      }),
+    ).rejects.toThrowError(
+      "Cannot replace the entire property object on a user entity",
+    );
+  });
+
   let incompleteUser: User;
 
   it("can create an incomplete user", async () => {
@@ -207,12 +244,13 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["incomplete-user@example.com"],
+        emails: [allowListedEmail],
       },
+      verifyEmails: true,
     });
 
     incompleteUser = await createUser(graphContext, authentication, {
-      emails: ["incomplete-user@example.com"],
+      emails: [allowListedEmail],
       kratosIdentityId: identity.id,
     });
 

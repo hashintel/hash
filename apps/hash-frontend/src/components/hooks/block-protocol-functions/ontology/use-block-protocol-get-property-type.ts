@@ -1,22 +1,25 @@
 import { useLazyQuery } from "@apollo/client";
-import type { PropertyTypeRootType } from "@blockprotocol/graph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
-  GetPropertyTypeQuery,
-  GetPropertyTypeQueryVariables,
+  QueryPropertyTypeSubgraphQuery,
+  QueryPropertyTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getPropertyTypeQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+import { queryPropertyTypeSubgraphQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import type { GetPropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetPropertyType = (): {
   getPropertyType: GetPropertyTypeMessageCallback;
 } => {
   const [getFn] = useLazyQuery<
-    GetPropertyTypeQuery,
-    GetPropertyTypeQueryVariables
-  >(getPropertyTypeQuery, {
+    QueryPropertyTypeSubgraphQuery,
+    QueryPropertyTypeSubgraphQueryVariables
+  >(queryPropertyTypeSubgraphQuery, {
     /**
      * Property types are immutable, any request for an propertyTypeId should always return the same value.
      * However, currently requests for non-existent property types currently return an empty subgraph, so
@@ -44,10 +47,20 @@ export const useBlockProtocolGetPropertyType = (): {
 
       const response = await getFn({
         variables: {
-          propertyTypeId,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          ...graphResolveDepths,
+          request: {
+            filter: {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: propertyTypeId },
+              ],
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            graphResolveDepths: {
+              ...almostFullOntologyResolveDepths,
+              ...graphResolveDepths,
+            },
+            traversalPaths: [],
+          },
         },
       });
 
@@ -62,13 +75,11 @@ export const useBlockProtocolGetPropertyType = (): {
         };
       }
 
-      /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-      const subgraph =
-        mapGqlSubgraphFieldsFragmentToSubgraph<PropertyTypeRootType>(
-          response.data.getPropertyType,
-        );
-
-      return { data: subgraph };
+      return {
+        data: deserializeQueryPropertyTypeSubgraphResponse(
+          response.data.queryPropertyTypeSubgraph,
+        ).subgraph,
+      };
     },
     [getFn],
   );

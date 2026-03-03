@@ -1,10 +1,9 @@
-use bumpalo::Bump;
+use hashql_diagnostics::Success;
 
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
-    collection::{FastHashMap, SmallVec},
-    heap::Heap,
-    pretty::PrettyPrint as _,
+    collections::{FastHashMap, SmallVec},
+    heap::{Heap, Scratch},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -107,7 +106,7 @@ fn unification_lookup() {
 #[test]
 fn solve_anti_symmetry() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -130,9 +129,9 @@ fn solve_anti_symmetry() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     assert!(solver.unification.is_unioned(kind1.kind, kind2.kind));
 }
@@ -140,7 +139,7 @@ fn solve_anti_symmetry() {
 #[test]
 fn solve_anti_symmetry_with_cycles() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -169,9 +168,9 @@ fn solve_anti_symmetry_with_cycles() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     // All three variables should be unified
     assert!(
@@ -189,7 +188,7 @@ fn solve_anti_symmetry_with_cycles() {
 #[test]
 fn apply_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -212,14 +211,14 @@ fn apply_constraints() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    let scratch = Scratch::new();
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -232,7 +231,7 @@ fn apply_constraints() {
 #[test]
 fn apply_constraints_equality() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -248,13 +247,13 @@ fn apply_constraints_equality() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -273,7 +272,7 @@ fn apply_constraints_equality() {
 #[test]
 fn apply_constraints_with_unification() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let number = primitive!(env, PrimitiveType::Number);
     let string = primitive!(env, PrimitiveType::String);
@@ -303,13 +302,13 @@ fn apply_constraints_with_unification() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     // Only one entry since the variables are unified
     assert_eq!(variables.len(), 1);
@@ -321,7 +320,7 @@ fn apply_constraints_with_unification() {
         VariableConstraint {
             equal: Some(string),
             lower: SmallVec::new(),
-            upper: SmallVec::from_slice(&[number]),
+            upper: SmallVec::from_slice_copy(&[number]),
             satisfiability: VariableConstraintSatisfiability::default(),
         }
     );
@@ -330,8 +329,8 @@ fn apply_constraints_with_unification() {
 #[test]
 fn solve_constraints() {
     let heap = Heap::new();
-    let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let scratch = Scratch::new();
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -343,8 +342,8 @@ fn solve_constraints() {
     let mut applied_constraints = FastHashMap::default();
     let constraint = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[unknown]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[unknown]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
@@ -358,10 +357,10 @@ fn solve_constraints() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     // Verify the substitution
@@ -372,8 +371,8 @@ fn solve_constraints() {
 #[test]
 fn solve_constraints_with_equality() {
     let heap = Heap::new();
-    let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let scratch = Scratch::new();
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -398,10 +397,10 @@ fn solve_constraints_with_equality() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     assert_eq!(substitutions.len(), 1);
@@ -411,8 +410,8 @@ fn solve_constraints_with_equality() {
 #[test]
 fn solve_constraints_with_incompatible_bounds() {
     let heap = Heap::new();
-    let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let scratch = Scratch::new();
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -424,8 +423,8 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
@@ -439,10 +438,10 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     let diagnostics = solver.diagnostics.into_vec();
@@ -457,8 +456,8 @@ fn solve_constraints_with_incompatible_bounds() {
 #[test]
 fn solve_constraints_with_incompatible_equality() {
     let heap = Heap::new();
-    let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let scratch = Scratch::new();
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -470,7 +469,7 @@ fn solve_constraints_with_incompatible_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[number]),
         upper: SmallVec::new(),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
@@ -484,10 +483,10 @@ fn solve_constraints_with_incompatible_equality() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     let diagnostics = solver.diagnostics.into_vec();
@@ -501,8 +500,8 @@ fn solve_constraints_with_incompatible_equality() {
 #[test]
 fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let heap = Heap::new();
-    let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let scratch = Scratch::new();
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -516,7 +515,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::new(),
-        upper: SmallVec::from_slice(&[number]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
@@ -530,10 +529,10 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     // Should have a diagnostic for incompatible upper equal constraint
@@ -548,7 +547,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
 #[test]
 fn simplify_substitutions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
 
@@ -578,16 +577,16 @@ fn simplify_substitutions() {
 #[test]
 fn empty_constraint_set() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
-    let (_, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
         diagnostics[0].category,
@@ -598,7 +597,7 @@ fn empty_constraint_set() {
 #[test]
 fn redundant_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -621,15 +620,15 @@ fn redundant_constraints() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
 
     // Apply the constraints
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     // Despite having duplicate constraints, there should be one entry with one equality
     assert_eq!(variables.len(), 1);
@@ -640,7 +639,7 @@ fn redundant_constraints() {
 #[test]
 fn cyclic_ordering_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -671,9 +670,9 @@ fn cyclic_ordering_constraints() {
 
     // Directly call the anti-symmetry solver
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     // Verify all variables are unified
     assert!(
@@ -691,7 +690,7 @@ fn cyclic_ordering_constraints() {
 #[test]
 fn bounds_at_lattice_extremes() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let unknown = instantiate(&env, TypeKind::Unknown);
     let never = instantiate(&env, TypeKind::Never);
@@ -715,14 +714,14 @@ fn bounds_at_lattice_extremes() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -733,10 +732,10 @@ fn bounds_at_lattice_extremes() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &variables,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
     assert!(solver.diagnostics.is_empty());
 
@@ -747,7 +746,7 @@ fn bounds_at_lattice_extremes() {
 #[test]
 fn collect_constraints_with_structural_edge() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -826,7 +825,7 @@ fn collect_constraints_skip_alias() {
 #[test]
 fn simple_equality_constraint() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -838,8 +837,11 @@ fn simple_equality_constraint() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     let inferred_type = substitution.infer(hole).expect("should have inferred type");
     assert_equiv!(env, [inferred_type], [string]);
@@ -848,7 +850,7 @@ fn simple_equality_constraint() {
 #[test]
 fn anti_symmetry_integration() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -876,8 +878,11 @@ fn anti_symmetry_integration() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Both variables should be inferred to the same type
     let type1 = substitution
@@ -894,7 +899,7 @@ fn anti_symmetry_integration() {
 #[test]
 fn conflicting_equality_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -913,9 +918,9 @@ fn conflicting_equality_constraints() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (_, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
         diagnostics[0].category,
@@ -926,7 +931,7 @@ fn conflicting_equality_constraints() {
 #[test]
 fn disconnected_constraint_graphs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -964,8 +969,11 @@ fn disconnected_constraint_graphs() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Group 1 should be resolved to string
     let type1 = substitution
@@ -991,7 +999,7 @@ fn disconnected_constraint_graphs() {
 #[test]
 fn propagate() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -1029,8 +1037,11 @@ fn propagate() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Group 1 should be resolved to string
     let type1 = substitution
@@ -1056,7 +1067,7 @@ fn propagate() {
 #[test]
 fn contract() {
     let heap = Heap::new();
-    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let mut env = Environment::new(&heap);
 
     // check if `_1 <: (name: _2)`, `_2 <: (name: _1)` yields `_1 = (name: _1)`
     let hole1 = HoleId::new(1);
@@ -1088,8 +1099,11 @@ fn contract() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     env.substitution = substitution.clone();
 
@@ -1118,7 +1132,7 @@ fn contract() {
 #[test]
 fn do_not_double_emit_on_unconstrained_variables() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -1133,8 +1147,8 @@ fn do_not_double_emit_on_unconstrained_variables() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (_, diagnostics) = solver.solve();
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues().into_vec();
 
     assert_eq!(diagnostics.len(), 2);
 
@@ -1152,7 +1166,7 @@ fn do_not_double_emit_on_unconstrained_variables() {
 fn pipeline_environment_to_solver() {
     // (_1 | String) <: Number
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
 
@@ -1170,8 +1184,11 @@ fn pipeline_environment_to_solver() {
     environment.collect_constraints(Variance::Covariant, union, number);
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1187,7 +1204,7 @@ fn single_projection() {
     // given: `T = (a: String)`
     // do: `T.a`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1206,8 +1223,11 @@ fn single_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1223,7 +1243,7 @@ fn multi_projection() {
     // given: `T = (a: (b: String))`
     // do: `T.a.b`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1254,8 +1274,11 @@ fn multi_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1273,7 +1296,7 @@ fn early_projection() {
     //  _1 = (a: String)
     //  T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1300,8 +1323,11 @@ fn early_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1319,7 +1345,7 @@ fn late_projection() {
     //  T.a
     //  _1 = (a: String)
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1346,8 +1372,11 @@ fn late_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1364,7 +1393,7 @@ fn unconstrained_projection() {
     // T = _1
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1378,7 +1407,8 @@ fn unconstrained_projection() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1400,7 +1430,7 @@ fn recursive_projection() {
     // T = T
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1419,7 +1449,8 @@ fn recursive_projection() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1441,7 +1472,7 @@ fn projection_equality_constraint() {
     // T.a
     // _2 = String
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1463,8 +1494,11 @@ fn projection_equality_constraint() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1483,7 +1517,7 @@ fn projection_unify_variables_lower() {
     // _2 <: Integer
     // `_1 = _2 = Integer`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1510,8 +1544,11 @@ fn projection_unify_variables_lower() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1530,7 +1567,7 @@ fn projection_unify_variables_upper() {
     // Integer <: _2
     // `_1 = _2 = Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1557,8 +1594,11 @@ fn projection_unify_variables_upper() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1577,7 +1617,7 @@ fn projection_unify_variables_equal_is_equivalent() {
     // Number = _2
     // `_1 = _2 = Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1605,8 +1645,11 @@ fn projection_unify_variables_equal_is_equivalent() {
     });
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1625,7 +1668,7 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     // Integer = _2
     // `_1 = _2 != Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1653,9 +1696,9 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     });
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
 
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
@@ -1669,7 +1712,7 @@ fn projection_simplify() {
     // T = ((a: String) | Null) & (a: String)
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1692,8 +1735,11 @@ fn projection_simplify() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1709,7 +1755,7 @@ fn single_subscript() {
     // T = Number[]
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, primitive!(env, PrimitiveType::Number));
 
@@ -1721,8 +1767,11 @@ fn single_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1745,7 +1794,7 @@ fn multi_subscript() {
     // T = List<List<String>>
     // T[0]?[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, list!(env, primitive!(env, PrimitiveType::String)));
 
@@ -1771,8 +1820,11 @@ fn multi_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1796,7 +1848,7 @@ fn early_subscript() {
     //  _1 = List<String>
     //  T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1816,8 +1868,11 @@ fn early_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1841,7 +1896,7 @@ fn late_subscript() {
     //  T[0]
     //  _1 = List<String>
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let hole_type = instantiate_infer(&env, hole);
@@ -1861,8 +1916,11 @@ fn late_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1885,7 +1943,7 @@ fn recursive_subscript() {
     // T = T
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1904,7 +1962,8 @@ fn recursive_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1925,7 +1984,7 @@ fn unconstrained_element_subscript() {
     // T = _1
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -1938,7 +1997,8 @@ fn unconstrained_element_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
 
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
@@ -1959,7 +2019,7 @@ fn discharged_element_subscript() {
     // _1 <: String
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -1980,8 +2040,11 @@ fn discharged_element_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2003,7 +2066,7 @@ fn discharged_index_subscript() {
     // T = Number[]
     // T[_1]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -2014,8 +2077,11 @@ fn discharged_index_subscript() {
         environment.add_subscript(SpanId::SYNTHETIC, list, instantiate_infer(&env, hole));
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2045,7 +2111,7 @@ fn multiple_upper_bounds() {
     // T <: Integer
     // then T should be `Integer`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2063,8 +2129,11 @@ fn multiple_upper_bounds() {
         bound: integer,
     });
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2079,7 +2148,7 @@ fn multiple_lower_bounds() {
     // Integer <: T
     // then T should be `Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2097,8 +2166,11 @@ fn multiple_lower_bounds() {
         bound: integer,
     });
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2110,7 +2182,7 @@ fn multiple_lower_bounds() {
 #[test]
 fn unconstrained_hole() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2122,7 +2194,8 @@ fn unconstrained_hole() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 1);
     let diagnostics = diagnostics.into_vec();
     assert_eq!(
@@ -2134,7 +2207,7 @@ fn unconstrained_hole() {
 #[test]
 fn unconstrained_generic() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let generic = env.counter.generic_argument.next();
     let variable = Variable::synthetic(VariableKind::Generic(generic));
@@ -2146,8 +2219,11 @@ fn unconstrained_generic() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: _substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 }
 
 // If we have two different incompatible upper constraints the user should be notified.
@@ -2172,7 +2248,8 @@ fn incompatible_upper_constraints() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 1);
     let diagnostics = diagnostics.into_vec();
     assert_eq!(
@@ -2202,8 +2279,11 @@ fn never_upper_constraints() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: _substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 }
 
 #[test]
@@ -2232,8 +2312,11 @@ fn deferred_lower_constraint() {
     });
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,
@@ -2268,8 +2351,11 @@ fn deferred_upper_constraint() {
     });
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,
@@ -2308,8 +2394,11 @@ fn nested_inference_constraints() {
     );
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,

@@ -1,6 +1,10 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const dataTypeTypedef = gql`
+  scalar QueryDataTypesParams
+  scalar QueryDataTypesResponse
+  scalar QueryDataTypeSubgraphParams
+  scalar QueryDataTypeSubgraphResponse
   scalar ConstructDataTypeParams
   scalar DataTypeWithMetadata
   scalar DataTypeDirectConversionsMap
@@ -9,27 +13,15 @@ export const dataTypeTypedef = gql`
   scalar UserPermissionsOnDataType
 
   extend type Query {
-    """
-    Get a subgraph rooted at all data types that match a given filter.
-    """
     queryDataTypes(
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      filter: Filter
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      includeArchived: Boolean = false
-      latestOnly: Boolean = true
-    ): GqlSubgraph!
+      request: QueryDataTypesParams!
+    ): QueryDataTypesResponse!
 
-    """
-    Get a subgraph rooted at an data type resolved by its versioned URL.
-    """
-    getDataType(
-      dataTypeId: VersionedUrl!
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      includeArchived: Boolean = false
-    ): GqlSubgraph!
+    queryDataTypeSubgraph(
+      request: QueryDataTypeSubgraphParams!
+    ): QueryDataTypeSubgraphResponse!
 
-    getDataTypeConversionTargets(
+    findDataTypeConversionTargets(
       dataTypeIds: [VersionedUrl!]!
     ): DataTypeFullConversionTargetsMap!
 

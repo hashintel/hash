@@ -36,10 +36,36 @@ button.deny {
   color: black;
   border: 1px solid #ccc;
   margin-left: 10px;
+  margin-top: 15px;
 }
 
 .scopes {
   border-bottom: 1px solid lightgrey;
+}
+
+.consent-greeting {
+  margin-bottom: 20px;
+}
+
+.consent-scopes-heading {
+  margin-bottom: 15px;
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.consent-scope-item {
+  margin-bottom: 5px;
+}
+
+.consent-scope-item input,
+.consent-scope-item label,
+.consent-remember label {
+  display: inline-block;
+}
+
+.consent-remember label {
+  margin-right: 3px;
 }
 
 label {

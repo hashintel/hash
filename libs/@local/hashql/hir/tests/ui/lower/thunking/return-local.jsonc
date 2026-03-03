@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Local variable return thunking transformation
+["let", "foo", { "#literal": 2 }, "foo"]

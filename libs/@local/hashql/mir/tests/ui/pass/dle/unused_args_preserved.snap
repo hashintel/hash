@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dle/tests.rs
+expression: value
+---
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Integer {
+    let %2: Integer
+
+    bb0(): {
+        %2 = %0
+
+        return %2
+    }
+}
+
+================== Changed: No ===================
+
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Integer {
+    let %2: Integer
+
+    bb0(): {
+        %2 = %0
+
+        return %2
+    }
+}

@@ -1,0 +1,16 @@
+//@ run: pass
+//@ description: Cascading switch constant folding through nested ifs
+// Both conditions are constants, so the entire nested structure should collapse.
+// Before: switch(true) -> switch(false) -> ...
+// After: direct return of the selected branch
+[
+  "if",
+  { "#literal": true },
+  [
+    "if",
+    { "#literal": false },
+    { "#literal": "inner-then" },
+    { "#literal": "inner-else" }
+  ],
+  { "#literal": "outer-else" }
+]

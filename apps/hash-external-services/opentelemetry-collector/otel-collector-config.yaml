@@ -19,11 +19,12 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    namespace: "otel"
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+  otlphttp/mimir:
+    endpoint: http://mimir:8080/otlp
     tls:
       insecure: true
 
@@ -41,7 +42,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus]
+      exporters: [otlphttp/mimir]
     logs:
       receivers: [otlp]
       processors: [batch]

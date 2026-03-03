@@ -1,9 +1,8 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
@@ -29,51 +28,43 @@ export const useOrgs = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
-      includePermissions: false,
-      operation: {
-        multiFilter: {
+      request: {
+        filter: convertBpFilterToGraphFilter({
           filters: [
             entityHasEntityTypeByVersionedUrlFilter(
               systemEntityTypes.organization.entityTypeId,
             ),
           ],
           operator: "AND",
-        },
+        }),
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       },
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      inheritsFrom: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: subgraphAndPermissions } = data ?? {};
+  const { queryEntities } = data ?? {};
 
   const orgs = useMemoCompare(
     () => {
-      if (!subgraphAndPermissions) {
+      if (!queryEntities) {
         return undefined;
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(subgraphAndPermissions.subgraph);
-
-      return getRoots(subgraph).map((orgEntity) => {
-        if (!isEntityOrgEntity(orgEntity)) {
-          throw new Error(
-            `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
-          );
-        }
-        return constructMinimalOrg({ orgEntity });
-      });
+      return deserializeQueryEntitiesResponse(queryEntities).entities.map(
+        (orgEntity) => {
+          if (!isEntityOrgEntity(orgEntity)) {
+            throw new Error(
+              `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
+            );
+          }
+          return constructMinimalOrg({ orgEntity });
+        },
+      );
     },
-    [subgraphAndPermissions],
+    [queryEntities],
     /**
      * Check if the previous and new orgs are the same.
      * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.

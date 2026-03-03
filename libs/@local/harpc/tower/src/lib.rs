@@ -6,7 +6,6 @@
     // Language Features
     impl_trait_in_assoc_type,
     never_type,
-    type_changing_struct_update,
 
     // Library Features
     error_generic_member_access,

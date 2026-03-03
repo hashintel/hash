@@ -19,10 +19,6 @@ This directory contains external services used throughout HASH, including authen
 - **Ory Hydra** - OAuth2 and OpenID Connect server
 - **MailSlurper** - Development email testing server
 
-### Search & Analytics
-
-- **OpenSearch** - Full-text search and analytics (alternative configuration available)
-
 ### Workflow Execution
 
 - **Temporal** - Reliable workflow execution and task orchestration
@@ -36,7 +32,7 @@ The observability stack follows a centralized collection pattern: all applicatio
 - **OpenTelemetry Collector** - Central telemetry hub that receives, processes, and routes data
 - **Grafana Tempo** - Distributed tracing backend with service graph generation
 - **Grafana Loki** - Log aggregation and storage
-- **Prometheus** - Metrics collection and storage
+- **Grafana Mimir** - Metrics collection and storage
 - **Grafana** - Unified observability dashboard reading from all backends
 
 ## Quick Start
@@ -57,7 +53,6 @@ Each service includes health checks and proper dependency management. Services w
 **Access URLs (Development):**
 
 - Grafana Dashboard: http://localhost:3001
-- Prometheus: http://localhost:9090
 - Kratos Admin API: http://localhost:4434
 - Hydra Admin API: http://localhost:4445
 
@@ -68,7 +63,7 @@ Each service includes health checks and proper dependency management. Services w
 - `opentelemetry-collector/otel-collector-config.yaml` - OpenTelemetry Collector pipeline configuration
 - `tempo/tempo.yaml` - Tempo tracing backend configuration
 - `loki/loki.yaml` - Loki log aggregation configuration
-- `prometheus/prometheus.yml` - Prometheus metrics collection configuration
+- `mimir/mimir.yml` - Mimir metrics collection configuration
 - `grafana/provisioning/` - Grafana data source and dashboard provisioning
 
 ### Authentication Configuration
@@ -82,10 +77,9 @@ Each service includes health checks and proper dependency management. Services w
 Services may be migrated into semantic folders:
 
 1. `hash-external-services/kratos` → `hash-authentication`
-2. `hash-external-services/opensearch` → `hash-search`
-3. `hash-external-services/postgres` → `hash-database`
-4. `hash-external-services/temporal` → `hash-executor`
-5. `hash-external-services/grafana` → `hash-observability`
+2. `hash-external-services/postgres` → `hash-database`
+3. `hash-external-services/temporal` → `hash-executor`
+4. `hash-external-services/grafana` → `hash-observability`
 
 ## Database Backups
 
@@ -109,7 +103,7 @@ postgres-backup:
     # These are the args passed to the `pg_dump` command
     # read more at https://www.postgresql.org/docs/current/app-pgdump.html#PG-DUMP-OPTIONS
     # `-p` ensures that SQL can be easily transferred between versions
-    # `--if-exists` is important here, as several databases (most notably `realtime`) already create schemas, which would otherwise lead to an error while applying the backup.
+    # `--if-exists` is important here, as several databases already create schemas, which would otherwise lead to an error while applying the backup.
     DUMP_ARGS: -Fp -Z9 --if-exists
     # Change the cron here for the desired backup schedule
     # This is set to 00:00 UTC every day

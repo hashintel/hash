@@ -1,5 +1,3 @@
-//! TODO: DOC
-
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
@@ -46,7 +44,7 @@ where
         serde_json::from_value(value).change_context(PatchAndParseError)
     } else {
         Err(PatchAndParseError)
-            .attach_printable("unexpected schema format, couldn't parse as object")
-            .attach_printable(value)
+            .attach("unexpected schema format, couldn't parse as object")
+            .attach(value)
     }
 }

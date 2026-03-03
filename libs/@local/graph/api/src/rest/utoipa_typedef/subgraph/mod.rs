@@ -2,8 +2,7 @@ mod edges;
 mod vertices;
 
 use hash_graph_store::subgraph::{
-    edges::GraphResolveDepths, identifier::GraphElementVertexId,
-    temporal_axes::SubgraphTemporalAxes,
+    identifier::GraphElementVertexId, temporal_axes::SubgraphTemporalAxes,
 };
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -22,7 +21,6 @@ pub(crate) struct Subgraph {
     roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
-    depths: GraphResolveDepths,
     temporal_axes: SubgraphTemporalAxes,
 }
 
@@ -32,7 +30,6 @@ impl From<hash_graph_store::subgraph::Subgraph> for Subgraph {
             roots: subgraph.roots,
             vertices: subgraph.vertices.into(),
             edges: subgraph.edges.into(),
-            depths: subgraph.depths,
             temporal_axes: subgraph.temporal_axes,
         }
     }

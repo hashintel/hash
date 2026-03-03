@@ -1,0 +1,29 @@
+{
+  "name": "@local/claude-hooks",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Claude Code hooks for HASH repository",
+  "type": "module",
+  "scripts": {
+    "dev:skill": "SKILL_DEBUG=true tsx skill-activation-prompt.ts",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "run:skill": "tsx skill-activation-prompt.ts",
+    "test:unit": "vitest run",
+    "test:unit:bless": "vitest run -u"
+  },
+  "dependencies": {
+    "natural": "8.1.0"
+  },
+  "devDependencies": {
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@types/node": "22.18.13",
+    "@vitest/coverage-istanbul": "3.2.4",
+    "eslint": "9.39.3",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}

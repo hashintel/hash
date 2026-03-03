@@ -1,8 +1,8 @@
-use core::assert_matches::assert_matches;
+use core::assert_matches;
 
 use crate::{
     heap::Heap,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -24,6 +24,7 @@ use crate::{
             union::UnionType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
+        pretty::TypeFormatter,
         tests::{instantiate, instantiate_infer, instantiate_param},
     },
 };
@@ -31,7 +32,7 @@ use crate::{
 #[test]
 fn join_identical_structs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -70,7 +71,7 @@ fn join_identical_structs() {
 #[test]
 fn join_structs_with_different_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -110,7 +111,7 @@ fn join_structs_with_different_fields() {
 #[test]
 fn join_structs_with_overlapping_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -149,7 +150,7 @@ fn join_structs_with_overlapping_fields() {
 #[test]
 fn meet_identical_structs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -188,7 +189,7 @@ fn meet_identical_structs() {
 #[test]
 fn meet_structs_with_different_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -228,7 +229,7 @@ fn meet_structs_with_different_fields() {
 #[test]
 fn meet_structs_with_overlapping_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     r#struct!(
         env,
@@ -267,7 +268,7 @@ fn meet_structs_with_overlapping_fields() {
 #[test]
 fn uninhabited_structs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a normal struct with inhabited types
     r#struct!(
@@ -307,7 +308,7 @@ fn uninhabited_structs() {
 #[test]
 fn subtype_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create struct types for testing
     let number = primitive!(env, PrimitiveType::Number);
@@ -374,7 +375,7 @@ fn subtype_relationship() {
 #[test]
 fn equivalence_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create structs with same structure but different TypeIds
     r#struct!(
@@ -430,7 +431,7 @@ fn equivalence_relationship() {
 #[test]
 fn equivalence_different_length_structs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create structs with different numbers of fields
     r#struct!(
@@ -477,7 +478,7 @@ fn equivalence_different_length_structs() {
 #[test]
 fn simplify_struct() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a struct with fields
     r#struct!(
@@ -521,7 +522,7 @@ fn simplify_struct() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct structs for testing lattice laws
     // We need these to have different field structures for proper lattice testing
@@ -556,7 +557,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Concrete struct (with all concrete fields)
@@ -595,7 +596,7 @@ fn is_concrete() {
 #[test]
 fn distribute_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -644,7 +645,7 @@ fn distribute_union() {
 #[test]
 fn distribute_union_multiple_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -710,7 +711,7 @@ fn distribute_union_multiple_fields() {
 #[test]
 fn distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -741,7 +742,7 @@ fn distribute_intersection() {
 #[test]
 fn nested_structs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inner structs
     r#struct!(
@@ -795,7 +796,7 @@ fn nested_structs() {
 #[test]
 fn disjoint_fields() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create structs with completely different fields
     r#struct!(
@@ -846,7 +847,7 @@ fn disjoint_fields() {
 #[test]
 fn collect_constraints_lower_bound() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a struct type with a field containing an inference variable
     let number = primitive!(env, PrimitiveType::Number);
@@ -890,7 +891,7 @@ fn collect_constraints_lower_bound() {
 #[test]
 fn collect_constraints_width_covariance() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a subtype struct with more fields
     let hole = HoleId::new(0);
@@ -940,7 +941,7 @@ fn collect_constraints_width_covariance() {
 #[test]
 fn collect_constraints_missing_field() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a subtype struct with fewer fields
     r#struct!(
@@ -978,7 +979,7 @@ fn collect_constraints_missing_field() {
 #[test]
 fn collect_constraints_nested() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested structure with inference variable
     let hole = HoleId::new(0);
@@ -1025,7 +1026,7 @@ fn collect_constraints_nested() {
 #[test]
 fn collect_constraints_generic_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let arg1 = GenericArgumentId::new(0);
     let arg2 = GenericArgumentId::new(1);
@@ -1074,7 +1075,7 @@ fn collect_constraints_generic_params() {
 #[test]
 fn collect_constraints_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let integer = primitive!(env, PrimitiveType::Integer);
     let number = primitive!(env, PrimitiveType::Number);
@@ -1100,7 +1101,7 @@ fn collect_constraints_concrete() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables for multiple fields
     let hole1 = HoleId::new(0);
@@ -1147,7 +1148,7 @@ fn collect_dependencies() {
 #[test]
 fn simplify_recursive_struct() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a recursive struct
     let r#type = env.types.intern(|id| PartialType {
@@ -1175,7 +1176,7 @@ fn simplify_recursive_struct() {
 #[test]
 fn instantiate_struct() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
 
@@ -1224,7 +1225,7 @@ fn instantiate_struct() {
 #[test]
 fn instantiate_struct_recursive() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
 
@@ -1265,7 +1266,7 @@ fn instantiate_struct_recursive() {
 #[test]
 fn instantiate_interdependent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let t = env.counter.generic_argument.next();
     let u = env.counter.generic_argument.next();
@@ -1290,17 +1291,17 @@ fn instantiate_interdependent() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let type_id = instantiate.instantiate(value);
 
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
+
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(type_id)
-            .pretty_print(&env, PrettyOptions::default().without_color())
-    );
+    insta::assert_snapshot!(formatter.render_type(type_id, RenderOptions::default().with_plain()));
 }
 
 #[test]
 fn projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1315,7 +1316,7 @@ fn projection() {
 #[test]
 fn projection_unknown_field() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1336,7 +1337,7 @@ fn projection_unknown_field() {
 #[test]
 fn subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     let mut inference = InferenceEnvironment::new(&env);

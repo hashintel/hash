@@ -1,23 +1,23 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type { QueryEntitiesMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolQueryEntities = (): {
   queryEntities: QueryEntitiesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -34,7 +34,13 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      const { operation, graphResolveDepths } = data;
+      const { operation, ...additionalParams } = data;
+
+      if (operation.multiSort !== undefined && operation.multiSort !== null) {
+        throw new Error(
+          "Sorting on queryEntities results is not currently supported",
+        );
+      }
 
       /**
        * @todo Add filtering to this query using structural querying.
@@ -44,17 +50,15 @@ export const useBlockProtocolQueryEntities = (): {
        */
       const { data: response } = await queryFn({
         variables: {
-          includePermissions: false,
-          operation,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-          ...graphResolveDepths,
+          request: {
+            filter: operation.multiFilter
+              ? convertBpFilterToGraphFilter(operation.multiFilter)
+              : { any: [] },
+            ...additionalParams,
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeDrafts: false,
+            includePermissions: false,
+          },
         },
       });
 
@@ -69,9 +73,9 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(response.queryEntities.subgraph);
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        response.queryEntitySubgraph,
+      ).subgraph;
 
       return { data: { results: subgraph, operation } };
     },

@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Number with double minus
 expression: "--42"
 ---
-[31m[lexer::invalid-number] Error:[0m Invalid number literal
-   ╭─[ <unknown>:1:1 ]
-   │
- 1 │ --42
-   │ │ 
-   │ ╰─ Missing digit in number
-   │ 
-   │ Help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`
-───╯
+error[lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ --42
+  │  ━ expected digit
+  │
+  ╰ help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`

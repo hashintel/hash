@@ -7,7 +7,7 @@ use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_store::{
-    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},
+    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -36,10 +36,6 @@ use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};
 
 const DB_NAME: &str = "entity_scale";
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "transaction is committed which consumes the object"
-)]
 #[expect(clippy::too_many_lines)]
 async fn seed_db(
     account_id: ActorEntityUuid,
@@ -180,9 +176,9 @@ pub fn bench_get_entity_by_id(
         },
         |entity_record_id| async move {
             store
-                .get_entities(
+                .query_entities(
                     actor_id,
-                    GetEntitiesParams {
+                    QueryEntitiesParams {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -205,6 +201,7 @@ pub fn bench_get_entity_by_id(
                         include_edition_created_by_ids: false,
                         include_type_ids: false,
                         include_type_titles: false,
+                        include_permissions: false,
                     },
                 )
                 .await
@@ -216,7 +213,7 @@ pub fn bench_get_entity_by_id(
 
 #[criterion]
 fn bench_scaling_read_entity(crit: &mut Criterion) {
-    let group_id = "scaling_read_entity_linkless";
+    let group_id = "read_scaling_linkless";
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis

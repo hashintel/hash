@@ -1,0 +1,426 @@
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import {
+  type EntityId,
+  extractEntityUuidFromEntityId,
+  type LinkEntity,
+  type OriginProvenance,
+  type PropertyMetadata,
+} from "@blockprotocol/type-system";
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
+import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
+import type { GraphApi } from "@local/hash-graph-client";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  type ArrivesAt,
+  type ArrivesAtProperties,
+  type DepartsFrom,
+  type DepartsFromProperties,
+  type Flight,
+} from "@local/hash-isomorphic-utils/system-types/flight";
+import type {
+  DateDataTypeMetadata,
+  TextDataTypeMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import { StatusCode } from "@local/status";
+
+import { getFlowContext } from "../shared/get-integration-flow-context.js";
+import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
+
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+
+/**
+ * Determines if a flight should have its live position fetched based on:
+ * 1. Expected departure time has passed
+ * 2. There is no confirmed arrival time, or confirmed arrival time was in the last 10 minutes
+ */
+const shouldFetchLivePosition = (
+  departsFromProperties: DepartsFromProperties,
+  arrivesAtProperties: ArrivesAtProperties,
+): boolean => {
+  // Get departure time - prefer estimated, fall back to scheduled
+  const actualDepartureTime =
+    departsFromProperties[
+      "https://hash.ai/@h/types/property-type/actual-gate-time/"
+    ];
+  const estimatedDepartureTime =
+    departsFromProperties[
+      "https://hash.ai/@h/types/property-type/estimated-gate-time/"
+    ];
+  const scheduledDepartureTime =
+    departsFromProperties[
+      "https://hash.ai/@h/types/property-type/scheduled-gate-time/"
+    ];
+
+  const expectedDepartureTime =
+    actualDepartureTime ?? estimatedDepartureTime ?? scheduledDepartureTime;
+
+  const actualArrivalTime =
+    arrivesAtProperties[
+      "https://hash.ai/@h/types/property-type/actual-gate-time/"
+    ];
+
+  const now = Date.now();
+
+  // Check condition 1: Expected departure time has passed
+  const departureHasPassed =
+    expectedDepartureTime && new Date(expectedDepartureTime).getTime() < now;
+
+  // Check condition 2: No confirmed arrival, or arrival was in last 10 minutes
+  const noConfirmedArrival = !actualArrivalTime;
+  const arrivedInLastTenMinutes =
+    actualArrivalTime &&
+    now - new Date(actualArrivalTime).getTime() < TEN_MINUTES_MS;
+
+  return Boolean(
+    departureHasPassed && (noConfirmedArrival || arrivedInLastTenMinutes),
+  );
+};
+
+/**
+ * Creates the get live flight positions action that fetches live positions
+ * for flights that have departed or recently arrived.
+ */
+export const createGetLiveFlightPositionsAction = ({
+  graphApiClient,
+}: {
+  graphApiClient: GraphApi;
+}): IntegrationFlowActionActivity<"getLiveFlightPositions"> => {
+  return async ({ inputs }) => {
+    try {
+      const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
+        await getFlowContext({ graphApiClient });
+
+      const { persistedEntities: persistedEntitiesInput } =
+        getSimplifiedIntegrationFlowActionInputs({
+          inputs,
+          actionType: "getLiveFlightPositions",
+        });
+
+      // The input is a stored reference - resolve it
+      const persistedEntities = await resolvePayloadValue(
+        getStorageProvider(),
+        "PersistedEntitiesMetadata",
+        persistedEntitiesInput,
+      );
+
+      const flightEntityIds = persistedEntities.persistedEntities.map(
+        ({ entityId }) => entityId,
+      );
+
+      if (flightEntityIds.length === 0) {
+        const emptyStoredRef = await storePayload({
+          storageProvider: getStorageProvider(),
+          workflowId,
+          runId,
+          stepId,
+          outputName: "proposedEntities",
+          kind: "ProposedEntity",
+          value: [],
+        });
+
+        return {
+          code: StatusCode.Ok,
+          message: "No persisted entities to check for live positions",
+          contents: [
+            {
+              outputs: [
+                {
+                  outputName: "proposedEntities",
+                  payload: {
+                    kind: "ProposedEntity",
+                    value: emptyStoredRef,
+                  },
+                },
+              ],
+            },
+          ],
+        };
+      }
+
+      const { subgraph } = await queryEntitySubgraph<Flight>(
+        { graphApi: graphApiClient },
+        userAuthentication,
+        {
+          filter: {
+            any: flightEntityIds.map((entityId) => ({
+              equal: [
+                { path: ["uuid"] },
+                { parameter: extractEntityUuidFromEntityId(entityId) },
+              ],
+            })),
+          },
+          traversalPaths: [
+            {
+              edges: [
+                {
+                  kind: "has-left-entity",
+                  direction: "incoming",
+                },
+              ],
+            },
+          ],
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+
+      const rootEntities = getRoots(subgraph);
+
+      const flightsToUpdate: Array<{
+        entityId: EntityId;
+        flightNumber: string;
+        primaryKeyProperties: PrimaryKeyInput["flight"];
+        flightNumberPropertyMetadata: PropertyMetadata;
+        flightDatePropertyMetadata: PropertyMetadata;
+      }> = [];
+
+      for (const entity of rootEntities) {
+        const flightNumber =
+          entity.properties[
+            "https://hash.ai/@h/types/property-type/flight-number/"
+          ];
+
+        if (!flightNumber) {
+          continue;
+        }
+
+        const outgoingLinks = getOutgoingLinksForEntity(
+          subgraph,
+          entity.metadata.recordId.entityId,
+        );
+
+        const departsFromLink = outgoingLinks.find(
+          (link): link is LinkEntity<DepartsFrom> =>
+            link.metadata.entityTypeIds.includes(
+              systemLinkEntityTypes.departsFrom.linkEntityTypeId,
+            ),
+        );
+
+        const arrivesAtLink = outgoingLinks.find(
+          (link): link is LinkEntity<ArrivesAt> =>
+            link.metadata.entityTypeIds.includes(
+              systemLinkEntityTypes.arrivesAt.linkEntityTypeId,
+            ),
+        );
+
+        if (
+          departsFromLink &&
+          arrivesAtLink &&
+          shouldFetchLivePosition(
+            departsFromLink.properties,
+            arrivesAtLink.properties,
+          )
+        ) {
+          const flightNumberPropertyMetadata = entity.propertyMetadata([
+            systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
+          ]);
+
+          const flightDatePropertyMetadata = entity.propertyMetadata([
+            systemPropertyTypes.flightDate.propertyTypeBaseUrl,
+          ]);
+
+          if (!flightNumberPropertyMetadata) {
+            throw new Error(
+              `Flight number property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
+            );
+          }
+
+          if (!flightDatePropertyMetadata) {
+            throw new Error(
+              `Flight date property metadata not found for flight entity ${entity.metadata.recordId.entityId}`,
+            );
+          }
+
+          flightsToUpdate.push({
+            entityId: entity.metadata.recordId.entityId,
+            flightNumber,
+            primaryKeyProperties: {
+              flightNumber,
+              flightDate:
+                entity.properties[
+                  "https://hash.ai/@h/types/property-type/flight-date/"
+                ]!,
+            },
+            flightNumberPropertyMetadata,
+            flightDatePropertyMetadata,
+          });
+        }
+      }
+
+      if (flightsToUpdate.length === 0) {
+        const emptyStoredRef = await storePayload({
+          storageProvider: getStorageProvider(),
+          workflowId,
+          runId,
+          stepId,
+          outputName: "proposedEntities",
+          kind: "ProposedEntity",
+          value: [],
+        });
+
+        return {
+          code: StatusCode.Ok,
+          message: "No flights require live position updates",
+          contents: [
+            {
+              outputs: [
+                {
+                  outputName: "proposedEntities",
+                  payload: {
+                    kind: "ProposedEntity",
+                    value: emptyStoredRef,
+                  },
+                },
+              ],
+            },
+          ],
+        };
+      }
+
+      // Fetch live positions for each flight
+      const proposedEntities: ProposedEntity[] = [];
+      let successCount = 0;
+      let notFoundCount = 0;
+
+      for (const {
+        entityId,
+        flightNumber,
+        primaryKeyProperties,
+        flightNumberPropertyMetadata,
+        flightDatePropertyMetadata,
+      } of flightsToUpdate) {
+        const positionData = await getFlightPositionProperties(flightNumber);
+
+        if (!positionData) {
+          notFoundCount++;
+          continue;
+        }
+
+        const { properties, provenance: sourceProvenance } = positionData;
+
+        const propertiesWithPrimaryKey: Partial<
+          Flight["propertiesWithMetadata"]["value"]
+        > = {
+          ...properties,
+        };
+
+        /**
+         * We need the primary key properties passed out of this action,
+         * because persistIntegrationEntities relies on them to match existing entities.
+         */
+        for (const [propertyType, propertyValue] of Object.entries(
+          primaryKeyProperties,
+        )) {
+          switch (propertyType) {
+            case "flightNumber":
+              propertiesWithPrimaryKey[
+                "https://hash.ai/@h/types/property-type/flight-number/"
+              ] = {
+                value: propertyValue,
+                metadata:
+                  flightNumberPropertyMetadata as unknown as TextDataTypeMetadata,
+              };
+              break;
+            case "flightDate":
+              propertiesWithPrimaryKey[
+                "https://hash.ai/@h/types/property-type/flight-date/"
+              ] = {
+                value: propertyValue,
+                metadata:
+                  flightDatePropertyMetadata as unknown as DateDataTypeMetadata,
+              };
+              break;
+            default:
+              throw new Error(
+                `Unhandled primary key property type: ${propertyType}`,
+              );
+          }
+        }
+
+        const { properties: propertiesOnly, propertyMetadata } =
+          splitPropertiesAndMetadata({
+            value: propertiesWithPrimaryKey,
+          });
+
+        const proposedEntity: ProposedEntity = {
+          claims: {
+            isSubjectOf: [],
+            isObjectOf: [],
+          },
+          provenance: {
+            actorType: "machine",
+            origin: {
+              type: "flow",
+              id: flowEntityId,
+              stepIds: [stepId],
+            } satisfies OriginProvenance,
+            ...sourceProvenance,
+          },
+          propertyMetadata,
+          localEntityId: entityId,
+          entityTypeIds: [systemEntityTypes.flight.entityTypeId],
+          properties: propertiesOnly,
+        };
+
+        proposedEntities.push(proposedEntity);
+        successCount++;
+      }
+
+      // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+      const storedRef = await storePayload({
+        storageProvider: getStorageProvider(),
+        workflowId,
+        runId,
+        stepId,
+        outputName: "proposedEntities",
+        kind: "ProposedEntity",
+        value: proposedEntities,
+      });
+
+      return {
+        code: StatusCode.Ok,
+        message: `Fetched live positions for ${successCount} flights (${notFoundCount} not found in FlightRadar24)`,
+        contents: [
+          {
+            outputs: [
+              {
+                outputName: "proposedEntities",
+                payload: {
+                  kind: "ProposedEntity",
+                  value: storedRef,
+                },
+              },
+            ],
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+
+      return {
+        code: StatusCode.Internal,
+        message: `Failed to fetch live flight positions: ${errorMessage}`,
+        contents: [],
+      };
+    }
+  };
+};

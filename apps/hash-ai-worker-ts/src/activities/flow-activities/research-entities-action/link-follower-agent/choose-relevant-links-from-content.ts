@@ -16,13 +16,13 @@ export type Link = {
   description: string;
 };
 
-const defaultModel: LlmParams["model"] = "claude-3-haiku-20240307";
+const defaultModel: LlmParams["model"] = "claude-haiku-4-5-20251001";
 
 export const chooseRelevantLinksFromContentSystemPrompt = dedent(`
 You are an exceptionally thorough and meticulous link choosing agent.
 
 The user will provide you with:
-- prompt: a description of the task the user is trying to accomplish, which may be solved by exploring certain links in the provided text  
+- prompt: a description of the task the user is trying to accomplish, which may be solved by exploring certain links in the provided text
 - text: a piece of content that may contain relevant links
 
 A link is a URL for a website, usually starting with "http://" or "https://". Extract the full URL, including all query parameters.
@@ -163,7 +163,7 @@ export const chooseRelevantLinksFromContent = async (params: {
               text: dedent(`
                 <Prompt>Please provide links relevant to this goal: ${goal}</Prompt>
                 <Content>${content}</Content>
-                <ExampleResponse>          
+                <ExampleResponse>
                   {
                     "links": [
                       {

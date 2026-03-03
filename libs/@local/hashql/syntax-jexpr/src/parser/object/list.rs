@@ -2,6 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, ListExpr, list::ListElement},
     id::NodeId,
 };
+use hashql_core::heap::CollectIn as _;
 use text_size::TextRange;
 
 use super::{
@@ -28,7 +29,7 @@ pub(crate) struct ListNode<'heap> {
 
 impl<'heap> ListNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_list(state)?;
@@ -49,7 +50,7 @@ impl<'heap> ListNode<'heap> {
 impl<'heap> State<'heap> for ListNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#list", self.key_span, &mut self.r#type, state, &key)?;
@@ -58,7 +59,7 @@ impl<'heap> State<'heap> for ListNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -72,7 +73,7 @@ impl<'heap> State<'heap> for ListNode<'heap> {
 }
 
 fn parse_list<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<ListExpr<'heap>, ParserDiagnostic> {
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
@@ -95,7 +96,7 @@ fn parse_list<'heap>(
         let element = ListElement {
             id: NodeId::PLACEHOLDER,
             span: expr.span,
-            value: state.heap().boxed(expr),
+            value: Box::new_in(expr, state.heap()),
         };
 
         elements.push(element);
@@ -106,7 +107,7 @@ fn parse_list<'heap>(
     Ok(ListExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(range),
-        elements: state.heap().transfer_vec(elements),
+        elements: elements.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }

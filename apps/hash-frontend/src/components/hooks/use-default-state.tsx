@@ -1,6 +1,6 @@
+import { useLocalStorage } from "@mantine/hooks";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useState } from "react";
-import { useLocalstorageState } from "rooks";
 
 export const useDefaultState = <
   T extends object | number | string | boolean | null | undefined,
@@ -46,13 +46,14 @@ export const useCachedDefaultState = <
   produceNextValue: (nextValue: T, currentValue: T) => T = (nextValue) =>
     nextValue,
 ): [T, Dispatch<SetStateAction<T>>] => {
-  const [{ prevDefault, currentValue }, setNextValue] = useLocalstorageState(
+  const [{ prevDefault, currentValue }, setNextValue] = useLocalStorage({
     key,
-    {
+    defaultValue: {
       prevDefault: defaultValue,
       currentValue: defaultValue,
     },
-  );
+    getInitialValueInEffect: false,
+  });
 
   if (prevDefault !== defaultValue) {
     setNextValue({

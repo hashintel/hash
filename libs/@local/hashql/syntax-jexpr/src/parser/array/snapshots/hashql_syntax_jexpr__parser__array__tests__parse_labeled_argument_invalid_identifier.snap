@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
 description: Labeled arguments must have valid identifiers
 expression: "[\"func\", {\":123\": {\"#literal\": \"value\"}}]"
 ---
-[31m[parser::array::labeled-argument-invalid-identifier] Error:[0m Invalid identifier in labeled argument
-   ╭─[ <unknown>:1:11 ]
-   │
- 1 │ ["func", {":123": {"#literal": "value"}}]
-   │           ───┬──  
-   │              ╰──── Invalid labeled argument name
-   │ 
-   │ Note: Labeled argument identifiers must be valid HashQL identifiers
-───╯
+error[parser::array::labeled-argument-invalid-identifier]: Invalid identifier in labeled argument
+  ╭▸ 
+1 │ ["func", {":123": {"#literal": "value"}}]
+  │           ━━━━━━ Invalid labeled argument name
+  │
+  ╰ note: Labeled argument identifiers must be valid HashQL identifiers

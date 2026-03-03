@@ -1,9 +1,7 @@
 import type { Url } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -13,7 +11,6 @@ import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
-import type { FlowActionActivity } from "./types.js";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
@@ -31,10 +28,10 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     - 'The page mentions products relating to Y'
   `);
 
-export const getWebPageSummaryAction: FlowActionActivity = async ({
-  inputs,
-}) => {
-  const { url, model, numberOfSentences } = getSimplifiedActionInputs({
+export const getWebPageSummaryAction: AiFlowActionActivity<
+  "getWebPageSummary"
+> = async ({ inputs }) => {
+  const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
   });
@@ -123,16 +120,14 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       {
         outputs: [
           {
-            outputName:
-              "summary" satisfies OutputNameForAction<"getWebPageSummary">,
+            outputName: "summary",
             payload: {
               kind: "Text",
               value: summary,
             },
           },
           {
-            outputName:
-              "title" satisfies OutputNameForAction<"getWebPageSummary">,
+            outputName: "title",
             payload: {
               kind: "Text",
               value: webPage.title,

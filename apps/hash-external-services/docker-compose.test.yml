@@ -70,6 +70,12 @@ services:
       - "4433:4433" # public
       - "4434:4434" # admin
 
+  mailslurper:
+    ports:
+      - "1025:1025" # SMTP
+      - "4436:4436" # web UI
+      - "4437:4437" # API (used by tests to fetch verification emails)
+
   redis:
     ports:
       - "6379:6379"

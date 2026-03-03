@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+["let", "foo", "Number", { "#literal": 42 }, { "#literal": true }]

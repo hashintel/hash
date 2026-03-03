@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Mix of constant and runtime conditions
+// Outer constant if folds, inner runtime if preserved.
+[
+  "let",
+  "x",
+  { "#literal": 5 },
+  [
+    "if",
+    { "#literal": true },
+    [
+      "if",
+      ["<=", "x", { "#literal": 10 }],
+      { "#literal": "small" },
+      { "#literal": "large" }
+    ],
+    { "#literal": "unreachable" }
+  ]
+]

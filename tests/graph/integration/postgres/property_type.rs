@@ -1,7 +1,7 @@
 use hash_graph_store::{
     filter::Filter,
     property_type::{
-        CreatePropertyTypeParams, GetPropertyTypesParams, PropertyTypeStore as _,
+        CreatePropertyTypeParams, PropertyTypeStore as _, QueryPropertyTypesParams,
         UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
@@ -82,9 +82,9 @@ async fn query() {
     .expect("could not create property type");
 
     let property_type = api
-        .get_property_types(
+        .query_property_types(
             api.account_id,
-            GetPropertyTypesParams {
+            QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&favorite_quote_pt.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -95,7 +95,6 @@ async fn query() {
                 },
                 after: None,
                 limit: None,
-                include_drafts: false,
                 include_count: false,
             },
         )
@@ -163,9 +162,9 @@ async fn update() {
     .expect("could not update property type");
 
     let returned_user_id_pt_v1 = api
-        .get_property_types(
+        .query_property_types(
             api.account_id,
-            GetPropertyTypesParams {
+            QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v1.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -176,7 +175,6 @@ async fn update() {
                 },
                 after: None,
                 limit: None,
-                include_drafts: false,
                 include_count: false,
             },
         )
@@ -187,9 +185,9 @@ async fn update() {
         .expect("no property type found");
 
     let returned_user_id_pt_v2 = api
-        .get_property_types(
+        .query_property_types(
             api.account_id,
-            GetPropertyTypesParams {
+            QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v2.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -200,7 +198,6 @@ async fn update() {
                 },
                 after: None,
                 limit: None,
-                include_drafts: false,
                 include_count: false,
             },
         )

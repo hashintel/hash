@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::ontology::{BaseUrl, json_schema::ObjectTypeTag};
 
 #[derive(serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct PropertyValueObject<T> {
     #[serde(rename = "type")]

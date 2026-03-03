@@ -1,22 +1,20 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 
@@ -30,14 +28,13 @@ export const useUsersWithLinks = ({
 }): {
   loading: boolean;
   users?: User[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -61,20 +58,24 @@ export const useUsersWithLinks = ({
             ),
           ],
         },
-        graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          inheritsFrom: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          // These depths are chosen to cover the following:
-          // - the user's avatar (user -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
-          hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            // the user's avatar (user -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -82,9 +83,7 @@ export const useUsersWithLinks = ({
   });
 
   const subgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.getEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
     : undefined;
 
   const users = useMemo(() => {

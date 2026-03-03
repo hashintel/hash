@@ -30,7 +30,7 @@ const hydrateComment = async (
   return {
     id: comment.id,
     text: comment.body,
-    data: comment.bodyData,
+    data: (comment as unknown as { bodyData: string }).bodyData, // The field is internal
     createdAt: comment.createdAt,
     author: author
       ? {

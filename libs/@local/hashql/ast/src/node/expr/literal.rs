@@ -1,4 +1,4 @@
-use hashql_core::{heap, literal::LiteralKind, span::SpanId};
+use hashql_core::{heap, span::SpanId, value::Primitive};
 
 use crate::node::{id::NodeId, r#type::Type};
 
@@ -35,6 +35,6 @@ pub struct LiteralExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub kind: LiteralKind<'heap>,
+    pub kind: Primitive<'heap>,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

@@ -22,7 +22,7 @@ use crate::{
 /// data types (via `allOf` references). It represents the complete set of constraints
 /// and metadata that apply to a particular data type after resolution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedDataType {
     #[serde(rename = "$id")]
@@ -85,7 +85,7 @@ impl ClosedDataType {
     ///
     /// # Errors
     ///
-    /// Returns an error if
+    /// Returns an error if:
     /// - The metadata (such as description or label) is ambiguous, e.g. when two parents at the
     ///   same inheritance depth specify different metadata.
     /// - No description was found for the schema or any parent schema.

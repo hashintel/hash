@@ -1,27 +1,49 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatter, environment::Environment},
 };
 use hashql_hir::{
-    fold::Fold as _,
+    context::HirContext,
     intern::Interner,
-    lower::{
-        alias::AliasReplacement, checking::TypeChecking, ctor::ConvertTypeConstructor,
-        inference::TypeInference,
-    },
+    lower::checking::{TypeChecking, TypeCheckingResidual},
     node::Node,
+    pretty::NodeFormatter,
     visit::Visitor as _,
 };
 
 use super::{
-    Suite, SuiteDiagnostic,
-    common::{Annotated, Header, process_diagnostics},
+    RunContext, Suite, SuiteDiagnostic,
+    common::{Annotated, Header},
+    hir_lower_alias_replacement::TestOptions,
+    hir_lower_inference::hir_lower_inference,
 };
+use crate::suite::{common::process_status, hir_lower_inference::collect_hir_nodes};
+
+pub(crate) fn hir_lower_checking<'heap>(
+    heap: &'heap Heap,
+    expr: Expr<'heap>,
+    environment: &mut Environment<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    options: &mut TestOptions,
+) -> Result<(Node<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
+    let (node, solver, inference_residual) =
+        hir_lower_inference(heap, expr, environment, context, options)?;
+
+    let substitution = process_status(options.diagnostics, solver.solve())?;
+
+    environment.substitution = substitution;
+
+    let mut checking = TypeChecking::new(environment, context, inference_residual);
+    checking.visit_node(node);
+
+    let residual = process_status(options.diagnostics, checking.finish())?;
+    Ok((node, residual))
+}
 
 pub(crate) struct HirLowerTypeCheckingSuite;
 
@@ -30,77 +52,35 @@ impl Suite for HirLowerTypeCheckingSuite {
         "hir/lower/type-checking"
     }
 
+    fn description(&self) -> &'static str {
+        "Type checking pass on the HIR"
+    }
+
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
-        mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
+        expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut environment = Environment::new(expr.span, heap);
+        let mut environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
-            &environment,
-            &registry,
-        );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
-
-        let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
-
-        let _ = writeln!(
-            output,
-            "{}\n\n{}",
-            Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
-        );
-
-        let mut replacement = AliasReplacement::new(&interner);
-        let Ok(node) = replacement.fold_node(node);
-
-        let mut converter =
-            ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
-
-        let node = match converter.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
-
-        let mut inference = TypeInference::new(&environment, &registry);
-        inference.visit_node(&node);
-
-        let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_diagnostics(diagnostics, inference_diagnostics)?;
-
-        let (substitution, solver_diagnostics) = solver.solve();
-        process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
-
-        environment.substitution = substitution;
-
-        let mut checking = TypeChecking::new(&environment, &registry, inference_residual);
-        checking.visit_node(&node);
-
-        let (residual, checking_diagnostics) = checking.finish();
-        process_diagnostics(diagnostics, checking_diagnostics)?;
-
-        // We sort so that the output is deterministic
-        let mut checking_types: Vec<_> = residual
-            .types
-            .iter()
-            .map(|(&hir_id, &type_id)| (hir_id, type_id))
-            .collect();
-        checking_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
+        let (node, residual) = hir_lower_checking(
+            heap,
+            expr,
+            &mut environment,
+            &mut context,
+            &mut TestOptions {
+                skip_alias_replacement: false,
+                output: &mut output,
+                diagnostics,
+            },
+        )?;
 
         let mut checking_inputs: Vec<_> = residual
             .inputs
@@ -109,11 +89,15 @@ impl Suite for HirLowerTypeCheckingSuite {
             .collect();
         checking_inputs.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
+        let formatter = Formatter::new(heap);
+        let mut value_formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+        let mut type_formatter = TypeFormatter::with_defaults(&formatter, &environment);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type checking"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            value_formatter.render(node, RenderOptions::default().with_plain())
         );
 
         if !checking_inputs.is_empty() {
@@ -126,32 +110,26 @@ impl Suite for HirLowerTypeCheckingSuite {
                 "\n{}\n",
                 Annotated {
                     content: name,
-                    annotation: environment
-                        .r#type(type_id)
-                        .pretty_print(&environment, PrettyOptions::default().without_color())
+                    annotation: type_formatter
+                        .render(type_id, RenderOptions::default().with_plain())
                 }
             );
         }
 
-        if !checking_types.is_empty() {
-            let _ = writeln!(output, "\n{}\n", Header::new("Types"));
-        }
+        let _ = writeln!(output, "\n{}\n", Header::new("Types"));
 
-        for (hir_id, type_id) in checking_types {
+        let nodes = collect_hir_nodes(node);
+
+        for node in nodes {
+            let type_id = context.map.type_id(node.id);
+
             let _ = writeln!(
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner
-                        .node
-                        .index(hir_id)
-                        .pretty_print(&environment, PrettyOptions::default().without_color()),
-                    annotation: environment.r#type(type_id).pretty_print(
-                        &environment,
-                        PrettyOptions::default()
-                            .without_color()
-                            .with_resolve_substitutions(true)
-                    )
+                    content: value_formatter.render(node, RenderOptions::default().with_plain()),
+                    annotation: type_formatter
+                        .render(type_id, RenderOptions::default().with_plain())
                 }
             );
         }

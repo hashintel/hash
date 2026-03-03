@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import type {
-  EntityRootType,
   EntityVertex,
   LinkEntityAndRightEntity,
 } from "@blockprotocol/graph";
@@ -10,15 +9,16 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { TextWithTokens } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -41,10 +41,10 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import { constructMinimalUser } from "../../lib/user-and-org";
 import { usePollInterval } from "../../shared/use-poll-interval";
@@ -127,11 +127,10 @@ export const useNotificationsWithLinksContextValue =
     const pollInterval = usePollInterval();
 
     const { data: notificationsWithOutgoingLinksData, refetch } = useQuery<
-      GetEntitySubgraphQuery,
-      GetEntitySubgraphQueryVariables
-    >(getEntitySubgraphQuery, {
+      QueryEntitySubgraphQuery,
+      QueryEntitySubgraphQueryVariables
+    >(queryEntitySubgraphQuery, {
       variables: {
-        includePermissions: false,
         request: {
           filter: {
             all: [
@@ -149,15 +148,21 @@ export const useNotificationsWithLinksContextValue =
             ],
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            inheritsFrom: { outgoing: 255 },
-            isOfType: { outgoing: 1 },
-            // Retrieve the outgoing linked entities of the notification entity at depth 1
-            hasLeftEntity: { outgoing: 0, incoming: 1 },
-            hasRightEntity: { outgoing: 1, incoming: 0 },
+            inheritsFrom: 255,
+            isOfType: true,
           },
+          traversalPaths: [
+            // Retrieve the outgoing linked entities of the notification entity at depth 1
+            {
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
+          includePermissions: false,
         },
       },
       skip: !authenticatedUser,
@@ -168,9 +173,9 @@ export const useNotificationsWithLinksContextValue =
     const notificationsSubgraph = useMemo(
       () =>
         notificationsWithOutgoingLinksData
-          ? mapGqlSubgraphFieldsFragmentToSubgraph<
-              EntityRootType<HashEntity<NotificationProperties>>
-            >(notificationsWithOutgoingLinksData.getEntitySubgraph.subgraph)
+          ? deserializeQueryEntitySubgraphResponse<NotificationProperties>(
+              notificationsWithOutgoingLinksData.queryEntitySubgraph,
+            ).subgraph
           : undefined,
       [notificationsWithOutgoingLinksData],
     );
@@ -368,7 +373,7 @@ export const useNotificationsWithLinksContextValue =
             );
 
             const linkRightEntityId =
-              occurredInEntityLink?.linkEntity[0]?.linkData?.rightEntityId;
+              occurredInEntityLink?.linkEntity[0]?.linkData.rightEntityId;
 
             if (!occurredInEntityLink || !linkRightEntityId) {
               throw new Error(

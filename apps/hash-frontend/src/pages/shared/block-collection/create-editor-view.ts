@@ -1,7 +1,7 @@
 import type { ApolloClient } from "@apollo/client";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -32,7 +32,6 @@ import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
 
 const createSavePlugin = (
-  webId: WebId,
   pageEntityId: EntityId,
   getBlocksMap: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
@@ -50,7 +49,6 @@ const createSavePlugin = (
       try {
         const [newContents, newDraftToEntityId] = await save({
           apolloClient: client,
-          webId,
           blockCollectionEntityId: pageEntityId,
           doc: view.state.doc,
           store: entityStorePluginState(view.state).store,
@@ -183,7 +181,6 @@ export const createEditorView = (params: {
         errorPlugin,
         ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
         createSavePlugin(
-          webId,
           pageEntityId,
           getBlocksMap,
           client,

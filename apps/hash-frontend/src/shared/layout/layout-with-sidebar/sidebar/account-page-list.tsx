@@ -25,10 +25,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
+import { useLocalStorage } from "@mantine/hooks";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocalstorageState } from "rooks";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useArchivePage } from "../../../../components/hooks/use-archive-page";
@@ -117,10 +117,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     reorderLoading ||
     archivePageLoading;
 
-  const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
-    "hash-expanded-sidebar-pages",
-    [],
-  );
+  const [expandedPageIds, setExpandedPageIds] = useLocalStorage<string[]>({
+    key: "hash-expanded-sidebar-pages",
+    defaultValue: [],
+    getInitialValueInEffect: false,
+  });
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);

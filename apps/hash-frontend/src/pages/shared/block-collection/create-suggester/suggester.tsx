@@ -1,8 +1,8 @@
+import { useHotkeys } from "@mantine/hooks";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
 import type { ReactElement } from "react";
-import { useEffect, useRef, useState } from "react";
-import { useKey } from "rooks";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SpinnerIcon } from "../../../../shared/icons";
 
@@ -48,23 +48,31 @@ export const Suggester = <T,>({
     [selectedIndex],
   );
 
+  const onArrow = useCallback(
+    (event: KeyboardEvent) => {
+      let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+      index += options.length;
+      index %= options.length;
+      setSelectedIndex(index);
+    },
+    [selectedIndex, setSelectedIndex, options.length],
+  );
+
   // enable cyclic arrow-key navigation
-  useKey(["ArrowUp", "ArrowDown"], (event) => {
-    event.preventDefault();
-    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += options.length;
-    index %= options.length;
-    setSelectedIndex(index);
-  });
-
-  useKey(["Enter"], (event) => {
-    event.preventDefault();
-
-    const option = options[selectedIndex];
-    if (option) {
-      onChange(option);
-    }
-  });
+  useHotkeys([
+    ["ArrowUp", onArrow, { preventDefault: true }],
+    ["ArrowDown", onArrow, { preventDefault: true }],
+    [
+      "Enter",
+      () => {
+        const option = options[selectedIndex];
+        if (option) {
+          onChange(option);
+        }
+      },
+      { preventDefault: true },
+    ],
+  ]);
 
   return (
     <Box

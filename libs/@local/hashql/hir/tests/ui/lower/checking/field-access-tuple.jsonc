@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Field access inference
+["let", "foo", { "#tuple": [{ "#literal": 42 }] }, "foo.0"]

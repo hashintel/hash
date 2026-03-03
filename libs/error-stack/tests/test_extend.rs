@@ -22,15 +22,9 @@ impl Error for MyError {}
 
 #[test]
 fn push_append() {
-    let mut err1 = MyError
-        .into_report()
-        .attach_printable("Not Supported")
-        .expand();
-    let err2 = MyError.into_report().attach_printable("Not Supported");
-    let mut err3 = MyError
-        .into_report()
-        .attach_printable("Not Supported")
-        .expand();
+    let mut err1 = MyError.into_report().attach("Not Supported").expand();
+    let err2 = MyError.into_report().attach("Not Supported");
+    let mut err3 = MyError.into_report().attach("Not Supported").expand();
 
     let count = expect_count(2) * 3;
 
@@ -43,12 +37,9 @@ fn push_append() {
 
 #[test]
 fn push() {
-    let mut err1 = MyError
-        .into_report()
-        .attach_printable("Not Supported")
-        .expand();
-    let err2 = MyError.into_report().attach_printable("Not Supported");
-    let err3 = MyError.into_report().attach_printable("Not Supported");
+    let mut err1 = MyError.into_report().attach("Not Supported").expand();
+    let err2 = MyError.into_report().attach("Not Supported");
+    let err3 = MyError.into_report().attach("Not Supported");
 
     let count = expect_count(2) * 3;
 
@@ -61,12 +52,9 @@ fn push() {
 
 #[test]
 fn extend() {
-    let mut err1 = MyError
-        .into_report()
-        .attach_printable("Not Supported")
-        .expand();
-    let err2 = MyError.into_report().attach_printable("Not Supported");
-    let err3 = MyError.into_report().attach_printable("Not Supported");
+    let mut err1 = MyError.into_report().attach("Not Supported").expand();
+    let err2 = MyError.into_report().attach("Not Supported");
+    let err3 = MyError.into_report().attach("Not Supported");
 
     err1.extend([err2, err3]);
     assert_eq!(err1.current_frames().len(), 3);

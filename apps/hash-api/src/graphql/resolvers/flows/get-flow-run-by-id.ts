@@ -1,7 +1,6 @@
 import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import { ApolloError } from "apollo-server-errors";
 
 import type {
   FlowRun,
@@ -9,6 +8,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+import * as Error from "../../error";
 import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 export const getFlowRunByIdResolver: ResolverFn<
@@ -25,15 +25,13 @@ export const getFlowRunByIdResolver: ResolverFn<
     flowRunId: flowRunId as EntityUuid,
     graphApiClient: context.dataSources.graphApi,
     includeDetails,
+    storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,
     userAuthentication: context.authentication,
   });
 
   if (!flowRun) {
-    throw new ApolloError(
-      `Flow run with id ${flowRunId} not found`,
-      "NOT_FOUND",
-    );
+    throw Error.notFound(`Flow run with id ${flowRunId} not found`);
   }
 
   return flowRun;

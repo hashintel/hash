@@ -1,11 +1,7 @@
-[special-form-expander::invalid-generic-argument-type] Error: Invalid type in generic argument
-   ╭─[ <unknown>:5:8 ]
-   │
- 5 │   "Foo<(a: String)>",
-   │        ─────┬─────  
-   │             ╰─────── Use a simple type identifier here
-   │ 
-   │ Help: Generic argument types must be simple path identifiers. Complex types like structs, tuples, or function types cannot be used as generic argument types in this context.
-   │ 
-   │ Note: Valid generic argument types are simple identifiers that refer to type names, such as 'String', 'Number', or type parameters like 'T'.
-───╯
+error[special-form-expander::invalid-generic-argument-type]: Invalid type in generic argument
+  ╭▸ 
+5 │   "Foo<(a: String)>",
+  │        ━━━━━━━━━━━ Use a simple type identifier here
+  │
+  ├ help: Generic argument types must be simple path identifiers. Complex types like structs, tuples, or function types cannot be used as generic argument types in this context.
+  ╰ note: Valid generic argument types are simple identifiers that refer to type names, such as 'String', 'Number', or type parameters like 'T'.

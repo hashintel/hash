@@ -1,0 +1,21 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+::graph::tail::collect(
+    ::graph::body::filter(
+        ::graph::head::entities(::graph::tmp::decision_time_now()),
+        (vertex:0: _0): _1 ->
+            ::core::bool::and(true, ::core::bool::or(true, false))
+    )
+)
+
+════ HIR after graph hoisting ══════════════════════════════════════════════════
+
+let %1 = ::graph::tmp::decision_time_now(),
+    %3 = if true 
+         then let %2 = true || false in %2
+         else false,
+    %4 = ::graph::head::entities(%1)
+         |> ::graph::body::filter((vertex:0: Entity): Boolean -> let  in %3)
+         |> ::graph::tail::collect
+in
+%4

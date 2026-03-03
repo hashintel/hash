@@ -80,6 +80,7 @@ export const make = (
   body: Either.Either<ResponseBegin.ResponseBegin, ResponseFrame.ResponseFrame>,
 ): ResponseBody => createProto(ResponseBodyProto, { body });
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const match: {
   <A, B = A>(options: {
     readonly onBegin: (begin: ResponseBegin.ResponseBegin) => A;
@@ -96,6 +97,7 @@ export const match: {
   2,
   <A, B = A>(
     self: ResponseBody,
+    // eslint-disable-next-line fsecond/no-inline-interfaces
     options: {
       readonly onBegin: (begin: ResponseBegin.ResponseBegin) => A;
       readonly onFrame: (frame: ResponseFrame.ResponseFrame) => B;
@@ -107,6 +109,7 @@ export const match: {
     }),
 );
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const mapBoth: {
   <A>(
     fn: (

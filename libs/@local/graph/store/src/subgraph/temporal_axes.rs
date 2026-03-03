@@ -4,6 +4,7 @@ use hash_graph_temporal_versioning::{
     TemporalBound, TemporalInterval, TemporalTagged as _, TimeAxis, Timestamp, TransactionTime,
 };
 use serde::{Deserialize, Serialize};
+use type_system::knowledge::entity::metadata::EntityTemporalMetadata;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 
@@ -56,7 +57,7 @@ pub struct PinnedAxis;
 ///
 /// In a bitemporal system, a `PinnedTemporalAxisUnresolved` should almost always be accompanied by
 /// a [`VariableTemporalAxisUnresolved`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PinnedTemporalAxisUnresolved<A> {
     pub axis: A,
@@ -82,7 +83,7 @@ impl<A: Default> PinnedTemporalAxisUnresolved<A> {
     }
 }
 
-#[derive_where(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
 pub struct RightBoundedTemporalIntervalUnresolved<A> {
@@ -158,7 +159,7 @@ where
 /// bounds referring the current [`Timestamp`]. In a bitemporal system, a
 /// `VariableTemporalAxisUnresolved` should almost always be accompanied by a
 /// [`PinnedTemporalAxisUnresolved`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxisUnresolved<A> {
     pub axis: A,
@@ -220,7 +221,7 @@ where
 /// bounds an inclusive bound at the timestamp at point of resolving is assumed.
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]
 pub enum QueryTemporalAxesUnresolved {
@@ -483,22 +484,22 @@ impl QueryTemporalAxes {
         }
     }
 
-    /// Intersects the variable interval of the temporal axes with the provided
-    /// [`LeftClosedTemporalInterval`].
+    /// Intersects the variable interval of the corresponding temporal axes with the provided
+    /// [`EntityTemporalMetadata`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
     #[must_use]
     pub fn intersect_variable_interval(
         self,
-        version_interval: LeftClosedTemporalInterval<VariableAxis>,
-    ) -> Option<Self> {
+        version_interval: &EntityTemporalMetadata,
+    ) -> Option<RightBoundedTemporalInterval<VariableAxis>> {
         match self {
-            Self::DecisionTime { pinned, variable } => variable
-                .intersect(version_interval.cast())
-                .map(|variable| Self::DecisionTime { pinned, variable }),
-            Self::TransactionTime { pinned, variable } => variable
-                .intersect(version_interval.cast())
-                .map(|variable| Self::TransactionTime { pinned, variable }),
+            Self::DecisionTime { variable, .. } => variable
+                .intersect(version_interval.decision_time)
+                .map(|axis| axis.interval.cast()),
+            Self::TransactionTime { variable, .. } => variable
+                .intersect(version_interval.transaction_time)
+                .map(|axis| axis.interval.cast()),
         }
     }
 

@@ -69,7 +69,7 @@ pub(crate) struct StructMultipleFlattened {
     nested: StructNested,
 }
 
-/// Nesting interfaces should simply work without any special handling
+/// Nesting interfaces should simply work without any special handling.
 #[derive(specta::Type)]
 pub(crate) struct StructNestedInterfaceFlattened {
     name: String,
@@ -77,7 +77,7 @@ pub(crate) struct StructNestedInterfaceFlattened {
     nested: StructMultipleFlattened,
 }
 
-/// This should generate a `type` alias as [`EnumInternal`] cannot be represented as an interface
+/// This should generate a `type` alias as [`EnumInternal`] cannot be represented as an interface.
 #[derive(specta::Type)]
 pub(crate) struct StructFlattenedEnum {
     name: String,
@@ -86,7 +86,7 @@ pub(crate) struct StructFlattenedEnum {
 }
 
 /// This also generates a `type` alias as the {`EnumInternal`} within [`StructFlattenedEnum`] cannot
-/// be represented as an interface
+/// be represented as an interface.
 #[derive(specta::Type)]
 pub(crate) struct StructNestedTypeFlattened {
     name: String,

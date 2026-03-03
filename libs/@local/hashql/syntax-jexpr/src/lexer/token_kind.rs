@@ -1,16 +1,15 @@
 use alloc::borrow::Cow;
 use core::fmt::{self, Display, Write as _};
 
-use json_number::Number;
 use logos::Logos;
 
-use super::{error::LexerError, syntax_kind::SyntaxKind};
+use super::{Number, error::LexerError, syntax_kind::SyntaxKind};
 use crate::lexer::parse::{parse_number, parse_string};
 
 // https://github.com/maciejhirsz/logos/issues/133#issuecomment-619444615
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Logos)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Logos)]
 #[logos(error = LexerError)]
-#[logos(source = [u8])]
+#[logos(utf8 = false)]
 #[logos(skip r"[ \t\r\n\f]+")]
 #[logos(skip r"//[^\n]*")]
 #[logos(skip r"/\*(?:[^*]|\*[^/])*\*/")]
@@ -41,7 +40,7 @@ pub(crate) enum TokenKind<'source> {
     Comma,
 
     #[regex(r#"[0-9-]"#, parse_number)]
-    Number(Cow<'source, Number>),
+    Number(Number<'source>),
 
     #[token(r#"""#, parse_string)]
     String(Cow<'source, str>),

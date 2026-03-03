@@ -1,9 +1,11 @@
 import type { ModalProps } from "@hashintel/design-system";
-import { IconButton, Modal as BaseModal } from "@hashintel/design-system";
+import {
+  IconButton,
+  Modal as BaseModal,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
-
-import { XMarkRegularIcon } from "../icons/x-mark-regular-icon";
 
 export const Modal = ({
   sx,

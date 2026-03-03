@@ -1,18 +1,16 @@
 use core::ops::ControlFlow;
 
 use bitvec::bitvec;
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        collection::TypeIdSet,
+        collections::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
@@ -20,6 +18,7 @@ use crate::{
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         inference::Inference,
         lattice::{Lattice, Projection, Subscript},
+        pretty::{FormatType, TypeFormatter},
     },
 };
 
@@ -119,7 +118,7 @@ impl<'heap> IntersectionType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 
     pub(crate) fn meet_variants(
@@ -130,7 +129,7 @@ impl<'heap> IntersectionType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // 1) Top ∧ Top = Top
         if lhs_variants.is_empty() && rhs_variants.is_empty() {
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: lhs_span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })]);
@@ -138,12 +137,12 @@ impl<'heap> IntersectionType<'heap> {
 
         // 2) Top ∧ X = X
         if lhs_variants.is_empty() {
-            return SmallVec::from_slice(rhs_variants);
+            return SmallVec::from_slice_copy(rhs_variants);
         }
 
         // 3) X ∧ Top = X
         if rhs_variants.is_empty() {
-            return SmallVec::from_slice(lhs_variants);
+            return SmallVec::from_slice_copy(lhs_variants);
         }
 
         let mut variants =
@@ -154,16 +153,17 @@ impl<'heap> IntersectionType<'heap> {
         variants.finish()
     }
 
-    pub(crate) fn is_subtype_of_variants<T, U>(
+    pub(crate) fn is_subtype_of_variants<'env, T, U>(
         actual: Type<'heap, T>,
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         supertype_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
         if supertype_variants.is_empty() {
@@ -174,7 +174,7 @@ impl<'heap> IntersectionType<'heap> {
         if self_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, actual));
+                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, actual, expected));
 
             return false;
         }
@@ -205,16 +205,17 @@ impl<'heap> IntersectionType<'heap> {
         compatible
     }
 
-    pub(crate) fn is_equivalent_variants<T, U>(
+    pub(crate) fn is_equivalent_variants<'env, T, U>(
         lhs: Type<'heap, T>,
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty intersections are only equivalent to other empty intersections
         // As an empty intersection corresponds to `Unknown`, therefore only `Unknown ≡ Unknown`
@@ -515,7 +516,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
@@ -600,7 +601,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Sort, dedup, drop top
         let mut variants = variants.finish();
-        variants.retain(|&mut variant| !env.is_top(variant));
+        variants.retain(|&variant| !env.is_top(variant));
 
         // Propagate bottom type
         if variants.iter().any(|&variant| env.is_bottom(variant)) {
@@ -633,7 +634,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Drop supertypes of other variants
         let backup = variants.clone();
-        variants.retain(|&mut supertype| {
+        variants.retain(|&supertype| {
             // keep `supertype` only if it is not a supertype of any other variant
             !backup.iter().any(|&subtype| {
                 subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
@@ -701,28 +702,5 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for IntersectionType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcAllocator
-            .intersperse(
-                self.variants
-                    .iter()
-                    .map(|&variant| boundary.pretty_type(env, variant)),
-                RcDoc::line()
-                    .append(RcDoc::text("&"))
-                    .append(RcDoc::space()),
-            )
-            .nest(1)
-            .group()
-            .parens()
-            .group()
-            .into_doc()
     }
 }

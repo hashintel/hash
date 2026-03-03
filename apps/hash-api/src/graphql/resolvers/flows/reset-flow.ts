@@ -3,13 +3,12 @@ import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import proto from "@temporalio/proto";
-import { ApolloError } from "apollo-server-errors";
-import { ForbiddenError } from "apollo-server-express";
 import Long from "long";
 
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const resetFlow: ResolverFn<
   Promise<boolean>,
@@ -28,7 +27,7 @@ export const resetFlow: ResolverFn<
   });
 
   if (!flow) {
-    throw new ApolloError(`Flow with id ${flowUuid} not found`, "NOT_FOUND");
+    throw Error.notFound(`Flow with id ${flowUuid} not found`);
   }
 
   const userCanModify = await checkEntityPermission(
@@ -41,7 +40,7 @@ export const resetFlow: ResolverFn<
   );
 
   if (!userCanModify) {
-    throw new ForbiddenError("You do not have permission to modify this flow.");
+    throw Error.forbidden("You do not have permission to modify this flow.");
   }
 
   await temporal.workflowService.resetWorkflowExecution({

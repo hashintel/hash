@@ -3,7 +3,6 @@ import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
 import type { JSX } from "react";
 
-import { EntitySelector } from "../../../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../../../shared/entity-type-selector";
 import { GoogleAccountSelect } from "../../../../../shared/integrations/google/google-account-select";
 import { SelectOrNameGoogleSheet } from "../../../../../shared/integrations/google/select-or-name-google-sheet";
@@ -76,6 +75,18 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           onChange={(event) => setValue(event.target.checked)}
         />
       );
+    case "Date":
+      if (array || Array.isArray(payload.value)) {
+        throw new Error("Selecting multiple dates is not supported");
+      }
+      return (
+        <TextField
+          onChange={(event) => setValue(event.target.value)}
+          sx={textFieldSx}
+          type="date"
+          value={payload.value}
+        />
+      );
     case "VersionedUrl": {
       return (
         <EntityTypeSelector
@@ -87,18 +98,6 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
             setValue(Array.isArray(newValue) ? newValue : newValue)
           }
           sx={{ height: inputHeight, maxWidth: "100%" }}
-          value={payload.value}
-        />
-      );
-    }
-    case "Entity": {
-      return (
-        <EntitySelector
-          autoFocus={false}
-          includeDrafts={false}
-          inputHeight={inputHeight}
-          multiple={array}
-          onSelect={setValue}
           value={payload.value}
         />
       );

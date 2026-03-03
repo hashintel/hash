@@ -1,17 +1,15 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-    ╭─[ <unknown>:9:3 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  9 │ │     ["*", "c", "d"]
-    │ │     ───────┬───────  
-    │ │            ╰───────── Remove this argument
-    ┆ ┆   
- 11 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this `fn` special form call
-    │     
-    │     Help: The fn/4 form should look like: (fn generics arguments return-type body)
-    │     
-    │     Note: The fn function has 1 variant: fn/4
-────╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+   ╭▸ 
+ 3 │ ┌ [
+ 4 │ │   "::kernel::special_form::fn",
+ 5 │ │   { "#tuple": [] },
+ 6 │ │   { "#struct": {} },
+   ‡ │
+ 9 │ │   ["*", "c", "d"]
+   │ │   ━━━━━━━━━━━━━━━ Remove this argument
+10 │ │   //~^ ERROR Remove this argument
+11 │ │ ]
+   │ └─┘ In this `fn` special form call
+   │
+   ├ help: The fn/4 form should look like: (fn generics arguments return-type body)
+   ╰ note: The fn function has 1 variant: fn/4

@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with consecutive colons should fail
 expression: "{\"a\":: 1}"
 ---
-[31m[object::consecutive-colon] Error:[0m Multiple colons between key and value
-   ╭─[ <unknown>:1:6 ]
-   │
- 1 │ {"a":: 1}
-   │      ┬  
-   │      ╰── Remove this extra colon
-   │ 
-   │ Help: J-Expr requires exactly one colon between a key and its value. Use `{"key": value}` format.
-───╯
+error[object::consecutive-colon]: Multiple colons between key and value
+  ╭▸ 
+1 │ {"a":: 1}
+  │      ━ Remove this extra colon
+  │
+  ╰ help: J-Expr requires exactly one colon between a key and its value. Use `{"key": value}` format.

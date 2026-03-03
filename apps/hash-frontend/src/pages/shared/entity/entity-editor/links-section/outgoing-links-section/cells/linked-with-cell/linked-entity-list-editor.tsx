@@ -10,7 +10,7 @@ import {
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box } from "@mui/material";
-import produce from "immer";
+import { produce } from "immer";
 import { useMemo, useState } from "react";
 
 import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";

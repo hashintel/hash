@@ -1,27 +1,27 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
-[`address`]: address
-[`ai-chat`]: ai-chat
-[`ai-image`]: ai-image
-[`ai-text`]: ai-text
-[`callout`]: callout
-[`chart`]: chart
-[`code`]: code
-[`countdown`]: countdown
-[`divider`]: divider
-[`embed`]: embed
-[`faq`]: faq
-[`heading`]: heading
-[`how-to`]: how-to
-[`image`]: image
-[`kanban-board`]: kanban-board
-[`minesweeper`]: minesweeper
-[`paragraph`]: paragraph
-[`person`]: person
-[`shuffle`]: shuffle
-[`table`]: table
-[`timer`]: timer
-[`video`]: video
+[`address`]: https://github.com/hashintel/labs/tree/main/blocks/address
+[`ai-chat`]: https://github.com/hashintel/labs/tree/main/blocks/ai-chat
+[`ai-image`]: https://github.com/hashintel/labs/tree/main/blocks/ai-image
+[`ai-text`]: https://github.com/hashintel/labs/tree/main/blocks/ai-text
+[`callout`]: https://github.com/hashintel/labs/tree/main/blocks/callout
+[`chart`]: https://github.com/hashintel/labs/tree/main/blocks/chart
+[`code`]: https://github.com/hashintel/labs/tree/main/blocks/code
+[`countdown`]: https://github.com/hashintel/labs/tree/main/blocks/countdown
+[`divider`]: https://github.com/hashintel/labs/tree/main/blocks/divider
+[`embed`]: https://github.com/hashintel/labs/tree/main/blocks/embed
+[`faq`]: https://github.com/hashintel/labs/tree/main/blocks/faq
+[`heading`]: https://github.com/hashintel/labs/tree/main/blocks/heading
+[`how-to`]: https://github.com/hashintel/labs/tree/main/blocks/how-to
+[`image`]: https://github.com/hashintel/labs/tree/main/blocks/image
+[`kanban-board`]: https://github.com/hashintel/labs/tree/main/blocks/kanban-board
+[`minesweeper`]: https://github.com/hashintel/labs/tree/main/blocks/minesweeper
+[`paragraph`]: https://github.com/hashintel/labs/tree/main/blocks/paragraph
+[`person`]: https://github.com/hashintel/labs/tree/main/blocks/person
+[`shuffle`]: https://github.com/hashintel/labs/tree/main/blocks/shuffle
+[`table`]: https://github.com/hashintel/labs/tree/main/blocks/table
+[`timer`]: https://github.com/hashintel/labs/tree/main/blocks/timer
+[`video`]: https://github.com/hashintel/labs/tree/main/blocks/video
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a38c5f3-6474-4b6c-71e6-ecf01914f000/github)][github_banner]
 
@@ -31,7 +31,7 @@
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub). The current version of HASH is based upon an adapted version of the [Block Protocol Graph Module](https://blockprotocol.org/spec/graph) which will be formalized at a later date.
 
-Planned features such as [pages](https://hash.ai/guide/pages) and [apps](https://hash.ai/guide/apps) more directly utilize the [blocks](https://hash.ai/guide/pages/blocks) found in this directory, which contains the source code for all public HASH-developed [Block Protocol](https://blockprotocol.org/) blocks.
+Features such as [pages](https://hash.ai/guide/pages) and [apps](https://hash.ai/guide/apps) which directly utilize these [blocks](https://hash.ai/guide/pages/blocks) are not currently generally publicly available.
 
 ## HASH Blocks
 

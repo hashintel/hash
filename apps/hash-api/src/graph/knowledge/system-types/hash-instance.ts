@@ -1,13 +1,12 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorId, VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
   getHashInstanceFromEntity,
-  getInstanceAdminsTeam,
 } from "@local/hash-backend-utils/hash-instance";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import { logger } from "../../../logger";
@@ -24,6 +23,7 @@ import { createEntity } from "../primitive/entity";
  */
 export const createHashInstance: ImpureGraphFunction<
   {
+    hashInstanceEntityTypeId: VersionedUrl;
     pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
@@ -67,7 +67,7 @@ export const createHashInstance: ImpureGraphFunction<
     actions: ["instantiate"],
     resource: {
       type: "entityType",
-      id: systemEntityTypes.hashInstance.entityTypeId,
+      id: params.hashInstanceEntityTypeId,
     },
   });
 
@@ -109,7 +109,9 @@ export const createHashInstance: ImpureGraphFunction<
             },
         },
       },
-      entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
+      entityTypeIds: [
+        params.hashInstanceEntityTypeId,
+      ] as HashInstanceEntity["entityTypeIds"],
     });
 
     return getHashInstanceFromEntity({ entity });

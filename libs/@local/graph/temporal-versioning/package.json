@@ -10,6 +10,6 @@
     "test:unit": "mise run test:unit @rust/hash-graph-temporal-versioning"
   },
   "dependencies": {
-    "@rust/hash-codec": "0.0.0-private"
+    "@rust/hash-codec": "workspace:*"
   }
 }

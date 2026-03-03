@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Field access on values should succeed
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        [".", {"#struct": {"a": { "#literal": 1 }}}, "a"],
+        {"#literal": 1}
+      ]
+    ]
+  ]
+]

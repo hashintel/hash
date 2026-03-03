@@ -3,4 +3,5 @@ Expr#4294967040@19
 
 ------------------------
 
-type Pair:0 = (Number, String)
+┌─ Pair:0<>
+└→ (Number, String)

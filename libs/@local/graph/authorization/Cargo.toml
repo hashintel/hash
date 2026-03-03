@@ -32,6 +32,7 @@ serde_json        = { workspace = true }
 serde_plain       = { workspace = true }
 simple-mermaid    = { workspace = true }
 smol_str          = { workspace = true }
+stacker           = { workspace = true }
 tokio             = { workspace = true }
 tokio-util        = { workspace = true, features = ["io"] }
 tracing           = { workspace = true, features = ["attributes"] }
@@ -61,5 +62,5 @@ workspace = true
 
 [package.metadata.sync.turborepo]
 extra-dev-dependencies = [
-    { name = "@local/tsconfig", version = "0.0.0-private" },
+    { name = "@local/tsconfig", version = "workspace:*" },
 ]

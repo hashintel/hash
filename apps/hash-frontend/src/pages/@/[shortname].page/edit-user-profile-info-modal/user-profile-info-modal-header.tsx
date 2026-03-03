@@ -5,6 +5,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   RotateRegularIcon,
+  XMarkRegularIcon,
 } from "@hashintel/design-system";
 import {
   systemEntityTypes,
@@ -19,7 +20,6 @@ import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/bloc
 import type { User } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../../shared/icons/trash-regular-icon";
-import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import type { ButtonProps } from "../../../../shared/ui";
 import { Button } from "../../../../shared/ui";
 import { useAuthInfo } from "../../../shared/auth-info-context";

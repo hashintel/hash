@@ -85,6 +85,14 @@ impl<A> Timestamp<A> {
     }
 
     #[must_use]
+    pub fn from_unix_timestamp(timestamp: i64) -> Self {
+        Self {
+            axis: PhantomData,
+            time: OffsetDateTime::from_unix_timestamp(timestamp).unwrap_or(Self::UNIX_EPOCH.time),
+        }
+    }
+
+    #[must_use]
     pub const fn from_anonymous(time: Timestamp<()>) -> Self {
         Self {
             axis: PhantomData,

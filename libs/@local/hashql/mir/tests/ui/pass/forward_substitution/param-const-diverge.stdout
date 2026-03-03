@@ -1,0 +1,61 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#3}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+    let %2: Integer
+    let %3: (Integer,)
+
+    bb0(): {
+        switchInt(1) -> [0: bb5(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1 <= 2
+
+        switchInt(%1) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb4(100)
+    }
+
+    bb3(): {
+        goto -> bb4(200)
+    }
+
+    bb4(%2): {
+        %3 = (%2)
+
+        goto -> bb6(%3.0)
+    }
+
+    bb5(): {
+        goto -> bb6(0)
+    }
+
+    bb6(%0): {
+        return %0
+    }
+}
+════ MIR after Forward Substitution ════════════════════════════════════════════
+
+*thunk {thunk#3}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+    let %2: Integer
+    let %3: (Integer,)
+
+    bb0(): {
+        %1 = 1 <= 2
+
+        switchInt(%1) -> [0: bb1(200), 1: bb1(100)]
+    }
+
+    bb1(%2): {
+        %3 = (%2)
+        %0 = %2
+
+        return %2
+    }
+}

@@ -84,18 +84,18 @@ pub struct SnapshotArgs {
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
     SnapshotEntry::install_error_stack_hook();
 
-    let mut pool = PostgresStorePool::new(
-        &args.db_info,
-        &args.pool_config,
-        NoTls,
-        PostgresStoreSettings::default(),
-    )
-    .await
-    .change_context(GraphError)
-    .map_err(|report| {
-        tracing::error!(error = ?report, "Failed to connect to database");
-        report
-    })?;
+    let mut settings = PostgresStoreSettings::default();
+    if let SnapshotCommand::Restore(args) = &args.command {
+        settings.validate_links = !args.skip_validation;
+    }
+
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls, settings)
+        .await
+        .change_context(GraphError)
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
+        })?;
 
     match args.command {
         SnapshotCommand::Dump(args) => {
@@ -117,13 +117,11 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
 
             pool.dump_snapshot(write, settings)
                 .change_context(GraphError)
-                .attach_printable("Failed to produce snapshot dump")?;
+                .attach("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            pool.settings.validate_links = !args.skip_validation;
-
             let read =
                 FramedRead::new(io::BufReader::new(io::stdin()), JsonLinesDecoder::default());
             SnapshotStore::new(
@@ -138,7 +136,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             .restore_snapshot(read, 10_000, args.ignore_validation_errors)
             .await
             .change_context(GraphError)
-            .attach_printable("Failed to restore snapshot")?;
+            .attach("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }

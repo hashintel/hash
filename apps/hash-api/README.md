@@ -35,18 +35,10 @@ The HASH Backend API service is configured using the following environment varia
   - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
   - `HASH_VAULT_PORT`: The port that the Vault server is running on, e.g. `8200`
   - `HASH_VAULT_ROOT_TOKEN`: The token to authenticate with the Vault server. If not present, login via AWS IAM is attempted instead.
+  - `HASH_VAULT_MOUNT_PATH`: The mount path for the KV secrets engine, e.g. `secret`.
 - Google integration
   - `GOOGLE_OAUTH_CLIENT_ID`: the client ID for the Google OAuth application.
   - `GOOGLE_OAUTH_CLIENT_SECRET`: the client secret for the Google OAuth application.
-- OpenSearch:
-  - `HASH_OPENSEARCH_ENABLED`: (default: `false`) whether OpenSearch is used or not. `true` or `false`.
-  - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to.
-  - `HASH_OPENSEARCH_PORT`: (default: 9200) the port number that the cluster accepts
-    connections on.
-  - `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as.
-  - `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection.
-  - `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
-    over an HTTPS connection.
 - `INTERNAL_API_KEY`: The API key used to authenticate with HASH (the company)'s internal API, required for some functionality specific to hosted HASH (the app)
 - `INTERNAL_API_HOST`: The host for the internal API, required if the internal API is not running locally
 - `OPENAI_API_KEY`: The API key used to authenticate with OpenAI's API, used for some non-essential generation functionality (e.g. suggesting the pluralized form of type names)

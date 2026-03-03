@@ -23,7 +23,18 @@ import "prismjs/components/prism-typescript";
 
 import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
+import DOMPurify from "dompurify";
 import type { FunctionComponent } from "react";
+
+/**
+ * Only allow the markup that Prism.js produces: `<span>` tags with `class`
+ * attributes. Everything else is stripped as a defense-in-depth measure.
+ */
+const sanitizePrismOutput = (html: string): string =>
+  DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["span"],
+    ALLOWED_ATTR: ["class"],
+  });
 
 type SnippetProps = {
   source: string;
@@ -48,9 +59,8 @@ export const Snippet: FunctionComponent<SnippetProps> = ({
     <Box
       component="code"
       {...boxProps}
-      // trust prism to properly escape the source
       dangerouslySetInnerHTML={{
-        __html: Prism.highlight(source, grammar, language),
+        __html: sanitizePrismOutput(Prism.highlight(source, grammar, language)),
       }}
     />
   );

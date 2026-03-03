@@ -1,25 +1,25 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { splitEntityId } from "@blockprotocol/type-system";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { useCallback } from "react";
 
 import type {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
 } => {
-  const [getEntityFn] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    {
-      fetchPolicy: "cache-and-network",
-    },
-  );
+  const [queryEntitySubgraphFn] = useLazyQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const getEntity = useCallback<GetEntityMessageCallback>(
     async ({ data }) => {
@@ -34,27 +34,38 @@ export const useBlockProtocolGetEntity = (): {
         };
       }
 
-      const { entityId, graphResolveDepths } = data;
+      const { entityId, ...additionalParams } = data;
 
-      const { data: response } = await getEntityFn({
+      const [webId, entityUuid, draftId] = splitEntityId(entityId);
+      const { data: response } = await queryEntitySubgraphFn({
         variables: {
-          entityId, // @todo-0.3 consider validating that this matches the id format,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          includePermissions: false,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-          ...graphResolveDepths,
+          request: {
+            filter: {
+              all: [
+                {
+                  equal: [{ path: ["webId"] }, { parameter: webId }],
+                },
+                {
+                  equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+                },
+                ...(draftId
+                  ? [
+                      {
+                        equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            ...additionalParams,
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeDrafts: !!draftId,
+            includePermissions: false,
+          },
         },
       });
 
-      const { getEntity: subgraphAndPermissions } = response ?? {};
-
-      if (!subgraphAndPermissions) {
+      if (!response) {
         return {
           errors: [
             {
@@ -65,13 +76,13 @@ export const useBlockProtocolGetEntity = (): {
         };
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(subgraphAndPermissions.subgraph);
-
-      return { data: subgraph };
+      return {
+        data: deserializeQueryEntitySubgraphResponse(
+          response.queryEntitySubgraph,
+        ).subgraph,
+      };
     },
-    [getEntityFn],
+    [queryEntitySubgraphFn],
   );
 
   return { getEntity };

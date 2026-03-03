@@ -1,0 +1,33 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = 42
+        %1 = %0 & %0
+        %2 = %1 == 42
+
+        return %2
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = 42
+        %1 = 42
+        %2 = 1
+
+        return %2
+    }
+}

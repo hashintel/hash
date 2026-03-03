@@ -14,8 +14,6 @@ export const checkGoogleAccessToken: RequestHandler<
   Record<string, never>,
   CheckGoogleTokenResponse,
   CheckGoogleTokenRequest
-  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const accessToken = await getGoogleAccessTokenForExpressRequest({
     googleAccountId: req.body.googleAccountId,

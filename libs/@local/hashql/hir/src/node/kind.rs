@@ -1,6 +1,6 @@
 use super::{
     access::Access, branch::Branch, call::Call, closure::Closure, data::Data, graph::Graph,
-    input::Input, r#let::Let, operation::Operation, variable::Variable,
+    r#let::Let, operation::Operation, thunk::Thunk, variable::Variable,
 };
 
 /// The different kinds of nodes available in the HashQL High-Level Intermediate Representation.
@@ -40,12 +40,6 @@ pub enum NodeKind<'heap> {
     /// creating a new variable accessible only within that scope.
     Let(Let<'heap>),
 
-    /// Represents an external input parameter for a query or function.
-    ///
-    /// Input parameters define values that can be provided externally
-    /// to parameterize queries, with optional type constraints and default values.
-    Input(Input<'heap>),
-
     // Operations and access
     /// Represents a computational operation on one or more values.
     ///
@@ -77,6 +71,12 @@ pub enum NodeKind<'heap> {
     /// Closures define reusable function values with parameters, a body expression,
     /// and the ability to capture variables from the surrounding scope.
     Closure(Closure<'heap>),
+
+    /// Represents a module-level delayed computation providing uniform module interface.
+    ///
+    /// Thunks themselves are only present at the top-level of a module and do not (unlike closures)
+    /// capture variables from the surrounding scope.
+    Thunk(Thunk<'heap>),
 
     // High-level structures
     /// Represents operations specific to graph querying and manipulation.

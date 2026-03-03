@@ -1,12 +1,17 @@
 import type { JsonValue } from "@blockprotocol/core";
 import type { PropertyMetadata } from "@blockprotocol/type-system";
-import { isArrayMetadata, isValueMetadata } from "@blockprotocol/type-system";
+import {
+  isArrayMetadata,
+  isObjectMetadata,
+  isValueMetadata,
+} from "@blockprotocol/type-system";
 import { customColors } from "@hashintel/design-system/theme";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-sdk/ontology";
 import {
+  createFormattedValueParts,
   formatDataValue,
   type FormattedValuePart,
   getMergedDataTypeSchema,
@@ -37,9 +42,26 @@ export const formatValue = (
       }
 
       if (!isValueMetadata(arrayItemMetadata)) {
-        throw new Error(
-          `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
+        if (isArrayMetadata(arrayItemMetadata)) {
+          throw new Error(
+            `Nested arrays are not currently supported in this display`,
+          );
+        }
+
+        if (!isObjectMetadata(arrayItemMetadata)) {
+          throw new Error(
+            `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
+          );
+        }
+      }
+
+      if (isObjectMetadata(arrayItemMetadata)) {
+        valueParts.push(
+          ...createFormattedValueParts({
+            inner: JSON.stringify(entry),
+          }),
         );
+        continue;
       }
 
       const dataTypeId = arrayItemMetadata.metadata.dataTypeId;

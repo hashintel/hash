@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: Parses with a sudden EOF
 expression: "{\"#tuple\": "
 ---
-[31m[lexer::unexpected-eof] Error:[0m Unexpected end of file
-   ╭─[ <unknown>:1:12 ]
-   │
- 1 │ {"#tuple":
-   │            │ 
-   │            ╰─ Unexpected end of file, expected `[`
-   │ 
-   │ Help: The file ended where an opening bracket was expected. Complete the expression structure.
-───╯
+error[lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ {"#tuple": 
+  │            ━ Unexpected end of file, expected `[`
+  │
+  ╰ help: The file ended where an opening bracket was expected. Complete the expression structure.

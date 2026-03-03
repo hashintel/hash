@@ -294,7 +294,10 @@ mod tests {
             EntityTypeVertexId {
                 base_id: BaseUrl::new("https://example.com/".to_owned())
                     .expect("should be valid URL"),
-                revision_id: OntologyTypeVersion::new(0),
+                revision_id: OntologyTypeVersion {
+                    major: 0,
+                    pre_release: None,
+                },
             },
         );
 

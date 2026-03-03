@@ -1,0 +1,72 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 5
+    }
+}
+
+*thunk {thunk#3}() -> String {
+    let %0: String
+    let %1: Integer
+    let %2: Boolean
+    let %3: String
+
+    bb0(): {
+        switchInt(1) -> [0: bb5(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = apply (x:0 as FnPtr)
+        %2 = %1 <= 10
+
+        switchInt(%2) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb4("small")
+    }
+
+    bb3(): {
+        goto -> bb4("large")
+    }
+
+    bb4(%3): {
+        goto -> bb6(%3)
+    }
+
+    bb5(): {
+        goto -> bb6("unreachable")
+    }
+
+    bb6(%0): {
+        return %0
+    }
+}
+════ MIR after CFG Simplification ══════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 5
+    }
+}
+
+*thunk {thunk#3}() -> String {
+    let %0: String
+    let %1: Integer
+    let %2: Boolean
+    let %3: String
+
+    bb0(): {
+        %1 = apply (x:0 as FnPtr)
+        %2 = %1 <= 10
+
+        switchInt(%2) -> [0: bb1("large"), 1: bb1("small")]
+    }
+
+    bb1(%3): {
+        %0 = %3
+
+        return %0
+    }
+}

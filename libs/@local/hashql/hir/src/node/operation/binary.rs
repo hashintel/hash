@@ -1,4 +1,7 @@
-use hashql_core::span::SpanId;
+use hashql_core::{
+    span::Spanned,
+    symbol::{Symbol, sym},
+};
 
 use crate::node::Node;
 
@@ -7,50 +10,50 @@ use crate::node::Node;
 /// Represents the various operations that can be performed with two operands,
 /// including arithmetic, comparison, logical, and bitwise operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum BinOpKind {
-    /// The `+` operator (addition)
+pub enum BinOp {
+    /// The `+` operator (addition).
     Add(!),
-    /// The `-` operator (subtraction)
+    /// The `-` operator (subtraction).
     Sub(!),
-    /// The `*` operator (multiplication)
+    /// The `*` operator (multiplication).
     Mul(!),
-    /// The `/` operator (division)
+    /// The `/` operator (division).
     Div(!),
-    /// The `%` operator (remainder)
+    /// The `%` operator (remainder).
     Rem(!),
-    /// The `%%`/`⟲` operator (modulo)
+    /// The `%%`/`⟲` operator (modulo).
     Mod(!),
-    /// The `**`/`↑` operator (exponentiation)
+    /// The `**`/`↑` operator (exponentiation).
     Pow(!),
-    /// The `&&` operator (logical and)
+    /// The `&&` operator (logical and).
     And,
-    /// The `||` operator (logical or)
+    /// The `||` operator (logical or).
     Or,
-    /// The `^` operator (bitwise xor)
+    /// The `^` operator (bitwise xor).
     BitXor(!),
-    /// The `&` operator (bitwise and)
+    /// The `&` operator (bitwise and).
     BitAnd(!),
-    /// The `|` operator (bitwise or)
+    /// The `|` operator (bitwise or).
     BitOr(!),
-    /// The `<<` operator (shift left)
+    /// The `<<` operator (shift left).
     BitShl(!),
-    /// The `>>` operator (shift right)
+    /// The `>>` operator (shift right).
     BitShr(!),
-    /// The `==` operator (equality)
+    /// The `==` operator (equality).
     Eq,
-    /// The `!=` operator (not equal to)
+    /// The `!=` operator (not equal to).
     Ne,
-    /// The `<` operator (less than)
+    /// The `<` operator (less than).
     Lt,
-    /// The `<=` operator (less than or equal to)
+    /// The `<=` operator (less than or equal to).
     Lte,
-    /// The `>` operator (greater than)
+    /// The `>` operator (greater than).
     Gt,
-    /// The `>=` operator (greater than or equal to)
+    /// The `>=` operator (greater than or equal to).
     Gte,
 }
 
-impl BinOpKind {
+impl BinOp {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -64,17 +67,20 @@ impl BinOpKind {
             Self::Gt => ">",
         }
     }
-}
 
-/// A binary operator in the HashQL HIR.
-///
-/// Represents a specific binary operation to be performed, such as addition,
-/// comparison, or a logical operation. Includes source span information for error reporting.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct BinOp {
-    pub span: SpanId,
-
-    pub kind: BinOpKind,
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::And => sym::symbol::ampamp,
+            Self::Or => sym::symbol::pipepipe,
+            Self::Eq => sym::symbol::eqeq,
+            Self::Lt => sym::symbol::lt,
+            Self::Lte => sym::symbol::lteq,
+            Self::Ne => sym::symbol::excleq,
+            Self::Gte => sym::symbol::gteq,
+            Self::Gt => sym::symbol::gt,
+        }
+    }
 }
 
 /// A binary operation expression in the HashQL HIR.
@@ -84,9 +90,8 @@ pub struct BinOp {
 /// the core of most computational expressions in HashQL.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BinaryOperation<'heap> {
-    pub span: SpanId,
+    pub op: Spanned<BinOp>,
 
-    pub op: BinOp,
     pub left: Node<'heap>,
     pub right: Node<'heap>,
 }

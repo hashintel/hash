@@ -15,7 +15,6 @@ pub mod union;
 
 use core::{ops::ControlFlow, ptr};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 pub use self::{
@@ -33,8 +32,8 @@ pub use self::{
 use super::{
     PartialType, Type, TypeId,
     environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
+        AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+        Variance, instantiate::InstantiateEnvironment,
     },
     error::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
@@ -43,10 +42,7 @@ use super::{
     inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
-use crate::{
-    pretty::{CYAN, GRAY, PrettyPrint, PrettyPrintBoundary},
-    symbol::Ident,
-};
+use crate::symbol::Ident;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
@@ -324,13 +320,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `Never ∨ T <=> T`
-            env.diagnostics.push(no_type_inference(env, self));
-            return SmallVec::from_slice(&[other.id]);
+            env.diagnostics.push(no_type_inference(self));
+            return SmallVec::from_slice_copy(&[other.id]);
         };
 
         self = resolved;
@@ -339,13 +335,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∨ Never <=> T`
-            env.diagnostics.push(no_type_inference(env, other));
-            return SmallVec::from_slice(&[self.id]);
+            env.diagnostics.push(no_type_inference(other));
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         other = resolved;
@@ -353,7 +349,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // Short circuit if the types are the same (this can be done via pointer comparison as the
         // types are interned)
         if ptr::eq(self.kind, other.kind) {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         #[expect(
@@ -375,28 +371,28 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
 
             // T ∨ Never <=> T
-            (_, Self::Never) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Never) => SmallVec::from_slice_copy(&[self.id]),
             // Never ∨ T <=> T
-            (Self::Never, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Never, _) => SmallVec::from_slice_copy(&[other.id]),
             // T ∨ Never <=> T (slow)
-            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[self.id]),
+            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice_copy(&[self.id]),
             // Never ∨ T <=> T (slow)
-            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[other.id]),
+            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice_copy(&[other.id]),
 
             // T ∨ Unknown <=> Unknown
-            (_, Self::Unknown) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Unknown) => SmallVec::from_slice_copy(&[other.id]),
             // Unknown ∨ T <=> Unknown
-            (Self::Unknown, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Unknown, _) => SmallVec::from_slice_copy(&[self.id]),
             // T ∨ Unknown <=> Unknown (slow)
             (_, _) if env.is_top(other.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Unknown),
                 })])
             }
             // Unknown ∨ T <=> Unknown (slow)
             (_, _) if env.is_top(self.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Unknown),
                 })])
@@ -411,7 +407,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Primitive ∨ _
             (Self::Primitive(lhs), Self::Primitive(rhs)) => {
@@ -424,7 +420,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Intrinsic ∨ _
             (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
@@ -437,7 +433,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Struct ∨ _
             (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -448,7 +444,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Tuple ∨ _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -459,7 +455,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Closure ∨ _
             (Self::Closure(lhs), Self::Closure(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -470,7 +466,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Apply ∨ _
             (Self::Apply(lhs), Self::Apply(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -630,13 +626,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
-            env.diagnostics.push(no_type_inference(env, self));
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            env.diagnostics.push(no_type_inference(self));
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(Self::Never),
             })]);
@@ -648,13 +644,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
-            env.diagnostics.push(no_type_inference(env, other));
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            env.diagnostics.push(no_type_inference(other));
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: other.span,
                 kind: env.intern_kind(TypeKind::Never),
             })]);
@@ -665,7 +661,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // Short circuit if the types are the same (this can be done via pointer comparison as the
         // types are interned)
         if ptr::eq(self.kind, other.kind) {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         #[expect(clippy::match_same_arms)]
@@ -683,32 +679,32 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
 
             // T ∧ Never <=> Never
-            (_, Self::Never) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Never) => SmallVec::from_slice_copy(&[other.id]),
             // Never ∧ T <=> Never
-            (Self::Never, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Never, _) => SmallVec::from_slice_copy(&[self.id]),
             // T ∧ Never <=> Never (slow)
             (_, _) if env.is_bottom(other.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Never),
                 })])
             }
             // Never ∧ T <=> Never (slow)
             (_, _) if env.is_bottom(self.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(Self::Never),
                 })])
             }
 
             // T ∧ Unknown <=> T
-            (_, Self::Unknown) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Unknown) => SmallVec::from_slice_copy(&[self.id]),
             // Unknown ∧ T <=> T
-            (Self::Unknown, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Unknown, _) => SmallVec::from_slice_copy(&[other.id]),
             // T ∧ Unknown <=> T (slow)
-            (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[self.id]),
+            (_, _) if env.is_top(other.id) => SmallVec::from_slice_copy(&[self.id]),
             // Unknown ∧ T <=> T (slow)
-            (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[other.id]),
+            (_, _) if env.is_top(self.id) => SmallVec::from_slice_copy(&[other.id]),
 
             // Opaque ∧ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).meet(other.with(rhs), env),
@@ -1043,7 +1039,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot determine if a type is bottom, if it hasn't been resolved yet
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1071,7 +1067,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot determine if a type is top, if it hasn't been resolved yet
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1152,7 +1148,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot distribute over an unresolved type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         self = this;
@@ -1171,7 +1167,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Apply(apply_type) => self.with(apply_type).distribute_union(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_union(env),
             Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
-            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
+            Self::Never | Self::Unknown => SmallVec::from_slice_copy(&[self.id]),
         }
     }
 
@@ -1182,7 +1178,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot distribute over an unresolved type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         self = this;
@@ -1205,7 +1201,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Apply(apply_type) => self.with(apply_type).distribute_intersection(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_intersection(env),
             Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
-            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
+            Self::Never | Self::Unknown => SmallVec::from_slice_copy(&[self.id]),
         }
     }
 
@@ -1216,7 +1212,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = env.resolve_type(self) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1224,7 +1220,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         self = resolved;
 
         let Some(resolved) = env.resolve_type(other) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(other));
 
             return false;
         };
@@ -1525,7 +1521,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = env.resolve_type(self) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1533,7 +1529,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         self = resolved;
 
         let Some(resolved) = env.resolve_type(supertype) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, supertype));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(supertype));
 
             return false;
         };
@@ -1965,7 +1961,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Primitive <: _
@@ -1978,7 +1976,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Intrinsic <: _
@@ -1991,7 +1991,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Struct <: _
@@ -2004,7 +2006,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Tuple <: _
@@ -2017,7 +2021,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Closure <: _
@@ -2030,7 +2036,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
+                | Self::Tuple(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Apply <: _
@@ -2048,7 +2056,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 lhs.collect_substitution_constraints(self.span, env);
                 env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
@@ -2063,7 +2073,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Apply(rhs),
             ) => {
                 rhs.collect_substitution_constraints(supertype.span, env);
@@ -2086,7 +2098,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 lhs.collect_argument_constraints(self.span, env, false);
                 env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
@@ -2102,7 +2116,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Generic(rhs),
             ) => {
                 rhs.collect_argument_constraints(supertype.span, env, false);
@@ -2123,12 +2139,15 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
@@ -2145,13 +2164,16 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Union(rhs),
             ) => {
                 let self_variants = [self.id];
                 let super_variants = supertype.with(rhs).unnest(env);
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
@@ -2173,7 +2195,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
@@ -2194,7 +2218,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
@@ -2210,7 +2236,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Infer <: _
-            (&Self::Infer(Infer { hole: self_id }), _) => {
+            (
+                &Self::Infer(Infer { hole: self_id }),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {
                 let variable = Variable {
                     span: self.span,
                     kind: VariableKind::Hole(self_id),
@@ -2225,7 +2261,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // _ <: Infer
-            (_, &Self::Infer(Infer { hole: supertype_id })) => {
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+                &Self::Infer(Infer { hole: supertype_id }),
+            ) => {
                 let variable = Variable {
                     span: supertype.span,
                     kind: VariableKind::Hole(supertype_id),
@@ -2240,7 +2286,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Param <: _
-            (&Self::Param(Param { argument }), _) => {
+            (
+                &Self::Param(Param { argument }),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {
                 let variable = Variable {
                     span: self.span,
                     kind: VariableKind::Generic(argument),
@@ -2255,7 +2311,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // _ <: Param
-            (_, &Self::Param(Param { argument })) => {
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+                &Self::Param(Param { argument }),
+            ) => {
                 let variable = Variable {
                     span: supertype.span,
                     kind: VariableKind::Generic(argument),
@@ -2269,11 +2335,19 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 env.collect_dependencies(self.id, variable);
             }
 
-            // `Never <: _` | `_ <: Never`
-            (Self::Never, _) | (_, Self::Never) => {}
-
-            // `_ <: Unknown` | `Unknown <: _`
-            (_, Self::Unknown) | (Self::Unknown, _) => {}
+            // `Never <: _`
+            // `Unknown <: _`
+            (
+                Self::Never | Self::Unknown,
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {}
         }
     }
 
@@ -2294,7 +2368,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
     /// "holes" in `τ` remain unchanged, ensuring that only the bound type parameters are
     /// freshly instantiated.
     ///
-    /// (Only the ∀-bound type parameters are replaced)
+    /// (Only the ∀-bound type parameters are replaced.)
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         match self.kind {
             Self::Opaque(opaque) => self.with(opaque).instantiate(env),
@@ -2314,78 +2388,11 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                         kind: env.intern_kind(Self::Param(Param { argument })),
                     })
                 } else {
-                    env.record_diagnostic(type_parameter_not_found(env, self, argument));
+                    env.record_diagnostic(type_parameter_not_found(self, argument));
                     self.id
                 }
             }
             Self::Infer(_) | Self::Never | Self::Unknown => self.id,
-        }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Opaque(opaque) => opaque.pretty(env, boundary),
-            Self::Primitive(primitive) => primitive.pretty(env, boundary),
-            Self::Intrinsic(intrinsic) => intrinsic.pretty(env, boundary),
-            Self::Struct(r#struct) => r#struct.pretty(env, boundary),
-            Self::Tuple(tuple) => tuple.pretty(env, boundary),
-            Self::Closure(closure) => closure.pretty(env, boundary),
-            Self::Union(union) => union.pretty(env, boundary),
-            Self::Intersection(intersection) => intersection.pretty(env, boundary),
-            Self::Apply(apply) => apply.pretty(env, boundary),
-            Self::Generic(generic) => generic.pretty(env, boundary),
-            Self::Param(param) => param.pretty(env, boundary),
-            Self::Infer(Infer { hole }) => {
-                let mut doc = RcDoc::text(format!("_{hole}")).annotate(GRAY);
-
-                if boundary.config().resolve_substitutions
-                    && let Some(substitution) = env.substitution.infer(*hole)
-                {
-                    doc = doc.append(
-                        RcDoc::text("\u{ab}")
-                            .append(boundary.pretty_type(env, substitution))
-                            .append("\u{bb}")
-                            .group(),
-                    );
-                }
-
-                doc
-            }
-            Self::Never => RcDoc::text("!").annotate(CYAN),
-            Self::Unknown => RcDoc::text("?").annotate(CYAN),
-        }
-    }
-
-    fn pretty_generic(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-        arguments: GenericArguments<'heap>,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Opaque(opaque) => opaque.pretty_generic(env, boundary, arguments),
-            Self::Primitive(primitive) => primitive.pretty_generic(env, boundary, arguments),
-            Self::Intrinsic(intrinsic) => intrinsic.pretty_generic(env, boundary, arguments),
-            Self::Struct(r#struct) => r#struct.pretty_generic(env, boundary, arguments),
-            Self::Tuple(tuple) => tuple.pretty_generic(env, boundary, arguments),
-            Self::Closure(closure) => closure.pretty_generic(env, boundary, arguments),
-            Self::Union(union) => union.pretty_generic(env, boundary, arguments),
-            Self::Intersection(intersection) => {
-                intersection.pretty_generic(env, boundary, arguments)
-            }
-            Self::Apply(apple) => apple.pretty_generic(env, boundary, arguments),
-            Self::Generic(generic) => generic.pretty_generic(env, boundary, arguments),
-            Self::Param(param) => param.pretty_generic(env, boundary, arguments),
-            Self::Infer(_) | Self::Never | Self::Unknown => arguments
-                .pretty(env, boundary)
-                .append(self.pretty(env, boundary))
-                .group(),
         }
     }
 }

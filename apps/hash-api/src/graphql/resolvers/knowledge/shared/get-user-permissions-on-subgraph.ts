@@ -13,8 +13,7 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   const parsedResolveInfoFragment = parseResolveInfo(info);
 
   const requestedFieldsOnSubgraph =
-    parsedResolveInfoFragment?.fieldsByTypeName.SubgraphAndPermissions ||
-    parsedResolveInfoFragment?.fieldsByTypeName.GetEntitySubgraphResponse;
+    parsedResolveInfoFragment?.fieldsByTypeName.SubgraphAndPermissions;
 
   if (!requestedFieldsOnSubgraph) {
     throw new Error(`No Subgraph in parsed resolve info fragment`);

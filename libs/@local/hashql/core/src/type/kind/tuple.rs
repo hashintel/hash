@@ -1,13 +1,11 @@
 use core::ops::ControlFlow;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    algorithms::cartesian_product,
     intern::Interned,
-    math::cartesian_product,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -44,7 +42,7 @@ impl<'heap> TupleType<'heap> {
 
             // If we have a single variant, it's guaranteed that it's the same type, due to
             // distribution rules
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Create a new type kind for each
@@ -75,7 +73,7 @@ impl<'heap> TupleType<'heap> {
             kind,
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 }
 
@@ -86,7 +84,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
-            return SmallVec::from_slice(&[self.id, other.id]);
+            return SmallVec::from_slice_copy(&[self.id, other.id]);
         }
 
         // join pointwise
@@ -183,7 +181,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -201,7 +199,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -222,9 +220,8 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Tuples are width invariant
         if self.kind.fields.len() != supertype.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 tuple_length_mismatch(
-                    env.source,
                     self,
                     supertype,
                     self.kind.fields.len(),
@@ -259,14 +256,8 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Tuples must have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                tuple_length_mismatch(
-                    env.source,
-                    self,
-                    other,
-                    self.kind.fields.len(),
-                    other.kind.fields.len(),
-                )
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                tuple_length_mismatch(self, other, self.kind.fields.len(), other.kind.fields.len())
             });
 
             return false;
@@ -355,31 +346,5 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.fields.as_ref() {
-            [] => RcDoc::text("()"),
-            &[field] => RcDoc::text("(")
-                .append(boundary.pretty_type(env, field).group())
-                .append(RcDoc::text(",)"))
-                .group(),
-            fields => RcAllocator
-                .intersperse(
-                    fields.iter().map(|&field| boundary.pretty_type(env, field)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .nest(1)
-                .group()
-                .parens()
-                .group()
-                .into_doc(),
-        }
     }
 }

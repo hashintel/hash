@@ -63,7 +63,6 @@ export const syncLinearIntegrationWithWebsMutation: ResolverFn<
   );
 
   const vaultSecret = await vault.read<{ value: string }>({
-    secretMountPath: "secret",
     path: linearUserSecret.vaultPath,
     userAccountId,
   });

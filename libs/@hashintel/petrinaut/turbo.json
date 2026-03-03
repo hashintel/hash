@@ -1,0 +1,15 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": false
+    },
+    "build:site": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/demo-site/**"],
+      "cache": false
+    }
+  }
+}

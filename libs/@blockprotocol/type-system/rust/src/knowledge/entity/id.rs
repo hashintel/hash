@@ -27,7 +27,7 @@ use crate::principal::actor_group::WebId;
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityUuid(Uuid);
+pub struct EntityUuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityUuid {
     #[must_use]
@@ -57,7 +57,7 @@ impl From<EntityUuid> for Uuid {
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct DraftId(Uuid);
+pub struct DraftId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl DraftId {
     #[must_use]
@@ -155,7 +155,7 @@ impl ToSchema<'_> for EntityId {
 #[cfg(target_arch = "wasm32")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
 mod patch {
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     pub struct EntityId(#[tsify(type = "Brand<string, \"EntityId\">")] String);
 }
 
@@ -166,7 +166,7 @@ mod patch {
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityEditionId(Uuid);
+pub struct EntityEditionId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityEditionId {
     #[must_use]
@@ -186,7 +186,7 @@ impl EntityEditionId {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {

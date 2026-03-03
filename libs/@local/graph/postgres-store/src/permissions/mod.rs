@@ -1165,9 +1165,7 @@ where
             .await
             .map_err(|error| {
                 let policy_error = match error.code() {
-                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                        ActionError::HasChildren { id: action }
-                    }
+                    Some(&SqlState::RESTRICT_VIOLATION) => ActionError::HasChildren { id: action },
                     _ => ActionError::StoreError,
                 };
                 Report::new(error).change_context(policy_error)

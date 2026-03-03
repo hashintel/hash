@@ -4,16 +4,16 @@
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
+::core::option::Some(2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ ::core::option::Some(2)
+└→ ::core::option::Some(Integer)
+
+┌─ ::core::option::Some
+└→ (Integer) -> ::core::option::Some(Integer)
+
 ┌─ 2
 └→ Integer
-
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
-└→ fn(Integer) -> Some[Integer]
-
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
-└→ Some[Integer]
 

@@ -17,7 +17,7 @@ use crate::{knowledge::PropertyValue, ontology::BaseUrl};
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
 impl PropertyObject {
@@ -48,6 +48,14 @@ impl PropertyObject {
 
     pub fn iter(&self) -> impl Iterator<Item = (&BaseUrl, &Property)> {
         self.0.iter()
+    }
+
+    /// Retains only the properties for which the predicate returns `true`.
+    pub fn retain<F>(&mut self, predicate: F)
+    where
+        F: FnMut(&BaseUrl, &mut Property) -> bool,
+    {
+        self.0.retain(predicate);
     }
 
     pub fn diff<'a>(
@@ -135,7 +143,7 @@ impl<'a> FromSql<'a> for PropertyObject {
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyObjectWithMetadata {
     pub value: HashMap<BaseUrl, PropertyWithMetadata>,

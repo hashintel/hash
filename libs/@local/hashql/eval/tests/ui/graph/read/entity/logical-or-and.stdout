@@ -1,0 +1,75 @@
+════ HIR ═══════════════════════════════════════════════════════════════════════
+
+let %1 = thunk ->
+        let %5 = ::graph::tmp::decision_time_now(),
+            %6 = %5()
+        in
+        %6,
+    %3 = thunk ->
+        let %7 = if true then true else let %2 = true && false in %2 in %7,
+    %4 = thunk ->
+        let %8 = %1(),
+            %10 = ::graph::head::entities(%8)
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                      let %9 = %3() in %9
+                  )
+                  |> ::graph::tail::collect
+        in
+        %10
+in
+%4
+
+════ Entity Filter ═════════════════════════════════════════════════════════════
+
+[
+    Any(
+        [
+            Equal(
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
+            ),
+            All(
+                [
+                    Equal(
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
+                    ),
+                    Equal(
+                        Parameter {
+                            parameter: Boolean(
+                                false,
+                            ),
+                            convert: None,
+                        },
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
+                    ),
+                ],
+            ),
+        ],
+    ),
+]

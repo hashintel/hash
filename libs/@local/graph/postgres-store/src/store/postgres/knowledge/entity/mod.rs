@@ -1,3 +1,4 @@
+mod delete;
 mod query;
 mod read;
 use alloc::borrow::Cow;
@@ -15,20 +16,27 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryCursor,
-        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
+        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, Parameter, ParameterList},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    filter::{
+        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
+        protection::transform_filter,
+    },
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{
+            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, EntityTraversalEdgeKind,
+            GraphResolveDepths, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
+        },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
@@ -64,7 +72,7 @@ use type_system::{
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
             PropertyValueWithMetadata, PropertyWithMetadata,
-            metadata::{PropertyMetadata, PropertyObjectMetadata},
+            metadata::{PropertyMetadata, PropertyObjectMetadata, PropertyProvenance},
         },
     },
     ontology::{
@@ -81,206 +89,315 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, PostgresStore,
-    error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         ResponseCountMap, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::read::EntityEdgeTraversalData,
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
-            ReferenceTable, SelectCompiler, Table,
+            SelectCompiler, Table,
             rows::{
-                EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow, EntityHasRightEntityRow,
-                EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
+                EntityTemporalMetadataRow,
             },
         },
     },
     validation::StoreProvider,
 };
 
-#[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-struct GetEntitiesImplParams<'a> {
-    filter: Filter<'a, Entity>,
-    sorting: EntityQuerySorting<'static>,
-    limit: Option<usize>,
-    include_drafts: bool,
-    include_count: bool,
-    include_entity_types: Option<IncludeEntityTypeOption>,
-    include_web_ids: bool,
-    include_created_by_ids: bool,
-    include_edition_created_by_ids: bool,
-    include_type_ids: bool,
-    include_type_titles: bool,
-}
-
 impl<C> PostgresStore<C>
 where
     C: AsClient,
 {
-    /// Internal method to read an [`Entity`] into a [`TraversalContext`].
+    /// Resolves `is-of-type` edges from entities to their entity types.
     ///
-    /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(
-        level = "info",
-        skip(self, entity_queue, traversal_context, provider, subgraph)
-    )]
-    #[expect(clippy::too_many_lines)]
-    pub(crate) async fn traverse_entities(
+    /// Queries the database for `is-of-type` edges connecting the provided entities to their
+    /// corresponding [`EntityType`]s, applies permission filtering, and inserts the discovered
+    /// edges into the subgraph. Returns the discovered entity types for further traversal.
+    ///
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
+    ///   from
+    /// * `next_traversal` - Traversal parameters to apply to discovered entity types
+    /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
+    /// * `provider` - Store provider for permission checks
+    /// * `subgraph` - Subgraph to populate with discovered edges and vertices
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails or permission filtering encounters an
+    /// error.
+    async fn resolve_is_of_type_edge<'edges>(
         &self,
-        mut entity_queue: Vec<(
-            EntityVertexId,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        )>,
-        traversal_context: &mut TraversalContext,
+        entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        next_traversal: BorrowedTraversalParams<'edges>,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), Report<QueryError>> {
-        let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
+    ) -> Result<
+        Vec<(
+            EntityTypeUuid,
+            BorrowedTraversalParams<'edges>,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
+        Report<QueryError>,
+    > {
+        let entities = entities.into_iter();
+        let mut shared_edges_traversal_data = EntityEdgeTraversalData::with_capacity(
+            &subgraph.temporal_axes.resolved,
+            entities.size_hint().0,
+        );
+
+        for (entity_vertex_id, traversal_interval) in entities {
+            shared_edges_traversal_data.push(entity_vertex_id, traversal_interval);
+        }
 
         let mut entity_type_queue = Vec::new();
-        let process_traversal_edges_span = tracing::trace_span!("process_traversal_edges");
 
-        while !entity_queue.is_empty() {
-            let mut shared_edges_to_traverse = Option::<EntityEdgeTraversalData>::None;
-            let mut knowledge_edges_to_traverse =
-                HashMap::<(KnowledgeGraphEdgeKind, EdgeDirection), EntityEdgeTraversalData>::new();
+        if shared_edges_traversal_data.is_empty() {
+            return Ok(entity_type_queue);
+        }
 
-            let entity_edges = [
-                (
-                    KnowledgeGraphEdgeKind::HasLeftEntity,
-                    EdgeDirection::Incoming,
-                    ReferenceTable::EntityHasLeftEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasRightEntity,
-                    EdgeDirection::Incoming,
-                    ReferenceTable::EntityHasRightEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasLeftEntity,
-                    EdgeDirection::Outgoing,
-                    ReferenceTable::EntityHasLeftEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasRightEntity,
-                    EdgeDirection::Outgoing,
-                    ReferenceTable::EntityHasRightEntity,
-                ),
-            ];
+        let traversed_edges = self
+            .read_shared_edges(&shared_edges_traversal_data, Some(0))
+            .await?;
 
-            #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
-                entity_queue.drain(..)
-            {
-                tracing::trace_span!(
-                    "traverse_edges",
-                    entity_id = %entity_vertex_id.base_id,
-                    entity_revision = %entity_vertex_id.revision_id,
-                    graph_resolve_depths = ?graph_resolve_depths,
-                    traversal_interval = ?traversal_interval
-                )
-                .in_scope(|| {
-                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                        .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
-                    {
-                        shared_edges_to_traverse
-                            .get_or_insert_with(|| {
-                                EntityEdgeTraversalData::new(
-                                    subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                    variable_axis,
-                                )
-                            })
-                            .push(
-                                entity_vertex_id,
-                                traversal_interval,
-                                new_graph_resolve_depths,
-                            );
-                    }
+        let filtered_traversed_edges = Self::filter_entity_types_by_permission(
+            traversed_edges,
+            provider,
+            subgraph.temporal_axes.resolved.clone(),
+        )
+        .await?;
+        for edge in filtered_traversed_edges {
+            subgraph.insert_edge(
+                &edge.left_endpoint,
+                SharedEdgeKind::IsOfType,
+                EdgeDirection::Outgoing,
+                edge.right_endpoint.clone(),
+            );
 
-                    for (edge_kind, edge_direction, _) in entity_edges {
-                        if let Some(new_graph_resolve_depths) =
-                            graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
-                        {
-                            knowledge_edges_to_traverse
-                                .entry((edge_kind, edge_direction))
-                                .or_insert_with(|| {
-                                    EntityEdgeTraversalData::new(
-                                        subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                        variable_axis,
-                                    )
-                                })
-                                .push(
-                                    entity_vertex_id,
-                                    traversal_interval,
-                                    new_graph_resolve_depths,
-                                );
-                        }
-                    }
+            let next_traversal = traversal_context.add_entity_type_id(
+                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
+                next_traversal,
+                edge.traversal_interval,
+            );
+
+            if let Some((entity_type_uuid, next_traversal, interval)) = next_traversal {
+                entity_type_queue.push((entity_type_uuid, next_traversal, interval));
+            }
+        }
+
+        Ok(entity_type_queue)
+    }
+
+    /// Resolves a chain of entity edges, starting from the given entities.
+    ///
+    /// This method traverses through each edge in the path using a recursive CTE query, which
+    /// executes a single PostgreSQL query that traverses all edges at once.
+    ///
+    /// Returns the entities reached after traversing all edges. If the entity set becomes empty
+    /// at any point during traversal, an empty vector is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during edge resolution.
+    async fn resolve_entity_edges(
+        &self,
+        entities: Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        edges: &[EntityTraversalEdge],
+        traversal_context: &mut TraversalContext<'_>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>, Report<QueryError>>
+    {
+        // Fast path: No edges to traverse - return input entities as "leaf" entities
+        if edges.is_empty() {
+            return Ok(entities);
+        }
+
+        // Phase 1: Traverse all edges and collect results using CTE
+        let traversal_result = self
+            .read_knowledge_edges(&entities, edges, &subgraph.temporal_axes.resolved)
+            .await?;
+
+        // Phase 2: Single permission filter call for all collected edges
+        let permitted_editions = self
+            .filter_knowledge_edges(
+                &traversal_result.entity_edition_ids,
+                &subgraph.temporal_axes.resolved,
+                provider,
+            )
+            .await?;
+
+        // Phase 3: Process edges - populate subgraph and traversal context only for permitted
+        // entities
+
+        // Track starting entities
+        let mut tracked_entities = entities
+            .into_iter()
+            .map(|(vertex_id, _)| vertex_id)
+            .collect::<HashSet<_>>();
+        let mut final_entities = Vec::new();
+        let num_edge_hops = traversal_result.edge_hops.len();
+
+        for (edge_idx, edge_hop) in traversal_result.edge_hops.into_iter().enumerate() {
+            let is_last_edge = edge_idx == num_edge_hops.saturating_sub(1);
+
+            for edge_result in edge_hop.edges {
+                if !tracked_entities.contains(&edge_result.left_endpoint) {
+                    continue;
+                }
+
+                // Check if this entity is permitted
+                let is_permitted = permitted_editions.as_ref().is_none_or(|permitted| {
+                    permitted.contains(&edge_result.right_endpoint_edition_id)
                 });
-            }
 
-            if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(
-                    Self::filter_entity_types_by_permission(
-                        self.read_shared_edges(&traversal_data, Some(0)).await?,
-                        provider,
-                        subgraph.temporal_axes.resolved.clone(),
-                    )
-                    .await?
-                    .flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+                if is_permitted {
+                    subgraph.insert_edge(
+                        &edge_result.left_endpoint,
+                        edge_hop.edge_kind,
+                        edge_hop.edge_direction,
+                        EntityIdWithInterval {
+                            entity_id: edge_result.right_endpoint.base_id,
+                            interval: edge_result.edge_interval,
+                        },
+                    );
 
-                        traversal_context.add_entity_type_id(
-                            EntityTypeUuid::from(edge.right_endpoint_ontology_id),
-                            edge.resolve_depths,
-                            edge.traversal_interval,
-                        )
-                    }),
-                );
-            }
+                    traversal_context.add_entity_id(
+                        edge_result.right_endpoint_edition_id,
+                        edge_result.right_endpoint,
+                        edge_result.traversal_interval,
+                    );
 
-            for (edge_kind, edge_direction, table) in entity_edges {
-                if let Some(traversal_data) =
-                    knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
-                {
-                    let knowledge_edges = self
-                        .read_knowledge_edges(traversal_data, table, edge_direction, provider)
-                        .await?;
-                    let _entered = process_traversal_edges_span.enter();
-                    entity_queue.extend(knowledge_edges.flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            edge_kind,
-                            edge_direction,
-                            EntityIdWithInterval {
-                                entity_id: edge.right_endpoint.base_id,
-                                interval: edge.edge_interval,
-                            },
-                        );
+                    tracked_entities.insert(edge_result.right_endpoint);
 
-                        traversal_context
-                            .add_entity_id(
-                                edge.right_endpoint_edition_id,
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                            .map(move |(_, resolve_depths, interval)| {
-                                (edge.right_endpoint, resolve_depths, interval)
-                            })
-                    }));
+                    // Only add to final entities if this was from the last edge hop
+                    if is_last_edge {
+                        final_entities
+                            .push((edge_result.right_endpoint, edge_result.traversal_interval));
+                    }
                 }
             }
         }
 
-        self.traverse_entity_types(entity_type_queue, traversal_context, provider, subgraph)
+        Ok(final_entities)
+    }
+
+    /// Traverses entities along a specified path, optionally continuing into ontology types.
+    ///
+    /// This method performs a two-phase traversal:
+    /// 1. **Entity phase**: Follows the provided entity edges, starting from entities already in
+    ///    the subgraph
+    /// 2. **Ontology phase** (optional): If an ontology traversal path is provided, resolves the
+    ///    types of the leaf entities and continues traversing through the type system
+    ///
+    /// All discovered entities and types are added to the subgraph and tracked in the traversal
+    /// context.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during traversal.
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    pub(crate) async fn traverse_entities_with_path<'edges>(
+        &self,
+        entity_traversal_path: &[EntityTraversalEdge],
+        ontology_traversal_path: Option<&'edges [TraversalEdge]>,
+        traversal_context: &mut TraversalContext<'edges>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), Report<QueryError>> {
+        let entities = subgraph.entity_with_intervals().collect::<Vec<_>>();
+
+        let leaf_entities = self
+            .resolve_entity_edges(
+                entities,
+                entity_traversal_path,
+                traversal_context,
+                provider,
+                subgraph,
+            )
             .await?;
+
+        if let Some(traversal_path) = ontology_traversal_path {
+            let entity_types = self
+                .resolve_is_of_type_edge(
+                    leaf_entities,
+                    BorrowedTraversalParams::Path { traversal_path },
+                    traversal_context,
+                    provider,
+                    subgraph,
+                )
+                .await?;
+
+            self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Traverses entities using depth-based resolution parameters.
+    ///
+    /// This method traverses entity edges, then optionally resolves entity types if
+    /// [`GraphResolveDepths::is_of_type`] is enabled. Unlike
+    /// [`traverse_entities_with_path`](Self::traverse_entities_with_path), this method collects
+    /// ALL entities encountered during traversal (not just leaf entities) before resolving their
+    /// types, enabling type resolution across the entire entity subgraph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during traversal.
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    pub(crate) async fn traverse_entities_with_resolve_depths<'edges>(
+        &self,
+        entity_traversal_path: &'edges [EntityTraversalEdge],
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_context: &mut TraversalContext<'edges>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), Report<QueryError>> {
+        let entities = subgraph.entity_with_intervals().collect::<Vec<_>>();
+
+        let _leafs = self
+            .resolve_entity_edges(
+                entities,
+                entity_traversal_path,
+                traversal_context,
+                provider,
+                subgraph,
+            )
+            .await?;
+
+        if graph_resolve_depths.is_of_type {
+            let entities = subgraph
+                .entity_with_intervals()
+                .chain(traversal_context.entity_intervals())
+                .collect::<Vec<_>>();
+
+            let entity_types = self
+                .resolve_is_of_type_edge(
+                    entities,
+                    BorrowedTraversalParams::ResolveDepths {
+                        traversal_path: &[],
+                        graph_resolve_depths: GraphResolveDepths {
+                            is_of_type: false,
+                            ..graph_resolve_depths
+                        },
+                    },
+                    traversal_context,
+                    provider,
+                    subgraph,
+                )
+                .await?;
+
+            self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                .await?;
+        }
 
         Ok(())
     }
@@ -292,16 +409,15 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`DeletionError`] if the database deletion operation fails.
+    /// Returns [`DeletionError::Store`] if the database deletion operation fails.
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entities(&self) -> Result<(), Report<DeletionError>> {
+    pub async fn delete_all_entities(&self) -> Result<(), Report<DeletionError>> {
         tracing::debug!("Deleting all entities");
         self.as_client()
             .client()
             .simple_query(
                 "
-                    DELETE FROM entity_has_left_entity;
-                    DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_edge;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
@@ -317,7 +433,7 @@ where
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(DeletionError)?;
+            .change_context(DeletionError::Store)?;
 
         Ok(())
     }
@@ -368,7 +484,7 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
-    #[tracing::instrument(level = "info", skip(self, provider, entity, conversions))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn convert_entity<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
@@ -397,26 +513,53 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, params, policy_components))]
+    #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    async fn get_entities_impl(
+    async fn query_entities_impl(
         &self,
-        params: GetEntitiesImplParams<'_>,
+        params: &QueryEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks and removes them from responses for non-owners.
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+
+        let protected_filter;
+        let property_protection_filter;
+        let filter_to_use = if should_apply_protection {
+            property_protection_filter = self
+                .settings
+                .filter_protection
+                .to_property_protection_filter(policy_components.actor_id());
+            compiler.with_property_masking(&property_protection_filter);
+
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
+
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
@@ -541,7 +684,9 @@ where
                         FilterExpression::Path {
                             path: EntityTypeQueryPath::OntologyId,
                         },
-                        ParameterList::EntityTypeIds(&type_uuids),
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::EntityTypeIds(&type_uuids),
+                        },
                     );
                     type_compiler
                         .add_filter(&filter)
@@ -642,11 +787,7 @@ where
             (entities, cursor)
         };
 
-        Ok(GetEntitiesResponse {
-            #[expect(
-                clippy::if_then_some_else_none,
-                reason = "False positive, use of `await`"
-            )]
+        Ok(QueryEntitiesResponse {
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
                     self.get_closed_multi_entity_types(
@@ -707,6 +848,8 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            // Populated later
+            permissions: None,
         })
     }
 }
@@ -730,8 +873,7 @@ where
         let mut entity_edition_rows = Vec::with_capacity(params.len());
         let mut entity_temporal_metadata_rows = Vec::with_capacity(params.len());
         let mut entity_is_of_type_rows = Vec::with_capacity(params.len());
-        let mut entity_has_left_entity_rows = Vec::new();
-        let mut entity_has_right_entity_rows = Vec::new();
+        let mut entity_edge_rows = Vec::new();
 
         let mut policies = Vec::new();
 
@@ -746,7 +888,7 @@ where
             .determine_actor(actor_uuid)
             .await
             .change_context(InsertionError)?
-            .ok_or_else(|| Report::new(InsertionError).attach_printable("Actor not found"))?;
+            .ok_or_else(|| Report::new(InsertionError).attach("Actor not found"))?;
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction);
 
@@ -822,11 +964,11 @@ where
 
         if !forbidden_instantiations.is_empty() {
             return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
+                .attach_opaque(StatusCode::PermissionDenied)
+                .attach(
                     "The actor does not have permission to instantiate one or more entity types",
                 )
-                .attach_printable(
+                .attach(
                     forbidden_instantiations
                         .into_iter()
                         .map(ToString::to_string)
@@ -859,11 +1001,9 @@ where
 
         if !forbidden_entity_creations.is_empty() {
             return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
-                    "The actor does not have permission to create one or more entities",
-                )
-                .attach_printable(
+                .attach_opaque(StatusCode::PermissionDenied)
+                .attach("The actor does not have permission to create one or more entities")
+                .attach(
                     forbidden_entity_creations
                         .into_iter()
                         .map(ToString::to_string)
@@ -936,6 +1076,7 @@ where
                         .draft_id
                         .is_none()
                         .then_some(decision_time),
+                    deletion: None,
                 },
                 edition: EntityEditionProvenance {
                     created_by_id: actor_uuid,
@@ -996,22 +1137,48 @@ where
             }
 
             let link_data = params.link_data.inspect(|link_data| {
-                entity_has_left_entity_rows.push(EntityHasLeftEntityRow {
-                    web_id: entity_id.web_id,
-                    entity_uuid: entity_id.entity_uuid,
-                    left_web_id: link_data.left_entity_id.web_id,
-                    left_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance.clone(),
-                });
-                entity_has_right_entity_rows.push(EntityHasRightEntityRow {
-                    web_id: entity_id.web_id,
-                    entity_uuid: entity_id.entity_uuid,
-                    right_web_id: link_data.right_entity_id.web_id,
-                    right_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance.clone(),
-                });
+                entity_edge_rows.extend([
+                    EntityEdgeRow {
+                        source_web_id: entity_id.web_id,
+                        source_entity_uuid: entity_id.entity_uuid,
+                        target_web_id: link_data.left_entity_id.web_id,
+                        target_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        confidence: link_data.left_entity_confidence,
+                        provenance: link_data.left_entity_provenance.clone(),
+                        kind: EntityTraversalEdgeKind::HasLeftEntity,
+                        direction: EdgeDirection::Outgoing,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: link_data.left_entity_id.web_id,
+                        source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        target_web_id: entity_id.web_id,
+                        target_entity_uuid: entity_id.entity_uuid,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                        kind: EntityTraversalEdgeKind::HasLeftEntity,
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: entity_id.web_id,
+                        source_entity_uuid: entity_id.entity_uuid,
+                        target_web_id: link_data.right_entity_id.web_id,
+                        target_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        confidence: link_data.right_entity_confidence,
+                        provenance: link_data.right_entity_provenance.clone(),
+                        kind: EntityTraversalEdgeKind::HasRightEntity,
+                        direction: EdgeDirection::Outgoing,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: link_data.right_entity_id.web_id,
+                        source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        target_web_id: entity_id.web_id,
+                        target_entity_uuid: entity_id.entity_uuid,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                        kind: EntityTraversalEdgeKind::HasRightEntity,
+                        direction: EdgeDirection::Incoming,
+                    },
+                ]);
             });
 
             entities.push(Entity {
@@ -1060,14 +1227,7 @@ where
                 &entity_temporal_metadata_rows,
             ),
             InsertStatementBuilder::from_rows(Table::EntityIsOfType, &entity_is_of_type_rows),
-            InsertStatementBuilder::from_rows(
-                Table::EntityHasLeftEntity,
-                &entity_has_left_entity_rows,
-            ),
-            InsertStatementBuilder::from_rows(
-                Table::EntityHasRightEntity,
-                &entity_has_right_entity_rows,
-            ),
+            InsertStatementBuilder::from_rows(Table::EntityEdge, &entity_edge_rows),
         ];
 
         for statement in insertions {
@@ -1124,16 +1284,14 @@ where
             }
         }
 
-        for policy in policies {
-            transaction
-                .insert_policy_into_database(&policy)
-                .await
-                .change_context(InsertionError)?;
-        }
+        transaction
+            .insert_policies_into_database(policies)
+            .await
+            .change_context(InsertionError)?;
 
         ensure!(
             validation_reports.is_empty(),
-            Report::new(InsertionError).attach(validation_reports)
+            Report::new(InsertionError).attach_opaque(validation_reports)
         );
 
         transaction.commit().await.change_context(InsertionError)?;
@@ -1141,8 +1299,16 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let entity_ids: Vec<EntityId> = entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect();
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_uuid, &entities)
+                .start_update_entity_embeddings_workflow(
+                    actor_uuid,
+                    &entity_ids,
+                    self.settings.filter_protection.embedding_exclusions(),
+                )
                 .await
                 .change_context(InsertionError)?;
         }
@@ -1154,7 +1320,7 @@ where
     //   see https://linear.app/hash/issue/H-1449
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, params))]
     async fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
@@ -1250,11 +1416,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1272,23 +1438,7 @@ where
         let temporal_axes = params.temporal_axes.resolve();
 
         let mut response = self
-            .get_entities_impl(
-                GetEntitiesImplParams {
-                    filter: params.filter,
-                    sorting: params.sorting,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_count: params.include_count,
-                    include_entity_types: params.include_entity_types,
-                    include_web_ids: params.include_web_ids,
-                    include_created_by_ids: params.include_created_by_ids,
-                    include_edition_created_by_ids: params.include_edition_created_by_ids,
-                    include_type_ids: params.include_type_ids,
-                    include_type_titles: params.include_type_titles,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .query_entities_impl(&params, &temporal_axes, &policy_components)
             .await?;
 
         if !params.conversions.is_empty() {
@@ -1299,54 +1449,72 @@ where
             }
         }
 
+        if params.include_permissions {
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect::<Vec<_>>();
+
+            let update_permissions = self
+                .has_permission_for_entities(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
+        }
+
         Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let mut actions = vec![ActionName::ViewEntity];
-        if params.graph_resolve_depths.is_of_type.outgoing > 0 {
-            actions.push(ActionName::ViewEntityType);
-
-            if params
-                .graph_resolve_depths
-                .constrains_properties_on
-                .outgoing
-                > 0
-            {
-                actions.push(ActionName::ViewPropertyType);
-
-                if params.graph_resolve_depths.constrains_values_on.outgoing > 0 {
-                    actions.push(ActionName::ViewDataType);
-                }
-            }
-        }
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
+        let actor = policy_components.actor_id();
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        params
+        let (mut request, traversal_params) = params.into_parts();
+        request
             .filter
             .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
-        let unresolved_temporal_axes = params.temporal_axes;
-        let temporal_axes = unresolved_temporal_axes.clone().resolve();
-
+        let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let GetEntitiesResponse {
+        let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
             count,
@@ -1357,32 +1525,12 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            permissions,
         } = self
-            .get_entities_impl(
-                // actor_id,
-                GetEntitiesImplParams {
-                    filter: params.filter,
-                    sorting: params.sorting,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_count: params.include_count,
-                    include_entity_types: None,
-                    include_web_ids: params.include_web_ids,
-                    include_created_by_ids: params.include_created_by_ids,
-                    include_edition_created_by_ids: params.include_edition_created_by_ids,
-                    include_type_ids: params.include_type_ids,
-                    include_type_titles: params.include_type_titles,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .query_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
 
-        let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            unresolved_temporal_axes,
-            temporal_axes,
-        );
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
 
         async move {
             subgraph.roots.extend(
@@ -1397,45 +1545,77 @@ where
 
             let mut traversal_context = TraversalContext::default();
 
-            // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow
-            // the       vertices and have to `.collect()` the keys.
-            self.traverse_entities(
-                subgraph
-                    .vertices
-                    .entities
-                    .keys()
-                    .map(|id| {
-                        (
-                            *id,
-                            subgraph.depths,
-                            subgraph.temporal_axes.resolved.variable_interval(),
+            // Iterate over each traversal path and call traverse_entities separately
+            match &traversal_params {
+                SubgraphTraversalParams::Paths { traversal_paths } => {
+                    for path in traversal_paths {
+                        let (entity_traversal_path, ontology_traversal_path) =
+                            path.split_entity_path();
+                        self.traverse_entities_with_path(
+                            &entity_traversal_path,
+                            ontology_traversal_path,
+                            &mut traversal_context,
+                            &provider,
+                            &mut subgraph,
                         )
-                    })
-                    .collect(),
-                &mut traversal_context,
-                &provider,
-                &mut subgraph,
-            )
-            .await?;
+                        .await?;
+                    }
+                }
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                } => {
+                    if traversal_paths.is_empty() {
+                        if graph_resolve_depths.is_of_type {
+                            // If no entity traversal paths are specified, still initialize
+                            // the traversal with ontology resolve depths to enable
+                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
+                            self.traverse_entities_with_resolve_depths(
+                                &[],
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        for path in traversal_paths {
+                            self.traverse_entities_with_resolve_depths(
+                                &path.edges,
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    }
+                }
+            }
 
             traversal_context
-                .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+                .read_traversed_vertices(
+                    self,
+                    &mut subgraph,
+                    request.include_drafts,
+                    provider
+                        .policy_components
+                        .as_ref()
+                        .expect("Policy components should be set"),
+                )
                 .await?;
 
-            if !params.conversions.is_empty() {
+            if !request.conversions.is_empty() {
                 for entity in subgraph.vertices.entities.values_mut() {
-                    self.convert_entity(&provider, entity, &params.conversions)
+                    self.convert_entity(&provider, entity, &request.conversions)
                         .await
                         .change_context(QueryError)?;
                 }
             }
 
-            Ok(GetEntitySubgraphResponse {
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, use of `await`"
-                )]
-                closed_multi_entity_types: if params.include_entity_types.is_some() {
+            Ok(QueryEntitySubgraphResponse {
+                closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
                         self.get_closed_multi_entity_types(
                             actor_id,
@@ -1456,7 +1636,7 @@ where
                 } else {
                     None
                 },
-                definitions: match params.include_entity_types {
+                definitions: match request.include_entity_types {
                     Some(
                         IncludeEntityTypeOption::Resolved
                         | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
@@ -1479,7 +1659,7 @@ where
                             self.get_entity_type_resolve_definitions(
                                 actor_id,
                                 &entity_type_uuids,
-                                params.include_entity_types
+                                request.include_entity_types
                                     == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
                             )
                             .await?,
@@ -1487,7 +1667,6 @@ where
                     }
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
-                subgraph,
                 cursor,
                 count,
                 web_ids,
@@ -1495,6 +1674,41 @@ where
                 edition_created_by_ids,
                 type_ids,
                 type_titles,
+                entity_permissions: if request.include_permissions {
+                    debug_assert!(permissions.is_none(), "Should not be populated yet");
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
+                } else {
+                    None
+                },
+                subgraph,
             })
         }
         .instrument(tracing::trace_span!("construct_subgraph"))
@@ -1526,13 +1740,33 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks in count queries.
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+
+        let protected_filter;
+        let filter_to_use = if should_apply_protection {
+            // Transform filter to protect against email filtering on Users
+            // Note: count_entities has no sorting, so only filter protection applies
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         let temporal_axes = params.temporal_axes.resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         compiler.add_distinct_selection_with_ordering(
@@ -1598,10 +1832,6 @@ where
         .await
     }
 
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "The connection is required to borrow the client"
-    )]
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
     async fn patch_entity(
@@ -1621,8 +1851,8 @@ where
             .await?
             .ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
-                    .attach(StatusCode::NotFound)
-                    .attach_printable(params.entity_id)
+                    .attach_opaque(StatusCode::NotFound)
+                    .attach(params.entity_id)
                     .change_context(UpdateError)
             })?;
         let ClosedTemporalBound::Inclusive(locked_transaction_time) =
@@ -1632,13 +1862,13 @@ where
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &[Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
                     convert: None,
-                }),
+                },
             )],
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),
@@ -1651,7 +1881,7 @@ where
         )
         .await
         .change_context(EntityDoesNotExist)
-        .attach(params.entity_id)
+        .attach_opaque(params.entity_id)
         .change_context(UpdateError)?;
 
         let policy_components = PolicyComponents::builder(&transaction)
@@ -1686,32 +1916,34 @@ where
             ])
             .change_context(UpdateError)?;
 
-        match policy_set
-            .evaluate(
-                &Request {
-                    actor: policy_components.actor_id(),
-                    action: ActionName::UpdateEntity,
-                    resource: &ResourceId::Entity(params.entity_id.entity_uuid),
-                    context: RequestContext::default(),
-                },
-                policy_components.context(),
-            )
-            .change_context(UpdateError)?
-        {
-            Authorized::Always => {}
-            Authorized::Never => {
-                return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable("The actor does not have permission to update the entity")
-                    .attach_printable(
-                        previous_entity
-                            .metadata
-                            .entity_type_ids
-                            .iter()
-                            .map(VersionedUrl::to_string)
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    ));
+        if params.is_update() {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::UpdateEntity,
+                        resource: &ResourceId::Entity(params.entity_id.entity_uuid),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(UpdateError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(UpdateError)
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach("The actor does not have permission to update the entity")
+                        .attach(
+                            previous_entity
+                                .metadata
+                                .entity_type_ids
+                                .iter()
+                                .map(VersionedUrl::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ));
+                }
             }
         }
 
@@ -1731,8 +1963,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(UpdateError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to {} the entity",
                             if archive { "archive" } else { "publish" },
                         )));
@@ -1821,12 +2053,12 @@ where
 
             if !forbidden_instantiations.is_empty() {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(
                         "The actor does not have permission to instantiate one or more entity \
                          types",
                     )
-                    .attach_printable(
+                    .attach(
                         forbidden_instantiations
                             .into_iter()
                             .map(ToString::to_string)
@@ -2084,7 +2316,7 @@ where
 
         ensure!(
             validation_report.is_valid(),
-            Report::new(UpdateError).attach(HashMap::from([(0_usize, validation_report)]))
+            Report::new(UpdateError).attach_opaque(HashMap::from([(0_usize, validation_report)]))
         );
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -2092,13 +2324,44 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let entity_ids: Vec<EntityId> = entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect();
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_id, &entities)
+                .start_update_entity_embeddings_workflow(
+                    actor_id,
+                    &entity_ids,
+                    self.settings.filter_protection.embedding_exclusions(),
+                )
                 .await
                 .change_context(UpdateError)?;
         }
         let [entity] = entities;
         Ok(entity)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        // TODO: Authorization — check delete permission via PolicyComponents
+
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(DeletionError::Store)?;
+        let summary = transaction
+            .execute_entity_deletion(actor_id, params)
+            .await?;
+        transaction
+            .commit()
+            .await
+            .change_context(DeletionError::Store)?;
+
+        Ok(summary)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -2151,8 +2414,8 @@ where
         // if !permissions.is_empty() {
         //     let mut status = Report::new(PermissionAssertion);
         //     for entity_id in permissions {
-        //         status = status.attach(format!("Permission denied for entity {entity_id}"));
-        //     }
+        //         status = status.attach_opaque(format!("Permission denied for entity
+        // {entity_id}"));     }
         //     return Err(status.change_context(UpdateError));
         // }
 
@@ -2296,7 +2559,9 @@ where
             FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
             },
-            ParameterList::EntityUuids(&entity_uuids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityUuids(&entity_uuids),
+            },
         );
         compiler
             .add_filter(&entity_filter)
@@ -2368,7 +2633,7 @@ struct LockedEntityEdition {
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
-    #[tracing::instrument(level = "trace", skip(self, entity_type_ids))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
         archived: bool,
@@ -2455,7 +2720,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Ok(edition_id)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn lock_entity_edition(
         &self,
         entity_id: EntityId,
@@ -2534,13 +2799,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             })
             .map_err(|error| match error.code() {
                 Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
-                    .attach(entity_id)
+                    .attach_opaque(entity_id)
                     .change_context(UpdateError),
                 _ => Report::new(error).change_context(UpdateError),
             })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_temporal_metadata(
         &self,
         entity_id: EntityId,
@@ -2591,7 +2856,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     #[expect(clippy::too_many_lines)]
     async fn update_temporal_metadata(
         &self,
@@ -2783,7 +3048,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     #[expect(clippy::too_many_lines)]
     async fn archive_entity(
         &self,

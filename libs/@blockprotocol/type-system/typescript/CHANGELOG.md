@@ -1,5 +1,17 @@
 # @blockprotocol/type-system
 
+## 0.2.1
+
+### Patch Changes
+
+- [#8328](https://github.com/hashintel/hash/pull/8328) [`567b951`](https://github.com/hashintel/hash/commit/567b95178a429aa2c1c00050ca753250db0db094) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Build fix
+
+## 0.2.0
+
+### Minor Changes
+
+- [#7714](https://github.com/hashintel/hash/pull/7714) [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6) Thanks [@CiaranMn](https://github.com/CiaranMn)! - major overhaul including new metadata, data type inheritance
+
 ## 0.1.1
 
 ### Patch Changes

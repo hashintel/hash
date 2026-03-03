@@ -15,24 +15,26 @@ pub mod universe;
 use core::slice;
 use std::sync::RwLock;
 
-pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
     item::{Item, ItemKind},
     resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
+pub use self::{resolver::Reference, universe::Universe};
 use crate::{
-    collection::{FastHashMap, FastHashSet},
+    collections::{FastHashMap, FastHashSet},
     heap::Heap,
-    id::{HasId, Id as _},
+    id::{HasId, Id as _, newtype},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
-    newtype,
     symbol::Symbol,
     r#type::environment::Environment,
 };
 
-newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
+newtype! {
+    #[id(crate = crate)]
+    pub struct ModuleId(u32 is 0..=0xFFFF_FF00)
+}
 
 impl ModuleId {
     pub const ROOT: Self = Self::MAX;
@@ -193,7 +195,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
-            Ok(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Ok(item),
+            }
         }
     }
 
@@ -235,7 +242,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             None
         } else {
-            Some(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Some(item),
+            }
         }
     }
 
@@ -268,7 +280,6 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    #[expect(clippy::iter_on_empty_collections)]
     pub fn search_by_name(
         &self,
         name: Symbol<'heap>,

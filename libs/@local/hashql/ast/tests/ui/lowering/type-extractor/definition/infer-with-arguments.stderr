@@ -1,15 +1,10 @@
-[type-extractor::unused-generic-parameter] Error: Generic parameter not used in type definition
-   ╭─[ <unknown>:5:17 ]
-   │
- 5 │   "InvalidInfer<T>",
-   │                 ┬  
-   │                 ╰── Generic parameter `T` declared here...
-   │ 
- 7 │   "_",
-   │    ┬  
-   │    ╰── ...but never used in this type definition
-   │ 
-   │ Help: Generic parameter `T` is declared but not referenced. Either remove the unused parameter or incorporate it into your type definition.
-   │ 
-   │ Note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation. They are unconstrained variables, and therefore considered erroneous.
-───╯
+error[type-extractor::unused-generic-parameter]: Generic parameter not used in type definition
+  ╭▸ 
+5 │   "InvalidInfer<T>",
+  │                 ━ Generic parameter `T` declared here...
+6 │   //~^ ERROR Generic parameter `T` declared here...
+7 │   "_",
+  │    ─ ...but never used in this type definition
+  │
+  ├ help: Generic parameter `T` is declared but not referenced. Either remove the unused parameter or incorporate it into your type definition.
+  ╰ note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation. They are unconstrained variables, and therefore considered erroneous.

@@ -12,7 +12,7 @@ export const inferenceModelAliasToSpecificModel = {
   "gpt-4-turbo": "gpt-4-0125-preview",
   // preview only
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
-  "claude-3-haiku": "claude-3-haiku-20240307",
-  "claude-3-sonnet": "claude-3-5-sonnet-20240620",
-  "claude-3-opus": "claude-3-opus-20240229",
+  "claude-3-haiku": "claude-haiku-4-5-20251001",
+  "claude-3-sonnet": "claude-sonnet-4-6",
+  "claude-3-opus": "claude-opus-4-6",
 } as const satisfies Record<InferenceModelName, LlmParams["model"]>;

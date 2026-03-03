@@ -69,11 +69,11 @@ Expr#4294967040@47
                                 Expr#4294967040@41
                                   ExprKind (Literal)
                                     LiteralExpr#4294967040@40
-                                      LiteralKind (Integer)
-                                        IntegerLiteral (1)
+                                      Primitive (Integer)
+                                        Integer (1)
                               Argument#4294967040@43
                                 Expr#4294967040@43
                                   ExprKind (Literal)
                                     LiteralExpr#4294967040@42
-                                      LiteralKind (Integer)
-                                        IntegerLiteral (3)
+                                      Primitive (Integer)
+                                        Integer (3)

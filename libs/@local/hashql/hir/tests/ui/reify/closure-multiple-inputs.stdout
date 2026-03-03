@@ -1,2 +1,2 @@
-#fn(name:0: String, age:0: Integer, scores:0: List<Number>): Number ->
+(name:0: String, age:0: Integer, scores:0: List<Number>): Number ->
     ::core::math::add(::core::math::mul(age:0, 10), ::core::math::add(scores:0))

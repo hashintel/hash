@@ -12,9 +12,11 @@ import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
 export const OrgContextMenu = ({
   leaveOrg,
   org,
+  readonly,
 }: {
   leaveOrg: () => void;
   org: MinimalOrg;
+  readonly: boolean;
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -29,17 +31,21 @@ export const OrgContextMenu = ({
         <MenuItem href={`/@${org.shortname}`}>
           <ListItemText primary="View profile" />
         </MenuItem>
-        <MenuItem href={`/settings/organizations/${org.shortname}/general`}>
-          <ListItemText primary="Edit profile" />
-        </MenuItem>
+        {!readonly && (
+          <MenuItem href={`/settings/organizations/${org.shortname}/general`}>
+            <ListItemText primary="Edit profile" />
+          </MenuItem>
+        )}
         <MenuItem href={`/settings/organizations/${org.shortname}/members`}>
           <ListItemText primary="View members" />
         </MenuItem>
-        <MenuItem
-          href={`/settings/organizations/${org.shortname}/members#invite`}
-        >
-          <ListItemText primary="Invite new members" />
-        </MenuItem>
+        {!readonly && (
+          <MenuItem
+            href={`/settings/organizations/${org.shortname}/members#invite`}
+          >
+            <ListItemText primary="Invite new members" />
+          </MenuItem>
+        )}
         <MenuItem
           dangerous
           onClick={() => {

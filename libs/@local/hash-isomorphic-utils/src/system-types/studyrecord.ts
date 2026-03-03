@@ -20,6 +20,10 @@ import type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  CalendarYearDataType,
+  CalendarYearDataTypeWithMetadata,
+  DateDataType,
+  DateDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -76,8 +80,6 @@ import type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
-  YearDataType,
-  YearDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -91,6 +93,10 @@ export type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  CalendarYearDataType,
+  CalendarYearDataTypeWithMetadata,
+  DateDataType,
+  DateDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -147,8 +153,6 @@ export type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
-  YearDataType,
-  YearDataTypeWithMetadata,
 };
 
 /**
@@ -182,21 +186,6 @@ export type ActualStudyStartDatePropertyValue = DateDataType;
 
 export type ActualStudyStartDatePropertyValueWithMetadata =
   DateDataTypeWithMetadata;
-
-/**
- * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
- */
-export type DateDataType = TextDataType;
-
-export type DateDataTypeWithMetadata = {
-  value: DateDataType;
-  metadata: DateDataTypeMetadata;
-};
-export type DateDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1";
-};
 
 /**
  * The estimated number of participants that will be enrolled in something.

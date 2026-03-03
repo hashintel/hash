@@ -2,15 +2,18 @@ use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
+    diagnostic::Message,
     severity::Severity,
 };
 use text_size::TextRange;
 
-use super::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
+use super::{
+    number::{ParseNumberError, ParseNumberErrorKind},
+    syntax_kind::SyntaxKind,
+    syntax_kind_set::SyntaxKindSet,
+};
 use crate::lexer::syntax_kind_set::Conjunction;
 
 pub(crate) type LexerDiagnostic = Diagnostic<LexerDiagnosticCategory, SpanId>;
@@ -83,8 +86,6 @@ pub(crate) fn from_hifijson_str_error(
     error: &hifijson::str::Error,
     span: SpanId,
 ) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::Error);
-
     let (message, help) = match error {
         hifijson::str::Error::Control => (
             "Control character not allowed",
@@ -101,18 +102,17 @@ pub(crate) fn from_hifijson_str_error(
         ),
     };
 
-    diagnostic.labels.push(Label::new(span, message));
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::Error)
+        .primary(Label::new(span, message));
 
     if let Some(help) = help {
-        diagnostic.add_help(Help::new(help));
+        diagnostic.add_message(Message::help(help));
     }
 
     diagnostic
 }
 
 pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::Error);
-
     // Create a more specific label based on what was expected
     let label = if expected.is_empty() || expected.is_complete() {
         "Unexpected end of file".to_owned()
@@ -123,7 +123,8 @@ pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiag
         )
     };
 
-    diagnostic.labels.push(Label::new(span, label));
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::Error)
+        .primary(Label::new(span, label));
 
     // Provide specific help based on what was expected
     let help = if expected.contains_closing_delimiter() {
@@ -141,7 +142,7 @@ pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiag
          properly closed."
     };
 
-    diagnostic.add_help(Help::new(Cow::Borrowed(help)));
+    diagnostic.add_message(Message::help(Cow::Borrowed(help)));
 
     diagnostic
 }
@@ -151,8 +152,6 @@ pub(crate) fn unexpected_token(
     found: SyntaxKind,
     expected: SyntaxKindSet,
 ) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Severity::Error);
-
     // Create a specific label based on what was found vs what was expected
     let label = if expected.is_empty() {
         format!("Unexpected token {found}")
@@ -166,7 +165,8 @@ pub(crate) fn unexpected_token(
         )
     };
 
-    diagnostic.labels.push(Label::new(span, label));
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Severity::Error)
+        .primary(Label::new(span, label));
 
     // Provide specific help based on common syntax errors
     let help = if expected.contains_closing_delimiter()
@@ -188,7 +188,7 @@ pub(crate) fn unexpected_token(
          present."
     };
 
-    diagnostic.add_help(Help::new(Cow::Borrowed(help)));
+    diagnostic.add_message(Message::help(Cow::Borrowed(help)));
 
     diagnostic
 }
@@ -196,18 +196,10 @@ pub(crate) fn unexpected_token(
 const INVALID_NUMBER_HELP: &str = "JSON numbers must contain digits and follow the format: \
                                    `[-]digits[.digits][(e|E)[+|-]digits]`";
 
-pub(crate) fn from_hifijson_num_error(
-    error: &hifijson::num::Error,
-    span: SpanId,
-) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::Error);
-
-    let message = match error {
-        hifijson::num::Error::ExpectedDigit => "Missing digit in number",
-    };
-
-    diagnostic.labels.push(Label::new(span, message));
-    diagnostic.add_help(Help::new(INVALID_NUMBER_HELP));
+pub(crate) fn from_number_error(error: ParseNumberErrorKind, span: SpanId) -> LexerDiagnostic {
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::Error)
+        .primary(Label::new(span, error.to_string()));
+    diagnostic.add_message(Message::help(INVALID_NUMBER_HELP));
 
     diagnostic
 }
@@ -218,13 +210,10 @@ const UNRECOGNIZED_CHAR_HELP: &str = "J-Expr only supports standard JSON syntax.
 
 pub(crate) fn from_unrecognized_character_error(span: SpanId) -> LexerDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::Error);
+        Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::Error)
+            .primary(Label::new(span, "Unrecognized character"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Unrecognized character"));
-
-    diagnostic.add_help(Help::new(UNRECOGNIZED_CHAR_HELP));
+    diagnostic.add_message(Message::help(UNRECOGNIZED_CHAR_HELP));
 
     diagnostic
 }
@@ -233,13 +222,10 @@ const INVALID_UTF8_HELP: &str = "J-Expr requires valid UTF-8 encoded input. Chec
                                  characters or ensure your source is properly encoded as UTF-8.";
 
 pub(crate) fn from_invalid_utf8_error(span: SpanId) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::Error);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::Error)
+        .primary(Label::new(span, "Invalid UTF-8 byte sequence"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Invalid UTF-8 byte sequence"));
-
-    diagnostic.add_help(Help::new(INVALID_UTF8_HELP));
+    diagnostic.add_message(Message::help(INVALID_UTF8_HELP));
 
     diagnostic
 }
@@ -251,10 +237,7 @@ pub(crate) enum LexerError {
         range: TextRange,
     },
 
-    Number {
-        error: Arc<hifijson::num::Error>,
-        range: TextRange,
-    },
+    Number(ParseNumberError),
 
     #[default]
     UnrecognizedCharacter,

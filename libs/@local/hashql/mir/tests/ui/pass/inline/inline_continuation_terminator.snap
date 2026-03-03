@@ -1,0 +1,51 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inline/tests.rs
+expression: output
+---
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    bb0(): {
+        return %0
+    }
+}
+
+thunk {thunk@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply ({def@0} as FnPtr) 5
+        %1 = %0 == 10
+
+        return %1
+    }
+}
+
+================= After Inlining =================
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    bb0(): {
+        return %0
+    }
+}
+
+thunk {thunk@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+    let %2: Integer
+
+    bb0(): {
+        %2 = 5
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        %1 = %0 == 10
+
+        return %1
+    }
+
+    bb2(): {
+        goto -> bb1(%2)
+    }
+}

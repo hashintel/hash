@@ -29,7 +29,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),

@@ -1,0 +1,10 @@
+node_modules
+dist
+*.log
+.DS_Store
+
+# Used for Figma access token
+.env
+
+# PandaCSS
+styled-system

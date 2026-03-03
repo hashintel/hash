@@ -1,7 +1,7 @@
 //@ run: fail
 //@ description: calling an arbitrary function should result in a compile error
 [
-  "::kernel::special_form::is",
+  "::kernel::special_form::as",
   { "#literal": true },
   ["::core::math::headpat", "Int", "Float"]
   //~^ ERROR This function cannot be used as a type constructor

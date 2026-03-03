@@ -1,1 +1,1 @@
-#is(10, type: Number)
+10 as Number

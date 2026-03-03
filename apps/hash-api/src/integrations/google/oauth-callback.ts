@@ -22,8 +22,6 @@ export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
   GoogleOAuth2CallbackResponse,
   GoogleOAuth2CallbackRequest
-  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   if (!req.user) {
     res.status(401).send({ error: "User not authenticated." });
@@ -157,7 +155,10 @@ export const googleOAuthCallback: RequestHandler<
      * If we wish to maintain multiple secrets, the vault path will need to be changed to not overwrite existing secrets.
      */
     archiveExistingSecrets: true,
-    expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
+    // Set the expiration to 5 years from now (in ISO format)
+    expiresAt: new Date(
+      Date.now() + 5 * 365 * 24 * 60 * 60 * 1000,
+    ).toISOString(), // the secret data includes a refresh token that lasts indefinitely and will be used as needed
     graphApi: req.context.graphApi,
     managingBotAccountId: googleBotAccountId,
     provenance: req.context.provenance,

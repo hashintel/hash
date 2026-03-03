@@ -1,4 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 //! Extension for convenient usage of [`Report`]s returned by [`Future`] s.
 //!
 //! Extends [`Future`] with the same methods as [`ResultExt`] but calls the methods on [`poll`]ing.
@@ -7,13 +6,13 @@
 //! [`poll`]: Future::poll
 
 use core::{
-    fmt::{Debug, Display},
+    error::Error,
     future::Future,
     pin::Pin,
     task::{Context as TaskContext, Poll},
 };
 
-use crate::{Context, Report, ResultExt};
+use crate::{Attachment, OpaqueAttachment, Report, ResultExt};
 
 macro_rules! implement_future_adaptor {
     ($future:ident, $method:ident, $bound:ident $(+ $bounds:ident)* $(+ $lifetime:lifetime)*, $output:ty) => {
@@ -101,42 +100,42 @@ macro_rules! implement_lazy_future_adaptor {
 implement_future_adaptor!(
     FutureWithAttachment,
     attach,
-    Send + Sync + 'static,
+    Attachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyAttachment,
-    attach_lazy,
-    Send + Sync + 'static,
+    attach_with,
+    Attachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_future_adaptor!(
-    FutureWithPrintableAttachment,
-    attach_printable,
-    Display + Debug + Send + Sync + 'static,
+    FutureWithOpaqueAttachment,
+    attach_opaque,
+    OpaqueAttachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_lazy_future_adaptor!(
-    FutureWithLazyPrintableAttachment,
-    attach_printable_lazy,
-    Display + Debug + Send + Sync + 'static,
+    FutureWithLazyOpaqueAttachment,
+    attach_opaque_with,
+    OpaqueAttachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_future_adaptor!(
     FutureWithContext,
     change_context,
-    Context,
+    Error + Send + Sync + 'static,
     Result<<Fut::Output as ResultExt>::Ok, Report<T>>
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyContext,
     change_context_lazy,
-    Context,
+    Error + Send + Sync + 'static,
     Result<<Fut::Output as ResultExt>::Ok, Report<T>>
 );
 
@@ -144,10 +143,11 @@ implement_lazy_future_adaptor!(
 ///
 /// [`Report`]: crate::Report
 pub trait FutureExt: Future + Sized {
-    /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more
+    /// information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
@@ -155,55 +155,51 @@ pub trait FutureExt: Future + Sized {
     #[track_caller]
     fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        A: Send + Sync + 'static;
+        A: Attachment;
 
-    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Future`].
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`] when
+    /// [`poll`]ing the [`Future`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more
+    /// information.
     ///
     /// [`Report`]: crate::Report
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    fn attach_with<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        A: Send + Sync + 'static,
+        A: Attachment,
         F: FnOnce() -> A;
 
-    /// Adds a new printable attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
-    /// information.
+    /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::attach_printable`]: crate::Report::attach_printable
+    /// [`Report::attach_opaque`]: crate::Report::attach_opaque
     /// [`poll`]: Future::poll
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> FutureWithPrintableAttachment<Self, A>
+    fn attach_opaque<A>(self, attachment: A) -> FutureWithOpaqueAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static;
+        A: OpaqueAttachment;
 
-    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`] when
-    /// [`poll`]ing the [`Future`].
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// [`Future`].
     ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
-    /// information.
+    /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
     ///
     /// [`Report`]: crate::Report
-    /// [`Report::attach_printable`]: crate::Report::attach_printable
+    /// [`Report::attach_opaque`]: crate::Report::attach_opaque
     /// [`poll`]: Future::poll
     #[track_caller]
-    fn attach_printable_lazy<A, F>(
-        self,
-        attachment: F,
-    ) -> FutureWithLazyPrintableAttachment<Self, F>
+    fn attach_opaque_with<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// Changes the [`Error`] context of the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
@@ -214,10 +210,10 @@ pub trait FutureExt: Future + Sized {
     #[track_caller]
     fn change_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
-        C: Context;
+        C: Error + Send + Sync + 'static;
 
-    /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Future`].
+    /// Lazily changes the [`Error`] context of the [`Report`] inside the [`Result`] when
+    /// [`poll`]ing the [`Future`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     ///
@@ -227,7 +223,7 @@ pub trait FutureExt: Future + Sized {
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C;
 }
 
@@ -235,9 +231,10 @@ impl<Fut: Future> FutureExt for Fut
 where
     Fut::Output: ResultExt,
 {
+    #[track_caller]
     fn attach<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
-        A: Send + Sync + 'static,
+        A: Attachment,
     {
         FutureWithAttachment {
             future: self,
@@ -246,9 +243,9 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    fn attach_with<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
-        A: Send + Sync + 'static,
+        A: Attachment,
         F: FnOnce() -> A,
     {
         FutureWithLazyAttachment {
@@ -257,27 +254,23 @@ where
         }
     }
 
-    #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> FutureWithPrintableAttachment<Self, A>
+    fn attach_opaque<A>(self, attachment: A) -> FutureWithOpaqueAttachment<Self, A>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: OpaqueAttachment,
     {
-        FutureWithPrintableAttachment {
+        FutureWithOpaqueAttachment {
             future: self,
             inner: Some(attachment),
         }
     }
 
     #[track_caller]
-    fn attach_printable_lazy<A, F>(
-        self,
-        attachment: F,
-    ) -> FutureWithLazyPrintableAttachment<Self, F>
+    fn attach_opaque_with<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: OpaqueAttachment,
         F: FnOnce() -> A,
     {
-        FutureWithLazyPrintableAttachment {
+        FutureWithLazyOpaqueAttachment {
             future: self,
             inner: Some(attachment),
         }
@@ -286,7 +279,7 @@ where
     #[track_caller]
     fn change_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
         FutureWithContext {
             future: self,
@@ -297,7 +290,7 @@ where
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
         FutureWithLazyContext {

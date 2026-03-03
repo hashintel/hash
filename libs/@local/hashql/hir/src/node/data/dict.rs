@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::intern::Interned;
 
 use crate::node::Node;
 
@@ -30,7 +30,5 @@ pub struct DictField<'heap> {
 ///   time.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Dict<'heap> {
-    pub span: SpanId,
-
     pub fields: Interned<'heap, [DictField<'heap>]>,
 }

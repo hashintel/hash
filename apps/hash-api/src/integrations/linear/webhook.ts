@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import type { WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { tupleIncludes } from "@local/advanced-types/includes";
+import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -35,8 +36,6 @@ export const linearWebhook: RequestHandler<
   Record<string, never>,
   string,
   string
-  // @todo upgrade to Express 5 which handles async controllers automatically
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 
@@ -49,7 +48,11 @@ export const linearWebhook: RequestHandler<
     .update(req.body)
     .digest("hex");
 
-  if (expectedSignature !== req.headers["linear-signature"]) {
+  const linearSignature = req.headers["linear-signature"];
+  if (
+    typeof linearSignature !== "string" ||
+    !timingSafeCompare(expectedSignature, linearSignature)
+  ) {
     res.sendStatus(400);
     return;
   }

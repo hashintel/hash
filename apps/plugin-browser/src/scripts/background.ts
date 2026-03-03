@@ -36,23 +36,28 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-browser.runtime.onMessage.addListener(async (message, sender) => {
-  if (!isWellFormattedMessage(message)) {
-    return `Unrecognised message format ${String(message)}`;
-  }
+browser.runtime.onMessage.addListener(
+  async (
+    message: unknown,
+    sender: browser.Runtime.MessageSender,
+  ): Promise<unknown> => {
+    if (!isWellFormattedMessage(message)) {
+      return `Unrecognised message format ${String(message)}`;
+    }
 
-  if (sender.tab) {
-    // We are not expecting any messages from the content script
-    return;
-  }
+    if (sender.tab) {
+      // We are not expecting any messages from the content script
+      return;
+    }
 
-  switch (message.type) {
-    case "infer-entities":
-      return inferEntities(message, "manual");
-    case "cancel-infer-entities":
-      return cancelInferEntities(message);
-  }
-});
+    switch (message.type) {
+      case "infer-entities":
+        return inferEntities(message, "manual");
+      case "cancel-infer-entities":
+        return cancelInferEntities(message);
+    }
+  },
+);
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {

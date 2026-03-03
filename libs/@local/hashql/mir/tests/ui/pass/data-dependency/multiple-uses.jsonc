@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Same local used multiple times creates multiple edges
+[
+  "if",
+  { "#literal": true },
+  ["let", "a", { "#literal": 5 }, ["<=", "a", "a"]],
+  { "#literal": false }
+]

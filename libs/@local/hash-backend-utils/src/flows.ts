@@ -1,6 +1,5 @@
 import type {
   ActorEntityUuid,
-  EntityId,
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
@@ -11,7 +10,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -25,54 +24,33 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
+import type { FileStorageProvider } from "./file-storage.js";
 import {
-  getFlowRunFromWorkflowId,
-  getSparseFlowRunFromWorkflowId,
+  getFlowRunFromTemporalWorkflowId,
+  getSparseFlowRunFromTemporalWorkflowId,
 } from "./flows/get-flow-run-details.js";
+import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.js";
 import type { TemporalClient } from "./temporal.js";
 
-export const getFlowRunEntityById = async (params: {
-  flowRunId: EntityUuid;
-  graphApiClient: GraphApi;
-  userAuthentication: { actorId: ActorEntityUuid };
-}): Promise<HashEntity<FlowRunEntity> | null> => {
-  const { flowRunId, graphApiClient, userAuthentication } = params;
+export { getFlowRunEntityById };
 
-  const [existingFlowEntity] = await graphApiClient
-    .getEntities(userAuthentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity<FlowRunEntity>(
-          entity,
-          userAuthentication.actorId,
-        ),
-      ),
-    );
-
-  return existingFlowEntity ?? null;
-};
+export type {
+  ActionName,
+  AiFlowActionActivity,
+  CreateFlowActivities,
+  FlowActionActivity,
+  IntegrationFlowActionActivity,
+  ProxyFlowActivity,
+} from "./flows/action-types.js";
+export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
 type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunId: EntityUuid;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   userAuthentication: { actorId: ActorEntityUuid };
 };
@@ -93,6 +71,7 @@ export async function getFlowRunById({
   flowRunId,
   includeDetails,
   graphApiClient,
+  storageProvider,
   temporalClient,
   userAuthentication,
 }: GetFlowRunByIdFnArgs<boolean>): Promise<SparseFlowRun | FlowRun | null> {
@@ -110,26 +89,35 @@ export async function getFlowRunById({
     existingFlowEntity.metadata.recordId.entityId,
   );
 
+  const entityUuid = extractEntityUuidFromEntityId(
+    existingFlowEntity.metadata.recordId.entityId,
+  );
+
+  const temporalWorkflowId =
+    existingFlowEntity.properties[
+      "https://hash.ai/@h/types/property-type/workflow-id/"
+    ];
+
+  const name =
+    existingFlowEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    ];
+
   if (includeDetails) {
-    return getFlowRunFromWorkflowId({
-      name: existingFlowEntity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ],
-      workflowId: extractEntityUuidFromEntityId(
-        existingFlowEntity.metadata.recordId.entityId,
-      ),
+    return getFlowRunFromTemporalWorkflowId({
+      flowRunId: entityUuid,
+      name,
+      storageProvider,
       temporalClient,
+      temporalWorkflowId,
       webId,
     });
   } else {
-    return getSparseFlowRunFromWorkflowId({
-      name: existingFlowEntity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ],
-      workflowId: extractEntityUuidFromEntityId(
-        existingFlowEntity.metadata.recordId.entityId,
-      ),
+    return getSparseFlowRunFromTemporalWorkflowId({
+      flowRunId: entityUuid,
+      name,
       temporalClient,
+      temporalWorkflowId,
       webId,
     });
   }
@@ -146,6 +134,8 @@ const convertScreamingSnakeToPascalCase = (str: string) =>
 type GetFlowRunsFilters = {
   executionStatus?: FlowRunStatus | null;
   flowDefinitionIds?: string[] | null;
+  offset?: number | null;
+  limit?: number | null;
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
@@ -153,30 +143,50 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
+  storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
+};
+
+type MinimalFlowMetadata = {
+  flowRunId: EntityUuid;
+  name: string;
+  temporalWorkflowId: string;
+  webId: WebId;
+};
+
+type PaginatedFlowRuns<T> = {
+  flowRuns: T[];
+  totalCount: number;
 };
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<true>,
-): Promise<FlowRun[]>;
+): Promise<PaginatedFlowRuns<FlowRun>>;
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<false>,
-): Promise<SparseFlowRun[]>;
+): Promise<PaginatedFlowRuns<SparseFlowRun>>;
 
 export async function getFlowRuns<IncludeDetails extends boolean>(
   args: GetFlowRunsFnArgs<IncludeDetails>,
-): Promise<IncludeDetails extends true ? FlowRun[] : SparseFlowRun[]>;
+): Promise<
+  PaginatedFlowRuns<IncludeDetails extends true ? FlowRun : SparseFlowRun>
+>;
 
 export async function getFlowRuns({
   authentication,
   filters,
   graphApiClient,
   includeDetails,
+  storageProvider,
   temporalClient,
-}: GetFlowRunsFnArgs<boolean>): Promise<SparseFlowRun[] | FlowRun[]> {
-  const relevantFlows = await graphApiClient
-    .getEntities(authentication.actorId, {
+}: GetFlowRunsFnArgs<boolean>): Promise<
+  PaginatedFlowRuns<SparseFlowRun | FlowRun>
+> {
+  const temporalWorkflowIdToFlowDetails = await queryEntities<FlowRunEntity>(
+    { graphApi: graphApiClient },
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -205,36 +215,45 @@ export async function getFlowRuns({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    })
-    .then(({ data: response }) => {
-      const flowRunIdToOwnedByAndName: Record<
-        EntityUuid,
-        { webId: WebId; name: string }
-      > = {};
-      for (const entity of response.entities) {
-        const [webId, entityUuid] = splitEntityId(
-          entity.metadata.recordId.entityId as EntityId,
-        );
+      includePermissions: false,
+    },
+  ).then(({ entities }) => {
+    const result: Record<string, MinimalFlowMetadata> = {};
 
-        flowRunIdToOwnedByAndName[entityUuid] = {
-          name: (entity.properties as FlowRunEntity["properties"])[
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-          ],
-          webId,
-        };
-      }
-      return flowRunIdToOwnedByAndName;
-    });
+    for (const entity of entities) {
+      const [webId, entityUuid] = splitEntityId(
+        entity.metadata.recordId.entityId,
+      );
 
-  const relevantFlowRunIds = typedKeys(relevantFlows);
+      const name =
+        entity.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+        ];
 
-  if (!relevantFlowRunIds.length) {
-    return [];
+      const temporalWorkflowId =
+        entity.properties[
+          "https://hash.ai/@h/types/property-type/workflow-id/"
+        ];
+
+      result[temporalWorkflowId] = {
+        flowRunId: entityUuid,
+        name,
+        temporalWorkflowId,
+        webId,
+      };
+    }
+    return result;
+  });
+
+  const temporalWorkflowIds = typedKeys(temporalWorkflowIdToFlowDetails);
+
+  if (!temporalWorkflowIds.length) {
+    return { flowRuns: [], totalCount: 0 };
   }
 
   /** @see https://docs.temporal.io/develop/typescript/observability#search-attributes */
-  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${relevantFlowRunIds
-    .map((uuid) => `'${uuid}'`)
+  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${temporalWorkflowIds
+    .map((id) => `'${id}'`)
     .join(", ")})`;
 
   if (filters.executionStatus) {
@@ -247,81 +266,77 @@ export async function getFlowRuns({
 
   const workflowIdToLatestRunTime: Record<string, string> = {};
 
+  const deduplicatedWorkflowIds: string[] = [];
+
+  for await (const workflow of workflowIterable) {
+    const temporalWorkflowId = workflow.workflowId;
+
+    const startTime = workflow.startTime.toISOString();
+    workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
+
+    if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
+      /**
+       * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
+       *
+       * It could also theoretically be:
+       * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
+       * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
+       *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
+       */
+      continue;
+    }
+
+    if (!temporalWorkflowIdToFlowDetails[temporalWorkflowId]) {
+      throw new Error(
+        `Could not find details for workflowId ${workflow.workflowId}`,
+      );
+    }
+
+    deduplicatedWorkflowIds.push(temporalWorkflowId);
+  }
+
+  const totalCount = deduplicatedWorkflowIds.length;
+
+  const { offset, limit } = filters;
+  const paginatedIds =
+    offset != null && limit != null
+      ? deduplicatedWorkflowIds.slice(offset, offset + limit)
+      : deduplicatedWorkflowIds;
+
   if (includeDetails) {
     const workflows: FlowRun[] = [];
 
-    for await (const workflow of workflowIterable) {
-      const flowRunId = workflow.workflowId as EntityUuid;
-      const flowDetails = relevantFlows[flowRunId];
+    for (const temporalWorkflowId of paginatedIds) {
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
-      const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[flowRunId] ??= startTime;
-
-      if (startTime < workflowIdToLatestRunTime[flowRunId]) {
-        /**
-         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
-         *
-         * It could also theoretically be:
-         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
-         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
-         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
-         */
-        continue;
-      }
-
-      if (!flowDetails) {
-        throw new Error(
-          `Could not find details for workflowId ${workflow.workflowId}`,
-        );
-      }
-
-      const runInfo = await getFlowRunFromWorkflowId({
+      const runInfo = await getFlowRunFromTemporalWorkflowId({
+        flowRunId: flowDetails.flowRunId,
         name: flowDetails.name,
-        workflowId: flowRunId,
+        storageProvider,
         temporalClient,
+        temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }
 
-    return workflows;
+    return { flowRuns: workflows, totalCount };
   } else {
     const workflows: SparseFlowRun[] = [];
 
-    for await (const workflow of workflowIterable) {
-      const flowRunId = workflow.workflowId as EntityUuid;
+    for (const temporalWorkflowId of paginatedIds) {
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
-      const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[flowRunId] ??= startTime;
-
-      if (workflowIdToLatestRunTime[flowRunId] < startTime) {
-        /**
-         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
-         *
-         * It could also theoretically be:
-         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
-         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
-         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
-         */
-        continue;
-      }
-
-      const flowDetails = relevantFlows[flowRunId];
-
-      if (!flowDetails) {
-        throw new Error(
-          `Could not find details for workflowId ${workflow.workflowId}`,
-        );
-      }
-      const runInfo = await getSparseFlowRunFromWorkflowId({
+      const runInfo = await getSparseFlowRunFromTemporalWorkflowId({
+        flowRunId: flowDetails.flowRunId,
         name: flowDetails.name,
-        workflowId: flowRunId,
         temporalClient,
+        temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }
 
-    return workflows;
+    return { flowRuns: workflows, totalCount };
   }
 }

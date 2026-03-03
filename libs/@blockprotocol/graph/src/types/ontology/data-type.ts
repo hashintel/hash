@@ -1,10 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { QueryOperationInput } from "../entity.js";
-import type { DataTypeRootType, Subgraph } from "../subgraph.js";
+import type {
+  DataTypeRootType,
+  GraphResolveDepths,
+  Subgraph,
+} from "../subgraph.js";
 
 export type QueryDataTypesData = {
-  graphResolveDepths?: Partial<Pick<Subgraph["depths"], "constrainsValuesOn">>;
+  graphResolveDepths?: Partial<Pick<GraphResolveDepths, "constrainsValuesOn">>;
 };
 
 export type QueryDataTypesResult<T extends Subgraph<DataTypeRootType>> = {

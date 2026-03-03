@@ -15,19 +15,41 @@ const enforcedDevDependencies = {
   crossEnv: { commands: ["cross-env"], ident: "cross-env" },
 };
 
-const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
-const ignoredWorkspaces = ["@blocks/embed", "@blocks/person"];
+const ignoredDependencies = [
+  "@sentry/webpack-plugin",
+  // Petrinaut uses Vite 8
+  "vite",
+  "@vitejs/plugin-react",
+  // Petrinaut uses multiple packages which are many versions behind in other workspaces
+  // To be un-ignored once H-5639 completed
+  "vitest",
+  "@dnd-kit/sortable",
+  "@babel/core",
+];
+const ignoredWorkspaces = [];
 
 const allowedGitDependencies = [];
 
 /**
+ * Whether to ignore a dependency for consistency checks (version alignment).
+ * Skips peerDependencies entirely (they may legitimately differ).
  *
  * @param {Dependency} dependency
  */
-const shouldIgnoreDependency = (dependency) =>
+const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
   dependency.type === "peerDependencies";
+
+/**
+ * Whether to ignore a dependency for protocol enforcement.
+ * Does NOT skip peerDependencies — workspace peers must also use workspace:*.
+ *
+ * @param {Dependency} dependency
+ */
+const shouldIgnoreDependencyForProtocol = (dependency) =>
+  ignoredDependencies.includes(dependency.ident) ||
+  ignoredWorkspaces.includes(dependency.workspace.ident);
 
 /**
  * Enforces consistent dependency versions across all workspaces in the project.
@@ -37,15 +59,24 @@ const shouldIgnoreDependency = (dependency) =>
  * @param {Context} context - The Yarn constraint context.
  */
 function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
+  const workspaceIdents = new Set(
+    Yarn.workspaces().map((workspace) => workspace.ident),
+  );
+
   for (const dependency of Yarn.dependencies()) {
-    if (shouldIgnoreDependency(dependency)) {
+    if (shouldIgnoreDependencyForConsistency(dependency)) {
+      continue;
+    }
+
+    // Skip workspace dependencies; enforceProtocols handles them via workspace:*
+    if (workspaceIdents.has(dependency.ident)) {
       continue;
     }
 
     for (const otherDependency of Yarn.dependencies({
       ident: dependency.ident,
     })) {
-      if (shouldIgnoreDependency(otherDependency)) {
+      if (shouldIgnoreDependencyForConsistency(otherDependency)) {
         continue;
       }
 
@@ -78,7 +109,7 @@ function enforceProtocols({ Yarn }) {
   const workspaces = Yarn.workspaces();
 
   for (const dependency of Yarn.dependencies()) {
-    if (shouldIgnoreDependency(dependency)) {
+    if (shouldIgnoreDependencyForProtocol(dependency)) {
       continue;
     }
 
@@ -87,8 +118,15 @@ function enforceProtocols({ Yarn }) {
     );
 
     if (workspaceDependency) {
-      // turbo doesn't support the `workspace:` protocol when rewriting lockfiles, leading to inconsistent lockfiles
-      dependency.update(workspaceDependency.manifest.version);
+      const isPublishable = dependency.workspace.manifest.private !== true;
+      const expectedRange =
+        isPublishable && dependency.type !== "devDependencies"
+          ? "workspace:^"
+          : "workspace:*";
+
+      if (dependency.range !== expectedRange) {
+        dependency.update(expectedRange);
+      }
     }
 
     if (dependency.range.startsWith("file:")) {

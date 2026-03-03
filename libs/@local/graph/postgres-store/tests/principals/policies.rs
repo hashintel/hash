@@ -23,7 +23,7 @@ use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
 
-/// Struct to hold all the IDs created during test setup for easier reference
+/// Struct to hold all the IDs created during test setup for easier reference.
 #[expect(
     dead_code,
     reason = "It's easier to reference the IDs in the test code"
@@ -86,7 +86,7 @@ impl TestPolicyEnvironment {
     }
 }
 
-/// Struct to hold all policy IDs for easier reference
+/// Struct to hold all policy IDs for easier reference.
 struct TestPolicyIds {
     global: PolicyId,
     user_type: PolicyId,
@@ -98,7 +98,7 @@ struct TestPolicyIds {
     deny_user1: PolicyId,
 }
 
-/// Sets up a complete test environment with various principals and relationships
+/// Sets up a complete test environment with various principals and relationships.
 ///
 /// The test environment creates the following structure:
 ///
@@ -410,7 +410,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
@@ -421,7 +421,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let machine_policies = client
         .resolve_policies_for_actor(
@@ -432,7 +432,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let ai_policies = client
         .resolve_policies_for_actor(
@@ -443,7 +443,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let nonexisting_policies = client
         .resolve_policies_for_actor(
@@ -454,7 +454,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // All actors should have the global policy
@@ -499,7 +499,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
@@ -510,7 +510,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let machine_policies = client
         .resolve_policies_for_actor(
@@ -521,7 +521,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let nonexisting_machine_policies = client
         .resolve_policies_for_actor(
@@ -532,7 +532,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // Users should have user type policies, machines should not
@@ -591,7 +591,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
@@ -602,7 +602,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let nonexisting_user_policies = client
         .resolve_policies_for_actor(
@@ -613,7 +613,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // User1 should have its specific policy, user2 should not
@@ -650,7 +650,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
@@ -661,7 +661,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // User1 has web1_role, should have its policies
@@ -694,7 +694,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // Machine has web1_role but should still get role-based policies without actor type constraints
@@ -729,7 +729,7 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let ai_policies = client
         .resolve_policies_for_actor(
@@ -740,7 +740,7 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // User2 should have team1's policies
@@ -785,7 +785,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
     let user2_policies = client
         .resolve_policies_for_actor(
@@ -796,7 +796,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
     let machine_policies = client
         .resolve_policies_for_actor(
@@ -807,7 +807,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
     let ai_policies = client
         .resolve_policies_for_actor(
@@ -818,7 +818,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
     let nonexistent_policies = client
         .resolve_policies_for_actor(
@@ -829,7 +829,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
 
     // Verify that we have at least one policy for each actor
@@ -881,8 +881,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     );
     assert_eq!(
         deny_policy.actions.iter().copied().collect::<HashSet<_>>(),
-        HashSet::from([ActionName::ViewEntity, ActionName::Update]),
-        "Deny policy should have Update action"
+        HashSet::from([ActionName::Update]),
+        "Deny policy should have no `ViewEntity` action"
     );
 
     Ok(())
@@ -905,7 +905,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     let initial_count = user2_policies.len();
     let has_web2_policy = user2_policies.contains(&env.policies.web2_role_user);
@@ -929,7 +929,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
     assert!(
         !updated_policies.contains(&env.policies.web2_role_user),
@@ -955,7 +955,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     // We should have more policies after adding a role
@@ -1003,7 +1003,7 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| (policy.id, policy))
+        .map(|policy| (policy.original_policy_id, policy))
         .collect::<HashMap<_, _>>();
 
     // Ensure resource constraint is preserved
@@ -1133,7 +1133,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .into_iter()
-        .map(|policy| policy.id)
+        .map(|policy| policy.original_policy_id)
         .collect::<HashSet<_>>();
 
     assert!(

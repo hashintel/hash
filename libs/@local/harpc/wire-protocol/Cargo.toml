@@ -14,6 +14,7 @@ harpc-types = { workspace = true, public = true }
 # Public third-party dependencies
 bytes      = { workspace = true, public = true }
 enumflags2 = { workspace = true, public = true }
+serde_core = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 

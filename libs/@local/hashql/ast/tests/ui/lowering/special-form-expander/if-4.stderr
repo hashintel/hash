@@ -1,19 +1,17 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-    ╭─[ <unknown>:8:3 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  8 │ │     { "#literal": true }
-    │ │     ──────────┬─────────  
-    │ │               ╰─────────── Remove this argument
-    ┆ ┆   
- 10 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this `if` special form call
-    │     
-    │     Help: Use either:
-    │           - if/2: (if condition then-expr)
-    │           - if/3: (if condition then-expr else-expr)
-    │     
-    │     Note: The if function has 2 variants: if/2, if/3
-────╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+   ╭▸ 
+ 3 │ ┌ [
+ 4 │ │   "::kernel::special_form::if",
+ 5 │ │   { "#literal": true },
+ 6 │ │   { "#literal": true },
+ 7 │ │   { "#literal": true },
+ 8 │ │   { "#literal": true }
+   │ │   ━━━━━━━━━━━━━━━━━━━━ Remove this argument
+ 9 │ │   //~^ ERROR Remove this argument
+10 │ │ ]
+   │ └─┘ In this `if` special form call
+   │
+   ├ help: Use either:
+   │       - if/2: (if condition then-expr)
+   │       - if/3: (if condition then-expr else-expr)
+   ╰ note: The if function has 2 variants: if/2, if/3

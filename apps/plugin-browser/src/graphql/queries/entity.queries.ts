@@ -1,6 +1,3 @@
-import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
-import { print } from "graphql";
-
 export const createEntityMutation = /* GraphQL */ `
   mutation createEntity(
     $entityTypeIds: [VersionedUrl!]!
@@ -21,13 +18,14 @@ export const updateEntityMutation = /* GraphQL */ `
   }
 `;
 
-export const getEntitySubgraphQuery = /* GraphQL */ `
-  query getEntitySubgraph($request: GetEntitySubgraphRequest!) {
-    getEntitySubgraph(request: $request) {
-      subgraph {
-        ...SubgraphFields
-      }
-    }
+export const queryEntitiesQuery = /* GraphQL */ `
+  query queryEntities($request: QueryEntitiesRequest!) {
+    queryEntities(request: $request)
   }
-  ${print(subgraphFieldsFragment)}
+`;
+
+export const queryEntitySubgraphQuery = /* GraphQL */ `
+  query queryEntitySubgraph($request: QueryEntitySubgraphRequest!) {
+    queryEntitySubgraph(request: $request)
+  }
 `;

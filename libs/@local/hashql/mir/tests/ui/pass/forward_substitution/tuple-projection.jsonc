@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: SROA resolves tuple element projection to underlying constant
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 42 },
+    ["let", "tup", { "#tuple": ["a"] }, "tup.0"]
+  ],
+  { "#literal": 0 }
+]

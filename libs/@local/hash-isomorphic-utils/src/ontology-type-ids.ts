@@ -10,6 +10,21 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/actor/v/2",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/actor/" as BaseUrl,
   },
+  aircraft: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/aircraft/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/aircraft/" as BaseUrl,
+  },
+  airline: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/airline/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/airline/" as BaseUrl,
+  },
+  airport: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/airport/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/airport/" as BaseUrl,
+  },
   block: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/block/v/1",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/block/" as BaseUrl,
@@ -77,6 +92,11 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/file/v/2",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/file/" as BaseUrl,
   },
+  flight: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flight/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/flight/" as BaseUrl,
+  },
   flowDefinition: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/flow-definition/v/1",
     entityTypeBaseUrl:
@@ -86,6 +106,11 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
+  },
+  flowSchedule: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/flow-schedule/" as BaseUrl,
   },
   githubAccount: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/github-account/v/1",
@@ -99,7 +124,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/graph-change-notification/" as BaseUrl,
   },
   hashInstance: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/hash-instance/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/hash-instance/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/hash-instance/" as BaseUrl,
   },
@@ -274,6 +299,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/affiliated-with/" as BaseUrl,
   },
+  arrivesAt: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/arrives-at/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/arrives-at/" as BaseUrl,
+  },
   associatedWithAccount: {
     linkEntityTypeId:
       "https://hash.ai/@h/types/entity-type/associated-with-account/v/1",
@@ -289,6 +319,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/created/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/created/" as BaseUrl,
+  },
+  departsFrom: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/departs-from/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/departs-from/" as BaseUrl,
   },
   has: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/has/v/1",
@@ -405,6 +440,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/occurred-in-text/" as BaseUrl,
   },
+  operatedBy: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/operated-by/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/operated-by/" as BaseUrl,
+  },
   recordsUsageOf: {
     linkEntityTypeId:
       "https://hash.ai/@h/types/entity-type/records-usage-of/v/1",
@@ -416,6 +456,11 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/replied-to-comment/" as BaseUrl,
+  },
+  scheduledBy: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/scheduled-by/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/scheduled-by/" as BaseUrl,
   },
   sponsoredBy: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/sponsored-by/v/1",
@@ -450,6 +495,16 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/updated/" as BaseUrl,
   },
+  uses: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/uses/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/uses/" as BaseUrl,
+  },
+  usesAircraft: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/uses-aircraft/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/uses-aircraft/" as BaseUrl,
+  },
   usesUserSecret: {
     linkEntityTypeId:
       "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1",
@@ -468,6 +523,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-enrollment/" as BaseUrl,
   },
+  actualGateTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/actual-gate-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/actual-gate-time/" as BaseUrl,
+  },
+  actualRunwayTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/actual-runway-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/actual-runway-time/" as BaseUrl,
+  },
   actualStudyCompletionDate: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/actual-study-completion-date/v/1",
@@ -485,6 +552,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/actual-study-start-date/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
+  },
+  altitude: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/altitude/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/altitude/" as BaseUrl,
   },
   applicationPreferences: {
     propertyTypeId:
@@ -513,11 +585,26 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/automatic-inference-configuration/" as BaseUrl,
   },
+  baggageClaim: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/baggage-claim/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/baggage-claim/" as BaseUrl,
+  },
   browserPluginTab: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/browser-plugin-tab/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/browser-plugin-tab/" as BaseUrl,
+  },
+  city: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/city/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/city/" as BaseUrl,
+  },
+  codeshare: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/codeshare/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/codeshare/" as BaseUrl,
   },
   componentId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/component-id/v/1",
@@ -547,16 +634,32 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/data-audience/" as BaseUrl,
   },
+  dataSources: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/data-sources/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/data-sources/" as BaseUrl,
+  },
   definitionObject: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/definition-object/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/definition-object/" as BaseUrl,
   },
+  delayInSeconds: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/delay-in-seconds/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/delay-in-seconds/" as BaseUrl,
+  },
   deletedAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/deleted-at/" as BaseUrl,
+  },
+  direction: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/direction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/direction/" as BaseUrl,
   },
   doi: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/doi/v/1",
@@ -596,11 +699,23 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/estimated-enrollment/" as BaseUrl,
   },
+  estimatedGateTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/estimated-gate-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/estimated-gate-time/" as BaseUrl,
+  },
   estimatedPrimaryCompletionDate: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/estimated-primary-completion-date/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/estimated-primary-completion-date/" as BaseUrl,
+  },
+  estimatedRunwayTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/estimated-runway-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/estimated-runway-time/" as BaseUrl,
   },
   estimatedStudyCompletionDate: {
     propertyTypeId:
@@ -630,6 +745,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/expired-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/expired-at/" as BaseUrl,
+  },
+  explanation: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/explanation/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/explanation/" as BaseUrl,
   },
   featureName: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/feature-name/v/1",
@@ -682,11 +802,36 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/finding/" as BaseUrl,
   },
+  flightDate: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flight-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flight-date/" as BaseUrl,
+  },
+  flightNumber: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flight-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flight-number/" as BaseUrl,
+  },
+  flightStatus: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flight-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flight-status/" as BaseUrl,
+  },
+  flightType: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flight-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flight-type/" as BaseUrl,
+  },
   flowDefinitionId: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/flow-definition-id/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flow-definition-id/" as BaseUrl,
+  },
+  flowType: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flow-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flow-type/" as BaseUrl,
   },
   fractionalIndex: {
     propertyTypeId:
@@ -694,17 +839,37 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/fractional-index/" as BaseUrl,
   },
+  gate: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/gate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/gate/" as BaseUrl,
+  },
   graphChangeType: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/graph-change-type/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/graph-change-type/" as BaseUrl,
   },
+  groundSpeed: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/ground-speed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/ground-speed/" as BaseUrl,
+  },
   heightInPixels: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/height-in-pixels/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/height-in-pixels/" as BaseUrl,
+  },
+  iataCode: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/iata-code/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/iata-code/" as BaseUrl,
+  },
+  icaoCode: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/icao-code/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/icao-code/" as BaseUrl,
   },
   icon: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/icon/v/1",
@@ -744,6 +909,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/intervention/" as BaseUrl,
   },
+  isOnGround: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/is-on-ground/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/is-on-ground/" as BaseUrl,
+  },
   isbn: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/isbn/v/1",
     propertyTypeBaseUrl:
@@ -760,6 +930,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/kratos-identity-id/" as BaseUrl,
   },
+  latitude: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/latitude/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/latitude/" as BaseUrl,
+  },
   linearOrgId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/linear-org-id/v/1",
     propertyTypeBaseUrl:
@@ -774,6 +949,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/location/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/location/" as BaseUrl,
+  },
+  longitude: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/longitude/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/longitude/" as BaseUrl,
   },
   machineIdentifier: {
     propertyTypeId:
@@ -797,6 +977,18 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/methodology/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/methodology/" as BaseUrl,
+  },
+  migrationState: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/migration-state/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/migration-state/" as BaseUrl,
+  },
+  migrationsCompleted: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/migrations-completed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/migrations-completed/" as BaseUrl,
   },
   nctId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/nct-id/v/1",
@@ -872,6 +1064,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/pages-are-enabled/" as BaseUrl,
   },
+  pauseOnFailure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pause-on-failure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pause-on-failure/" as BaseUrl,
+  },
+  pausedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/paused-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/paused-at/" as BaseUrl,
+  },
   pinnedEntityTypeBaseUrl: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/v/1",
@@ -905,6 +1108,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/read-at/" as BaseUrl,
   },
+  registrationNumber: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/registration-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/registration-number/" as BaseUrl,
+  },
   resolvedAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/resolved-at/v/1",
     propertyTypeBaseUrl:
@@ -920,6 +1129,52 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/rotation-in-rads/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/rotation-in-rads/" as BaseUrl,
+  },
+  runway: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/runway/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/runway/" as BaseUrl,
+  },
+  scheduleCatchupWindow: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-catchup-window/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-catchup-window/" as BaseUrl,
+  },
+  scheduleOverlapPolicy: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-overlap-policy/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-overlap-policy/" as BaseUrl,
+  },
+  schedulePauseState: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-pause-state/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-pause-state/" as BaseUrl,
+  },
+  scheduleSpec: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/schedule-spec/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-spec/" as BaseUrl,
+  },
+  scheduleStatus: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-status/" as BaseUrl,
+  },
+  scheduledGateTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/scheduled-gate-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/scheduled-gate-time/" as BaseUrl,
+  },
+  scheduledRunwayTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/scheduled-runway-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/scheduled-runway-time/" as BaseUrl,
   },
   serviceName: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/service-name/v/1",
@@ -973,10 +1228,20 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/summary/" as BaseUrl,
   },
+  terminal: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/terminal/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/terminal/" as BaseUrl,
+  },
   timeFrame: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/time-frame/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/time-frame/" as BaseUrl,
+  },
+  timezone: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/timezone/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/timezone/" as BaseUrl,
   },
   title: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/title/v/1",
@@ -1033,6 +1298,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/vault-path/" as BaseUrl,
   },
+  verticalSpeed: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/vertical-speed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/vertical-speed/" as BaseUrl,
+  },
   websiteUrl: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/website-url/v/1",
     propertyTypeBaseUrl:
@@ -1048,6 +1318,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/willing-to-pay/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/willing-to-pay/" as BaseUrl,
+  },
+  workflowId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/workflow-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/workflow-id/" as BaseUrl,
   },
   xPosition: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/x-position/v/1",
@@ -1072,6 +1347,13 @@ export const systemDataTypes = {
     title: "Actor Type",
     description: "The type of thing that can, should or will act on something.",
   },
+  angle: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/angle/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/angle/" as BaseUrl,
+    title: "Angle",
+    description:
+      "A measure of rotation or the space between two intersecting lines.",
+  },
   bits: {
     dataTypeId: "https://hash.ai/@h/types/data-type/bits/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/bits/" as BaseUrl,
@@ -1083,6 +1365,13 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/bytes/" as BaseUrl,
     title: "Bytes",
     description: "A unit of information equal to eight bits.",
+  },
+  calendarYear: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/calendar-year/" as BaseUrl,
+    title: "Calendar Year",
+    description: "A year in the Gregorian calendar.",
   },
   centimeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1",
@@ -1120,6 +1409,12 @@ export const systemDataTypes = {
     description:
       "A measure of the length of time, defined as the time period of a full rotation of the Earth with respect to the Sun. On average, this is 24 hours.",
   },
+  degree: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/degree/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/degree/" as BaseUrl,
+    title: "Degree",
+    description: "A unit of angular measure equal to 1/360 of a full rotation.",
+  },
   doi: {
     dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/doi/" as BaseUrl,
@@ -1152,6 +1447,28 @@ export const systemDataTypes = {
     title: "Feet",
     description:
       "An imperial unit of length. 3 feet equals 1 yard. Equivalent to 0.3048 meters in the International System of Units (SI).",
+  },
+  feetPerMinute: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/feet-per-minute/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/feet-per-minute/" as BaseUrl,
+    title: "Feet per Minute",
+    description:
+      "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
+  },
+  flightStatus: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/flight-status/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/flight-status/" as BaseUrl,
+    title: "Flight Status",
+    description:
+      "The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.",
+  },
+  flowType: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/flow-type/" as BaseUrl,
+    title: "Flow Type",
+    description: "The type of a flow, determining which task queue it runs on.",
   },
   frequency: {
     dataTypeId: "https://hash.ai/@h/types/data-type/frequency/v/1",
@@ -1272,6 +1589,14 @@ export const systemDataTypes = {
     description:
       "A unit of length in the International System of Units (SI), equal to one thousand meters.",
   },
+  kilometersPerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilometers-per-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilometers-per-hour/" as BaseUrl,
+    title: "Kilometers per Hour",
+    description:
+      "A unit of speed expressing the number of kilometers traveled in one hour.",
+  },
   kilowatts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilowatts/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilowatts/" as BaseUrl,
@@ -1279,11 +1604,32 @@ export const systemDataTypes = {
     description:
       "A unit of power in the International System of Units (SI), equal to one thousand watts.",
   },
+  knots: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/knots/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/knots/" as BaseUrl,
+    title: "Knots",
+    description:
+      "A unit of speed equal to one nautical mile per hour, commonly used in aviation and maritime contexts.",
+  },
+  latitude: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/latitude/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/latitude/" as BaseUrl,
+    title: "Latitude",
+    description:
+      "The angular distance of a position north or south of the equator, ranging from -90° (South Pole) to +90° (North Pole).",
+  },
   length: {
     dataTypeId: "https://hash.ai/@h/types/data-type/length/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/length/" as BaseUrl,
     title: "Length",
     description: "A measure of distance.",
+  },
+  longitude: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/longitude/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/longitude/" as BaseUrl,
+    title: "Longitude",
+    description:
+      "The angular distance of a position east or west of the prime meridian, ranging from -180° to +180°.",
   },
   megabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megabytes/v/1",
@@ -1311,6 +1657,14 @@ export const systemDataTypes = {
     title: "Meters",
     description:
       "The base unit of length in the International System of Units (SI).",
+  },
+  metersPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/meters-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/meters-per-second/" as BaseUrl,
+    title: "Meters per Second",
+    description:
+      "The SI unit of speed, expressing the number of meters traveled in one second.",
   },
   metricLengthSi: {
     dataTypeId: "https://hash.ai/@h/types/data-type/metric-length-si/v/1",
@@ -1385,12 +1739,36 @@ export const systemDataTypes = {
     title: "Power",
     description: "The amount of energy transferred or converted per unit time.",
   },
+  scheduleOverlapPolicy: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/schedule-overlap-policy/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/schedule-overlap-policy/" as BaseUrl,
+    title: "Schedule Overlap Policy",
+    description:
+      "The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.",
+  },
+  scheduleStatus: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/schedule-status/" as BaseUrl,
+    title: "Schedule Status",
+    description:
+      "The status of a schedule, indicating whether it is currently running or has been temporarily stopped.",
+  },
   second: {
     dataTypeId: "https://hash.ai/@h/types/data-type/second/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/second/" as BaseUrl,
     title: "Second",
     description:
       "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
+  },
+  speed: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/speed/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/speed/" as BaseUrl,
+    title: "Speed",
+    description:
+      "A measure of the rate of movement or change in position over time.",
   },
   terabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/terabytes/v/1",
@@ -1444,12 +1822,6 @@ export const systemDataTypes = {
     title: "Yards",
     description:
       "An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).",
-  },
-  year: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/year/" as BaseUrl,
-    title: "Year",
-    description: "A year in the Gregorian calendar.",
   },
 } as const satisfies Record<
   string,
@@ -1999,9 +2371,9 @@ export const blockProtocolEntityTypes = {
 export const blockProtocolLinkEntityTypes = {
   hasQuery: {
     linkEntityTypeId:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/v/1",
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
     linkEntityTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/" as BaseUrl,
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/" as BaseUrl,
   },
 } as const satisfies Record<
   string,
@@ -2077,9 +2449,9 @@ export const blockProtocolPropertyTypes = {
   },
   query: {
     propertyTypeId:
-      "https://blockprotocol.org/@h/types/property-type/query/v/1",
+      "https://blockprotocol.org/@hash/types/property-type/query/v/1",
     propertyTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/property-type/query/" as BaseUrl,
+      "https://blockprotocol.org/@hash/types/property-type/query/" as BaseUrl,
   },
   textualContent: {
     propertyTypeId:

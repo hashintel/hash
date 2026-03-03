@@ -26,7 +26,7 @@ pub struct PropertyTypeMetadata {
 mod metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     enum PropertyTypeMetadata {
         #[serde(rename_all = "camelCase")]
@@ -93,7 +93,7 @@ pub type PropertyTypeWithMetadata = OntologyTypeWithMetadata<PropertyType>;
 mod with_metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     struct PropertyTypeWithMetadata {
         schema: PropertyType,
         metadata: PropertyTypeMetadata,

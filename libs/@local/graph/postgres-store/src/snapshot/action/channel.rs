@@ -33,10 +33,10 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.name.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll action sender")?;
+            .attach("could not poll action sender")?;
         ready!(self.hierarchy.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll action hierarchy sender")?;
+            .attach("could not poll action hierarchy sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -51,7 +51,7 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
                 parent: action.parents.first().cloned(),
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send action row")?;
+            .attach("could not send action row")?;
 
         for (depth, parent_name) in action.parents.into_iter().enumerate() {
             self.hierarchy
@@ -61,7 +61,7 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
                     depth: i32::try_from(depth + 1).expect("Depth should be smaller than 2^31"),
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send action row")?;
+                .attach("could not send action row")?;
         }
 
         self.hierarchy
@@ -71,7 +71,7 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
                 depth: 0,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send action row")?;
+            .attach("could not send action row")?;
 
         Ok(())
     }
@@ -79,10 +79,10 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.name.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush action sender")?;
+            .attach("could not flush action sender")?;
         ready!(self.hierarchy.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush action hierarchy sender")?;
+            .attach("could not flush action hierarchy sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -90,10 +90,10 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.name.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close action sender")?;
+            .attach("could not close action sender")?;
         ready!(self.hierarchy.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close action hierarchy sender")?;
+            .attach("could not close action hierarchy sender")?;
 
         Poll::Ready(Ok(()))
     }

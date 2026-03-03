@@ -166,10 +166,12 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
     name: `editingExpectedValueIndex`,
   });
 
-  const properties = useWatch({
+  const maybeProperties = useWatch({
     control,
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
   });
+
+  const properties = useMemo(() => maybeProperties ?? [], [maybeProperties]);
 
   const [allowArraysColumnWidth, setAllowArraysColumnWidth] = useState(0);
   const [requiredColumnWidth, setRequiredColumnWidth] = useState(0);

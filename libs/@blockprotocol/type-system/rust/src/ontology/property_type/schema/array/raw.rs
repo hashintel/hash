@@ -1,7 +1,7 @@
 use crate::ontology::json_schema::ArrayTypeTag;
 
 #[derive(serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct PropertyValueArray<T> {
     #[serde(rename = "type")]

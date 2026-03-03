@@ -12,9 +12,6 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
 
-/**
- * Retrieves the HASH instance.
- */
 export const useHashInstance = (): {
   loading: boolean;
   hashInstance?: Simplified<HashEntity<HASHInstance>>;

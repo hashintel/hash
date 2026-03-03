@@ -17,7 +17,7 @@ datasources:
         mapTagNamesEnabled: true
         filterByTraceID: true
       tracesToMetrics:
-        datasourceUid: 'prometheus'
+        datasourceUid: 'mimir'
         tags: [
           { key: 'service.name', value: 'service' }
         ]
@@ -29,7 +29,7 @@ datasources:
       lokiSearch:
         datasourceUid: 'loki'
       serviceMap:
-        datasourceUid: 'prometheus'
+        datasourceUid: 'mimir'
       search:
         hide: false
       nodeGraph:

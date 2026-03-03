@@ -7,7 +7,7 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
-use super::{Context, Policy, Request, action::ActionName};
+use super::{Context, Policy, Request, ResolvedPolicy, action::ActionName};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]
@@ -61,7 +61,7 @@ impl PolicySet {
     /// Returns an error if the policy is not valid.
     pub fn with_policies<'p>(
         mut self,
-        policies: impl IntoIterator<Item = &'p Policy>,
+        policies: impl IntoIterator<Item = &'p ResolvedPolicy>,
     ) -> Result<Self, Report<PolicySetInsertionError>> {
         for policy in policies {
             self.add_policy(policy)?;
@@ -90,7 +90,10 @@ impl PolicySet {
     /// # Errors
     ///
     /// Returns an error if the policy is not valid.
-    pub fn add_policy(&mut self, policy: &Policy) -> Result<(), Report<PolicySetInsertionError>> {
+    pub fn add_policy(
+        &mut self,
+        policy: &ResolvedPolicy,
+    ) -> Result<(), Report<PolicySetInsertionError>> {
         self.policies
             .add_static(
                 policy
@@ -127,8 +130,11 @@ impl PolicySet {
         request: &Request,
         context: &Context,
     ) -> Result<Authorized, Report<PolicyEvaluationError>> {
+        const STACK_SIZE_RED_ZONE: usize = 1024 * 1024; // 1 MiB
+        const STACK_SIZE_ALLOC: usize = 32 * 1024 * 1024; // 32 MiB
+
         if !self.tracked_actions.contains(&request.action) {
-            return Err(Report::new(PolicyEvaluationError).attach_printable(format!(
+            return Err(Report::new(PolicyEvaluationError).attach(format!(
                 "Action `{}` is not tracked and cannot be evaluated",
                 request.action
             )));
@@ -136,8 +142,9 @@ impl PolicySet {
 
         let authorizer = Authorizer::new();
 
-        let response =
-            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities());
+        let response = stacker::maybe_grow(STACK_SIZE_RED_ZONE, STACK_SIZE_ALLOC, || {
+            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities())
+        });
 
         response
             .diagnostics

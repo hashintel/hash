@@ -1,6 +1,7 @@
 use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
+use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_codec::numeric::Real;
 use hash_graph_temporal_versioning::Timestamp;
@@ -8,7 +9,7 @@ use hash_graph_types::Embedding;
 use serde::Deserialize;
 use type_system::{
     knowledge::{
-        PropertyValue,
+        Entity, PropertyValue,
         entity::id::{EntityEditionId, EntityUuid},
     },
     ontology::{
@@ -21,6 +22,8 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use crate::filter::{QueryRecord, protection::PropertyFilterExpressionList};
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
@@ -30,12 +33,13 @@ pub enum Parameter<'p> {
     Vector(Embedding<'p>),
     Any(PropertyValue),
     #[serde(skip)]
-    Uuid(Uuid),
+    Uuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid),
     #[serde(skip)]
-    OntologyTypeVersion(OntologyTypeVersion),
+    OntologyTypeVersion(Cow<'p, OntologyTypeVersion>),
     #[serde(skip)]
     Timestamp(Timestamp<()>),
 }
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterType {
     Boolean,
@@ -83,17 +87,33 @@ pub enum ParameterList<'p> {
     WebIds(&'p [WebId]),
 }
 
+#[derive_where(Debug, Clone, PartialEq, Eq; R::QueryPath<'p>)]
+pub enum FilterExpressionList<'p, R: QueryRecord> {
+    Path { path: R::QueryPath<'p> },
+    ParameterList { parameters: ParameterList<'p> },
+}
+
+impl<'p> From<PropertyFilterExpressionList<'p>> for FilterExpressionList<'p, Entity> {
+    fn from(value: PropertyFilterExpressionList<'p>) -> Self {
+        match value {
+            PropertyFilterExpressionList::Path { path } => FilterExpressionList::Path { path },
+        }
+    }
+}
+
 impl Parameter<'_> {
     #[must_use]
     pub fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::Decimal(number) => Parameter::Decimal(number.to_owned()),
-            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.clone().into_owned())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
-            Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
+            Parameter::OntologyTypeVersion(version) => {
+                Parameter::OntologyTypeVersion(Cow::Owned(version.clone().into_owned()))
+            }
             Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
@@ -162,7 +182,7 @@ impl fmt::Display for ParameterConversionError {
                         Parameter::Vector(_) => "vector".to_owned(),
                         Parameter::Any(PropertyValue::String(string)) => string.clone(),
                         Parameter::Uuid(uuid) => uuid.to_string(),
-                        Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+                        Parameter::OntologyTypeVersion(version) => version.to_string(),
                         Parameter::Timestamp(timestamp) => timestamp.to_string(),
                         Parameter::Any(PropertyValue::Object(_)) => "object".to_owned(),
                         Parameter::Any(PropertyValue::Array(_)) => "array".to_owned(),
@@ -212,7 +232,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) => {
                 // Special case for checking `version == "latest"
                 if text != "latest" {
-                    *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    *self = Parameter::OntologyTypeVersion(Cow::Owned(
                         text.parse().change_context_lazy(|| {
                             ParameterConversionError::InvalidParameterType {
                                 actual: self.to_owned().into(),

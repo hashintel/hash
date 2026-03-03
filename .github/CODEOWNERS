@@ -4,5 +4,5 @@ LICENSE.txt @hashintel/legal
 LICENSE.md @hashintel/legal
 
 # Database migrations
-/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/db-admins
-/libs/@local/graph/migrations/graph-migrations/ @hashintel/db-admins
+/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/infra-admins
+/libs/@local/graph/migrations/graph-migrations/ @hashintel/infra-admins

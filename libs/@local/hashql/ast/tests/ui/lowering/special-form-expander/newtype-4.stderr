@@ -1,17 +1,15 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-    ╭─[ <unknown>:8:3 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  8 │ │     { "#literal": true }
-    │ │     ──────────┬─────────  
-    │ │               ╰─────────── Remove this argument
-    ┆ ┆   
- 10 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this `newtype` special form call
-    │     
-    │     Help: The newtype/3 form should look like: (newtype name type-expr body)
-    │     
-    │     Note: The newtype function has 1 variant: newtype/3
-────╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+   ╭▸ 
+ 3 │ ┌ [
+ 4 │ │   "::kernel::special_form::newtype",
+ 5 │ │   "x",
+ 6 │ │   "Boolean",
+ 7 │ │   ["+", "x", "x"],
+ 8 │ │   { "#literal": true }
+   │ │   ━━━━━━━━━━━━━━━━━━━━ Remove this argument
+ 9 │ │   //~^ ERROR Remove this argument
+10 │ │ ]
+   │ └─┘ In this `newtype` special form call
+   │
+   ├ help: The newtype/3 form should look like: (newtype name type-expr body)
+   ╰ note: The newtype function has 1 variant: newtype/3

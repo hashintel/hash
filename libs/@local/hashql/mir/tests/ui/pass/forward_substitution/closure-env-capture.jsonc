@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: SROA resolves through closure environment capture
+//@ suite#d2: true
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "captured",
+    { "#literal": 42 },
+    [
+      "let",
+      "f",
+      ["fn", { "#tuple": [] }, { "#struct": {} }, "_", "captured"],
+      ["f"]
+    ]
+  ],
+  { "#literal": 0 }
+]

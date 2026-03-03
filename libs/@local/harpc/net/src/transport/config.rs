@@ -39,7 +39,7 @@ impl Default for PingConfig {
 pub struct YamuxConfig {
     /// Maximum buffer size for the Yamux protocol, in bytes.
     ///
-    /// **Default:** `16 * 1024 * 1024` (16 MiB)
+    /// **Default:** `16 * 1024 * 1024` (16 MiB).
     pub max_buffer_size: usize,
 }
 
@@ -78,7 +78,7 @@ pub struct SwarmConfig {
     /// be sleeping more often than necessary. Increasing this value increases
     /// the overall memory usage.
     ///
-    /// **Default:** `32`
+    /// **Default:** `32`.
     ///
     /// [`NetworkBehaviour`]: libp2p::swarm::NetworkBehaviour
     /// [`ConnectionHandler`]: libp2p::swarm::ConnectionHandler
@@ -99,7 +99,7 @@ pub struct SwarmConfig {
     ///
     /// Each connection has a guaranteed buffer of one event per connection.
     ///
-    /// **Default:** `7`
+    /// **Default:** `7`.
     ///
     /// [`ConnectionHandler`]: libp2p::swarm::ConnectionHandler
     /// [`NetworkBehaviour`]: libp2p::swarm::NetworkBehaviour
@@ -107,7 +107,7 @@ pub struct SwarmConfig {
 
     /// Number of addresses concurrently dialed for a single outbound connection attempt.
     ///
-    /// **Default:** `8`
+    /// **Default:** `8`.
     pub dial_concurrency_factor: Option<NonZero<u8>>,
 
     /// Configures an override for the substream upgrade protocol to use.
@@ -121,7 +121,7 @@ pub struct SwarmConfig {
     /// > individual [`SubstreamProtocol`]s emitted by the `NetworkBehaviour`
     /// > are ignored.
     ///
-    /// **Default:** `None`
+    /// **Default:** `None`.
     ///
     /// [`SubstreamProtocol`]: libp2p::swarm::SubstreamProtocol
     pub substream_upgrade_protocol_override: Option<upgrade::Version>,
@@ -136,14 +136,14 @@ pub struct SwarmConfig {
     /// the total number of streams can be enforced at the
     /// [`StreamMuxerBox`] level.
     ///
-    /// **Default:** `128`
+    /// **Default:** `128`.
     ///
     /// [`StreamMuxerBox`]: libp2p::core::muxing::StreamMuxerBox
     pub max_negotiating_inbound_streams: Option<usize>,
 
     /// How long to keep a connection alive once it is idling.
     ///
-    /// **Default:** `32s`
+    /// **Default:** `32s`.
     pub idle_connection_timeout: Option<Duration>,
 }
 
@@ -205,7 +205,7 @@ pub struct TransportConfig {
     /// Size of the buffer for IPC (Inter-Process Communication) messages to the transport task
     /// driving the swarm.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     pub ipc_buffer_size: NonZero<usize>,
 }
 

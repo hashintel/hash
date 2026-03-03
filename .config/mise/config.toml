@@ -1,33 +1,39 @@
 [env]
-_.file = [".env", ".env.local"]
+TURBO_GLOBAL_WARNING_DISABLED = 1
+_.file                        = [".env", ".env.local"]
+
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 # Basic tools
-node        = { version = "22.17.1", postinstall = "corepack enable" }
-"npm:turbo" = "2.5.5"
+node        = { version = "22.21.1", postinstall = "corepack enable" }
+"npm:turbo" = "2.6.3"
 
 # Helper to install tools
-cargo-binstall = "1.12.5"
-uv             = "0.8.0"
+cargo-binstall = "1.15.1"
+uv             = "0.9.26"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.13.1"
-java              = "24"
-protoc            = "31.1"
+java              = "25"
+protoc            = "32.1"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
-"cargo:cargo-hack"     = "0.6.36"
+"cargo:cargo-codspeed" = "4.1.0"
+"cargo:cargo-hack"     = "0.6.37"
 "cargo:cargo-insta"    = "1.43.1"
-"cargo:cargo-llvm-cov" = "0.6.16"
-"cargo:cargo-nextest"  = "0.9.97"
-"cargo:clorinde"       = "1.0.0"
-just                   = "1.42.3"
-markdownlint-cli2      = "0.18.1"
-"npm:@napi-rs/cli"     = "3.0.0"
-"npm:@redocly/cli"     = "1.34.4"
+"cargo:cargo-llvm-cov" = "0.6.18"
+"cargo:cargo-nextest"  = "0.9.103"
+just                   = "1.43.1"
+markdownlint-cli2      = "0.19.1"
+"npm:@napi-rs/cli"     = "2.18.4"
+"npm:@redocly/cli"     = "2.19.2"
+"npm:renovate"         = "42.39.1"
 "pipx:sqlfluff"        = "3.4.2"
-sentry-cli             = "2.46.0"
+sentry-cli             = "2.52.0"
 taplo                  = "0.10.0"
-yq                     = "4.46.1"
+"ubi:terrastruct/d2"   = "0.7.1"
+yq                     = "4.49.2"

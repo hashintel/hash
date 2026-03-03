@@ -93,12 +93,12 @@ impl<T, S, E> Interval<T, S, E> {
         }
     }
 
-    /// Returns a reference to the start bound of this interval
+    /// Returns a reference to the start bound of this interval.
     pub const fn start(&self) -> &S {
         &self.start
     }
 
-    /// Returns a reference to the end bound of this interval
+    /// Returns a reference to the end bound of this interval.
     pub const fn end(&self) -> &E {
         &self.end
     }

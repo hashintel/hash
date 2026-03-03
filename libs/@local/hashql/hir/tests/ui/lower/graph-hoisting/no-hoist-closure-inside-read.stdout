@@ -1,0 +1,25 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+let a:0 = true,
+    b:0 = true
+in
+::graph::tail::collect(
+    ::graph::body::filter(
+        ::graph::head::entities(::graph::tmp::decision_time_now()),
+        (vertex:0: _0): _1 ->
+            let c:0 = (): _2 -> ::core::cmp::eq(a:0, b:0) in c:0()
+    )
+)
+
+════ HIR after graph hoisting ══════════════════════════════════════════════════
+
+let a:0 = true,
+    b:0 = true,
+    %4 = ::graph::tmp::decision_time_now(),
+    c:0 = (): Boolean -> let %5 = a:0 == b:0 in %5,
+    %6 = c:0(),
+    %7 = ::graph::head::entities(%4)
+         |> ::graph::body::filter((vertex:0: Entity): Boolean -> let  in %6)
+         |> ::graph::tail::collect
+in
+%7

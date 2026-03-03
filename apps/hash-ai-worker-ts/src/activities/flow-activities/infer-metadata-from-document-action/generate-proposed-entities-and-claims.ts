@@ -253,12 +253,10 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
           )
         : null;
 
-      if (!institutionEntityId) {
-        institutionEntityId = entityIdFromComponents(
-          webId,
-          generateUuid() as EntityUuid,
-        );
-      }
+      institutionEntityId ??= entityIdFromComponents(
+        webId,
+        generateUuid() as EntityUuid,
+      );
 
       if (!institutionProposedEntity) {
         const properties: InstitutionProperties = {

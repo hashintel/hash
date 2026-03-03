@@ -1,0 +1,168 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Introduction" />
+
+# HASH Component Library
+
+This Storybook contains the components of the new Liquid-Glass-based Design System.
+
+It is built using:
+
+- [Ark UI](https://ark-ui.com/) for accessible and unstyled components
+- [Panda CSS](https://panda-css.com/) for utility-first styling and design tokens
+
+> **Note:** This library is a work in progress and is currently just a proof-of-concept of feasability of a Design System with refractive effects.
+
+To understand technical aspect of these refraction effects, you can refer [to this article](https://kube.io/blog/liquid-glass-css-svg/).
+
+# Current Limitations
+
+- Only Chrome currently supports the `backdrop-filter` property with SVG Filter, used to render the refractive effects.
+
+  > See [Fallback for Non-Supporting Browsers](#fallback-for-non-supporting-browsers) section below.
+  >
+  > See [Firefox bug report](https://bugzilla.mozilla.org/show_bug.cgi?id=1989910), and [Safari bug report](https://bugs.webkit.org/show_bug.cgi?id=245510) to track progress on other browsers.
+
+- `BezelWidth` needs to be lower than `Radius` property. This requires rework of the Displacement Map generation logic.
+- CSS variables do not control the SVG Filter properties, which makes it hard to create dynamic components with different sizes and keep everything in sync.
+  > This could be achieved using watchers on CSS variables, but could also be really heavy.
+
+# Filter Components
+
+There are two `<Filter>` components in this library, to create the SVG Filter used as `backdrop-filter` to create the refractive effects.
+
+- `lib/filter.tsx`: Calculates an image for the whole displacement map and specular. This is useful for components like Switch and Slider, where refractive parts are fixed-size.
+- `lib/flexible-filter.tsx`: Calculates same images, but splits them into multiple tiles, to cover larger areas. This is useful for components like Card and Modal, where refractive parts can be large and dynamic in size.
+
+> Note: For now all image calculation is done on client-side, and not cached. Also every component instantiates it own `<Filter>` component.
+> This can be optimized in the future, by caching the generated images, but was not the most performance-critical part at this stage.
+> It would be interesting to generate some of these images at build-time.
+
+## Flexible Filter Image Split
+
+The flexible filter system splits images into 9 parts to handle dynamic sizing while preserving corner details:
+
+<svg
+  width="400"
+  height="200"
+  viewBox="0 0 400 200"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  {/* Main rectangle with border radius */}
+  <rect
+    x="50"
+    y="50"
+    width="300"
+    height="100"
+    rx="20"
+    ry="20"
+    fill="none"
+    stroke="#333"
+    strokeWidth="2"
+  />
+
+{/* Vertical divider lines */}
+
+<line
+  x1="90"
+  y1="50"
+  x2="90"
+  y2="150"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+<line
+  x1="310"
+  y1="50"
+  x2="310"
+  y2="150"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+
+{/* Horizontal divider lines */}
+
+<line
+  x1="50"
+  y1="90"
+  x2="350"
+  y2="90"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+<line
+  x1="50"
+  y1="110"
+  x2="350"
+  y2="110"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+
+{/* Corner radius indicators */}
+
+  <circle
+    cx="70"
+    cy="70"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="330"
+    cy="70"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="70"
+    cy="130"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="330"
+    cy="130"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+</svg>
+
+This approach allows the corners to maintain their shape while the middle sections can stretch to accommodate any size.
+
+# Fallback for Non-Supporting Browsers
+
+For now, only Chrome supports the CSS features required to render the refractive effects. In these cases, we need to provide a fallback design without the refractive effects.
+
+There is no single solution for this, as the fallback will depend on the specific component and its use case. However, here are some general strategies:
+
+- Use classical gaussian blur for background blurring instead of the refraction effect.
+- Use progressive gaussian blur, where the blur increases with the distance from the center of the component.
+  > This can be achieved using multiple layers of gaussian blur, along with gradient-based masking.
+  > Though, this can be really slow on performance, particularly on Safari, so it should be used with caution.
+- Use a solid color or gradient background.
+
+## User Preference and Performance Considerations
+
+For preferences, accessibility, and performance considerations, especially on devices that may struggle with rendering refractive effects, it's important to provide a fallback design.
+
+Where practical and appropriate, users may be provided with a preferences toggle or slider in an application's "Appearance" settings enabling them to switch between fully refractive (Liquid Glass) and fallback (degraded) designs, allowing for choice based on personal style/accessibility preferences or according to device performance.
+
+The ability of users to opt-in or opt-out of Liquid Glass-style rendering may differ between usage environments. In HASH we will generally seek to provide this alongside other appearance-related user settings such as: **(information) density**, i.e. the compactness/spacing of content; **font size**, for smaller/larger display of text; **curvature**, the roundness of UI corner elements for sharper or softer displays; etc.
+
+Similarly, usage of performance-intensive visual styles may be dynamically varied or reduced based on the application/context.

@@ -1,7 +1,7 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
 
 import { mustBeDefined } from "../../util.js";
+import { typedValues } from "../../util/typed-entries.js";
 import type { PreprocessContext } from "../context.js";
 import { primitiveLinkEntityTypeId } from "../shared.js";
 

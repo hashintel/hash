@@ -1,10 +1,8 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type {
   EntityRootType,
-  GraphResolveDepths,
   KnowledgeGraphEdgeKind,
   KnowledgeGraphRootedEdges,
   Subgraph,
@@ -13,25 +11,31 @@ import {
   getEntities as getEntitiesSubgraph,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import {
-  type ActorEntityUuid,
-  type Entity,
-  ENTITY_ID_DELIMITER,
+import type {
+  ActorEntityUuid,
+  Entity,
+  Timestamp,
 } from "@blockprotocol/type-system";
-import type { GetEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
+import { ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
 import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  queryEntities,
+  queryEntitySubgraph,
+  type QueryEntitySubgraphRequest,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
 
-const createRequest = (
-  resolveDepths: Partial<GraphResolveDepths> = zeroedGraphResolveDepths,
-  timestamp = "2010-01-01T00:00:00.000Z",
-): GetEntitySubgraphRequest => {
+const createRequest = ({
+  traversalPaths,
+  timestamp,
+}: {
+  traversalPaths: TraversalPath[];
+  timestamp: Timestamp;
+}): QueryEntitySubgraphRequest => {
   return {
     filter: {
       equal: [
@@ -39,14 +43,11 @@ const createRequest = (
           path: ["uuid"],
         },
         {
-          parameter: "0000000A-0001-0000-0000-000000000000",
+          parameter: "0000000A-0001-8000-8000-000000000000",
         },
       ],
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...resolveDepths,
-    },
+    traversalPaths,
     conversions: [],
     temporalAxes: {
       pinned: {
@@ -68,6 +69,7 @@ const createRequest = (
       },
     },
     includeDrafts: false,
+    includePermissions: false,
   };
 };
 let graphContext: ImpureGraphContext;
@@ -86,7 +88,7 @@ let link_dc: Entity;
 let link_ad: Entity;
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as ActorEntityUuid,
+  actorId: "00000000-0001-8000-8000-000000000000" as ActorEntityUuid,
 };
 
 beforeAll(async () => {
@@ -95,18 +97,14 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntitySubgraphResponse(
-    graphContext,
-    authentication,
-    {
-      filter: {
-        all: [],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const { entities } = await queryEntities(graphContext, authentication, {
+    filter: {
+      all: [],
     },
-  ).then(({ subgraph }) => getRoots(subgraph));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   expect(entities.length).toBe(12);
 
@@ -114,9 +112,9 @@ beforeAll(async () => {
     return entities.find((entity) => {
       return (
         (entity.metadata.recordId.entityId as string).toLowerCase() ===
-        `00000000-0001-0000-0000-000000000000${ENTITY_ID_DELIMITER}${name
+        `00000000-0001-8000-8000-000000000000${ENTITY_ID_DELIMITER}${name
           .toLowerCase()
-          .padStart(8, "0")}-0001-0000-0000-000000000000`
+          .padStart(8, "0")}-0001-8000-8000-000000000000`
       );
     })!;
   };
@@ -208,18 +206,22 @@ describe("Single linked list", () => {
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
   it("finds AB", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
-      createRequest(
-        {
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 0,
+      createRequest({
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+            ],
           },
-        },
-        "2002-05-01T00:00:00.000Z",
-      ),
+        ],
+        timestamp: "2002-05-01T00:00:00.000Z" as Timestamp,
+      }),
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
@@ -237,18 +239,26 @@ describe("Single linked list", () => {
   });
 
   it("finds AB and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
-      createRequest(
-        {
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 1,
+      createRequest({
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-        },
-        "2002-05-01T00:00:00.000Z",
-      ),
+        ],
+        timestamp: "2002-05-01T00:00:00.000Z" as Timestamp,
+      }),
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
@@ -276,22 +286,26 @@ describe("Single linked list", () => {
   });
 
   it("finds B", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
-      createRequest(
-        {
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 0,
+      createRequest({
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 0,
-            outgoing: 1,
-          },
-        },
-        "2002-05-01T00:00:00.000Z",
-      ),
+        ],
+        timestamp: "2002-05-01T00:00:00.000Z" as Timestamp,
+      }),
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
@@ -319,72 +333,46 @@ describe("Single linked list", () => {
   });
 
   it("finds B and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
-      createRequest(
-        {
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 1,
+      createRequest({
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 1,
-            outgoing: 1,
-          },
-        },
-        "2002-05-01T00:00:00.000Z",
-      ),
+        ],
+        timestamp: "2002-05-01T00:00:00.000Z" as Timestamp,
+      }),
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(
-      verticesEquals(subgraph, [
-        entity_a,
-        link_ab,
-        entity_b,
-        link_da,
-        entity_d,
-      ]),
-    ).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab, entity_b])).toBe(true);
     expect(
       edgesEquals(subgraph, [
-        {
-          source: entity_d,
-          edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: link_da,
-              direction: "backward",
-            },
-          ],
-        },
-        {
-          source: link_da,
-          edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: entity_d,
-              direction: "forward",
-            },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: entity_a,
-              direction: "forward",
-            },
-          ],
-        },
         {
           source: entity_a,
           edges: [
             {
               kind: "HAS_LEFT_ENTITY",
               target: link_ab,
-              direction: "backward",
-            },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: link_da,
               direction: "backward",
             },
           ],
@@ -419,22 +407,42 @@ describe("Single linked list", () => {
   });
 
   it("finds D", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
-      createRequest(
-        {
-          hasLeftEntity: {
-            incoming: 3,
-            outgoing: 0,
+      createRequest({
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 0,
-            outgoing: 3,
-          },
-        },
-        "2002-05-01T00:00:00.000Z",
-      ),
+        ],
+        timestamp: "2002-05-01T00:00:00.000Z" as Timestamp,
+      }),
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
@@ -539,14 +547,21 @@ describe("Double linked list", () => {
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
   it("finds AB/AD", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
-        hasLeftEntity: {
-          incoming: 1,
-          outgoing: 0,
-        },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+            ],
+          },
+        ],
+        timestamp: "2010-01-01T00:00:00.000Z" as Timestamp,
       }),
     );
 
@@ -566,14 +581,25 @@ describe("Double linked list", () => {
   });
 
   it("finds AD/DA and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
-        hasLeftEntity: {
-          incoming: 1,
-          outgoing: 1,
-        },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
+        timestamp: "2010-01-01T00:00:00.000Z" as Timestamp,
       }),
     );
 
@@ -613,18 +639,25 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
-        hasLeftEntity: {
-          incoming: 1,
-          outgoing: 0,
-        },
-        hasRightEntity: {
-          incoming: 0,
-          outgoing: 1,
-        },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
+        timestamp: "2010-01-01T00:00:00.000Z" as Timestamp,
       }),
     );
 
@@ -672,18 +705,33 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
-        hasLeftEntity: {
-          incoming: 1,
-          outgoing: 1,
-        },
-        hasRightEntity: {
-          incoming: 1,
-          outgoing: 1,
-        },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
+        timestamp: "2010-01-01T00:00:00.000Z" as Timestamp,
       }),
     );
 
@@ -696,12 +744,8 @@ describe("Double linked list", () => {
         entity_d,
         link_ab,
         link_ad,
-        link_ba,
-        link_bc,
         link_cb,
         link_cd,
-        link_da,
-        link_dc,
       ]),
     ).toBe(true);
 
@@ -720,31 +764,11 @@ describe("Double linked list", () => {
               target: link_ab,
               direction: "backward",
             },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: link_ba,
-              direction: "backward",
-            },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: link_da,
-              direction: "backward",
-            },
           ],
         },
         {
           source: entity_b,
           edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: link_ba,
-              direction: "backward",
-            },
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: link_bc,
-              direction: "backward",
-            },
             {
               kind: "HAS_RIGHT_ENTITY",
               target: link_ab,
@@ -760,16 +784,6 @@ describe("Double linked list", () => {
         {
           source: entity_d,
           edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: link_da,
-              direction: "backward",
-            },
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: link_dc,
-              direction: "backward",
-            },
             {
               kind: "HAS_RIGHT_ENTITY",
               target: link_ad,
@@ -798,21 +812,6 @@ describe("Double linked list", () => {
           ],
         },
         {
-          source: link_ba,
-          edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: entity_b,
-              direction: "forward",
-            },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: entity_a,
-              direction: "forward",
-            },
-          ],
-        },
-        {
           source: link_ad,
           edges: [
             {
@@ -823,31 +822,6 @@ describe("Double linked list", () => {
             {
               kind: "HAS_RIGHT_ENTITY",
               target: entity_d,
-              direction: "forward",
-            },
-          ],
-        },
-        {
-          source: link_da,
-          edges: [
-            {
-              kind: "HAS_LEFT_ENTITY",
-              target: entity_d,
-              direction: "forward",
-            },
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: entity_a,
-              direction: "forward",
-            },
-          ],
-        },
-        {
-          source: link_bc,
-          edges: [
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: entity_c,
               direction: "forward",
             },
           ],
@@ -872,33 +846,46 @@ describe("Double linked list", () => {
             },
           ],
         },
-        {
-          source: link_dc,
-          edges: [
-            {
-              kind: "HAS_RIGHT_ENTITY",
-              target: entity_c,
-              direction: "forward",
-            },
-          ],
-        },
       ]),
     ).toBe(true);
   });
 
   it("finds D/A", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
-        hasLeftEntity: {
-          incoming: 3,
-          outgoing: 0,
-        },
-        hasRightEntity: {
-          incoming: 0,
-          outgoing: 3,
-        },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
+        timestamp: "2010-01-01T00:00:00.000Z" as Timestamp,
       }),
     );
 

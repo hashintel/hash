@@ -1,0 +1,16 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+{} as Dict<String, Number>
+
+════ HIR after type checking ═══════════════════════════════════════════════════
+
+{} as Dict<String, Number>
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ {} as Dict<String, Number>
+└→ Dict<String, Number>
+
+┌─ {}
+└→ Dict<String, Number>
+

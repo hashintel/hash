@@ -28,6 +28,7 @@ use tracing_subscriber::{Layer, registry::LookupSpan};
 pub enum SentryEnvironment {
     #[default]
     Development,
+    Staging,
     Production,
 }
 
@@ -35,6 +36,7 @@ impl fmt::Display for SentryEnvironment {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Development => fmt.write_str("development"),
+            Self::Staging => fmt.write_str("staging"),
             Self::Production => fmt.write_str("production"),
         }
     }
@@ -68,7 +70,7 @@ impl TypedValueParser for OptionalSentryDsnParser {
     }
 }
 
-/// Arguments for configuring the logging setup
+/// Arguments for configuring the Sentry setup.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser), clap(next_help_heading = Some("Sentry")))]
 pub struct SentryConfig {

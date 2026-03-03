@@ -1,21 +1,57 @@
 ---
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
-expression: "&env.r#type(result_id).pretty_print(&env,\nPrettyOptions::default().with_depth_tracking().without_color())"
+expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-<U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-  <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-    <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-      <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-        <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-          <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-            <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-              <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                  <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                    <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                      <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                        <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                          <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                            <U?2>(bar: <T?3>(foo: ?3) where<?3 = 
-                              <U?2>(bar: ... where<?3 =
-                                ...>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)
+<U?2>(
+    bar: [
+        ?3 = <U?2>(
+            bar: [
+                ?3 = <U?2>(
+                    bar: [
+                        ?3 = <U?2>(
+                            bar: [
+                                ?3 = <U?2>(
+                                    bar: [
+                                        ?3 = <U?2>(
+                                            bar: [
+                                                ?3 = <U?2>(
+                                                    bar: [
+                                                        ?3 = <U?2>(
+                                                            bar: [
+                                                                ?3 = <U?2>(
+                                                                    bar: [
+                                                                        ?3 = <
+                                                                            U?2
+                                                                        >(
+                                                                            bar: [
+                                                                                ?3 = <
+                                                                                    U?2
+                                                                                >(
+                                                                                    bar: ...
+                                                                                )
+                                                                            ] <
+                                                                                T?3
+                                                                            >(
+                                                                                foo: ...
+                                                                            )
+                                                                        )
+                                                                    ] <T?3>(
+                                                                        foo: T?3
+                                                                    )
+                                                                )
+                                                            ] <T?3>(foo: T?3)
+                                                        )
+                                                    ] <T?3>(foo: T?3)
+                                                )
+                                            ] <T?3>(foo: T?3)
+                                        )
+                                    ] <T?3>(foo: T?3)
+                                )
+                            ] <T?3>(foo: T?3)
+                        )
+                    ] <T?3>(foo: T?3)
+                )
+            ] <T?3>(foo: T?3)
+        )
+    ] <T?3>(foo: T?3)
+)

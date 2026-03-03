@@ -1,8 +1,9 @@
-use core::assert_matches::assert_matches;
+use core::assert_matches;
+
+use hashql_diagnostics::Success;
 
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -31,7 +32,7 @@ use crate::{
 #[test]
 fn join_lists_same_element_type() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types with the same element type
     list!(env, list_a, primitive!(env, PrimitiveType::Number));
@@ -46,7 +47,7 @@ fn join_lists_same_element_type() {
 #[test]
 fn join_lists_different_element_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types with different element types
     list!(env, list_a, primitive!(env, PrimitiveType::Number));
@@ -75,7 +76,7 @@ fn join_lists_different_element_types() {
 #[test]
 fn meet_lists_same_element_type() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types with the same element type
     list!(env, list_a, primitive!(env, PrimitiveType::Number));
@@ -90,7 +91,7 @@ fn meet_lists_same_element_type() {
 #[test]
 fn meet_lists_different_element_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types with different element types
     list!(env, list_a, primitive!(env, PrimitiveType::Number));
@@ -115,7 +116,7 @@ fn meet_lists_different_element_types() {
 #[test]
 fn is_subtype_of_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types where one element is a subtype of the other
     list!(env, list_number, primitive!(env, PrimitiveType::Number));
@@ -133,7 +134,7 @@ fn is_subtype_of_list() {
 #[test]
 fn is_equivalent_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two list types with equivalent element types
     list!(env, list_a, primitive!(env, PrimitiveType::Number));
@@ -153,7 +154,7 @@ fn is_equivalent_list() {
 #[test]
 fn simplify_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a list with a union element that contains duplicates
     list!(
@@ -181,7 +182,7 @@ fn simplify_list() {
 #[test]
 fn list_concrete_check() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // A list with a concrete element type should be concrete
@@ -198,7 +199,7 @@ fn list_concrete_check() {
 #[test]
 fn join_dicts_same_key_type() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two dict types with the same key type but different value types
     dict!(
@@ -238,7 +239,7 @@ fn join_dicts_same_key_type() {
 #[test]
 fn join_dicts_different_key_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two dict types with different key types
     dict!(
@@ -278,7 +279,7 @@ fn join_dicts_different_key_types() {
 #[test]
 fn meet_dicts_same_key_type() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two dict types with the same key type but different value types
     // Integer <: Number
@@ -304,7 +305,7 @@ fn meet_dicts_same_key_type() {
 #[test]
 fn meet_dicts_different_key_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two dict types with different key types
     dict!(
@@ -329,7 +330,7 @@ fn meet_dicts_different_key_types() {
 #[test]
 fn is_subtype_of_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create dicts to test invariance of keys and covariance of values
     // Integer <: Number
@@ -369,7 +370,7 @@ fn is_subtype_of_dict() {
 #[test]
 fn is_equivalent_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create dicts with equivalent types
     dict!(
@@ -405,7 +406,7 @@ fn is_equivalent_dict() {
 #[test]
 fn simplify_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a dict with union types that contain duplicates
     dict!(
@@ -444,7 +445,7 @@ fn simplify_dict() {
 #[test]
 fn dict_concrete_check() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // A dict with concrete key and value types should be concrete
@@ -478,7 +479,7 @@ fn dict_concrete_check() {
 #[test]
 fn join_different_intrinsic_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a list and a dict
     let list = list!(env, primitive!(env, PrimitiveType::String));
@@ -501,7 +502,7 @@ fn join_different_intrinsic_types() {
 #[test]
 fn meet_different_intrinsic_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a list and a dict
     let list = list!(env, primitive!(env, PrimitiveType::String));
@@ -521,7 +522,7 @@ fn meet_different_intrinsic_types() {
 #[test]
 fn lattice_laws_for_intrinsics() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct list types
     let number_type = primitive!(env, PrimitiveType::Number);
@@ -547,7 +548,7 @@ fn lattice_laws_for_intrinsics() {
 #[test]
 fn dict_inference_with_non_concrete_keys() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a dict with an inference variable as key
     let infer_var = instantiate_infer(&env, 0_u32);
@@ -590,7 +591,7 @@ fn dict_inference_with_non_concrete_keys() {
 #[test]
 fn list_distribute_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -623,7 +624,7 @@ fn list_distribute_union() {
 #[test]
 fn list_distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create a list with an intersection element type
@@ -643,7 +644,7 @@ fn list_distribute_intersection() {
 #[test]
 fn dict_distribute_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -688,7 +689,7 @@ fn dict_distribute_union() {
 #[test]
 fn dict_distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create a dict with an intersection value type
@@ -710,7 +711,7 @@ fn dict_distribute_intersection() {
 #[test]
 fn intrinsic_type_distribute_delegation() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -747,7 +748,7 @@ fn intrinsic_type_distribute_delegation() {
 #[test]
 fn collect_constraints_list_lower_bound() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a list with a concrete type
     let number = primitive!(env, PrimitiveType::Number);
@@ -778,7 +779,7 @@ fn collect_constraints_list_lower_bound() {
 #[test]
 fn collect_constraints_list_upper_bound() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a list with a concrete type
     let number = primitive!(env, PrimitiveType::Number);
@@ -808,7 +809,7 @@ fn collect_constraints_list_upper_bound() {
 #[test]
 fn collect_constraints_nested_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested list with inference variable
     let hole = HoleId::new(0);
@@ -839,7 +840,7 @@ fn collect_constraints_nested_list() {
 #[test]
 fn collect_constraints_dict_key_invariant() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a dict with a concrete key and an inference variable as value
     let string = primitive!(env, PrimitiveType::String);
@@ -869,7 +870,7 @@ fn collect_constraints_dict_key_invariant() {
 #[test]
 fn collect_constraints_dict_key_variable() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a dict with an inference variable as key
     let hole = HoleId::new(0);
@@ -899,7 +900,7 @@ fn collect_constraints_dict_key_variable() {
 #[test]
 fn collect_constraints_dict_bidirectional() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a dict with inference variables for both key and value
     let hole_key = HoleId::new(0);
@@ -940,7 +941,7 @@ fn collect_constraints_dict_bidirectional() {
 #[test]
 fn collect_constraints_concrete_intrinsics() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create concrete lists and dicts
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -973,7 +974,7 @@ fn collect_constraints_concrete_intrinsics() {
 #[test]
 fn collect_dependencies_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1005,7 +1006,7 @@ fn collect_dependencies_list() {
 #[test]
 fn collect_dependencies_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables for both key and value
     let key_hole = HoleId::new(0);
@@ -1045,7 +1046,7 @@ fn collect_dependencies_dict() {
 #[test]
 fn simplify_recursive_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1068,7 +1069,7 @@ fn simplify_recursive_list() {
 #[test]
 fn simplify_recursive_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1092,7 +1093,7 @@ fn simplify_recursive_dict() {
 #[test]
 fn instantiate_list() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
     let param = instantiate_param(&env, argument);
@@ -1142,7 +1143,7 @@ fn instantiate_list() {
 #[test]
 fn instantiate_dict() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
     let param = instantiate_param(&env, argument);
@@ -1207,7 +1208,7 @@ fn instantiate_dict() {
 #[test]
 fn list_projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, primitive!(env, PrimitiveType::String));
 
@@ -1227,7 +1228,7 @@ fn list_projection() {
 #[test]
 fn dict_projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let dict = dict!(
         env,
@@ -1251,7 +1252,7 @@ fn dict_projection() {
 #[test]
 fn list_subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, primitive!(env, PrimitiveType::String));
 
@@ -1262,8 +1263,11 @@ fn list_subscript() {
         primitive!(env, PrimitiveType::Integer),
     );
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1283,7 +1287,7 @@ fn list_subscript() {
 #[test]
 fn list_subscript_mismatch() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, primitive!(env, PrimitiveType::String));
 
@@ -1294,7 +1298,11 @@ fn list_subscript_mismatch() {
         primitive!(env, PrimitiveType::String),
     );
 
-    let (_, diagnostics) = inference.into_solver().solve();
+    let diagnostics = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
 
@@ -1312,7 +1320,7 @@ fn list_subscript_mismatch() {
 fn list_subscript_discharge_constraints() {
     // If the key for either is unknown, discharge constraints
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
 
@@ -1336,7 +1344,7 @@ fn list_subscript_discharge_constraints() {
 #[test]
 fn dict_subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let dict = dict!(
         env,
@@ -1351,8 +1359,11 @@ fn dict_subscript() {
         primitive!(env, PrimitiveType::Number),
     );
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1372,7 +1383,7 @@ fn dict_subscript() {
 #[test]
 fn dict_subscript_mismatch() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let dict = dict!(
         env,
@@ -1387,7 +1398,11 @@ fn dict_subscript_mismatch() {
         primitive!(env, PrimitiveType::Integer),
     );
 
-    let (_, diagnostics) = inference.into_solver().solve();
+    let diagnostics = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
 
@@ -1405,7 +1420,7 @@ fn dict_subscript_mismatch() {
 fn dict_subscript_discharge_constraints() {
     // If the key for either is unknown, discharge constraints
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole2 = env.counter.hole.next();

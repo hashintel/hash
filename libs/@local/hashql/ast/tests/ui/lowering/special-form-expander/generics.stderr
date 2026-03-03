@@ -1,13 +1,9 @@
-[special-form-expander::unknown-special-form] Error: Unknown special form
-   ╭─[ <unknown>:3:26 ]
-   │
- 3 │ ["::kernel::special_form<T>::if<U>"]
-   │                          ┬      ┬  
-   │                          ╰───────── Remove these generic arguments
-   │                                 │  
-   │                                 ╰── ... and these too
-   │ 
-   │ Help: Special form paths must not include generic arguments. Remove the angle brackets and their contents.
-   │ 
-   │ Note: Special forms are built-in language constructs that don't support generics in their path reference.
-───╯
+error[special-form-expander::unknown-special-form]: Unknown special form
+  ╭▸ 
+3 │ ["::kernel::special_form<T>::if<U>"]
+  │                          ┯      ─ ... and these too
+  │                          │
+  │                          Remove these generic arguments
+  │
+  ├ help: Special form paths must not include generic arguments. Remove the angle brackets and their contents.
+  ╰ note: Special forms are built-in language constructs that don't support generics in their path reference.

@@ -1,5 +1,4 @@
 import { useTheme } from "@mui/material";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import type { DefaultSeoProps } from "next-seo";
 import { DefaultSeo } from "next-seo";
@@ -34,13 +33,13 @@ export const PlainLayout: FunctionComponent<{
 
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthInfo();
+  const { authenticatedUser, emailVerificationStatusKnown } = useAuthInfo();
+
+  const primaryEmailVerified =
+    authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
 
   return (
     <>
-      <Head>
-        {!isProduction ? <meta name="robots" content="noindex" /> : null}
-      </Head>
       <DefaultSeo
         {...defaultSeoProps}
         additionalLinkTags={[
@@ -49,6 +48,7 @@ export const PlainLayout: FunctionComponent<{
             href: `/favicon.png?v=${router.asPath}`, // force favicon refresh on route change
           },
         ]}
+        dangerouslySetAllPagesToNoIndex={!isProduction}
       />
       <NextNProgress
         color={palette.primary.main}
@@ -56,7 +56,11 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
-      {authenticatedUser?.accountSignupComplete ? <CommandBar /> : null}
+      {authenticatedUser?.accountSignupComplete &&
+      emailVerificationStatusKnown &&
+      primaryEmailVerified ? (
+        <CommandBar />
+      ) : null}
       {children}
     </>
   );

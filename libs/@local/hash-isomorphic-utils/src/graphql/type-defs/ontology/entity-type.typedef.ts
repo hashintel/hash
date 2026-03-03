@@ -1,6 +1,12 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const entityTypeTypedef = gql`
+  scalar QueryEntityTypesParams
+  scalar QueryEntityTypesResponse
+  scalar QueryEntityTypeSubgraphParams
+  scalar QueryEntityTypeSubgraphResponse
+  scalar GetClosedMultiEntityTypesParams
+  scalar GetClosedMultiEntityTypesResponse
   scalar ClosedMultiEntityType
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
@@ -8,53 +14,17 @@ export const entityTypeTypedef = gql`
   scalar Filter
   scalar UserPermissionsOnEntityType
 
-  type GetClosedMultiEntityTypesResponse {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap!
-    definitions: ClosedMultiEntityTypesDefinitions!
-  }
-
   extend type Query {
-    """
-    Get a subgraph rooted at all entity types that match a given filter.
-    """
     queryEntityTypes(
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      filter: Filter
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      latestOnly: Boolean = true
-      includeArchived: Boolean = false
-    ): GqlSubgraph!
+      request: QueryEntityTypesParams!
+    ): QueryEntityTypesResponse!
 
-    """
-    Get a subgraph rooted at an entity type resolved by its versioned URL.
-    """
-    getEntityType(
-      entityTypeId: VersionedUrl!
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      includeArchived: Boolean = false
-    ): GqlSubgraph!
+    queryEntityTypeSubgraph(
+      request: QueryEntityTypeSubgraphParams!
+    ): QueryEntityTypeSubgraphResponse!
 
-    """
-    Get multiple 'closed multi entity types' at once.
-    A 'closed multi entity type' is the unified schema from a set of entity types.
-    """
     getClosedMultiEntityTypes(
-      """
-      The list of multi entity type ids to get.
-      Each entry in the array should be a set of entity type ids that will generate a closed multi entity type.
-      """
-      entityTypeIds: [[VersionedUrl!]!]!
-      """
-      Whether to include archived entity types in the response.
-      """
-      includeArchived: Boolean = false
+      request: GetClosedMultiEntityTypesParams!
     ): GetClosedMultiEntityTypesResponse!
 
     """

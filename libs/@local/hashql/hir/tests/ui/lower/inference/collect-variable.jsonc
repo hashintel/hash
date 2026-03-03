@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: Collect variables that aren't explicitly mentioned
+[
+  "let",
+  "foo",
+  "Dict<Integer | _, String>",
+  //~^ ERROR Cannot infer type for this variable
+  { "#literal": 2 },
+  "foo"
+]

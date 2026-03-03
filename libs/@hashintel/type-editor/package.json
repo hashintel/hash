@@ -1,15 +1,16 @@
 {
   "name": "@hashintel/type-editor",
-  "version": "0.0.25",
+  "version": "0.0.26",
+  "private": true,
   "description": "A visual editor for Block Protocol types",
+  "license": "AGPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/type-editor"
   },
-  "license": "AGPL-3.0",
-  "sideEffects": false,
   "type": "module",
+  "sideEffects": false,
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {
@@ -20,37 +21,38 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/graph": "workspace:*",
+    "@blockprotocol/type-system": "workspace:*",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@hashintel/design-system": "0.0.8",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
-    "clsx": "1.2.1",
+    "@hashintel/design-system": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*",
+    "clsx": "2.1.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
     "material-ui-popup-state": "4.1.0",
-    "rooks": "7.14.1",
+    "rooks": "9.3.0",
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
+    "@local/eslint": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@types/lodash.memoize": "4.1.9",
     "@types/lodash.uniqueid": "4.0.9",
-    "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-hook-form": "7.60.0",
-    "typescript": "5.7.3"
+    "eslint": "9.39.3",
+    "eslint-plugin-storybook": "10.2.10",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "7.65.0",
+    "storybook": "9.1.19",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",
     "@mui/system": "^5.14.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hook-form": "7.60.0"
+    "react-hook-form": "7.61.1"
   }
 }

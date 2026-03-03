@@ -1,8 +1,8 @@
-//! Adapted and vendored from `http-body` crate (<https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html>)
+//! Adapted and vendored from `http-body` crate (<https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html>).
 
 use core::ops::Add;
 
-/// A `Body` size hint
+/// A `Body` size hint.
 ///
 /// The default implementation returns:
 ///
@@ -15,7 +15,7 @@ pub struct SizeHint {
 }
 
 impl SizeHint {
-    /// Returns a new `SizeHint` with default values
+    /// Returns a new `SizeHint` with default values.
     #[inline]
     #[must_use]
     pub fn new() -> Self {

@@ -46,7 +46,7 @@ fn main() -> ExitCode {
     let mut tests = Vec::new();
     for (type_id, name) in find_available_types() {
         for target in &targets {
-            let test_name = format!("{name}::{target:?}");
+            let test_name = format!("{name}-{target:?}");
             tests.push(Trial::test(test_name.clone(), move || {
                 test_single_type(&test_name, type_id);
                 Ok(())

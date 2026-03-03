@@ -1,15 +1,14 @@
-use core::assert_matches::assert_matches;
+use core::assert_matches;
 
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
         inference::{Constraint, Inference as _, Variable, VariableKind},
@@ -28,14 +27,14 @@ use crate::{
             tuple::TupleType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-        tests::{instantiate, instantiate_infer, instantiate_param},
+        tests::{instantiate, instantiate_infer, instantiate_param, scaffold},
     },
 };
 
 #[test]
 fn unnest_flattens_nested_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union type with a nested union
     let number = primitive!(env, PrimitiveType::Number);
@@ -60,7 +59,7 @@ fn unnest_flattens_nested_unions() {
 #[test]
 fn unnest_nested_recursive_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -83,7 +82,7 @@ fn unnest_nested_recursive_union() {
 #[test]
 fn join_identical_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     union!(
         env,
@@ -118,7 +117,7 @@ fn join_identical_unions() {
 #[test]
 fn join_recursive_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     union!(
         env,
@@ -148,7 +147,7 @@ fn join_recursive_unions() {
 #[test]
 fn join_different_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create different union types
     union!(
@@ -186,7 +185,7 @@ fn join_different_unions() {
 #[test]
 fn join_with_empty_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty union (Never) and a non-empty union
     union!(env, empty, []);
@@ -225,7 +224,7 @@ fn join_with_empty_union() {
 #[test]
 fn join_with_overlapping_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create overlapping unions
     union!(
@@ -262,7 +261,7 @@ fn join_with_overlapping_unions() {
 #[test]
 fn meet_disjoint_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create disjoint unions (no common variants)
     union!(
@@ -330,7 +329,7 @@ fn meet_disjoint_unions() {
 #[test]
 fn meet_identical_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     union!(
         env,
@@ -370,7 +369,7 @@ fn meet_identical_unions() {
 #[test]
 fn meet_with_empty_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty union (Never) and a non-empty union
     union!(env, empty, []);
@@ -403,7 +402,7 @@ fn meet_with_empty_union() {
 #[test]
 fn meet_subtype_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with Number and another with Integer (where Integer <: Number)
     let number = primitive!(env, PrimitiveType::Number);
@@ -434,7 +433,7 @@ fn meet_subtype_supertype() {
 #[test]
 fn is_bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty union (Never)
     union!(env, empty, []);
@@ -454,7 +453,7 @@ fn is_bottom() {
 #[test]
 fn is_top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Regular union
     union!(
@@ -486,7 +485,7 @@ fn is_top() {
 #[test]
 fn is_subtype_of_self() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union type
     union!(
@@ -507,7 +506,7 @@ fn is_subtype_of_self() {
 #[test]
 fn empty_union_is_subtype_of_all() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty union (Never)
     union!(env, empty, []);
@@ -524,7 +523,7 @@ fn empty_union_is_subtype_of_all() {
 #[test]
 fn covariant_union_is_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Dict<String, Number>
     dict!(
@@ -557,7 +556,7 @@ fn covariant_union_is_subtype() {
 #[test]
 fn covariant_union_equivalence() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Dict<String, Number> | Dict<String, String>
     let union_dict_string_number_string = union!(
@@ -599,7 +598,7 @@ fn covariant_union_equivalence() {
 #[test]
 fn union_equivalence_with_different_variant_counts() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Dict<String, Boolean>
     let dict_string_boolean = dict!(
@@ -660,7 +659,7 @@ fn union_equivalence_with_different_variant_counts() {
 #[test]
 fn union_equivalence_non_equivalent_different_counts() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create some basic types
     let number = primitive!(env, PrimitiveType::Number);
@@ -691,7 +690,7 @@ fn union_equivalence_non_equivalent_different_counts() {
 #[test]
 fn no_union_is_subtype_of_never() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty union (Never)
     union!(env, empty, []);
@@ -708,7 +707,7 @@ fn no_union_is_subtype_of_never() {
 #[test]
 fn subtype_supertype_relation() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with Number and String
     let number = primitive!(env, PrimitiveType::Number);
@@ -740,7 +739,7 @@ fn subtype_supertype_relation() {
 #[test]
 fn is_equivalent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create identical unions (but at different type IDs)
     union!(
@@ -795,7 +794,7 @@ fn is_equivalent() {
 #[test]
 fn empty_union_equivalence() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two empty unions
     union!(env, a, []);
@@ -816,7 +815,7 @@ fn empty_union_equivalence() {
 #[test]
 fn simplify_identical_variants() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with duplicate variants
     union!(
@@ -844,7 +843,7 @@ fn simplify_identical_variants() {
 #[test]
 fn simplify_nested_unions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create nested unions
     let nested = union!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -873,7 +872,7 @@ fn simplify_nested_unions() {
 #[test]
 fn simplify_with_bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with a never type
     union!(
@@ -901,7 +900,7 @@ fn simplify_with_bottom() {
 #[test]
 fn simplify_with_top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with a top (Unknown) type
     union!(
@@ -926,7 +925,7 @@ fn simplify_with_top() {
 #[test]
 fn simplify_empty_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty union
     union!(env, union_type, []);
@@ -943,7 +942,7 @@ fn simplify_empty_union() {
 #[test]
 fn simplify_with_subtypes() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a union with a type and its subtype
     let number = primitive!(env, PrimitiveType::Number);
@@ -966,7 +965,7 @@ fn simplify_with_subtypes() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct union types for testing lattice laws
     let a = union!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -980,7 +979,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Concrete union (with all concrete variants)
@@ -1010,7 +1009,7 @@ fn is_concrete() {
 #[test]
 fn complex_union_relationships() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create various types to use in unions
     let number = primitive!(env, PrimitiveType::Number);
@@ -1058,7 +1057,7 @@ fn complex_union_relationships() {
 #[test]
 fn union_with_tuple_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuple types
     let tuple1 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -1084,7 +1083,7 @@ fn union_with_tuple_types() {
 #[test]
 fn collect_constraints_empty_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two empty unions (Never type)
     union!(env, empty_a, []);
@@ -1103,7 +1102,7 @@ fn collect_constraints_empty_empty() {
 #[test]
 fn collect_constraints_empty_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty union (Never) as subtype
     union!(env, empty, []);
@@ -1126,7 +1125,7 @@ fn collect_constraints_empty_subtype() {
 #[test]
 fn collect_constraints_empty_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Some concrete union as subtype
     let hole = HoleId::new(0);
@@ -1156,7 +1155,7 @@ fn collect_constraints_empty_supertype() {
 #[test]
 fn collect_constraints_inference_variable_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1190,7 +1189,7 @@ fn collect_constraints_inference_variable_subtype() {
 #[test]
 fn collect_constraints_inference_variable_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1223,7 +1222,7 @@ fn collect_constraints_inference_variable_supertype() {
 #[test]
 fn collect_constraints_multiple_variants_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole_a = HoleId::new(0);
@@ -1269,7 +1268,7 @@ fn collect_constraints_multiple_variants_subtype() {
 #[test]
 fn collect_constraints_multiple_variants_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variable
     let hole = HoleId::new(0);
@@ -1303,7 +1302,7 @@ fn collect_constraints_multiple_variants_supertype() {
 #[test]
 fn collect_constraints_nested_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variable
     let hole = HoleId::new(0);
@@ -1338,7 +1337,7 @@ fn collect_constraints_nested_union() {
 #[test]
 fn collect_constraints_generic_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Set up generic arguments
     let arg1 = GenericArgumentId::new(0);
@@ -1372,7 +1371,7 @@ fn collect_constraints_generic_params() {
 #[test]
 fn collect_constraints_concrete_types_only() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create concrete types
     let number = primitive!(env, PrimitiveType::Number);
@@ -1394,7 +1393,7 @@ fn collect_constraints_concrete_types_only() {
 #[test]
 fn collect_constraints_mixed_variants() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create concrete type and inference variable
     let number = primitive!(env, PrimitiveType::Number);
@@ -1431,7 +1430,7 @@ fn collect_constraints_mixed_variants() {
 #[test]
 fn collect_constraints_with_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1473,7 +1472,7 @@ fn collect_constraints_with_intersection() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables for union variants
     let hole1 = HoleId::new(0);
@@ -1515,7 +1514,7 @@ fn collect_dependencies() {
 #[test]
 fn simplify_recursive_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1535,7 +1534,7 @@ fn simplify_recursive_union() {
 #[test]
 fn simplify_recursive_union_multiple_elements() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1555,7 +1554,7 @@ fn simplify_recursive_union_multiple_elements() {
 #[test]
 fn instantiate_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument1 = env.counter.generic_argument.next();
     let argument2 = env.counter.generic_argument.next();
@@ -1623,7 +1622,7 @@ fn instantiate_union() {
 #[test]
 fn projection_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let union = union!(env, []);
 
@@ -1642,7 +1641,7 @@ fn projection_empty() {
 #[test]
 fn projection_single_variant() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1658,7 +1657,7 @@ fn projection_single_variant() {
 #[test]
 fn projection_propagate_error() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1674,7 +1673,7 @@ fn projection_propagate_error() {
 #[test]
 fn projection_propagate_pending() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let hole = env.counter.hole.next();
@@ -1690,7 +1689,7 @@ fn projection_propagate_pending() {
 #[test]
 fn projection_union_values() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1716,7 +1715,7 @@ fn projection_union_values() {
 #[test]
 fn subscript_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let union = union!(env, []);
 
@@ -1741,7 +1740,7 @@ fn subscript_empty() {
 #[test]
 fn subscript_single_variant() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1763,7 +1762,7 @@ fn subscript_single_variant() {
 #[test]
 fn subscript_propagate_error() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1795,7 +1794,7 @@ fn subscript_propagate_error() {
 #[test]
 fn subscript_propagate_pending() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let hole = env.counter.hole.next();
@@ -1823,7 +1822,7 @@ fn subscript_propagate_pending() {
 #[test]
 fn subscript_union_values() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1844,4 +1843,79 @@ fn subscript_union_values() {
     };
 
     assert_equiv!(env, [id], [union!(env, [integer, string])]);
+}
+
+#[test]
+fn collect_constraints_invariant_union_left() {
+    scaffold!(heap, env, builder, [inference: inference]);
+
+    let hole = builder.fresh_hole();
+
+    let integer = builder.integer();
+    let string = builder.string();
+
+    // union-left
+    let lhs = builder.union([integer, string]);
+    let rhs = builder.infer(hole);
+
+    // First check covariance:
+    inference.collect_constraints(Variance::Covariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [
+            Constraint::LowerBound {
+                variable: Variable::synthetic(hole.into()),
+                bound: integer
+            },
+            Constraint::LowerBound {
+                variable: Variable::synthetic(hole.into()),
+                bound: string
+            }
+        ]
+    );
+
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [Constraint::Equals {
+            variable: Variable::synthetic(hole.into()),
+            r#type: lhs
+        }]
+    );
+
+    // right hand side has no inference variable shouldn't crash the system
+    let rhs = builder.string();
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert!(constraints.is_empty());
+}
+
+#[test]
+fn collect_constraints_invariant_union_both() {
+    scaffold!(heap, env, builder, [inference: inference]);
+
+    let a = builder.fresh_hole();
+    let b = builder.fresh_hole();
+
+    let integer = builder.integer();
+    let string = builder.string();
+
+    let lhs = builder.union([integer, builder.infer(a)]);
+    let rhs = builder.union([string, builder.infer(b)]);
+
+    inference.collect_constraints(Variance::Covariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [Constraint::UpperBound {
+            variable: Variable::synthetic(a.into()),
+            bound: rhs
+        }]
+    );
+
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert!(constraints.is_empty());
 }

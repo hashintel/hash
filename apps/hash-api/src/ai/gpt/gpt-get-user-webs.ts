@@ -12,7 +12,6 @@ export type GptGetUserWebsResponseBody =
 export const gptGetUserWebs: RequestHandler<
   Record<string, never>,
   GptGetUserWebsResponseBody
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const { user } = req;
 

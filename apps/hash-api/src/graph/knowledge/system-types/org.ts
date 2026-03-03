@@ -18,7 +18,7 @@ import {
   createWebMachineActorEntity,
   getWebMachineId,
 } from "@local/hash-backend-utils/machine-actors";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { createOrgWeb } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -27,7 +27,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   Organization,
   OrganizationNamePropertyValueWithMetadata,
@@ -293,42 +292,39 @@ export const getOrgById: ImpureGraphFunction<
 export const getOrgByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<Org | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-              { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
-      },
-      // TODO: Should this be an all-time query? What happens if the org is
-      //       archived/deleted, do we want to allow orgs to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+> = async (context, authentication, params) => {
+  const {
+    entities: [orgEntity, ...unexpectedEntities],
+  } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+            { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+          ],
+        },
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.shortname.propertyTypeBaseUrl,
+              ],
+            },
+            { parameter: params.shortname },
+          ],
+        },
+      ],
+    },
+    // TODO: Should this be an all-time query? What happens if the org is
+    //       archived/deleted, do we want to allow orgs to replace their
+    //       shortname?
+    //   see https://linear.app/hash/issue/H-757
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

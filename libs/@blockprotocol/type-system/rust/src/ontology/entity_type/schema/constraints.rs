@@ -8,7 +8,7 @@ use crate::ontology::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityConstraints {
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,

@@ -22,7 +22,7 @@ use crate::principal::actor_group::TeamId;
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct TeamRoleId(Uuid);
+pub struct TeamRoleId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl TeamRoleId {
     #[must_use]

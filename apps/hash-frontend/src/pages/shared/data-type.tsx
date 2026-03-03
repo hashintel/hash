@@ -13,7 +13,8 @@ import {
   makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Theme } from "@mui/material";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -25,14 +26,14 @@ import { FormProvider, useForm, useWatch } from "react-hook-form";
 import type {
   CreateDataTypeMutation,
   CreateDataTypeMutationVariables,
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
   UpdateDataTypeMutation,
   UpdateDataTypeMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
   createDataTypeMutation,
-  queryDataTypesQuery,
+  queryDataTypeSubgraphQuery,
   updateDataTypeMutation,
 } from "../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
@@ -144,17 +145,21 @@ export const DataType = ({
     loading: loadingRemoteDataType,
     data: remoteDataTypeData,
     refetch: refetchRemoteType,
-  } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
-    queryDataTypesQuery,
+  } = useQuery<QueryDataTypeSubgraphQuery, QueryDataTypeSubgraphQueryVariables>(
+    queryDataTypeSubgraphQuery,
     {
       variables: {
-        constrainsValuesOn: { outgoing: 255 },
-        filter: {
-          equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+        request: {
+          filter: {
+            equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+          },
+          temporalAxes: fullTransactionTimeAxis,
+          graphResolveDepths: {
+            inheritsFrom: 255,
+            constrainsValuesOn: 255,
+          },
+          traversalPaths: [],
         },
-        includeArchived: true,
-        inheritsFrom: { outgoing: 255 },
-        latestOnly: false,
       },
       skip: !!draftNewDataType,
       fetchPolicy: "cache-and-network",
@@ -170,7 +175,9 @@ export const DataType = ({
     }
 
     const dataTypes = getRoots<DataTypeRootType>(
-      mapGqlSubgraphFieldsFragmentToSubgraph(remoteDataTypeData.queryDataTypes),
+      deserializeQueryDataTypeSubgraphResponse(
+        remoteDataTypeData.queryDataTypeSubgraph,
+      ).subgraph,
     );
 
     let highestVersionDataType: DataTypeWithMetadata | null = null;

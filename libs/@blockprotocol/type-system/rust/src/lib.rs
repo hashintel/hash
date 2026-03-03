@@ -395,7 +395,7 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 /// }
 /// ```
 pub trait Validator<V>: Sync {
-    /// The error type returned when validation fails
+    /// The error type returned when validation fails.
     type Error;
 
     /// Validates a reference and return [`&Valid<V>`] if it is valid.

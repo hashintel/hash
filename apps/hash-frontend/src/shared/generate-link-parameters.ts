@@ -71,19 +71,9 @@ export const generateLinkParameters = (
 
     return {
       isExternal,
-      href:
-        /**
-         * Until H-1172 is implemented, we need to just take the pathname of the href, because we might
-         * have links with a https://hash.ai origin that need to be served from a https://app.hash.ai frontend
-         * The exceptions are the /cases, /contact, and /guide routes which actually reside at https://hash.ai
-         * @todo when implementing H-1172, just use the href here
-         */
-        isExternal ||
-        pathname.startsWith("/cases") ||
-        pathname.startsWith("/contact") ||
-        pathname.startsWith("/guide")
-          ? href
-          : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
+      href: isExternal
+        ? href
+        : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
     };
   }
 

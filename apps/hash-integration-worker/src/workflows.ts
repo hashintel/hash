@@ -8,7 +8,8 @@ import type {
 import type { ActivityOptions } from "@temporalio/workflow";
 import { proxyActivities } from "@temporalio/workflow";
 
-import type { createLinearIntegrationActivities } from "./linear-activities";
+import type { createLinearIntegrationActivities } from "./activities/linear-activities.js";
+import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 const commonConfig: ActivityOptions = {
   startToCloseTimeout: "360 second",
@@ -72,3 +73,5 @@ export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
 
 export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
   linearActivities.updateLinearData(params);
+
+export const runFlow = runFlowWorkflow;

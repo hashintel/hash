@@ -1,30 +1,42 @@
-use hashql_core::span::SpanId;
+use hashql_core::{
+    span::Spanned,
+    symbol::{Symbol, sym},
+};
 
 use crate::node::Node;
-
-/// The kinds of unary operators available in HashQL.
-///
-/// Represents the various operations that can be performed with a single operand,
-/// including logical negation, bitwise negation, and arithmetic negation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum UnOpKind {
-    /// The `!` operator (not)
-    Not,
-    /// The `~` operator (bitwise not)
-    BitNot,
-    /// The `-` operator (negation)
-    Neg,
-}
 
 /// A unary operator in the HashQL HIR.
 ///
 /// Represents a specific unary operation to be performed, such as negation or logical not.
 /// Includes source span information for error reporting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct UnOp {
-    pub span: SpanId,
+pub enum UnOp {
+    /// The `!` operator (not).
+    Not,
+    /// The `~` operator (bitwise not).
+    BitNot,
+    /// The `-` operator (negation).
+    Neg,
+}
 
-    pub kind: UnOpKind,
+impl UnOp {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Not => "!",
+            Self::BitNot => "~",
+            Self::Neg => "-",
+        }
+    }
+
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::Not => sym::symbol::exclamation,
+            Self::BitNot => sym::symbol::tilde,
+            Self::Neg => sym::symbol::minus,
+        }
+    }
 }
 
 /// A unary operation expression in the HashQL HIR.
@@ -33,8 +45,6 @@ pub struct UnOp {
 /// such as negation, logical not, or bitwise not.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnaryOperation<'heap> {
-    pub span: SpanId,
-
-    pub op: UnOp,
+    pub op: Spanned<UnOp>,
     pub expr: Node<'heap>,
 }

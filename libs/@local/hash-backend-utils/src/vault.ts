@@ -11,6 +11,31 @@ import type { Logger } from "./logger.js";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
 
+/**
+ * Vault mount path validation regex based on HashiCorp Vault's GenericNameRegex.
+ * @see https://github.com/hashicorp/vault/blob/main/sdk/framework/path.go
+ *
+ * Allows: alphanumeric, underscore, hyphen (middle), period (middle)
+ * Must start and end with alphanumeric or underscore.
+ */
+const vaultMountPathRegex = /^[a-zA-Z0-9_]([a-zA-Z0-9_.-]*[a-zA-Z0-9_])?$/;
+
+/**
+ * Normalizes and validates a Vault mount path.
+ * - Trims whitespace
+ * - Removes leading/trailing slashes
+ * - Validates against Vault's allowed characters
+ *
+ * @returns The normalized path, or undefined if invalid/empty
+ */
+const normalizeVaultMountPath = (path: string): string | undefined => {
+  const normalized = path.trim().replace(/^\/|\/$/g, "");
+  if (!normalized || !vaultMountPathRegex.test(normalized)) {
+    return undefined;
+  }
+  return normalized;
+};
+
 type VaultLoginResult = {
   client_token: string;
   lease_duration: number; // seconds
@@ -155,6 +180,7 @@ type RenewableToken = {
 export class VaultClient {
   readonly #vaultAddr: string;
   readonly #logger: Logger;
+  readonly #secretMountPath: string;
 
   #client: AxiosInstance;
   #token: RenewableToken | string;
@@ -164,9 +190,19 @@ export class VaultClient {
     endpoint: string;
     token: string | RenewableToken;
     logger: Logger;
+    secretMountPath: string;
   }) {
     this.#vaultAddr = params.endpoint;
     this.#logger = params.logger;
+
+    const normalizedMountPath = normalizeVaultMountPath(params.secretMountPath);
+    if (!normalizedMountPath) {
+      throw new Error(
+        `Invalid secretMountPath "${params.secretMountPath}": must be non-empty and contain only alphanumeric characters, underscores, hyphens, and periods (hyphens/periods not at start/end)`,
+      );
+    }
+    this.#secretMountPath = normalizedMountPath;
+
     this.#token = params.token;
 
     this.#client = axios.create({
@@ -276,14 +312,13 @@ export class VaultClient {
   }
 
   async write<D extends object = Record<"value", string>>(params: {
-    secretMountPath: "secret";
     path: UserSecretPath;
     data: D;
   }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path, data } = params;
+    const { path, data } = params;
 
     const response = await this.#client.post<{ data: VaultSecret["metadata"] }>(
-      `/${secretMountPath}/data/${path.replace(/^\//, "")}`,
+      `/${this.#secretMountPath}/data/${path.replace(/^\//, "")}`,
       { data },
     );
 
@@ -294,11 +329,10 @@ export class VaultClient {
   }
 
   async read<D = unknown>(params: {
-    secretMountPath: "secret";
     path: string;
     userAccountId: ActorEntityUuid;
   }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path } = params;
+    const { path } = params;
 
     const userAccountIdInPath = path.split("/").at(1);
     if (userAccountIdInPath !== params.userAccountId) {
@@ -308,7 +342,7 @@ export class VaultClient {
     }
 
     const response = await this.#client.get<{ data: VaultSecret<D> }>(
-      `/${secretMountPath}/data/${path}`,
+      `/${this.#secretMountPath}/data/${path}`,
     );
 
     return response.data.data;
@@ -320,9 +354,23 @@ export const createVaultClient = async ({
 }: {
   logger: Logger;
 }) => {
-  if (!process.env.HASH_VAULT_HOST || !process.env.HASH_VAULT_PORT) {
+  if (
+    !process.env.HASH_VAULT_HOST ||
+    !process.env.HASH_VAULT_PORT ||
+    !process.env.HASH_VAULT_MOUNT_PATH
+  ) {
     logger.info(
-      "No HASH_VAULT_HOST or HASH_VAULT_PORT provided, skipping Vault client creation",
+      "No HASH_VAULT_HOST, HASH_VAULT_PORT, or HASH_VAULT_MOUNT_PATH provided, skipping Vault client creation",
+    );
+    return undefined;
+  }
+
+  const secretMountPath = normalizeVaultMountPath(
+    process.env.HASH_VAULT_MOUNT_PATH,
+  );
+  if (!secretMountPath) {
+    logger.error(
+      `Invalid HASH_VAULT_MOUNT_PATH "${process.env.HASH_VAULT_MOUNT_PATH}": must contain only alphanumeric characters, underscores, hyphens, and periods (hyphens/periods not at start/end)`,
     );
     return undefined;
   }
@@ -342,6 +390,7 @@ export const createVaultClient = async ({
         endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
         token: login.client_token,
         logger,
+        secretMountPath,
       });
     } catch (error) {
       logger.error(
@@ -360,6 +409,7 @@ export const createVaultClient = async ({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
     token: process.env.HASH_VAULT_ROOT_TOKEN,
     logger,
+    secretMountPath,
   });
 };
 

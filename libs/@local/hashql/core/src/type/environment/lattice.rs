@@ -1,13 +1,20 @@
-use core::ops::Deref;
+use core::{mem, ops::Deref};
 
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
+use super::{
+    Environment, InferenceEnvironment, SimplifyEnvironment, Variance,
+    simplify::SimplifyEnvironmentSkeleton,
+};
 use crate::{
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        error::{circular_type_reference, recursive_type_projection, recursive_type_subscript},
+        error::{
+            TypeCheckDiagnosticIssues, circular_type_reference, recursive_type_projection,
+            recursive_type_subscript,
+        },
         inference::{Substitution, VariableKind, VariableLookup},
         kind::{IntersectionType, TypeKind, UnionType},
         lattice::{Lattice as _, Projection, Subscript},
@@ -16,14 +23,26 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct LatticeEnvironmentSkeleton<'heap> {
+    diagnostics: TypeCheckDiagnosticIssues,
+    boundary: RecursionBoundary<'heap>,
+    simplify: SimplifyEnvironmentSkeleton<'heap>,
+}
+
+#[derive(Debug)]
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    pub diagnostics: Diagnostics,
+    pub diagnostics: TypeCheckDiagnosticIssues,
 
     boundary: RecursionBoundary<'heap>,
 
     simplify_lattice: bool,
     inference: bool,
+    warnings_enabled: bool,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }
@@ -33,11 +52,27 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            diagnostics: Diagnostics::new(),
+            diagnostics: DiagnosticIssues::new(),
             simplify_lattice: true,
             inference: false,
+            warnings_enabled: true,
             simplify: SimplifyEnvironment::new(environment),
         }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> LatticeEnvironmentSkeleton<'heap> {
+        LatticeEnvironmentSkeleton {
+            diagnostics: self.diagnostics,
+            boundary: self.boundary,
+            simplify: self.simplify.into_skeleton(),
+        }
+    }
+
+    #[must_use]
+    pub const fn without_warnings(mut self) -> Self {
+        self.warnings_enabled = false;
+        self
     }
 
     #[inline]
@@ -75,12 +110,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Diagnostics {
-        let mut this = core::mem::take(&mut self.diagnostics);
+    pub fn take_diagnostics(&mut self) -> TypeCheckDiagnosticIssues {
+        let mut this = mem::take(&mut self.diagnostics);
         let simplify = self.simplify.take_diagnostics();
 
-        if let Some(simplify) = simplify {
-            this.merge(simplify);
+        if let Some(mut simplify) = simplify {
+            this.append(&mut simplify);
         }
 
         this
@@ -138,7 +173,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     /// - Otherwise, we form a union type (standard lattice behavior)
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     fn join_recursive(
         &mut self,
         lhs: Type<'heap>,
@@ -146,12 +181,19 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         cycle: RecursionCycle,
     ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics
-            .push(circular_type_reference(self.source, lhs, rhs));
+        if self.warnings_enabled {
+            self.diagnostics.push(circular_type_reference(lhs, rhs));
+        }
 
-        if cycle.should_discharge() {
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
+            return rhs.id;
+        }
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, rhs.id, lhs.id) {
             return lhs.id;
         }
+
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create a union type.
 
         // If they aren't in a subtyping relationship, create a union type
         let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
@@ -246,20 +288,28 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     /// - Otherwise, we form an intersection type (standard lattice behavior)
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     fn meet_recursive(
         &mut self,
         lhs: Type<'heap>,
         rhs: Type<'heap>,
         cycle: RecursionCycle,
     ) -> TypeId {
-        // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics
-            .push(circular_type_reference(self.source, lhs, rhs));
+        if self.warnings_enabled {
+            // Record diagnostic for awareness but don't treat as fatal
+            self.diagnostics.push(circular_type_reference(lhs, rhs));
+        }
 
-        if cycle.should_discharge() {
+        // Check the subtyping relationship
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
             return lhs.id;
         }
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, rhs.id, lhs.id) {
+            return rhs.id;
+        }
+
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create an intersection type.
 
         // If they aren't in a subtyping relationship, create an intersection type
         let kind = self

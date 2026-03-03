@@ -28,6 +28,9 @@
     "build:types": {
       "dependsOn": ["^build:types"]
     },
+    "build:codspeed": {
+      "cache": false
+    },
     "compile": {
       "cache": false
     },
@@ -46,7 +49,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["start:migrate"]
+      "dependsOn": ["compile:release"]
     },
     "start:test:migrate": {
       "cache": false,
@@ -69,6 +72,9 @@
     "test:integration": {
       "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
+    },
+    "test:codspeed": {
+      "cache": false
     },
     "test:miri": {},
     // Benchmarks
@@ -123,5 +129,9 @@
     // External services
     "apps/hash-external-services/**"
   ],
-  "globalPassThroughEnv": ["CARGO_TERM_PROGRESS_WHEN"]
+  "globalPassThroughEnv": [
+    "CARGO_TERM_PROGRESS_WHEN",
+    "RUSTC_WRAPPER",
+    "CARGO_INCREMENTAL"
+  ]
 }

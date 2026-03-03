@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
@@ -10,18 +8,18 @@
 //! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
 //! signature `Fn(&T, &mut HookContext<T>)`, they provide an ergonomic way to partially modify the
 //! output format and enable custom output for types that are not necessarily added via
-//! [`Report::attach_printable`] or are unable to implement [`Display`].
+//! [`Report::attach`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which provide additional values through [`Context::provide`] and
-//! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
+//! Hooks are called for contexts which provide additional values through [`Error::provide`] and
+//! attachments which are added via [`Report::attach`] or [`Report::attach_opaque`]. The order of
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
-//! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
-//! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
-//! [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
-//! [`Context::provide`].
+//! Hooks get called on all values provided by [`Error::provide`], but not on the [`Error`]
+//! object itself. Therefore if you want to call a hook on a [`Error`] context to print in addition
+//! to its [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
+//! [`Error::provide`].
 //!
 //! [`request.provide_ref(self)`]: core::error::Request::provide_ref
 //!
@@ -96,10 +94,10 @@
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach_printable(ErrorCode(404))
-//!     .attach(Suggestion("try to be connected to the internet."))
-//!     .attach(Suggestion("try better next time!"))
-//!     .attach(Warning("unable to fetch resource"));
+//!     .attach(ErrorCode(404))
+//!     .attach_opaque(Suggestion("try to be connected to the internet."))
+//!     .attach_opaque(Suggestion("try better next time!"))
+//!     .attach_opaque(Warning("unable to fetch resource"));
 //!
 //! # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
 //! # fn render(value: String) -> String {
@@ -189,7 +187,7 @@
 //!
 //! While formatting we view the [`Report`]s as a tree of [`Frame`]s, therefore the following
 //! explanation will use terminology associated with trees, every [`Frame`] is a node and can have
-//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Context`].
+//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Error`] context.
 //!
 //! A list is a list of nodes where each node in the list is the parent of the next node in the list
 //! and only has a single child. The last node in the list is exempt of that rule of that rule and
@@ -202,9 +200,10 @@
 //! (`1`), but `1` is not the immediate context parent of `3` and `4` (`2`) is. In the more detailed
 //! example `(Dᶜ, Hᶜ, Iᶜ)` is considered a group because they share the same *immediate* context
 //! parent `Aᶜ`, important to note is that we only refer to immediate context parents, `Fᵃ` is the
-//! immediate parent of `Iᶜ`, but is not a [`Context`], therefore to find the immediate context
-//! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
-//! contain lists, for the sake of clarity this explanation only shows the first element.
+//! immediate parent of `Iᶜ`, but is not a [`Error`] context, therefore to find the immediate
+//! context parent, we travel up the tree until we encounter our first [`Error`] context node.
+//! Groups always contain lists, for the sake of clarity this explanation only shows the first
+//! element.
 //!
 //! The rules stated above also implies some additional rules:
 //! * lists are never empty
@@ -215,7 +214,7 @@
 //! Using the aforementioned delimiters for lists and groups the end result would be:
 //!
 //! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
-//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`
+//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`.
 //!
 //! Attachments are not ordered by insertion order but by depth in the tree. The depth in the tree
 //! is the inverse of the insertion order, this means that the [`Debug`] output of all
@@ -310,6 +309,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
+    error::Error,
     fmt::{self, Debug, Display, Formatter},
     iter::once,
     mem,
@@ -325,7 +325,7 @@ pub(crate) use hook::{Format, Hooks, install_builtin_hooks};
 use location::LocationAttachment;
 
 use crate::{
-    AttachmentKind, Context, Frame, FrameKind, Report,
+    AttachmentKind, Frame, FrameKind, Report,
     fmt::{
         color::{Color, DisplayStyle, Style},
         config::Config,
@@ -460,12 +460,12 @@ enum Spacing {
 
 #[derive(Debug, Copy, Clone)]
 struct Indent {
-    /// Is this used in a group context, if that is the case, then add a single leading space
+    /// Is this used in a group context? If that is the case, then add a single leading space.
     group: bool,
-    /// Should the indent be visible, if that isn't the case it will render a space instead of
-    /// `|`
+    /// Should the indent be visible? If that isn't the case it will render a space instead of
+    /// `|`.
     visible: bool,
-    /// Should spacing included, this is the difference between `|   ` and `|`
+    /// Should spacing be included? This is the difference between `|   ` and `|`.
     spacing: Option<Spacing>,
 }
 
@@ -569,7 +569,7 @@ enum Instruction {
     Context {
         position: Position,
     },
-    /// `Position::Final` means *that nothing follows*
+    /// `Position::Final` means *that nothing follows*.
     Attachment {
         position: Position,
     },
@@ -777,7 +777,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
+fn debug_context(context: &(dyn Error + Send + Sync + 'static), mode: ColorMode) -> Lines {
     context
         .to_string()
         .lines()

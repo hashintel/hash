@@ -235,16 +235,16 @@ export const UserProfileInfoForm: FunctionComponent<{
       );
 
       await Promise.all([
-        removedServiceAccounts.map((serviceAccount) =>
+        ...removedServiceAccounts.map((serviceAccount) =>
           removeServiceAccount({ serviceAccount }),
         ),
-        addedServiceAccounts.map(({ kind, profileUrl }) =>
+        ...addedServiceAccounts.map(({ kind, profileUrl }) =>
           addServiceAccount({ kind, profileUrl }),
         ),
-        serviceAccountProfileUrlsToUpdate.map((serviceAccount) =>
+        ...serviceAccountProfileUrlsToUpdate.map((serviceAccount) =>
           updateServiceAccountProfileUrl({ serviceAccount }),
         ),
-        serviceAccountsToReplace.map(
+        ...serviceAccountsToReplace.map(
           async (serviceAccount) =>
             await Promise.all([
               removeServiceAccount({

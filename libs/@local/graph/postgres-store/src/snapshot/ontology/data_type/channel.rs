@@ -50,14 +50,13 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.metadata.poll_ready_unpin(cx))
-            .attach_printable("could not poll ontology type sender")?;
+        ready!(self.metadata.poll_ready_unpin(cx)).attach("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll schema sender")?;
+            .attach("could not poll schema sender")?;
         ready!(self.conversions.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll conversions sender")?;
+            .attach("could not poll conversions sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -79,7 +78,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 temporal_versioning: data_type.metadata.temporal_versioning,
                 provenance: data_type.metadata.provenance,
             })
-            .attach_printable("could not send metadata")?;
+            .attach("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
@@ -88,7 +87,10 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 closed_schema: Valid::new_unchecked(ClosedDataType {
                     id: VersionedUrl {
                         base_url: schema.id.base_url.clone(),
-                        version: OntologyTypeVersion::new(0),
+                        version: OntologyTypeVersion {
+                            major: 0,
+                            pre_release: None,
+                        },
                     },
                     title: String::new(),
                     title_plural: None,
@@ -101,7 +103,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 schema,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send schema")?;
+            .attach("could not send schema")?;
         self.conversions
             .start_send_unpin(
                 data_type
@@ -117,33 +119,33 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                     .collect(),
             )
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send data conversions")?;
+            .attach("could not send data conversions")?;
 
         Ok(())
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_flush_unpin(cx))
-            .attach_printable("could not flush ontology type sender")?;
+            .attach("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush schema sender")?;
+            .attach("could not flush schema sender")?;
         ready!(self.conversions.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush conversions sender")?;
+            .attach("could not flush conversions sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_close_unpin(cx))
-            .attach_printable("could not close ontology type sender")?;
+            .attach("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close schema sender")?;
+            .attach("could not close schema sender")?;
         ready!(self.conversions.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close conversions sender")?;
+            .attach("could not close conversions sender")?;
 
         Poll::Ready(Ok(()))
     }

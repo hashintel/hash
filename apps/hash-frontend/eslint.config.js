@@ -95,7 +95,7 @@ export default [
       },
     },
     {
-      ignores: ["buildstamp.js", "next.config.js"],
+      ignores: ["buildstamp.js", "next.config.js", "next-env.d.ts"],
     },
   ]),
 ];

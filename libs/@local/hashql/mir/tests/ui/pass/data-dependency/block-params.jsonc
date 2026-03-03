@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Block parameters create Param edges from conditionals
+// if-else passes values to join blocks via Param edges
+[
+  "let",
+  "cond",
+  ["input", "cond", "Boolean"],
+  [
+    "let",
+    "a",
+    ["input", "a", "Integer"],
+    ["let", "b", ["input", "b", "Integer"], ["if", "cond", "a", "b"]]
+  ]
+]

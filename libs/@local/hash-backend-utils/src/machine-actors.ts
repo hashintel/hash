@@ -9,7 +9,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   getAiByIdentifier,
   getMachineByIdentifier,
@@ -20,7 +20,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
 
@@ -68,43 +67,40 @@ export const getMachineEntityByIdentifier = async (
   authentication: { actorId: ActorEntityUuid },
   { identifier }: { identifier: MachineActorIdentifier | AiActorIdentifier },
 ): Promise<Entity<Machine> | null> => {
-  const [machineEntity, ...unexpectedEntities] = await backOff(
+  const {
+    entities: [machineEntity, ...unexpectedEntities],
+  } = await backOff(
     () =>
-      context.graphApi
-        .getEntities(authentication.actorId, {
-          filter: {
-            all: [
-              {
-                equal: [
-                  {
-                    path: ["type(inheritanceDepth = 0)", "baseUrl"],
-                  },
-                  {
-                    parameter: systemEntityTypes.machine.entityTypeBaseUrl,
-                  },
-                ],
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: identifier },
-                ],
-              },
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
-        })
-        .then(({ data: response }) =>
-          response.entities.map((entity) =>
-            mapGraphApiEntityToEntity<Machine>(entity, authentication.actorId),
-          ),
-        ),
+      queryEntities<Machine>(context, authentication, {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                },
+                {
+                  parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: identifier },
+              ],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
+      }),
     {
       numOfAttempts: 3,
       startingDelay: 1000,

@@ -3,7 +3,6 @@ use rstest::rstest;
 
 use crate::{
     heap::Heap,
-    span::SpanId,
     symbol::Ident,
     r#type::{
         environment::{
@@ -28,7 +27,7 @@ use crate::{
 #[case(PrimitiveType::Null)]
 fn join_identical_primitives(#[case] primitive: PrimitiveType) {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, a, primitive);
     primitive!(env, b, primitive);
@@ -52,7 +51,7 @@ fn join_identical_primitives(#[case] primitive: PrimitiveType) {
 #[case(PrimitiveType::Null)]
 fn meet_identical_primitives(#[case] primitive: PrimitiveType) {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, a, primitive);
     primitive!(env, b, primitive);
@@ -71,7 +70,7 @@ fn meet_identical_primitives(#[case] primitive: PrimitiveType) {
 #[test]
 fn join_integer_number_subtyping() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, integer, PrimitiveType::Integer);
@@ -96,7 +95,7 @@ fn join_integer_number_subtyping() {
 #[test]
 fn meet_integer_number_subtyping() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, integer, PrimitiveType::Integer);
@@ -121,7 +120,7 @@ fn meet_integer_number_subtyping() {
 #[test]
 fn join_unrelated_primitives() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, string, PrimitiveType::String);
     primitive!(env, boolean, PrimitiveType::Boolean);
@@ -163,7 +162,7 @@ fn join_unrelated_primitives() {
 #[test]
 fn meet_unrelated_primitives() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, string, PrimitiveType::String);
     primitive!(env, boolean, PrimitiveType::Boolean);
@@ -205,7 +204,7 @@ fn meet_unrelated_primitives() {
 #[test]
 fn bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, string, PrimitiveType::String);
@@ -226,7 +225,7 @@ fn bottom() {
 #[test]
 fn top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, string, PrimitiveType::String);
@@ -247,7 +246,7 @@ fn top() {
 #[test]
 fn equivalent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, number2, PrimitiveType::Number); // Second Number type
@@ -272,7 +271,7 @@ fn equivalent() {
 #[test]
 fn subtype_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, integer, PrimitiveType::Integer);
@@ -321,7 +320,7 @@ fn subtype_relationship() {
 #[case(PrimitiveType::Null)]
 fn simplify(#[case] primitive: PrimitiveType) {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, a, primitive);
 
@@ -337,7 +336,7 @@ fn simplify(#[case] primitive: PrimitiveType) {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     primitive!(env, number, PrimitiveType::Number);
     primitive!(env, string, PrimitiveType::String);
@@ -349,7 +348,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // All primitive types should be concrete
@@ -367,7 +366,7 @@ fn is_concrete() {
 #[test]
 fn projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
 
@@ -388,7 +387,7 @@ fn projection() {
 #[test]
 fn subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     let mut inference = InferenceEnvironment::new(&env);

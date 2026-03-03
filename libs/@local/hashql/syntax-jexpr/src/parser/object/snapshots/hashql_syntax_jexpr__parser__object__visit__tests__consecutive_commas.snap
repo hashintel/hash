@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with consecutive commas should fail
 expression: "{\"a\": 1,,\"b\": 2}"
 ---
-[31m[object::consecutive-comma] Error:[0m Consecutive commas in object
-   ╭─[ <unknown>:1:9 ]
-   │
- 1 │ {"a": 1,,"b": 2}
-   │         ┬  
-   │         ╰── Remove this extra comma
-   │ 
-   │ Help: J-Expr requires exactly one comma between key-value pairs. Use `{"key1": value1, "key2": value2}` format.
-───╯
+error[object::consecutive-comma]: Consecutive commas in object
+  ╭▸ 
+1 │ {"a": 1,,"b": 2}
+  │         ━ Remove this extra comma
+  │
+  ╰ help: J-Expr requires exactly one comma between key-value pairs. Use `{"key1": value1, "key2": value2}` format.

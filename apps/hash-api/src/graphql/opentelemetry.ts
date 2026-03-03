@@ -1,3 +1,5 @@
+import { logs } from "@opentelemetry/api-logs";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import {
@@ -6,7 +8,14 @@ import {
 } from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { Resource } from "@opentelemetry/resources";
+import {
+  defaultResource,
+  resourceFromAttributes,
+} from "@opentelemetry/resources";
+import {
+  LoggerProvider,
+  SimpleLogRecordProcessor,
+} from "@opentelemetry/sdk-logs";
 import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
@@ -33,13 +42,13 @@ const unregisterInstrumentations = registerInstrumentations({
   ],
 });
 
-export const registerOpenTelemetryTracing = (
+export const registerOpenTelemetry = (
   otlpGrpcEndpoint: string | null,
   serviceName: string,
 ): (() => void) => {
   if (!otlpGrpcEndpoint) {
     logger.warn(
-      "No OpenTelemetry Protocol endpoint given. Not sending tracespans anywhere.",
+      "No OpenTelemetry Protocol endpoint given. Not sending telemetry anywhere.",
     );
     return () => {};
   }
@@ -49,24 +58,34 @@ export const registerOpenTelemetryTracing = (
     url: otlpGrpcEndpoint,
   };
 
-  const exporter = new OTLPTraceExporter(collectorOptions);
-
-  const provider = new NodeTracerProvider({
-    resource: Resource.default().merge(
-      new Resource({ "service.name": serviceName }),
+  // Setup Tracing
+  const traceExporter = new OTLPTraceExporter(collectorOptions);
+  const traceProvider = new NodeTracerProvider({
+    resource: defaultResource().merge(
+      resourceFromAttributes({ "service.name": serviceName }),
     ),
+    spanProcessors: [new SimpleSpanProcessor(traceExporter)],
+  });
+  traceProvider.register();
+
+  // Setup Logs
+  const logExporter = new OTLPLogExporter(collectorOptions);
+  const logProvider = new LoggerProvider({
+    resource: defaultResource().merge(
+      resourceFromAttributes({ "service.name": serviceName }),
+    ),
+    processors: [new SimpleLogRecordProcessor(logExporter)],
   });
 
-  provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
-
-  provider.register();
+  logs.setGlobalLoggerProvider(logProvider);
 
   logger.info(
-    `Registered OpenTelemetry trace exporter at endpoint ${otlpGrpcEndpoint} for ${serviceName}`,
+    `Registered OpenTelemetry (traces + logs) at endpoint ${otlpGrpcEndpoint} for ${serviceName}`,
   );
 
   return () => {
-    provider.shutdown().catch(logger.error);
+    traceProvider.shutdown().catch(logger.error);
+    logProvider.shutdown().catch(logger.error);
     unregisterInstrumentations();
   };
 };

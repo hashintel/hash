@@ -1,0 +1,70 @@
+//@ run: pass
+//@ description: Deep call chain of heavy functions in filter exceeds aggressive_inline_cutoff
+//@ suite#aggressive-inline-cutoff: 1
+//@ suite#rvalue-input-cost: 120.0
+//@ suite#max-cost: 20.0
+//@ suite#skip-output: true
+// With rvalue_input=120 and max=20, 1 input = cost 120 (far exceeds max).
+// Chain of 4 functions triggers depth cutoff warning.
+[
+  "::graph::tail::collect",
+  [
+    "::graph::body::filter",
+    [
+      "::graph::head::entities",
+      ["input", "axis", "::graph::QueryTemporalAxes"]
+    ],
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "vertex": "_" } },
+      "_",
+      [
+        "let",
+        "f4",
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "x": "Boolean" } },
+          "_",
+          ["input", "a", "Boolean"]
+        ],
+        [
+          "let",
+          "f3",
+          [
+            "fn",
+            { "#tuple": [] },
+            { "#struct": { "x": "Boolean" } },
+            "_",
+            ["&&", ["f4", "x"], ["input", "b", "Boolean"]]
+          ],
+          [
+            "let",
+            "f2",
+            [
+              "fn",
+              { "#tuple": [] },
+              { "#struct": { "x": "Boolean" } },
+              "_",
+              ["&&", ["f3", "x"], ["input", "c", "Boolean"]]
+            ],
+            [
+              "let",
+              "f1",
+              [
+                "fn",
+                { "#tuple": [] },
+                { "#struct": { "x": "Boolean" } },
+                "_",
+                ["&&", ["f2", "x"], ["input", "d", "Boolean"]]
+              ],
+              ["f1", ["==", "vertex.link_data", { "#literal": null }]]
+            ]
+          ]
+        ]
+      ]
+    ]
+    //~^ WARNING Excessive inlining depth
+  ]
+]

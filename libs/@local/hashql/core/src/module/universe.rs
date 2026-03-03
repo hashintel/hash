@@ -14,7 +14,7 @@ use core::{
 pub use hashbrown::hash_map::Entry;
 use hashbrown::{Equivalent, HashMap, HashSet, hash_map::OccupiedError};
 
-use crate::collection::{FastHashMap, FastHashSet};
+use crate::collections::{FastHashMap, FastHashSet};
 
 /// Represents the conceptual space or "universe" an item belongs to.
 ///
@@ -303,7 +303,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -338,7 +338,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -382,7 +382,7 @@ where
     ///
     /// ```should_panic
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -415,7 +415,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -443,7 +443,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -471,7 +471,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -498,7 +498,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -525,7 +525,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -553,7 +553,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -578,7 +578,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -601,7 +601,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -623,7 +623,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -644,7 +644,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -666,7 +666,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -689,7 +689,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -718,7 +718,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -747,7 +747,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -773,7 +773,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -800,7 +800,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashMap,
+    ///     collections::FastHashMap,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -854,7 +854,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -878,7 +878,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -906,7 +906,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -933,7 +933,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -956,7 +956,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -978,7 +978,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -999,7 +999,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -1021,7 +1021,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///
@@ -1044,7 +1044,7 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collection::FastHashSet,
+    ///     collections::FastHashSet,
     ///     module::universe::{Realms, Universe},
     /// };
     ///

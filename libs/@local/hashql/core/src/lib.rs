@@ -8,7 +8,6 @@
     arbitrary_self_types,
     associated_type_defaults,
     coverage_attribute,
-    default_field_values,
     if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr,
@@ -18,28 +17,40 @@
 
     // Library Features
     allocator_api,
-    array_windows,
     assert_matches,
     binary_heap_into_iter_sorted,
-    cold_path,
+    clone_from_ref,
+    const_cmp,
+    const_ops,
+    const_trait_impl,
+    debug_closure_helpers,
+    extend_one,
+    formatting_options,
+    get_disjoint_mut_helpers,
+    iter_intersperse,
     iter_map_windows,
+    iter_next_chunk,
     slice_partition_dedup,
     slice_swap_unchecked,
+    step_trait,
+    str_from_raw_parts,
+    try_trait_v2,
     variant_count,
 )]
 
 extern crate alloc;
 
-pub mod collection;
+pub mod algorithms;
+pub mod collections;
+pub mod graph;
 pub mod heap;
 pub mod id;
 pub mod intern;
-pub mod literal;
-pub mod math;
+mod macros;
 pub mod module;
 pub mod pretty;
-pub mod similarity;
 pub mod span;
 pub mod symbol;
+pub mod sync;
 pub mod r#type;
 pub mod value;

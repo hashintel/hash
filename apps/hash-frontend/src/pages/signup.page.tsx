@@ -1,9 +1,9 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import type {
@@ -11,11 +11,13 @@ import type {
   AcceptOrgInvitationMutationVariables,
   GetPendingInvitationByEntityIdQuery,
   GetPendingInvitationByEntityIdQueryVariables,
+  HasAccessToHashQuery,
 } from "../graphql/api-types.gen";
 import {
   acceptOrgInvitationMutation,
   getPendingInvitationByEntityIdQuery,
 } from "../graphql/queries/knowledge/org.queries";
+import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
@@ -23,6 +25,7 @@ import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
+import { VerifyEmailStep } from "./shared/verify-email-step";
 import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
 import type { AccountSetupFormData } from "./signup.page/account-setup-form";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
@@ -66,6 +69,25 @@ const SignupPage: NextPageWithLayout = () => {
 
   const { authenticatedUser, refetch: refetchAuthenticatedUser } =
     useAuthInfo();
+
+  const userHasVerifiedEmail =
+    authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
+
+  const [fetchHasAccess, { data: userHasAccessToHashData }] =
+    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+      fetchPolicy: "network-only",
+    });
+
+  /**
+   * Eagerly fetch access when the user already has a verified email on mount
+   * (e.g. page refresh after verification). The lazy query in `onVerified`
+   * handles the in-session verification flow.
+   */
+  useEffect(() => {
+    if (userHasVerifiedEmail && !userHasAccessToHashData) {
+      void fetchHasAccess();
+    }
+  }, [userHasVerifiedEmail, userHasAccessToHashData, fetchHasAccess]);
 
   const { invitationId } = router.query;
 
@@ -112,6 +134,7 @@ const SignupPage: NextPageWithLayout = () => {
       if (errors && errors.length > 0) {
         const { message } = parseGraphQLError([...errors]);
         setErrorMessage(message);
+        return;
       }
 
       if (invitation) {
@@ -135,10 +158,10 @@ const SignupPage: NextPageWithLayout = () => {
     ],
   );
 
-  /** @todo: un-comment this to actually check whether the email is verified */
-  // const userHasVerifiedEmail =
-  //   authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
-  const userHasVerifiedEmail = true;
+  const verificationFlowId =
+    typeof router.query.verificationFlowId === "string"
+      ? router.query.verificationFlowId
+      : undefined;
 
   return (
     <AuthLayout
@@ -169,15 +192,29 @@ const SignupPage: NextPageWithLayout = () => {
               onAccept={() => setShowInvitationStep(false)}
             />
           ) : authenticatedUser ? (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
-              <AccountSetupForm
-                onSubmit={handleAccountSetupSubmit}
-                loading={updateUserLoading}
-                errorMessage={errorMessage}
+              userHasAccessToHashData?.hasAccessToHash ? (
+                <AccountSetupForm
+                  onSubmit={handleAccountSetupSubmit}
+                  loading={updateUserLoading}
+                  errorMessage={errorMessage}
+                />
+              ) : null
+            ) : (
+              <VerifyEmailStep
+                email={authenticatedUser.emails[0]?.address ?? ""}
+                initialVerificationFlowId={verificationFlowId}
+                onVerified={async () => {
+                  await refetchAuthenticatedUser();
+
+                  const { data } = await fetchHasAccess();
+
+                  if (!data?.hasAccessToHash) {
+                    void router.replace("/");
+                  }
+                }}
               />
-            ) : /** @todo: add verification form */
-            null
+            )
           ) : (
             <SignupRegistrationForm />
           )}
@@ -200,7 +237,9 @@ const SignupPage: NextPageWithLayout = () => {
               currentStep={
                 invitation && !authenticatedUser
                   ? "accept-invitation"
-                  : "reserve-username"
+                  : !userHasVerifiedEmail
+                    ? "verify-email"
+                    : "reserve-username"
               }
               withInvitation={!!invitation}
             />

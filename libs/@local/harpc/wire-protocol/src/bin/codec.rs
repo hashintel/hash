@@ -12,7 +12,7 @@
 //!
 //! This means:
 //!
-//! ∀ A: (E(A) = Binary) ∧ (D(Binary) = B) ⇒ A ≡ B
+//! ∀ A: (E(A) = Binary) ∧ (D(Binary) = B) ⇒ A ≡ B.
 //!
 //! Where:
 //! - A is the original input.
@@ -25,12 +25,13 @@
 //! # Decoding Validation
 //!
 //! Encodes a JSON input to base64 and returns the encoded output.
+//!
 //! The implementation is correct if the JSON output matches the output which the foreign language
 //! implementation from parsing the binary representation used as input to the command.
 //!
 //! This means:
 //!
-//! ∀ Binary: (E(Binary) = A) ∧ (D(Binary) = B) ⇒ A ≡ B
+//! ∀ Binary: (E(Binary) = A) ∧ (D(Binary) = B) ⇒ A ≡ B.
 //!
 //! Where:
 //!

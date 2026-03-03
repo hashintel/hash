@@ -1,0 +1,7 @@
+Expr#4294967040@14
+  ExprKind (Field)
+    FieldExpr#4294967040@14 (field: 0)
+      Expr#4294967040@11
+        ExprKind (Path)
+          Path#4294967040@11 (rooted: false)
+            PathSegment#4294967040@10 (name: tuple)

@@ -1,10 +1,10 @@
-//! The entity-graph query-layer for the HASH datastore
+//! The entity-graph query-layer for the HASH datastore.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
-    doc_auto_cfg,
+    doc_cfg,
     impl_trait_in_assoc_type,
     never_type,
     trait_alias,
@@ -18,7 +18,6 @@
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
     unreachable_pub,
-    clippy::significant_drop_tightening,
     reason = "This should be enabled but it's currently too noisy"
 )]
 

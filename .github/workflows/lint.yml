@@ -19,11 +19,13 @@ concurrency:
 jobs:
   setup:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
 
@@ -31,6 +33,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Determine changed packages
@@ -44,6 +47,10 @@ jobs:
 
   package:
     name: Package
+    permissions:
+      id-token: write
+      contents: read
+      security-events: write
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
@@ -52,14 +59,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -91,13 +102,6 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-
-      - name: Cache Rust dependencies
-        if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Show disk usage
         run: df -h
@@ -152,7 +156,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
         if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -163,42 +167,50 @@ jobs:
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples
+        run: |
+          TARGET=$(yq -p toml -r 'select(.package.metadata.ci.skip-docs-target != true) | .package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
+          cargo doc --all-features --no-deps -Zrustdoc-scrape-examples ${TARGET:+--target "$TARGET"}
 
       - name: Check private documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples  --document-private-items
+        run: |
+          TARGET=$(yq -p toml -r 'select(.package.metadata.ci.skip-docs-target != true) | .package.metadata.docs.rs.targets[0] // ""' Cargo.toml 2>/dev/null || true)
+          cargo doc --all-features --no-deps -Zrustdoc-scrape-examples --document-private-items ${TARGET:+--target "$TARGET"}
 
       - name: Show disk usage
         run: df -h
 
   global:
     name: Global
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
-          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
+          mise run sync:turborepo
           git --no-pager diff --exit-code --color '**/package.json'
 
       - name: Validate Dependency Diagrams
@@ -268,6 +280,23 @@ jobs:
             echo 'Try running `yarn fix:package-json` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
+          fi
+
+      - name: Validate Claude Code skills
+        if: ${{ success() || failure() }}
+        run: |
+          yarn lint:skill
+
+          yarn agents:skill-management generate-skill-rules
+          if ! git diff --exit-code .claude/skills/skill-rules.json; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in .claude/skills/skill-rules.json file after running `yarn agents:skill-management generate-skill-rules`.'
+            echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
+            echo 'Try running `yarn agents:skill-management generate-skill-rules` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
           fi
 
       - name: Run yarn lint:taplo
@@ -385,11 +414,11 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one linting job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
+          SLACK_MESSAGE: "At least one linting job failed for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Linting failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

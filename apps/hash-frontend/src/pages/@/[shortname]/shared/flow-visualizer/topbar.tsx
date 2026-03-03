@@ -4,6 +4,7 @@ import {
   AngleRightRegularIcon,
   PlaySolidIcon,
   Select,
+  StopSolidIcon,
 } from "@hashintel/design-system";
 import {
   generateFlowDefinitionPath,
@@ -30,7 +31,6 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../../shared/icons/bolt-light-icon";
-import { StopSolidIcon } from "../../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
@@ -152,17 +152,18 @@ export const Topbar = ({
   handleRunFlowClicked,
   readonly,
   showRunButton,
+  startFlowPending,
   workerType,
 }: {
   handleRunFlowClicked: () => void;
   readonly?: boolean;
   showRunButton: boolean;
+  startFlowPending: boolean;
   workerType: "goal" | "flow";
 }) => {
   const { push } = useRouter();
 
   const [cancelling, setCancelling] = useState(false);
-  const [waitingToRun, setWaitingToRun] = useState(false);
 
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
@@ -190,15 +191,7 @@ export const Topbar = ({
   }, [cancelFlow, selectedFlowRunId]);
 
   const onRunFlowClicked = useCallback(() => {
-    setWaitingToRun(true);
-    try {
-      handleRunFlowClicked();
-    } catch {
-      /**
-       * We don't need to worry about the success case because the user will be sent to the new flow run's page
-       */
-      setWaitingToRun(false);
-    }
+    handleRunFlowClicked();
   }, [handleRunFlowClicked]);
 
   const getOwner = useGetOwnerForEntity();
@@ -237,7 +230,7 @@ export const Topbar = ({
         />
         <Link href="/workers" noLinkStyle>
           <Typography sx={typographySx} variant="smallTextParagraphs">
-            Workers
+            Agents
           </Typography>
         </Link>
         <Divider topOffset={0.1} />
@@ -356,7 +349,7 @@ export const Topbar = ({
           background="blue"
           Icon={PlaySolidIcon}
           onClick={onRunFlowClicked}
-          pending={waitingToRun}
+          pending={startFlowPending}
           text={selectedFlowRun ? "Re-run" : "Run"}
         />
       ) : null}

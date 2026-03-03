@@ -4,4 +4,4 @@ Age:0(18)
 
 ════ HIR after ctor conversion ═════════════════════════════════════════════════
 
-#ctor(fn(Integer) -> Age:0[Integer], arguments: [])(18)
+::main::Age:0(18)

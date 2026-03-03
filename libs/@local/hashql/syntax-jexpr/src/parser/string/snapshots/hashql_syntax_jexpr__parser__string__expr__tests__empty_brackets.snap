@@ -6,5 +6,5 @@ info:
   kind: Err
 ---
 []
- ^
-invalid index
+  ^
+expected `]`

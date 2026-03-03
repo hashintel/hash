@@ -4,11 +4,11 @@
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
+  "types": "./dist/src/main.d.ts",
   "exports": {
     ".": "./dist/src/main.js",
     "./type-defs/*": "./dist/type-defs/*.js"
   },
-  "types": "./dist/src/main.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
@@ -16,20 +16,20 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "execa": "5.1.1",
-    "lodash-es": "4.17.21",
-    "typescript": "5.7.3",
-    "yargs": "17.7.2"
+    "execa": "9.6.0",
+    "lodash-es": "4.17.23",
+    "typescript": "5.9.3",
+    "yargs": "18.0.0"
   },
   "devDependencies": {
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@types/lodash-es": "4.17.12",
-    "@types/node": "22.16.5",
-    "@types/yargs": "17.0.33",
-    "eslint": "9.20.1",
+    "@types/node": "22.18.13",
+    "@types/yargs": "17.0.34",
+    "eslint": "9.39.3",
     "quicktype": "16.0.43",
-    "rimraf": "6.0.1",
-    "typescript": "5.7.3"
+    "rimraf": "6.1.3",
+    "typescript": "5.9.3"
   }
 }

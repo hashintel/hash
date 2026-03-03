@@ -1,5 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -12,12 +10,9 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import isEqual from "lodash/isEqual.js";
 
 import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
@@ -39,32 +34,24 @@ export const getLatestEntityById = async (params: {
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const response = await graphApiClient.getEntitySubgraph(
-    authentication.actorId,
-    {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["webId"] }, { parameter: webId }],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
+  const {
+    entities: [entity, ...unexpectedEntities],
+  } = await queryEntities({ graphApi: graphApiClient }, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+        },
+        {
+          equal: [{ path: ["webId"] }, { parameter: webId }],
+        },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
     },
-  );
-
-  const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.data.subgraph,
-    authentication.actorId,
-  );
-
-  const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

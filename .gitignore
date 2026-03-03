@@ -78,13 +78,19 @@ blocks/**/.env
 .env.*.local
 **/mise*.local.toml
 **/mise/config*.local.toml
-CLAUDE.local.md
+
+# agentprofiles (temporary, until I can switch to using `mise.local.toml` files)
+.envrc
+.envrc.agentprofiles
 
 # macOS directory file
 **/.DS_Store
 
 # next.js build output
 **/.next
+
+# next.js build output – once upgraded to Next.js 16, this can be removed, as it will be generated in the dist/ directory instead
+**/next-env.d.ts
 
 # build files
 **/dist
@@ -135,7 +141,9 @@ seed-users.json
 # Block Protocol
 .blockprotocolrc
 
-# Claude Code
+# Claude and AGENTS
+AGENTS.local.md
+CLAUDE.local.md
 .claude/settings.local.json
 
 # Terraform
@@ -146,6 +154,7 @@ seed-users.json
 *.pem
 
 # Storybook
+*storybook.log
 **/storybook-static
 
 # SARIF files
@@ -157,3 +166,12 @@ out/
 
 # Vercel CLI
 .vercel/
+
+# Personal scratch/holding directories (can be placed anywhere in tree)
+**/_temp/
+**/_trash/
+**/_scratch/
+**/_holding/
+
+# Jujutsu
+.jj/

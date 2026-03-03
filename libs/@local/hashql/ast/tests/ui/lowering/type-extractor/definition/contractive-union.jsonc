@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: A union with a contractive type should be accepted
+["type", "A", ["|", "A", "Null"], "_"]

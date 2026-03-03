@@ -1,10 +1,15 @@
 use alloc::rc::Rc;
-use core::ops::{ControlFlow, Deref};
+use core::{
+    mem,
+    ops::{ControlFlow, Deref},
+};
 
+use derive_more::Debug;
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
 use super::{
-    Diagnostics, Environment, Variance,
+    Environment, Variance,
     context::{
         provision::ProvisionedScope,
         variance::{VarianceFlow, VarianceState},
@@ -12,7 +17,7 @@ use super::{
 };
 use crate::r#type::{
     Type, TypeId,
-    error::{TypeCheckDiagnostic, circular_type_reference},
+    error::{TypeCheckDiagnostic, TypeCheckDiagnosticIssues, circular_type_reference},
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{Apply, Generic, Infer, IntersectionType, Param, TypeKind, UnionType},
     lattice::Lattice as _,
@@ -21,12 +26,25 @@ use crate::r#type::{
 
 #[derive(Debug)]
 #[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct AnalysisEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    variables: Option<VariableLookup>,
+    substitution: Option<Substitution>,
+    provisioned: Rc<ProvisionedScope<TypeId>>,
+    variance: VarianceState,
+}
+
+#[derive(Debug)]
+#[expect(
     clippy::field_scoped_visibility_modifiers,
     reason = "implementation detail"
 )]
 pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
-    diagnostics: Option<Diagnostics>,
+    diagnostics: Option<TypeCheckDiagnosticIssues>,
 
     boundary: RecursionBoundary<'heap>,
 
@@ -51,6 +69,17 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             provisioned: Rc::default(),
 
             variance: VarianceState::new(Variance::Covariant),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> AnalysisEnvironmentSkeleton<'heap> {
+        AnalysisEnvironmentSkeleton {
+            boundary: self.boundary,
+            variables: self.variables,
+            substitution: self.substitution,
+            provisioned: self.provisioned,
+            variance: self.variance,
         }
     }
 
@@ -80,13 +109,21 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn with_diagnostics(&mut self) -> &mut Self {
-        self.diagnostics = Some(Diagnostics::new());
+        self.diagnostics = Some(DiagnosticIssues::new());
 
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
-        self.diagnostics.as_mut().map(core::mem::take)
+    pub fn with_diagnostics_disabled<T>(&mut self, func: impl FnOnce(&mut Self) -> T) -> T {
+        let diagnostics = self.diagnostics.take();
+        let result = func(self);
+        self.diagnostics = diagnostics;
+
+        result
+    }
+
+    pub fn take_diagnostics(&mut self) -> Option<TypeCheckDiagnosticIssues> {
+        self.diagnostics.as_mut().map(mem::take)
     }
 
     pub fn clear_diagnostics(&mut self) {
@@ -95,14 +132,16 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn merge_diagnostics_into(&mut self, diagnostics: &mut Diagnostics) {
+    pub fn merge_diagnostics_into(&mut self, diagnostics: &mut TypeCheckDiagnosticIssues) {
         if let Some(local) = &mut self.diagnostics {
-            local.merge_into(diagnostics);
+            diagnostics.append(local);
         }
     }
 
     pub fn fatal_diagnostics(&self) -> usize {
-        self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
+        self.diagnostics
+            .as_ref()
+            .map_or(0, DiagnosticIssues::critical)
     }
 
     pub(crate) fn resolve_substitution(&self, r#type: Type<'heap>) -> Option<TypeId> {
@@ -321,7 +360,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
-            return SmallVec::from_slice(&[id]);
+            return SmallVec::from_slice_copy(&[id]);
         }
 
         let result = r#type.distribute_union(self);
@@ -337,7 +376,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
-            return SmallVec::from_slice(&[id]);
+            return SmallVec::from_slice_copy(&[id]);
         }
 
         let result = r#type.distribute_intersection(self);
@@ -354,7 +393,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
 
     pub fn record_diagnostic(
         &mut self,
-        diagnostic: impl FnOnce(&Environment<'heap>) -> TypeCheckDiagnostic,
+        diagnostic: impl FnOnce(&'env Environment<'heap>) -> TypeCheckDiagnostic,
     ) -> ControlFlow<()> {
         let Some(diagnostics) = self.diagnostics.as_mut() else {
             // Fail-fast mode: No diagnostics storage available
@@ -433,7 +472,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         None
     }
 
-    /// Handling of recursive types on subtype checks
+    /// Handling of recursive types on subtype checks.
     ///
     /// For recursive types, we use coinductive reasoning when determining subtyping
     /// relationships. When we encounter the same subtyping check again during recursion,
@@ -465,7 +504,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// coinductive definitions of subtyping for recursive types.
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     #[inline]
     fn is_subtype_of_recursive(
         &mut self,
@@ -476,7 +515,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
         let _: ControlFlow<()> =
-            self.record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
+            self.record_diagnostic(|_| circular_type_reference(subtype, supertype));
 
         cycle.should_discharge()
     }
@@ -568,7 +607,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// coinductive definitions of type equivalence for recursive types.
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     #[inline]
     fn is_equivalent_recursive(
         &mut self,
@@ -578,8 +617,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     ) -> bool {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
-        let _: ControlFlow<()> =
-            self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
+        let _: ControlFlow<()> = self.record_diagnostic(|_| circular_type_reference(lhs, rhs));
 
         cycle.should_discharge()
     }

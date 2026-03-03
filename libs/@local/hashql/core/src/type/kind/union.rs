@@ -1,18 +1,16 @@
-use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
+use core::{debug_assert_matches, ops::ControlFlow};
 
 use bitvec::bitvec;
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        collection::TypeIdSet,
+        collections::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
@@ -20,6 +18,7 @@ use crate::{
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, Variable},
         lattice::{Lattice, Projection, Subscript},
+        pretty::{FormatType, TypeFormatter},
     },
 };
 
@@ -74,7 +73,7 @@ impl<'heap> UnionType<'heap> {
             .unnest_impl(env, &mut variants, &mut visited)
             .is_break()
         {
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })])
@@ -89,11 +88,11 @@ impl<'heap> UnionType<'heap> {
         env: &Environment,
     ) -> SmallVec<TypeId, 4> {
         if lhs_variants.is_empty() {
-            return SmallVec::from_slice(rhs_variants);
+            return SmallVec::from_slice_copy(rhs_variants);
         }
 
         if rhs_variants.is_empty() {
-            return SmallVec::from_slice(lhs_variants);
+            return SmallVec::from_slice_copy(lhs_variants);
         }
 
         let mut variants = TypeIdSet::with_capacity(env, lhs_variants.len() + rhs_variants.len());
@@ -134,19 +133,20 @@ impl<'heap> UnionType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 
-    pub(crate) fn is_subtype_of_variants<T, U>(
+    pub(crate) fn is_subtype_of_variants<'env, T, U>(
         actual: Type<'heap, T>,
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         super_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {
@@ -157,7 +157,7 @@ impl<'heap> UnionType<'heap> {
         if super_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, actual));
+                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, actual, expected));
 
             return false;
         }
@@ -188,16 +188,17 @@ impl<'heap> UnionType<'heap> {
         compatible
     }
 
-    pub(crate) fn is_equivalent_variants<T, U>(
+    pub(crate) fn is_equivalent_variants<'env, T, U>(
         lhs: Type<'heap, T>,
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty unions are only equivalent to other empty unions
         // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`
@@ -266,6 +267,7 @@ impl<'heap> UnionType<'heap> {
     }
 
     pub(crate) fn collect_constraints_variants(
+        selftype: TypeId,
         supertype: TypeId,
         super_span: SpanId,
         self_variants: &[TypeId],
@@ -277,6 +279,7 @@ impl<'heap> UnionType<'heap> {
         // ≡ (A <: C ∧ B <: C) ∨ (A <: D ∧ B <: D)
         // ≡ A <: (C | D) ∧ B <: (C | D)
         // ≡ (A <: C ∨ B <: C) ∧ (A <: D ∨ B <: D)
+        let is_invariant = env.is_invariant();
 
         #[expect(clippy::match_same_arms, reason = "readability")]
         match (self_variants, super_variants) {
@@ -329,15 +332,45 @@ impl<'heap> UnionType<'heap> {
                     bound: supertype,
                 });
             }
+            (_, &[super_variant]) if is_invariant => {
+                // Under invariance (A ≡ B means A <: B ∧ B <: A), we need to handle the reverse
+                // direction (B <: A). With a single variant on the right containing a variable,
+                // we can safely add a lower bound constraint. If it's not a variable, we can't
+                // recurse because that would require union-right inference (handling disjunctions)
+                let super_variant = env.r#type(super_variant);
+                let Some(variable) = super_variant.kind.into_variable() else {
+                    // There's no variable on the right, so nothing to constrain.
+                    return;
+                };
+
+                // There are multiple variables, therefore the right side is guaranteed to be a
+                // union
+                debug_assert_matches!(env.r#type(selftype).kind, TypeKind::Union(_));
+
+                env.add_constraint(Constraint::LowerBound {
+                    variable: Variable {
+                        span: super_variant.span,
+                        kind: variable,
+                    },
+                    bound: selftype,
+                });
+            }
+
             (self_variants, &[super_variant]) => {
                 // Single constraint, means we can actually recurse down
                 for &self_variant in self_variants {
                     env.collect_constraints(Variance::Covariant, self_variant, super_variant);
                 }
             }
+            (_, _) if is_invariant => {
+                // Multiple variants on both sides under invariance would require encoding
+                // disjunctive constraints (OR relationships), which our inference engine
+                // doesn't support. We must skip constraint generation to avoid over-constraining.
+            }
             (self_variants, super_variants) => {
                 for &self_variant in self_variants {
                     Self::collect_constraints_variants(
+                        selftype,
                         supertype,
                         super_span,
                         &[self_variant],
@@ -519,7 +552,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     /// Checks if this union type is a subtype of the given supertype.
@@ -599,7 +632,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Sort, dedupe, drop bottom
         let mut variants = variants.finish();
-        variants.retain(|&mut variant| !env.is_bottom(variant));
+        variants.retain(|&variant| !env.is_bottom(variant));
 
         // Propagate top type
         if variants.iter().any(|&variant| env.is_top(variant)) {
@@ -617,7 +650,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Collapse via subsumption
         let backup = variants.clone();
-        variants.retain(|&mut subtype| {
+        variants.retain(|&subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
             !backup.iter().any(|&supertype| {
                 subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
@@ -657,6 +690,7 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         let super_variants = supertype.unnest(env);
 
         Self::collect_constraints_variants(
+            self.id,
             supertype.id,
             supertype.span,
             &self_variants,
@@ -686,28 +720,5 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for UnionType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcAllocator
-            .intersperse(
-                self.variants
-                    .iter()
-                    .map(|&variant| boundary.pretty_type(env, variant)),
-                RcDoc::line()
-                    .append(RcDoc::text("|"))
-                    .append(RcDoc::space()),
-            )
-            .nest(1)
-            .group()
-            .parens()
-            .group()
-            .into_doc()
     }
 }

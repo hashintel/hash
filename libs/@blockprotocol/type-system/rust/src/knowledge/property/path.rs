@@ -22,7 +22,7 @@ use crate::ontology::BaseUrl;
 /// deeply nested properties within the property hierarchy.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged)]
 pub enum PropertyPathElement<'k> {
     /// A property key that addresses a specific field in an object property.
@@ -79,7 +79,7 @@ impl PropertyPathElement<'_> {
 /// A path can be empty (representing the root property) or contain any number of elements
 /// representing navigation through objects and arrays.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(transparent)]
 pub struct PropertyPath<'k> {
     /// The sequence of path elements that make up this property path.

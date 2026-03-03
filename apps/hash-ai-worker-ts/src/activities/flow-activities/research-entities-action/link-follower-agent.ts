@@ -1,7 +1,6 @@
 import type { SourceProvenance, Url } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -145,11 +144,7 @@ const exploreResource = async (params: {
       ];
 
     if (storageKey) {
-      const s3Config = getAwsS3Config();
-
-      const downloadProvider = new AwsS3StorageProvider(s3Config);
-
-      urlForDownload = await downloadProvider.presignDownload({
+      urlForDownload = await getStorageProvider().presignDownload({
         entity: hashEntityForFile,
         expiresInSeconds: 60 * 60,
         key: storageKey,

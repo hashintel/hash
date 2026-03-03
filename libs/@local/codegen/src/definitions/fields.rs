@@ -30,6 +30,7 @@ impl Field {
             | Type::Struct(_)
             | Type::Tuple(_)
             | Type::List(_)
+            | Type::NonEmptyList(_)
             | Type::Map(_)
             | Type::Nullable(_)) => field_type,
         };
@@ -64,10 +65,20 @@ impl Fields {
                     .fields()
                     .iter()
                     .filter_map(|(name, data_type)| {
-                        Some((
-                            name.clone(),
-                            Field::from_specta(data_type, type_collection)?,
-                        ))
+                        let field = Field::from_specta(data_type, type_collection)?;
+
+                        let field = if data_type.optional()
+                            && let Type::List(field_type) = field.r#type
+                        {
+                            Field {
+                                r#type: Type::NonEmptyList(field_type),
+                                ..field
+                            }
+                        } else {
+                            field
+                        };
+
+                        Some((name.clone(), field))
                     })
                     .collect(),
                 // TODO: Specta currently does not have `deny_unknown_fields` support

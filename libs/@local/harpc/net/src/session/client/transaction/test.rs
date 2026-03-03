@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
+use core::{assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt as _;

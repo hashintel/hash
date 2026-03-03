@@ -1,24 +1,22 @@
-[type-check::incompatible-upper-equal-constraint] Error: Incompatible upper bound and equality constraint
-    ╭─[ <unknown>:6:3 ]
-    │
-  1 │       //@ run: fail
-    │       │ 
-    │       ╰─ But this upper bound `Number` is not a supertype of the equality constraint
-    │ 
-  6 │ ╭───▶   [
-    │ │       ▲   
-    │ │ ╭─────╯   
-    ┆ ┆ ┆   
- 12 │ ├─│ ▶   ],
-    │ │ │     ▲    
-    │ ╰──────────── Type variable has incompatible equality and upper bound constraints
-    │   │     │    
-    │   ╰─────┴──── Required to be exactly `?`
-    │       
-    │       Help: To fix this conflict, you can:
-    │             1. Change the equality constraint `?` to be a subtype of the upper bound
-    │             2. Adjust the upper bound `Number` to be a supertype of the equality constraint
-    │             3. Review your type annotations to ensure they're consistent
-    │       
-    │       Note: Type inference requires that when a variable has both an equality constraint and an upper bound, the equality type must be a subtype of the upper bound (equal <: upper). This error indicates your code has contradictory requirements for the same type variable.
-────╯
+error[type-check::incompatible-upper-equal-constraint]: Incompatible upper bound and equality constraint
+   ╭▸ 
+ 1 │   //@ run: fail
+   │   ─ But this upper bound `Number` is not a supertype of the equality constraint
+   ‡
+ 6 │ ┏   [
+ 7 │ ┃     "fn",
+ 8 │ ┃     { "#tuple": ["T"] },
+ 9 │ ┃     { "#struct": { "a": "T", "b": "T" } },
+10 │ ┃     "T",
+11 │ ┃     ["+", "a", "b"]
+12 │ ┃   ],
+   │ ┃   ╿
+   │ ┃   │
+   │ ┗━━━Type variable has incompatible equality and upper bound constraints
+   │     Required to be exactly `?`
+   │
+   ├ help: To fix this conflict, you can:
+   │       1. Change the equality constraint `?` to be a subtype of the upper bound
+   │       2. Adjust the upper bound `Number` to be a supertype of the equality constraint
+   │       3. Review your type annotations to ensure they're consistent
+   ╰ note: Type inference requires that when a variable has both an equality constraint and an upper bound, the equality type must be a subtype of the upper bound (equal <: upper). This error indicates your code has contradictory requirements for the same type variable.

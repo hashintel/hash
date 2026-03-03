@@ -1,4 +1,4 @@
-/// Frame around text
+/// Frame around text.
 ///
 /// Not well supported by any major terminal, frames are either rectangular or an oval. [ISO 6429]
 /// does not specify how these should look.
@@ -10,7 +10,7 @@ pub enum Frame {
     Encircled,
 }
 
-/// Text Decorations
+/// Text Decorations.
 ///
 /// ## Support
 ///

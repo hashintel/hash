@@ -12,8 +12,8 @@ Expr#4294967040@34
         Type#4294967040@20
           TypeKind (Infer)
       Expr#4294967040@33
-        ExprKind (Is)
-          IsExpr#4294967040@33
+        ExprKind (As)
+          AsExpr#4294967040@33
             Expr#4294967040@28
               ExprKind (Path)
                 Path#4294967040@28 (rooted: false)

@@ -79,10 +79,10 @@ use crate::node::{
     expr::{
         CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
         LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
+        r#as::AsExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSignature},
         dict::DictEntry,
-        is::IsExpr,
         list::ListElement,
         r#struct::StructEntry,
         tuple::TupleElement,
@@ -290,8 +290,8 @@ pub trait Visitor<'heap> {
         walk_if_expr(self, expr);
     }
 
-    fn visit_is_expr(&mut self, expr: &mut IsExpr<'heap>) {
-        walk_is_expr(self, expr);
+    fn visit_as_expr(&mut self, expr: &mut AsExpr<'heap>) {
+        walk_as_expr(self, expr);
     }
 
     fn visit_field_expr(&mut self, expr: &mut FieldExpr<'heap>) {
@@ -427,7 +427,7 @@ pub fn walk_expr<'heap, T: Visitor<'heap> + ?Sized>(
         ExprKind::Input(input_expr) => visitor.visit_input_expr(input_expr),
         ExprKind::Closure(closure_expr) => visitor.visit_closure_expr(closure_expr),
         ExprKind::If(if_expr) => visitor.visit_if_expr(if_expr),
-        ExprKind::Is(is_expr) => visitor.visit_is_expr(is_expr),
+        ExprKind::As(is_expr) => visitor.visit_as_expr(is_expr),
         ExprKind::Field(field_expr) => visitor.visit_field_expr(field_expr),
         ExprKind::Index(index_expr) => visitor.visit_index_expr(index_expr),
         ExprKind::Underscore | ExprKind::Dummy => {}
@@ -885,15 +885,15 @@ pub fn walk_if_expr<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
-pub fn walk_is_expr<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_as_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    IsExpr {
+    AsExpr {
         id,
         span,
 
         value,
         r#type,
-    }: &mut IsExpr<'heap>,
+    }: &mut AsExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);

@@ -40,7 +40,7 @@ pub struct SessionConfig {
     /// These messages are not critical for the operation of the session layer but signal
     /// events to the user.
     ///
-    /// **Default:** `8`
+    /// **Default:** `8`.
     pub event_buffer_size: NonZero<usize>,
 
     /// Size of the transaction buffer. If the buffer is full, new transactions will be
@@ -50,17 +50,17 @@ pub struct SessionConfig {
     /// this value, it only means that `n` unhandled transactions can be buffered at a time, not
     /// how many transactions are in flight.
     /// The total number of maximum transactions in flight is `concurrent_connection_limit *
-    /// per_connection_concurrent_transaction_limit`
+    /// per_connection_concurrent_transaction_limit`.
     ///
-    /// **Default:** `32`
+    /// **Default:** `32`.
     pub transaction_buffer_size: NonZero<usize>,
 
     /// Maximum number of concurrent connections the server will allow. New connections
     /// will be rejected once this limit is reached.
     ///
-    /// **Default:** `256`
+    /// **Default:** `256`.
     ///
-    /// Default maximum number of in flight transactions is `256 * 64 = 16384`
+    /// Default maximum number of in flight transactions is `256 * 64 = 16384`.
     pub concurrent_connection_limit: ConcurrentConnectionLimit,
 
     /// Linger time for connection shutdown.
@@ -77,7 +77,7 @@ pub struct SessionConfig {
     ///
     /// [`SwarmConfig::idle_connection_timeout`]: crate::transport::SwarmConfig::idle_connection_timeout
     ///
-    /// **Default:** `250ms`
+    /// **Default:** `250ms`.
     pub connection_shutdown_linger: Duration,
 
     /// Time limit for a request to be delivered to a transaction when the transaction buffer is
@@ -87,7 +87,7 @@ pub struct SessionConfig {
     /// Note that during this wait, the connection cannot make any progress, potentially blocking
     /// other transactions.
     ///
-    /// **Default:** `100ms`
+    /// **Default:** `100ms`.
     pub request_delivery_deadline: Duration,
 
     /// Time limit for a transaction to be delivered to a connection when the session buffer is
@@ -97,27 +97,27 @@ pub struct SessionConfig {
     /// Note that during this wait, the connection cannot make any progress, potentially blocking
     /// other transactions.
     ///
-    /// **Default:** `100ms`
+    /// **Default:** `100ms`.
     pub transaction_delivery_deadline: Duration,
 
     /// Maximum number of concurrent transactions a connection can have. New transactions will
     /// be rejected once this limit is reached.
     ///
-    /// **Default:** `64`
+    /// **Default:** `64`.
     pub per_connection_concurrent_transaction_limit: usize,
 
     /// Maximum number of responses to be buffered before delivery to a transaction.
     /// If the buffer is full, the connection will stall, halting progress. Increasing this value
     /// can enhance throughput and memory usage, as tasks do not need to wake up as often.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     pub per_connection_response_buffer_size: NonZero<usize>,
 
     /// Interval at which the transaction garbage collector will run.
     /// This will remove any transactions in a zombie state (i.e., completed but not removed).
     /// This is a safety measure to prevent memory leaks and should not typically occur.
     ///
-    /// **Default:** `10s`
+    /// **Default:** `10s`.
     pub per_connection_transaction_garbage_collect_interval: Duration,
 
     /// Size of the request buffer for a transaction. If the buffer is full, the transaction
@@ -125,7 +125,7 @@ pub struct SessionConfig {
     /// space does not become available, the transaction will be cancelled, and an error will be
     /// reported to the client.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     pub per_transaction_request_buffer_size: NonZero<usize>,
 
     /// Size of the response buffer for a transaction. Increasing this might increase throughput,
@@ -137,7 +137,7 @@ pub struct SessionConfig {
     /// `(per_transaction_request_buffer_size + per_transaction_response_byte_stream_buffer_size) *
     /// 64KiB`.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     ///
     /// The default maximum memory usage per transaction is `16 + 16 = 32 * 64KiB = 2MiB`.
     pub per_transaction_response_byte_stream_buffer_size: NonZero<usize>,
@@ -147,7 +147,7 @@ pub struct SessionConfig {
     /// decreasing throughput due to higher per-packet overhead.
     /// Disabling `no_delay` minimizes packet overhead but may increase latency due to buffering.
     ///
-    /// **Default:** `false`
+    /// **Default:** `false`.
     pub no_delay: bool,
 }
 

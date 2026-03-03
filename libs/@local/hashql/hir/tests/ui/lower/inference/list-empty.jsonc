@@ -1,0 +1,6 @@
+//@ run: fail
+//@ description: Empty list inference
+{
+  "#list": []
+  //~^ ERROR Cannot infer type for this variable
+}

@@ -91,7 +91,7 @@ const MIN_PRECISION: usize = 64;
 impl Real {
     /// Creates a new `Real` from a natural number with given significand and exponent.
     ///
-    /// Constructs a value representing: `significand * 10^exponent`
+    /// Constructs a value representing: `significand * 10^exponent`.
     ///
     /// # Arguments
     ///

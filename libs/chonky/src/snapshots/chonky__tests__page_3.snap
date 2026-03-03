@@ -1,6 +1,0 @@
----
-source: libs/chonky/src/lib.rs
-expression: buffer
-extension: bmp
-snapshot_kind: binary
----

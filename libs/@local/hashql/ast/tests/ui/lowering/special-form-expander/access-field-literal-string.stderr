@@ -1,0 +1,10 @@
+error[special-form-expander::invalid-field-literal-type]: Invalid field literal type
+  ╭▸ 
+3 │ ["::kernel::special_form::access", "data", { "#literal": "field_name" }]
+  │                                                          ━━━━━━━━━━━━ Use an integer literal here
+  │
+  ├ help: Field access using literals requires an integer literal that specifies the field index. Other literal types like strings, booleans, or numbers cannot be used for field indexing.
+  ╰ note: Valid field access examples:
+          - (access tuple 0) - accesses first field
+          - (access record 2) - accesses third field
+          - (access data my_field) - accesses named field

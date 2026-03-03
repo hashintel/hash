@@ -45,7 +45,7 @@ export const InvitesContextProvider: FunctionComponent<PropsWithChildren> = ({
     GetMyPendingInvitationsQueryVariables
   >(getMyPendingInvitationsQuery, {
     pollInterval,
-    skip: !authenticatedUser,
+    skip: !authenticatedUser?.accountSignupComplete,
     fetchPolicy: "network-only",
   });
 

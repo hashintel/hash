@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashSet;
 
 use cedar_policy_core::{
     ast,
@@ -45,6 +46,8 @@ impl Context {
 #[derive(Debug, Default)]
 pub struct ContextBuilder {
     entities: Vec<ast::Entity>,
+    /// Team names the actor belongs to (for checking instance admin status).
+    actor_team_names: HashSet<String>,
 }
 
 impl ContextBuilder {
@@ -69,7 +72,15 @@ impl ContextBuilder {
     /// This allows policies associated with the actor group to be considered during authorization,
     /// making the actor group available as a potential principal in the Cedar evaluation context.
     pub fn add_actor_group(&mut self, actor_group: &ActorGroup) {
+        if let ActorGroup::Team(team) = actor_group {
+            self.actor_team_names.insert(team.name.clone());
+        }
         self.entities.push(actor_group.to_cedar_entity());
+    }
+
+    #[must_use]
+    pub fn is_instance_admin(&self) -> bool {
+        self.actor_team_names.contains("instance-admins")
     }
 
     /// Adds a role to the context for policy evaluation.

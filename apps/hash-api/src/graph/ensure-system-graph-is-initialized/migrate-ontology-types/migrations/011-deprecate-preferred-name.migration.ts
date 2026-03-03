@@ -1,11 +1,13 @@
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   getCurrentHashSystemEntityTypeId,
@@ -29,13 +31,20 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const { schema: actorEntityTypeSchema } = await getEntityTypeById(
-    context,
+  const actorEntityType = await getEntityTypeById(
+    context.graphApi,
     authentication,
     {
       entityTypeId: currentActorEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
+
+  if (!actorEntityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID ${currentActorEntityTypeId}`,
+    );
+  }
 
   const {
     propertyTypeId: displayNamePropertyTypeId,
@@ -43,9 +52,9 @@ const migrate: MigrationFunction = async ({
   } = blockProtocolPropertyTypes.displayName;
 
   const newActorEntityTypeSchema: EntityType = {
-    ...actorEntityTypeSchema,
+    ...actorEntityType.schema,
     properties: {
-      ...actorEntityTypeSchema.properties,
+      ...actorEntityType.schema.properties,
       [displayNameBaseUrl]: {
         $ref: displayNamePropertyTypeId,
       },
@@ -101,17 +110,24 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const { schema: userEntityTypeSchema } = await getEntityTypeById(
-    context,
+  const userEntityType = await getEntityTypeById(
+    context.graphApi,
     authentication,
     {
       entityTypeId: currentUserEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
+  if (!userEntityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID ${currentUserEntityTypeId}`,
+    );
+  }
+
   const newUserEntityTypeSchema: EntityType = {
     ...upgradeEntityTypeDependencies({
-      schema: userEntityTypeSchema,
+      schema: userEntityType.schema,
       upgradedEntityTypeIds: [
         updatedActorEntityTypeId,
         /**
@@ -122,7 +138,7 @@ const migrate: MigrationFunction = async ({
         latestOrganizationEntityTypeId,
       ],
     }),
-    properties: Object.entries(userEntityTypeSchema.properties).reduce(
+    properties: Object.entries(userEntityType.schema.properties).reduce(
       (prev, [propertyTypeBaseUrl, value]) => {
         if (
           propertyTypeBaseUrl ===

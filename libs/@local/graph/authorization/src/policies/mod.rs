@@ -73,7 +73,7 @@ pub enum Effect {
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[repr(transparent)]
-pub struct PolicyId(Uuid);
+pub struct PolicyId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl PolicyId {
     #[must_use]
@@ -135,6 +135,17 @@ impl fmt::Debug for Policy {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}", self.to_cedar_template())
     }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResolvedPolicy {
+    #[serde(skip)]
+    pub original_policy_id: PolicyId,
+    pub effect: Effect,
+    pub actions: Vec<ActionName>,
+    pub resource: Option<ResourceConstraint>,
 }
 
 #[non_exhaustive]
@@ -325,7 +336,7 @@ impl Policy {
                 text,
             )
             .change_context(InvalidPolicy::Syntax)
-            .attach_printable_lazy(|| text.to_owned())?,
+            .attach_with(|| text.to_owned())?,
         )
     }
 
@@ -343,6 +354,43 @@ impl Policy {
     }
 }
 
+impl ResolvedPolicy {
+    pub(crate) fn to_cedar_template(&self) -> ast::Template {
+        let (resource_constraint, resource_expr) = self.resource.as_ref().map_or_else(
+            || (ast::ResourceConstraint::any(), ast::Expr::val(true)),
+            ResourceConstraint::to_cedar,
+        );
+        ast::Template::new(
+            ast::PolicyID::from_string(self.original_policy_id.to_string()),
+            None,
+            ast::Annotations::new(),
+            match self.effect {
+                Effect::Permit => ast::Effect::Permit,
+                Effect::Forbid => ast::Effect::Forbid,
+            },
+            ast::PrincipalConstraint::any(),
+            if self.actions.contains(&ActionName::All) {
+                ast::ActionConstraint::Any
+            } else {
+                ast::ActionConstraint::In(
+                    self.actions
+                        .iter()
+                        .map(|action| Arc::new(ActionName::to_euid(action)))
+                        .collect(),
+                )
+            },
+            resource_constraint,
+            resource_expr,
+        )
+    }
+
+    pub(crate) fn to_cedar_static_policy(
+        &self,
+    ) -> Result<ast::StaticPolicy, Report<ast::UnexpectedSlotError>> {
+        Ok(self.to_cedar_template().try_into()?)
+    }
+}
+
 #[cfg(test)]
 #[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
@@ -355,7 +403,7 @@ mod tests {
 
     use super::Policy;
     use crate::{
-        policies::{PolicyValidator, set::PolicySet},
+        policies::{PolicyValidator, ResolvedPolicy, set::PolicySet},
         test_utils::check_serialization,
     };
 
@@ -371,7 +419,13 @@ mod tests {
 
         let mut policy_set = PolicySet::default();
         let static_policy = policy.to_cedar_static_policy()?;
-        policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
+        let policy = Policy::try_from_cedar(&static_policy)?;
+        policy_set.add_policy(&ResolvedPolicy {
+            original_policy_id: policy.id,
+            effect: policy.effect,
+            actions: policy.actions,
+            resource: policy.resource,
+        })?;
 
         PolicyValidator.validate_policy_set(&policy_set)?;
 

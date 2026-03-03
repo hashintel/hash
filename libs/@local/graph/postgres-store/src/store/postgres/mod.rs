@@ -8,14 +8,14 @@ mod seed_policies;
 mod traversal_context;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{fmt::Debug, hash::Hash};
+use core::{borrow::Borrow, fmt::Debug, hash::Hash};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, Effect, MergePolicies, Policy, PolicyComponents, PolicyId, Request,
-    RequestContext, ResourceId,
+    RequestContext, ResolvedPolicy, ResourceId,
     action::ActionName,
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
     resource::{
@@ -40,9 +40,10 @@ use hash_graph_store::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
-        WebRetrievalError,
+        WebRetrievalError, WebUpdateError,
     },
     error::{InsertionError, UpdateError},
+    filter::protection::PropertyProtectionFilterConfig,
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -83,10 +84,15 @@ use crate::store::error::{
     StoreError, VersionedUrlAlreadyExists,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
     pub skip_embedding_creation: bool,
+    /// Configuration for filter protection against information leakage.
+    ///
+    /// When set, filters on protected properties will automatically exclude
+    /// specified entity types to prevent enumeration attacks.
+    pub filter_protection: PropertyProtectionFilterConfig<'static>,
 }
 
 impl Default for PostgresStoreSettings {
@@ -94,43 +100,103 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
+            filter_protection: PropertyProtectionFilterConfig::hash_default(),
         }
     }
 }
 
-/// A Postgres-backed store
+/// A Postgres-backed store.
 pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
-    pub settings: PostgresStoreSettings,
+    pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
-    /// Inserts a new policy into the database.
+    /// Inserts multiple policies into the database.
     ///
     /// # Errors
     ///
-    /// Returns an error if the policy is invalid or if the insertion fails.
-    pub async fn insert_policy_into_database(
+    /// Returns an error if any policy is invalid or if the insertion fails.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "We could try to split this function up, but this does not help the readability"
+    )]
+    pub async fn insert_policies_into_database<I, P>(
         &self,
-        policy: &PolicyCreationParams,
-    ) -> Result<PolicyId, Report<CreatePolicyError>> {
-        if policy.actions.is_empty() {
-            return Err(Report::new(CreatePolicyError::PolicyHasNoActions));
+        policies: I,
+    ) -> Result<Vec<PolicyId>, Report<CreatePolicyError>>
+    where
+        I: IntoIterator<Item = P>,
+        P: Borrow<PolicyCreationParams>,
+    {
+        // As `into_iter` consumes the iterator, we need to collect the policies first to later
+        // borrow them
+        let policies = policies.into_iter().collect::<Vec<_>>();
+        if policies.is_empty() {
+            return Ok(Vec::new());
         }
 
-        let policy_id = PolicyId::new(Uuid::new_v4());
+        let mut all_action_policy_ids = Vec::new();
+        let mut all_action_names = Vec::new();
 
-        let (principal_id, actor_type) = policy
-            .principal
-            .as_ref()
-            .map(PrincipalConstraint::to_parts)
-            .unwrap_or_default();
+        #[expect(clippy::type_complexity)]
+        let (
+            policy_ids,
+            names,
+            effects,
+            principal_ids,
+            principal_types,
+            actor_types,
+            resource_constraints,
+        ): (
+            Vec<PolicyId>,
+            Vec<Option<&str>>,
+            Vec<Effect>,
+            Vec<Option<PrincipalId>>,
+            Vec<Option<PrincipalType>>,
+            Vec<Option<PrincipalType>>,
+            Vec<Option<Json<&ResourceConstraint>>>,
+        ) = policies
+            .iter()
+            .map(|policy| {
+                let policy = policy.borrow();
+                let policy_id = PolicyId::new(Uuid::new_v4());
+                let (principal_id, actor_type) = policy
+                    .principal
+                    .as_ref()
+                    .map(PrincipalConstraint::to_parts)
+                    .unwrap_or_default();
+
+                if policy.actions.is_empty() {
+                    return Err(Report::new(CreatePolicyError::PolicyHasNoActions));
+                }
+
+                // Collect all actions with their policy IDs
+                for action in &policy.actions {
+                    all_action_policy_ids.push(policy_id);
+                    all_action_names.push(*action);
+                }
+
+                Ok((
+                    policy_id,
+                    policy.name.as_deref(),
+                    policy.effect,
+                    principal_id,
+                    principal_id.map(PrincipalId::principal_type),
+                    actor_type.map(PrincipalType::from),
+                    policy.resource.as_ref().map(Json),
+                ))
+            })
+            .collect::<Result<_, Report<CreatePolicyError>>>()?;
 
         let client = self.as_client();
 
         client
-            .execute("INSERT INTO policy (id) VALUES ($1)", &[&policy_id])
+            .execute(
+                "INSERT INTO policy (id) SELECT unnest($1::uuid[])",
+                &[&policy_ids],
+            )
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -138,24 +204,44 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(CreatePolicyError::StoreError)?;
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => CreatePolicyError::PoliciesAlreadyExist,
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
 
         client
             .execute(
                 "INSERT INTO policy_edition (
-                    id, transaction_time, name, effect, principal_id,
-                    principal_type, actor_type, resource_constraint
-                ) VALUES (
-                    $1, tstzrange(now(), NULL, '[)'), $2, $3, $4, $5, $6, $7
-                )",
+                        id,
+                        transaction_time,
+                        name,
+                        effect,
+                        principal_id,
+                        principal_type,
+                        actor_type,
+                        resource_constraint
+                    )
+                    SELECT
+                        unnest($1::uuid[]),
+                        tstzrange(now(), NULL, '[)'),
+                        unnest($2::text[]),
+                        unnest($3::policy_effect[]),
+                        unnest($4::uuid[]),
+                        unnest($5::principal_type[]),
+                        unnest($6::principal_type[]),
+                        unnest($7::jsonb[])
+                    ",
                 &[
-                    &policy_id,
-                    &policy.name,
-                    &policy.effect,
-                    &principal_id,
-                    &principal_id.map(PrincipalId::principal_type),
-                    &actor_type.map(PrincipalType::from),
-                    &policy.resource.as_ref().map(Json),
+                    &policy_ids,
+                    &names,
+                    &effects,
+                    &principal_ids,
+                    &principal_types,
+                    &actor_types,
+                    &resource_constraints,
                 ],
             )
             .instrument(tracing::info_span!(
@@ -166,51 +252,44 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             ))
             .await
             .map_err(|error| {
-                let policy_error = match (error.code(), principal_id) {
-                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
-                        CreatePolicyError::PolicyAlreadyExists { id: policy_id }
-                    }
-                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(principal_id)) => {
-                        CreatePolicyError::PrincipalNotFound { id: principal_id }
-                    }
+                let policy_error = match error.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => CreatePolicyError::PoliciesAlreadyExist,
+                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => CreatePolicyError::PrincipalsNotFound,
                     _ => CreatePolicyError::StoreError,
                 };
                 Report::new(error).change_context(policy_error)
             })?;
 
-        for action in &policy.actions {
-            client
-                .execute(
-                    "INSERT INTO policy_action (
-                        policy_id,
-                        action_name,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        tstzrange(now(), NULL, '[)')
-                    )",
-                    &[&policy_id, &action],
+        client
+            .execute(
+                "INSERT INTO policy_action (
+                    policy_id,
+                    action_name,
+                    transaction_time
                 )
-                .instrument(tracing::info_span!(
-                    "INSERT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .map_err(|error| {
-                    let policy_error = match error.code() {
-                        Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                            CreatePolicyError::ActionNotFound { id: *action }
-                        }
-                        _ => CreatePolicyError::StoreError,
-                    };
-                    Report::new(error).change_context(policy_error)
-                })?;
-        }
+                SELECT
+                    unnest($1::uuid[]),
+                    unnest($2::text[]),
+                    tstzrange(now(), NULL, '[)')
+                ",
+                &[&all_action_policy_ids, &all_action_names],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => CreatePolicyError::ActionsNotFound,
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
 
-        Ok(policy_id)
+        Ok(policy_ids)
     }
 
     async fn get_or_create_system_machine_impl(
@@ -254,11 +333,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             let system_machine_id = if identifier == "h" {
                 // We need to create the system web for the system machine actor, so the system
                 // machine needs to be allowed to create webs.
-                self.insert_policy_into_database(&seed_policies::system_actor_create_web_policy(
-                    machine_id,
-                ))
-                .await
-                .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                let policies = [seed_policies::system_actor_create_web_policy(machine_id)];
+                self.insert_policies_into_database(policies)
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
                 machine_id
             } else {
@@ -302,18 +380,18 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     );
                 }
                 "google" => {
-                    for policy in seed_policies::google_bot_policies(machine_id) {
-                        self.insert_policy_into_database(&policy)
-                            .await
-                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
-                    }
+                    self.insert_policies_into_database(seed_policies::google_bot_policies(
+                        machine_id,
+                    ))
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
                 }
                 "linear" => {
-                    for policy in seed_policies::linear_bot_policies(machine_id) {
-                        self.insert_policy_into_database(&policy)
-                            .await
-                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
-                    }
+                    self.insert_policies_into_database(seed_policies::linear_bot_policies(
+                        machine_id,
+                    ))
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
                 }
                 _ => {}
             }
@@ -765,7 +843,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(WebCreationError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -845,12 +923,10 @@ where
         ];
 
         for web_role in web_roles {
-            for policy in seed_policies::web_policies(&web_role) {
-                transaction
-                    .insert_policy_into_database(&policy)
-                    .await
-                    .change_context(WebCreationError::PolicyCreationError)?;
-            }
+            transaction
+                .insert_policies_into_database(seed_policies::web_policies(&web_role))
+                .await
+                .change_context(WebCreationError::PolicyCreationError)?;
         }
 
         transaction
@@ -959,7 +1035,7 @@ where
                 .change_context(RoleAssignmentError::StoreError)?;
             if actor_id != system_machine.into() {
                 return Err(Report::new(RoleAssignmentError::PermissionDenied)
-                    .attach(StatusCode::PermissionDenied));
+                    .attach_opaque(StatusCode::PermissionDenied));
             }
         }
 
@@ -975,7 +1051,7 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach(StatusCode::InvalidArgument)?;
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -1084,7 +1160,7 @@ where
             != Some(RoleName::Administrator)
         {
             return Err(Report::new(RoleAssignmentError::PermissionDenied)
-                .attach(StatusCode::PermissionDenied));
+                .attach_opaque(StatusCode::PermissionDenied));
         }
 
         let mut transaction = self
@@ -1099,7 +1175,7 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach(StatusCode::InvalidArgument)?;
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -1353,7 +1429,10 @@ where
             .await
             .change_context(CreatePolicyError::StoreError)?;
 
-        let policy_id = transaction.insert_policy_into_database(&policy).await?;
+        let policy_ids = transaction.insert_policies_into_database([&policy]).await?;
+        let &[policy_id] = policy_ids.as_slice() else {
+            unreachable!("Expected exactly one policy ID");
+        };
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(authenticated_actor)
@@ -1383,7 +1462,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(CreatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1499,7 +1578,7 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         params: ResolvePoliciesParams<'_>,
-    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+    ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>> {
         let actor_id = match authenticated_actor {
             AuthenticatedActor::Uuid(actor_entity_uuid) => self
                 .determine_actor(actor_entity_uuid)
@@ -1510,12 +1589,20 @@ where
 
         let Some(actor_id) = actor_id else {
             // If no actor is provided, only policies without principal constraints are returned.
-            return self
+            return Ok(self
                 .read_policies_from_database(&PolicyFilter {
                     name: None,
                     principal: Some(PrincipalFilter::Unconstrained),
                 })
-                .await;
+                .await?
+                .into_iter()
+                .map(|policy| ResolvedPolicy {
+                    original_policy_id: policy.id,
+                    effect: policy.effect,
+                    actions: policy.actions,
+                    resource: policy.resource,
+                })
+                .collect());
         };
 
         // The below query does several things. It:
@@ -1568,8 +1655,7 @@ where
                     SELECT parent.id, parent.principal_type
                     FROM actor_role
                     JOIN role ON actor_role.role_id = role.id
-                    JOIN team_hierarchy
-                      ON team_hierarchy.child_id = role.actor_group_id
+                    JOIN team_hierarchy ON team_hierarchy.child_id = role.actor_group_id
                     JOIN actor_group parent ON parent.id = team_hierarchy.parent_id
                     WHERE actor_role.actor_id = $1
                 ),
@@ -1592,43 +1678,22 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
-                ),
-
-                -- We have all the policies that apply to the actor, now we associate the actions
-                policy_with_actions AS (
-                    SELECT
-                        policy_edition.id,
-                        policy_edition.name,
-                        policy_edition.effect,
-                        policy_edition.principal_id,
-                        policy_edition.principal_type,
-                        policy_edition.actor_type,
-                        policy_edition.resource_constraint,
-                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
-                    FROM policy_edition
-                    LEFT JOIN policy_action
-                        ON policy_action.policy_id = policy_edition.id
-                        AND policy_action.transaction_time @> now()
-                    GROUP BY
-                        policy_edition.id,
-                        policy_edition.name,
-                        policy_edition.effect,
-                        policy_edition.principal_id,
-                        policy_edition.principal_type,
-                        policy_edition.actor_type,
-                        policy_edition.resource_constraint
                 )
+
                 SELECT
-                    id,
-                    name,
-                    effect,
-                    principal_id,
-                    principal_type,
-                    actor_type,
-                    resource_constraint,
-                    actions
-                FROM policy_with_actions
-                WHERE actions && $3
+                    policy_edition.id as original_policy_id,
+                    policy_edition.effect,
+                    policy_edition.resource_constraint,
+                    array_agg(policy_action.action_name) AS actions
+                FROM policy_edition
+                JOIN policy_action
+                    ON policy_action.policy_id = policy_edition.id
+                    AND policy_action.action_name = ANY($3)
+                    AND policy_action.transaction_time @> now()
+                GROUP BY
+                    policy_edition.id,
+                    policy_edition.effect,
+                    policy_edition.resource_constraint
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
@@ -1645,26 +1710,19 @@ where
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
-            .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+            .map_ok( |row| {
                 let _span = tracing::info_span!(
-                    "policy_conversion",
-                    policy_id = ?row.get::<_, PolicyId>(0),
-                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(6).is_some()
+                    "filtered_policy_conversion",
+                    original_policy_id = ?row.get::<_, PolicyId>(0),
+                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(2).is_some()
                 ).entered();
 
-                PolicyParts {
-                    id: row.get(0),
-                    name: row.get(1),
-                    effect: row.get(2),
-                    principal_uuid: row.get(3),
-                    principal_type: row.get(4),
-                    actor_type: row.get(5),
-                    resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(6)
-                        .map(|json| json.0),
-                    actions: row.get(7),
+                ResolvedPolicy {
+                    original_policy_id: row.get(0),
+                    effect: row.get(1),
+                    actions: row.get(3),
+                    resource: row.get::<_, Option<Json<_>>>(2).map(|json| json.0),
                 }
-                .into_policy()
             })
             .try_collect::<Vec<_>>()
             .instrument(tracing::info_span!("policy_result_collection"))
@@ -1712,7 +1770,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1744,7 +1802,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1767,7 +1825,7 @@ where
             .change_context(RemovePolicyError::StoreError)?
             .ok_or_else(|| {
                 Report::new(RemovePolicyError::PolicyNotFound { id: policy_id })
-                    .attach_printable(StatusCode::NotFound)
+                    .attach(StatusCode::NotFound)
             })?;
 
         let policy_components = PolicyComponents::builder(self)
@@ -1794,7 +1852,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(RemovePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1813,7 +1871,7 @@ where
             .change_context(RemovePolicyError::StoreError)?
             .ok_or_else(|| {
                 Report::new(RemovePolicyError::PolicyNotFound { id: policy_id })
-                    .attach_printable(StatusCode::NotFound)
+                    .attach(StatusCode::NotFound)
             })?;
 
         let policy_components = PolicyComponents::builder(self)
@@ -1840,7 +1898,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(RemovePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1985,7 +2043,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2086,7 +2144,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2165,7 +2223,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2249,7 +2307,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2396,7 +2454,7 @@ where
     pub const fn new(
         client: C,
         temporal_client: Option<Arc<TemporalClient>>,
-        settings: PostgresStoreSettings,
+        settings: Arc<PostgresStoreSettings>,
     ) -> Self {
         Self {
             client,
@@ -2429,11 +2487,11 @@ where
                     .map_err(|report| match report.current_context().code() {
                         Some(&SqlState::UNIQUE_VIOLATION) => report
                             .change_context(BaseUrlAlreadyExists)
-                            .attach_printable(base_url.clone())
+                            .attach(base_url.clone())
                             .change_context(InsertionError),
                         _ => report
                             .change_context(InsertionError)
-                            .attach_printable(base_url.clone()),
+                            .attach(base_url.clone()),
                     })?;
             }
             ConflictBehavior::Skip => {
@@ -2492,7 +2550,7 @@ where
 
                     if !exists_in_specified_location {
                         return Err(Report::new(BaseUrlAlreadyExists)
-                            .attach_printable(base_url.clone())
+                            .attach(base_url.clone())
                             .change_context(InsertionError));
                     }
                 }
@@ -2550,11 +2608,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(ontology_id.clone())
+                    .attach(ontology_id.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(ontology_id.clone()),
+                    .attach(ontology_id.clone()),
             })
             .map(|optional| optional.map(|row| row.get(0)))
     }
@@ -2646,11 +2704,11 @@ where
 
             Err(if exists {
                 Report::new(VersionedUrlAlreadyExists)
-                    .attach_printable(id.clone())
+                    .attach(id.clone())
                     .change_context(UpdateError)
             } else {
                 Report::new(OntologyVersionDoesNotExist)
-                    .attach_printable(id.clone())
+                    .attach(id.clone())
                     .change_context(UpdateError)
             })
         }
@@ -2689,15 +2747,13 @@ where
                 .map_err(|report| match report.current_context().code() {
                     Some(&SqlState::EXCLUSION_VIOLATION) => report
                         .change_context(VersionedUrlAlreadyExists)
-                        .attach_printable(id.clone())
+                        .attach(id.clone())
                         .change_context(UpdateError),
                     Some(&SqlState::NOT_NULL_VIOLATION) => report
                         .change_context(OntologyVersionDoesNotExist)
-                        .attach_printable(id.clone())
+                        .attach(id.clone())
                         .change_context(UpdateError),
-                    _ => report
-                        .change_context(UpdateError)
-                        .attach_printable(id.clone()),
+                    _ => report.change_context(UpdateError).attach(id.clone()),
                 })
                 .change_context(UpdateError)?
                 .get(0),
@@ -3101,7 +3157,7 @@ where
                 .await
                 .change_context(StoreError)?,
             self.temporal_client.clone(),
-            self.settings.clone(),
+            Arc::clone(&self.settings),
         ))
     }
 }
@@ -3185,15 +3241,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
-        let previous_version = OntologyTypeVersion::new(
-            url.version
-                .inner()
-                .checked_sub(1)
-                .ok_or(UpdateError)
-                .attach_printable(
+        let previous_version =
+            OntologyTypeVersion {
+                major: url.version.major.checked_sub(1).ok_or(UpdateError).attach(
                     "The version of the data type is already at the lowest possible value",
                 )?,
-        );
+                pre_release: None,
+            };
         let Some(web_id) = self
             .as_client()
             .query_opt(
@@ -3241,11 +3295,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .map(|row| row.get(0))?;
             return Err(if exists {
                 Report::new(OntologyTypeIsNotOwned)
-                    .attach_printable(url.clone())
+                    .attach(url.clone())
                     .change_context(UpdateError)
             } else {
                 Report::new(OntologyVersionDoesNotExist)
-                    .attach_printable(url.clone())
+                    .attach(url.clone())
                     .change_context(UpdateError)
             });
         };
@@ -3302,10 +3356,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(AccountInsertionError)?
             .ok_or(AccountInsertionError)
-            .attach(StatusCode::Unauthenticated)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
-            .create_user(None)
+            .create_user(params.user_id)
             .await
             .change_context(AccountInsertionError)?;
 
@@ -3630,7 +3684,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(WebInsertionError)?
             .ok_or(WebInsertionError)
-            .attach(StatusCode::Unauthenticated)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let administrator = if let Some(administrator) = params.administrator {
             transaction
@@ -3638,7 +3692,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .await
                 .change_context(WebInsertionError)?
                 .ok_or(WebInsertionError)
-                .attach(StatusCode::InvalidArgument)?
+                .attach_opaque(StatusCode::InvalidArgument)?
         } else {
             actor_id
         };
@@ -3699,6 +3753,45 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     roles: role_ids.into_iter().collect(),
                 }
             }))
+    }
+
+    async fn update_web_shortname(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> Result<(), Report<WebUpdateError>> {
+        let rows_affected = self
+            .as_client()
+            .execute(
+                "
+                UPDATE web
+                SET shortname = $2
+                WHERE id = $1
+                ",
+                &[&id, &shortname],
+            )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .map_err(|error| match error.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => Report::new(error)
+                    .change_context(WebUpdateError::AlreadyExists {
+                        shortname: shortname.to_owned(),
+                    })
+                    .attach(StatusCode::AlreadyExists),
+                _ => Report::new(error).change_context(WebUpdateError::StoreError),
+            })?;
+
+        if rows_affected == 0 {
+            Err(Report::new(WebUpdateError::NotFound { web_id: id }).attach(StatusCode::NotFound))
+        } else {
+            Ok(())
+        }
     }
 
     async fn get_web_by_shortname(
@@ -3771,7 +3864,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     .await
                     .change_context(AccountGroupInsertionError)?
                     .ok_or(AccountGroupInsertionError)
-                    .attach(StatusCode::InvalidArgument)?,
+                    .attach_opaque(StatusCode::InvalidArgument)?,
                 admin_role,
             )
             .await
@@ -3900,7 +3993,7 @@ where
     /// # Errors
     ///
     /// Returns [`DeletionError`] if any of the database deletion operations fail.
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_principals(
         &self,
         actor_id: ActorEntityUuid,

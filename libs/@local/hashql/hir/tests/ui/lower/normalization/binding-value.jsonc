@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Variable binding with complex value expression
+[
+  "let",
+  "foo",
+  ["&&", ["<=", { "#literal": 2 }, { "#literal": 3 }], { "#literal": true }],
+  "foo"
+]

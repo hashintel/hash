@@ -11,29 +11,19 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
-  extractEntityUuidFromEntityId,
   generateTimestamp,
 } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
-import type {
-  Entity as GraphApiEntity,
-  Filter,
-} from "@local/hash-graph-client";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
@@ -43,10 +33,7 @@ import type {
   FlowRun,
   GetClosedMultiEntityTypesQuery,
   GetClosedMultiEntityTypesQueryVariables,
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
@@ -62,9 +49,10 @@ import { flowSectionBorderRadius } from "./shared/styles";
 import type { ProposedEntityOutput } from "./shared/types";
 
 export const getDeliverables = (
-  outputs?: FlowRun["outputs"],
+  outputs: FlowRun["outputs"] | undefined,
+  persistedEntities: HashEntity[],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents?.[0]?.outputs;
+  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
 
   const deliverables: DeliverableData[] = [];
 
@@ -81,11 +69,23 @@ export const getDeliverables = (
         });
       }
     }
-    if (payload.kind === "PersistedEntity" && !Array.isArray(payload.value)) {
-      if (!payload.value.entity) {
+
+    if (
+      payload.kind === "PersistedEntityMetadata" &&
+      !Array.isArray(payload.value)
+    ) {
+      const persistedEntityId = payload.value.entityId;
+      if (!persistedEntityId) {
         continue;
       }
-      const entity = new HashEntity(payload.value.entity);
+
+      const entity = persistedEntities.find(
+        (persisted) => persisted.entityId === persistedEntityId,
+      );
+
+      if (!entity) {
+        continue;
+      }
 
       const { displayName, fileName, fileUrl } = getFileProperties(
         entity.properties,
@@ -290,7 +290,13 @@ const mockEntityFromProposedEntity = (
 };
 
 type OutputsProps = {
-  persistedEntities: PersistedEntity[];
+  persistedEntities: HashEntity[];
+  persistedEntitiesMetadata: PersistedEntityMetadata[];
+  persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
+  persistedEntitiesTypesInfo?: {
+    entityTypes: ClosedMultiEntityTypesRootMap;
+    definitions: ClosedMultiEntityTypesDefinitions;
+  };
   proposedEntities: ProposedEntityOutput[];
   relevantEntityIds: EntityId[];
 };
@@ -303,6 +309,9 @@ type OutputsProps = {
  */
 export const Outputs = ({
   persistedEntities,
+  persistedEntitiesMetadata,
+  persistedEntitiesSubgraph,
+  persistedEntitiesTypesInfo,
   proposedEntities,
   relevantEntityIds,
 }: OutputsProps) => {
@@ -315,12 +324,38 @@ export const Outputs = ({
     );
 
   const hasEntities =
-    persistedEntities.length > 0 || proposedEntities.length > 0;
+    persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;
 
   const deliverables = useMemo(
-    () => getDeliverables(selectedFlowRun?.outputs),
-    [selectedFlowRun],
+    () => getDeliverables(selectedFlowRun?.outputs, persistedEntities),
+    [selectedFlowRun, persistedEntities],
   );
+
+  /**
+   * Pair persisted entities with their operations from metadata.
+   * This is used by EntityResultTable to show what operation was performed on each entity.
+   */
+  const persistedEntitiesWithOperation = useMemo(() => {
+    const metadataByEntityId = new Map(
+      persistedEntitiesMetadata.map((metadata) => [
+        metadata.entityId,
+        metadata.operation,
+      ]),
+    );
+
+    return persistedEntities.map((entity) => {
+      const operation = metadataByEntityId.get(entity.entityId);
+
+      if (!operation) {
+        throw new Error(`Operation not found for entity ${entity.entityId}`);
+      }
+
+      return {
+        entity,
+        operation,
+      };
+    });
+  }, [persistedEntities, persistedEntitiesMetadata]);
 
   const [entityDisplay, setEntityDisplay] = useState<"table" | "graph">(
     "table",
@@ -329,31 +364,6 @@ export const Outputs = ({
   const [visibleSection, setVisibleSection] = useState<
     "claims" | "entities" | "deliverables"
   >(hasEntities ? "entities" : "claims");
-
-  const persistedEntitiesFilter = useMemo<Filter>(
-    () => ({
-      any: persistedEntities
-        .map((persistedEntity) => {
-          if (!persistedEntity.entity) {
-            return null;
-          }
-
-          const entity = new HashEntity(persistedEntity.entity);
-          return {
-            equal: [
-              { path: ["uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
-              },
-            ],
-          };
-        })
-        .filter(isNotNullish),
-    }),
-    [persistedEntities],
-  );
 
   const uniqueProposedEntityTypeSets = useMemo(() => {
     /**
@@ -385,8 +395,11 @@ export const Outputs = ({
   >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      entityTypeIds: uniqueProposedEntityTypeSets,
-      includeArchived: false,
+      request: {
+        entityTypeIds: uniqueProposedEntityTypeSets,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeResolved: "resolvedWithDataTypeChildren",
+      },
     },
     skip: proposedEntities.length === 0,
   });
@@ -395,9 +408,9 @@ export const Outputs = ({
     if (!proposedEntitiesTypesData) {
       return previousProposedEntitiesTypesData
         ? {
-            closedMultiEntityTypes:
+            entityTypes:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
-                .closedMultiEntityTypes,
+                .entityTypes,
             definitions:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
                 .definitions,
@@ -406,80 +419,12 @@ export const Outputs = ({
     }
 
     return {
-      closedMultiEntityTypes:
-        proposedEntitiesTypesData.getClosedMultiEntityTypes
-          .closedMultiEntityTypes,
+      entityTypes:
+        proposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
       definitions:
         proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
     };
   }, [proposedEntitiesTypesData, previousProposedEntitiesTypesData]);
-
-  const {
-    data: persistedEntitiesSubgraphData,
-    previousData: previousPersistedEntitiesSubgraphData,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
-    {
-      variables: {
-        includePermissions: false,
-        request: {
-          filter: persistedEntitiesFilter,
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            ...fullOntologyResolveDepths,
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: true,
-          includeEntityTypes: "resolved",
-        },
-      },
-      skip: !persistedEntities.length,
-      fetchPolicy: "network-only",
-    },
-  );
-
-  const persistedEntitiesSubgraph = useMemo(() => {
-    if (!persistedEntitiesSubgraphData) {
-      return previousPersistedEntitiesSubgraphData
-        ? deserializeSubgraph<EntityRootType<HashEntity>>(
-            previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
-          )
-        : undefined;
-    }
-
-    return deserializeSubgraph<EntityRootType<HashEntity>>(
-      persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
-    );
-  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
-
-  const persistedEntitiesTypesInfo = useMemo<
-    | {
-        closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
-        definitions: ClosedMultiEntityTypesDefinitions;
-      }
-    | undefined
-  >(() => {
-    const data =
-      previousPersistedEntitiesSubgraphData ?? persistedEntitiesSubgraphData;
-
-    if (!data) {
-      return;
-    }
-
-    if (
-      !data.getEntitySubgraph.closedMultiEntityTypes ||
-      !data.getEntitySubgraph.definitions
-    ) {
-      throw new Error(
-        "No closed multi entity types or definitions found on persistedEntitiesSubgraphData",
-      );
-    }
-
-    return {
-      closedMultiEntityTypes: data.getEntitySubgraph.closedMultiEntityTypes,
-      definitions: data.getEntitySubgraph.definitions,
-    };
-  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
   /**
    * Because proposed entities are not in the database, we need to use a custom SlideStackProvider,
@@ -499,15 +444,12 @@ export const Outputs = ({
 
       const selectedEntityId = item.itemId;
 
-      const persistedEntity = persistedEntities.find(
-        ({ entity }) =>
-          entity &&
-          new HashEntity(entity).metadata.recordId.entityId ===
-            selectedEntityId,
+      const isPersistedEntity = persistedEntitiesMetadata.some(
+        ({ entityId }) => entityId === selectedEntityId,
       );
 
       // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
-      if (persistedEntity) {
+      if (isPersistedEntity) {
         return item;
       }
 
@@ -541,17 +483,6 @@ export const Outputs = ({
         },
         [mockedEntity.metadata.recordId],
         {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-          hasRightEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-        },
-        {
           initial: currentTimeInstantTemporalAxes,
           resolved: {
             pinned: {
@@ -577,7 +508,7 @@ export const Outputs = ({
         proposedEntitySubgraph: mockSubgraph,
       };
     },
-    [persistedEntities, proposedEntities, proposedEntitiesTypesInfo],
+    [persistedEntitiesMetadata, proposedEntities, proposedEntitiesTypesInfo],
   );
 
   useEffect(() => {
@@ -587,30 +518,22 @@ export const Outputs = ({
   }, [hasClaims, hasEntities, visibleSection]);
 
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
-    const entities: EntityForGraphChart[] = [];
-
     if (persistedEntities.length > 0) {
-      for (const { entity } of persistedEntities) {
-        if (!entity) {
-          continue;
-        }
-        entities.push(new HashEntity(entity));
-      }
-      return entities;
+      return persistedEntities;
     }
 
-    for (const entity of proposedEntities) {
+    return proposedEntities.map((proposedEntity) => {
       const {
         entityTypeIds,
         localEntityId,
         properties,
         sourceEntityId,
         targetEntityId,
-      } = entity;
+      } = proposedEntity;
 
       const editionId = new Date().toISOString() as EntityEditionId;
 
-      entities.push({
+      return {
         linkData:
           sourceEntityId && targetEntityId
             ? {
@@ -632,9 +555,8 @@ export const Outputs = ({
           entityTypeIds,
         },
         properties,
-      });
-    }
-    return entities;
+      };
+    });
   }, [persistedEntities, proposedEntities]);
 
   return (
@@ -711,7 +633,7 @@ export const Outputs = ({
                 !persistedEntitiesSubgraph &&
                 !proposedEntitiesTypesInfo
               }
-              persistedEntities={persistedEntities}
+              persistedEntitiesWithOperation={persistedEntitiesWithOperation}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               persistedEntitiesTypesInfo={persistedEntitiesTypesInfo}
               proposedEntities={proposedEntities}
@@ -721,8 +643,8 @@ export const Outputs = ({
           ) : (
             <EntityResultGraph
               closedMultiEntityTypesRootMap={
-                persistedEntitiesTypesInfo?.closedMultiEntityTypes ??
-                proposedEntitiesTypesInfo?.closedMultiEntityTypes
+                persistedEntitiesTypesInfo?.entityTypes ??
+                proposedEntitiesTypesInfo?.entityTypes
               }
               entities={entitiesForGraph}
             />

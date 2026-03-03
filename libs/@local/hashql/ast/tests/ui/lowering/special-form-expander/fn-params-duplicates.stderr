@@ -1,13 +1,9 @@
-[special-form-expander::duplicate-closure-parameter] Error: Duplicate closure parameter
-   ╭─[ <unknown>:6:31 ]
-   │
- 6 │   { "#struct": { "a": "Int", "a": "Int" } },
-   │                   ┬           ┬  
-   │                   │           ╰── Remove this duplicate parameter 'a'
-   │                   │              
-   │                   ╰────────────── 'a' was previously declared here
-   │ 
-   │ Help: Each function parameter must have a unique name. Rename this parameter or remove the duplicate declaration.
-   │ 
-   │ Note: Function parameters must have unique names within the same parameter list. For example, in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.
-───╯
+error[special-form-expander::duplicate-closure-parameter]: Duplicate closure parameter
+  ╭▸ 
+6 │   { "#struct": { "a": "Int", "a": "Int" } },
+  │                   ┬           ━ Remove this duplicate parameter 'a'
+  │                   │
+  │                   'a' was previously declared here
+  │
+  ├ help: Each function parameter must have a unique name. Rename this parameter or remove the duplicate declaration.
+  ╰ note: Function parameters must have unique names within the same parameter list. For example, in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.

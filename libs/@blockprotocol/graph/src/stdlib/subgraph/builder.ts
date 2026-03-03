@@ -22,7 +22,6 @@ import {
 import type {
   EntityRootType,
   EntityVertexId,
-  GraphResolveDepths,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";
@@ -70,7 +69,6 @@ export const buildSubgraph = (
     dataTypes: DataTypeWithMetadata[];
   },
   rootRecordIds: (EntityRecordId | OntologyTypeRecordId)[],
-  depths: GraphResolveDepths,
   subgraphTemporalAxes: SubgraphTemporalAxes,
 ): Subgraph<EntityRootType> => {
   const missingRoots = rootRecordIds.filter(
@@ -103,7 +101,6 @@ export const buildSubgraph = (
     roots: [],
     vertices: {},
     edges: {},
-    depths,
     temporalAxes: subgraphTemporalAxes,
   };
 

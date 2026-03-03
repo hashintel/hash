@@ -16,7 +16,7 @@ test.skip(
 
       return createAnthropicMessagesWithTools({
         payload: {
-          model: "claude-3-opus-20240229",
+          model: "claude-opus-4-6",
           messages: [
             {
               role: "user",

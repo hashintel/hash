@@ -5,6 +5,10 @@ import {
 } from "@local/eslint/deprecated";
 
 export default defineConfig([
+  {
+    // Static browser assets are not part of the TypeScript project
+    ignores: ["public/**"],
+  },
   ...createBase(import.meta.dirname),
   {
     rules: {

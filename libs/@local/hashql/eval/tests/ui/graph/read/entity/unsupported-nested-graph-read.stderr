@@ -1,35 +1,27 @@
-[graph-read-compiler::nested-graph-read-unsupported] Error: Nested graph read operations not supported
-    ╭─[ <unknown>:22:10 ]
-    │
- 19 │ ╭─▶       ["==",
-    ┆ ┆   
- 22 │ │           "read"
-    │ │            ──┬─  
-    │ │              ╰─── Nested graph operation not supported here
-    ┆ ┆   
- 24 │ ├─▶       ]
-    │ │             
-    │ ╰───────────── ... within this filter expression
-    │     
-    │     Help: Filter expressions do not currently support nested graph operations. Move the graph operation outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-    │     
-    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.
-────╯
+error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
+   ╭▸ 
+19 │ ┌       ["==",
+20 │ │         "read",
+21 │ │         //~^ ERROR Nested graph read operations not supported here
+22 │ │         "read"
+   │ │          ━━━━ Nested graph read operations not supported here
+23 │ │         //~^ ERROR Nested graph read operations not supported here
+24 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not support nested graph operations. Use a separate query for the nested graph read and pass the result to this filter expression.
+   ╰ note: Nested graph reads in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
 
-
-[graph-read-compiler::nested-graph-read-unsupported] Error: Nested graph read operations not supported
-    ╭─[ <unknown>:20:10 ]
-    │
- 19 │ ╭─▶       ["==",
- 20 │ │           "read",
-    │ │            ──┬─  
-    │ │              ╰─── Nested graph operation not supported here
-    ┆ ┆   
- 24 │ ├─▶       ]
-    │ │             
-    │ ╰───────────── ... within this filter expression
-    │     
-    │     Help: Filter expressions do not currently support nested graph operations. Move the graph operation outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-    │     
-    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.
-────╯
+error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
+   ╭▸ 
+19 │ ┌       ["==",
+20 │ │         "read",
+   │ │          ━━━━ Nested graph read operations not supported here
+21 │ │         //~^ ERROR Nested graph read operations not supported here
+22 │ │         "read"
+23 │ │         //~^ ERROR Nested graph read operations not supported here
+24 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not support nested graph operations. Use a separate query for the nested graph read and pass the result to this filter expression.
+   ╰ note: Nested graph reads in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.

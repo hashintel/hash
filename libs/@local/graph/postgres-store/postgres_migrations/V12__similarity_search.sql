@@ -1,4 +1,4 @@
-CREATE EXTENSION "vector";
+CREATE EXTENSION IF NOT EXISTS "vector";
 
 CREATE TABLE "entity_embeddings" (
     "web_id"      UUID NOT NULL,

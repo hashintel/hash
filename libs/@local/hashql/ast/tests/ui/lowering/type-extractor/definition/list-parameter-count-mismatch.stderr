@@ -1,11 +1,7 @@
-[type-extractor::intrinsic-parameter-mismatch] Error: Incorrect intrinsic type parameters
-   ╭─[ <unknown>:6:4 ]
-   │
- 6 │   "List",
-   │    ──┬─  
-   │      ╰─── Intrinsic `::kernel::type::List` needs 1 parameter, but found 0
-   │ 
-   │ Help: Add missing parameter(s): `List<ElementType>`
-   │ 
-   │ Note: List is a generic container that requires exactly one type parameter specifying the element type. For example, List<String> is a list of strings, while List<Number> is a list of numbers.
-───╯
+error[type-extractor::intrinsic-parameter-mismatch]: Incorrect intrinsic type parameters
+  ╭▸ 
+6 │   "List",
+  │    ━━━━ Intrinsic `::kernel::type::List` needs 1 parameter, but found 0
+  │
+  ├ help: Add missing parameter(s): `List<ElementType>`
+  ╰ note: List is a generic container that requires exactly one type parameter specifying the element type. For example, List<String> is a list of strings, while List<Number> is a list of numbers.

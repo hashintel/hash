@@ -1,17 +1,19 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  FormattedText,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -33,7 +35,6 @@ import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-ent
 import { openAiSeed } from "../shared/open-ai-seed.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { stringify } from "../shared/stringify.js";
-import type { FlowActionActivity } from "./types.js";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -160,7 +161,7 @@ const callModel = async (
   iteration: number,
 ): Promise<
   Status<{
-    outputs: StepOutput[];
+    outputs: AiActionStepOutput<"answerQuestion">[];
   }>
 > => {
   const { flowEntityId, userAuthentication, stepId, webId } =
@@ -226,7 +227,7 @@ const callModel = async (
         const { answer, confidence } = parsedArguments;
         explanation = parsedArguments.explanation;
 
-        const outputs: StepOutput[] = [];
+        const outputs: AiActionStepOutput<"answerQuestion">[] = [];
         if (answer) {
           outputs.push({
             outputName: "answer",
@@ -238,7 +239,7 @@ const callModel = async (
         }
         if (codeUsed) {
           outputs.push({
-            outputName: "code",
+            outputName: "sourceCode",
             payload: {
               kind: "Text",
               value: codeUsed,
@@ -337,7 +338,7 @@ const callModel = async (
   }
 
   if (iteration > maximumIterations) {
-    const outputs: StepOutput[] = [];
+    const outputs: AiActionStepOutput<"answerQuestion">[] = [];
     if (explanation) {
       outputs.push({
         outputName: "explanation",
@@ -349,7 +350,7 @@ const callModel = async (
     }
     if (code) {
       outputs.push({
-        outputName: "code",
+        outputName: "sourceCode",
         payload: {
           kind: "Text",
           value: code,
@@ -399,24 +400,39 @@ const callModel = async (
   );
 };
 
-export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
+export const answerQuestionAction: AiFlowActionActivity<
+  "answerQuestion"
+> = async ({ inputs }) => {
   const {
     context,
-    entities: inputEntities,
+    entities: entitiesInput,
     question,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "answerQuestion",
   });
 
+  const { userAuthentication } = await getFlowContext();
+
+  // Resolve the stored ref to get the array of PersistedEntitiesMetadata
+  const inputEntities = entitiesInput
+    ? await resolvePayloadValue(
+        getStorageProvider(),
+        "PersistedEntitiesMetadata",
+        entitiesInput,
+      )
+    : undefined;
+
   const entities = inputEntities
-    ? mapActionInputEntitiesToEntities({ inputEntities })
+    ? await mapActionInputEntitiesToEntities({
+        actorId: userAuthentication.actorId,
+        graphApiClient,
+        inputEntities,
+      })
     : undefined;
 
   let contextFilePath;
   let contextToUpload;
-
-  const { userAuthentication } = await getFlowContext();
 
   if (entities) {
     /**
@@ -428,8 +444,10 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
      * rather than a list of entities, to allow for more flexibility in the data provided.
      * This will also always pull the latest version of the entities, which may differ to those passed in.
      */
-    const subgraph = await graphApiClient
-      .getEntitySubgraph(userAuthentication.actorId, {
+    const { subgraph } = await queryEntitySubgraph(
+      { graphApi: graphApiClient },
+      userAuthentication,
+      {
         filter: {
           any: entities.map((entity) => ({
             equal: [
@@ -442,26 +460,42 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data }) =>
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(
-          data.subgraph,
-          userAuthentication.actorId,
-        ),
-      );
+        includePermissions: false,
+      },
+    );
 
     const { entities: simpleEntities, entityTypes: simpleTypes } =
       getSimpleGraph(subgraph);

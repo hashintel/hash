@@ -1,4 +1,4 @@
-/// Arguments for configuring the logging setup
+/// Arguments for configuring the OpenTelemetry setup.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Open Telemetry")))]
 pub struct OtlpConfig {

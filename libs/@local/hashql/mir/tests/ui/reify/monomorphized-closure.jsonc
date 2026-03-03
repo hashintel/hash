@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: types on a monomorphized closure should take the top type
+[
+  [
+    "fn",
+    { "#struct": { "T": "Number" } },
+    { "#struct": { "a": "T", "b": "T" } },
+    "Boolean",
+    [">=", "a", "b"]
+  ],
+  { "#literal": 2 },
+  { "#literal": 3 }
+]

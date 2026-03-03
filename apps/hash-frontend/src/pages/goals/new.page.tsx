@@ -5,6 +5,7 @@ import {
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
+import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   goalFlowDefinition,
@@ -38,9 +39,9 @@ import type { FormEvent, FunctionComponent, PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
-import type {
-  StartFlowMutation,
-  StartFlowMutationVariables,
+import {
+  type StartFlowMutation,
+  type StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/flow.queries";
 import { FilesRegularIcon } from "../../shared/icons/files-regular-icon";
@@ -265,7 +266,8 @@ const NewGoalPageContent = () => {
       },
     ];
 
-    let flowDefinition: FlowDefinition = goalFlowDefinition;
+    let flowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
+      goalFlowDefinition;
     if (deliverablesSettings.document && deliverablesSettings.spreadsheet) {
       if (
         !deliverablesSettings.document.brief ||
@@ -347,6 +349,7 @@ const NewGoalPageContent = () => {
           internetAccess: internetSettings,
         },
         flowDefinition,
+        flowType: "ai",
         flowTrigger: {
           outputs: triggerOutputs,
           triggerDefinitionId: "userTrigger",
@@ -425,7 +428,7 @@ const NewGoalPageContent = () => {
             />
           </Question>
           <Question
-            description="Your web will be populated with entities matching your research goal."
+            description="Your web will be populated with entities matching your research goal"
             number={2}
             text="What do you want to research?"
           >

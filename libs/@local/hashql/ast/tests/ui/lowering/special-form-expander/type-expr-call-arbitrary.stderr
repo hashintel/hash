@@ -1,13 +1,9 @@
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-   ╭─[ <unknown>:6:5 ]
-   │
- 6 │   ["::core::math::headpat", "Int", "Float"]
-   │     ──────────┬──────────  
-   │               ╰──────────── This function cannot be used as a type constructor
-   │ 
-   │ Help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
-   │ 
-   │ Note: Currently supported type operations are:
-   │       - Intersection: math::bit_and (written as & in source)
-   │       - Union: math::bit_or (written as | in source)
-───╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+  ╭▸ 
+6 │   ["::core::math::headpat", "Int", "Float"]
+  │     ━━━━━━━━━━━━━━━━━━━━━ This function cannot be used as a type constructor
+  │
+  ├ help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
+  ╰ note: Currently supported type operations are:
+          - Intersection: math::bit_and (written as & in source)
+          - Union: math::bit_or (written as | in source)

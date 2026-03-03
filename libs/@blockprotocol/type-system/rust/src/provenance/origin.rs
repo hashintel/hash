@@ -7,7 +7,7 @@ use utoipa::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum OriginType {
     WebApp,
@@ -27,7 +27,7 @@ pub enum OriginType {
 pub struct OriginProvenance {
     #[serde(flatten)]
     pub ty: OriginType,
-    /// A unique identifier for the origin, if one is available
+    /// A unique identifier for the origin, if one is available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// The origin version, in whatever format the origin natively provides.
@@ -70,7 +70,7 @@ impl OriginProvenance {
 mod patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     pub enum OriginProvenance {
         #[serde(rename_all = "camelCase")]

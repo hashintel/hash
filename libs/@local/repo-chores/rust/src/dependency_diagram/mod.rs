@@ -19,7 +19,7 @@ use guppy::{
 
 /// Errors that can occur during dependency diagram generation.
 #[derive(Debug, derive_more::Display)]
-pub enum DependencyDiagramError {
+pub(crate) enum DependencyDiagramError {
     /// Indicates a failure when running the cargo metadata command.
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
@@ -42,14 +42,14 @@ impl Error for DependencyDiagramError {}
 /// Link generation mode for crates in the diagram.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 #[clap(rename_all = "kebab-case")]
-pub enum LinkMode {
-    /// Create documentation links for all crates
+pub(crate) enum LinkMode {
+    /// Create documentation links for all crates.
     All,
 
-    /// Create documentation links for all crates except the root
+    /// Create documentation links for all crates except the root.
     NonRoots,
 
-    /// Don't create documentation links for any crates
+    /// Don't create documentation links for any crates.
     #[default]
     None,
 }
@@ -60,35 +60,35 @@ pub enum LinkMode {
     clippy::struct_excessive_bools,
     reason = "This is a configuration struct"
 )]
-pub struct DependencyDiagramConfig {
-    /// The root crate to highlight with a thicker border (if any)
+pub(crate) struct DependencyDiagramConfig {
+    /// The root crate to highlight with a thicker border (if any).
     pub root: Option<String>,
 
-    /// Show only dependencies of the root crate
+    /// Show only dependencies of the root crate.
     pub root_deps_only: bool,
 
-    /// Show both dependencies and dependents of the root crate
+    /// Show both dependencies and dependents of the root crate.
     ///
     /// When true, the diagram will include crates that depend on the root crate
     /// (reverse dependencies) as well as the root crate's dependencies.
     pub root_deps_and_dependents: bool,
 
-    /// Include only crates matching these patterns
+    /// Include only crates matching these patterns.
     pub include: Vec<String>,
 
-    /// Do not deduplicate transitive dependencies
+    /// Do not deduplicate transitive dependencies.
     pub no_dedup_transitive: bool,
 
-    /// Include dev dependencies (used for tests and examples)
+    /// Include dev dependencies (used for tests and examples).
     pub include_dev_deps: bool,
 
-    /// Include build dependencies (used for build scripts)
+    /// Include build dependencies (used for build scripts).
     pub include_build_deps: bool,
 
-    /// Crates to exclude from the diagram
+    /// Crates to exclude from the diagram.
     pub exclude: Vec<String>,
 
-    /// Link generation mode
+    /// Link generation mode.
     ///
     /// Controls how documentation links are generated in the diagram:
     /// - `All`: Create links for all crates
@@ -96,7 +96,7 @@ pub struct DependencyDiagramConfig {
     /// - `None`: Don't create links for any crates (default)
     pub link_mode: LinkMode,
 
-    /// Include only crates within the workspace
+    /// Include only crates within the workspace.
     pub workspace_only: bool,
 }
 
@@ -278,7 +278,7 @@ fn graph_to_mermaid(
             let path = format!("../{}", metadata.name().replace('-', "_"));
             let _ = writeln!(
                 mermaid,
-                "    {index}[<a href=\"{path}\">{}</a>]",
+                "    {index}[<a href=\"{path}/index.html\">{}</a>]",
                 metadata.name()
             );
         } else {
@@ -399,16 +399,16 @@ fn graph_to_mermaid(
 )]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct DependencyRequirement {
-    /// Whether to exclude dev-only dependencies
+    /// Whether to exclude dev-only dependencies.
     deny_dev: bool,
 
-    /// Whether to exclude build-only dependencies
+    /// Whether to exclude build-only dependencies.
     deny_build: bool,
 
-    /// Whether to exclude normal dependencies
+    /// Whether to exclude normal dependencies.
     deny_normal: bool,
 
-    /// Whether to include only workspace crates
+    /// Whether to include only workspace crates.
     only_workspace: bool,
 }
 
@@ -438,13 +438,13 @@ impl DependencyRequirement {
 /// A resolver for filtering package dependencies based on defined criteria.
 #[derive(Debug, Copy, Clone)]
 struct PackageQueryResolver<'a> {
-    /// Glob patterns for packages to include (if specified)
+    /// Glob patterns for packages to include (if specified).
     include: Option<&'a GlobSet>,
 
-    /// Glob patterns for packages to exclude (if specified)
+    /// Glob patterns for packages to exclude (if specified).
     exclude: Option<&'a GlobSet>,
 
-    /// Requirements for filtering dependencies by type and workspace membership
+    /// Requirements for filtering dependencies by type and workspace membership.
     dependency: DependencyRequirement,
 }
 
@@ -499,7 +499,7 @@ impl<'graph> PackageResolver<'graph> for PackageQueryResolver<'_> {
 /// computationally expensive operation is detecting and removing transitive dependencies,
 /// which has O(n³) complexity in the worst case.
 #[tracing::instrument(level = "debug")]
-pub fn generate_dependency_diagram(
+pub(crate) fn generate_dependency_diagram(
     DependencyDiagramConfig {
         root,
         root_deps_only,

@@ -3,6 +3,10 @@
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    "mastra": {
+      "command": "npx",
+      "args": ["-y", "@mastra/mcp-docs-server@beta"]
     }
   }
 }

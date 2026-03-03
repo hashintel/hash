@@ -1,0 +1,7 @@
+error[reify::unsupported-feature]: Unsupported Feature
+  ╭▸ 
+3 │ "::graph::tmp::decision_time_now"
+  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ external modules are not supported
+  │
+  ├ help: keep all code within a single module for now
+  ╰ note: see https://linear.app/hash/issue/BE-67/hashql-implement-modules for tracking multi-module support

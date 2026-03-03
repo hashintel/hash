@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Unclosed object should fail
 expression: "{\"a\": 1"
 ---
-[31m[lexer::unexpected-eof] Error:[0m Unexpected end of file
-   ╭─[ <unknown>:1:8 ]
-   │
- 1 │ {"a": 1
-   │        │ 
-   │        ╰─ Unexpected end of file
-   │ 
-   │ Help: Missing closing bracket. Make sure all opening brackets have matching closing brackets.
-───╯
+error[lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ {"a": 1
+  │        ━ Unexpected end of file
+  │
+  ╰ help: Missing closing bracket. Make sure all opening brackets have matching closing brackets.

@@ -1,6 +1,5 @@
 use core::{
-    assert_matches::assert_matches,
-    iter,
+    assert_matches, iter,
     net::Ipv4Addr,
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,

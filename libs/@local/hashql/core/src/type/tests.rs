@@ -1,14 +1,14 @@
 #![expect(clippy::min_ident_chars, clippy::unwrap_used)]
-use core::{assert_matches::assert_matches, fmt::Debug, iter};
+use core::{assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,
-    environment::{AnalysisEnvironment, Diagnostics, Environment, SimplifyEnvironment},
+    environment::{AnalysisEnvironment, Environment, SimplifyEnvironment},
+    error::TypeCheckDiagnosticIssues,
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -75,8 +75,7 @@ macro_rules! scaffold {
         let $heap = crate::heap::Heap::new();
         #[expect(clippy::allow_attributes)]
         #[allow(unused_mut)]
-        let mut $env =
-            crate::r#type::environment::Environment::new(crate::span::SpanId::SYNTHETIC, &$heap);
+        let mut $env = crate::r#type::environment::Environment::new(&$heap);
         #[expect(clippy::allow_attributes)]
         #[allow(unused_mut)]
         let mut $builder = crate::r#type::TypeBuilder::synthetic(&$env);
@@ -123,14 +122,14 @@ pub(crate) use scaffold;
 
 #[track_caller]
 pub(crate) fn assert_diagnostics(
-    diagnostics: Diagnostics,
+    diagnostics: TypeCheckDiagnosticIssues,
     categories: impl IntoIterator<Item = TypeCheckDiagnosticCategory, IntoIter: ExactSizeIterator>,
 ) {
     let categories = categories.into_iter();
 
     assert_eq!(diagnostics.len(), categories.len());
 
-    for (diagnostic, category) in diagnostics.into_vec().into_iter().zip(categories) {
+    for (diagnostic, category) in diagnostics.into_iter().zip(categories) {
         assert_eq!(diagnostic.category, category);
     }
 }
@@ -406,7 +405,7 @@ fn recursive_join_operation() {
     );
 
     // Ensure the join implementation didn't produce errors
-    assert_eq!(lattice.diagnostics.fatal(), 0);
+    assert_eq!(lattice.diagnostics.critical(), 0);
 }
 
 #[test]
@@ -428,7 +427,7 @@ fn recursive_meet_operation() {
     let met = lattice.meet(type_a, type_b);
 
     // Ensure the meet implementation didn't produce errors
-    assert_eq!(lattice.diagnostics.fatal(), 0);
+    assert_eq!(lattice.diagnostics.critical(), 0);
 
     // The meet should produce something equivalent to A
     assert!(

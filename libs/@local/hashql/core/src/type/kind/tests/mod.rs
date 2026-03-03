@@ -2,11 +2,12 @@
 #![coverage(off)]
 
 use crate::{
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::{
         TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
         lattice::Lattice as _,
+        pretty::TypeFormatter,
     },
 };
 
@@ -64,18 +65,32 @@ pub(crate) fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) 
 
 #[track_caller]
 pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
     let mut analysis = AnalysisEnvironment::new(env);
 
-    let lhs_repr = analysis
-        .r#type(lhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
-    let rhs_repr = analysis
-        .r#type(rhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
+    assert!(
+        analysis.is_equivalent(lhs, rhs),
+        "{} != {}",
+        formatter.render_type(lhs, RenderOptions::default()),
+        formatter.render_type(rhs, RenderOptions::default())
+    );
+}
 
-    assert!(analysis.is_equivalent(lhs, rhs), "{lhs_repr} != {rhs_repr}");
+#[track_caller]
+pub(crate) fn assert_is_subtype(env: &Environment, lhs: TypeId, rhs: TypeId) {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
+    let mut analysis = AnalysisEnvironment::new(env);
+
+    assert!(
+        analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
+        "{} !< {}",
+        formatter.render_type(lhs, RenderOptions::default()),
+        formatter.render_type(rhs, RenderOptions::default())
+    );
 }
 
 macro_rules! ty {

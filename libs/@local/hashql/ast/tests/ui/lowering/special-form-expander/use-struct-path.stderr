@@ -1,11 +1,7 @@
-[special-form-expander::invalid-use-import] Error: Invalid use import expression
-   ╭─[ <unknown>:8:13 ]
-   │
- 8 │       "x": "::core::math::sub"
-   │             ────────┬────────  
-   │                     ╰────────── Use a simple identifier here
-   │ 
-   │ Help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
-   │ 
-   │ Note: In tuple imports, each element must be a simple identifier. For example: (name1, name2) is valid, but (path::to::name,) is not.
-───╯
+error[special-form-expander::invalid-use-import]: Invalid use import expression
+  ╭▸ 
+8 │       "x": "::core::math::sub"
+  │             ━━━━━━━━━━━━━━━━━ Use a simple identifier here
+  │
+  ├ help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
+  ╰ note: In tuple imports, each element must be a simple identifier. For example: (name1, name2) is valid, but (path::to::name,) is not.

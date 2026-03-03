@@ -1,0 +1,37 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+if ::core::bool::and(true, false) 
+then 2
+else 3
+
+════ HIR after type inference ══════════════════════════════════════════════════
+
+if ::core::bool::and(true, false) 
+then 2
+else 3
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ if ::core::bool::and(true, false) 
+│  then 2
+│  else 3
+└→ Integer | Integer
+
+┌─ ::core::bool::and(true, false)
+└→ _0«Boolean»
+
+┌─ ::core::bool::and
+└→ (Boolean, Boolean) -> Boolean
+
+┌─ true
+└→ Boolean
+
+┌─ false
+└→ Boolean
+
+┌─ 2
+└→ Integer
+
+┌─ 3
+└→ Integer
+

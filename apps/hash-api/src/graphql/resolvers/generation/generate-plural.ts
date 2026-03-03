@@ -1,14 +1,13 @@
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import { ApolloError } from "apollo-server-errors";
-import { ForbiddenError } from "apollo-server-express";
 import { backOff } from "exponential-backoff";
 
 import type { QueryGeneratePluralArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+import * as Error from "../../error";
 import { getOpenAiClient } from "./shared/openai-client";
 
 const generatePrompt = (type: string): string => `
-You are building the ontology for a knowledge graph. 
+You are building the ontology for a knowledge graph.
 
 You need to come up with a name for the plural form for the type named "${type}".
 
@@ -37,7 +36,7 @@ export const generatePluralResolver: ResolverFn<
   QueryGeneratePluralArgs
 > = async (_, params, graphQLContext) => {
   if (!graphQLContext.user?.isAccountSignupComplete) {
-    throw new ForbiddenError("No user found");
+    throw Error.forbidden("No user found");
   }
 
   const { singular } = params;
@@ -60,7 +59,7 @@ export const generatePluralResolver: ResolverFn<
         const message = response.choices[0]?.message.content;
 
         if (!message) {
-          throw new Error("Empty response from AI model");
+          throw Error.internal("Empty response from AI model");
         }
 
         return message;
@@ -76,6 +75,6 @@ export const generatePluralResolver: ResolverFn<
     graphQLContext.logger.error(
       `Failed to generate plural for '${singular}': ${stringifyError(err)}`,
     );
-    throw new ApolloError(`Failed to generate plural for '${singular}'`);
+    throw Error.internal(`Failed to generate plural for '${singular}'`);
   }
 };

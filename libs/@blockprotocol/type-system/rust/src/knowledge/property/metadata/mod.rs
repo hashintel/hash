@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 /// [`Property`]: crate::knowledge::property::Property
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged)]
 pub enum PropertyMetadata {
     /// Metadata for an array property, containing element-level and array-level metadata.

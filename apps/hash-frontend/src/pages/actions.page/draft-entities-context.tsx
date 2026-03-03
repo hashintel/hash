@@ -1,20 +1,18 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  deserializeQueryEntitiesResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
 import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
@@ -49,7 +47,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const [
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<QueryEntitiesQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -61,17 +59,19 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch: refetchFullData,
     loading,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
     {
       variables: {
         request: {
           filter: {
             all: [
               {
-                // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-                //                     @see https://linear.app/hash/issue/H-1207
-                notEqual: [{ path: ["draftId"] }, null],
+                not: {
+                  exists: {
+                    path: ["draftId"],
+                  },
+                },
               },
               {
                 equal: [{ path: ["archived"] }, { parameter: false }],
@@ -79,10 +79,9 @@ export const DraftEntitiesContextProvider: FunctionComponent<
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: true,
+          includePermissions: false,
         },
-        includePermissions: false,
       },
       onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
       pollInterval,
@@ -91,39 +90,27 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     },
   );
 
-  const draftEntitiesSubgraph = useMemo(
+  const draftEntities = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        ? deserializeQueryEntitiesResponse(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .getEntitySubgraph.subgraph,
-          )
+              .queryEntities,
+          ).entities
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
-  );
-
-  const draftEntities = useMemo(
-    () => (draftEntitiesSubgraph ? getRoots(draftEntitiesSubgraph) : undefined),
-    [draftEntitiesSubgraph],
   );
 
   const value = useMemo<DraftEntitiesContextValue>(
     () => ({
       draftEntities,
-      draftEntitiesSubgraph,
       loading,
       refetch: async () => {
         await refetchFullData();
         await refetchDraftEntitiesCount();
       },
     }),
-    [
-      draftEntities,
-      draftEntitiesSubgraph,
-      loading,
-      refetchFullData,
-      refetchDraftEntitiesCount,
-    ],
+    [draftEntities, loading, refetchFullData, refetchDraftEntitiesCount],
   );
 
   return (

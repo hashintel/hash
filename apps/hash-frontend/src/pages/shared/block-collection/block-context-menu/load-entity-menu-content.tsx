@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
@@ -8,10 +7,14 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Box,
   InputAdornment,
@@ -25,10 +28,10 @@ import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
@@ -51,29 +54,28 @@ export const LoadEntityMenuContent: FunctionComponent<
   popupState,
 }) => {
   const { data: queryResult, loading } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
-      operation: {
-        multiFilter: {
+      request: {
+        filter: convertBpFilterToGraphFilter({
           filters: [
             ...(childEntityEntityTypeId
               ? [entityHasEntityTypeByBaseUrlFilter(childEntityEntityTypeId)]
               : []),
           ],
           operator: "AND",
-        },
+        }),
+        temporalAxes: currentTimeInstantTemporalAxes,
+        traversalPaths: [
+          {
+            edges: [{ kind: "is-of-type" }],
+          },
+        ],
+        includeDrafts: false,
+        includePermissions: false,
       },
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      inheritsFrom: { outgoing: 0 },
-      isOfType: { outgoing: 1 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
   });
 
@@ -112,9 +114,9 @@ export const LoadEntityMenuContent: FunctionComponent<
   const subgraph = useMemo(
     () =>
       queryResult
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-            queryResult.queryEntities.subgraph,
-          )
+        ? deserializeQueryEntitySubgraphResponse(
+            queryResult.queryEntitySubgraph,
+          ).subgraph
         : undefined,
     [queryResult],
   );

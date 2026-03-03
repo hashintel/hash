@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/visit.rs
 description: Array with leading comma should fail
 expression: "[,1]"
 ---
-[31m[array::leading-comma] Error:[0m Unexpected leading comma in array
-   ╭─[ <unknown>:1:2 ]
-   │
- 1 │ [,1]
-   │  ┬  
-   │  ╰── Remove this leading comma
-   │ 
-   │ Help: J-Expr does not support leading commas in arrays. Use `[item1, item2]` format.
-───╯
+error[array::leading-comma]: Unexpected leading comma in array
+  ╭▸ 
+1 │ [,1]
+  │  ━ Remove this leading comma
+  │
+  ╰ help: J-Expr does not support leading commas in arrays. Use `[item1, item2]` format.

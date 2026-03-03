@@ -10,29 +10,28 @@ authors.workspace = true
 # Public workspace dependencies
 hash-codec         = { workspace = true, features = ["numeric"], public = true }
 hashql-diagnostics = { workspace = true, public = true }
+hashql-macros      = { workspace = true, public = true }
 
 # Public third-party dependencies
-anstyle            = { workspace = true, public = true }
-ecow               = { workspace = true, public = true }
-foldhash           = { workspace = true, public = true }
-hashbrown          = { workspace = true, public = true }
-orx-concurrent-vec = { workspace = true, public = true }
-pretty             = { workspace = true, public = true }
-scc                = { workspace = true, public = true }
-smallvec           = { workspace = true, public = true }
-text-size          = { workspace = true, public = true }
+anstyle   = { workspace = true, public = true }
+foldhash  = { workspace = true, public = true }
+hashbrown = { workspace = true, public = true }
+pretty    = { workspace = true, public = true }
+smallvec  = { workspace = true, public = true }
+text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+anstyle-lossy        = { workspace = true }
 bitvec               = { workspace = true, features = ["alloc"] }
-bumpalo              = { workspace = true }
+bump-scope           = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 memchr               = { workspace = true }
 rapidfuzz            = { workspace = true }
-roaring              = { workspace = true, features = ["std", "simd"] }
+roaring              = { workspace = true, features = ["std"] }
 rpds                 = { workspace = true, features = ["std"] }
 serde                = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid       = { workspace = true }
@@ -47,7 +46,21 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-insta         = { workspace = true }
-proptest      = { workspace = true }
-rstest        = { workspace = true }
-test-strategy = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+insta                     = { workspace = true }
+proptest                  = { workspace = true }
+rstest                    = { workspace = true }
+test-strategy             = { workspace = true }
+
+[[bench]]
+name    = "type_system"
+harness = false
+
+[[bench]]
+name    = "symbol"
+harness = false
+
+[[bench]]
+name    = "bit_matrix"
+harness = false

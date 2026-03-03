@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:12.10-slim AS mise
+FROM debian:13.3-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -14,7 +14,8 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl https://mise.run | sh && \
+    export MISE_VERSION=2026.1.12 && curl https://mise.run | sh && \
+    mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     eval "$(mise activate bash)" && \
@@ -30,7 +31,8 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
-RUN turbo prune --scope='@apps/hash-api' --docker && \
+RUN mise trust && \
+    turbo prune --scope='@apps/hash-api' --docker && \
     find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" && \
@@ -98,10 +100,10 @@ RUN groupadd --system --gid 60000 hash && \
     install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles $COREPACK_HOME && \
     corepack prepare --activate
 
-ENTRYPOINT [ "yarn"]
-CMD ["start"]
-
 USER api:hash
 ENV NODE_ENV=production
+
+ENTRYPOINT [ "yarn"]
+CMD ["start"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

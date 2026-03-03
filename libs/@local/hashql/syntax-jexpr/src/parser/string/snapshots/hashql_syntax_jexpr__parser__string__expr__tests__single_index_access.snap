@@ -15,5 +15,5 @@ Expr#4294967040@5
       Expr#4294967040@4
         ExprKind (Literal)
           LiteralExpr#4294967040@4
-            LiteralKind (Integer)
-              IntegerLiteral (0)
+            Primitive (Integer)
+              Integer (0)

@@ -15,7 +15,7 @@ import type {
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type {
-  PersistedEntity,
+  PersistedEntityMetadata,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -98,7 +98,7 @@ export type MinimalFlowRun = Pick<
   | "status"
   | "inputs"
   | "inputRequests"
-> & { persistedEntities: PersistedEntity[]; webPage: WebPage };
+> & { persistedEntities: PersistedEntityMetadata[]; webPage: WebPage };
 
 /**
  * One of the flow runs we expose in the History tab, which are one of:

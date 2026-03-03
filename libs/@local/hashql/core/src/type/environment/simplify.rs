@@ -4,18 +4,31 @@ use core::ops::Deref;
 use smallvec::SmallVec;
 
 use super::{
-    AnalysisEnvironment, Diagnostics, Environment, Variance, context::provision::ProvisionedGuard,
+    AnalysisEnvironment, Environment, Variance, analysis::AnalysisEnvironmentSkeleton,
+    context::provision::ProvisionedGuard,
 };
 use crate::{
     intern::Provisioned,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::{
         PartialType, Type, TypeId,
+        error::TypeCheckDiagnosticIssues,
         inference::{Substitution, VariableKind, VariableLookup},
         lattice::Lattice as _,
+        pretty::{TypeFormatter, TypeFormatterOptions},
         recursion::RecursionBoundary,
     },
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct SimplifyEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    analysis: AnalysisEnvironmentSkeleton<'heap>,
+}
 
 #[derive(Debug)]
 pub struct SimplifyEnvironment<'env, 'heap> {
@@ -31,6 +44,14 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             analysis: AnalysisEnvironment::new(environment),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> SimplifyEnvironmentSkeleton<'heap> {
+        SimplifyEnvironmentSkeleton {
+            boundary: self.boundary,
+            analysis: self.analysis.into_skeleton(),
         }
     }
 
@@ -60,7 +81,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+    pub fn take_diagnostics(&mut self) -> Option<TypeCheckDiagnosticIssues> {
         self.analysis.take_diagnostics()
     }
 
@@ -150,14 +171,17 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
                 return substitution;
             }
 
-            #[expect(
-                clippy::manual_assert,
-                reason = "false positive, this is a manual `debug_panic`"
-            )]
             if cfg!(debug_assertions) {
+                let formatter = Formatter::new(self.heap);
+                let mut formatter = TypeFormatter::new(
+                    &formatter,
+                    self.environment,
+                    TypeFormatterOptions::default(),
+                );
+
                 panic!(
                     "type id {id} should have been provisioned, but wasn't.\n{}",
-                    r#type.pretty_print(self, PrettyOptions::default())
+                    formatter.render_type(r#type, RenderOptions::default())
                 );
             }
 

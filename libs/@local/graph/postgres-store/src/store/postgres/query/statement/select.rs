@@ -1,47 +1,25 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
-    WhereExpression, WithExpression,
-    expression::{GroupByExpression, OrderByExpression},
+    Expression, SelectExpression, Transpile, WhereExpression, WithExpression,
+    expression::{FromItem, GroupByExpression, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum FromItem {
-    Table { table: Table, alias: Option<Alias> },
-    Function(Function),
-}
-
-impl Transpile for FromItem {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Table { table, alias } => {
-                table.transpile(fmt)?;
-                if let Some(alias) = *alias {
-                    fmt.write_str(" AS ")?;
-                    AliasedTable {
-                        table: *table,
-                        alias,
-                    }
-                    .transpile(fmt)
-                } else {
-                    Ok(())
-                }
-            }
-            Self::Function(function) => function.transpile(fmt),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, bon::Builder)]
+#[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
+    #[builder(default)]
     pub with: WithExpression,
+    #[builder(default)]
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
-    pub from: FromItem,
-    pub joins: Vec<JoinExpression>,
+    #[builder(into)]
+    pub from: Option<FromItem<'static>>,
+    #[builder(default)]
     pub where_expression: WhereExpression,
+    #[builder(default)]
     pub order_by_expression: OrderByExpression,
+    #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
 }
@@ -79,12 +57,9 @@ impl Transpile for SelectStatement {
             }
             condition.transpile(fmt)?;
         }
-        fmt.write_str("\nFROM ")?;
-        self.from.transpile(fmt)?;
-
-        for join in &self.joins {
-            fmt.write_char('\n')?;
-            join.transpile(fmt)?;
+        if let Some(from) = &self.from {
+            fmt.write_str("\nFROM ")?;
+            from.transpile(fmt)?;
         }
 
         if !self.where_expression.is_empty() {
@@ -120,7 +95,10 @@ mod tests {
         data_type::DataTypeQueryPath,
         entity::EntityQueryPath,
         entity_type::EntityTypeQueryPath,
-        filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+        filter::{
+            Filter, FilterExpression, JsonPath, Parameter, PathToken,
+            protection::PropertyProtectionFilterConfig,
+        },
         property_type::PropertyTypeQueryPath,
         query::{NullOrdering, Ordering},
         subgraph::{
@@ -132,7 +110,9 @@ mod tests {
     use postgres_types::ToSql;
     use type_system::{
         knowledge::Entity,
-        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+        ontology::{
+            BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        },
     };
     use uuid::Uuid;
 
@@ -149,8 +129,8 @@ mod tests {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
         pretty_assertions::assert_eq!(
-            trim_whitespace(&compiled_statement),
             trim_whitespace(expected_statement),
+            trim_whitespace(&compiled_statement),
             "actual:\n{compiled_statement}\nexpected: {expected_statement}"
         );
 
@@ -184,15 +164,15 @@ mod tests {
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::VersionedUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     )),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
         test_compilation(
@@ -217,13 +197,13 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
@@ -248,13 +228,13 @@ mod tests {
     fn full_temporal() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
@@ -278,24 +258,24 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -327,13 +307,13 @@ mod tests {
 
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("latest")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -361,13 +341,13 @@ mod tests {
 
         compiler
             .add_filter(&Filter::NotEqual(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("latest")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -395,16 +375,16 @@ mod tests {
 
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::Title,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("Text")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -428,30 +408,30 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::BaseUrl,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::Version,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -496,17 +476,17 @@ mod tests {
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(PropertyTypeQueryPath::Title),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Text")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -537,17 +517,17 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: PropertyTypeQueryPath::Title,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Name")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -579,7 +559,7 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                     path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
@@ -591,11 +571,11 @@ mod tests {
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Friend Of")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -634,20 +614,20 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(EntityTypeQueryPath::BaseUrl),
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
                 )),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -681,13 +661,13 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("12345678-ABCD-4321-5678-ABCD5555DCBA")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -727,13 +707,13 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::DraftId,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -772,13 +752,13 @@ mod tests {
         ))]);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Properties(Some(json_path.clone())),
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Bob")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -812,12 +792,9 @@ mod tests {
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
 
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path {
-                path: EntityQueryPath::Properties(Some(json_path.clone())),
-            }),
-            None,
-        );
+        let filter = Filter::Exists {
+            path: EntityQueryPath::Properties(Some(json_path.clone())),
+        };
         compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
@@ -847,7 +824,7 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::EntityEdge {
@@ -857,11 +834,11 @@ mod tests {
                     }),
                     direction: EdgeDirection::Incoming,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -908,7 +885,7 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::EntityEdge {
@@ -918,11 +895,11 @@ mod tests {
                     }),
                     direction: EdgeDirection::Incoming,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -970,56 +947,56 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::Uuid),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::Uuid),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -1064,31 +1041,31 @@ mod tests {
         let entity_b_uuid = Uuid::new_v4();
 
         let filter_a = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Uuid),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_a_uuid),
                 convert: None,
-            }),
+            },
         );
 
         let filter_b = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Uuid),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_b_uuid),
                 convert: None,
-            }),
+            },
         );
 
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
@@ -1163,7 +1140,7 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::EntityTypeEdge {
@@ -1173,16 +1150,16 @@ mod tests {
                         }),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/address",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::EntityTypeEdge {
@@ -1192,13 +1169,13 @@ mod tests {
                         }),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/name",
                     )),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -1283,13 +1260,12 @@ mod tests {
                 *,
                 "entity_embeddings_0_1_0"."distance"
               FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-              LEFT OUTER JOIN
-                (SELECT
-                    "entity_embeddings_0_0_0"."web_id",
-                    "entity_embeddings_0_0_0"."entity_uuid",
-                    MIN("entity_embeddings_0_0_0"."embedding" <=> $1) AS "distance"
-                  FROM "entity_embeddings" AS "entity_embeddings_0_0_0"
-                  GROUP BY "entity_embeddings_0_0_0"."web_id", "entity_embeddings_0_0_0"."entity_uuid")
+              LEFT OUTER JOIN (SELECT
+                    "entity_embeddings"."web_id",
+                    "entity_embeddings"."entity_uuid",
+                    MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
+                  FROM "entity_embeddings"
+                  GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid")
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
@@ -1320,7 +1296,10 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base url"),
-                version: OntologyTypeVersion::new(1),
+                version: OntologyTypeVersion {
+                    major: 1,
+                    pre_release: None,
+                },
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
@@ -1377,6 +1356,143 @@ mod tests {
                     &Uuid::from(entity_id.web_id),
                     &Uuid::from(entity_id.entity_uuid),
                 ],
+            );
+        }
+    }
+
+    mod property_masking {
+        use super::*;
+
+        #[test]
+        fn single_property_masking() {
+            let config = PropertyProtectionFilterConfig::hash_default();
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            // with_property_masking automatically adds the TypeBaseUrls join
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            let _: usize = compiler.add_selection_path(&EntityQueryPath::Properties(None));
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
+                    ($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
+                    AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
+                    THEN ARRAY[$3]::text[]
+                    ELSE ARRAY[]::text[] END))
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+                    ON "entity_editions_0_1_0"."entity_edition_id" =
+                        "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                INNER JOIN "entity_is_of_type_ids" AS "entity_is_of_type_ids_0_1_0"
+                    ON "entity_is_of_type_ids_0_1_0"."entity_edition_id" =
+                        "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                "#,
+                &[
+                    &"https://hash.ai/@h/types/entity-type/user/",
+                    &Uuid::nil(),
+                    &"https://hash.ai/@h/types/property-type/email/",
+                ],
+            );
+        }
+
+        #[test]
+        fn multiple_property_masking_with_array_concat() {
+            let mut config = PropertyProtectionFilterConfig::hash_default();
+            // Add second protected property using the same filter as email
+            let phone_url =
+                BaseUrl::new("https://hash.ai/@h/types/property-type/phone/".to_owned())
+                    .expect("valid URL");
+            let email_url =
+                BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
+                    .expect("valid URL");
+            config.protect_property(
+                phone_url,
+                config
+                    .property_exclusion_filter(&email_url)
+                    .expect("email should have filter in hash_default config")
+                    .clone(),
+            );
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            let _: usize = compiler.add_selection_path(&EntityQueryPath::Properties(None));
+
+            // Note: HashMap iteration order is non-deterministic, so property order may vary.
+            // We verify the SQL contains both properties with array concatenation.
+            // Parameters are now used instead of hardcoded strings:
+            // For each property: $N = type URL, $N+1 = actor UUID, $N+2 = property URL
+            let (compiled_statement, _) = compiler.compile();
+            let sql = trim_whitespace(&compiled_statement);
+
+            // Verify structure
+            assert!(
+                sql.contains(r#""properties" - ("#),
+                "Should have properties masking with parens for concat: {sql}"
+            );
+            assert!(
+                sql.contains(" || "),
+                "Should have array concatenation: {sql}"
+            );
+
+            // Verify CASE WHEN structure with parameters (two properties = two CASE blocks)
+            assert_eq!(
+                sql.matches("CASE WHEN").count(),
+                2,
+                "Should have two CASE WHEN blocks for two properties: {sql}"
+            );
+
+            // Verify array literals use parameters
+            assert!(
+                sql.contains("ARRAY[$"),
+                "Should use parameters in array literals: {sql}"
+            );
+        }
+
+        #[test]
+        fn sorting_by_property_uses_masked_expression() {
+            let config = PropertyProtectionFilterConfig::hash_default();
+
+            let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+            let property_filter = config.to_property_protection_filter(None);
+            compiler.with_property_masking(&property_filter);
+
+            // Add sorting by email property (which is protected)
+            let email_path = EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                PathToken::Field(Cow::Owned(
+                    "https://hash.ai/@h/types/property-type/email/".to_owned(),
+                )),
+            ])));
+
+            compiler.add_distinct_selection_with_ordering(
+                &email_path,
+                Distinctness::Indistinct,
+                Some((Ordering::Ascending, Some(NullOrdering::Last))),
+            );
+
+            let (compiled_statement, _) = compiler.compile();
+            let sql = trim_whitespace(&compiled_statement);
+
+            // The ORDER BY should use the masked expression, not the raw column
+            // It should contain the CASE WHEN masking in the ORDER BY clause
+            assert!(
+                sql.contains("ORDER BY"),
+                "Should have ORDER BY clause: {sql}"
+            );
+
+            // The ORDER BY expression should include the masking (properties - (CASE WHEN...))
+            // followed by the JSON extraction for email
+            assert!(
+                sql.contains(r#"ORDER BY jsonb_path_query_first(("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
+                "ORDER BY should use masked properties expression: {sql}"
             );
         }
     }

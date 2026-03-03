@@ -8,7 +8,7 @@
 //! - **Body**: Contains filtering operations to narrow down results.
 //! - **Tail**: Specifies how to finalize the query.
 
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::intern::Interned;
 
 use crate::node::Node;
 
@@ -60,8 +60,6 @@ pub enum GraphReadTail {
 /// 3. **Tail**: Determines how the results are returned
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GraphRead<'heap> {
-    pub span: SpanId,
-
     /// The starting point of the query, determining the initial dataset and time axis.
     pub head: GraphReadHead<'heap>,
 

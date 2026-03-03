@@ -7,6 +7,11 @@ use winnow::{
     stream::{AsChar, Stream, StreamIsPartial},
 };
 
+pub(crate) enum Alt2<L, R> {
+    Left(L),
+    Right(R),
+}
+
 enum VecOrOneValue<'heap, T> {
     Vec(heap::Vec<'heap, T>),
     One(T),
@@ -18,12 +23,12 @@ impl<'heap, T> VecOrOneValue<'heap, T> {
         heap: &'heap Heap,
     ) -> &'this mut heap::Vec<'heap, T> {
         // Vec won't allocate until it is pushed to
-        let value = this.take().unwrap_or_else(|| Self::Vec(heap.vec(None)));
+        let value = this.take().unwrap_or_else(|| Self::Vec(Vec::new_in(heap)));
 
         let value = match value {
             Self::Vec(value) => value,
             Self::One(value) => {
-                let mut vec = heap.vec(None);
+                let mut vec = Vec::new_in(heap);
                 vec.push(value);
                 vec
             }
@@ -54,11 +59,11 @@ impl<'heap, T> VecOrOne<'heap, T> {
         match self.value {
             Some(VecOrOneValue::Vec(vec)) => vec,
             Some(VecOrOneValue::One(value)) => {
-                let mut vec = self.heap.vec(None);
+                let mut vec = Vec::new_in(self.heap);
                 vec.push(value);
                 vec
             }
-            None => self.heap.vec(None),
+            None => Vec::new_in(self.heap),
         }
     }
 

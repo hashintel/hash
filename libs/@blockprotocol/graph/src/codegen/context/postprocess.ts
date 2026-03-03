@@ -134,7 +134,7 @@ export class PostprocessContext {
     this.linkTypeMap = compileContext.linkTypeMap;
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
-    this.IdentifiersToSources = externalIdentifiersToSource;
+    this.IdentifiersToSources = structuredClone(externalIdentifiersToSource);
   }
 
   /* @todo - Replace this with a proper logging implementation */

@@ -6,12 +6,14 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+  getStorageProvider,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
@@ -32,23 +34,24 @@ import { useFileSystemPathFromEntity } from "../shared/use-file-system-file-from
 import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
 import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadata-from-document-action/generate-proposed-entities-and-claims.js";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
-import type { FlowActionActivity } from "./types.js";
 
 const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
-export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const inferMetadataFromDocumentAction: AiFlowActionActivity<
+  "inferMetadataFromDocument"
+> = async ({ inputs }) => {
   const {
     flowEntityId,
+    runId,
     stepId,
     userAuthentication: { actorId: userActorId },
     webId,
+    workflowId,
   } = await getFlowContext();
 
-  const { documentEntityId } = getSimplifiedActionInputs({
+  const { documentEntityId } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "inferMetadataFromDocument",
   });
@@ -196,8 +199,6 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     provenance: propertyProvenance,
   });
 
-  const existingEntity = documentEntity.toJSON();
-
   const updatedEntity = await documentEntity.patch(
     graphApiClient,
     { actorId: aiAssistantAccountId },
@@ -215,18 +216,17 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     notifiedUserAccountId: userActorId,
   });
 
-  const persistedDocumentEntity: PersistedEntity = {
-    entity: updatedEntity.toJSON(),
-    existingEntity,
+  const persistedDocumentEntityMetadata: PersistedEntityMetadata = {
+    entityId: updatedEntity.entityId,
     operation: "update",
   };
 
   logProgress([
     {
-      persistedEntity: persistedDocumentEntity,
+      persistedEntityMetadata: persistedDocumentEntityMetadata,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
-      type: "PersistedEntity",
+      type: "PersistedEntityMetadata",
     },
   ]);
 
@@ -240,25 +240,34 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
       propertyProvenance,
     });
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: proposedEntities,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
       {
         outputs: [
           {
-            outputName:
-              "proposedEntities" satisfies OutputNameForAction<"inferMetadataFromDocument">,
+            outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: proposedEntities,
+              value: storedRef,
             },
           },
           {
-            outputName:
-              "updatedDocumentEntity" satisfies OutputNameForAction<"inferMetadataFromDocument">,
+            outputName: "updatedDocumentEntity",
             payload: {
-              kind: "PersistedEntity",
-              value: persistedDocumentEntity,
+              kind: "PersistedEntityMetadata",
+              value: persistedDocumentEntityMetadata,
             },
           },
         ],

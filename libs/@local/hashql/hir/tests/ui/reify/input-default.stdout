@@ -1,1 +1,3 @@
-#input(limit, type: Integer, default: 10)
+if $exists(limit) 
+then ?limit
+else 10 as Integer

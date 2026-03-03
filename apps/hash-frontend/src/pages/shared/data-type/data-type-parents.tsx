@@ -9,11 +9,8 @@ import {
   extractBaseUrl,
   extractVersion,
 } from "@blockprotocol/type-system";
-import {
-  buildDataTypeTreesForSelector,
-  DataTypeSelector,
-  TypeCard,
-} from "@hashintel/design-system";
+import { DataTypeSelector, TypeCard } from "@hashintel/design-system";
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo } from "react";

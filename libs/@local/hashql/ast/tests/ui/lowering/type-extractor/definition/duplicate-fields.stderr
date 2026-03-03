@@ -1,36 +1,25 @@
-[type-extractor::duplicate-struct-field] Error: Duplicate struct field
-    ╭─[ <unknown>:8:7 ]
-    │
-  8 │       "field": "Number",
-    │       ────────┬────────  
-    │               ╰────────── Field `field` first defined here
-    │ 
- 10 │       "field": "String",
-    │       ────────┬────────  
-    │               ╰────────── ..., but was redefined here
-    │ 
-    │ Help: To fix this error, you can either:
-    │       1. Rename the duplicate `field` field to a different name, or
-    │       2. Remove the redundant field definition entirely if it's not needed
-    │ 
-    │ Note: Struct types in HashQL require that each field has a unique name. Having multiple fields with the same name would create ambiguity when accessing fields through dot notation or destructuring. The compiler enforces this constraint to ensure clear and predictable access patterns for struct data.
-────╯
+error[type-extractor::duplicate-struct-field]: Duplicate struct field
+   ╭▸ 
+ 8 │       "field": "Number",
+   │       ━━━━━━━━━━━━━━━━━ Field `field` first defined here
+ 9 │       //~^ ERROR Field `field` first defined here
+10 │       "field": "String",
+   │       ───────────────── ..., but was redefined here
+   │
+   ├ help: To fix this error, you can either:
+   │       1. Rename the duplicate `field` field to a different name, or
+   │       2. Remove the redundant field definition entirely if it's not needed
+   ╰ note: Struct types in HashQL require that each field has a unique name. Having multiple fields with the same name would create ambiguity when accessing fields through dot notation or destructuring. The compiler enforces this constraint to ensure clear and predictable access patterns for struct data.
 
-
-[type-extractor::duplicate-struct-field] Error: Duplicate struct field
-    ╭─[ <unknown>:11:7 ]
-    │
- 11 │       "another": "Boolean",
-    │       ──────────┬─────────  
-    │                 ╰─────────── Field `another` first defined here
-    │ 
- 13 │       "another": "Number",
-    │       ─────────┬─────────  
-    │                ╰─────────── ..., but was redefined here
-    │ 
-    │ Help: To fix this error, you can either:
-    │       1. Rename the duplicate `another` field to a different name, or
-    │       2. Remove the redundant field definition entirely if it's not needed
-    │ 
-    │ Note: Struct types in HashQL require that each field has a unique name. Having multiple fields with the same name would create ambiguity when accessing fields through dot notation or destructuring. The compiler enforces this constraint to ensure clear and predictable access patterns for struct data.
-────╯
+error[type-extractor::duplicate-struct-field]: Duplicate struct field
+   ╭▸ 
+11 │       "another": "Boolean",
+   │       ━━━━━━━━━━━━━━━━━━━━ Field `another` first defined here
+12 │       //~^ ERROR Field `another` first defined here
+13 │       "another": "Number",
+   │       ─────────────────── ..., but was redefined here
+   │
+   ├ help: To fix this error, you can either:
+   │       1. Rename the duplicate `another` field to a different name, or
+   │       2. Remove the redundant field definition entirely if it's not needed
+   ╰ note: Struct types in HashQL require that each field has a unique name. Having multiple fields with the same name would create ambiguity when accessing fields through dot notation or destructuring. The compiler enforces this constraint to ensure clear and predictable access patterns for struct data.

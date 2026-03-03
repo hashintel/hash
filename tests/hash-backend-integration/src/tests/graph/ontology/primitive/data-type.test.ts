@@ -6,15 +6,16 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveDataType,
   createDataType,
-  getDataTypeById,
-  getDataTypeConversionTargets,
-  getDataTypes,
   unarchiveDataType,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  findDataTypeConversionTargets,
+  getDataTypeById,
+} from "@local/hash-graph-sdk/data-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
@@ -116,14 +117,15 @@ describe("Data type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedDataType = await getDataTypeById(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         dataTypeId: textDataTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
-
-    expect(fetchedDataType.schema.$id).toEqual(textDataTypeId);
+    expect(fetchedDataType).not.toBeNull();
+    expect(fetchedDataType!.schema.$id).toEqual(textDataTypeId);
   });
 
   const updatedTitle = "New text!";
@@ -167,31 +169,21 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
     });
 
-    const [archivedDataType] = await getDataTypes(
-      graphContext,
+    const archivedDataType = await getDataTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdDataType.schema.$id },
-          ],
-        },
+        dataTypeId: createdDataType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
 
     expect(
-      await getDataTypes(graphContext, authentication, {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdDataType.schema.$id },
-          ],
-        },
+      await getDataTypeById(graphContext.graphApi, authentication, {
+        dataTypeId: createdDataType.schema.$id,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
-    ).toHaveLength(0);
+    ).toBeNull();
 
     expect(
       archivedDataType?.metadata.temporalVersioning.transactionTime.end.kind,
@@ -201,16 +193,11 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
     });
 
-    const [unarchivedDataType] = await getDataTypes(
-      graphContext,
+    const unarchivedDataType = await getDataTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdDataType.schema.$id },
-          ],
-        },
+        dataTypeId: createdDataType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
@@ -223,8 +210,8 @@ describe("Data type CRU", () => {
   it("can convert data types", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const conversionMap = await getDataTypeConversionTargets(
-      graphContext,
+    const conversionMap = await findDataTypeConversionTargets(
+      graphContext.graphApi,
       authentication,
       {
         dataTypeIds: [

@@ -15,8 +15,11 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { convertTitleToCamelCase } from "@local/hash-isomorphic-utils/convert-title-to-camel-case";
+import { queryDataTypes } from "@local/hash-graph-sdk/data-type";
+import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { queryPropertyTypes } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { convertTitleToCamelCase } from "@local/hash-isomorphic-utils/convert-title-to-camel-case";
 
 import type {
   ImpureGraphContext,
@@ -24,12 +27,7 @@ import type {
 } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import { getDataTypes } from "./graph/ontology/primitive/data-type";
-import {
-  getEntityTypes,
-  isEntityTypeLinkEntityType,
-} from "./graph/ontology/primitive/entity-type";
-import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
+import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -232,87 +230,87 @@ const generateOntologyIds = async () => {
   const authentication = { actorId: publicUserAccountId };
 
   const [
-    hashEntityTypes,
-    hashPropertyTypes,
-    hashDataTypes,
-    googleEntityTypes,
-    googlePropertyTypes,
-    linearEntityTypes,
-    linearPropertyTypes,
-    blockProtocolEntityTypes,
-    blockProtocolPropertyTypes,
-    blockProtocolDataTypes,
-    sapEntityTypes,
-    sapPropertyTypes,
-    sapDataTypes,
+    { entityTypes: hashEntityTypes },
+    { propertyTypes: hashPropertyTypes },
+    { dataTypes: hashDataTypes },
+    { entityTypes: googleEntityTypes },
+    { propertyTypes: googlePropertyTypes },
+    { entityTypes: linearEntityTypes },
+    { propertyTypes: linearPropertyTypes },
+    { entityTypes: blockProtocolEntityTypes },
+    { propertyTypes: blockProtocolPropertyTypes },
+    { dataTypes: blockProtocolDataTypes },
+    { entityTypes: sapEntityTypes },
+    { propertyTypes: sapPropertyTypes },
+    { dataTypes: sapDataTypes },
   ] = await Promise.all([
     // HASH types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    getPropertyTypes(
-      graphContext,
+    queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    getDataTypes(
-      graphContext,
+    queryDataTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
     // Google types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
-    getPropertyTypes(
-      graphContext,
+    queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
     // Linear types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
-    getPropertyTypes(
-      graphContext,
+    queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
     // BlockProtocol types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),
-    getPropertyTypes(
-      graphContext,
+    queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),
-    getDataTypes(
-      graphContext,
+    queryDataTypes(
+      graphContext.graphApi,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),
     // SAP types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: sapOrg }),
     ),
-    getPropertyTypes(
-      graphContext,
+    queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: sapOrg }),
     ),
-    getDataTypes(
-      graphContext,
+    queryDataTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: sapOrg }),
     ),

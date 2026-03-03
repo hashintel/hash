@@ -2,7 +2,6 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { Entity as EntityBp } from "@blockprotocol/type-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
@@ -64,7 +63,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
       const res = await queryEntities({
         data: {
           operation: { multiFilter },
-          graphResolveDepths: zeroedGraphResolveDepths,
+          traversalPaths: [],
         },
       });
 

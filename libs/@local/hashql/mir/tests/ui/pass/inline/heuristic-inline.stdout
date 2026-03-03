@@ -1,0 +1,274 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD flag
+
+        return %1
+    }
+}
+
+thunk load_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#7} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#10}(%0: ()) -> Boolean {
+    let %1: () -> Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: () -> Boolean
+    let %5: Boolean
+
+    bb0(): {
+        %1 = apply (load_flag:0 as FnPtr)
+        %2 = apply %1.0 %1.1
+
+        switchInt(%2) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %4 = apply (load_flag:0 as FnPtr)
+        %5 = apply %4.0 %4.1
+
+        goto -> bb3(%5)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%3): {
+        return %3
+    }
+}
+
+thunk use_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#10} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: () -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (use_flag:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD flag
+
+        return %1
+    }
+}
+
+thunk load_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#7} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#10}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+
+    bb0(): {
+        %1 = apply ({closure#7} as FnPtr) ()
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = apply ({closure#7} as FnPtr) ()
+
+        return %2
+    }
+
+    bb2(): {
+        return 0
+    }
+}
+
+thunk use_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = apply ({closure#10} as FnPtr) ()
+
+        return %0
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD flag
+
+        return %1
+    }
+}
+
+thunk load_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#7} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#10}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: ()
+    let %4: Boolean
+    let %5: ()
+    let %6: Boolean
+
+    bb0(): {
+        %5 = ()
+
+        goto -> bb6()
+    }
+
+    bb1(): {
+        %3 = ()
+
+        goto -> bb4()
+    }
+
+    bb2(): {
+        return 0
+    }
+
+    bb3(%2): {
+        return %2
+    }
+
+    bb4(): {
+        %4 = input LOAD flag
+
+        goto -> bb3(%4)
+    }
+
+    bb5(%1): {
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb6(): {
+        %6 = input LOAD flag
+
+        goto -> bb5(%6)
+    }
+}
+
+thunk use_flag:0() -> () -> Boolean {
+    let %0: () -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+    let %2: Boolean
+    let %3: Boolean
+    let %4: ()
+    let %5: Boolean
+    let %6: ()
+    let %7: Boolean
+
+    bb0(): {
+        %1 = ()
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %6 = ()
+
+        goto -> bb8()
+    }
+
+    bb3(): {
+        %4 = ()
+
+        goto -> bb6()
+    }
+
+    bb4(): {
+        goto -> bb1(0)
+    }
+
+    bb5(%3): {
+        goto -> bb1(%3)
+    }
+
+    bb6(): {
+        %5 = input LOAD flag
+
+        goto -> bb5(%5)
+    }
+
+    bb7(%2): {
+        switchInt(%2) -> [0: bb4(), 1: bb3()]
+    }
+
+    bb8(): {
+        %7 = input LOAD flag
+
+        goto -> bb7(%7)
+    }
+}

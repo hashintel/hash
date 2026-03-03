@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: Reassigning variable
+[
+  "if",
+  { "#literal": true },
+  ["let", "x", { "#tuple": [{ "#literal": 1 }] }, ["let", "y", "x.0", "y"]]
+]

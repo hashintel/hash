@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct GroupByExpression {
     pub expressions: Vec<Expression>,
 }
@@ -36,22 +36,20 @@ mod tests {
     fn order_one() {
         let order_by_expression = GroupByExpression {
             expressions: vec![
-                Expression::ColumnReference {
-                    column: EntityQueryPath::WebId.terminating_column().0,
-                    table_alias: Some(Alias {
+                Expression::ColumnReference(EntityQueryPath::WebId.terminating_column().0.aliased(
+                    Alias {
                         condition_index: 1,
                         chain_depth: 2,
                         number: 3,
-                    }),
-                },
-                Expression::ColumnReference {
-                    column: EntityQueryPath::Uuid.terminating_column().0,
-                    table_alias: Some(Alias {
+                    },
+                )),
+                Expression::ColumnReference(EntityQueryPath::Uuid.terminating_column().0.aliased(
+                    Alias {
                         condition_index: 4,
                         chain_depth: 5,
                         number: 6,
-                    }),
-                },
+                    },
+                )),
             ],
         };
         assert_eq!(

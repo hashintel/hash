@@ -1,3 +1,4 @@
+use hash_graph_store::subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind};
 use hash_graph_temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
 };
@@ -139,6 +140,25 @@ pub struct EntityHasRightEntityRow {
 impl PostgresRow for EntityHasRightEntityRow {
     fn table() -> Table {
         Table::EntityHasRightEntity
+    }
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_edge")]
+pub struct EntityEdgeRow {
+    pub source_web_id: WebId,
+    pub source_entity_uuid: EntityUuid,
+    pub target_web_id: WebId,
+    pub target_entity_uuid: EntityUuid,
+    pub confidence: Option<Confidence>,
+    pub provenance: PropertyProvenance,
+    pub kind: EntityTraversalEdgeKind,
+    pub direction: EdgeDirection,
+}
+
+impl PostgresRow for EntityEdgeRow {
+    fn table() -> Table {
+        Table::EntityEdge
     }
 }
 

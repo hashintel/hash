@@ -45,11 +45,9 @@ export const CanvasPageBlock = ({
     void Promise.all(
       contents.map(async ({ rightEntity }) => {
         const { componentId } = rightEntity;
-        if (!blocksMap[componentId]) {
-          blocksMap[componentId] = await fetchBlock(componentId, {
-            useCachedData: true,
-          });
-        }
+        blocksMap[componentId] ??= await fetchBlock(componentId, {
+          useCachedData: true,
+        });
       }),
     ).then(() => {
       setBlocks(blocksMap);

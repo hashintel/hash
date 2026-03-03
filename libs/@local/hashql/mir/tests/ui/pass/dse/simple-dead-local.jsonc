@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: DSE eliminates assignment to unused local
+[
+  "if",
+  { "#literal": true },
+  ["let", "x", { "#literal": 42 }, ["let", "dead", { "#literal": 100 }, "x"]],
+  { "#literal": 0 }
+]

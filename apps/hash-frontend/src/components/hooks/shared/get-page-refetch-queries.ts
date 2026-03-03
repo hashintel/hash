@@ -5,7 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../../shared/account-pages-variables";
 
@@ -21,7 +21,7 @@ export const useGetPageRefetchQueries = () =>
   useCallback(
     (pageEntityId: EntityId) => [
       {
-        query: getEntitySubgraphQuery,
+        query: queryEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           webId: extractWebIdFromEntityId(pageEntityId),
           // Breadcrumbs use the archived query (since they may be archived)
@@ -29,14 +29,14 @@ export const useGetPageRefetchQueries = () =>
         }),
       },
       {
-        query: getEntitySubgraphQuery,
+        query: queryEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           // The page sidebar does not include archived pages
           webId: extractWebIdFromEntityId(pageEntityId),
         }),
       },
       {
-        query: getEntitySubgraphQuery,
+        query: queryEntitySubgraphQuery,
         variables: getBlockCollectionContentsStructuralQueryVariables(
           extractEntityUuidFromEntityId(pageEntityId),
         ),

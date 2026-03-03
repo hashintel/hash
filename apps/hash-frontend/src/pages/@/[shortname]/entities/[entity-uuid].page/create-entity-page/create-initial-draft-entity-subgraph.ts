@@ -12,10 +12,7 @@ import type {
   KnowledgeGraphVertices,
 } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
@@ -76,11 +73,6 @@ export const createInitialDraftEntitySubgraph = (
   const entity = new HashEntity(serializedEntity);
 
   return {
-    depths: {
-      ...zeroedGraphResolveDepths,
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
-    },
     edges: {},
     roots: [draftEntityVertexId],
     temporalAxes: {

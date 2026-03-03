@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: Rejects non-array values for tuples
 expression: "{\"#tuple\": {\"not\": \"an-array\"}}"
 ---
-[31m[parser::object::tuple-expected-array] Error:[0m Expected array for #tuple definition
-   ╭─[ <unknown>:1:12 ]
-   │
- 1 │ {"#tuple": {"not": "an-array"}}
-   │            ┬  
-   │            ╰── Expected an array here
-   │ 
-   │ Help: The #tuple construct requires an array of elements, but found `{`. Use square brackets to define the tuple elements: [element1, element2, ...]
-   │ 
-   │ Note: Tuples in J-Expr represent fixed-size ordered collections where each position can have a different type.
-───╯
+error[parser::object::tuple-expected-array]: Expected array for #tuple definition
+  ╭▸ 
+1 │ {"#tuple": {"not": "an-array"}}
+  │            ━ Expected an array here
+  │
+  ├ help: The #tuple construct requires an array of elements, but found `{`. Use square brackets to define the tuple elements: [element1, element2, ...]
+  ╰ note: Tuples in J-Expr represent fixed-size ordered collections where each position can have a different type.

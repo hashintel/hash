@@ -2,26 +2,26 @@ export const fluidFontClassName = "HashIntelDesignSystem-FluidFonts";
 
 // should be much easier to configure once mui adds support for fluidTypography
 //  @see https://github.com/mui-org/material-ui/issues/15251
-export const fluidTypographyStyles = (selector: string) => `
+export const fluidTypographyStyles = (selector: string): string => `
   /* @link https://utopia.fyi/type/calculator?c=320,15,1.2,1200,16,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6,s-l */
-  // 
+
   ${selector} {
     --fluid-min-width: 320;
     --fluid-max-width: 1200;
-  
+
     --fluid-screen: 100vw;
     --fluid-bp: calc(
       (var(--fluid-screen) - var(--fluid-min-width) / 16 * 1rem) /
         (var(--fluid-max-width) - var(--fluid-min-width))
     );
   }
-  
+
   @media screen and (min-width: 1200px) {
     ${selector} {
       --fluid-screen: calc(var(--fluid-max-width) * 1px);
     }
   }
-  
+
   ${selector} {
     /* STEP -3 */
     --f--3-min: 12;
@@ -38,7 +38,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f--2-min) / 16) * 1rem) + (var(--f--2-max) - var(--f--2-min)) *
         var(--fluid-bp)
     );
-      
+
     /* STEP -1 */
     --f--1-min: 13.50;
     --f--1-max: 14;
@@ -46,7 +46,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f--1-min) / 16) * 1rem) + (var(--f--1-max) - var(--f--1-min)) *
         var(--fluid-bp)
     );
-    
+
     /* STEP 0 */
     --f-0-min: 15.00;
     --f-0-max: 16.00;
@@ -54,7 +54,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-0-min) / 16) * 1rem) + (var(--f-0-max) - var(--f-0-min)) *
         var(--fluid-bp)
     );
-      
+
     /* STEP 1 */
     --f-1-min: 18.00;
     --f-1-max: 20.00;
@@ -62,7 +62,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-1-min) / 16) * 1rem) + (var(--f-1-max) - var(--f-1-min)) *
         var(--fluid-bp)
     );
-      
+
     /* STEP 2 */
     --f-2-min: 21.60;
     --f-2-max: 25.00;
@@ -70,7 +70,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-2-min) / 16) * 1rem) + (var(--f-2-max) - var(--f-2-min)) *
         var(--fluid-bp)
     );
-      
+
     /* STEP 3 */
     --f-3-min: 25.92;
     --f-3-max: 31.25;
@@ -78,7 +78,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-3-min) / 16) * 1rem) + (var(--f-3-max) - var(--f-3-min)) *
         var(--fluid-bp)
     );
-  
+
     /* STEP 4 */
     --f-4-min: 31.10;
     --f-4-max: 39.06;
@@ -86,7 +86,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-4-min) / 16) * 1rem) + (var(--f-4-max) - var(--f-4-min)) *
         var(--fluid-bp)
     );
-      
+
     /* STEP 5 */
     --f-5-min: 37.32;
     --f-5-max: 48.83;
@@ -94,7 +94,7 @@ export const fluidTypographyStyles = (selector: string) => `
       ((var(--f-5-min) / 16) * 1rem) + (var(--f-5-max) - var(--f-5-min)) *
         var(--fluid-bp)
     );
-  
+
     /* STEP 6 */
     --f-6-min: 44.79;
     --f-6-max: 61.04;

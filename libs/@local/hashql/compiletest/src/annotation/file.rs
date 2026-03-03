@@ -9,20 +9,20 @@ use super::{
     directive::{Directive, DirectiveParseError},
 };
 
-/// Errors that can occur when parsing file annotations
+/// Errors that can occur when parsing file annotations.
 #[derive(Debug, derive_more::Display)]
 pub(crate) enum FileAnnotationError {
-    /// Error reading from the file
+    /// Error reading from the file.
     Io(io::Error),
 
-    /// Error parsing a directive
+    /// Error parsing a directive.
     #[display("failed to parse directive at line {line}: {error}")]
     Directive {
         line: u32,
         error: DirectiveParseError,
     },
 
-    /// Error parsing a diagnostic annotation
+    /// Error parsing a diagnostic annotation.
     #[display("failed to parse diagnostic annotation at line {line}: {error}")]
     Diagnostic {
         line: u32,
@@ -32,7 +32,7 @@ pub(crate) enum FileAnnotationError {
 
 impl error::Error for FileAnnotationError {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FileAnnotations {
     pub diagnostics: Vec<DiagnosticAnnotation>,
     pub directive: Directive,
@@ -140,7 +140,7 @@ impl FileAnnotations {
     }
 }
 
-/// Helper function to process a line for diagnostic annotations
+/// Helper function to process a line for diagnostic annotations.
 #[expect(clippy::string_slice)]
 fn process_line_for_diagnostics(
     line: &str,
@@ -170,7 +170,7 @@ fn process_line_for_diagnostics(
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
     use std::io::Cursor;
 
     use crate::annotation::{

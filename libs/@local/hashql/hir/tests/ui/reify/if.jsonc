@@ -1,4 +1,3 @@
-//@ run: fail
-//@ description: Verifies that an appropriate error is generated for if expressions, as they are not yet implemented.
+//@ run: pass
+//@ description: Verifies that if is reified correctly
 ["if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
-//~^ ERROR `if expression` not supported yet

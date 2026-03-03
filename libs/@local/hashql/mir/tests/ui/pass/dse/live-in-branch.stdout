@@ -1,0 +1,44 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        switchInt(1) -> [0: bb5(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 42
+
+        switchInt(1) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb4(%1)
+    }
+
+    bb3(): {
+        goto -> bb4(0)
+    }
+
+    bb4(%2): {
+        goto -> bb6(%2)
+    }
+
+    bb5(): {
+        goto -> bb6(0)
+    }
+
+    bb6(%0): {
+        return %0
+    }
+}
+════ MIR after DSE ═════════════════════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Integer {
+    bb0(): {
+        return 42
+    }
+}

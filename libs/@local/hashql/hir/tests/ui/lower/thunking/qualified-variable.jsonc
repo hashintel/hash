@@ -1,0 +1,3 @@
+//@ run: skip reason="there is no module system yet"
+//@ description: Qualified variable thunking transformation
+{ "#literal": "todo" }

@@ -332,6 +332,8 @@ CREATE TABLE team_hierarchy (
 CREATE UNIQUE INDEX idx_team_hierarchy_single_parent ON team_hierarchy (
     child_id
 ) WHERE (depth = 1);
+-- Optimize team hierarchy traversal in policy resolution
+CREATE INDEX idx_team_hierarchy_child ON team_hierarchy (child_id);
 
 -- ---------------
 -- Role

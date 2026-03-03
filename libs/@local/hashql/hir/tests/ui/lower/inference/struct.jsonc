@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: Test struct inference
+{
+  "#struct": {
+    "a": { "#literal": 1 },
+    "b": { "#literal": 2 },
+    "c": { "#literal": 3 }
+  },
+  "#type": "(a: _, b: _, c: _)"
+}

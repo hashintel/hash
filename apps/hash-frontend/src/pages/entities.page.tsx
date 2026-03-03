@@ -360,7 +360,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Stack>
           <Box display="flex" justifyContent="space-between">
             <Tabs value="all">
-              <TabLink href="/" value="all" active label={`All ${pageTitle}`} />
+              <TabLink href="" value="all" active label={`All ${pageTitle}`} />
             </Tabs>
             <Fade in={displayCreateEntityButton}>
               <Box>

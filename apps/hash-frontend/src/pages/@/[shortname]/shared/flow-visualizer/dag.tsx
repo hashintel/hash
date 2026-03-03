@@ -1,4 +1,7 @@
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { ReactFlowProvider } from "reactflow";
@@ -16,7 +19,7 @@ export const DAG = ({
   selectedFlowDefinition,
 }: {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
-  selectedFlowDefinition: FlowDefinition;
+  selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
 }) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -54,7 +57,11 @@ export const DAG = ({
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
-            Started <strong>manually</strong> when triggered on{" "}
+            Started{" "}
+            <strong>
+              {selectedFlowRun.flowScheduleId ? "by a schedule" : "manually"}
+            </strong>{" "}
+            at{" "}
             {format(
               new Date(selectedFlowRun.startedAt),
               "yyyy-MM-dd 'at' h:mm a",

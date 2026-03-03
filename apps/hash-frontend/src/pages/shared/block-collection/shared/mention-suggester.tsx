@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -17,13 +16,14 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -33,6 +33,7 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { useHotkeys } from "@mantine/hooks";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import {
@@ -43,13 +44,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { useKey } from "rooks";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -142,11 +142,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   );
 
   const { data, loading: loadingEntities } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -177,23 +176,33 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
   });
 
   const entitiesSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.getEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
     : undefined;
 
   const searchedEntities = useMemo(
@@ -450,51 +459,38 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     return undefined;
   }, [selectedEntity, entitiesSubMenuItems]);
 
-  useKey(["ArrowUp", "ArrowDown"], (event) => {
-    event.preventDefault();
+  const onArrowVertical = useCallback(
+    (event: KeyboardEvent) => {
+      if (!searchedEntities) {
+        return;
+      }
 
-    if (!searchedEntities) {
-      return;
-    }
+      if (displayEntitySubMenu && selectedEntitySubMenuItems) {
+        let index =
+          entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
+        index += selectedEntitySubMenuItems.length;
+        index %= selectedEntitySubMenuItems.length;
 
-    if (displayEntitySubMenu && selectedEntitySubMenuItems) {
-      let index =
-        entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += selectedEntitySubMenuItems.length;
-      index %= selectedEntitySubMenuItems.length;
+        setEntitySelectedSubMenuIndex(index);
+      } else {
+        let index = selectedEntityIndex + (event.key === "ArrowUp" ? -1 : 1);
+        const numberOfDisplayedEntities =
+          searchedEntities.length + (recentlyUsedEntities?.length ?? 0);
 
-      setEntitySelectedSubMenuIndex(index);
-    } else {
-      let index = selectedEntityIndex + (event.key === "ArrowUp" ? -1 : 1);
-      const numberOfDisplayedEntities =
-        searchedEntities.length + (recentlyUsedEntities?.length ?? 0);
-
-      index += numberOfDisplayedEntities;
-      index %= numberOfDisplayedEntities;
-      setSelectedEntityIndex(index);
-    }
-  });
-
-  useKey(["ArrowRight"], (event) => {
-    event.preventDefault();
-
-    if (
-      !displayEntitySubMenu &&
-      selectedEntity &&
-      entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]?.length
-    ) {
-      setDisplayEntitySubMenu(true);
-      setEntitySelectedSubMenuIndex(0);
-    }
-  });
-
-  useKey(["ArrowLeft"], (event) => {
-    event.preventDefault();
-
-    if (displayEntitySubMenu) {
-      setDisplayEntitySubMenu(false);
-    }
-  });
+        index += numberOfDisplayedEntities;
+        index %= numberOfDisplayedEntities;
+        setSelectedEntityIndex(index);
+      }
+    },
+    [
+      displayEntitySubMenu,
+      entitySelectedSubMenuIndex,
+      recentlyUsedEntities?.length,
+      searchedEntities,
+      selectedEntityIndex,
+      selectedEntitySubMenuItems,
+    ],
+  );
 
   const handleSubmit = useCallback(
     (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
@@ -559,11 +555,36 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     ],
   );
 
-  useKey(["Enter", "Tab"], (event) => {
-    event.preventDefault();
-
-    handleSubmit();
-  });
+  useHotkeys([
+    ["ArrowUp", onArrowVertical, { preventDefault: true }],
+    ["ArrowDown", onArrowVertical, { preventDefault: true }],
+    [
+      "ArrowRight",
+      () => {
+        if (
+          !displayEntitySubMenu &&
+          selectedEntity &&
+          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]
+            ?.length
+        ) {
+          setDisplayEntitySubMenu(true);
+          setEntitySelectedSubMenuIndex(0);
+        }
+      },
+      { preventDefault: true },
+    ],
+    [
+      "ArrowLeft",
+      () => {
+        if (displayEntitySubMenu) {
+          setDisplayEntitySubMenu(false);
+        }
+      },
+      { preventDefault: true },
+    ],
+    ["Enter", () => handleSubmit(), { preventDefault: true }],
+    ["Tab", () => handleSubmit(), { preventDefault: true }],
+  ]);
 
   return (
     <MentionSuggesterWrapper sx={{}} ref={wrapperRef}>

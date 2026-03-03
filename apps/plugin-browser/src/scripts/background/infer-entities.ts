@@ -368,6 +368,7 @@ export const inferEntities = async (
             },
           },
           flowDefinition,
+          flowType: "ai",
           flowTrigger: {
             triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
             outputs: [],

@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Multiple labeled arguments cannot exist in a single object
+expression: "\n                [\"greet\",\n                    {\":age\": {\"#literal\": 30},\n                     \":gender\": {\"#literal\": \"non-binary\"}\n                    }\n                ]"
+---
+error[parser::array::labeled-argument-length-mismatch]: Invalid number of labeled arguments
+  ╭▸ 
+3 │ ┏                     {":age": {"#literal": 30},
+4 │ ┃                      ":gender": {"#literal": "non-binary"}
+  │ ┃                      ───────────────────────────────────── ... remove this extraneous argument
+5 │ ┃                     }
+  │ ┗━━━━━━━━━━━━━━━━━━━━━┛ This object contains additional arguments
+  │
+  ├ help: Labeled arguments must contain exactly one key-value pair, but 2 were provided
+  ╰ note: In J-Expr, labeled arguments use the format:
+          - `["function", {":label": value}]`
+          - `["function", {":label1": value1}, {":label2": value2}]`
+          - `["function", ":variable1"]`
+          
+          The colon prefix (':') is required to distinguish labeled arguments from positional arguments.

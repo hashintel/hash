@@ -1,6 +1,5 @@
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
-
 import { mustBeDefined } from "../../util/must-be-defined.js";
+import { typedEntries, typedValues } from "../../util/typed-entries.js";
 import type { PostprocessContext } from "../context/postprocess.js";
 import { entityDefinitionNameForEntityType } from "../shared.js";
 

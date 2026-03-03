@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Empty objects are not allowed
+expression: "[\"greet\", {}]"
+---
+error[parser::object::empty]: Empty object not allowed
+  ╭▸ 
+1 │ ["greet", {}]
+  │           ━━ Add required fields to this object
+  │
+  ├ help: J-Expr objects must contain at least one key-value pair with a specific structure. For example: `{"#literal": 42}` or `{"#struct": {"name": {"#literal": "value"}}}`
+  ╰ note: J-Expr requires objects to have a specific structure represented by one of these constructs:
+          - `{"#struct": {...}, "#type"?: ...}` - For structured data with named fields
+          - `{"#dict": {...}, "#type"?: ...}` - For dictionary/map-like data
+          - `{"#tuple": [...], "#type"?: ...}` - For fixed-size ordered collections
+          - `{"#list": [...], "#type"?: ...}` - For variable-length ordered collections
+          - `{"#literal": value}` - For simple scalar values
+          - `{"#type": "typename"}` - For type declarations
+          
+          Empty objects don't have semantic meaning in J-Expr.

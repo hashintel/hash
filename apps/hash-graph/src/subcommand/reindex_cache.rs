@@ -27,13 +27,13 @@ pub struct ReindexCacheArgs {
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None, next_help_heading = Some("Reindex operations"))]
 pub struct ReindexOperations {
-    /// Reindex data types cache
+    /// Reindex data types cache.
     #[clap(long)]
     pub data_types: bool,
-    /// Reindex entity types cache
+    /// Reindex entity types cache.
     #[clap(long)]
     pub entity_types: bool,
-    /// Reindex entities cache
+    /// Reindex entities cache.
     #[clap(long)]
     pub entities: bool,
 }
@@ -103,9 +103,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphErr
 
     ensure!(
         did_something,
-        Report::new(GraphError).attach_printable(
-            "No reindex operation was requested. See --help for more information."
-        )
+        Report::new(GraphError)
+            .attach("No reindex operation was requested. See --help for more information.")
     );
 
     Ok(())

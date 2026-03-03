@@ -1,0 +1,7 @@
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+  ╭▸ 
+3 │ ["::kernel::special_form::as", { "#literal": true }]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
+  │
+  ├ help: The as/2 form should look like: (as value type-expr)
+  ╰ note: The as function has 1 variant: as/2

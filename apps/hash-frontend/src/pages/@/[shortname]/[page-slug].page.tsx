@@ -1,14 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -29,10 +27,10 @@ import { PageIcon } from "../../../components/page-icon";
 import { PageLoadingState } from "../../../components/page-loading-state";
 import { CollabPositionProvider } from "../../../contexts/collab-position-context";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../../lib/user-and-org";
 import { iconVariantSizes } from "../../../shared/edit-emoji-icon-button";
@@ -203,9 +201,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
 
   const { data, error, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables:
       getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
     fetchPolicy: "cache-and-network",
@@ -239,13 +237,10 @@ const Page: NextPageWithLayout<PageProps> = () => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { subgraph, userPermissionsOnEntities } = data?.getEntitySubgraph ?? {};
-
-  const pageSubgraph = subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        subgraph,
-      )
+  const response = data
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
     : undefined;
+  const { subgraph: pageSubgraph, entityPermissions } = response ?? {};
 
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
 
@@ -299,7 +294,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     !pageSubgraph ||
     !pageEntityId ||
     !pageWebId ||
-    !userPermissionsOnEntities ||
+    !entityPermissions ||
     !contents
   ) {
     return (
@@ -321,7 +316,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     systemEntityTypes.document.entityTypeId,
   );
 
-  const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
+  const canUserEdit = !!entityPermissions[pageEntityId]?.update;
 
   const readonly = !(
     (isDocumentPage && enabledFeatureFlags.documents && canUserEdit) ||
@@ -456,7 +451,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
             <BlockLoadedProvider routeHash={routeHash}>
               <BlockCollectionContextProvider
                 blockCollectionSubgraph={pageSubgraph}
-                userPermissionsOnEntities={userPermissionsOnEntities}
+                userPermissionsOnEntities={entityPermissions}
               >
                 {isCanvasPage ? (
                   <CanvasPageBlock contents={contents} />

@@ -5,6 +5,12 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  environment:
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    process.env.SENTRY_ENVIRONMENT ||
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    process.env.ENVIRONMENT ||
+    (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
 });
 
@@ -15,6 +21,7 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
@@ -128,6 +135,7 @@ async function run() {
         graphApiClient,
       }),
       ...createFlowActivities({ vaultClient }),
+      ...createCommonFlowActivities({ graphApiClient }),
     },
     connection,
     /**

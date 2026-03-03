@@ -2,7 +2,6 @@ import {
   isMultiaddr,
   type Multiaddr,
   type MultiaddrInput,
-  type ResolveOptions,
 } from "@multiformats/multiaddr";
 import { Equal, Hash, pipe, Predicate } from "effect";
 
@@ -41,28 +40,8 @@ const HashableMultiaddrProto: Omit<HashableMultiaddr, "inner"> = {
     return this.inner.toString();
   },
 
-  toOptions(this: HashableMultiaddr) {
-    return this.inner.toOptions();
-  },
-
-  protos(this: HashableMultiaddr) {
-    return this.inner.protos();
-  },
-
-  protoCodes(this: HashableMultiaddr) {
-    return this.inner.protoCodes();
-  },
-
-  protoNames(this: HashableMultiaddr) {
-    return this.inner.protoNames();
-  },
-
-  tuples(this: HashableMultiaddr) {
-    return this.inner.tuples();
-  },
-
-  stringTuples(this: HashableMultiaddr) {
-    return this.inner.stringTuples();
+  getComponents(this: HashableMultiaddr) {
+    return this.inner.getComponents();
   },
 
   encapsulate(this: HashableMultiaddr, addr: MultiaddrInput) {
@@ -77,28 +56,8 @@ const HashableMultiaddrProto: Omit<HashableMultiaddr, "inner"> = {
     return this.inner.decapsulateCode(code);
   },
 
-  getPeerId(this: HashableMultiaddr) {
-    return this.inner.getPeerId();
-  },
-
-  getPath(this: HashableMultiaddr) {
-    return this.inner.getPath();
-  },
-
   equals(this: HashableMultiaddr, other: HashableMultiaddr) {
     return this.inner.equals(other.inner);
-  },
-
-  resolve(this: HashableMultiaddr, options?: ResolveOptions) {
-    return this.inner.resolve(options);
-  },
-
-  nodeAddress(this: HashableMultiaddr) {
-    return this.inner.nodeAddress();
-  },
-
-  isThinWaistAddress(this: HashableMultiaddr) {
-    return this.inner.isThinWaistAddress();
   },
 
   [Equal.symbol](this: HashableMultiaddr, other: unknown) {

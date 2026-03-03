@@ -1,14 +1,10 @@
-[special-form-expander::invalid-fn-generics-expression] Error: Invalid expression in function generics
-   ╭─[ <unknown>:7:7 ]
-   │
- 7 │       { "#literal": 1 }
-   │       ────────┬────────  
-   │               ╰────────── Use a valid generics expression
-   │ 
-   │ Help: Function generics must be specified as either a tuple of identifiers or a struct of bounded type parameters. Other expression types are not valid in this context.
-   │ 
-   │ Note: Valid generics expressions include:
-   │       - Empty: ()
-   │       - Tuple of identifiers: (T, U, V)
-   │       - Struct with bounds: (T: SomeBound, U: OtherBound) or (T: _, U: _) for unbounded types
-───╯
+error[special-form-expander::invalid-fn-generics-expression]: Invalid expression in function generics
+  ╭▸ 
+7 │       { "#literal": 1 }
+  │       ━━━━━━━━━━━━━━━━━ Use a valid generics expression
+  │
+  ├ help: Function generics must be specified as either a tuple of identifiers or a struct of bounded type parameters. Other expression types are not valid in this context.
+  ╰ note: Valid generics expressions include:
+          - Empty: ()
+          - Tuple of identifiers: (T, U, V)
+          - Struct with bounds: (T: SomeBound, U: OtherBound) or (T: _, U: _) for unbounded types

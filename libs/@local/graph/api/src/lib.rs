@@ -8,6 +8,7 @@
     return_type_notation,
 
     // Library Features
+    assert_matches,
     error_generic_member_access,
 )]
 

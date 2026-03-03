@@ -171,3 +171,12 @@ seed-users.json
 .turbo/
 out/
 **/out/
+
+# Personal scratch/holding directories (can be placed anywhere in tree)
+**/_temp/
+**/_trash/
+**/_scratch/
+**/_holding/
+
+# Jujutsu
+.jj/

@@ -1,9 +1,10 @@
-[app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [create an account]: https://app.hash.ai/signup?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [running your own instance]: https://hash.dev/docs/get-started/setup#local-hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [sign in]: https://app.hash.ai/signin?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[use cases]: https://hash.ai/cases?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -37,11 +38,9 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
 <details>
-  <summary> &nbsp; 🚀 <strong>Quick-start (<5 mins):</strong> use the hosted app</summary>
+  <summary> &nbsp; <strong>Option 1.</strong> Use <a href="https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root">hash.ai</a> — <em>recommended (quick-start: <5 mins)</em> 🚀</summary>
 
 ### Create an account
-
-The only current "officially supported" way of trying HASH right now is by signing up for and using the hosted platform at [app.hash.ai]
 
 [Create an account] to get started.
 
@@ -56,13 +55,15 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 </details>
 
 <details>
-  <summary> &nbsp; Running HASH locally</summary>
+  <summary> &nbsp; <strong>Option 2.</strong> Run HASH locally</summary>
 
 ### Running HASH locally
 
-**Running HASH locally is not yet officially supported.** We plan on publishing a comprehensive guide to [running your own instance] of HASH shortly (2025Q2). In the meantime, you may try the instructions below.
+**Running HASH locally is not yet officially supported.** In the meantime, use [hash.ai] or try the experimental instructions below. These instructions will be replaced with a comprehensive guide to setting up and [running your own instance] in due course.
 
 #### Experimental instructions
+
+##### Running the app
 
 1. Make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
@@ -131,7 +132,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
 
-7. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+7. Launch external services (Postgres, the graph query layer, Kratos, and Redis) as Docker containers:
 
    ```sh
    yarn external-services up -d
@@ -173,23 +174,14 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
 ##### Running the browser plugin
 
-If you need to run the browser plugin locally, see the `README.md` in the `apps/plugin-browser` directory.
+If you need to run the browser plugin locally, see [the `README.md`](https://github.com/hashintel/hash/tree/main/apps/plugin-browser#readme) in the `apps/plugin-browser` directory.
 
 ##### Resetting the local database
 
-If you need to reset the local database, to clear out test data or because it has become corrupted during development, you have two options:
+If you need to reset the local database, to clear out test data or because it has become corrupted during development:
 
-1. The slow option – rebuild in Docker
-
-   1. In the Docker UI (or via CLI at your preference), stop and delete the `hash-external-services` container
-   2. In 'Volumes', search 'hash-external-services' and delete the volumes shown
-   3. Run `yarn external-services up --wait` to rebuild the services
-
-2. The fast option – reset the database via the Graph API
-
-   1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
-   2. Run `yarn graph:reset-database` to reset the database
-   3. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+1. Run `yarn external-services down -v` (this will take the Docker services down and drop the volumes)
+2. Run `yarn external-services up --wait` to start everything again
 
 ##### External services test mode
 
@@ -206,7 +198,7 @@ yarn external-services:test up
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
 
-To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app. Valid AWS credentials are required for this email transporter to work.
+To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws` in your terminal before running the app, along with `SYSTEM_EMAIL_ADDRESS` and `SYSTEM_EMAIL_SENDER_NAME` (which control what address and name the email appears to be from). Valid AWS credentials are required for this email transporter to work.
 
 Transactional emails templates are located in the following locations:
 
@@ -220,7 +212,7 @@ Transactional emails templates are located in the following locations:
 </details>
 
 <details>
-  <summary> &nbsp; Deploying HASH to the cloud</summary>
+  <summary> &nbsp; <strong>Option 3.</strong> Deploying HASH to the cloud</summary>
 
 ### Deploying HASH to the cloud
 
@@ -230,7 +222,7 @@ Transactional emails templates are located in the following locations:
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-**Coming soon:** we'll be collecting examples in the _[Awesome HASH]_ repository.
+Discover ways to use HASH by browsing the [use cases] directory, or check out the _[Awesome HASH]_ repository for more inspiration.
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
@@ -305,18 +297,6 @@ During development, the dummy email transporter writes emails to a local folder.
 - `SMTP_SERVER_USERNAME`: auth username for SMTP server (optional if API is automatically authenticated)
 - `SMTP_SERVER_PASSWORD`: password for SMTP server (optional if API is automatically authenticated)
 
-#### OpenSearch
-
-**NOTE: OpenSearch is currently disabled by default, and is presently unmaintained.**
-
-- `HASH_OPENSEARCH_ENABLED`: whether OpenSearch is used or not. `true` or `false`. (default: `false`).
-- `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
-- `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection. (default: `admin`)
-- `HASH_OPENSEARCH_PORT`: the port number that the cluster accepts (default: `9200`)
-- `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as. (default: `admin`)
-- `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
-  over an HTTPS connection.
-
 #### Postgres
 
 - `POSTGRES_PORT` (default: `5432`)
@@ -372,7 +352,6 @@ If the service should report metrics to a StatsD server, the following variables
 - `FRONTEND_URL`: URL of the frontend website for links (default: `http://localhost:3000`)
 - `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
-- `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
@@ -386,7 +365,7 @@ If the service should report metrics to a StatsD server, the following variables
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
-We're also [hiring] for a number of key roles. We don't accept applications for engineering roles like a normal company might, but exclusively headhunt (using HASH as a tool to help us find the best people). Contributing to our public monorepo, even in a small way, is one way of _guaranteeing_ you end up on our radar as every PR is reviewed by a human, as well as AI.
+We're also [hiring] for a number of key roles. We generally don't accept applications for engineering roles like a normal company might, preferring to headhunt (using HASH as a tool to help us find the best people)... but contributing to our public monorepo, even in a small way, is one way of _guaranteeing_ you end up on our radar as every PR is reviewed by a human, as well as AI.
 
 We also provide repo-specific [example configuration files](/.config/_examples) you can use for popular IDEs, including [VSCode](/.config/_examples/vscode) or [Zed](/.config/_examples/zed).
 
@@ -400,6 +379,6 @@ Please see [SECURITY](.github/SECURITY.md) for instructions around reporting iss
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
-Find us on 𝕏 at [@hashintel](https://x.com/hashintel), email [hey@hash.ai](mailto:hey@hash.ai), create a [discussion](https://github.com/orgs/hashintel/discussions), or open an [issue](https://github.com/hashintel/hash/issues/new/choose) for quick help and community support.
+Find us on 𝕏 at [@hashai](https://x.com/hashai), email [hey@hash.ai](mailto:hey@hash.ai), create a [discussion](https://github.com/orgs/hashintel/discussions), or open an [issue](https://github.com/hashintel/hash/issues/new/choose) for quick help and community support.
 
 Project permalink: `https://github.com/hashintel/hash`

@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Block param receiving different constants from branches preserves the place
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    [
+      "if",
+      ["<=", { "#literal": 1 }, { "#literal": 2 }],
+      { "#literal": 100 },
+      { "#literal": 200 }
+    ],
+    ["let", "wrapped", { "#tuple": ["x"] }, "wrapped.0"]
+  ],
+  { "#literal": 0 }
+]

@@ -11,11 +11,24 @@ use crate::{
         TypeId,
         inference::{
             Constraint, DeferralDepth, Inference as _, InferenceSolver, ResolutionStrategy,
-            SelectionConstraint, Subject, Variable, VariableDependencyCollector, VariableKind,
+            SelectionConstraint, Subject, Variable, VariableDependencyCollector,
+            VariableDependencyCollectorSkeleton, VariableKind,
         },
         recursion::RecursionBoundary,
     },
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct InferenceEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    variables: VariableDependencyCollectorSkeleton<'heap>,
+    constraints: Vec<Constraint<'heap>>,
+    variance: VarianceState,
+}
 
 #[derive(Debug)]
 pub struct InferenceEnvironment<'env, 'heap> {
@@ -39,6 +52,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
+    #[must_use]
+    pub fn into_skeleton(self) -> InferenceEnvironmentSkeleton<'heap> {
+        InferenceEnvironmentSkeleton {
+            boundary: self.boundary,
+            variables: self.variables.into_skeleton(),
+            constraints: self.constraints,
+            variance: self.variance,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn with_constraints(
         mut self,
@@ -58,6 +81,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     pub(crate) fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
+    }
+
+    pub(crate) fn is_invariant(&self) -> bool {
+        self.variance.get() == Variance::Invariant
     }
 
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
@@ -143,6 +170,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         ));
 
         variable
+    }
+
+    pub fn add_variables(&mut self, variables: impl IntoIterator<Item = Variable>) {
+        // This acts like registering variables, because we unify each variable with themselves,
+        // therefore adding the node, but no edges.
+        self.constraints
+            .extend(variables.into_iter().map(|variable| Constraint::Unify {
+                lhs: variable,
+                rhs: variable,
+            }));
     }
 
     #[must_use]

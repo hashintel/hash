@@ -9,6 +9,10 @@ const requestMap = new Map<string, { resolve: PromiseFn; reject: PromiseFn }>();
 
 export function sendMessage<T = unknown>(
   message: Omit<MessageFromFramedBlock, "requestId">,
+  // This runs inside a sandboxed iframe without `allow-same-origin`, so
+  // `window.location.origin` is the opaque value "null". We must use "*"
+  // because we cannot know the parent's real origin from here. Security is
+  // maintained because the parent validates `source` on incoming messages.
   origin: string = "*",
 ) {
   const requestId = uuid();

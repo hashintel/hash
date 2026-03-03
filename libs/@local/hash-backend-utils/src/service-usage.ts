@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -12,12 +11,15 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -26,10 +28,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   RecordsUsageOf,
   UsageRecord,
@@ -68,10 +66,12 @@ export const getWebServiceUsage = async (
     throw new Error(`Web bot for web ${webId} not found`);
   }
 
-  const serviceUsageRecordSubgraph = await backOff(
+  const { subgraph: serviceUsageRecordSubgraph } = await backOff(
     () =>
-      context.graphApi
-        .getEntitySubgraph(webBotId, {
+      queryEntitySubgraph<UsageRecord>(
+        context,
+        { actorId: webBotId },
+        {
           filter: {
             all: [
               generateVersionedUrlMatchingFilter(
@@ -88,12 +88,14 @@ export const getWebServiceUsage = async (
               },
             ],
           },
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            // Depths required to retrieve the service the usage record relates to
-            hasLeftEntity: { incoming: 1, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 1 },
-          },
+          traversalPaths: [
+            {
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
           temporalAxes: decisionTimeInterval
             ? {
                 pinned: {
@@ -107,12 +109,9 @@ export const getWebServiceUsage = async (
               }
             : currentTimeInstantTemporalAxes,
           includeDrafts: false,
-        })
-        .then(({ data }) => {
-          return mapGraphApiSubgraphToSubgraph<
-            EntityRootType<HashEntity<UsageRecord>>
-          >(data.subgraph, userAccountId);
-        }),
+          includePermissions: false,
+        },
+      ),
     {
       numOfAttempts: 3,
       startingDelay: 500,
@@ -209,8 +208,10 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const serviceFeatureEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+  const { entities: serviceFeatureEntities } = await queryEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -243,12 +244,9 @@ export const createUsageRecord = async (
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
-    );
+      includePermissions: false,
+    },
+  );
 
   if (serviceFeatureEntities.length !== 1) {
     throw new Error(

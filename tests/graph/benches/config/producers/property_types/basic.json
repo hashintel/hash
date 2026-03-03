@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "domain": {
+      "local": { "index": { "sampling": "uniform" } },
+      "remote": {
+        "domain": {
+          "type": "weighted",
+          "distribution": [
+            {
+              "name": "https://example.com",
+              "weight": 1,
+              "shortnames": { "type": "const", "value": "example" }
+            }
+          ]
+        },
+        "fetchedAt": "2000-01-01T00:00:00Z"
+      }
+    },
+    "title": { "length": [4, 8] },
+    "description": { "length": [40, 50] },
+    "values": {
+      "type": "weighted",
+      "weights": [{ "weight": 80, "distribution": { "type": "value" } }]
+    }
+  },
+  "metadata": {
+    "provenance": {
+      "value": {
+        "sources": [],
+        "actorType": "machine",
+        "origin": { "type": "api" }
+      }
+    }
+  },
+  "config": { "conflict_behavior": { "value": "Fail" } }
+}

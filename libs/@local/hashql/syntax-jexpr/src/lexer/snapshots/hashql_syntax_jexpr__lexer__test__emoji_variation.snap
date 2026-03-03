@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Emoji with variation selector
 expression: ❤️
 ---
-[31m[lexer::invalid-character] Error:[0m Invalid character
-   ╭─[ <unknown>:1:1 ]
-   │
- 1 │ ❤️
-   │ ┬ 
-   │ ╰─ Unrecognized character
-   │ 
-   │ Help: J-Expr only supports standard JSON syntax. Make sure you're using valid JSON tokens like {}, [], strings, numbers, true/false, or null.
-───╯
+error[lexer::invalid-character]: Invalid character
+  ╭▸ 
+1 │ ❤️
+  │ ━ Unrecognized character
+  │
+  ╰ help: J-Expr only supports standard JSON syntax. Make sure you're using valid JSON tokens like {}, [], strings, numbers, true/false, or null.

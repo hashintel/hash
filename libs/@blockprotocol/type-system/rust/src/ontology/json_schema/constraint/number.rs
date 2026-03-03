@@ -46,14 +46,14 @@ pub enum NumberValidationError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum NumberTypeTag {
     Number,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum NumberSchema {
     Constrained(NumberConstraints),
@@ -208,7 +208,7 @@ impl ConstraintValidator<Real> for NumberSchema {
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -1,79 +1,7 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 use alloc::string::{String, ToString as _};
-#[cfg(nightly)]
-use core::error::Request;
 use core::{error::Error, fmt};
 
 use crate::Report;
-
-/// Defines the current context of a [`Report`].
-///
-/// When in a `std` environment or on a nightly toolchain, every [`Error`] is a valid `Context`.
-/// This trait is not limited to [`Error`]s and can also be manually implemented on a type.
-///
-/// ## Example
-///
-/// Used for creating a [`Report`] or for switching the [`Report`]'s context:
-///
-/// ```rust
-/// use std::{error::Error, fmt, fs, io};
-///
-/// use error_stack::{ResultExt, Report};
-///
-/// # type Config = ();
-/// #[derive(Debug)]
-/// pub enum ConfigError {
-///     ParseError,
-/// }
-///
-/// impl fmt::Display for ConfigError {
-///     # #[allow(unused_variables)] // `fmt` is not used in this example
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         # const _: &str = stringify! {
-///         ...
-///         # }; Ok(())
-///     }
-/// }
-///
-/// // In this scenario, `Error` is not implemented for `ConfigError` for some reason, so implement
-/// // `Context` manually.
-/// impl Error for ConfigError {}
-///
-/// pub fn read_file(path: &str) -> Result<String, Report<io::Error>> {
-///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).map_err(Report::from)
-/// }
-///
-/// pub fn parse_config(path: &str) -> Result<Config, Report<ConfigError>> {
-///     // The return type of `parse_config` requires another context. By calling `change_context`
-///     // the context may be changed.
-///     read_file(path).change_context(ConfigError::ParseError)?;
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # }; Ok(())
-/// }
-/// # let err = parse_config("invalid-path").unwrap_err();
-/// # assert!(err.contains::<io::Error>());
-/// # assert!(err.contains::<ConfigError>());
-/// ```
-#[deprecated(note = "Use `core::error::Error` instead", since = "0.6.0")]
-pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
-    /// Provide values which can then be requested by [`Report`].
-    #[cfg(nightly)]
-    #[expect(unused_variables)]
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {}
-
-    /// Returns the source of the error, if any.
-    ///
-    /// This method only exists to avoid the requirement of specialization and to get the sources
-    /// for `Error`.
-    #[doc(hidden)]
-    fn __source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-}
 
 /// Captures an error message as the context of a [`Report`].
 pub(crate) struct SourceContext(String);
@@ -96,11 +24,11 @@ impl fmt::Display for SourceContext {
     }
 }
 
-impl Context for SourceContext {}
+impl Error for SourceContext {}
 
 impl<C> From<C> for Report<C>
 where
-    C: Context,
+    C: Error + Send + Sync + 'static,
 {
     #[track_caller]
     #[inline]
@@ -109,15 +37,16 @@ where
     }
 }
 
-impl<C: Error + Send + Sync + 'static> Context for C {
-    #[cfg(nightly)]
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Error::provide(self, request);
-    }
+/// A trait for types that can be attached to a [`Report`] without being displayed.
+pub trait OpaqueAttachment: Send + Sync + 'static {}
 
-    #[doc(hidden)]
-    #[inline]
-    fn __source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source()
-    }
-}
+impl<T: Send + Sync + 'static> OpaqueAttachment for T {}
+
+/// A trait for types that can be attached to a [`Report`] and displayed.
+#[diagnostic::on_unimplemented(
+    message = "to attach this type to a `Report` it must implement `fmt::Display` and `fmt::Debug`",
+    note = "if you want to attach a type that is not printable, use `attach_opaque` instead"
+)]
+pub trait Attachment: OpaqueAttachment + fmt::Display + fmt::Debug {}
+
+impl<T: OpaqueAttachment + fmt::Display + fmt::Debug> Attachment for T {}

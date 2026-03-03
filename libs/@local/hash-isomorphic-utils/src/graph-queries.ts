@@ -1,6 +1,5 @@
 import type {
   EntityRootType,
-  GraphResolveDepths,
   QueryTemporalAxesUnresolved,
   SubgraphRootType,
 } from "@blockprotocol/graph";
@@ -22,6 +21,8 @@ import type {
   Selector,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -29,29 +30,30 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
-import { deserializeSubgraph } from "./subgraph-mapping.js";
 
-export const zeroedGraphResolveDepths: GraphResolveDepths = {
-  inheritsFrom: { outgoing: 0 },
-  constrainsValuesOn: { outgoing: 0 },
-  constrainsPropertiesOn: { outgoing: 0 },
-  constrainsLinksOn: { outgoing: 0 },
-  constrainsLinkDestinationsOn: { outgoing: 0 },
-  isOfType: { outgoing: 0 },
-  hasLeftEntity: { incoming: 0, outgoing: 0 },
-  hasRightEntity: { incoming: 0, outgoing: 0 },
-};
-
-export const fullOntologyResolveDepths: Omit<
-  GraphResolveDepths,
-  "hasLeftEntity" | "hasRightEntity"
-> = {
-  constrainsValuesOn: { outgoing: 255 },
-  constrainsPropertiesOn: { outgoing: 255 },
-  constrainsLinksOn: { outgoing: 1 },
-  constrainsLinkDestinationsOn: { outgoing: 1 },
-  inheritsFrom: { outgoing: 255 },
-  isOfType: { outgoing: 1 },
+/**
+ * Ontology resolve depths that traverse most relationships fully, except for link constraints.
+ *
+ * Follows the complete chain of:
+ * - Data type constraints (`constrainsValuesOn`)
+ * - Property type constraints (`constrainsPropertiesOn`)
+ * - Inheritance hierarchies (`inheritsFrom`)
+ * - Entity type definitions (`isOfType`)
+ *
+ * But only resolves one level deep for:
+ * - Link type constraints (`constrainsLinksOn`)
+ * - Link destination constraints (`constrainsLinkDestinationsOn`)
+ *
+ * This is "almost full" because nested link constraints (links that constrain other links,
+ * or link destinations with their own link destinations) won't be fully traversed.
+ */
+export const almostFullOntologyResolveDepths: GraphResolveDepths = {
+  constrainsValuesOn: 255,
+  constrainsPropertiesOn: 255,
+  constrainsLinksOn: 1,
+  constrainsLinkDestinationsOn: 1,
+  inheritsFrom: 255,
+  isOfType: true,
 };
 
 /**
@@ -258,13 +260,9 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
-      equal: [
-        {
-          path: ["properties", archivedBaseUrl],
-        },
-        // @ts-expect-error -- We will update the type definition of `EntityStructuralQuery` to allow this, see H-1207
-        null,
-      ],
+      exists: {
+        path: ["properties", archivedBaseUrl],
+      },
     },
     {
       equal: [

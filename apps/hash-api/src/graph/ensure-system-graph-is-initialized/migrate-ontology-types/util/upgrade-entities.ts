@@ -15,11 +15,13 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import {
+  propertyObjectToPatches,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
+import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -28,10 +30,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { ImpureGraphContext } from "../../../context-types";
-import {
-  getEntitySubgraphResponse,
-  updateEntity,
-} from "../../../knowledge/primitive/entity";
+import { updateEntity } from "../../../knowledge/primitive/entity";
 import type { MigrationState } from "../types";
 
 export const upgradeWebEntities = async ({
@@ -65,7 +64,7 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId as ActorEntityUuid };
 
-  const { subgraph } = await getEntitySubgraphResponse(
+  const { subgraph } = await queryEntitySubgraph(
     context,
     webBotAuthentication,
     {
@@ -99,12 +98,11 @@ export const upgradeWebEntities = async ({
           },
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        ...fullOntologyResolveDepths,
-      },
-      includeDrafts: true,
+      graphResolveDepths: almostFullOntologyResolveDepths,
+      traversalPaths: [],
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: true,
+      includePermissions: false,
     },
   );
 

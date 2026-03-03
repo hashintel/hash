@@ -1,14 +1,10 @@
-[special-form-expander::invalid-binding-name] Error: Invalid binding name
-   ╭─[ <unknown>:5:3 ]
-   │
- 5 │   { "#literal": true },
-   │   ──────────┬─────────  
-   │             ╰─────────── Replace this expression with a simple identifier
-   │ 
-   │ Help: The let binding name must be a simple identifier. Complex expressions are not allowed in binding positions.
-   │ 
-   │ Note: Valid examples of let bindings:
-   │       - (let x value body)
-   │       - (let counter 0 ...)
-   │       - (let user_name input ...)
-───╯
+error[special-form-expander::invalid-binding-name]: Invalid binding name
+  ╭▸ 
+5 │   { "#literal": true },
+  │   ━━━━━━━━━━━━━━━━━━━━ Replace this expression with a simple identifier
+  │
+  ├ help: The let binding name must be a simple identifier. Complex expressions are not allowed in binding positions.
+  ╰ note: Valid examples of let bindings:
+          - (let x value body)
+          - (let counter 0 ...)
+          - (let user_name input ...)

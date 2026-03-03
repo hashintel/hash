@@ -1,17 +1,14 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType, GraphResolveDepths } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
   Entity,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -19,30 +16,32 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 
 export const useUserOrOrg = (
   params: {
     includePermissions?: boolean;
-    graphResolveDepths?: Partial<GraphResolveDepths>;
+    includeAvatar?: boolean;
+    includeMembersOfOrg?: boolean;
+    traversalPaths?: TraversalPath[];
   } & (
     | { shortname?: string }
     | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupEntityUuid }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: params.includePermissions ?? false,
       request: {
         filter: {
           all: [
@@ -84,12 +83,43 @@ export const useUserOrOrg = (
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...params.graphResolveDepths,
-        },
+        traversalPaths: [
+          ...(params.includeAvatar
+            ? [
+                {
+                  edges: [
+                    {
+                      kind: "has-left-entity" as const,
+                      direction: "incoming" as const,
+                    },
+                    {
+                      kind: "has-right-entity" as const,
+                      direction: "outgoing" as const,
+                    },
+                  ],
+                },
+              ]
+            : []),
+          ...(params.includeMembersOfOrg
+            ? [
+                {
+                  edges: [
+                    {
+                      kind: "has-right-entity" as const,
+                      direction: "incoming" as const,
+                    },
+                    {
+                      kind: "has-left-entity" as const,
+                      direction: "outgoing" as const,
+                    },
+                  ],
+                },
+              ]
+            : []),
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: params.includePermissions ?? false,
       },
     },
     skip:
@@ -100,14 +130,12 @@ export const useUserOrOrg = (
   });
 
   return useMemo(() => {
-    const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-          data.getEntitySubgraph.subgraph,
-        )
+    const response = data
+      ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
       : undefined;
 
-    const rootEntity = subgraph
-      ? getRoots(subgraph).reduce<
+    const rootEntity = response
+      ? getRoots(response.subgraph).reduce<
           Entity<Organization> | Entity<User> | undefined
         >((prev, currentEntity) => {
           if (
@@ -134,17 +162,15 @@ export const useUserOrOrg = (
       : undefined;
 
     const userOrOrgSubgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-          data.getEntitySubgraph.subgraph,
-        )
+      ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
+          .subgraph
       : undefined;
 
     return {
       canUserEdit: !!(
         rootEntity &&
-        data?.getEntitySubgraph.userPermissionsOnEntities?.[
-          rootEntity.metadata.recordId.entityId
-        ]?.edit
+        response?.entityPermissions?.[rootEntity.metadata.recordId.entityId]
+          ?.update
       ),
       userOrOrgSubgraph,
       userOrOrg: rootEntity,

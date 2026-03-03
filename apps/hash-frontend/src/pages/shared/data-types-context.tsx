@@ -6,14 +6,16 @@ import type {
 } from "@blockprotocol/type-system";
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 
 export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
@@ -28,14 +30,20 @@ export const DataTypesContext = createContext<null | DataTypesContextValue>(
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   const { data, loading, refetch } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery, {
     fetchPolicy: "cache-first",
     variables: {
-      constrainsValuesOn: { outgoing: 255 },
-      inheritsFrom: { outgoing: 255 },
-      latestOnly: false,
+      request: {
+        filter: { all: [] },
+        temporalAxes: fullTransactionTimeAxis,
+        graphResolveDepths: {
+          inheritsFrom: 255,
+          constrainsValuesOn: 255,
+        },
+        traversalPaths: [],
+      },
     },
   });
 
@@ -50,9 +58,11 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
     const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
 
-    for (const versionToVertexMap of Object.values(
-      data.queryDataTypes.vertices,
-    )) {
+    const subgraph = deserializeQueryDataTypeSubgraphResponse(
+      data.queryDataTypeSubgraph,
+    ).subgraph;
+
+    for (const versionToVertexMap of Object.values(subgraph.vertices)) {
       let highestVersion: DataTypeWithMetadata | null = null;
 
       for (const dataTypeVertex of typedValues(versionToVertexMap)) {

@@ -4,4 +4,4 @@
 
 ════ HIR after ctor conversion ═════════════════════════════════════════════════
 
-#ctor(fn<T?25>(?25) -> Some[?25], arguments: [T])(2)
+::core::option::Some(2)

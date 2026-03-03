@@ -47,6 +47,7 @@ const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
     return Object.assign(this.logger(name, LogLevel.Debug), {
       error: this.logger(name, LogLevel.Error),
       trace: this.logger(name, LogLevel.Trace),
+      newScope: (child: string) => this.forComponent(`${name}:${child}`),
       enabled: true,
     });
   },

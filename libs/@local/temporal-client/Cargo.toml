@@ -16,14 +16,14 @@ type-system = { workspace = true, public = true }
 error-stack = { workspace = true }
 
 # Private third-party dependencies
-serde                    = { workspace = true }
-serde_json               = { workspace = true }
-simple-mermaid           = { workspace = true }
-temporal-client          = { workspace = true }
-temporal-sdk-core-protos = { workspace = true }
-thiserror                = { workspace = true }
-url                      = { workspace = true }
-uuid                     = { workspace = true, features = ["v4"] }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
+simple-mermaid    = { workspace = true }
+temporalio-client = { workspace = true }
+temporalio-common = { workspace = true }
+thiserror         = { workspace = true }
+url               = { workspace = true }
+uuid              = { workspace = true, features = ["v4"] }
 
 [lints]
 workspace = true

@@ -9,11 +9,6 @@
       "matchFileNames": ["libs/error-stack/Cargo.toml"],
       "matchPackageNames": ["anyhow"],
       "enabled": false
-    },
-    {
-      "matchManagers": ["cargo"],
-      "matchPackageNames": ["pdfium-render"],
-      "enabled": false
     }
   ]
 }

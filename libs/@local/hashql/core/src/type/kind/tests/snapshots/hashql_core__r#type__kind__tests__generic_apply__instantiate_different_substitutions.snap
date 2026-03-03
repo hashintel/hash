@@ -1,5 +1,5 @@
 ---
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
-expression: "env.r#type(result_id).pretty_print(&env,\nPrettyOptions::default().with_depth_tracking().without_color())"
+expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-(bar: <T?1>(foo: ?1) where<?1 = String>, baz: <T?2>(foo: ?2) where<?2 = Number>)
+(bar: [?1 = String] <T?1>(foo: T?1), baz: [?2 = Number] <T?2>(foo: T?2))

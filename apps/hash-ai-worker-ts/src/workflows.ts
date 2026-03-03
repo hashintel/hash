@@ -1,26 +1,28 @@
 import type {
   ActorEntityUuid,
+  BaseUrl,
   DataTypeWithMetadata,
+  EntityId,
   EntityTypeWithMetadata,
+  MachineId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  Entity as GraphApiEntity,
-  EntityQueryCursor,
-  Filter,
-} from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
   ActivityCancellationType,
+  continueAsNew,
+  executeChild,
   proxyActivities,
+  workflowInfo,
 } from "@temporalio/workflow";
 import type { OpenAI } from "openai";
 
@@ -93,27 +95,14 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryDataTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
       },
     });
-    dataTypes = await graphActivities.getSubgraphDataTypes({
-      subgraph: response.subgraph,
-    });
+    dataTypes = response.dataTypes;
   }
 
   for (const dataType of dataTypes) {
@@ -178,27 +167,14 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryPropertyTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
       },
     });
-    propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-      subgraph: response.subgraph,
-    });
+    propertyTypes = response.propertyTypes;
   }
 
   for (const propertyType of propertyTypes) {
@@ -263,27 +239,14 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntityTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
       },
     });
-    entityTypes = await graphActivities.getSubgraphEntityTypes({
-      subgraph: response.subgraph,
-    });
+    entityTypes = response.entityTypes;
   }
 
   for (const entityType of entityTypes) {
@@ -308,13 +271,25 @@ export const updateEntityTypeEmbeddings = async (
   return usage;
 };
 
+/** Number of entities to fetch per query batch */
+const ENTITY_BATCH_SIZE = 100;
+
 type UpdateEntityEmbeddingsParams = {
   authentication: {
     actorId: ActorEntityUuid;
   };
+  /**
+   * Properties to exclude from embedding generation, keyed by entity type base URL.
+   * Values are arrays of property type base URLs to exclude for that entity type.
+   */
+  embeddingExclusions?: Record<BaseUrl, BaseUrl[]>;
+  /** Cursor for pagination (used with continueAsNew) */
+  cursor?: EntityQueryCursor;
+  /** Accumulated usage from previous continues */
+  accumulatedUsage?: OpenAI.CreateEmbeddingResponse.Usage;
 } & (
   | {
-      entities: GraphApiEntity[];
+      entityIds: EntityId[];
     }
   | {
       filter: Filter;
@@ -324,6 +299,31 @@ type UpdateEntityEmbeddingsParams = {
 export const updateEntityEmbeddings = async (
   params: UpdateEntityEmbeddingsParams,
 ): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
+    prompt_tokens: params.accumulatedUsage?.prompt_tokens ?? 0,
+    total_tokens: params.accumulatedUsage?.total_tokens ?? 0,
+  };
+
+  // Case 1: Entity IDs provided directly - pass straight to activity
+  if ("entityIds" in params) {
+    if (params.entityIds.length === 0) {
+      return usage;
+    }
+
+    // Activity handles everything: fetch, filter FlowRun/empty, create embeddings, store
+    const embeddingUsage =
+      await aiActivities.createAndStoreEntityEmbeddingsActivity({
+        authentication: params.authentication,
+        entityIds: params.entityIds,
+        embeddingExclusions: params.embeddingExclusions,
+      });
+
+    usage.prompt_tokens += embeddingUsage.prompt_tokens;
+    usage.total_tokens += embeddingUsage.total_tokens;
+    return usage;
+  }
+
+  // Case 2: Filter provided - need to query for pagination
   const temporalAxes = {
     pinned: {
       axis: "transactionTime",
@@ -338,124 +338,73 @@ export const updateEntityEmbeddings = async (
     },
   } as const;
 
-  let entities: SerializedEntity[];
-  let cursor: EntityQueryCursor | undefined | null = undefined;
-
-  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
-    prompt_tokens: 0,
-    total_tokens: 0,
+  // Exclude FlowRun and empty entities at query level for efficient pagination
+  const filter: Filter = {
+    all: [
+      params.filter,
+      {
+        notEqual: [
+          { path: ["type", "versionedUrl"] },
+          { parameter: systemEntityTypes.flowRun.entityTypeId },
+        ],
+      },
+      { notEqual: [{ path: ["properties"] }, { parameter: {} }] },
+    ],
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  let cursor = params.cursor;
+
+  // Process batches until Temporal suggests continuing as new or we run out of entities
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cursor is reassigned in the loop
   while (true) {
-    if ("entities" in params) {
-      entities = params.entities.map((entity) =>
-        new HashEntity(entity).toJSON(),
-      );
-    } else {
-      const queryResponse = await graphActivities.getEntitySubgraph({
-        authentication: params.authentication,
-        request: {
-          filter: params.filter,
-          graphResolveDepths: {
-            inheritsFrom: { outgoing: 0 },
-            constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 0 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
-            hasLeftEntity: { incoming: 0, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 0 },
-          },
-          temporalAxes,
-          includeDrafts: true,
-          cursor,
-          limit: 100,
-        },
-      });
-      cursor = queryResponse.cursor;
-      entities = await graphActivities.getSubgraphEntities({
-        subgraph: queryResponse.subgraph,
-      });
-    }
+    const serializedResponse = await graphActivities.queryEntities({
+      authentication: params.authentication,
+      request: {
+        filter,
+        temporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
+        cursor,
+        limit: ENTITY_BATCH_SIZE,
+      },
+    });
+    const response = deserializeQueryEntitiesResponse(serializedResponse);
+    const entities = response.entities;
 
     if (entities.length === 0) {
       break;
     }
 
-    for (const serializedEntity of entities) {
-      const entity = new HashEntity(serializedEntity);
-      /**
-       * Don't try to create embeddings for `FlowRun` entities, due to the size
-       * of their property values.
-       *
-       * @todo: consider having a general approach for declaring which entity/property
-       * types should be skipped when generating embeddings.
-       */
-      if (
-        entity.metadata.entityTypeIds.includes(
-          systemEntityTypes.flowRun.entityTypeId,
-        )
-      ) {
-        continue;
-      }
+    // Extract entity IDs and pass batch to the activity
+    const entityIds = entities.map(
+      (entity) => entity.metadata.recordId.entityId,
+    );
 
-      // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
-      //       just making another request here. We should add the required methods to the library and do this client
-      //       side.
-      const subgraph = await graphActivities.getEntityTypesSubgraph({
+    // Activity handles: fetch, create embeddings, store
+    const embeddingUsage =
+      await aiActivities.createAndStoreEntityEmbeddingsActivity({
         authentication: params.authentication,
-        request: {
-          filter: {
-            any: entity.metadata.entityTypeIds.map((entityTypeId) => ({
-              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-            })),
-          },
-          graphResolveDepths: {
-            inheritsFrom: { outgoing: 255 },
-            constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 1 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
-            hasLeftEntity: { incoming: 0, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 0 },
-          },
-          temporalAxes,
-          includeDrafts: false,
-        },
+        entityIds,
+        embeddingExclusions: params.embeddingExclusions,
       });
 
-      const propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-        subgraph,
-      });
+    usage.prompt_tokens += embeddingUsage.prompt_tokens;
+    usage.total_tokens += embeddingUsage.total_tokens;
 
-      const generatedEmbeddings =
-        await aiActivities.createEntityEmbeddingsActivity({
-          entityProperties: entity.properties,
-          propertyTypes,
-        });
-
-      if (generatedEmbeddings.embeddings.length > 0) {
-        await graphActivities.updateEntityEmbeddings({
-          authentication: params.authentication,
-          entityId: entity.metadata.recordId.entityId,
-          embeddings: generatedEmbeddings.embeddings,
-          updatedAtTransactionTime:
-            entity.metadata.temporalVersioning.transactionTime.start.limit,
-          updatedAtDecisionTime:
-            entity.metadata.temporalVersioning.decisionTime.start.limit,
-          reset: true,
-        });
-      }
-
-      usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
-      usage.total_tokens += generatedEmbeddings.usage.total_tokens;
-    }
-
-    if (!cursor) {
+    if (!response.cursor) {
       break;
     }
+
+    // Let Temporal decide when workflow history is getting too large
+    if (workflowInfo().continueAsNewSuggested) {
+      await continueAsNew<typeof updateEntityEmbeddings>({
+        ...params,
+        cursor: response.cursor,
+        accumulatedUsage: usage,
+      });
+    }
+
+    cursor = response.cursor;
   }
 
   return usage;
@@ -468,16 +417,7 @@ export const updateAllDataTypeEmbeddings =
         actorId: publicUserAccountId,
       },
       filter: {
-        all: [
-          {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-        ],
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
     });
 
@@ -488,16 +428,7 @@ export const updateAllPropertyTypeEmbeddings =
         actorId: publicUserAccountId,
       },
       filter: {
-        all: [
-          {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-        ],
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
     });
 
@@ -508,54 +439,90 @@ export const updateAllEntityTypeEmbeddings =
         actorId: publicUserAccountId,
       },
       filter: {
-        all: [
-          {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-        ],
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
     });
 
-export const updateAllEntityEmbeddings =
-  async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
-    const accountIds = await graphActivities.getUserAccountIds();
+/** Number of webs to process in parallel per batch */
+const WEBS_PER_BATCH = 10;
 
-    const usage: OpenAI.CreateEmbeddingResponse.Usage = {
-      prompt_tokens: 0,
-      total_tokens: 0,
-    };
+type UpdateAllEntityEmbeddingsParams = {
+  /** Accumulated usage from previous continues */
+  accumulatedUsage?: OpenAI.CreateEmbeddingResponse.Usage;
+  /**
+   * Properties to exclude from embedding generation, keyed by entity type base URL.
+   * Values are arrays of property type base URLs to exclude for that entity type.
+   */
+  embeddingExclusions?: Record<BaseUrl, BaseUrl[]>;
+  /** Cursor for paginating through system machines (used with continueAsNew) */
+  machineCursor?: EntityQueryCursor;
+};
 
-    for (const accountId of accountIds) {
-      const this_usage = await updateEntityEmbeddings({
-        authentication: { actorId: accountId },
-        filter: {
-          all: [
-            {
-              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-              //                     see https://linear.app/hash/issue/H-1207
-              // We can skip entities for which the embeddings were already generated.
-              // If a full regeneration is desired, either the database should be wiped manually or the
-              // `updateEntityEmbeddings` workflow should be called manually.
-              equal: [{ path: ["embedding"] }, null],
-            },
-            {
-              // Only embeddings for non-empty properties are generated
-              notEqual: [{ path: ["properties"] }, { parameter: {} }],
-            },
-          ],
-        },
+export const updateAllEntityEmbeddings = async (
+  params?: UpdateAllEntityEmbeddingsParams,
+): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
+    prompt_tokens: params?.accumulatedUsage?.prompt_tokens ?? 0,
+    total_tokens: params?.accumulatedUsage?.total_tokens ?? 0,
+  };
+
+  let machineCursor = params?.machineCursor;
+
+  // Process batches of webs, paginating through system machines
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cursor is reassigned in the loop
+  while (true) {
+    const { machineIds, cursor: nextCursor } =
+      await graphActivities.getSystemMachineIds({
+        cursor: machineCursor,
+        limit: WEBS_PER_BATCH,
       });
-      usage.prompt_tokens += this_usage.prompt_tokens;
-      usage.total_tokens += this_usage.total_tokens;
+
+    if (machineIds.length === 0) {
+      break;
     }
 
-    return usage;
-  };
+    // Execute batch of child workflows in parallel
+    const results = await Promise.all(
+      machineIds.map((systemMachineId) => {
+        const [webId, machineActorId] = splitEntityId(systemMachineId);
+        return executeChild(updateEntityEmbeddings, {
+          args: [
+            {
+              authentication: { actorId: machineActorId as MachineId },
+              filter: {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              embeddingExclusions: params?.embeddingExclusions,
+            },
+          ],
+          workflowId: `update-entity-embeddings-${workflowInfo().workflowId}-${webId}`,
+        });
+      }),
+    );
+
+    for (const webUsage of results) {
+      usage.prompt_tokens += webUsage.prompt_tokens;
+      usage.total_tokens += webUsage.total_tokens;
+    }
+
+    if (!nextCursor) {
+      break;
+    }
+
+    // Let Temporal decide when workflow history is getting too large
+    if (workflowInfo().continueAsNewSuggested) {
+      await continueAsNew<typeof updateAllEntityEmbeddings>({
+        accumulatedUsage: usage,
+        embeddingExclusions: params?.embeddingExclusions,
+        machineCursor: nextCursor,
+      });
+    }
+
+    machineCursor = nextCursor;
+  }
+
+  return usage;
+};
 
 export const parseTextFromFile = async (
   params: ParseTextFromFileParams,

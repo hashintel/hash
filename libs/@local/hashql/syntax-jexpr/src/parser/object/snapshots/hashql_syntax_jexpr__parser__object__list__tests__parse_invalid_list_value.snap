@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
 description: Rejects non-array values for lists
 expression: "{\"#list\": {\"not\": \"an-array\"}}"
 ---
-[31m[parser::object::list-expected-array] Error:[0m Expected array for #list definition
-   ╭─[ <unknown>:1:11 ]
-   │
- 1 │ {"#list": {"not": "an-array"}}
-   │           ┬  
-   │           ╰── Expected an array here
-   │ 
-   │ Help: The #list construct requires an array of elements, but found `{`. Use square brackets to define the list elements: [element1, element2, ...]
-   │ 
-   │ Note: Lists in J-Expr represent variable-length collections where all elements must have the same type.
-───╯
+error[parser::object::list-expected-array]: Expected array for #list definition
+  ╭▸ 
+1 │ {"#list": {"not": "an-array"}}
+  │           ━ Expected an array here
+  │
+  ├ help: The #list construct requires an array of elements, but found `{`. Use square brackets to define the list elements: [element1, element2, ...]
+  ╰ note: Lists in J-Expr represent variable-length collections where all elements must have the same type.

@@ -307,7 +307,7 @@ impl EntityVisitor for EntityPreprocessor {
             .map_or(desired_data_type_reference, <&DataTypeReference>::from);
 
         match type_provider
-            .lookup_closed_data_type_by_ref(actual_data_type_reference)
+            .get_closed_data_type_by_url(actual_data_type_reference)
             .await
         {
             Ok(actual_data_type) => {
@@ -338,7 +338,7 @@ impl EntityVisitor for EntityPreprocessor {
 
         if actual_data_type_reference != desired_data_type_reference {
             match type_provider
-                .lookup_closed_data_type_by_ref(desired_data_type_reference)
+                .get_closed_data_type_by_url(desired_data_type_reference)
                 .await
             {
                 Ok(desired_data_type) => {
@@ -415,7 +415,7 @@ impl EntityVisitor for EntityPreprocessor {
             for values in schema {
                 if let PropertyValues::Value(data_type_ref) = values {
                     let Ok(data_type) = type_provider
-                        .lookup_data_type_by_ref(data_type_ref)
+                        .get_data_type_by_url(data_type_ref)
                         .await
                         .map_err(|error| {
                             property_validation.data_type_inference.push(
@@ -515,7 +515,7 @@ impl EntityVisitor for EntityPreprocessor {
                 .insert(data_type_id.base_url.clone(), property.value.clone());
 
             match type_provider
-                .lookup_data_type_by_ref(<&DataTypeReference>::from(data_type_id))
+                .get_data_type_by_url(<&DataTypeReference>::from(data_type_id))
                 .await
             {
                 Err(error) => {

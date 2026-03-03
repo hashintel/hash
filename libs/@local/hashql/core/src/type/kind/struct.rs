@@ -1,14 +1,12 @@
 use core::ops::{ControlFlow, Deref};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
-    collection::FastHashMap,
+    algorithms::cartesian_product,
+    collections::FastHashMap,
     intern::Interned,
-    math::cartesian_product,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
@@ -29,21 +27,6 @@ use crate::{
 pub struct StructField<'heap> {
     pub name: Symbol<'heap>,
     pub value: TypeId,
-}
-
-impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(self.name.unwrap())
-            .append(RcDoc::text(":"))
-            .group()
-            .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.value).group())
-            .group()
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -98,24 +81,6 @@ impl<'heap> Deref for StructFields<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for StructFields<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.0 {
-            Some(Interned([], _)) | None => RcDoc::text(":"),
-            Some(Interned(fields, _)) => RcDoc::intersperse(
-                fields.iter().map(|field| field.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            )
-            .nest(1)
-            .group(),
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructType<'heap> {
     pub fields: StructFields<'heap>,
@@ -145,7 +110,7 @@ impl<'heap> StructType<'heap> {
 
             // If we have a single variant, it's guaranteed that it's the same type, due to
             // distribution rules
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Create a new type kind for each
@@ -172,12 +137,12 @@ impl<'heap> StructType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // Check if we can opt-out into allocating a new type
         if *self.kind.fields == *fields {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Check if we can opt-out into allocating a new type
         if *other.kind.fields == *fields {
-            return SmallVec::from_slice(&[other.id]);
+            return SmallVec::from_slice_copy(&[other.id]);
         }
 
         let id = env.intern_type(PartialType {
@@ -190,7 +155,7 @@ impl<'heap> StructType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 }
 
@@ -337,7 +302,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -363,7 +328,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -403,9 +368,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         for &super_field in &*supertype.kind.fields {
             let Some(self_field) = self_fields_by_key.get(&super_field.name) else {
                 if env
-                    .record_diagnostic(|env| {
-                        missing_struct_field(env.source, self, supertype, super_field.name)
-                    })
+                    .record_diagnostic(|_| missing_struct_field(self, supertype, super_field.name))
                     .is_break()
                 {
                     return false;
@@ -434,16 +397,14 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // Structs have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| struct_field_mismatch(self, other));
 
             return false;
         }
 
         if self.is_disjoint_by_keys(other) {
             // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| struct_field_mismatch(self, other));
 
             return false;
         }
@@ -548,18 +509,5 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for StructType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("(")
-            .append(self.fields.pretty(env, boundary))
-            .append(RcDoc::text(")"))
-            .group()
     }
 }

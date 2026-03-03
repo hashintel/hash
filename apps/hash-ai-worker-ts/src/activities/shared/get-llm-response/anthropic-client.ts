@@ -4,7 +4,6 @@ import type {
   Message,
   MessageCreateParamsBase,
   MessageCreateParamsNonStreaming,
-  MessageParam,
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -17,9 +16,9 @@ export const anthropic = new Anthropic({
 });
 
 const permittedAnthropicModels = [
-  "claude-3-5-sonnet-20240620",
-  "claude-3-opus-20240229",
-  "claude-3-haiku-20240307",
+  "claude-sonnet-4-6",
+  "claude-opus-4-6",
+  "claude-haiku-4-5-20251001",
 ] satisfies MessageCreateParamsBase["model"][];
 
 export type PermittedAnthropicModel = (typeof permittedAnthropicModels)[number];
@@ -34,9 +33,9 @@ export const anthropicMessageModelToContextWindow: Record<
   PermittedAnthropicModel,
   number
 > = {
-  "claude-3-haiku-20240307": 200_000,
-  "claude-3-opus-20240229": 200_000,
-  "claude-3-5-sonnet-20240620": 200_000,
+  "claude-haiku-4-5-20251001": 200_000,
+  "claude-opus-4-6": 200_000,
+  "claude-sonnet-4-6": 200_000,
 };
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
@@ -44,19 +43,17 @@ export const anthropicMessageModelToMaxOutput: Record<
   PermittedAnthropicModel,
   number
 > = {
-  "claude-3-haiku-20240307": 4096,
-  "claude-3-opus-20240229": 4096,
-  "claude-3-5-sonnet-20240620": 8192,
+  // actually 64k, but we should implement streaming mode to handle higher.
+  "claude-haiku-4-5-20251001": 12_000,
+  // actually 128k, but we should implement streaming mode to handle higher.
+  "claude-opus-4-6": 12_000,
+  // actually 64k, but we should implement streaming mode to handle higher.
+  "claude-sonnet-4-6": 12_000,
 };
 
 export type AnthropicMessagesCreateParams = {
-  tool_choice?:
-    | { type: "tool"; name: string }
-    | { type: "any" }
-    | { type: "auto" };
   model: PermittedAnthropicModel;
-  messages: MessageParam[];
-} & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
+} & Omit<MessageCreateParamsNonStreaming, "model">;
 
 type AnthropicMessagesCreateResponseContent = Message["content"][number];
 
@@ -79,7 +76,6 @@ const awsSecretKey = getRequiredEnv(
  */
 const awsRegion = "us-west-2";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsAccessKey,
   awsSecretKey,
@@ -87,25 +83,21 @@ const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
 });
 
 type AnthropicBedrockModel =
-  | "anthropic.claude-3-haiku-20240307-v1:0"
-  | "anthropic.claude-3-opus-20240229-v1:0"
-  | "anthropic.claude-3-5-sonnet-20240620-v1:0";
+  | "anthropic.claude-haiku-4-5-20251001-v1:0"
+  | "anthropic.claude-opus-4-6-v1"
+  | "anthropic.claude-sonnet-4-6";
 
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
 export const anthropicModelToBedrockModel: Record<
   PermittedAnthropicModel,
   AnthropicBedrockModel
 > = {
-  "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
-  "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
-  "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+  "claude-haiku-4-5-20251001": "anthropic.claude-haiku-4-5-20251001-v1:0",
+  "claude-opus-4-6": "anthropic.claude-opus-4-6-v1",
+  "claude-sonnet-4-6": "anthropic.claude-sonnet-4-6",
 };
 
 export type AnthropicApiProvider = "anthropic" | "amazon-bedrock";
-
-type AnthropicBedrockMessagesCreateParams = Parameters<
-  typeof anthropicBedrockClient.messages.create
->[0];
 
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
@@ -113,42 +105,30 @@ export const createAnthropicMessagesWithTools = async (params: {
 }): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
-  let response: AnthropicMessagesCreateResponse;
+  let response: Message & { _request_id?: string | null | undefined };
 
   /**
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
    * has been requested, use the Bedrock client for the request.
    */
-  if (provider === "amazon-bedrock") {
+  /** @todo re-enable switching to bedrock */
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (false) {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    response = (await anthropicBedrockClient.messages.create(
+    response = await anthropicBedrockClient.messages.create(
       {
-        /**
-         * @todo: replace with `MessageCreateParamsNonStreaming` once the Bedrock SDK
-         * has been updated to be in sync with the Anthropic SDK.
-         */
-        ...(payload as AnthropicBedrockMessagesCreateParams),
+        ...payload,
         model: bedrockModel,
       },
       {
         signal: Context.current().cancellationSignal,
-        headers: {
-          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-        },
       },
-    )) as AnthropicMessagesCreateResponse;
+    );
   } else {
-    response = (await anthropic.messages.create(
-      payload as MessageCreateParamsNonStreaming,
-      {
-        signal: Context.current().cancellationSignal,
-        headers: {
-          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-        },
-      },
-    )) as AnthropicMessagesCreateResponse;
+    response = await anthropic.messages.create(payload, {
+      signal: Context.current().cancellationSignal,
+    });
   }
 
-  return response;
+  return { ...response, provider };
 };

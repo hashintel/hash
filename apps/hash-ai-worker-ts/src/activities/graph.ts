@@ -1,8 +1,3 @@
-import type {
-  DataTypeRootType,
-  EntityTypeRootType,
-  PropertyTypeRootType,
-} from "@blockprotocol/graph";
 import {
   getDataTypes,
   getEntities,
@@ -12,40 +7,71 @@ import {
 import type {
   ActorEntityUuid,
   DataTypeWithMetadata,
+  EntityId,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   EntityQueryCursor,
-  GetDataTypeSubgraphParams,
-  GetEntitySubgraphRequest,
-  GetEntityTypeSubgraphParams,
-  GetPropertyTypeSubgraphParams,
   GraphApi,
   UpdateDataTypeEmbeddingParams,
-  UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import {
+  queryDataTypes,
+  type QueryDataTypesParams,
+  type QueryDataTypesResponse,
+  queryDataTypeSubgraph,
+  type QueryDataTypeSubgraphParams,
+  type SerializedQueryDataTypeSubgraphResponse,
+  serializeQueryDataTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/data-type";
 import type {
   CreateEntityParameters,
+  QueryEntitiesRequest,
+  QueryEntitySubgraphRequest,
   SerializedEntity,
   SerializedEntityRootType,
+  SerializedQueryEntitiesResponse,
+  SerializedQueryEntitySubgraphResponse,
   SerializedSubgraph,
 } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  deserializeSubgraph,
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-  serializeSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
+  HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+  serializeQueryEntitiesResponse,
+  serializeQueryEntitySubgraphResponse,
+} from "@local/hash-graph-sdk/entity";
+import {
+  queryEntityTypes,
+  type QueryEntityTypesParams,
+  type QueryEntityTypesResponse,
+  queryEntityTypeSubgraph,
+  type QueryEntityTypeSubgraphParams,
+  type SerializedQueryEntityTypeSubgraphResponse,
+  serializeQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
+import * as actor from "@local/hash-graph-sdk/principal/actor";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import {
+  queryPropertyTypes,
+  type QueryPropertyTypesParams,
+  type QueryPropertyTypesResponse,
+  queryPropertyTypeSubgraph,
+  type QueryPropertyTypeSubgraphParams,
+  type SerializedQueryPropertyTypeSubgraphResponse,
+  serializeQueryPropertyTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/property-type";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export type EntityQueryResponse = {
   subgraph: SerializedSubgraph<SerializedEntityRootType>;
@@ -57,107 +83,151 @@ export const createGraphActivities = ({
 }: {
   graphApiClient: GraphApi;
 }) => ({
-  async getUserAccountIds(): Promise<ActorEntityUuid[]> {
-    return graphApiClient
-      .getEntities(publicUserAccountId, {
+  async getSystemMachineIds(params: {
+    cursor?: EntityQueryCursor;
+    limit?: number;
+  }): Promise<{
+    machineIds: EntityId[];
+    cursor?: EntityQueryCursor | null;
+  }> {
+    const systemMachine = await actor.getMachineByIdentifier(
+      graphApiClient,
+      { actorId: publicUserAccountId },
+      "h",
+    );
+    if (!systemMachine) {
+      throw new Error("System machine not found");
+    }
+
+    const { entities, cursor } = await queryEntities(
+      { graphApi: graphApiClient },
+      { actorId: systemMachine.id },
+      {
         filter: {
           all: [
             {
               equal: [
                 { path: ["type", "baseUrl"] },
-                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+                { parameter: systemEntityTypes.machine.entityTypeBaseUrl },
+              ],
+            },
+            {
+              startsWith: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: "system-" },
               ],
             },
           ],
         },
-        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data: response }) =>
-        response.entities.map((entity) => {
-          const mappedEntity = mapGraphApiEntityToEntity(entity, null, true);
-          const entity_uuid = extractEntityUuidFromEntityId(
-            mappedEntity.metadata.recordId.entityId,
-          );
-          return entity_uuid as ActorEntityUuid;
-        }),
-      );
+        includeDrafts: false,
+        includePermissions: false,
+        cursor: params.cursor,
+        limit: params.limit,
+      },
+    );
+
+    return {
+      machineIds: entities.map((entity) => entity.metadata.recordId.entityId),
+      cursor,
+    };
   },
 
-  async getDataTypesSubgraph(params: {
+  async queryDataTypes(params: {
+    authentication: AuthenticationContext;
+    request: QueryDataTypesParams;
+  }): Promise<QueryDataTypesResponse> {
+    return queryDataTypes(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    );
+  },
+
+  async queryDataTypeSubgraph(params: {
+    authentication: AuthenticationContext;
+    request: QueryDataTypeSubgraphParams;
+  }): Promise<SerializedQueryDataTypeSubgraphResponse> {
+    return queryDataTypeSubgraph(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    ).then(serializeQueryDataTypeSubgraphResponse);
+  },
+
+  async queryPropertyTypes(params: {
+    authentication: AuthenticationContext;
+    request: QueryPropertyTypesParams;
+  }): Promise<QueryPropertyTypesResponse> {
+    return queryPropertyTypes(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    );
+  },
+
+  async queryPropertyTypeSubgraph(params: {
+    authentication: AuthenticationContext;
+    request: QueryPropertyTypeSubgraphParams;
+  }): Promise<SerializedQueryPropertyTypeSubgraphResponse> {
+    return queryPropertyTypeSubgraph(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    ).then(serializeQueryPropertyTypeSubgraphResponse);
+  },
+
+  async queryEntityTypes(params: {
+    authentication: AuthenticationContext;
+    request: QueryEntityTypesParams;
+  }): Promise<QueryEntityTypesResponse> {
+    return queryEntityTypes(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    );
+  },
+
+  async queryEntityTypeSubgraph(params: {
+    authentication: AuthenticationContext;
+    request: QueryEntityTypeSubgraphParams;
+  }): Promise<SerializedQueryEntityTypeSubgraphResponse> {
+    return queryEntityTypeSubgraph(
+      graphApiClient,
+      params.authentication,
+      params.request,
+    ).then(serializeQueryEntityTypeSubgraphResponse);
+  },
+
+  async queryEntities(params: {
     authentication: {
       actorId: ActorEntityUuid;
     };
-    request: GetDataTypeSubgraphParams;
-  }): Promise<SerializedSubgraph<DataTypeRootType>> {
-    return graphApiClient
-      .getDataTypeSubgraph(params.authentication.actorId, params.request)
-      .then(
-        ({ data: response }) =>
-          serializeSubgraph(
-            mapGraphApiSubgraphToSubgraph(
-              response.subgraph,
-              params.authentication.actorId,
-            ),
-          ) as SerializedSubgraph<DataTypeRootType>,
-      );
+    request: QueryEntitiesRequest;
+  }): Promise<SerializedQueryEntitiesResponse> {
+    return queryEntities(
+      { graphApi: graphApiClient },
+      params.authentication,
+      params.request,
+    ).then(serializeQueryEntitiesResponse);
   },
 
-  async getPropertyTypesSubgraph(params: {
+  async queryEntitySubgraph(params: {
     authentication: {
       actorId: ActorEntityUuid;
     };
-    request: GetPropertyTypeSubgraphParams;
-  }): Promise<SerializedSubgraph<PropertyTypeRootType>> {
-    return graphApiClient
-      .getPropertyTypeSubgraph(params.authentication.actorId, params.request)
-      .then(
-        ({ data: response }) =>
-          serializeSubgraph(
-            mapGraphApiSubgraphToSubgraph(
-              response.subgraph,
-              params.authentication.actorId,
-            ),
-          ) as SerializedSubgraph<PropertyTypeRootType>,
-      );
-  },
-
-  async getEntityTypesSubgraph(params: {
-    authentication: {
-      actorId: ActorEntityUuid;
-    };
-    request: GetEntityTypeSubgraphParams;
-  }): Promise<SerializedSubgraph<EntityTypeRootType>> {
-    return graphApiClient
-      .getEntityTypeSubgraph(params.authentication.actorId, params.request)
-      .then(
-        ({ data: response }) =>
-          serializeSubgraph(
-            mapGraphApiSubgraphToSubgraph(
-              response.subgraph,
-              params.authentication.actorId,
-            ),
-          ) as SerializedSubgraph<EntityTypeRootType>,
-      );
-  },
-
-  async getEntitySubgraph(params: {
-    authentication: {
-      actorId: ActorEntityUuid;
-    };
-    request: GetEntitySubgraphRequest;
-  }): Promise<EntityQueryResponse> {
-    return graphApiClient
-      .getEntitySubgraph(params.authentication.actorId, params.request)
-      .then(({ data: response }) => ({
-        subgraph: serializeSubgraph(
-          mapGraphApiSubgraphToSubgraph(
-            response.subgraph,
-            params.authentication.actorId,
-          ),
-        ) as SerializedSubgraph<SerializedEntityRootType>,
-        cursor: response.cursor,
-      }));
+    request: QueryEntitySubgraphRequest;
+  }): Promise<SerializedQueryEntitySubgraphResponse> {
+    return queryEntitySubgraph(
+      { graphApi: graphApiClient },
+      params.authentication,
+      params.request,
+    ).then(serializeQueryEntitySubgraphResponse);
   },
 
   async updateDataTypeEmbeddings(
@@ -207,24 +277,6 @@ export const createGraphActivities = ({
         embedding: params.embedding,
         reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
-      })
-      .then((response) => response.data);
-  },
-
-  async updateEntityEmbeddings(
-    params: {
-      authentication: {
-        actorId: ActorEntityUuid;
-      };
-    } & UpdateEntityEmbeddingsParams,
-  ): Promise<void> {
-    await graphApiClient
-      .updateEntityEmbeddings(params.authentication.actorId, {
-        entityId: params.entityId,
-        embeddings: params.embeddings,
-        reset: params.reset,
-        updatedAtTransactionTime: params.updatedAtTransactionTime,
-        updatedAtDecisionTime: params.updatedAtDecisionTime,
       })
       .then((response) => response.data);
   },

@@ -4,8 +4,8 @@
   "private": true,
   "description": "External services needed to run HASH (databases, auth, etc.)",
   "scripts": {
-    "build:hydra": "docker buildx build --file hydra/Dockerfile hydra --load",
-    "build:kratos": "docker buildx build --file kratos/Dockerfile --build-arg ENV=prod kratos --load",
+    "build:hydra": "docker buildx build --tag hashintel/hash/hydra:latest --file hydra/Dockerfile hydra --load",
+    "build:kratos": "docker buildx build --tag hashintel/hash/kratos:latest --file kratos/Dockerfile --build-arg ENV=prod kratos --load",
     "build:postgres": "docker buildx build --file postgres/Dockerfile postgres --load",
     "build:temporal": "yarn build:temporal:setup && yarn build:temporal:migrate",
     "build:temporal:migrate": "docker buildx build --file temporal/migrate.Dockerfile --build-arg TEMPORAL_VERSION=1.23.1.0 temporal --load",

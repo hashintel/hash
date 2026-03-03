@@ -2,8 +2,9 @@ import {
   type ActorEntityUuid,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -11,15 +12,14 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { ForbiddenError } from "apollo-server-express";
 
-import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import type {
   Query,
   ResolverFn,
   UserUsageRecords,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getUsageRecordsResolver: ResolverFn<
@@ -36,10 +36,10 @@ export const getUsageRecordsResolver: ResolverFn<
   );
 
   if (!userIsAdmin) {
-    throw new ForbiddenError("User is not a HASH instance admin");
+    throw Error.forbidden("User is not a HASH instance admin");
   }
 
-  const users = await getEntities(
+  const { entities: users } = await queryEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     authentication,
     {
@@ -53,6 +53,7 @@ export const getUsageRecordsResolver: ResolverFn<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   );
 

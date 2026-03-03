@@ -1,0 +1,3 @@
+//@ run: skip reason="unary operations are not yet supported"
+//@ description: Unary operation with negation
+["!", { "#literal": true }]

@@ -8,11 +8,8 @@ pub mod simplify;
 mod tests;
 
 pub use self::{
-    analysis::AnalysisEnvironment,
-    context::{diagnostics::Diagnostics, variance::Variance},
-    infer::InferenceEnvironment,
-    lattice::LatticeEnvironment,
-    simplify::SimplifyEnvironment,
+    analysis::AnalysisEnvironment, context::variance::Variance, infer::InferenceEnvironment,
+    lattice::LatticeEnvironment, simplify::SimplifyEnvironment,
 };
 use super::{
     PartialType, Type, TypeId, TypeKind,
@@ -30,7 +27,6 @@ use super::{
 use crate::{
     heap::Heap,
     intern::{InternMap, InternSet, Interned},
-    span::SpanId,
 };
 
 #[derive(Debug, Default)]
@@ -41,8 +37,6 @@ pub struct Counter {
 
 #[derive(Debug)]
 pub struct Environment<'heap> {
-    pub source: SpanId,
-
     pub heap: &'heap Heap,
 
     pub types: InternMap<'heap, Type<'heap>>,
@@ -59,18 +53,16 @@ pub struct Environment<'heap> {
 
 impl<'heap> Environment<'heap> {
     #[must_use]
-    pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
-        let this = Self::new_empty(source, heap);
+    pub fn new(heap: &'heap Heap) -> Self {
+        let this = Self::new_empty(heap);
         prefill_environment(&this);
 
         this
     }
 
     #[must_use]
-    pub fn new_empty(source: SpanId, heap: &'heap Heap) -> Self {
+    pub fn new_empty(heap: &'heap Heap) -> Self {
         Self {
-            source,
-
             heap,
 
             types: InternMap::new(heap),
@@ -212,6 +204,7 @@ impl<'heap> Environment<'heap> {
 }
 
 fn prefill_environment(env: &Environment) {
+    env.kinds.reserve(1024);
     env.kinds.intern(TypeKind::Never);
     env.kinds.intern(TypeKind::Unknown);
 

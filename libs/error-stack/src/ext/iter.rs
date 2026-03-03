@@ -1,6 +1,6 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+use core::error::Error;
 
-use crate::{Context, Report};
+use crate::Report;
 
 // inspired by the implementation in `std`, see: https://doc.rust-lang.org/1.81.0/src/core/iter/adapters/mod.rs.html#157
 // except with the removal of the Try trait, as it is unstable.
@@ -140,9 +140,11 @@ pub trait TryReportIteratorExt<C> {
     /// Collects the successful items from the iterator into a container or returns all errors up to
     /// the specified bound.
     ///
-    /// This method is similar to `try_collect`, but it limits the number of errors collected to the
-    /// specified `bound`. If the number of errors encountered exceeds the bound, the method stops
-    /// collecting errors and returns the collected errors up to that point.
+    /// This method is similar to [`try_collect_reports`], but it limits the number of errors
+    /// collected to the specified `bound`. If the number of errors encountered exceeds the bound,
+    /// the method stops collecting errors and returns the collected errors up to that point.
+    ///
+    /// [`try_collect_reports`]: TryReportIteratorExt::try_collect_reports
     ///
     /// # Errors
     ///
@@ -177,7 +179,7 @@ impl<T, C, R, I> TryReportIteratorExt<C> for I
 where
     I: Iterator<Item = Result<T, R>>,
     R: Into<Report<[C]>>,
-    C: Context,
+    C: Error + Send + Sync + 'static,
 {
     type Ok = T;
 

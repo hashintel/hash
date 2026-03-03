@@ -1,13 +1,10 @@
-[special-form-expander::unknown-special-form] Error: Unknown special form
-   ╭─[ <unknown>:3:27 ]
-   │
- 3 │ ["::kernel::special_form::headpat"]
-   │   ───────────────┬───────────┬───  
-   │                  │           ╰───── Replace 'headpat' with a valid special form name
-   │                  │                 
-   │                  ╰───────────────── This special form path is invalid
-   │ 
-   │ Help: Special forms must use one of the predefined names shown in the note below
-   │ 
-   │ Note: Available special forms include: if, is, let, type, newtype, use, fn, input, access, index
-───╯
+error[special-form-expander::unknown-special-form]: Unknown special form
+  ╭▸ 
+3 │ ["::kernel::special_form::headpat"]
+  │   ┬───────────────────────┯━━━━━━
+  │   │                       │
+  │   │                       Replace 'headpat' with a valid special form name
+  │   This special form path is invalid
+  │
+  ├ help: Special forms must use one of the predefined names shown in the note below
+  ╰ note: Available special forms include: if, as, let, type, newtype, use, fn, input, access, index

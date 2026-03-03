@@ -6,8 +6,8 @@ expression: "{\"#literal\": \"example\", \"#type\": \"(name: String, age: Int)\"
 Expr#4294967040@13
   ExprKind (Literal)
     LiteralExpr#4294967040@0
-      LiteralKind (String)
-        StringLiteral (example)
+      Primitive (String)
+        String (example)
       Type#4294967040@12
         TypeKind (Struct)
           StructType#4294967040@12

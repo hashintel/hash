@@ -111,8 +111,8 @@ use crate::ontology::{
 pub struct PropertyType {
     /// The unique identifier for this property type.
     ///
-    /// This should be a versioned URL in the format:
-    /// `https://example.com/types/property-type/name/v/1`
+    /// This should be a versioned URL in the format
+    /// `https://example.com/types/property-type/name/v/1`.
     pub id: VersionedUrl,
 
     /// The human-readable name of the property type.
@@ -248,7 +248,7 @@ impl Serialize for PropertyType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]
 pub struct PropertyTypeReference {
@@ -264,7 +264,7 @@ impl From<&VersionedUrl> for &PropertyTypeReference {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(
     untagged,
     expecting = "Expected a data type reference, a property type object, or an array of property \
@@ -280,6 +280,7 @@ impl From<&VersionedUrl> for &PropertyTypeReference {
 ///
 /// The `PropertyValues` type is used in the `one_of` field of [`PropertyType`]s to define
 /// the set of acceptable value structures for a property.
+#[expect(clippy::use_self, reason = "Tsify does not support `Self`")]
 pub enum PropertyValues {
     /// A reference to a data type.
     ///

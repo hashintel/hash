@@ -1,16 +1,13 @@
 import type { Url } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
-import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
-import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
-import type { FlowActionActivity } from "./types.js";
+import { logger } from "../shared/activity-logger.js";
 
 export type GetWebSearchResultsResponse = Omit<
   GetWebSearchResults200ResponseWebSearchResultsInner,
@@ -26,19 +23,35 @@ const mapWebSearchResults = (
     (webSearchResult) => webSearchResult as GetWebSearchResultsResponse,
   );
 
-export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
-  const { query, numberOfSearchResults } = getSimplifiedActionInputs({
+export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
+  inputs,
+}) => {
+  const { query, numberOfSearchResults } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "webSearch",
   });
 
   const {
     data: { webSearchResults },
-  } = await backOff(() => internalApiClient.getWebSearchResults(query), {
-    jitter: "full",
-    numOfAttempts: 3,
-    startingDelay: 1_000,
-  });
+  } = await backOff(
+    async () => {
+      try {
+        return await internalApiClient.getWebSearchResults(query);
+      } catch (error) {
+        logger.error(
+          `Error fetching web search results for query "${query}": ${stringifyError(
+            error,
+          )}`,
+        );
+        throw error;
+      }
+    },
+    {
+      jitter: "full",
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+    },
+  );
 
   const webPages = webSearchResults.slice(0, numberOfSearchResults);
 
@@ -48,8 +61,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
       {
         outputs: [
           {
-            outputName:
-              "webSearchResult" satisfies OutputNameForAction<"webSearch">,
+            outputName: "webSearchResult",
             payload: {
               kind: "WebSearchResult",
               value: mapWebSearchResults(webPages),
@@ -58,5 +70,5 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
         ],
       },
     ],
-  } satisfies Status<{ outputs: StepOutput[] }>;
+  };
 };

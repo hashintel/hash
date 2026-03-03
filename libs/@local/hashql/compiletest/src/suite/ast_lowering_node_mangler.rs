@@ -7,11 +7,9 @@ use hashql_ast::{
     node::expr::Expr,
     visit::Visitor as _,
 };
-use hashql_core::{
-    heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
-};
+use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringNameManglerSuite;
 
@@ -20,13 +18,18 @@ impl Suite for AstLoweringNameManglerSuite {
         "ast/lowering/name-mangler"
     }
 
+    fn description(&self) -> &'static str {
+        "Name mangling for unique identification"
+    }
+
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);
@@ -36,7 +39,7 @@ impl Suite for AstLoweringNameManglerSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut renumberer = NameMangler::new(heap);
         renumberer.visit_expr(&mut expr);

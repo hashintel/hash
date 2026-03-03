@@ -1,13 +1,7 @@
-[import-resolver::unresolved-import] Error: Unresolved import
-   ╭─[ <unknown>:3:37 ]
-   │
- 3 │ ["use", "core::bits", { "#tuple": ["lshift"] }, "_"]
-   │                ──┬─                 ───┬──  
-   │                  │                     ╰──── 'lshift' not found in module 'core::bits'
-   │                  │                          
-   │                  ╰────────────────────────── This module
-   │ 
-   │ Help: Check the spelling and ensure the item is exported and available in this context.
-   │ 
-   │ Note: Items must be defined and accessible from the importing location. Make sure the item exists and is public.
-───╯
+error[import-resolver::unresolved-import]: Unresolved import
+  ╭▸ 
+3 │ ["use", "core::bits", { "#tuple": ["lshift"] }, "_"]
+  │                ──── This module     ━━━━━━ 'lshift' not found in module 'core::bits'
+  │
+  ├ help: Check the spelling and ensure the item is exported and available in this context.
+  ╰ note: Items must be defined and accessible from the importing location. Make sure the item exists and is public.

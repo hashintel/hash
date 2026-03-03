@@ -4,7 +4,7 @@ Expr#4294967040@27
       Expr#4294967040@13
         ExprKind (Literal)
           LiteralExpr#4294967040@12
-            LiteralKind (True)
+            Primitive (True)
       Expr#4294967040@26
         ExprKind (Call)
           CallExpr#4294967040@26

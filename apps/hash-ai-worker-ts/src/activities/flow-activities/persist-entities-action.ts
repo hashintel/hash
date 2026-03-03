@@ -1,28 +1,39 @@
 import type { EntityId } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
-  flattenPropertyMetadata,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+  getStorageProvider,
+  resolvePayloadValue,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
-  PersistedEntities,
-  PersistedEntity,
+  PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 
-import {
-  fileEntityTypeIds,
-  persistEntityAction,
-} from "./persist-entity-action.js";
-import type { FlowActionActivity } from "./types.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
 
-export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
-  const { draft, proposedEntities } = getSimplifiedActionInputs({
-    inputs,
-    actionType: "persistEntities",
-  });
+export const persistEntitiesAction: AiFlowActionActivity<
+  "persistEntities"
+> = async ({ inputs }) => {
+  const { runId, stepId, workflowId } = await getFlowContext();
+
+  const { draft, proposedEntities: proposedEntitiesInput } =
+    getSimplifiedAiFlowActionInputs({
+      inputs,
+      actionType: "persistEntities",
+    });
+
+  const proposedEntities = await resolvePayloadValue(
+    getStorageProvider(),
+    "ProposedEntity",
+    proposedEntitiesInput,
+  );
 
   /**
    * Sort the entities to persist in dependency order:
@@ -64,18 +75,13 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     },
   );
 
-  const persistedFilesByOriginalUrl: Record<string, PersistedEntity> = {};
+  const persistedFilesByOriginalUrl: Record<string, PersistedEntityMetadata> =
+    {};
 
-  const failedEntitiesByLocalId: Record<
-    EntityId,
-    Omit<FailedEntityProposal, "existingEntity"> & {
-      existingEntity?: HashEntity;
-    }
-  > = {};
-  const persistedEntitiesByLocalId: Record<
-    EntityId,
-    Omit<PersistedEntity, "entity"> & { entity?: HashEntity }
-  > = {};
+  const failedEntitiesByLocalId: Record<EntityId, FailedEntityProposal> = {};
+
+  const persistedEntitiesByLocalId: Record<EntityId, PersistedEntityMetadata> =
+    {};
 
   /**
    * We could potentially parallelize the creation of (a) non-link entities and then (b) link entities in batches,
@@ -85,6 +91,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    * if an existing entity is found to update rather than a new one with the localId being created.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
+    // Heartbeat to indicate the activity is still running
+    Context.current().heartbeat();
+
     const {
       claims,
       entityTypeIds,
@@ -118,14 +127,12 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
       const leftEntityId =
         sourceEntityId.kind === "proposed-entity"
-          ? persistedEntitiesByLocalId[sourceEntityId.localId]?.entity?.metadata
-              .recordId.entityId
+          ? persistedEntitiesByLocalId[sourceEntityId.localId]?.entityId
           : sourceEntityId.entityId;
 
       const rightEntityId =
         targetEntityId.kind === "proposed-entity"
-          ? persistedEntitiesByLocalId[targetEntityId.localId]?.entity?.metadata
-              .recordId.entityId
+          ? persistedEntitiesByLocalId[targetEntityId.localId]?.entityId
           : targetEntityId.entityId;
 
       if (!leftEntityId) {
@@ -161,37 +168,18 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     for (const source of entitySources) {
       if (source.location?.uri && !source.entityId) {
         const persistedFile = persistedFilesByOriginalUrl[source.location.uri];
-        if (persistedFile?.entity) {
-          source.entityId = new HashEntity(persistedFile.entity).entityId;
+        if (persistedFile?.entityId) {
+          source.entityId = persistedFile.entityId;
         }
       }
     }
 
-    const persistedEntityOutputs = await persistEntityAction({
-      inputs: [
-        {
-          inputName: "draft",
-          payload: { kind: "Boolean", value: draft ?? false },
-        },
-        {
-          inputName: "proposedEntityWithResolvedLinks",
-          payload: {
-            kind: "ProposedEntityWithResolvedLinks",
-            value: entityWithResolvedLinks,
-          },
-        },
-      ],
+    const persistedEntityOutputs = await persistEntity({
+      proposedEntityWithResolvedLinks: entityWithResolvedLinks,
+      draft: draft ?? false,
     });
 
-    const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;
-
-    if (output && output.kind !== "PersistedEntity") {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Unexpected output kind ${output.kind}`,
-      };
-      continue;
-    }
+    const output = persistedEntityOutputs.contents[0]?.outputs[0]?.payload;
 
     if (!output) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
@@ -213,10 +201,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        ...output.value,
-        existingEntity: output.value.existingEntity
-          ? new HashEntity(output.value.existingEntity)
-          : undefined,
+        existingEntityId: output.value.entityId,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
           persistedEntityOutputs.message ?? `no further details available`
@@ -225,26 +210,24 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       continue;
     }
 
-    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-      ...output.value,
-      entity: output.value.entity
-        ? new HashEntity(output.value.entity)
-        : undefined,
-    };
+    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
   }
 
-  const persistedEntities = Object.values(persistedEntitiesByLocalId).map(
-    (persisted) => ({
-      ...persisted,
-      entity: persisted.entity?.toJSON(),
-    }),
-  );
-  const failedEntityProposals = Object.values(failedEntitiesByLocalId).map(
-    (failed) => ({
-      ...failed,
-      existingEntity: failed.existingEntity?.toJSON(),
-    }),
-  );
+  const persistedEntities = Object.values(persistedEntitiesByLocalId);
+
+  // Store the output in S3 to avoid passing large payloads through Temporal
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "persistedEntities",
+    kind: "PersistedEntitiesMetadata",
+    value: {
+      persistedEntities,
+      failedEntityProposals: Object.values(failedEntitiesByLocalId),
+    },
+  });
 
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
@@ -258,7 +241,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       persistedEntities.length > 0
         ? `Persisted ${persistedEntities.length} entities`
         : proposedEntities.length > 0
-          ? `Failed to persist ${failedEntityProposals.length} entities`
+          ? `Failed to persist ${Object.values(failedEntitiesByLocalId).length} entities`
           : `No entities to persist`,
     contents: [
       {
@@ -266,11 +249,8 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
           {
             outputName: "persistedEntities",
             payload: {
-              kind: "PersistedEntities",
-              value: {
-                persistedEntities,
-                failedEntityProposals,
-              } satisfies PersistedEntities,
+              kind: "PersistedEntitiesMetadata",
+              value: storedRef,
             },
           },
         ],

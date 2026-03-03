@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use tsify_next::Tsify;
+use tsify::Tsify;
 use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
 use crate::ontology::{BaseUrl, VersionedUrl};

@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
 description: Rejects invalid identifiers as struct field names
 expression: "{\"#struct\": {\n            \"valid\": {\"#literal\": 1},\n            \"123-invalid\": {\"#literal\": 2}\n        }}"
 ---
-[31m[parser::object::struct-key-expected-identifier] Error:[0m Expected identifier for struct field key
-   ╭─[ <unknown>:3:13 ]
-   │
- 3 │             "123-invalid": {"#literal": 2}
-   │             ──────┬──────  
-   │                   ╰──────── Invalid struct field key
-   │ 
-   │ Note: Struct field keys must be valid HashQL identifiers
-───╯
+error[parser::object::struct-key-expected-identifier]: Expected identifier for struct field key
+  ╭▸ 
+3 │             "123-invalid": {"#literal": 2}
+  │             ━━━━━━━━━━━━━ Invalid struct field key
+  │
+  ╰ note: Struct field keys must be valid HashQL identifiers

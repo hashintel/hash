@@ -1,0 +1,29 @@
+diff --git a/dist/handlers/response-interceptor.js b/dist/handlers/response-interceptor.js
+index cc5ffe2b43e13b9d72cea48efb1d3029c1928369..7757440b7b021da7ce708b6e40cc18626117df49 100644
+--- a/dist/handlers/response-interceptor.js
++++ b/dist/handlers/response-interceptor.js
+@@ -80,11 +80,6 @@ function copyHeaders(originalResponse, response) {
+         keys = keys.filter((key) => !['content-encoding', 'transfer-encoding'].includes(key));
+         keys.forEach((key) => {
+             let value = originalResponse.headers[key];
+-            if (key === 'set-cookie') {
+-                // remove cookie domain
+-                value = Array.isArray(value) ? value : [value];
+-                value = value.map((x) => x.replace(/Domain=[^;]+?/i, ''));
+-            }
+             response.setHeader(key, value);
+         });
+     }
+diff --git a/dist/http-proxy-middleware.js b/dist/http-proxy-middleware.js
+index 58f6d1a9fe23340e29413f976752bf09fd397e8e..2f3fef917045998d6d9e8850d636404c9f7fe769 100644
+--- a/dist/http-proxy-middleware.js
++++ b/dist/http-proxy-middleware.js
+@@ -139,7 +139,7 @@ class HttpProxyMiddleware {
+         this.proxyOptions = options;
+         this.logger = (0, logger_1.getLogger)(options);
+         (0, debug_1.Debug)(`create proxy server`);
+-        this.proxy = httpProxy.createProxyServer({});
++        this.proxy = httpProxy.createProxyServer(options);
+         this.registerPlugins(this.proxy, this.proxyOptions);
+         this.pathRewriter = PathRewriter.createPathRewriter(this.proxyOptions.pathRewrite); // returns undefined when "pathRewrite" is not provided
+         // https://github.com/chimurai/http-proxy-middleware/issues/19

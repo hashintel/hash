@@ -1,0 +1,47 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/administrative_reduction/tests.rs
+expression: value
+---
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 42
+
+        return %0
+    }
+}
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = apply ({def@0} as FnPtr)
+
+        return %0
+    }
+}
+
+================== Changed: Yes ==================
+
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 42
+
+        return %0
+    }
+}
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        %1 = 42
+        %0 = %1
+
+        return %0
+    }
+}

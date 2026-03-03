@@ -10,7 +10,7 @@ fn downcast_ref() {
     assert!(report.contains::<RootError>());
 
     assert!(!report.contains::<AttachmentA>());
-    report = report.attach(AttachmentA(10));
+    report = report.attach_opaque(AttachmentA(10));
     assert!(report.contains::<AttachmentA>());
 
     let attachment = report
@@ -25,7 +25,7 @@ fn downcast_mut() {
     assert!(report.contains::<RootError>());
 
     assert!(!report.contains::<AttachmentA>());
-    report = report.attach(AttachmentA(10));
+    report = report.attach_opaque(AttachmentA(10));
     assert!(report.contains::<AttachmentA>());
 
     let attachment = report

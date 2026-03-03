@@ -2,7 +2,10 @@ use hashql_ast::node::{
     expr::{DictExpr, Expr, ExprKind, LiteralExpr, dict::DictEntry},
     id::NodeId,
 };
-use hashql_core::literal::{LiteralKind, StringLiteral};
+use hashql_core::{
+    heap::CollectIn as _,
+    value::{self, Primitive},
+};
 use text_size::TextRange;
 
 use super::{
@@ -32,7 +35,7 @@ pub(crate) struct DictNode<'heap> {
 
 impl<'heap> DictNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_dict(state)?;
@@ -53,7 +56,7 @@ impl<'heap> DictNode<'heap> {
 impl<'heap> State<'heap> for DictNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#dict", self.key_span, &mut self.r#type, state, &key)?;
@@ -62,7 +65,7 @@ impl<'heap> State<'heap> for DictNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -76,7 +79,7 @@ impl<'heap> State<'heap> for DictNode<'heap> {
 }
 
 fn parse_dict_object<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
@@ -91,9 +94,7 @@ fn parse_dict_object<'heap, 'source>(
             kind: ExprKind::Literal(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
                 span: key_span_id,
-                kind: LiteralKind::String(StringLiteral {
-                    value: state.intern_symbol(key.value),
-                }),
+                kind: Primitive::String(value::String::new(state.intern_symbol(key.value))),
                 r#type: None,
             }),
         };
@@ -106,8 +107,8 @@ fn parse_dict_object<'heap, 'source>(
         entries.push(DictEntry {
             id: NodeId::PLACEHOLDER,
             span: state.insert_range(entry_span),
-            key: state.heap().boxed(key),
-            value: state.heap().boxed(value),
+            key: Box::new_in(key, state.heap()),
+            value: Box::new_in(value, state.heap()),
         });
 
         Ok(())
@@ -116,13 +117,13 @@ fn parse_dict_object<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().transfer_vec(entries),
+        entries: entries.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }
 
 fn parse_dict_array<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
@@ -180,8 +181,8 @@ fn parse_dict_array<'heap, 'source>(
         entries.push(DictEntry {
             id: NodeId::PLACEHOLDER,
             span: state.insert_range(span),
-            key: state.heap().boxed(key),
-            value: state.heap().boxed(value),
+            key: Box::new_in(key, state.heap()),
+            value: Box::new_in(value, state.heap()),
         });
 
         Ok(())
@@ -190,13 +191,13 @@ fn parse_dict_array<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().transfer_vec(entries),
+        entries: entries.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }
 
 fn parse_dict<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     // We're parsing everything here, so that we're able to improve the error message
     let token = state

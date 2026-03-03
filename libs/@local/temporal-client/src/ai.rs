@@ -2,13 +2,15 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use serde::Serialize;
-use temporal_client::{WorkflowClientTrait as _, WorkflowOptions};
-use temporal_sdk_core_protos::{
+use temporalio_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporalio_common::protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
 use type_system::{
-    knowledge::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    knowledge::entity::EntityId,
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata, id::BaseUrl,
+    },
     principal::actor::ActorEntityUuid,
 };
 use uuid::Uuid;
@@ -36,6 +38,7 @@ impl TemporalClient {
                         JSON_ENCODING_VAL.as_bytes().to_vec(),
                     )]),
                     data: serde_json::to_vec(payload).change_context(WorkflowError(workflow))?,
+                    external_payloads: Vec::new(),
                 }],
                 "ai".to_owned(),
                 Uuid::new_v4().to_string(),
@@ -135,42 +138,48 @@ impl TemporalClient {
         .await
     }
 
-    /// Starts a workflow to update the embeddings for the provided entity.
+    /// Starts a workflow to update the embeddings for the provided entities.
     ///
-    /// Returns the run ID of the workflow.
+    /// The `embedding_exclusions` parameter specifies which properties should be excluded
+    /// from embedding generation for specific entity types (e.g., email for User entities).
+    ///
+    /// Returns the run IDs of the workflows.
     ///
     /// # Errors
     ///
-    /// Returns an error if the workflow fails to start.
+    /// Returns an error if any workflow fails to start.
     pub async fn start_update_entity_embeddings_workflow(
         &self,
         actor_id: ActorEntityUuid,
-        entities: &[Entity],
+        entity_ids: &[EntityId],
+        embedding_exclusions: &HashMap<BaseUrl, Vec<BaseUrl>>,
     ) -> Result<Vec<String>, Report<WorkflowError>> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
         struct UpdateEntityEmbeddingsParams<'a> {
             authentication: AuthenticationContext,
-            entities: &'a [Entity],
+            entity_ids: &'a [EntityId],
+            embedding_exclusions: &'a HashMap<BaseUrl, Vec<BaseUrl>>,
         }
 
-        // There is an upper limit on how many bytes can be sent in a single workflow invocation so
-        // we need to split the entities into chunks.
-        const CHUNK_SIZE: usize = 100;
+        // EntityIDs are small (~100 bytes each), but we still chunk to avoid hitting
+        // Temporal's payload size limits when dealing with very large batches.
+        const CHUNK_SIZE: usize = 10_000;
 
         #[expect(
             clippy::integer_division,
             clippy::integer_division_remainder_used,
-            reason = "The devision is only used to calculate vector capacity and is rounded up."
+            reason = "The division is only used to calculate vector capacity and is rounded up."
         )]
-        let mut workflow_ids = Vec::with_capacity(entities.len() / CHUNK_SIZE + 1);
-        for partial_entities in entities.chunks(CHUNK_SIZE) {
+        let mut workflow_ids = Vec::with_capacity(entity_ids.len() / CHUNK_SIZE + 1);
+        for chunk in entity_ids.chunks(CHUNK_SIZE) {
             workflow_ids.push(
                 self.start_ai_workflow(
                     "updateEntityEmbeddings",
                     &UpdateEntityEmbeddingsParams {
                         authentication: AuthenticationContext { actor_id },
-                        entities: partial_entities,
+                        entity_ids: chunk,
+                        embedding_exclusions,
                     },
                 )
                 .await?,

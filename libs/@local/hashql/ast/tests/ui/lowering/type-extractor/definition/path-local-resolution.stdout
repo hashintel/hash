@@ -3,6 +3,8 @@ Expr#4294967040@25
 
 ------------------------
 
-type Local:0 = Number
+┌─ Local:0<>
+└→ Number
 
-type Reference:0 = Number
+┌─ Reference:0<>
+└→ Number

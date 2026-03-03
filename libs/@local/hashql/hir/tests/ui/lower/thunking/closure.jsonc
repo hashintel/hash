@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Simple closure thunking transformation
+["fn", { "#tuple": [] }, { "#struct": { "a": "Number" } }, "Number", "a"]

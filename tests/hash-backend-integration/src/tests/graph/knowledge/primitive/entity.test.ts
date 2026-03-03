@@ -15,25 +15,22 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
+  queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
   blockProtocolEntityTypes,
@@ -42,7 +39,6 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import type {
@@ -258,30 +254,24 @@ describe("Entity CRU", () => {
   });
 
   it("can read a multi-type entity", async () => {
-    const { data: response } = await graphApi.getEntitySubgraph(
-      testUser.accountId,
+    const response = await queryEntities(
+      { graphApi },
+      { actorId: testUser.accountId },
       {
         filter: {
           // We have quite a few entities seeded and above we inserted a multi-type entity as well.
           // We can use the opportunity to simply test all entities
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
     );
 
-    const entities = getRoots(
-      mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        response.subgraph,
-        testUser.accountId,
-      ),
-    );
-
     // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
-    for (const entity of entities) {
+    for (const entity of response.entities) {
       const entityTypeFromResponse = getClosedMultiEntityTypeFromMap(
         response.closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
@@ -289,10 +279,10 @@ describe("Entity CRU", () => {
       expect(entityTypeFromResponse).toBeDefined();
 
       const {
-        closedMultiEntityTypes: closedTypeMapFromGraph,
+        entityTypes: closedTypeMapFromGraph,
         definitions: definitionsFromGraph,
       } = await getClosedMultiEntityTypes(
-        graphContext,
+        graphContext.graphApi,
         { actorId: testUser.accountId },
         {
           entityTypeIds: [entity.metadata.entityTypeIds],
@@ -313,17 +303,17 @@ describe("Entity CRU", () => {
         entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
 
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.dataTypes,
       )) {
         expect(response.definitions?.dataTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.propertyTypes,
       )) {
         expect(response.definitions?.propertyTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.entityTypes,
       )) {
         expect(response.definitions?.entityTypes[id]).toEqual(schema);
@@ -374,8 +364,10 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest person entities", async () => {
-    const allEntities = await graphApi
-      .getEntitySubgraph(testUser.accountId, {
+    const { entities } = await queryEntities(
+      { graphApi },
+      { actorId: testUser.accountId },
+      {
         filter: {
           all: [
             {
@@ -391,27 +383,20 @@ describe("Entity CRU", () => {
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-      })
-      .then(({ data }) =>
-        getRoots(
-          mapGraphApiSubgraphToSubgraph<EntityRootType>(
-            data.subgraph,
-            testUser.accountId,
-          ),
-        ),
-      );
+        includePermissions: false,
+      },
+    );
 
-    const newlyUpdated = allEntities.find(
+    const newlyUpdated = entities.find(
       (ent) =>
         ent.metadata.recordId.entityId ===
         updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions of the same entity.
-    expect(allEntities.length).toBe(1);
+    expect(entities.length).toBe(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(

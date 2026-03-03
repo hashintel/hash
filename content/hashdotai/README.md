@@ -1,11 +1,9 @@
 [`docs`]: https://github.com/hashintel/hash/tree/main/content/hashdotai/docs
 [`glossary`]: https://github.com/hashintel/hash/tree/main/content/hashdotai/glossary
-[`integrations`]: https://github.com/hashintel/hash/tree/main/content/hashdotai/integrations
 [`internal` monorepo]: https://github.com/hashintel/internal
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hashdotai
 [hash.ai/docs]: https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_hashdotai
 [hash.ai/glossary]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hashdotai
-[hash.ai/integrations]: https://hash.ai/integrations?utm_medium=organic&utm_source=github_readme_hashdotai
 [license determination instructions]: https://github.com/hashintel/hash/blob/main/LICENSE.md#1-license-determination
 
 <!-- markdownlint-disable link-fragments -->
@@ -22,4 +20,3 @@ The [hash.ai] website code resides in our private [`internal` monorepo]. However
 
 - **User Guide** ([hash.ai/docs]): in the [`docs`] sub-directory
 - **Glossary Definitions** ([hash.ai/glossary]): in the [`glossary`] sub-directory
-- **Integrations** ([hash.ai/integrations]): in the [`integrations`] sub-directory

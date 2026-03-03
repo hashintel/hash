@@ -2,6 +2,7 @@ import type { JsonObject, JsonValue } from "@blockprotocol/core";
 import { TextField } from "@hashintel/design-system";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import type { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
+import { useHotkeys } from "@mantine/hooks";
 import {
   Box,
   Checkbox,
@@ -14,7 +15,6 @@ import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindPopover } from "material-ui-popup-state/hooks";
 import type { ChangeEvent, ForwardedRef, FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useKey } from "rooks";
 
 import { MenuItem } from "../../../../shared/ui";
 
@@ -188,7 +188,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
   popupState,
   updateConfig,
 }) => {
-  useKey(["Escape"], closeMenu);
+  useHotkeys([["Escape", closeMenu]]);
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 

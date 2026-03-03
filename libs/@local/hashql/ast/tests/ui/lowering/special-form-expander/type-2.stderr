@@ -1,11 +1,7 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-   ╭─[ <unknown>:3:1 ]
-   │
- 3 │ ["::kernel::special_form::type", "x", "Integer"]
-   │ ────────────────────────┬───────────────────────  
-   │                         ╰───────────────────────── Add missing arguments
-   │ 
-   │ Help: The type/3 form should look like: (type name type-expr body)
-   │ 
-   │ Note: The type function has 1 variant: type/3
-───╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "x", "Integer"]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
+  │
+  ├ help: The type/3 form should look like: (type name type-expr body)
+  ╰ note: The type function has 1 variant: type/3

@@ -1,3 +1,4 @@
+import { useLocalStorage } from "@mantine/hooks";
 import type { PropsWithChildren, RefObject } from "react";
 import {
   createContext,
@@ -7,7 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useLocalstorageState } from "rooks";
 
 import type {
   DynamicNodeSizing,
@@ -67,15 +67,17 @@ export const GraphContextProvider = <
   onNodeSecondClick,
   onRender,
 }: PropsWithChildren<GraphContextProviderProps<NodeSizing>>) => {
-  const [config, setConfig] = useLocalstorageState<GraphVizConfig<NodeSizing>>(
-    `graph-viz-config~${defaultConfig.graphKey}`,
-    defaultConfig,
-  );
+  const [config, setConfig] = useLocalStorage<GraphVizConfig<NodeSizing>>({
+    key: `graph-viz-config~${defaultConfig.graphKey}`,
+    defaultValue: defaultConfig,
+    getInitialValueInEffect: false,
+  });
 
-  const [filters, setFilters] = useLocalstorageState<GraphVizFilters>(
-    `graph-viz-filters~${defaultConfig.graphKey}`,
-    defaultFilters ?? {},
-  );
+  const [filters, setFilters] = useLocalStorage<GraphVizFilters>({
+    key: `graph-viz-filters~${defaultConfig.graphKey}`,
+    defaultValue: defaultFilters ?? {},
+    getInitialValueInEffect: false,
+  });
 
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);

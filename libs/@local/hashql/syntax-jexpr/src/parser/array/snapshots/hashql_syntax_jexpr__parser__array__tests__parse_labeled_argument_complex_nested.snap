@@ -24,4 +24,4 @@ Expr#4294967040@17
                     Expr#4294967040@13
                       ExprKind (Literal)
                         LiteralExpr#4294967040@12
-                          LiteralKind (True)
+                          Primitive (True)

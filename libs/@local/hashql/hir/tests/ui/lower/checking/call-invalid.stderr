@@ -1,20 +1,15 @@
-[type-check::bound-constraint-violation] Error: Type bound constraint violation
-   ╭─[ <unknown>:3:3 ]
-   │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ Upper bound `Number` is not a supertype of the lower bound
-   │ 
- 3 │ ["+", { "#literal": 42.12 }, { "#literal": "42" }]
-   │   ┬                                        ──┬─  
-   │   ╰────────────────────────────────────────────── Type variable has incompatible upper and lower bounds
-   │                                              │   
-   │                                              ╰─── Lower bound `String` must be a subtype of the upper bound
-   │ 
-   │ Help: These type bounds create an impossible constraint. To fix this:
-   │       1. Modify `String` to be a proper subtype of `Number`
-   │       2. Or adjust `Number` to be a supertype of `String`
-   │       3. Or check your code for contradictory type assertions
-   │ 
-   │ Note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
-───╯
+error[type-check::bound-constraint-violation]: Type bound constraint violation
+  ╭▸ 
+1 │ //@ run: fail
+  │ ─ Upper bound `Number` is not a supertype of the lower bound
+2 │ //@ description: Ensures type checking fails when calling a function with an incompatible argument type (Number vs String).
+3 │ ["+", { "#literal": 42.12 }, { "#literal": "42" }]
+  │   ┯                                        ──── Lower bound `String` must be a subtype of the upper bound
+  │   │
+  │   Type variable has incompatible upper and lower bounds
+  │
+  ├ help: These type bounds create an impossible constraint. To fix this:
+  │       1. Modify `String` to be a proper subtype of `Number`
+  │       2. Or adjust `Number` to be a supertype of `String`
+  │       3. Or check your code for contradictory type assertions
+  ╰ note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.

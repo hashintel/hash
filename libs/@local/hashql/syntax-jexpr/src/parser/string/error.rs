@@ -1,17 +1,15 @@
 use alloc::borrow::Cow;
 use core::fmt::Write as _;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
 use text_size::{TextRange, TextSize};
-use winnow::error::{ContextError, ParseError, StrContext};
+use winnow::error::{ContextError, StrContext};
 
 use crate::span::Span;
 
@@ -47,20 +45,18 @@ impl DiagnosticCategory for StringDiagnosticCategory {
     clippy::cast_possible_truncation,
     reason = "lexer ensures we never parse more than 4GiB"
 )]
-pub(crate) fn convert_parse_error<I>(
-    spans: &SpanStorage<Span>,
+pub(crate) fn convert_parse_error(
+    spans: &mut SpanTable<Span>,
     parent: SpanId,
-    error: ParseError<I, ContextError>,
+    (offset, error): (usize, ContextError),
 ) -> (Label<SpanId>, Option<String>) {
-    let offset = error.offset();
-    let error = error.into_inner();
-
-    let span = spans.insert(Span {
-        range: TextRange::empty(TextSize::new(offset as u32)),
-        pointer: None,
-
-        parent_id: Some(parent),
-    });
+    let span = spans.insert(
+        Span {
+            range: TextRange::empty(TextSize::new(offset as u32)),
+            pointer: None,
+        },
+        SpanAncestors::union(&[parent]),
+    );
 
     // adapted from the `Display` for `ContextError`.
     let expression = error.context().find_map(|context| match context {
@@ -113,21 +109,20 @@ pub(crate) fn convert_parse_error<I>(
 const SYNTAX_ERROR_NOTE: &str =
     "Check for missing delimiters, incorrect operators, or typos in identifiers.";
 
-pub(crate) fn invalid_expr<I>(
-    spans: &SpanStorage<Span>,
+pub(crate) fn invalid_expr(
+    spans: &mut SpanTable<Span>,
     parent: SpanId,
-    error: ParseError<I, ContextError>,
+    (offset, error): (usize, ContextError),
 ) -> StringDiagnostic {
+    let (label, expected) = convert_parse_error(spans, parent, (offset, error));
+
     let mut diagnostic =
-        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error);
-
-    let (label, expected) = convert_parse_error(spans, parent, error);
-
-    diagnostic.labels.push(label);
+        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error)
+            .primary(label);
 
     if let Some(expected) = expected {
-        diagnostic.add_help(Help::new(expected));
-        diagnostic.add_note(Note::new(SYNTAX_ERROR_NOTE));
+        diagnostic.add_message(Message::help(expected));
+        diagnostic.add_message(Message::note(SYNTAX_ERROR_NOTE));
     }
 
     diagnostic

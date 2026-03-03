@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
-import produce from "immer";
+import { produce } from "immer";
 import { isNumber } from "lodash";
 import { useMemo, useRef, useState } from "react";
 

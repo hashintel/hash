@@ -35,7 +35,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
        check out the other examples
     */
 
-    Err(Report::new(ParseConfigError).attach_printable("unable to read configuration"))
+    Err(Report::new(ParseConfigError).attach("unable to read configuration"))
 }
 
 fn main() {

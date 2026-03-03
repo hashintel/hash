@@ -54,6 +54,21 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
       },
     },
     uploadProvider: {
+      getFlowOutputStorageKey: () => {
+        throw new Error(
+          "File fetching not implemented in tests. Override with mock to test.",
+        );
+      },
+      downloadDirect: () => {
+        throw new Error(
+          "File fetching not implemented in tests. Override with mock to test.",
+        );
+      },
+      uploadDirect: () => {
+        throw new Error(
+          "File fetching not implemented in tests. Override with mock to test.",
+        );
+      },
       getFileEntityStorageKey: (_params) => {
         throw new Error(
           "File fetching not implemented in tests. Override with mock to test.",
@@ -87,9 +102,9 @@ export const createTestUser = async (
 
   const identity = await createKratosIdentity({
     traits: {
-      shortname,
       emails: [`${shortname}@example.com`],
     },
+    verifyEmails: true,
   }).catch((err) => {
     logger.error(
       `Error when creating Kratos Identity, ${shortname}: ${

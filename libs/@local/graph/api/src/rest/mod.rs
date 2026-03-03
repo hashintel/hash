@@ -14,6 +14,7 @@ pub mod status;
 
 pub mod http_tracing_layer;
 
+mod entity_query_request;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -24,7 +25,6 @@ use std::{
     time::Instant,
 };
 
-use async_trait::async_trait;
 use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
@@ -47,8 +47,8 @@ use hash_graph_store::{
     property_type::PropertyTypeStore,
     subgraph::{
         edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
+            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+            KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind, TraversalEdge, TraversalPath,
         },
         identifier::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
@@ -70,7 +70,7 @@ use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
-use serde_json::{Number as JsonNumber, Value as JsonValue};
+use serde_json::{Number as JsonNumber, Value as JsonValue, value::RawValue as RawJsonValue};
 use tower::ServiceBuilder;
 use type_system::{
     ontology::{
@@ -96,7 +96,7 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    status::{report_to_response, status_to_response},
+    status::{BoxedResponse, report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
         MaybeListOfPropertyTypeMetadata,
@@ -110,8 +110,7 @@ use self::{
 
 pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
-#[async_trait]
-impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
+impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
     type Rejection = (StatusCode, Cow<'static, str>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
@@ -131,6 +130,32 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
     }
 }
 
+pub struct InteractiveHeader(pub bool);
+
+impl<S: Sync> FromRequestParts<S> for InteractiveHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Some(value) = parts.headers.get("Interactive") else {
+            return Ok(Self(false));
+        };
+
+        let bytes = value.as_ref();
+        if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
+            return Ok(Self(true));
+        }
+
+        if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
+            return Ok(Self(false));
+        }
+
+        Err((
+            StatusCode::BAD_REQUEST,
+            Cow::Borrowed("`Interactive` header must be either `true` (`1`) or `false` (`0`)"),
+        ))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PermissionResponse {
     pub has_permission: bool,
@@ -144,7 +169,7 @@ pub trait RestApiStore:
         actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, BoxedResponse>> + Send;
 }
 
 impl<S> RestApiStore for S
@@ -162,7 +187,7 @@ where
         actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, Response> {
+    ) -> Result<OntologyTypeMetadata, BoxedResponse> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             let error = "Ontology type is not external".to_owned();
             tracing::error!(id=%reference.url(), error);
@@ -175,11 +200,11 @@ where
 
         self.insert_external_ontology_type(actor_id, reference)
             .await
-            .attach_printable("Could not insert external type")
-            .attach_printable_lazy(|| reference.url().clone())
+            .attach("Could not insert external type")
+            .attach_with(|| reference.url().clone())
             .map_err(|report| {
                 if report.contains::<VersionedUrlAlreadyExists>() {
-                    report_to_response(report.attach(hash_status::StatusCode::AlreadyExists))
+                    report_to_response(report.attach_opaque(hash_status::StatusCode::AlreadyExists))
                 } else {
                     report_to_response(report)
                 }
@@ -258,17 +283,17 @@ impl QueryLogger {
             .value
             .take()
             .ok_or(QueryLoggingError)
-            .attach_printable("no query was captured")?;
+            .attach("no query was captured")?;
         query
             .as_object_mut()
             .ok_or(QueryLoggingError)
-            .attach_printable("serialized value is not an object")?
+            .attach("serialized value is not an object")?
             .insert(
                 "elapsed".to_owned(),
                 JsonValue::Number(
                     JsonNumber::from_u128(self.created_at.elapsed().as_millis())
                         .ok_or(QueryLoggingError)
-                        .attach_printable("Could not convert milliseconds to JSON")?,
+                        .attach("Could not convert milliseconds to JSON")?,
                 ),
             );
 
@@ -289,7 +314,7 @@ pub enum OpenApiQuery<'a> {
     GetEntityTypes(&'a JsonValue),
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
-    GetEntities(&'a JsonValue),
+    GetEntities(&'a RawJsonValue),
     CountEntities(&'a JsonValue),
     GetEntitySubgraph(&'a JsonValue),
     ValidateEntity(&'a JsonValue),
@@ -311,12 +336,14 @@ where
 pub fn openapi_only_router() -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-    Router::new().nest(
-        "/api-doc",
-        Router::new()
-            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-            .route("/models/*path", get(serve_static_schema)),
-    )
+    Router::new()
+        .route("/health", get(async || "Healthy".into_response()))
+        .nest(
+            "/api-doc",
+            Router::new()
+                .route("/openapi.json", get(|| async { Json(open_api_doc) }))
+                .route("/models/{*path}", get(serve_static_schema)),
+        )
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
@@ -428,10 +455,14 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             KnowledgeGraphOutwardEdge,
             Edges,
             GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
             Subgraph,
             SubgraphTemporalAxes,
+
+            TraversalEdge,
+            TraversalPath,
+            EntityTraversalEdge,
+            EntityTraversalPath,
+            EdgeDirection,
 
             DecisionTime,
             TransactionTime,
@@ -455,15 +486,15 @@ impl OpenApiDocumentation {
     pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
         let openapi = Self::openapi();
         let path = path.as_ref();
-        fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
+        fs::create_dir_all(path).attach_with(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
 
         {
             let mut writer = io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
-                    .attach_printable("could not write openapi.json")
-                    .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
+                    .attach("could not write openapi.json")
+                    .attach_with(|| openapi_json_path.display().to_string())?,
             );
             serde_json::to_writer_pretty(&mut writer, &openapi).map_err(io::Error::from)?;
             // Add a newline to the end of the file because many IDEs and tools expect or
@@ -478,16 +509,16 @@ impl OpenApiDocumentation {
 
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
-            .attach_printable("could not create directory")
-            .attach_printable_lazy(|| model_path_dir.display().to_string())?;
+            .attach("could not create directory")
+            .attach_with(|| model_path_dir.display().to_string())?;
 
         for file in STATIC_SCHEMAS.files() {
             let model_path_source = model_def_path.join(file.path());
             let model_path_target = model_path_dir.join(file.path());
             fs::copy(&model_path_source, &model_path_target)
-                .attach_printable("could not copy file")
-                .attach_printable_lazy(|| model_path_source.display().to_string())
-                .attach_printable_lazy(|| model_path_target.display().to_string())?;
+                .attach("could not copy file")
+                .attach_with(|| model_path_source.display().to_string())
+                .attach_with(|| model_path_target.display().to_string())?;
         }
 
         Ok(())
@@ -660,6 +691,12 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("ExistsFilter"))
+                                .property("exists", Ref::from_schema_name("PathExpression"))
+                                .required("exists"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("GreaterFilter"))
                                 .property(
                                     "greater",
@@ -759,45 +796,47 @@ impl Modify for FilterSchemaAddon {
                 .into(),
             );
             components.schemas.insert(
+                "PathExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("PathExpression"))
+                    .property(
+                        "path",
+                        ArrayBuilder::new().items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityQueryToken"))
+                                .item(Ref::from_schema_name("Selector"))
+                                .item(
+                                    ObjectBuilder::new()
+                                        .schema_type(SchemaType::String)
+                                        .enum_values(Some(["convert"])),
+                                )
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
+                        ),
+                    )
+                    .required("path")
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
+                "ParameterExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("ParameterExpression"))
+                    .property("parameter", Any::schema().1)
+                    .required("parameter")
+                    .property("convert", ParameterConversion::schema().1)
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
                 "FilterExpression".to_owned(),
                 schema::Schema::OneOf(
                     OneOfBuilder::new()
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("PathExpression"))
-                                .property(
-                                    "path",
-                                    ArrayBuilder::new().items(
-                                        OneOfBuilder::new()
-                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
-                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector"))
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String)
-                                                    .enum_values(Some(["convert"])),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::Number),
-                                            ),
-                                    ),
-                                )
-                                .required("path"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema().1)
-                                .required("parameter")
-                                .property("convert", ParameterConversion::schema().1),
-                        )
+                        .item(Ref::from_schema_name("PathExpression"))
+                        .item(Ref::from_schema_name("ParameterExpression"))
                         .build(),
                 )
                 .into(),

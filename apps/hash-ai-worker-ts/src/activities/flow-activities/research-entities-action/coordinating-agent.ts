@@ -4,11 +4,14 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+  getStorageProvider,
+  resolvePayloadValue,
+  storePayload,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
@@ -31,7 +34,6 @@ import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
-import type { FlowActionActivity } from "../types.js";
 import { createCheckpoint } from "./checkpoints.js";
 import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
 import { processCompleteToolCall } from "./coordinating-agent/process-complete-tool-call.js";
@@ -71,20 +73,33 @@ const parseAndResolveCoordinatorInputs = async (params: {
   const {
     prompt,
     entityTypeIds,
-    existingEntities: inputExistingEntities,
+    existingEntities: existingEntitiesInput,
     reportSpecification,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs: stepInputs,
     actionType: "researchEntities",
   });
 
   const { userAuthentication } = await getFlowContext();
 
+  // Resolve the stored ref to get the array of PersistedEntitiesMetadata
+  const inputExistingEntities = existingEntitiesInput
+    ? await resolvePayloadValue(
+        getStorageProvider(),
+        "PersistedEntitiesMetadata",
+        existingEntitiesInput,
+      )
+    : undefined;
+
   /**
    * @todo: simplify the properties in the existing entities
    */
   const existingEntities = inputExistingEntities
-    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
+    ? await mapActionInputEntitiesToEntities({
+        actorId: userAuthentication.actorId,
+        graphApiClient,
+        inputEntities: inputExistingEntities,
+      })
     : undefined;
 
   let existingEntitySummaries: ExistingEntitySummary[] | undefined = undefined;
@@ -141,14 +156,17 @@ const parseAndResolveCoordinatorInputs = async (params: {
  * 1. Any claims inferred during the process will be saved to the graph, in the web chosen for the overall flow run
  * 2. Any metered API usage incurred will be recorded
  */
-export const runCoordinatingAgent: FlowActionActivity<{
-  state: CoordinatingAgentState;
-  testingParams?: {
-    humanInputCanBeRequested?: boolean;
-    persistState?: (state: CoordinatingAgentState) => void;
-    resumeFromState?: CoordinatingAgentState;
-  };
-}> = async ({ inputs: stepInputs, state, testingParams }) => {
+export const runCoordinatingAgent: AiFlowActionActivity<
+  "researchEntities",
+  {
+    state: CoordinatingAgentState;
+    testingParams?: {
+      humanInputCanBeRequested?: boolean;
+      persistState?: (state: CoordinatingAgentState) => void;
+      resumeFromState?: CoordinatingAgentState;
+    };
+  }
+> = async ({ inputs: stepInputs, state, testingParams }) => {
   const workerIdentifiers = state.coordinatorIdentifiers;
 
   const input = await parseAndResolveCoordinatorInputs({
@@ -156,7 +174,8 @@ export const runCoordinatingAgent: FlowActionActivity<{
     testingParams,
   });
 
-  const { flowEntityId, stepId, webId } = await getFlowContext();
+  const { flowEntityId, runId, stepId, webId, workflowId } =
+    await getFlowContext();
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -579,22 +598,35 @@ export const runCoordinatingAgent: FlowActionActivity<{
     },
   ]);
 
+  // Store the proposed entities in S3 to avoid passing large payloads through Temporal
+  const allProposedEntitiesForOutput = [
+    ...allProposedEntities,
+    ...fileEntityProposals,
+  ];
+  const storedRef = await storePayload({
+    storageProvider: getStorageProvider(),
+    workflowId,
+    runId,
+    stepId,
+    outputName: "proposedEntities",
+    kind: "ProposedEntity",
+    value: allProposedEntitiesForOutput,
+  });
+
   return {
     code: StatusCode.Ok,
     contents: [
       {
         outputs: [
           {
-            outputName:
-              "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+            outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
-              value: [...allProposedEntities, ...fileEntityProposals],
+              value: storedRef,
             },
           },
           {
-            outputName:
-              "highlightedEntities" satisfies OutputNameForAction<"researchEntities">,
+            outputName: "highlightedEntities",
             payload: {
               kind: "EntityId",
               value: submittedEntities.map(

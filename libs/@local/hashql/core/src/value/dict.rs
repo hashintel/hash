@@ -11,13 +11,13 @@ use super::Value;
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+///     value::{Integer, Primitive, String},
 ///     value::{Dict, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
 ///
 /// // Create a dict from key-value pairs
 /// let person = Dict::from_entries([
@@ -53,13 +53,13 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let entries = [
     ///     (string("b"), integer("2")),
@@ -84,12 +84,12 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let key = string("username");
     /// let value = string("alice");
@@ -110,12 +110,12 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let dict = Dict::from_entries([
     ///     (string("config"), string("enabled"))
@@ -140,13 +140,13 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let original = Dict::from_entries([
     ///     (string("a"), integer("1"))
@@ -174,13 +174,13 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let original = Dict::from_entries([
     ///     (string("a"), integer("1")),
@@ -207,12 +207,12 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let dict = Dict::from_entries([(string("key1"), string("value1"))]);
     ///
@@ -231,13 +231,13 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let empty_dict = Dict::from_entries([]);
     /// assert_eq!(empty_dict.len(), 0);
@@ -260,12 +260,12 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_dict = Dict::from_entries([]);
     /// assert!(empty_dict.is_empty());
@@ -287,13 +287,13 @@ impl<'heap> Dict<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String},
     ///     value::{Dict, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let dict = Dict::from_entries([
     ///     (string("name"), string("Alice")),

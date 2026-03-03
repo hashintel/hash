@@ -6,6 +6,7 @@ use type_system::principal::{
     actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
     actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
 };
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 #[error("Could not insert account")]
@@ -15,6 +16,8 @@ pub struct AccountInsertionError;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateUserActorParams {
+    #[serde(skip)]
+    pub user_id: Option<Uuid>,
     pub shortname: Option<String>,
     pub registration_complete: bool,
 }
@@ -68,6 +71,19 @@ pub struct WebRetrievalError;
 #[derive(Debug, Error)]
 #[error("Could not insert web")]
 pub struct WebInsertionError;
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not update web: {_variant}")]
+pub enum WebUpdateError {
+    #[display("Web `{web_id}` does not exist")]
+    NotFound { web_id: WebId },
+    #[display("Shortname `{shortname}` is already taken")]
+    AlreadyExists { shortname: String },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl core::error::Error for WebUpdateError {}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -181,6 +197,20 @@ pub trait AccountStore {
         actor_id: ActorEntityUuid,
         id: WebId,
     ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
+
+    /// Updates the web's shortname.
+    ///
+    /// # Errors
+    ///
+    /// - [`WebUpdateError::NotFound`] if the web does not exist.
+    /// - [`WebUpdateError::AlreadyExists`] if the shortname is already taken.
+    /// - [`WebUpdateError::StoreError`] if the underlying store operation failed.
+    fn update_web_shortname(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> impl Future<Output = Result<(), Report<WebUpdateError>>> + Send;
 
     /// Retrieves the web as specified by the `shortname`.
     ///

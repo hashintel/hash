@@ -1,0 +1,7 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+::core::bool::and(true, ::core::cmp::gte(4, 3))
+
+════ HIR after normalization ═══════════════════════════════════════════════════
+
+let %1 = if true then let %0 = 4 >= 3 in %0 else false in %1

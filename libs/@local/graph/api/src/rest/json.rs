@@ -1,10 +1,9 @@
-//! Vendored and modified from `axum::json::Json` to allow us to handle the rejection ourselves
+//! Vendored and modified from `axum::json::Json` to allow us to handle the rejection ourselves.
 //!
-//! As recommended per <https://github.com/tokio-rs/axum/discussions/1610#discussioncomment-4292449>
+//! As recommended per <https://github.com/tokio-rs/axum/discussions/1610#discussioncomment-4292449>.
 
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use axum::{
     body::{Body, Bytes},
     extract::FromRequest,
@@ -17,19 +16,19 @@ use hash_status::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
 
+use super::status::BoxedResponse;
 use crate::rest::status::status_to_response;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
 pub(crate) struct Json<T>(pub T);
 
-#[async_trait]
 impl<T, S> FromRequest<S> for Json<T>
 where
     T: DeserializeOwned,
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = BoxedResponse;
 
     // TODO: can we generally add `RequestInfo` including information such as the route
     //   see https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
@@ -149,7 +148,8 @@ where
                     )]),
                     "UNKNOWN".to_owned(),
                 ))],
-            )),
+            ))
+            .into_response(),
         }
     }
 }

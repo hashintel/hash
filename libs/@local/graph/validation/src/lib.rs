@@ -246,7 +246,7 @@ mod tests {
         type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
         type Error = InvalidDataType;
 
-        async fn lookup_data_type_by_uuid(
+        async fn get_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
         ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
@@ -256,7 +256,7 @@ mod tests {
                 .ok_or_else(|| Report::new(InvalidDataType))
         }
 
-        async fn lookup_closed_data_type_by_uuid(
+        async fn get_closed_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
         ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
@@ -285,7 +285,7 @@ mod tests {
             parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidDataType>> {
             Ok(self
-                .lookup_data_type_by_ref(child)
+                .get_data_type_by_url(child)
                 .await?
                 .schema
                 .all_of
@@ -421,13 +421,13 @@ mod tests {
             [],
             data_types.into_iter().map(|data_type| {
                 serde_json::from_str(data_type)
-                    .attach_printable(data_type)
+                    .attach(data_type)
                     .expect("failed to parse data type")
             }),
         );
 
         let data_type = serde_json::from_str::<DataType>(data_type)
-            .attach_printable(data_type.to_owned())
+            .attach(data_type.to_owned())
             .expect("failed to parse data type");
         let data_type_ref = DataTypeReference {
             url: data_type.id.clone(),

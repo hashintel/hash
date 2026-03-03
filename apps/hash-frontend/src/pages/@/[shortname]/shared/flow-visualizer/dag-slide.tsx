@@ -1,9 +1,11 @@
-import { IconButton } from "@hashintel/design-system";
+import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
-import { XMarkRegularIcon } from "../../../../../shared/icons/x-mark-regular-icon";
 import { DAG } from "./dag";
 import type {
   GroupWithEdgesAndNodes,
@@ -15,7 +17,7 @@ type DagSlideProps = {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
   open: boolean;
   onClose: () => void;
-  selectedFlowDefinition: FlowDefinition;
+  selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
 };
 
 export const DagSlide = ({
@@ -59,6 +61,7 @@ export const DagSlide = ({
             <Topbar
               handleRunFlowClicked={() => null}
               showRunButton={false}
+              startFlowPending={false}
               readonly
               workerType={isGoal ? "goal" : "flow"}
             />

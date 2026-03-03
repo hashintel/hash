@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const linearTypedef = gql`
   type LinearTeam {
@@ -69,6 +69,6 @@ export const linearTypedef = gql`
     syncLinearIntegrationWithWebs(
       linearIntegrationEntityId: EntityId!
       syncWithWebs: [SyncWithWeb!]!
-    ): SerializedEntity
+    ): Entity
   }
 `;

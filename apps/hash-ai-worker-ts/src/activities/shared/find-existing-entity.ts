@@ -1,4 +1,3 @@
-import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -16,19 +15,15 @@ import type {
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
@@ -59,38 +54,31 @@ export const findExistingEntity = async ({
 }): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
-    (await graphApiClient
-      .getEntityTypeSubgraph(actorId, {
-        includeDrafts: false,
-
+    (await queryEntityTypeSubgraph(
+      graphApiClient,
+      { actorId },
+      {
         filter: {
           any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
           })),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data }) => {
-        const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-          data.subgraph,
-          actorId,
-        );
+      },
+    ).then(({ subgraph }) => {
+      const foundEntityTypes = getRoots(subgraph);
 
-        const foundEntityTypes = getRoots(subgraph);
-
-        return foundEntityTypes.map(({ schema }) => {
-          const dereferencedType = dereferenceEntityType({
-            entityTypeId: schema.$id,
-            subgraph,
-          });
-
-          return dereferencedType.schema;
+      return foundEntityTypes.map(({ schema }) => {
+        const dereferencedType = dereferenceEntityType({
+          entityTypeId: schema.$id,
+          subgraph,
         });
-      }));
+
+        return dereferencedType.schema;
+      });
+    }));
 
   if (!entityTypes.length) {
     throw new Error(
@@ -177,54 +165,50 @@ export const findExistingEntity = async ({
     }
   }
 
-  /** Create the filters for any of label or name-like property values */
-  const semanticDistanceFilters: CosineDistanceFilter[] =
-    propertyBaseUrlsToMatchOn
-      .map((baseUrl) => {
-        const foundEmbedding = embeddings.find(
-          (embedding) => embedding.property === baseUrl,
-        )?.embedding;
+  /**
+   * Create a semantic distance filter from the first label/name-like property
+   * The Graph API currently only supports one cosine distance filter per query.
+   */
+  let semanticDistanceFilter: CosineDistanceFilter | undefined;
 
-        if (!foundEmbedding) {
-          logger.error(
-            `Could not find embedding for property ${baseUrl} – skipping`,
-          );
-          return null;
-        }
+  const firstPropertyBaseUrl = propertyBaseUrlsToMatchOn[0];
+  if (firstPropertyBaseUrl) {
+    const foundEmbedding = embeddings.find(
+      (embedding) => embedding.property === firstPropertyBaseUrl,
+    )?.embedding;
 
-        return {
-          cosineDistance: [
-            { path: ["embedding"] },
-            {
-              parameter: foundEmbedding,
-            },
-            { parameter: maximumSemanticDistance },
-          ],
-        } satisfies CosineDistanceFilter;
-      })
-      .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
+    if (foundEmbedding) {
+      semanticDistanceFilter = {
+        cosineDistance: [
+          { path: ["embedding"] },
+          { parameter: foundEmbedding },
+          { parameter: maximumSemanticDistance },
+        ],
+      };
+    } else {
+      logger.error(
+        `Could not find embedding for property ${firstPropertyBaseUrl} – skipping`,
+      );
+    }
+  }
 
   let potentialMatches: HashEntity[] | undefined;
 
-  if (semanticDistanceFilters.length > 0) {
-    potentialMatches = await graphApiClient
-      .getEntities(actorId, {
+  if (semanticDistanceFilter) {
+    potentialMatches = await queryEntities(
+      { graphApi: graphApiClient },
+      { actorId },
+      {
         filter: {
-          all: [
-            ...existingEntityBaseAllFilter,
-            {
-              any: semanticDistanceFilters,
-            },
-          ],
+          all: [...existingEntityBaseAllFilter, semanticDistanceFilter],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
-      })
-      .then(({ data: response }) =>
-        response.entities
-          .slice(0, 3)
-          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-      );
+        includePermissions: false,
+      },
+    ).then(({ entities }) =>
+      entities.slice(0, 3).map((entity) => new HashEntity(entity)),
+    );
   }
 
   if (!potentialMatches?.length) {
@@ -236,8 +220,10 @@ export const findExistingEntity = async ({
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
-      potentialMatches = await graphApiClient
-        .getEntities(actorId, {
+      potentialMatches = await queryEntities(
+        { graphApi: graphApiClient },
+        { actorId },
+        {
           filter: {
             all: [
               ...existingEntityBaseAllFilter,
@@ -254,12 +240,11 @@ export const findExistingEntity = async ({
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts,
-        })
-        .then(({ data: response }) =>
-          response.entities
-            .slice(0, 3)
-            .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-        );
+          includePermissions: false,
+        },
+      ).then(({ entities }) =>
+        entities.slice(0, 3).map((entity) => new HashEntity(entity)),
+      );
     }
   }
 
@@ -300,8 +285,10 @@ export const findExistingLinkEntity = async ({
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
 }): Promise<MatchedEntityUpdate<HashEntity> | null> => {
-  const linksWithOverlappingTypes = await graphApiClient
-    .getEntities(actorId, {
+  const { entities: linksWithOverlappingTypes } = await queryEntities(
+    { graphApi: graphApiClient },
+    { actorId },
+    {
       filter: {
         all: [
           { equal: [{ path: ["archived"] }, { parameter: false }] },
@@ -367,10 +354,9 @@ export const findExistingLinkEntity = async ({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data }) =>
-      data.entities.map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-    );
+      includePermissions: false,
+    },
+  );
 
   if (!linksWithOverlappingTypes.length) {
     return null;
@@ -426,7 +412,7 @@ export const findExistingLinkEntity = async ({
   }
 
   /**
-   * If we've reached here, the input has some properties
+   * If we've reached here, the new input has some properties
    */
   const potentialMatchesWithProperties = linksWithOverlappingTypes.filter(
     (entity) => Object.keys(entity.properties).length > 0,

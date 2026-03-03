@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use hashql_core::{
     heap::Heap,
-    span::{SpanId, TextRange, TextSize, storage::SpanStorage},
+    span::{SpanAncestors, SpanId, SpanTable, TextRange, TextSize},
 };
 use winnow::{LocatingSlice, Stateful};
 
@@ -19,25 +19,27 @@ fn range_to_text(range: Range<usize>) -> TextRange {
     )
 }
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct Context<'heap, 'span> {
+#[derive(Debug)]
+pub(crate) struct Context<'heap, 'spans> {
     pub heap: &'heap Heap,
-    pub spans: &'span SpanStorage<Span>,
+    pub spans: &'spans mut SpanTable<Span>,
     pub parent: SpanId,
 }
 
 impl Context<'_, '_> {
-    pub(crate) fn span(&self, range: Range<usize>) -> SpanId {
+    pub(crate) fn span(&mut self, range: Range<usize>) -> SpanId {
         // `+ 1` here to offset the opening quote
-        self.spans.insert(Span {
-            range: range_to_text(range),
-            pointer: None,
-            parent_id: Some(self.parent),
-        })
+        self.spans.insert(
+            Span {
+                range: range_to_text(range),
+                pointer: None,
+            },
+            SpanAncestors::union(&[self.parent]),
+        )
     }
 
-    pub(crate) fn cover(&self, span: SpanId, range: Range<usize>) {
-        self.spans.modify(span, |span| {
+    pub(crate) fn cover(&mut self, span: SpanId, range: Range<usize>) {
+        self.spans.update(span, |span, _| {
             span.range = span.range.cover(range_to_text(range.clone()));
         });
     }

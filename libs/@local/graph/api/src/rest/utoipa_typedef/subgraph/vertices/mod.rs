@@ -56,12 +56,13 @@ impl From<hash_graph_store::subgraph::vertices::Vertices> for Vertices {
             ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id().clone()) {
+                    let (base_id, revision_id) = id.into_parts();
+                    match map.entry(base_id) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id(), vertex);
+                            entry.into_mut().insert(revision_id, vertex);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id(), vertex)]));
+                            entry.insert(BTreeMap::from([(revision_id, vertex)]));
                         }
                     }
                     map

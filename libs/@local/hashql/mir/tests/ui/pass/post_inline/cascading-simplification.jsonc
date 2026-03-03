@@ -1,0 +1,36 @@
+//@ run: pass
+//@ description: Post-inline exploits cascading opportunities from inlining
+// Inlining exposes multiple optimization opportunities that require
+// several iterations of canonicalization to fully resolve:
+// 1. Inline `is_large` → reveals `n > 50` with constant
+// 2. Constant fold `100 > 50` → true
+// 3. Inline `check_both` → reveals `true && is_even`
+// 4. Simplify identity `true && x` → x
+// PostInline uses 16 iterations (vs PreInline's 8) for such chains.
+[
+  "let",
+  "is_large",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "n": "Integer" } },
+    "Boolean",
+    [">", "n", { "#literal": 50 }]
+  ],
+  [
+    "let",
+    "check_both",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "a": "Boolean", "b": "Boolean" } },
+      "Boolean",
+      ["&&", "a", "b"]
+    ],
+    [
+      "check_both",
+      ["is_large", { "#literal": 100 }],
+      ["is_large", { "#literal": 75 }]
+    ]
+  ]
+]

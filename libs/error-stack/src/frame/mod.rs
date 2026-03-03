@@ -22,7 +22,7 @@ pub use self::kind::{AttachmentKind, FrameKind};
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     frame: Box<dyn FrameImpl>,
-    sources: Box<[Frame]>,
+    sources: Box<[Self]>,
 }
 
 impl Frame {

@@ -1,15 +1,10 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SyncLinearDataWith } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {
   Box,
   Skeleton,
@@ -24,10 +19,10 @@ import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
@@ -54,8 +49,8 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     data: linearIntegrationSyncLinksData,
     loading,
     refetch,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
     {
       variables: {
         request: {
@@ -84,11 +79,10 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
               },
             ],
           },
-          graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
+          includePermissions: true,
         },
-        includePermissions: true,
       },
       skip: !org,
       fetchPolicy: "cache-and-network",
@@ -100,18 +94,12 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
       return [];
     }
 
-    const { userPermissionsOnEntities, subgraph } =
-      linearIntegrationSyncLinksData.getEntitySubgraph;
-
-    const mappedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<SyncLinearDataWith>>
-      >(subgraph);
-
-    const links = getRoots(mappedSubgraph);
+    const { permissions, entities: links } = deserializeQueryEntitiesResponse(
+      linearIntegrationSyncLinksData.queryEntities,
+    );
 
     return links.map(({ metadata, entityId }) => {
-      const canEdit = !!userPermissionsOnEntities?.[entityId]?.edit;
+      const canEdit = !!permissions?.[entityId]?.update;
 
       return {
         createdById: metadata.provenance.createdById,

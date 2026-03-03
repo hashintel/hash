@@ -1,12 +1,10 @@
 use core::ops::ControlFlow;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -50,7 +48,7 @@ impl<'heap> ClosureType<'heap> {
         params: &[TypeId],
         returns: TypeId,
     ) -> SmallVec<TypeId, 4> {
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Closure(Self {
                 params: env.intern_type_ids(params),
@@ -68,7 +66,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // invariant over width
         if self.kind.params.len() != other.kind.params.len() {
-            return SmallVec::from_slice(&[self.id, other.id]);
+            return SmallVec::from_slice_copy(&[self.id, other.id]);
         }
 
         let mut params = SmallVec::<_, 16>::new();
@@ -161,7 +159,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
@@ -181,7 +179,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         //
         // As this is quite counter intuitive and breaks function selection down the line, we do not
         // distribute over closures.
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn is_subtype_of(
@@ -194,9 +192,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         // Invariant over the param-width
         if self.kind.params.len() != supertype.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     supertype,
                     self.kind.params.len(),
@@ -236,9 +233,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     ) -> bool {
         // Invariant over the param-width
         if self.kind.params.len() != other.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     other,
                     self.kind.params.len(),
@@ -332,44 +328,5 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        self.pretty_generic(env, boundary, GenericArguments::empty())
-    }
-
-    fn pretty_generic(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-        arguments: GenericArguments<'heap>,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("fn")
-            .append(arguments.pretty(env, boundary))
-            .group()
-            .append(
-                RcAllocator
-                    .intersperse(
-                        self.params
-                            .iter()
-                            .map(|&param| boundary.pretty_type(env, param)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .parens()
-                    .group(),
-            )
-            .group()
-            .append(RcDoc::softline())
-            .append("->")
-            .group()
-            .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.returns).group())
-            .group()
     }
 }

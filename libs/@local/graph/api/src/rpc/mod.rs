@@ -63,10 +63,6 @@ pub struct Dependencies<S, C> {
     pub codec: C,
 }
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "false-positive in `AccountServer`"
-)]
 pub fn rpc_router<S, C, N>(
     dependencies: Dependencies<S, C>,
     notifications: N,

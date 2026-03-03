@@ -7,6 +7,11 @@ import type {
 } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  BaseRunFlowWorkflowParams,
+  RunFlowWorkflowResponse,
+} from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export type PartialEntity = {
   properties: Entity["properties"];
@@ -61,6 +66,10 @@ export type SyncQueryToGoogleSheetWorkflow = (params: {
   userAccountId: MachineId;
 }) => Promise<void>;
 
+export type RunIntegrationFlowWorkflow = (
+  params: BaseRunFlowWorkflowParams<IntegrationFlowActionDefinitionId>,
+) => Promise<RunFlowWorkflowResponse>;
+
 export type WorkflowTypeMap = {
   syncLinearToWeb: SyncWebWorkflow;
   readLinearTeams: ReadLinearTeamsWorkflow;
@@ -70,4 +79,6 @@ export type WorkflowTypeMap = {
 
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
+
+  runFlow: RunIntegrationFlowWorkflow;
 };

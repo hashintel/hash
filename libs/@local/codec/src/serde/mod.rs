@@ -18,8 +18,10 @@
 )]
 
 pub mod constant;
+pub mod probability;
 pub mod string_hash_map;
 pub mod unique_vec;
+pub mod valid_uuid;
 
 mod size_hint;
 

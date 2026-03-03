@@ -1,38 +1,56 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use serde::{Deserialize, Serialize};
-    use tsify_next::Tsify;
+    use tsify::Tsify;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(typescript_custom_section)]
     const TS_APPEND_CONTENT: &'static str = r#"
-    import type { Brand } from "@local/advanced-types/brand";
-    import type { Real } from "@rust/hash-codec/types";
-    import type {
-        ActorEntityUuid,
-        ActorGroupEntityUuid,
-        ActorType,
-        BaseUrl,
-        DraftId,
-        EntityEditionId,
-        OntologyTypeVersion,
-        PropertyValue,
-        UserId,
-        WebId
-    } from "../types/index.snap.js";
+import type { Real } from "@rust/hash-codec/types";
+import type {
+    ActorEntityUuid,
+    ActorGroupEntityUuid,
+    ActorType,
+    BaseUrl,
+    DraftId,
+    EntityEditionId,
+    OntologyTypeVersion,
+    PropertyValue,
+    UserId,
+    WebId
+} from "../types/index.snap.js";
+
+type BrandedBase<Base, Kind extends Record<string, unknown>> = Base & {
+  // The property prefixes are chosen such that they shouldn't appear in intellisense.
+
+  /** The type of the value space that is branded */
+  readonly "\#base": Base;
+  /** The unique name for the branded type */
+  readonly "\#kind": Kind;
+};
+
+/**
+ * The type-branding type to support nominal (name based) types
+ */
+export type Brand<Base, Kind extends string> = Base extends BrandedBase<
+  infer NestedBase,
+  infer NestedKind
+>
+  ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
+  : BrandedBase<Base, { [_ in Kind]: true }>;
     "#;
 
     // Common types
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Url(#[tsify(type = "Brand<string, \"Url\">")] String);
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Timestamp(#[tsify(type = "Brand<string, \"Timestamp\">")] String);
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum TemporalBound {
@@ -40,20 +58,20 @@ mod wasm {
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum LimitedTemporalBound {
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum ClosedTemporalBound {
         Inclusive(Timestamp),
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum OpenTemporalBound {
@@ -61,19 +79,19 @@ mod wasm {
         Unbounded,
     }
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct TemporalInterval<Start, End> {
         start: Start,
         end: End,
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct RightBoundedTemporalInterval {
         start: TemporalBound,
         end: LimitedTemporalBound,
     }
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct LeftClosedTemporalInterval {
         start: ClosedTemporalBound,
@@ -99,6 +117,7 @@ mod wasm {
     /// Represents either success (Ok) or failure (Err).
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
     #[serde(tag = "type", content = "inner")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     pub enum Result<T, E> {
         Ok(T),
         Err(E),
@@ -151,7 +170,7 @@ pub(crate) mod tests {
         for<'de> T: Serialize + Deserialize<'de>,
     {
         let deserialized: T = serde_json::from_value(value.clone())
-            .attach_printable_lazy(|| value.clone())
+            .attach_with(|| value.clone())
             .expect("failed to deserialize");
         let re_serialized = serde_json::to_value(deserialized).expect("failed to serialize");
 

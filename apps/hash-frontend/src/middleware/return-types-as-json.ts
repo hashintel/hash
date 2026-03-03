@@ -1,4 +1,3 @@
-import type { OntologyTypeVertexId } from "@blockprotocol/graph";
 import type {
   DataType,
   EntityType,
@@ -13,18 +12,18 @@ import {
   type SystemTypeWebShortname,
   systemTypeWebShortnames,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import type { ApolloError } from "apollo-server-express";
+import type { GraphQLError } from "graphql";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
 import type {
-  GetDataTypeQuery,
-  GetDataTypeQueryVariables,
-  GetEntityTypeQuery,
-  GetEntityTypeQueryVariables,
-  GetPropertyTypeQuery,
-  GetPropertyTypeQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
@@ -49,12 +48,24 @@ const makeGraphQlRequest = async <Data, Variables>(
   query: string,
   variables: Variables,
   cookie: string | null,
-): Promise<{ data?: Data | null; errors?: ApolloError[] | null }> => {
+): Promise<{ data?: Data | null; errors?: GraphQLError[] | null }> => {
   const { data, errors } = await fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: { "content-type": "application/json", cookie: cookie ?? "" },
     body: JSON.stringify({ query, variables }),
-  }).then((resp) => resp.json());
+  })
+    .then((resp) => resp.json())
+    .catch((err) => {
+      return {
+        data: null,
+        errors: [
+          {
+            message: err.message ?? "Internal server error",
+            extensions: { code: "INTERNAL_SERVER_ERROR" },
+          },
+        ],
+      };
+    });
 
   return { data, errors };
 };
@@ -78,10 +89,18 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  // To be removed in H-1172: Temporary provision until app is migrated to https://hash.ai
   const urlObject = new URL(url);
+
   const shouldServeHashAiType =
+    /**
+     * @todo H-1172 – Once app is migrated to https://hash.ai, remove the https://app.hash.ai condition
+     */
     frontendUrl === "https://app.hash.ai" ||
+    /**
+     * This is required for the TS type generation in generate-system-types.ts,
+     * to allow system types (which always have a https://hash.ai typeId)
+     * to be generated from the local development environment.
+     */
     (frontendUrl === "http://localhost:3000" &&
       systemTypeWebShortnames.includes(
         urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
@@ -99,48 +118,37 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    GetEntityTypeQuery | GetDataTypeQuery | GetPropertyTypeQuery,
-    | GetEntityTypeQueryVariables
-    | GetDataTypeQueryVariables
-    | GetPropertyTypeQueryVariables
+    QueryEntityTypesQuery | QueryDataTypesQuery | QueryPropertyTypesQuery,
+    | QueryEntityTypesQueryVariables
+    | QueryDataTypesQueryVariables
+    | QueryPropertyTypesQueryVariables
   >(query, variables, cookie);
 
   if (errors ?? !data) {
-    const { code, message } = errors?.[0] ?? {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Unknown error",
-    };
+    const message = errors?.[0]?.message ?? "Unknown error";
+    const code = (errors?.[0]?.extensions.code ??
+      "INTERNAL_SERVER_ERROR") as string;
+
     return generateErrorResponse(
       code === "FORBIDDEN" ? 401 : code === "INTERNAL_SERVER_ERROR" ? 500 : 400,
       message,
     );
   }
 
-  const { roots, vertices } =
-    "getDataType" in data
-      ? data.getDataType
-      : "getEntityType" in data
-        ? data.getEntityType
-        : data.getPropertyType;
+  const ontologyTypes =
+    "queryDataTypes" in data
+      ? data.queryDataTypes.dataTypes
+      : "queryEntityTypes" in data
+        ? data.queryEntityTypes.entityTypes
+        : data.queryPropertyTypes.propertyTypes;
 
-  const root = roots[0] as OntologyTypeVertexId | undefined;
-  if (!root) {
+  const schema = ontologyTypes[0]?.schema;
+  if (!schema) {
     return generateErrorResponse(
       404,
       `Could not find requested ${ontologyType} type at URL ${url}`,
     );
   }
 
-  const { baseId, revisionId } = root;
-
-  const type = vertices[baseId]?.[revisionId.toString()];
-
-  if (!type) {
-    return generateErrorResponse(
-      500,
-      "Internal error: root vertex not present in vertices",
-    );
-  }
-
-  return generateJsonResponse(type.inner.schema);
+  return generateJsonResponse(schema);
 };

@@ -1,26 +1,25 @@
+import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { Session } from "@ory/client";
+import type { Session } from "@ory/kratos-client";
+import * as Sentry from "@sentry/node";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import {
-  createUser,
-  getUserByKratosIdentityId,
-} from "../graph/knowledge/system-types/user";
+import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
 import type { KratosUserIdentity } from "./ory-kratos";
-import { kratosFrontendApi } from "./ory-kratos";
+import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
 const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
-  req.header("KRATOS_API_KEY") === KRATOS_API_KEY;
+  timingSafeCompare(req.header("KRATOS_API_KEY") ?? "", KRATOS_API_KEY);
 
 const kratosAfterRegistrationHookHandler =
   (
@@ -68,15 +67,14 @@ const kratosAfterRegistrationHookHandler =
         res.status(200).end();
       } catch (error) {
         // The kratos hook can interrupt creation on 4xx and 5xx responses.
-        // We pass context as an error to not leak any kratos implementation details.
 
+        Sentry.captureException(error);
         res.status(400).send(
           JSON.stringify({
             messages: [
               {
                 type: "error",
                 error: "Error creating user",
-                context: error,
               },
             ],
           }),
@@ -109,6 +107,7 @@ export const getUserAndSession = async ({
   logger: Logger;
   sessionToken?: string;
 }): Promise<{
+  primaryEmailVerified?: boolean;
   session?: Session;
   user?: User;
 }> => {
@@ -121,9 +120,11 @@ export const getUserAndSession = async ({
     })
     .then(({ data }) => data)
     .catch((err: AxiosError) => {
-      // 403 on toSession means that we need to request 2FA
       if (err.response && err.response.status === 403) {
-        /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
+        logger.debug(
+          "Session requires AAL2 but only has AAL1. Treating as unauthenticated.",
+        );
+        return undefined;
       }
       logger.debug(
         `Kratos response error: Could not fetch session, got: [${
@@ -136,10 +137,22 @@ export const getUserAndSession = async ({
   if (kratosSession) {
     const { identity } = kratosSession;
 
-    const { id: kratosIdentityId } = identity;
+    if (!identity) {
+      throw new Error("Could not find kratos identity for session");
+    }
 
-    const user = await getUserByKratosIdentityId(context, authentication, {
+    const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
+
+    const primaryEmailAddress = traits.emails[0];
+
+    const primaryEmailVerified =
+      identity.verifiable_addresses?.find(
+        ({ value }) => value === primaryEmailAddress,
+      )?.verified === true;
+
+    const user = await getUser(context, authentication, {
       kratosIdentityId,
+      emails: traits.emails,
     });
 
     if (!user) {
@@ -148,7 +161,7 @@ export const getUserAndSession = async ({
       );
     }
 
-    return { session: kratosSession, user };
+    return { primaryEmailVerified, session: kratosSession, user };
   }
 
   return {};
@@ -160,7 +173,6 @@ export const createAuthMiddleware = (params: {
 }): RequestHandler => {
   const { logger, context } = params;
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   return async (req, _res, next) => {
     const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
@@ -176,7 +188,7 @@ export const createAuthMiddleware = (params: {
         token: accessOrSessionToken,
       });
       if (introspectionResult.data.active && introspectionResult.data.sub) {
-        const user = await getUserByKratosIdentityId(
+        const user = await getUser(
           context,
           { actorId: publicUserAccountId },
           {
@@ -184,6 +196,9 @@ export const createAuthMiddleware = (params: {
           },
         );
         if (user) {
+          req.primaryEmailVerified = await isUserEmailVerified(
+            user.kratosIdentityId,
+          );
           req.user = user;
           next();
           return;
@@ -191,35 +206,15 @@ export const createAuthMiddleware = (params: {
       }
     }
 
-    const { session, user } = await getUserAndSession({
+    const { primaryEmailVerified, session, user } = await getUserAndSession({
       context,
       cookie: req.header("cookie"),
       logger,
       sessionToken: accessOrSessionToken,
     });
-
-    const kratosSession = await kratosFrontendApi
-      .toSession({
-        cookie: req.header("cookie"),
-        xSessionToken: accessOrSessionToken,
-      })
-      .then(({ data }) => data)
-      .catch((err: AxiosError) => {
-        // 403 on toSession means that we need to request 2FA
-        if (err.response && err.response.status === 403) {
-          /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
-        }
-        logger.debug(
-          `Kratos response error: Could not fetch session, got: [${
-            err.response?.status
-          }] ${JSON.stringify(err.response?.data)}`,
-        );
-        return undefined;
-      });
-
-    if (kratosSession) {
+    if (session) {
+      req.primaryEmailVerified = primaryEmailVerified;
       req.session = session;
-
       req.user = user;
     }
 

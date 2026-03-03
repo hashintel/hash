@@ -7,7 +7,7 @@ use hash_graph_store::{
     error::QueryError,
     filter::Filter,
     subgraph::{
-        edges::GraphResolveDepths,
+        edges::BorrowedTraversalParams,
         temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
@@ -32,35 +32,35 @@ use crate::store::postgres::{
 };
 
 #[derive(Debug, Default)]
-pub struct OntologyTypeTraversalData {
+pub struct OntologyTypeTraversalData<'edges> {
     ontology_ids: Vec<OntologyTypeUuid>,
-    resolve_depths: Vec<GraphResolveDepths>,
+    traversal_params: Vec<BorrowedTraversalParams<'edges>>,
     traversal_intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
 }
 
-impl OntologyTypeTraversalData {
+impl<'edges> OntologyTypeTraversalData<'edges> {
     pub fn push(
         &mut self,
         ontology_id: OntologyTypeUuid,
-        resolve_depth: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) {
         self.ontology_ids.push(ontology_id);
-        self.resolve_depths.push(resolve_depth);
+        self.traversal_params.push(traversal_params);
         self.traversal_intervals.push(traversal_interval);
     }
 }
 
-pub struct OntologyEdgeTraversal<L, R> {
+pub struct OntologyEdgeTraversal<'edges, L, R> {
     pub left_endpoint: L,
     pub right_endpoint: R,
     pub right_endpoint_ontology_id: OntologyTypeUuid,
-    pub resolve_depths: GraphResolveDepths,
+    pub traversal_params: BorrowedTraversalParams<'edges>,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self, filter))]
+    #[tracing::instrument(level = "info", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
         filter: &[Filter<'f, EntityTypeWithMetadata>],
@@ -134,13 +134,13 @@ impl<C: AsClient> PostgresStore<C> {
             }))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
-    pub(crate) async fn read_ontology_edges<'r, L, R>(
+    #[tracing::instrument(level = "info", skip(self))]
+    pub(crate) async fn read_ontology_edges<'edges, 'r, L, R>(
         &self,
-        record_ids: &'r OntologyTypeTraversalData,
+        record_ids: &'r OntologyTypeTraversalData<'edges>,
         reference_table: ReferenceTable,
     ) -> Result<
-        impl Iterator<Item = (OntologyTypeUuid, OntologyEdgeTraversal<L, R>)> + 'r,
+        impl Iterator<Item = (OntologyTypeUuid, OntologyEdgeTraversal<'edges, L, R>)> + 'r,
         Report<QueryError>,
     >
     where
@@ -150,13 +150,13 @@ impl<C: AsClient> PostgresStore<C> {
         let table = Table::Reference(reference_table).transpile_to_string();
         let source =
             if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
-                join.to_expression(None).transpile_to_string()
+                join.transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
         let target =
             if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
-                on.to_expression(None).transpile_to_string()
+                on.transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
@@ -232,7 +232,7 @@ impl<C: AsClient> PostgresStore<C> {
                             version: row.get(4),
                         }),
                         right_endpoint_ontology_id,
-                        resolve_depths: record_ids.resolve_depths[index],
+                        traversal_params: record_ids.traversal_params[index],
                         traversal_interval: record_ids.traversal_intervals[index],
                     },
                 )

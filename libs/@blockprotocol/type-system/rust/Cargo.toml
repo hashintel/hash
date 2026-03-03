@@ -67,7 +67,7 @@ workspace = true
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
 console_error_panic_hook = { workspace = true }
-tsify-next               = { workspace = true, features = ["json"] }
+tsify                    = { workspace = true, features = ["json"] }
 wasm-bindgen             = { workspace = true, features = ["serde-serialize"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
@@ -75,9 +75,9 @@ wasm-bindgen-test = { workspace = true }
 
 
 [package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@local/advanced-types", version = "0.0.0-private" },
-]
 extra-dev-dependencies = [
-    { name = "@local/tsconfig", version = "0.0.0-private" },
+    { name = "@local/tsconfig", version = "workspace:*" },
+]
+ignore-dev-dependencies = [
+    "hash-graph-test-data",
 ]

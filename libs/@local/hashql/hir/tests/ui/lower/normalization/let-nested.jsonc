@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Nested let bindings with complex expressions
+[
+  "let",
+  "foo",
+  { "#literal": 3 },
+  ["&&", ["let", "bar", { "#literal": true }, "bar"], { "#literal": true }]
+]

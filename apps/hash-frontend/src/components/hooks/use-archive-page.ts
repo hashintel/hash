@@ -10,7 +10,7 @@ import type {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
@@ -27,12 +27,12 @@ export const useArchivePage = () => {
     const webId = extractWebIdFromEntityId(pageEntityId);
     return [
       {
-        query: getEntitySubgraphQuery,
+        query: queryEntitySubgraphQuery,
         variables: getAccountPagesVariables({ webId }),
       },
 
       {
-        query: getEntitySubgraphQuery,
+        query: queryEntitySubgraphQuery,
         variables: getBlockCollectionContentsStructuralQueryVariables(
           extractEntityUuidFromEntityId(pageEntityId),
         ),

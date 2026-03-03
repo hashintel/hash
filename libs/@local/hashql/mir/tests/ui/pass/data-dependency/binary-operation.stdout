@@ -1,0 +1,43 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+*thunk {thunk#3}() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = %1 <= %2
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+

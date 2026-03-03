@@ -1,32 +1,28 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { Emitter, Tracker } from "@snowplow/node-tracker";
 import {
   buildStructEvent,
-  gotEmitter,
-  HttpProtocol,
-  tracker as createTracker,
+  newTracker,
+  type Tracker,
 } from "@snowplow/node-tracker";
 
 /**
  * Sets up snowplow telemetry for HASH usage. Disabled by default.
  * This tracking function simply sends an event when the platform starts to record usage metrics.
  */
-export const setupTelemetry = (): [Emitter, Tracker] => {
+export const setupTelemetry = async (): Promise<Tracker> => {
   const protocol =
-    process.env.HASH_TELEMETRY_HTTPS === "true"
-      ? HttpProtocol.HTTPS
-      : HttpProtocol.HTTP;
+    process.env.HASH_TELEMETRY_HTTPS === "true" ? "https" : "http";
 
-  const emitter = gotEmitter(
-    getRequiredEnv("HASH_TELEMETRY_DESTINATION"), // Collector endpoint
-    protocol, // Optionally specify a method - http is the default
-  );
-
-  const tracker = createTracker(
-    [emitter],
-    "usageTracker", // Namespace
-    getRequiredEnv("HASH_TELEMETRY_APP_ID"), // App id
-    true, // Base64 encoding, true by default
+  const tracker = newTracker(
+    {
+      namespace: "usageTracker",
+      appId: getRequiredEnv("HASH_TELEMETRY_APP_ID"),
+      encodeBase64: true,
+    },
+    {
+      endpoint: getRequiredEnv("HASH_TELEMETRY_DESTINATION"),
+      protocol,
+    },
   );
 
   // This `srv` value means it's for server-side tracking (see https://docs.snowplowanalytics.com/docs/collecting-data/collecting-from-own-applications/snowplow-tracker-protocol/)
@@ -40,7 +36,7 @@ export const setupTelemetry = (): [Emitter, Tracker] => {
     }),
   );
 
-  emitter.flush();
+  await tracker.flush();
 
-  return [emitter, tracker];
+  return tracker;
 };

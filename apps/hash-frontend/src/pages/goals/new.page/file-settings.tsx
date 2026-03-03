@@ -1,5 +1,9 @@
 import type { WebId } from "@blockprotocol/type-system";
-import { FileRegularIcon, IconButton } from "@hashintel/design-system";
+import {
+  FileRegularIcon,
+  IconButton,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -12,7 +16,6 @@ import {
   useFileUploads,
   useFileUploadsProgress,
 } from "../../../shared/file-upload-context";
-import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 
 export type FileSettingsState = {

@@ -1,9 +1,7 @@
-import storybook from "eslint-plugin-storybook";
 import { createBase, disableRules } from "@local/eslint/deprecated";
 
 export default [
   ...createBase(import.meta.dirname),
-  ...storybook.configs["flat/recommended"],
   ...disableRules([
     /* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment",
   ]),
@@ -31,10 +29,6 @@ export default [
             },
           ],
         },
-      ],
-      "storybook/no-uninstalled-addons": [
-        "error",
-        { packageJsonLocation: `${import.meta.dirname}/package.json` },
       ],
     },
   },

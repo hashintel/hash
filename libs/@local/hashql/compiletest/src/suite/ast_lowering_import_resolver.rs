@@ -8,13 +8,11 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Heap,
     module::{ModuleRegistry, namespace::ModuleNamespace},
-    span::SpanId,
     r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringImportResolverSuite;
 
@@ -23,13 +21,18 @@ impl Suite for AstLoweringImportResolverSuite {
         "ast/lowering/import-resolver"
     }
 
+    fn description(&self) -> &'static str {
+        "Import and module resolution in the AST"
+    }
+
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);
@@ -39,7 +42,7 @@ impl Suite for AstLoweringImportResolverSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -47,7 +50,7 @@ impl Suite for AstLoweringImportResolverSuite {
         let mut resolver = ImportResolver::new(heap, namespace);
         resolver.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, resolver.take_diagnostics())?;
+        process_issues(diagnostics, resolver.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }

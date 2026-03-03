@@ -1,0 +1,29 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Null {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 0
+
+        switchInt(%0) -> [0: bb1(), 1: bb1(), otherwise: bb1()]
+    }
+
+    bb1(): {
+        return null
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Null {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 0
+
+        return null
+    }
+}

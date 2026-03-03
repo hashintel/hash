@@ -1,0 +1,251 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk threshold:0() -> Integer {
+    bb0(): {
+        return 100
+    }
+}
+
+fn {closure#5}(%0: (), %1: Integer) -> Boolean {
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (threshold:0 as FnPtr)
+        %3 = %1 > %2
+
+        return %3
+    }
+}
+
+fn {closure#8}(%0: ()) -> (Integer) -> Boolean {
+    let %1: (Integer) -> Boolean
+    let %2: ()
+
+    bb0(): {
+        %2 = ()
+        %1 = closure(({closure#5} as FnPtr), %2)
+
+        return %1
+    }
+}
+
+thunk make_checker:0() -> () -> (Integer) -> Boolean {
+    let %0: () -> (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#8} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk checker:0() -> (Integer) -> Boolean {
+    let %0: () -> (Integer) -> Boolean
+    let %1: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = apply (make_checker:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (checker:0 as FnPtr)
+        %1 = apply %0.0 %0.1 150
+
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+thunk threshold:0() -> Integer {
+    bb0(): {
+        return 100
+    }
+}
+
+fn {closure#5}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+fn {closure#8}(%0: ()) -> (Integer) -> Boolean {
+    let %1: (Integer) -> Boolean
+
+    bb0(): {
+        %1 = closure(({closure#5} as FnPtr), ())
+
+        return %1
+    }
+}
+
+thunk make_checker:0() -> () -> (Integer) -> Boolean {
+    let %0: () -> (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk checker:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#5} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = apply ({closure#5} as FnPtr) () 150
+
+        return %0
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+thunk threshold:0() -> Integer {
+    bb0(): {
+        return 100
+    }
+}
+
+fn {closure#5}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+fn {closure#8}(%0: ()) -> (Integer) -> Boolean {
+    let %1: (Integer) -> Boolean
+
+    bb0(): {
+        %1 = closure(({closure#5} as FnPtr), ())
+
+        return %1
+    }
+}
+
+thunk make_checker:0() -> () -> (Integer) -> Boolean {
+    let %0: () -> (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk checker:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#5} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %1 = ()
+        %2 = 150
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = %2 > 100
+
+        goto -> bb1(%3)
+    }
+}
+
+════ Post Inline MIR ═══════════════════════════════════════════════════════════
+
+thunk threshold:0() -> Integer {
+    bb0(): {
+        return 100
+    }
+}
+
+fn {closure#5}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+fn {closure#8}(%0: ()) -> (Integer) -> Boolean {
+    let %1: (Integer) -> Boolean
+
+    bb0(): {
+        %1 = closure(({closure#5} as FnPtr), ())
+
+        return %1
+    }
+}
+
+thunk make_checker:0() -> () -> (Integer) -> Boolean {
+    let %0: () -> (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#8} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk checker:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#5} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#6}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}

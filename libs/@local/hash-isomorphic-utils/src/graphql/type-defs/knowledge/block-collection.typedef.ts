@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const blockCollectionTypedef = gql`
   """
@@ -7,7 +7,7 @@ export const blockCollectionTypedef = gql`
   """
   type BlockCollectionContentItem {
     rightEntity: Block!
-    linkEntity: SerializedEntity!
+    linkEntity: Entity!
   }
 
   type BlockCollection {

@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: "Rejects duplicate #type keys in tuple"
 expression: "{\"#tuple\": [], \"#type\": \"Tuple<Int, String>\", \"#type\": \"Tuple<Float, Boolean>\"}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
-   ╭─[ <unknown>:1:47 ]
-   │
- 1 │ {"#tuple": [], "#type": "Tuple<Int, String>", "#type": "Tuple<Float, Boolean>"}
-   │                ───┬───                        ───┬───  
-   │                   │                              ╰───── Duplicate key
-   │                   │                                    
-   │                   ╰──────────────────────────────────── First occurrence of `#type`
-   │ 
-   │ Help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.
-───╯
+error[parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#tuple": [], "#type": "Tuple<Int, String>", "#type": "Tuple<Float, Boolean>"}
+  │                ┬──────                        ━━━━━━━ Duplicate key
+  │                │
+  │                First occurrence of `#type`
+  │
+  ╰ help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.

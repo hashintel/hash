@@ -21,7 +21,7 @@ import {
 // Promise based API (see:
 // https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
 // eslint-disable-next-line @typescript-eslint/require-await
-browser.runtime.onMessage.addListener(async (message) => {
+browser.runtime.onMessage.addListener(async (message: unknown) => {
   if (!isWellFormattedMessage(message)) {
     return `Unrecognised message format ${String(message)}`;
   }

@@ -51,11 +51,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.metadata.poll_ready_unpin(cx))
-            .attach_printable("could not poll ontology type sender")?;
+        ready!(self.metadata.poll_ready_unpin(cx)).attach("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll schema sender")?;
+            .attach("could not poll schema sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -77,7 +76,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 temporal_versioning: entity_type.metadata.temporal_versioning,
                 provenance: entity_type.metadata.provenance,
             })
-            .attach_printable("could not send metadata")?;
+            .attach("could not send metadata")?;
 
         self.schema
             .start_send_unpin(EntityTypeRow {
@@ -87,7 +86,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 closed_schema: Valid::new_unchecked(ClosedEntityType {
                     id: VersionedUrl {
                         base_url: schema.id.base_url.clone(),
-                        version: OntologyTypeVersion::new(0),
+                        version: OntologyTypeVersion {
+                            major: 0,
+                            pre_release: None,
+                        },
                     },
                     title: String::new(),
                     title_plural: None,
@@ -106,27 +108,27 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 schema,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send schema")?;
+            .attach("could not send schema")?;
 
         Ok(())
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_flush_unpin(cx))
-            .attach_printable("could not flush ontology type sender")?;
+            .attach("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush schema sender")?;
+            .attach("could not flush schema sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_close_unpin(cx))
-            .attach_printable("could not close ontology type sender")?;
+            .attach("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close schema sender")?;
+            .attach("could not close schema sender")?;
 
         Poll::Ready(Ok(()))
     }

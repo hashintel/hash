@@ -1,11 +1,7 @@
-[special-form-expander::invalid-fn-generic-param] Error: Invalid generic parameter in function declaration
-   ╭─[ <unknown>:7:8 ]
-   │
- 7 │       "::core::math::add"
-   │        ────────┬────────  
-   │                ╰────────── Use a simple identifier here
-   │ 
-   │ Help: Generic type parameters must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
-   │ 
-   │ Note: In function generic parameter lists, each element must be a simple identifier. For example: (T, U, V) is valid, but (some::path,) is not.
-───╯
+error[special-form-expander::invalid-fn-generic-param]: Invalid generic parameter in function declaration
+  ╭▸ 
+7 │       "::core::math::add"
+  │        ━━━━━━━━━━━━━━━━━ Use a simple identifier here
+  │
+  ├ help: Generic type parameters must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
+  ╰ note: In function generic parameter lists, each element must be a simple identifier. For example: (T, U, V) is valid, but (some::path,) is not.

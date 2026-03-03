@@ -33,11 +33,11 @@ pub struct TestServerArgs {
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
 
-    /// Waits for the healthcheck to become healthy
+    /// Waits for the healthcheck to become healthy.
     #[clap(long, default_value_t = false, requires = "healthcheck")]
     pub wait: bool,
 
-    /// Timeout for the wait flag in seconds
+    /// Timeout for the wait flag in seconds.
     #[clap(long, requires = "wait")]
     pub timeout: Option<u64>,
 }
@@ -91,7 +91,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
 }
 
 pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
-    let request_url = format!("http://{address}/snapshot");
+    let request_url = format!("http://{address}/health");
 
     timeout(
         Duration::from_secs(10),

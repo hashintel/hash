@@ -1,12 +1,11 @@
 import type { Url } from "@blockprotocol/type-system";
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   StepInput,
-  WebSearchResult,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
@@ -35,12 +34,12 @@ export const handleWebSearchToolCall = async (params: {
   const response = await webSearchAction({
     inputs: [
       {
-        inputName: "query" satisfies InputNameForAction<"webSearch">,
+        inputName: "query" satisfies InputNameForAiFlowAction<"webSearch">,
         payload: { kind: "Text", value: query },
       },
       {
         inputName:
-          "numberOfSearchResults" satisfies InputNameForAction<"webSearch">,
+          "numberOfSearchResults" satisfies InputNameForAiFlowAction<"webSearch">,
         payload: { kind: "Number", value: 5 },
       },
     ],
@@ -65,19 +64,13 @@ export const handleWebSearchToolCall = async (params: {
 
   const { outputs: webSearchOutputs } = response.contents[0]!;
 
-  const webPageUrlsOutput = webSearchOutputs.find(
-    ({ outputName }) =>
-      outputName ===
-      ("webSearchResult" satisfies OutputNameForAction<"webSearch">),
-  );
+  const searchResults = webSearchOutputs[0]?.payload.value;
 
-  if (!webPageUrlsOutput) {
+  if (!searchResults) {
     return {
-      error: `No web page URLs output was found when calling "webSearch" for the query ${query}.`,
+      error: `No web search results output was found when calling "webSearch" for the query ${query}.`,
     };
   }
-
-  const searchResults = webPageUrlsOutput.payload.value as WebSearchResult[];
 
   const webPageUrlsWithSummaries = (
     await Promise.all(
@@ -88,7 +81,7 @@ export const handleWebSearchToolCall = async (params: {
           inputs: [
             {
               inputName:
-                "url" satisfies InputNameForAction<"getWebPageSummary">,
+                "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
               payload: { kind: "Text", value: url },
             },
             ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
@@ -113,7 +106,7 @@ export const handleWebSearchToolCall = async (params: {
         const summaryOutput = webPageSummaryOutputs?.find(
           ({ outputName }) =>
             outputName ===
-            ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
+            ("summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">),
         );
 
         if (!summaryOutput) {
@@ -122,7 +115,7 @@ export const handleWebSearchToolCall = async (params: {
           };
         }
 
-        const summary = summaryOutput.payload.value as string;
+        const summary = summaryOutput.payload.value;
 
         return {
           fromSearchQuery: query,

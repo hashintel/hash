@@ -10,13 +10,21 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
-import type { ActionDefinitionId } from "./action-definitions.js";
+import type { FlowTypeDataType } from "../system-types/shared.js";
+import type {
+  AiFlowActionDefinitionId,
+  IntegrationFlowActionDefinitionId,
+} from "./action-definitions.js";
+import type { ScheduleSpec } from "./schedule-types.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
+
+export type FlowActionDefinitionId =
+  | AiFlowActionDefinitionId
+  | IntegrationFlowActionDefinitionId;
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -62,32 +70,35 @@ export type ProposedEntityWithResolvedLinks = Omit<
   };
 };
 
-export type PersistedEntity = {
-  entity?: SerializedEntity;
-  existingEntity?: SerializedEntity;
+export type PersistedEntityMetadata = {
+  entityId: EntityId;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
-  existingEntity?: SerializedEntity;
+  existingEntityId?: EntityId;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
 };
 
-export type PersistedEntities = {
-  persistedEntities: PersistedEntity[];
+export type PersistedEntitiesMetadata = {
+  persistedEntities: PersistedEntityMetadata[];
   failedEntityProposals: FailedEntityProposal[];
 };
 
-export type FlowInputs = [
-  {
-    dataSources: FlowDataSources;
-    flowDefinition: FlowDefinition;
-    flowTrigger: FlowTrigger;
-    webId: WebId;
-  },
-];
+type BaseFlowInputs = {
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  flowType: FlowTypeDataType;
+  flowTrigger: FlowTrigger;
+  webId: WebId;
+};
+
+type AiFlowInputs = BaseFlowInputs & {
+  dataSources: FlowDataSources;
+};
+
+export type FlowInputs = [BaseFlowInputs | AiFlowInputs];
 
 export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
 
@@ -105,14 +116,14 @@ export type WebSearchResult = Pick<WebPage, "title" | "url">;
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
-  Entity: SerializedEntity;
+  Date: string; // e.g. "2025-01-01"
   EntityId: EntityId;
   FormattedText: FormattedText;
   GoogleAccountId: string;
   GoogleSheet: GoogleSheet;
   Number: number;
-  PersistedEntities: PersistedEntities;
-  PersistedEntity: PersistedEntity;
+  PersistedEntitiesMetadata: PersistedEntitiesMetadata;
+  PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Text: string;
@@ -123,21 +134,147 @@ export type PayloadKindValues = {
 
 export type PayloadKind = keyof PayloadKindValues;
 
+/**
+ * A reference to a payload that has been stored in S3.
+ * Used to avoid passing large payloads through Temporal activities.
+ *
+ * @template K - The payload kind being stored
+ * @template IsArray - Whether the stored value is an array of K values
+ */
+export type StoredPayloadRef<
+  K extends StoredPayloadKind = StoredPayloadKind,
+  IsArray extends boolean = boolean,
+> = {
+  /** Discriminator to identify this as a stored reference */
+  __stored: true;
+  /** The payload kind being stored - for type checking */
+  kind: K;
+  /** S3 storage key */
+  storageKey: string;
+  /** Whether the stored value is an array */
+  array: IsArray;
+};
+
+/**
+ * A stored payload reference to a singular value.
+ */
+export type SingularStoredPayloadRef<
+  K extends StoredPayloadKind = StoredPayloadKind,
+> = StoredPayloadRef<K, false>;
+
+/**
+ * A stored payload reference to an array of values.
+ */
+export type ArrayStoredPayloadRef<
+  K extends StoredPayloadKind = StoredPayloadKind,
+> = StoredPayloadRef<K, true>;
+
+/** Type guard to check if a value is a stored payload reference */
+export const isStoredPayloadRef = (
+  value: unknown,
+): value is StoredPayloadRef<StoredPayloadKind, boolean> => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "__stored" in value &&
+    value.__stored === true
+  );
+};
+
+/** Type guard to check if a stored payload ref is for an array */
+export const isArrayStoredPayloadRef = <K extends StoredPayloadKind>(
+  ref: StoredPayloadRef<K, boolean>,
+): ref is ArrayStoredPayloadRef<K> => ref.array;
+
+/** Type guard to check if a stored payload ref is for a singular value */
+export const isSingularStoredPayloadRef = <K extends StoredPayloadKind>(
+  ref: StoredPayloadRef<K, boolean>,
+): ref is SingularStoredPayloadRef<K> => !ref.array;
+
+/**
+ * Payload kinds that are always stored in S3 due to their potential size.
+ * These kinds will have StoredPayloadRef as their value type in activity outputs.
+ */
+export const storedPayloadKinds = [
+  "PersistedEntitiesMetadata",
+  "ProposedEntity",
+  "ProposedEntityWithResolvedLinks",
+] as const;
+
+export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
+
+/**
+ * Check if a payload kind is always stored in S3.
+ */
+export const isStoredPayloadKind = (
+  kind: PayloadKind,
+): kind is StoredPayloadKind =>
+  storedPayloadKinds.includes(kind as StoredPayloadKind);
+
+/**
+ * Payload value type used in activity outputs and inputs.
+ * For stored payload kinds, the value is always a StoredPayloadRef with the array-ness encoded.
+ * For other kinds, the value is the actual payload value (or array of values).
+ */
+export type PayloadValue<
+  K extends PayloadKind,
+  IsArray extends boolean,
+> = K extends StoredPayloadKind
+  ? StoredPayloadRef<K, IsArray>
+  : IsArray extends true
+    ? PayloadKindValues[K][]
+    : PayloadKindValues[K];
+
+/**
+ * Singular payload types for all payload kinds.
+ * For stored payload kinds, the value is a SingularStoredPayloadRef.
+ */
 export type SingularPayload = {
+  [K in keyof PayloadKindValues]: K extends StoredPayloadKind
+    ? { kind: K; value: SingularStoredPayloadRef<K> }
+    : { kind: K; value: PayloadKindValues[K] };
+}[keyof PayloadKindValues];
+
+/**
+ * Array payload types for all payload kinds.
+ * For stored payload kinds, the value is an ArrayStoredPayloadRef (which represents the stored array).
+ */
+export type ArrayPayload = {
+  [K in keyof PayloadKindValues]: K extends StoredPayloadKind
+    ? { kind: K; value: ArrayStoredPayloadRef<K> }
+    : { kind: K; value: PayloadKindValues[K][] };
+}[keyof PayloadKindValues];
+
+/**
+ * General payload type used throughout the flow system.
+ * For stored payload kinds (ProposedEntity, ProposedEntityWithResolvedLinks, PersistedEntitiesMetadata),
+ * the value may be a StoredPayloadRef that activities will resolve.
+ */
+export type Payload = SingularPayload | ArrayPayload;
+
+/**
+ * Resolved payload types - used after stored refs have been resolved (e.g., in GraphQL responses).
+ * These contain actual values instead of StoredPayloadRef for stored payload kinds.
+ */
+export type ResolvedSingularPayload = {
   [K in keyof PayloadKindValues]: {
     kind: K;
     value: PayloadKindValues[K];
   };
 }[keyof PayloadKindValues];
 
-export type ArrayPayload = {
+export type ResolvedArrayPayload = {
   [K in keyof PayloadKindValues]: {
     kind: K;
     value: PayloadKindValues[K][];
   };
 }[keyof PayloadKindValues];
 
-export type Payload = SingularPayload | ArrayPayload;
+/**
+ * Payload type after stored refs have been resolved.
+ * Used in frontend/GraphQL contexts where the backend has already resolved StoredPayloadRefs.
+ */
+export type ResolvedPayload = ResolvedSingularPayload | ResolvedArrayPayload;
 
 /**
  * Step Definition
@@ -170,7 +307,9 @@ export type TriggerDefinition = {
   outputs?: OutputDefinition[];
 };
 
-export type ActionDefinition = {
+export type ActionDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId,
+> = {
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   name: string;
@@ -178,10 +317,6 @@ export type ActionDefinition = {
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
 };
-
-/**
- * Flow Definition
- */
 
 export type StepInputSource<P extends Payload = Payload> = {
   inputName: string;
@@ -207,6 +342,7 @@ export type StepInputSource<P extends Payload = Payload> = {
 );
 
 export type ActionStepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
   AdditionalInputSources extends { inputName: string } | null = null,
 > = {
   kind: "action";
@@ -220,26 +356,35 @@ export type ActionStepDefinition<
   retryCount?: number;
 };
 
-export type ActionStepWithParallelInput = ActionStepDefinition<{
-  /**
-   * This additional input source refers to the dispersed input
-   * for a parallel group.
-   */
-  inputName: string;
-  kind: "parallel-group-input";
-}>;
+export type ActionStepWithParallelInput<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = ActionStepDefinition<
+  ActionDefinitionId,
+  {
+    /**
+     * This additional input source refers to the dispersed input
+     * for a parallel group.
+     */
+    inputName: string;
+    kind: "parallel-group-input";
+  }
+>;
 
-export type StepDefinition =
-  | ActionStepDefinition
-  | ActionStepWithParallelInput
-  | ParallelGroupStepDefinition;
+export type StepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> =
+  | ActionStepDefinition<ActionDefinitionId>
+  | ActionStepWithParallelInput<ActionDefinitionId>
+  | ParallelGroupStepDefinition<ActionDefinitionId>;
 
 /**
  * A step which spawns multiple parallel branches of steps based on an array input.
  *
  * e.g. for each input entity, do X with that entity in a separate branch.
  */
-export type ParallelGroupStepDefinition = {
+export type ParallelGroupStepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   kind: "parallel-group";
   stepId: string;
   groupId?: number;
@@ -254,7 +399,7 @@ export type ParallelGroupStepDefinition = {
    * The steps that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: StepDefinition[];
+  steps: StepDefinition<ActionDefinitionId>[];
   /**
    * The aggregate output of the parallel group must be defined
    * as an `array` output.
@@ -284,8 +429,7 @@ type FlowDefinitionTrigger =
       kind: "scheduled";
       description: string;
       triggerDefinitionId: "scheduledTrigger";
-      active: boolean;
-      cronSchedule: string;
+      scheduleSpec: ScheduleSpec;
       outputs?: OutputDefinition[];
     };
 
@@ -294,25 +438,29 @@ export type StepGroup = {
   description: string;
 };
 
-export type FlowDefinition = {
-  name: string;
-  description: string;
-  flowDefinitionId: EntityUuid;
-  trigger: FlowDefinitionTrigger;
-  groups?: StepGroup[];
-  steps: StepDefinition[];
-  outputs: (OutputDefinition & {
-    /**
-     * The step ID for the step in the flow that will produce the
-     * output.
-     */
-    stepId: string;
-    /**
-     * The name of the output in the step
-     */
-    stepOutputName: string;
-  })[];
-};
+export type FlowDefinition<ActionDefinitionId extends FlowActionDefinitionId> =
+  {
+    type: ActionDefinitionId extends AiFlowActionDefinitionId
+      ? "ai"
+      : "integration";
+    name: string;
+    description: string;
+    flowDefinitionId: EntityUuid;
+    trigger: FlowDefinitionTrigger;
+    groups?: StepGroup[];
+    steps: StepDefinition<ActionDefinitionId>[];
+    outputs: (OutputDefinition & {
+      /**
+       * The step ID for the step in the flow that will produce the
+       * output.
+       */
+      stepId: string;
+      /**
+       * The name of the output in the step
+       */
+      stepOutputName: string;
+    })[];
+  };
 
 export type StepInput<P extends Payload = Payload> = {
   inputName: string;
@@ -324,9 +472,29 @@ export type StepOutput<P extends Payload = Payload> = {
   payload: P;
 };
 
-export type StepRunOutput = Status<Required<Pick<ActionStep, "outputs">>>;
+/**
+ * StepOutput with resolved payload - used in frontend/GraphQL contexts
+ * where stored refs have been resolved by the backend.
+ */
+export type ResolvedStepOutput = {
+  outputName: string;
+  payload: ResolvedPayload;
+};
 
-export type ActionStep = {
+export type StepRunOutput = Status<
+  Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
+>;
+
+/**
+ * StepRunOutput with resolved payloads - used in frontend/GraphQL contexts.
+ */
+export type ResolvedStepRunOutput = Status<{
+  outputs: ResolvedStepOutput[];
+}>;
+
+export type ActionStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   stepId: string;
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
@@ -335,15 +503,19 @@ export type ActionStep = {
   outputs?: StepOutput[];
 };
 
-export type ParallelGroupStep = {
+export type ParallelGroupStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   stepId: string;
   kind: "parallel-group";
   inputToParallelizeOn?: StepInput<ArrayPayload>;
-  steps?: FlowStep[];
+  steps?: FlowStep<ActionDefinitionId>[];
   aggregateOutput?: StepOutput<ArrayPayload>;
 };
 
-export type FlowStep = ActionStep | ParallelGroupStep;
+export type FlowStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = ActionStep<ActionDefinitionId> | ParallelGroupStep<ActionDefinitionId>;
 
 export type FlowTrigger = {
   triggerDefinitionId: TriggerDefinitionId;
@@ -372,12 +544,14 @@ export type FlowDataSources = {
 /**
  * A simplified type for a FlowRun used internally in the worker logic.
  */
-export type LocalFlowRun = {
+export type LocalFlowRun<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   name: string;
-  flowRunId: EntityUuid;
+  temporalWorkflowId: string;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
-  steps: FlowStep[];
+  steps: FlowStep<ActionDefinitionId>[];
   outputs?: StepOutput[];
 };
 
@@ -546,8 +720,8 @@ export type ProposedEntityLog = WorkerProgressLogBase & {
 };
 
 export type PersistedEntityLog = ProgressLogBase & {
-  persistedEntity: PersistedEntity;
-  type: "PersistedEntity";
+  persistedEntityMetadata: PersistedEntityMetadata;
+  type: "PersistedEntityMetadata";
 };
 
 export type ActivityFailedLog = ProgressLogBase & {

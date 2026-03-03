@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Null {
+    bb0(): {
+        switchInt(5) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        return null
+    }
+
+    bb2(): {
+        return null
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Null {
+    bb0(): {
+        unreachable
+    }
+}

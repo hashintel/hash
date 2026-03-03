@@ -8,10 +8,11 @@ import { isProdEnv } from "./lib/env-config";
 // Initialize OpenTelemetry BEFORE any app code
 const otlpEndpoint = process.env.HASH_OTLP_ENDPOINT;
 if (otlpEndpoint) {
-  const { registerOpenTelemetryTracing } = await import(
-    "./graphql/opentelemetry.js"
+  const { registerOpenTelemetry } = await import("./graphql/opentelemetry.js");
+  registerOpenTelemetry(
+    otlpEndpoint,
+    process.env.OTEL_SERVICE_NAME || "Node API",
   );
-  registerOpenTelemetryTracing(otlpEndpoint, "Node API");
 }
 
 const sentryDsn = process.env.NODE_API_SENTRY_DSN;
@@ -19,7 +20,10 @@ const sentryDsn = process.env.NODE_API_SENTRY_DSN;
 Sentry.init({
   dsn: sentryDsn,
   enabled: !!sentryDsn,
-  environment: isProdEnv ? "production" : "development",
+  environment:
+    process.env.SENTRY_ENVIRONMENT ||
+    process.env.ENVIRONMENT ||
+    (isProdEnv ? "production" : "development"),
   sendDefaultPii: true,
   tracesSampleRate: isProdEnv ? 1.0 : 0,
 });

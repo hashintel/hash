@@ -1,12 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import { TextField } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Stack } from "@mui/material";
 import type { FormEvent } from "react";
@@ -69,9 +64,8 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     const { data } = await queryEntities({
       variables: {
-        includePermissions: false,
-        operation: {
-          multiFilter: {
+        request: {
+          filter: convertBpFilterToGraphFilter({
             filters: [
               {
                 field: [
@@ -85,9 +79,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
               },
             ],
             operator: "AND",
-          },
+          }),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
         },
-        ...zeroedGraphResolveDepths,
       },
     });
 
@@ -97,11 +93,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(data.queryEntities.subgraph);
-
-    const user = getRoots(subgraph)[0];
+    const user = data.queryEntities.entities[0];
 
     if (!user && !isEmail) {
       setError(`User with shortname ${shortnameOrEmail} not found`);

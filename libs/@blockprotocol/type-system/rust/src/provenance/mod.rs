@@ -1,4 +1,4 @@
-//! Provenance module for tracking the origin and history of types
+//! Provenance module for tracking the origin and history of types.
 //!
 //! This module provides types for recording and tracking the provenance of ontology types
 //! within the Block Protocol Type System. It defines structures for:

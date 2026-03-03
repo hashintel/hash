@@ -1,13 +1,10 @@
-[type-extractor::generic-parameter-mismatch] Error: Incorrect number of type parameters
-    ╭─[ <unknown>:10:6 ]
-    │
- 10 │     "Pair<Number>",
-    │      ──┬─  
-    │        ╰─── Missing parameter `B`
-    │        │   
-    │        ╰─── Type `Pair` needs 2 type parameters, but only 1 was provided
-    │ 
-    │ Help: Add the missing parameter(s): `Pair<A, B>`
-    │ 
-    │ Note: Generic type parameters allow types to work with different data types while maintaining type safety. Each generic type has specific requirements for the number and names of type parameters it accepts. For example, List<T> requires exactly one type parameter, while Dict<K, V> requires two.
-────╯
+error[type-extractor::generic-parameter-mismatch]: Incorrect number of type parameters
+   ╭▸ 
+10 │     "Pair<Number>",
+   │      ┯━━━
+   │      │
+   │      Type `Pair` needs 2 type parameters, but only 1 was provided
+   │      Missing parameter `B`
+   │
+   ├ help: Add the missing parameter(s): `Pair<A, B>`
+   ╰ note: Generic type parameters allow types to work with different data types while maintaining type safety. Each generic type has specific requirements for the number and names of type parameters it accepts. For example, List<T> requires exactly one type parameter, while Dict<K, V> requires two.

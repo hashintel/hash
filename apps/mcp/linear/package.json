@@ -4,8 +4,8 @@
   "private": true,
   "description": "MCP server for basic Linear operations",
   "license": "AGPL-3.0",
-  "type": "module",
   "bin": "./dist/index.js",
+  "type": "module",
   "scripts": {
     "build": "rimraf dist && tsc --project tsconfig.build.json && shx chmod +x dist/*.js",
     "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",
@@ -17,23 +17,23 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@linear/sdk": "6.0.0",
-    "@local/eslint": "0.0.0-private",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
-    "@modelcontextprotocol/sdk": "1.16.0",
+    "@linear/sdk": "61.0.0",
+    "@local/eslint": "workspace:*",
+    "@local/hash-backend-utils": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.26.0",
     "dotenv-flow": "3.3.0",
-    "zod": "3.25.76",
+    "zod": "4.1.12",
     "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.16.5",
+    "@types/node": "22.18.13",
     "chokidar-cli": "3.0.0",
-    "eslint": "9.20.1",
-    "rimraf": "6.0.1",
+    "eslint": "9.39.3",
+    "rimraf": "6.1.3",
     "shx": "0.4.0",
-    "tsx": "4.20.3",
-    "typescript": "5.7.3"
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   }
 }

@@ -15,7 +15,7 @@ harpc-types = { workspace = true, public = true }
 bytes        = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 futures-util = { workspace = true, public = true, optional = true }
-serde        = { workspace = true, public = true, features = ["derive"] }
+serde_core   = { workspace = true, public = true }
 serde_json   = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
@@ -23,6 +23,7 @@ serde_json   = { workspace = true, public = true, optional = true }
 # Private third-party dependencies
 memchr           = { workspace = true, optional = true }
 pin-project-lite = { workspace = true, optional = true }
+serde            = { workspace = true, features = ["derive"] }
 simple-mermaid   = { workspace = true }
 thiserror        = { workspace = true }
 

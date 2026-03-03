@@ -1,0 +1,26 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Mixed index access
+expression: "foo[bar][0]"
+info:
+  kind: Ok
+---
+Expr#4294967040@9
+  ExprKind (Index)
+    IndexExpr#4294967040@9
+      Expr#4294967040@8
+        ExprKind (Index)
+          IndexExpr#4294967040@8
+            Expr#4294967040@3
+              ExprKind (Path)
+                Path#4294967040@3 (rooted: false)
+                  PathSegment#4294967040@2 (name: foo)
+            Expr#4294967040@6
+              ExprKind (Path)
+                Path#4294967040@6 (rooted: false)
+                  PathSegment#4294967040@5 (name: bar)
+      Expr#4294967040@7
+        ExprKind (Literal)
+          LiteralExpr#4294967040@7
+            Primitive (Integer)
+              Integer (0)

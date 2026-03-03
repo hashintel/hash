@@ -2,6 +2,11 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -10,7 +15,12 @@ import {
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  PersistedEntitiesMetadata,
+  StoredPayloadRef,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -21,7 +31,6 @@ import type {
   AssociatedWithAccount,
   GoogleSheetsFile,
 } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
@@ -31,7 +40,6 @@ import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { getEntityUpdate } from "./shared/graph-requests.js";
-import type { FlowActionActivity } from "./types.js";
 import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests.js";
 import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests.js";
 import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity.js";
@@ -71,14 +79,17 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: FlowActionActivity<{
-  vaultClient: VaultClient;
-}> = async ({ inputs, vaultClient }) => {
+export const writeGoogleSheetAction: AiFlowActionActivity<
+  "writeGoogleSheet",
+  {
+    vaultClient: VaultClient;
+  }
+> = async ({ inputs, vaultClient }) => {
   const { flowEntityId, stepId, userAuthentication, webId } =
     await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedActionInputs({
+    getSimplifiedAiFlowActionInputs({
       inputs,
       actionType: "writeGoogleSheet",
     });
@@ -131,18 +142,33 @@ export const writeGoogleSheetAction: FlowActionActivity<{
    */
   let sheetRequests: sheets_v4.Schema$Request[] | undefined;
 
-  if ("format" in dataToWrite) {
-    if (dataToWrite.format !== "CSV") {
+  // Resolve stored ref if dataToWrite is a StoredPayloadRef (for PersistedEntitiesMetadata)
+  let resolvedDataToWrite:
+    | Exclude<typeof dataToWrite, StoredPayloadRef<"PersistedEntitiesMetadata">>
+    | PersistedEntitiesMetadata;
+
+  if (isStoredPayloadRef(dataToWrite)) {
+    resolvedDataToWrite = await resolvePayloadValue(
+      getStorageProvider(),
+      "PersistedEntitiesMetadata",
+      dataToWrite,
+    );
+  } else {
+    resolvedDataToWrite = dataToWrite;
+  }
+
+  if ("format" in resolvedDataToWrite) {
+    if (resolvedDataToWrite.format !== "CSV") {
       return {
         code: StatusCode.InvalidArgument,
-        message: `Invalid text format '${dataToWrite.format}' provided, must be 'CSV'.`,
+        message: `Invalid text format '${resolvedDataToWrite.format}' provided, must be 'CSV'.`,
         contents: [],
       };
     }
 
     try {
       sheetRequests = convertCsvToSheetRequests({
-        csvString: dataToWrite.content,
+        csvString: resolvedDataToWrite.content,
         format: { audience },
       });
     } catch {
@@ -153,26 +179,22 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       };
     }
   } else {
-    const isPersistedEntities = "persistedEntities" in dataToWrite;
-    const queryFilter = isPersistedEntities
-      ? {
-          any: dataToWrite.persistedEntities
-            .map((persistedEntity) =>
-              persistedEntity.entity
-                ? new HashEntity(persistedEntity.entity).metadata.recordId
-                    .entityId
-                : undefined,
-            )
-            .filter(isNotNullish)
-            .map((entityId) =>
-              generateEntityIdFilter({ entityId, includeArchived: false }),
+    const queryFilter =
+      "persistedEntities" in resolvedDataToWrite
+        ? {
+            any: resolvedDataToWrite.persistedEntities.map(
+              (persistedEntityMetadata) =>
+                generateEntityIdFilter({
+                  entityId: persistedEntityMetadata.entityId,
+                  includeArchived: false,
+                }),
             ),
-        }
-      : await getFilterFromBlockProtocolQueryEntity({
-          authentication: { actorId: userAccountId },
-          graphApiClient,
-          queryEntityId: dataToWrite,
-        });
+          }
+        : await getFilterFromBlockProtocolQueryEntity({
+            authentication: { actorId: userAccountId },
+            graphApiClient,
+            queryEntityId: resolvedDataToWrite,
+          });
 
     const subgraph = await getSubgraphFromFilter({
       authentication: { actorId: userAccountId },
@@ -184,7 +206,35 @@ export const writeGoogleSheetAction: FlowActionActivity<{
        *
        * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
        */
-      traversalDepth: isPersistedEntities ? 0 : 1,
+      traversalPaths:
+        "persistedEntities" in resolvedDataToWrite
+          ? []
+          : [
+              {
+                edges: [
+                  {
+                    kind: "has-left-entity",
+                    direction: "incoming",
+                  },
+                  {
+                    kind: "has-right-entity",
+                    direction: "outgoing",
+                  },
+                ],
+              },
+              {
+                edges: [
+                  {
+                    kind: "has-right-entity",
+                    direction: "incoming",
+                  },
+                  {
+                    kind: "has-left-entity",
+                    direction: "outgoing",
+                  },
+                ],
+              },
+            ],
     });
 
     sheetRequests = convertSubgraphToSheetRequests({
@@ -464,9 +514,9 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           {
             outputName: "googleSheetEntity",
             payload: {
-              kind: "PersistedEntity",
+              kind: "PersistedEntityMetadata",
               value: {
-                entity: entityToReturn.toJSON(),
+                entityId: entityToReturn.entityId,
                 operation: "create",
               },
             },

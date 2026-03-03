@@ -10,41 +10,9 @@ runs:
   steps:
     - name: Prune repository
       shell: bash
-      run: |
-        # Convert newline-separated input to space-separated arguments
-        SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
-
-        while IFS= read -r scope; do
-          # Read all the dependencies for the given scope.
-          # The result will contain strings for the scope and all its dependencies so it can be grepped later.
-          DEPENDENCIES=$(turbo query "query { packages(filter: { equal: { field: NAME, value: \"$scope\" } }) { items { name, allDependencies { items { name  } }}  } }")
-
-          # Workaround as turbo doesn't allow for cyclic dependencies
-          if echo "$DEPENDENCIES" | grep -q "@rust/hashql-ast"; then
-            SCOPES="$SCOPES @rust/hashql-compiletest"
-          fi
-          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-postgres-queries"; then
-            SCOPES="$SCOPES @local/repo-chores"
-          fi
-        done <<< "${{ inputs.scope }}"
-
-        # Deduplicate scopes
-        SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-
-        # Run turbo prune with all scopes as arguments
-        turbo prune $SCOPES
-
-        while IFS= read -r line; do
-          DIRECTORY=$(dirname "$line")
-          # Create a dummy crate if it does not exist
-          if [[ ! -f "out/$DIRECTORY/Cargo.toml" ]]; then
-            mkdir -p "out/$DIRECTORY/src"
-            echo > "out/$DIRECTORY/src/lib.rs"
-            echo "[package]" >> "out/$DIRECTORY/Cargo.toml"
-            echo "name = \"$(yq '.package.name' -p toml -oy $line)\"" >> "out/$DIRECTORY/Cargo.toml"
-            echo "edition.workspace = true" >> "out/$DIRECTORY/Cargo.toml"
-          fi
-        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | sed -e 's#/\*##g') -maxdepth 2 -name Cargo.toml | uniq)
+      env:
+        SCOPE: ${{ inputs.scope }}
+      run: python3 ${{ github.action_path }}/prune.py "$SCOPE"
 
     - name: Copy required files
       shell: bash

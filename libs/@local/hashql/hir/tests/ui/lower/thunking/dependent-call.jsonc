@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Dependent variable call thunking transformation
+[
+  "let",
+  "a",
+  { "#literal": 2 },
+  ["let", "b", { "#literal": 3 }, [">=", "a", "b"]]
+]

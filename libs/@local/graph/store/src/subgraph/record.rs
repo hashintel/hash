@@ -46,7 +46,7 @@ impl SubgraphRecord for DataTypeWithMetadata {
         let record_id = &self.metadata.record_id;
         DataTypeVertexId {
             base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
+            revision_id: record_id.version.clone(),
         }
     }
 }
@@ -58,7 +58,7 @@ impl SubgraphRecord for PropertyTypeWithMetadata {
         let record_id = &self.metadata.record_id;
         PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
+            revision_id: record_id.version.clone(),
         }
     }
 }
@@ -70,7 +70,7 @@ impl SubgraphRecord for EntityTypeWithMetadata {
         let record_id = &self.metadata.record_id;
         EntityTypeVertexId {
             base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
+            revision_id: record_id.version.clone(),
         }
     }
 }

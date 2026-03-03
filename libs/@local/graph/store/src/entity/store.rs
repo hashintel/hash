@@ -36,9 +36,16 @@ use utoipa::{
 use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
+        },
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -73,9 +80,11 @@ const fn default_true() -> bool {
 #[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
+#[allow(
     clippy::struct_excessive_bools,
-    reason = "This is a configuration struct."
+    clippy::allow_attributes,
+    reason = "This is a configuration struct. `struct_excessive_bools` does not always report for \
+              some reason, so we use `allow` here."
 )]
 pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -181,7 +190,7 @@ pub struct QueryConversion<'a> {
 
 #[derive(Debug)]
 #[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntitiesParams<'a> {
+pub struct QueryEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
@@ -195,6 +204,7 @@ pub struct GetEntitiesParams<'a> {
     pub include_edition_created_by_ids: bool,
     pub include_type_ids: bool,
     pub include_type_titles: bool,
+    pub include_permissions: bool,
 }
 
 /// A recursive map structure representing a hierarchical combination of entity types.
@@ -234,12 +244,23 @@ pub struct ClosedMultiEntityTypeMap {
     pub inner: HashMap<VersionedUrl, Self>,
 }
 
+#[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityPermissions {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub update: Vec<EntityEditionId>,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetEntitiesResponse<'r> {
+pub struct QueryEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -262,29 +283,134 @@ pub struct GetEntitiesResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntitySubgraphParams<'a> {
-    pub filter: Filter<'a, Entity>,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub sorting: EntityQuerySorting<'static>,
-    pub limit: Option<usize>,
-    pub conversions: Vec<QueryConversion<'a>>,
-    pub include_drafts: bool,
-    pub include_count: bool,
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    pub include_web_ids: bool,
-    pub include_created_by_ids: bool,
-    pub include_edition_created_by_ids: bool,
-    pub include_type_ids: bool,
-    pub include_type_titles: bool,
+pub enum QueryEntitySubgraphParams<'a> {
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
+        request: QueryEntitiesParams<'a>,
+    },
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_paths: Vec<EntityTraversalPath>,
+        request: QueryEntitiesParams<'a>,
+    },
+}
+
+impl<'a> QueryEntitySubgraphParams<'a> {
+    #[must_use]
+    pub const fn request(&self) -> &QueryEntitiesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut QueryEntitiesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub fn from_parts(
+        request: QueryEntitiesParams<'a>,
+        traversal_params: SubgraphTraversalParams,
+    ) -> Self {
+        match traversal_params {
+            SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
+                request,
+                traversal_paths,
+            },
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => Self::ResolveDepths {
+                request,
+                traversal_paths,
+                graph_resolve_depths,
+            },
+        }
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                request,
+                traversal_paths,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                request,
+                traversal_paths,
+                graph_resolve_depths,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
+
+    #[must_use]
+    pub fn view_actions(&self) -> Vec<ActionName> {
+        let mut actions = vec![ActionName::ViewEntity];
+
+        match self {
+            Self::Paths {
+                traversal_paths, ..
+            } => {
+                if traversal_paths
+                    .iter()
+                    .any(|path| path.has_edge_kind(TraversalEdgeKind::IsOfType))
+                {
+                    actions.push(ActionName::ViewEntityType);
+
+                    if traversal_paths
+                        .iter()
+                        .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsPropertiesOn))
+                    {
+                        actions.push(ActionName::ViewPropertyType);
+
+                        if traversal_paths
+                            .iter()
+                            .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsValuesOn))
+                        {
+                            actions.push(ActionName::ViewDataType);
+                        }
+                    }
+                }
+            }
+            Self::ResolveDepths {
+                graph_resolve_depths: depths,
+                ..
+            } => {
+                if depths.is_of_type {
+                    actions.push(ActionName::ViewEntityType);
+
+                    if depths.constrains_properties_on > 0 {
+                        actions.push(ActionName::ViewPropertyType);
+
+                        if depths.constrains_values_on > 0 {
+                            actions.push(ActionName::ViewDataType);
+                        }
+                    }
+                }
+            }
+        }
+
+        actions
+    }
 }
 
 #[derive(Debug)]
-pub struct GetEntitySubgraphResponse<'r> {
+pub struct QueryEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
@@ -295,6 +421,7 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
+    pub entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -330,6 +457,23 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub confidence: Option<Confidence>,
     pub provenance: ProvidedEntityEditionProvenance,
+}
+
+impl PatchEntityParams {
+    /// Returns `true` if the parameters represents an update.
+    ///
+    /// An update is defined as any change to the entity's type IDs, properties, or draft status. If
+    /// only the confidence is updated without changing the archive-state, this is also considered
+    /// an update. On the counterary, if only the confidence is updated along with an archive-state
+    /// change, the confidence is used for the new entity edition.
+    // TODO(BE-224): Fix edge-case that the confidence could be updated by archiving/unarchiving.
+    #[must_use]
+    pub fn is_update(&self) -> bool {
+        !self.entity_type_ids.is_empty()
+            || !self.properties.is_empty()
+            || self.draft.is_some()
+            || (self.archived.is_none() && self.confidence.is_some())
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -385,6 +529,52 @@ pub struct HasPermissionForEntitiesParams<'a> {
     pub entity_ids: Cow<'a, [EntityId]>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(
+    tag = "scope",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum DeletionScope {
+    // Archive,
+    Purge { link_behavior: LinkDeletionBehavior },
+    Erase,
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum LinkDeletionBehavior {
+    Ignore,
+    Error,
+    // Cascade,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteEntitiesParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub include_drafts: bool,
+    #[serde(flatten)]
+    pub scope: DeletionScope,
+    #[serde(default)]
+    pub decision_time: Option<Timestamp<DecisionTime>>,
+}
+
+/// Summary of a deletion operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct DeletionSummary {
+    /// Number of entities fully deleted (tombstoned or erased).
+    pub full_entities: usize,
+    /// Number of draft-only deletions performed.
+    pub draft_deletions: usize,
 }
 
 /// Describes the API of a store implementation for [Entities].
@@ -447,35 +637,35 @@ pub trait EntityStore {
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 
-    /// Get a list of entities specified by the [`GetEntitiesParams`].
+    /// Get a list of entities specified by the [`QueryEntitiesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
-    fn get_entities(
+    fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitiesParams<'_>,
-    ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
+        params: QueryEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`]s specified by the [`GetEntitySubgraphParams`].
+    /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
-    fn get_entity_subgraph(
+    fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Count the number of entities that would be returned in [`get_entity`].
+    /// Count the number of entities that would be returned in [`query_entities`].
     ///
     /// # Errors
     ///
     /// - if the request to the database fails
     ///
-    /// [`get_entity`]: Self::get_entity_subgraph
+    /// [`query_entities`]: Self::query_entities
     fn count_entities(
         &self,
         actor_id: ActorEntityUuid,
@@ -495,6 +685,45 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
+
+    /// Deletes entities matching the `params` filter.
+    ///
+    /// **Purge** keeps `entity_ids` as a tombstone with deletion provenance; all edition data,
+    /// temporal metadata, type associations, embeddings, drafts, and outgoing edges are removed.
+    /// **Erase** additionally removes the `entity_ids` row, leaving no trace.
+    ///
+    /// # Behavioral notes
+    ///
+    /// - **Erase + draft-only targets**: when [`DeletionScope::Erase`] is used but only draft-only
+    ///   targets are produced (e.g., a partial draft match on an entity with a published version),
+    ///   `entity_ids` is **not** deleted because published data still references it. Callers
+    ///   passing `Erase` should not assume complete removal in this case.
+    ///
+    /// - **Filter interaction with `include_drafts`**: [`Filter::for_entity_by_entity_id`] with
+    ///   `draft_id: None` matches on `(web_id, entity_uuid)` without restricting by `draft_id`. The
+    ///   `draft_id IS NULL` constraint comes from `include_drafts: false` in the select compiler.
+    ///   This means `include_drafts: true` + `draft_id: None` matches **all** rows (published + all
+    ///   drafts) for the entity.
+    ///
+    /// - **Double-purge is a no-op**: after the first purge deletes temporal metadata, a second
+    ///   call finds no matching rows and returns successfully without modifying the tombstone.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidDecisionTime`] if `decision_time` exceeds `transaction_time`
+    /// - [`IncomingLinksExist`] if incoming links exist and [`LinkDeletionBehavior::Error`] or
+    ///   [`DeletionScope::Erase`] is requested
+    /// - [`Store`] if a database operation fails
+    ///
+    /// [`InvalidDecisionTime`]: DeletionError::InvalidDecisionTime
+    /// [`IncomingLinksExist`]: DeletionError::IncomingLinksExist
+    /// [`Store`]: DeletionError::Store
+    /// [`Filter::for_entity_by_entity_id`]: crate::filter::Filter::for_entity_by_entity_id
+    fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
         &self,

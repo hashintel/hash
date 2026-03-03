@@ -2,14 +2,18 @@ import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
+  ClockRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
 import {
   goalFlowDefinitionIds,
   type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
@@ -38,8 +42,9 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowRunId: EntityUuid;
+  flowScheduleId: EntityUuid | null;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
   showDag: () => void;
@@ -48,6 +53,7 @@ type FlowRunSidebarProps = {
 export const FlowRunSidebar = ({
   flowDefinition,
   flowRunId,
+  flowScheduleId,
   groups,
   name,
   showDag,
@@ -82,13 +88,26 @@ export const FlowRunSidebar = ({
   return (
     <Box sx={{ ml: 3, minWidth: 320, width: 320 }}>
       <Box sx={{ mb: 2 }}>
-        <SectionLabel
-          text={
-            goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
-              ? "Goal"
-              : "Description"
-          }
-        />
+        <Stack direction="row" alignItems="center" gap={0.75}>
+          <SectionLabel
+            text={
+              goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
+                ? "Goal"
+                : "Description"
+            }
+          />
+          {flowScheduleId && (
+            <Tooltip title="Triggered by a schedule">
+              <ClockRegularIcon
+                sx={{
+                  fontSize: 13,
+                  mb: 0.5,
+                  color: ({ palette }) => palette.blue[70],
+                }}
+              />
+            </Tooltip>
+          )}
+        </Stack>
         <SidebarSection>
           <Typography
             component="p"

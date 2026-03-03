@@ -1,5 +1,4 @@
 import type { Entity } from "@blockprotocol/type-system";
-import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -14,6 +13,7 @@ import type {
   UpdateBlockCollectionContentsResult,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   createEntityWithPlaceholdersFn,
@@ -60,7 +60,7 @@ export const updateBlockCollectionContents: ResolverFn<
         action.createEntity,
       )
     ) {
-      throw new UserInputError(
+      throw Error.badUserInput(
         `at action ${i}: exactly one of the fields on UpdateBlockCollectionAction must be specified`,
       );
     }
@@ -143,10 +143,10 @@ export const updateBlockCollectionContents: ResolverFn<
       placeholders: placeholderResults.getResults(),
     };
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Could not apply update: ${error.message}`);
+    if (error instanceof globalThis.Error) {
+      throw Error.internal(`Could not apply update: ${error.message}`);
     }
 
-    throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
+    throw Error.internal(`Could not apply update: ${JSON.stringify(error)}`);
   }
 };

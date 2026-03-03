@@ -56,28 +56,29 @@ use hashql_core::{
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
+    value::Primitive,
 };
 
 use crate::{
     node::{
-        HirId, Node,
-        access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::{Branch, BranchKind},
+        HirId, Node, NodeData,
+        access::{Access, FieldAccess, IndexAccess},
+        branch::{Branch, If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal},
+        data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         graph::{
-            Graph, GraphKind,
+            Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
-        input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binder, Binding, Let, VarId},
         operation::{
-            BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
-            r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
+            BinaryOperation, InputOperation, Operation, TypeAssertion, TypeConstructor,
+            TypeOperation, UnaryOperation,
         },
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        thunk::Thunk,
+        variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
 };
@@ -121,6 +122,11 @@ pub trait Visitor<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
+    fn visit_var_id(&mut self, id: VarId) {
+        // do nothing, no fields to walk
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
     fn visit_type_id(&mut self, id: TypeId) {
         // do nothing, no fields to walk
     }
@@ -151,7 +157,7 @@ pub trait Visitor<'heap> {
         walk_qualified_path(self, path);
     }
 
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: Node<'heap>) {
         walk_node(self, node);
     }
 
@@ -159,8 +165,33 @@ pub trait Visitor<'heap> {
         walk_data(self, data);
     }
 
-    fn visit_literal(&mut self, literal: &'heap Literal<'heap>) {
-        walk_literal(self, literal);
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_primitive(&mut self, literal: &'heap Primitive<'heap>) {
+        // do nothing, no fields to walk
+    }
+
+    fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
+        walk_tuple(self, tuple);
+    }
+
+    fn visit_struct_field(&mut self, field: &'heap StructField<'heap>) {
+        walk_struct_field(self, field);
+    }
+
+    fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
+        walk_struct(self, r#struct);
+    }
+
+    fn visit_list(&mut self, list: &'heap List<'heap>) {
+        walk_list(self, list);
+    }
+
+    fn visit_dict(&mut self, dict: &'heap Dict<'heap>) {
+        walk_dict(self, dict);
+    }
+
+    fn visit_dict_field(&mut self, field: &'heap DictField<'heap>) {
+        walk_dict_field(self, field);
     }
 
     fn visit_variable(&mut self, variable: &'heap Variable<'heap>) {
@@ -175,12 +206,16 @@ pub trait Visitor<'heap> {
         walk_qualified_variable(self, variable);
     }
 
-    fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
-        walk_let(self, r#let);
+    fn visit_binder(&mut self, binding: &'heap Binder<'heap>) {
+        walk_binder(self, binding);
     }
 
-    fn visit_input(&mut self, input: &'heap Input<'heap>) {
-        walk_input(self, input);
+    fn visit_binding(&mut self, binding: &'heap Binding<'heap>) {
+        walk_binding(self, binding);
+    }
+
+    fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
+        walk_let(self, r#let);
     }
 
     fn visit_operation(&mut self, operation: &'heap Operation<'heap>) {
@@ -207,6 +242,10 @@ pub trait Visitor<'heap> {
         walk_unary_operation(self, operation);
     }
 
+    fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
+        walk_input_operation(self, operation);
+    }
+
     fn visit_access(&mut self, access: &'heap Access<'heap>) {
         walk_access(self, access);
     }
@@ -231,6 +270,10 @@ pub trait Visitor<'heap> {
         walk_branch(self, branch);
     }
 
+    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
+        walk_if(self, r#if);
+    }
+
     fn visit_closure(&mut self, closure: &'heap Closure<'heap>) {
         walk_closure(self, closure);
     }
@@ -241,6 +284,10 @@ pub trait Visitor<'heap> {
 
     fn visit_closure_param(&mut self, param: &'heap ClosureParam<'heap>) {
         walk_closure_param(self, param);
+    }
+
+    fn visit_thunk(&mut self, thunk: &'heap Thunk<'heap>) {
+        walk_thunk(self, thunk);
     }
 
     fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
@@ -273,10 +320,9 @@ pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
-pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    Node { id, span, kind }: &Node<'heap>,
-) {
+pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, node: Node<'heap>) {
+    let NodeData { id, span, kind } = node.0;
+
     visitor.visit_id(*id);
     visitor.visit_span(*span);
 
@@ -284,56 +330,94 @@ pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
         NodeKind::Data(data) => visitor.visit_data(data),
         NodeKind::Variable(variable) => visitor.visit_variable(variable),
         NodeKind::Let(r#let) => visitor.visit_let(r#let),
-        NodeKind::Input(input) => visitor.visit_input(input),
         NodeKind::Operation(operation) => visitor.visit_operation(operation),
         NodeKind::Access(access) => visitor.visit_access(access),
         NodeKind::Call(call) => visitor.visit_call(call),
         NodeKind::Branch(branch) => visitor.visit_branch(branch),
         NodeKind::Closure(closure) => visitor.visit_closure(closure),
+        NodeKind::Thunk(thunk) => visitor.visit_thunk(thunk),
         NodeKind::Graph(graph) => visitor.visit_graph(graph),
     }
 }
 
-pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    Data { span, kind }: &'heap Data<'heap>,
-) {
-    visitor.visit_span(*span);
-
-    match kind {
-        DataKind::Literal(literal) => visitor.visit_literal(literal),
+pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, data: &'heap Data<'heap>) {
+    match data {
+        Data::Primitive(primitive) => visitor.visit_primitive(primitive),
+        Data::Tuple(tuple) => visitor.visit_tuple(tuple),
+        Data::Struct(r#struct) => visitor.visit_struct(r#struct),
+        Data::List(list) => visitor.visit_list(list),
+        Data::Dict(dict) => visitor.visit_dict(dict),
     }
 }
 
-pub fn walk_literal<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_tuple<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Literal { span, kind: _ }: &'heap Literal<'heap>,
+    Tuple { fields }: &'heap Tuple<'heap>,
 ) {
-    visitor.visit_span(*span);
+    for field in fields {
+        visitor.visit_node(*field);
+    }
+}
+
+pub fn walk_struct_field<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    StructField { name, value }: &'heap StructField<'heap>,
+) {
+    visitor.visit_ident(name);
+    visitor.visit_node(*value);
+}
+
+pub fn walk_struct<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Struct { fields }: &'heap Struct<'heap>,
+) {
+    for field in fields {
+        visitor.visit_struct_field(field);
+    }
+}
+
+pub fn walk_list<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    List { elements }: &'heap List<'heap>,
+) {
+    for element in elements {
+        visitor.visit_node(*element);
+    }
+}
+
+pub fn walk_dict<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Dict { fields }: &'heap Dict<'heap>,
+) {
+    for field in fields {
+        visitor.visit_dict_field(field);
+    }
+}
+
+pub fn walk_dict_field<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    DictField { key, value }: &'heap DictField<'heap>,
+) {
+    visitor.visit_node(*key);
+    visitor.visit_node(*value);
 }
 
 pub fn walk_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Variable { span, kind }: &'heap Variable<'heap>,
+    variable: &'heap Variable<'heap>,
 ) {
-    visitor.visit_span(*span);
-
-    match kind {
-        VariableKind::Local(variable) => visitor.visit_local_variable(variable),
-        VariableKind::Qualified(variable) => visitor.visit_qualified_variable(variable),
+    match variable {
+        Variable::Local(variable) => visitor.visit_local_variable(variable),
+        Variable::Qualified(variable) => visitor.visit_qualified_variable(variable),
     }
 }
 
 pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    LocalVariable {
-        span,
-        name,
-        arguments,
-    }: &'heap LocalVariable<'heap>,
+    LocalVariable { id, arguments }: &'heap LocalVariable<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_ident(name);
+    visitor.visit_span(id.span);
+    visitor.visit_var_id(id.value);
 
     for &argument in arguments {
         visitor.visit_type_id(argument.value);
@@ -342,13 +426,8 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    QualifiedVariable {
-        span,
-        path,
-        arguments,
-    }: &'heap QualifiedVariable<'heap>,
+    QualifiedVariable { path, arguments }: &'heap QualifiedVariable<'heap>,
 ) {
-    visitor.visit_span(*span);
     visitor.visit_qualified_path(path);
 
     for &argument in arguments {
@@ -356,160 +435,145 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
-pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_binder<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Let {
-        span,
-        name,
-        value,
-        body,
-    }: &'heap Let<'heap>,
+    Binder { id, span, name }: &'heap Binder<'heap>,
 ) {
+    visitor.visit_var_id(*id);
     visitor.visit_span(*span);
-    visitor.visit_ident(name);
 
-    visitor.visit_node(value);
-    visitor.visit_node(body);
+    if let Some(name) = name {
+        visitor.visit_symbol(name);
+    }
 }
 
-pub fn walk_input<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_binding<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Input {
+    Binding {
         span,
-        name,
-        r#type,
-        default,
-    }: &'heap Input<'heap>,
+        binder,
+        value,
+    }: &'heap Binding<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_ident(name);
+    visitor.visit_binder(binder);
+    visitor.visit_node(*value);
+}
 
-    visitor.visit_type_id(*r#type);
-
-    if let Some(default) = default {
-        visitor.visit_node(default);
+pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Let { bindings, body }: &'heap Let<'heap>,
+) {
+    for binding in bindings {
+        visitor.visit_binding(binding);
     }
+
+    visitor.visit_node(*body);
 }
 
 pub fn walk_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Operation { span, kind }: &'heap Operation<'heap>,
+    operation: &'heap Operation<'heap>,
 ) {
-    visitor.visit_span(*span);
-
-    match kind {
-        OperationKind::Type(operation) => visitor.visit_type_operation(operation),
-        OperationKind::Binary(operation) => visitor.visit_binary_operation(operation),
+    match operation {
+        Operation::Type(operation) => visitor.visit_type_operation(operation),
+        Operation::Binary(operation) => visitor.visit_binary_operation(operation),
+        Operation::Input(operation) => visitor.visit_input_operation(operation),
     }
 }
 
 pub fn walk_type_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    TypeOperation { span, kind }: &'heap TypeOperation<'heap>,
+    operation: &'heap TypeOperation<'heap>,
 ) {
-    visitor.visit_span(*span);
-
-    match kind {
-        TypeOperationKind::Assertion(assertion) => visitor.visit_type_assertion(assertion),
-        TypeOperationKind::Constructor(constructor) => visitor.visit_type_constructor(constructor),
+    match operation {
+        TypeOperation::Assertion(assertion) => visitor.visit_type_assertion(assertion),
+        TypeOperation::Constructor(constructor) => visitor.visit_type_constructor(constructor),
     }
 }
 
 pub fn walk_type_assertion<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeAssertion {
-        span,
         value,
         r#type,
         force: _,
     }: &'heap TypeAssertion<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_node(value);
+    visitor.visit_node(*value);
     visitor.visit_type_id(*r#type);
 }
 
 pub fn walk_type_constructor<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    TypeConstructor {
-        span,
-        name,
-        closure,
-        arguments,
-    }: &'heap TypeConstructor<'heap>,
+    TypeConstructor { name }: &'heap TypeConstructor<'heap>,
 ) {
-    visitor.visit_span(*span);
     visitor.visit_symbol(name);
-    visitor.visit_type_id(*closure);
-
-    for reference in arguments {
-        visitor.visit_generic_argument_reference(reference);
-    }
 }
 
 pub fn walk_binary_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    BinaryOperation {
-        span,
-        op: _,
-        left,
-        right,
-    }: &'heap BinaryOperation<'heap>,
+    BinaryOperation { op, left, right }: &'heap BinaryOperation<'heap>,
 ) {
-    visitor.visit_span(*span);
+    visitor.visit_span(op.span);
 
-    visitor.visit_node(left);
-    visitor.visit_node(right);
+    visitor.visit_node(*left);
+    visitor.visit_node(*right);
 }
 
 pub fn walk_unary_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    UnaryOperation { span, op: _, expr }: &'heap UnaryOperation<'heap>,
+    UnaryOperation { op, expr }: &'heap UnaryOperation<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_node(expr);
+    visitor.visit_span(op.span);
+
+    visitor.visit_node(*expr);
+}
+
+pub fn walk_input_operation<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    InputOperation { op, name }: &'heap InputOperation<'heap>,
+) {
+    visitor.visit_span(op.span);
+
+    visitor.visit_ident(name);
 }
 
 pub fn walk_access<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Access { span, kind }: &'heap Access<'heap>,
+    access: &'heap Access<'heap>,
 ) {
-    visitor.visit_span(*span);
-
-    match kind {
-        AccessKind::Field(access) => visitor.visit_field_access(access),
-        AccessKind::Index(access) => visitor.visit_index_access(access),
+    match access {
+        Access::Field(access) => visitor.visit_field_access(access),
+        Access::Index(access) => visitor.visit_index_access(access),
     }
 }
 
 pub fn walk_field_access<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    FieldAccess { span, expr, field }: &'heap FieldAccess<'heap>,
+    FieldAccess { expr, field }: &'heap FieldAccess<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_node(expr);
+    visitor.visit_node(*expr);
     visitor.visit_ident(field);
 }
 
 pub fn walk_index_access<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    IndexAccess { span, expr, index }: &'heap IndexAccess<'heap>,
+    IndexAccess { expr, index }: &'heap IndexAccess<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_node(expr);
-    visitor.visit_node(index);
+    visitor.visit_node(*expr);
+    visitor.visit_node(*index);
 }
 
 pub fn walk_call<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Call {
-        span,
+        kind: _,
         function,
         arguments,
     }: &'heap Call<'heap>,
 ) {
-    visitor.visit_span(*span);
-    visitor.visit_node(function);
+    visitor.visit_node(*function);
 
     for argument in arguments {
         visitor.visit_call_argument(argument);
@@ -521,47 +585,41 @@ pub fn walk_call_argument<'heap, T: Visitor<'heap> + ?Sized>(
     CallArgument { span, value }: &'heap CallArgument<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_node(value);
+    visitor.visit_node(*value);
 }
 
 pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Branch {
-        span,
-        kind,
-        _marker: _,
-    }: &'heap Branch<'heap>,
+    branch: &'heap Branch<'heap>,
 ) {
-    visitor.visit_span(*span);
-
-    match kind {
-        BranchKind::Never(_) => unreachable!(),
+    match branch {
+        Branch::If(r#if) => visitor.visit_if(r#if),
     }
+}
+
+pub fn walk_if<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    If { test, then, r#else }: &'heap If<'heap>,
+) {
+    visitor.visit_node(*test);
+    visitor.visit_node(*then);
+
+    visitor.visit_node(*r#else);
 }
 
 pub fn walk_closure<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Closure {
-        span,
-        signature,
-        body,
-    }: &'heap Closure<'heap>,
+    Closure { signature, body }: &'heap Closure<'heap>,
 ) {
-    visitor.visit_span(*span);
     visitor.visit_closure_signature(signature);
-    visitor.visit_node(body);
+    visitor.visit_node(*body);
 }
 
 pub fn walk_closure_signature<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature { span, def, params }: &'heap ClosureSignature<'heap>,
+    ClosureSignature { span, params }: &'heap ClosureSignature<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_type_id(def.id);
-
-    for reference in def.arguments {
-        visitor.visit_generic_argument_reference(reference);
-    }
 
     for param in params {
         visitor.visit_closure_param(param);
@@ -574,38 +632,33 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
 ) {
     visitor.visit_span(*span);
 
-    visitor.visit_ident(name);
+    visitor.visit_binder(name);
 }
 
-pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_thunk<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Graph { span, kind }: &'heap Graph<'heap>,
+    Thunk { body }: &'heap Thunk<'heap>,
 ) {
-    visitor.visit_span(*span);
+    visitor.visit_node(*body);
+}
 
-    match kind {
-        GraphKind::Read(read) => visitor.visit_graph_read(read),
+pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, graph: &'heap Graph<'heap>) {
+    match graph {
+        Graph::Read(read) => visitor.visit_graph_read(read),
     }
 }
 
 pub fn walk_graph_read<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    GraphRead {
-        span,
-        head,
-        body,
-        tail,
-    }: &'heap GraphRead<'heap>,
+    GraphRead { head, body, tail }: &'heap GraphRead<'heap>,
 ) {
-    visitor.visit_span(*span);
-
     match head {
-        GraphReadHead::Entity { axis } => visitor.visit_node(axis),
+        GraphReadHead::Entity { axis } => visitor.visit_node(*axis),
     }
 
     for body in body {
         match body {
-            GraphReadBody::Filter(node) => visitor.visit_node(node),
+            GraphReadBody::Filter(node) => visitor.visit_node(*node),
         }
     }
 

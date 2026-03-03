@@ -1,0 +1,47 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+let a:0 = true,
+    b:0 = true
+in
+::graph::tail::collect(
+    ::graph::body::filter(
+        ::graph::head::entities(::graph::tmp::decision_time_now()),
+        (vertex1:0: _0): _1 ->
+            let c:0 = ::graph::tail::collect(
+                          ::graph::body::filter(
+                              ::graph::head::entities(
+                                  ::graph::tmp::decision_time_now()
+                              ),
+                              (vertex2:0: _2): _3 ->
+                                  ::core::cmp::eq(
+                                      vertex1:0.id.entity_id.entity_uuid,
+                                      vertex2:0.id.entity_id.entity_uuid
+                                  )
+                          )
+                      )
+            in
+            true
+    )
+)
+
+════ HIR after graph hoisting ══════════════════════════════════════════════════
+
+let a:0 = true,
+    b:0 = true,
+    %5 = ::graph::tmp::decision_time_now(),
+    %6 = ::graph::tmp::decision_time_now(),
+    %8 = ::graph::head::entities(%5)
+         |> ::graph::body::filter((vertex1:0: Entity): Boolean ->
+             let c:0 = ::graph::head::entities(%6)
+                       |> ::graph::body::filter((vertex2:0: Entity): Boolean ->
+                           let %7 = vertex1:0.id.entity_id.entity_uuid == vertex2:0.id.entity_id.entity_uuid
+                           in
+                           %7
+                       )
+                       |> ::graph::tail::collect
+             in
+             true
+         )
+         |> ::graph::tail::collect
+in
+%8

@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Newline character inside quotes
 expression: "\"\nhello\""
 ---
-[31m[lexer::invalid-string] Error:[0m Invalid string literal
-   ╭─[ <unknown>:2:1 ]
-   │
- 2 │ hello"
-   │ │ 
-   │ ╰─ Control character not allowed
-   │ 
-   │ Help: ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped
-───╯
+error[lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+2 │ hello"
+  │ ━ Control character not allowed
+  │
+  ╰ help: ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped

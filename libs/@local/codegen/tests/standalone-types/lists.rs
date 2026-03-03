@@ -30,6 +30,9 @@ pub(crate) struct ListPrimitives {
     // LinkedList collections
     linked_string_list: LinkedList<String>,
     linked_integer_list: LinkedList<i32>,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    non_empty_list: Vec<i32>,
 }
 
 // List of optional items

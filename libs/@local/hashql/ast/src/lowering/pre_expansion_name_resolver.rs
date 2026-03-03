@@ -91,10 +91,10 @@
 use core::mem;
 
 use hashql_core::{
-    collection::FastHashMap,
-    heap::Heap,
+    collections::FastHashMap,
+    heap::{CollectIn as _, Heap},
     module::{
-        ModuleRegistry, Universe,
+        ModuleRegistry, Reference, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
@@ -238,9 +238,9 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         // This is very conservative, in *theory* we should take a look at the whole path and use
         // that as import, but as we're only interested in special-forms, which are only imported as
         // name, we can safely just use the name.
-        let import = self
+        let reference = self
             .namespace
-            .resolve_relative(
+            .resolve(
                 [name],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
@@ -248,6 +248,10 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
                 },
             )
             .ok()?;
+
+        let Reference::Item(import) = reference else {
+            return None;
+        };
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
@@ -263,25 +267,25 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             .strip_prefix("::")
             .map_or((false, path), |path| (true, path));
 
-        let segments = path.split("::").map(|name| PathSegment {
-            id: NodeId::PLACEHOLDER,
-            span: SpanId::SYNTHETIC,
-            name: Ident {
+        let segments = path
+            .split("::")
+            .map(|name| PathSegment {
+                id: NodeId::PLACEHOLDER,
                 span: SpanId::SYNTHETIC,
-                value: self.heap.intern_symbol(name),
-                kind: IdentKind::Lexical,
-            },
-            arguments: self.heap.vec(None),
-        });
-
-        let mut vec = self.heap.vec(None);
-        vec.extend(segments);
+                name: Ident {
+                    span: SpanId::SYNTHETIC,
+                    value: self.heap.intern_symbol(name),
+                    kind: IdentKind::Lexical,
+                },
+                arguments: Vec::new_in(self.heap),
+            })
+            .collect_in(self.heap);
 
         let path = Path {
             id: NodeId::PLACEHOLDER,
             span: SpanId::SYNTHETIC,
             rooted,
-            segments: vec,
+            segments,
         };
 
         self.namespace_cache.insert(name, path.clone());
@@ -315,7 +319,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             return;
         };
 
-        let mut arguments = Some(mem::replace(&mut segment.arguments, self.heap.vec(None)));
+        let mut arguments = Some(mem::replace(&mut segment.arguments, Vec::new_in(self.heap)));
 
         let span = segment.span;
 
@@ -410,6 +414,17 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             self.walk_call(expr, to, None);
             return;
         };
+
+        // Check that the path itself is not generic, if it is, there is no safe way to create an
+        // alias
+        if from
+            .segments
+            .iter()
+            .any(|segment| !segment.arguments.is_empty())
+        {
+            walk_call_expr(self, expr);
+            return;
+        }
 
         // We have a new mapping from path to type
         self.resolve = true;

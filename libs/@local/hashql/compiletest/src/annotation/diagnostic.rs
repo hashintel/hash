@@ -4,10 +4,10 @@ use hashql_diagnostics::severity::Severity;
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub(crate) enum DiagnosticParseError {
-    /// No supported severity found in the annotation
+    /// No supported severity found in the annotation.
     #[display("missing severity, expected one of: {:?}", Severity::variants())]
     MissingSeverity,
-    /// Pipe reference used without a previous diagnostic annotation line
+    /// Pipe reference used without a previous diagnostic annotation line.
     #[display("pipe reference used without a previous diagnostic annotation line")]
     MissingPreviousLine,
 }
@@ -136,7 +136,7 @@ impl DiagnosticAnnotation {
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches::assert_matches;
+    use core::assert_matches;
 
     use super::*;
 

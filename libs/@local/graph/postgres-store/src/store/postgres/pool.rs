@@ -17,9 +17,10 @@ use crate::store::{
     postgres::{PostgresStore, PostgresStoreSettings},
 };
 
+#[derive(Debug, Clone)]
 pub struct PostgresStorePool {
     pool: Pool,
-    pub settings: PostgresStoreSettings,
+    pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStorePool {
@@ -72,14 +73,14 @@ impl PostgresStorePool {
             pool: config
                 .builder(tls)
                 .change_context(StoreError)
-                .attach_printable_lazy(|| db_info.clone())?
+                .attach_with(|| db_info.clone())?
                 .post_create(Hook::sync_fn(|_client, _metrics| {
                     tracing::info!("Created connection to postgres");
                     Ok(())
                 }))
                 .build()
                 .change_context(StoreError)?,
-            settings,
+            settings: Arc::new(settings),
         })
     }
 }
@@ -102,7 +103,7 @@ impl StorePool for PostgresStorePool {
         Ok(PostgresStore::new(
             self.pool.get().await?,
             temporal_client,
-            self.settings.clone(),
+            Arc::clone(&self.settings),
         ))
     }
 }

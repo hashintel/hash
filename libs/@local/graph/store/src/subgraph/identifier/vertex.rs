@@ -20,7 +20,7 @@ pub trait VertexId: Sized {
     type Record;
 
     fn base_id(&self) -> &Self::BaseId;
-    fn revision_id(&self) -> Self::RevisionId;
+    fn revision_id(&self) -> &Self::RevisionId;
 
     /// Returns a shared reference to the [`Record`] vertex in the subgraph.
     ///
@@ -52,8 +52,8 @@ macro_rules! define_ontology_type_vertex_id {
                 &self.base_id
             }
 
-            fn revision_id(&self) -> Self::RevisionId {
-                self.revision_id
+            fn revision_id(&self) -> &Self::RevisionId {
+                &self.revision_id
             }
 
             fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
@@ -76,8 +76,8 @@ macro_rules! define_ontology_type_vertex_id {
                 &self.base_id
             }
 
-            fn revision_id(&self) -> Self::RevisionId {
-                self.revision_id
+            fn revision_id(&self) -> &Self::RevisionId {
+                &self.revision_id
             }
         }
 
@@ -126,8 +126,8 @@ impl VertexId for EntityVertexId {
         &self.base_id
     }
 
-    fn revision_id(&self) -> Self::RevisionId {
-        self.revision_id
+    fn revision_id(&self) -> &Self::RevisionId {
+        &self.revision_id
     }
 
     fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {

@@ -24,11 +24,13 @@ const notion = new Client({
 });
 
 const SearchPageRequestSchema = z.object({
-  title: z.string({ description: "The title to search for in Notion pages" }),
+  title: z
+    .string()
+    .meta({ description: "The title to search for in Notion pages" }),
 });
 
 const GetPageContentRequestSchema = z.object({
-  pageId: z.string({
+  pageId: z.string().meta({
     description: "The id of the page to retrieve content from",
   }),
 });

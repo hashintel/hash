@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Simple closure returning constant is a trivial thunk
+[
+  "let",
+  "f",
+  ["fn", { "#tuple": [] }, { "#struct": {} }, "_", { "#literal": 42 }],
+  ["f"]
+]

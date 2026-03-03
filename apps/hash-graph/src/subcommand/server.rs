@@ -21,7 +21,7 @@ use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
 use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
@@ -75,10 +75,7 @@ impl TryFrom<RpcAddress> for SocketAddr {
     type Error = Report<AddrParseError>;
 
     fn try_from(address: RpcAddress) -> Result<Self, Report<AddrParseError>> {
-        address
-            .to_string()
-            .parse::<Self>()
-            .attach_printable(address)
+        address.to_string().parse::<Self>().attach(address)
     }
 }
 
@@ -134,15 +131,15 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
 
-    /// Waits for the healthcheck to become healthy
+    /// Waits for the healthcheck to become healthy.
     #[clap(long, default_value_t = false, requires = "healthcheck")]
     pub wait: bool,
 
-    /// Timeout for the wait flag in seconds
+    /// Timeout for the wait flag in seconds.
     #[clap(long, requires = "wait")]
     pub timeout: Option<u64>,
 
-    /// Starts a server without connecting to the type fetcher
+    /// Starts a server without connecting to the type fetcher.
     #[clap(long, default_value_t = false)]
     pub offline: bool,
 
@@ -165,6 +162,14 @@ pub struct ServerArgs {
     /// Skips the creation of embeddings when creating/updating entities or types.
     #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
     pub skip_embedding_creation: bool,
+
+    /// Disables filter protection that prevents enumeration attacks on protected properties.
+    ///
+    /// When enabled (protection disabled), queries filtering on protected properties like email
+    /// will not automatically exclude sensitive entity types. This should only be used in
+    /// development/testing environments.
+    #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
+    pub skip_filter_protection: bool,
 
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
@@ -265,6 +270,11 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         PostgresStoreSettings {
             validate_links: !args.skip_link_validation,
             skip_embedding_creation: args.skip_embedding_creation,
+            filter_protection: if args.skip_filter_protection {
+                PropertyProtectionFilterConfig::new()
+            } else {
+                PropertyProtectionFilterConfig::hash_default()
+            },
         },
     )
     .await
@@ -279,10 +289,9 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             TemporalClientConfig::new(
                 Url::from_str(&format!("{host}:{port}")).change_context(GraphError)?,
             )
-            .change_context(GraphError)?
             .await
-            .map(Some)
             .change_context(GraphError)
+            .map(Some)
         } else {
             Ok(None)
         }
@@ -293,7 +302,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         .acquire(None)
         .await
         .change_context(GraphError)
-        .attach_printable("Connection to database failed")?;
+        .attach("Connection to database failed")?;
 
     let pool = if args.offline {
         FetchingPool::new_offline(pool)
@@ -329,10 +338,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             query_logger: query_logger.map(QueryLogger::new),
         };
 
-        #[expect(
-            clippy::if_then_some_else_none,
-            reason = "False positive, this is in an async context"
-        )]
         let rpc_server_task_tracker = if args.rpc_enabled {
             tracing::info!("Starting RPC server...");
 
@@ -383,7 +388,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
 }
 
 pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
-    let request_url = format!("http://{address}/api-doc/openapi.json");
+    let request_url = format!("http://{address}/health");
 
     timeout(
         Duration::from_secs(10),

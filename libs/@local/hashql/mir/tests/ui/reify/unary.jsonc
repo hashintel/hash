@@ -1,0 +1,3 @@
+//@ run: skip reason="unary operations aren't supported in the HIR yet"
+//@ description: Unary operation reification
+["!", { "#literal": true }]

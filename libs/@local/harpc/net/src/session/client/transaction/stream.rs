@@ -19,7 +19,7 @@ pub trait TransactionStream {
 
 /// The state of a stream.
 ///
-/// This is used to track (and report) on the state of the underlying stream
+/// This is used to track (and report) on the state of the underlying stream.
 ///
 /// # Implementation Notes
 ///

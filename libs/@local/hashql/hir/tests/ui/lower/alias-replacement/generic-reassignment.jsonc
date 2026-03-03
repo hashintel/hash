@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: Alias replacement with generics should work
+[
+  "let",
+  "foo",
+  "core::math::add<Integer>",
+  [
+    "let",
+    "bar",
+    "foo<Number>",
+    //~^ ERROR additional type arguments are provided here
+    "bar"
+  ]
+]

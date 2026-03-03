@@ -10,8 +10,8 @@
     "test:unit": "mise run test:unit @rust/hashql-syntax-jexpr"
   },
   "dependencies": {
-    "@rust/hashql-ast": "0.0.0-private",
-    "@rust/hashql-core": "0.0.0-private",
-    "@rust/hashql-diagnostics": "0.0.0-private"
+    "@rust/hashql-ast": "workspace:*",
+    "@rust/hashql-core": "workspace:*",
+    "@rust/hashql-diagnostics": "workspace:*"
   }
 }

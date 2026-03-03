@@ -1,21 +1,26 @@
 {
   "name": "@hashintel/design-system",
-  "version": "0.0.8",
+  "version": "0.0.9",
+  "private": true,
   "description": "HASH Design System",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/design-system"
   },
-  "license": "AGPL-3.0",
-  "sideEffects": false,
+  "files": [
+    "assets.d.ts",
+    "CHANGELOG.md",
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md",
+    "theme-override.d.ts"
+  ],
   "type": "module",
-  "exports": {
-    ".": "./src/components.ts",
-    "./constants": "./src/constants.ts",
-    "./palettes": "./src/palettes.ts",
-    "./theme": "./src/theme.ts"
-  },
+  "sideEffects": false,
   "types": "./src/components.ts",
   "typesVersions": {
     "*": {
@@ -30,8 +35,18 @@
       ],
       "theme": [
         "./src/theme.ts"
+      ],
+      "theme-override": [
+        "./theme-override.d.ts"
       ]
     }
+  },
+  "exports": {
+    ".": "./src/components.ts",
+    "./constants": "./src/constants.ts",
+    "./palettes": "./src/palettes.ts",
+    "./theme": "./src/theme.ts",
+    "./theme-override": "./theme-override.d.ts"
   },
   "scripts": {
     "fix:eslint": "eslint --fix .",
@@ -41,12 +56,10 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "workspace:*",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
-    "clsx": "1.2.1",
+    "clsx": "2.1.1",
     "echarts": "5.6.0",
     "react-loading-skeleton": "3.5.0"
   },
@@ -54,25 +67,23 @@
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "@storybook/react": "7.6.20",
-    "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
-    "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "typescript": "5.7.3"
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "@emotion/cache": "11.14.0",
-    "@emotion/react": "11.14.0",
-    "@emotion/styled": "11.14.1",
-    "@mui/material": "5.18.0",
-    "@mui/system": "5.18.0",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^5.18.0",
+    "@mui/system": "^5.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

@@ -24,7 +24,6 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,7 +48,7 @@ import { GridView } from "./entities-visualizer/entities-table/grid-view";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/entities-table/types";
+} from "./entities-visualizer/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
@@ -216,20 +215,44 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [filterState, setFilterState] = useState<FilterState>(
+  const [filterState, _setFilterState] = useState<FilterState>(
     defaultFilter ?? {
+      includeArchived: false,
       includeGlobal: false,
       limitToWebs: false,
     },
   );
 
-  const [limit, setLimit] = useState<number>(10);
   const [cursor, setCursor] = useState<EntityQueryCursor>();
   const [activeConversionsWithoutTitle, setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
 
-  const [view, setView] = useState<VisualizerView>(defaultView);
+  const setFilterState = useCallback(
+    (
+      newFilterStateOrUpdater:
+        | FilterState
+        | ((prev: FilterState) => FilterState),
+    ) => {
+      if (typeof newFilterStateOrUpdater === "function") {
+        _setFilterState(newFilterStateOrUpdater(filterState));
+      } else {
+        _setFilterState(newFilterStateOrUpdater);
+      }
+      setCursor(undefined);
+    },
+    [filterState, setCursor],
+  );
+
+  const [view, _setView] = useState<VisualizerView>(defaultView);
+
+  const setView = useCallback(
+    (newView: VisualizerView) => {
+      _setView(newView);
+      setCursor(undefined);
+    },
+    [setCursor],
+  );
 
   const pollInterval = usePollInterval();
 
@@ -284,21 +307,22 @@ export const EntitiesVisualizer: FunctionComponent<{
     cursor,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    hideColumns,
     /**
      * Translate into archived filter in query
      */
     includeArchived: !!filterState.includeArchived,
-    /** @todo H-3255 enable pagination when performance improvements in place */
-    // limit: view === "Graph" ? undefined : limit,
+    limit: view === "Graph" ? undefined : 500,
     webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
+    view,
   });
 
   const [dataLoading, setDataLoading] = useState(entitiesData.loading);
   const [visualizerData, setVisualizerData] = useState(entitiesData);
 
   const {
-    count: totalCount,
+    count: totalCountFromEntityRequest,
     createdByIds,
     cursor: nextCursor,
     definitions,
@@ -376,14 +400,18 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const [childDoingWork, setChildDoingWork] = useState(false);
-
   const internalEntitiesCount =
-    externalWebsOnlyCountData?.countEntities == null || totalCount == null
+    externalWebsOnlyCountData?.countEntities == null ||
+    totalCountFromEntityRequest == null ||
+    entitiesData.loading
       ? undefined
-      : filterState.includeGlobal && !entitiesData.loading
-        ? totalCount - externalWebsOnlyCountData.countEntities
-        : totalCount;
+      : filterState.includeGlobal
+        ? totalCountFromEntityRequest - externalWebsOnlyCountData.countEntities
+        : totalCountFromEntityRequest;
+
+  const totalResultCount = filterState.includeGlobal
+    ? (totalCountFromEntityRequest ?? null)
+    : (internalEntitiesCount ?? null);
 
   const loadingComponent = customLoadingComponent ?? (
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
@@ -424,31 +452,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     } else {
       setView(defaultView);
     }
-  }, [defaultView, isDisplayingFilesOnly]);
+  }, [defaultView, isDisplayingFilesOnly, setView]);
 
-  const { isViewingOnlyPages, hasSomeLinks } = useMemo(() => {
-    let isViewingPages = true;
-    let hasLinks = false;
-    for (const entity of entities ?? []) {
-      if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
-        isViewingPages = false;
-      }
-      if (entity.linkData) {
-        hasLinks = true;
-      }
-
-      if (hasLinks && !isViewingPages) {
-        break;
-      }
-    }
-    return { isViewingOnlyPages: isViewingPages, hasSomeLinks: hasLinks };
-  }, [entities]);
-
-  useEffect(() => {
-    if (isViewingOnlyPages && filterState.includeArchived === undefined) {
-      setFilterState((prev) => ({ ...prev, includeArchived: false }));
-    }
-  }, [isViewingOnlyPages, filterState]);
+  const isViewingOnlyPages =
+    entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
+    entityTypeId === systemEntityTypes.page.entityTypeId;
 
   const { pushToSlideStack } = useSlideStack();
 
@@ -479,7 +487,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight =
     maxHeight ??
     `min(600px, calc(100vh - (${
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
+      // The magic number accounts for the page header
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + tableHeaderHeight
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(
@@ -530,7 +539,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         hideExportToCsv={view !== "Table"}
         hideFilters={hideFilters}
         itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
-        loading={dataLoading || childDoingWork}
+        loading={dataLoading}
         onBulkActionCompleted={() => {
           void refetchWithoutLinks();
         }}
@@ -588,32 +597,25 @@ export const EntitiesVisualizer: FunctionComponent<{
           createdByIds={createdByIds}
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
           definitions={definitions}
           editionCreatedByIds={editionCreatedByIds}
-          entities={entities}
-          filterState={filterState}
           handleEntityClick={handleEntityClick}
-          hasSomeLinks={hasSomeLinks}
-          hideColumns={hideColumns}
-          limit={limit}
           loading={dataLoading}
-          loadingComponent={loadingComponent}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={tableHeight}
-          goToNextPage={nextCursor ? nextPage : undefined}
+          loadMoreRows={nextCursor ? nextPage : undefined}
           readonly={readonly}
           setActiveConversions={setActiveConversions}
-          setLoading={setChildDoingWork}
           setSelectedEntityType={handleEntityTypeClick}
           setSelectedRows={setSelectedTableRows}
           selectedRows={selectedTableRows}
-          setLimit={setLimit}
           showSearch={showTableSearch}
           setShowSearch={setShowTableSearch}
           sort={sort}
           setSort={setSort}
           subgraph={subgraph}
+          tableData={visualizerData.tableData}
+          totalResultCount={totalResultCount}
           typeIds={typeIds}
           typeTitles={typeTitles}
           webIds={webIds}

@@ -1,0 +1,36 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#5}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = 3
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+*thunk {thunk#5}() -> Integer {
+    bb0(): {
+        return 3
+    }
+}

@@ -20,7 +20,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import {
   createEntityMutation,
-  getEntitySubgraphQuery,
+  queryEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
 import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
@@ -55,7 +55,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
            * a type is created by a user that is from a different web.
            */
           {
-            query: getEntitySubgraphQuery,
+            query: queryEntitySubgraphQuery,
             variables: generateSidebarEntityTypeEntitiesQueryVariables({
               webId: activeWorkspaceWebId,
             }),

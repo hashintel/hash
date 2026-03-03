@@ -16,7 +16,7 @@ use crate::ontology::{
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityTypeMetadata {
     #[serde(rename = "$id")]
@@ -49,7 +49,7 @@ impl ClosedEntityTypeMetadata {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
     #[serde(rename = "$id")]
@@ -160,7 +160,7 @@ impl ClosedEntityType {
 /// multiple types together to provide a single schema, which represents the shape of the entity
 /// with those types (e.g. valid properties, links, etc).
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedMultiEntityType {
     /// The merged constraints for all the types in this type.

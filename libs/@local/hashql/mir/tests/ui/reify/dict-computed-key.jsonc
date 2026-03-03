@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Dict computed element key
+[
+  "let",
+  "foo",
+  "Boolean",
+  ["<=", { "#literal": 2 }, { "#literal": 3 }],
+  [
+    "let",
+    "bar",
+    { "#dict": [["foo", { "#literal": 42 }], [{ "#literal": true }, "foo"]] },
+    "bar"
+  ]
+]

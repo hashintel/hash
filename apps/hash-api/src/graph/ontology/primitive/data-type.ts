@@ -1,4 +1,3 @@
-import type { DataTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   Conversions,
@@ -14,31 +13,21 @@ import {
   DATA_TYPE_META_SCHEMA,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveDataTypeParams,
-  GetDataTypesParams,
-  GetDataTypeSubgraphParams,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
 import { hasPermissionForDataTypes } from "@local/hash-graph-sdk/data-type";
 import type {
   ConstructDataTypeParams,
-  DataTypeConversionTargets,
   DataTypeDirectConversionsMap,
 } from "@local/hash-graph-sdk/ontology";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  mapGraphApiDataTypeConversions,
-  mapGraphApiDataTypesToDataTypes,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname, isExternalTypeId } from "./util";
+import { getWebShortname } from "./util";
 
 /**
  * Create a data type.
@@ -102,98 +91,6 @@ export const createDataType: ImpureGraphFunction<
   );
 
   return { schema, metadata: metadata as unknown as DataTypeMetadata };
-};
-
-export const getDataTypes: ImpureGraphFunction<
-  Omit<GetDataTypesParams, "includeDrafts">,
-  Promise<DataTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, request) =>
-  graphApi
-    .getDataTypes(actorId, { includeDrafts: false, ...request })
-    .then(({ data: response }) =>
-      mapGraphApiDataTypesToDataTypes(response.dataTypes),
-    );
-
-/**
- * Get data types by a structural query.
- *
- * @param params.query the structural query to filter data types by.
- */
-export const getDataTypeSubgraph: ImpureGraphFunction<
-  Omit<GetDataTypeSubgraphParams, "includeDrafts">,
-  Promise<Subgraph<DataTypeRootType>>
-> = async ({ graphApi }, { actorId }, request) => {
-  return await graphApi
-    .getDataTypeSubgraph(actorId, { includeDrafts: false, ...request })
-    .then(({ data: response }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
-        response.subgraph,
-        actorId,
-      );
-
-      return subgraph;
-    });
-};
-
-/**
- * Get a data type by its versioned URL.
- *
- * @param params.dataTypeId the unique versioned URL for a data type.
- */
-export const getDataTypeById: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-  },
-  Promise<DataTypeWithMetadata>
-> = async (context, authentication, params) => {
-  const { dataTypeId } = params;
-
-  const [dataType] = await getDataTypes(context, authentication, {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-
-  if (!dataType) {
-    throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
-  }
-
-  return dataType;
-};
-
-/**
- * Get a data type rooted subgraph by its versioned URL.
- *
- * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
- */
-export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<GetDataTypeSubgraphParams, "filter" | "includeDrafts"> & {
-    dataTypeId: VersionedUrl;
-  },
-  Promise<Subgraph<DataTypeRootType>>
-> = async (context, authentication, params) => {
-  const { graphResolveDepths, temporalAxes, dataTypeId } = params;
-
-  const request: Omit<GetDataTypeSubgraphParams, "includeDrafts"> = {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-    },
-    graphResolveDepths,
-    temporalAxes,
-  };
-
-  let subgraph = await getDataTypeSubgraph(context, authentication, request);
-
-  if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
-    await context.graphApi.loadExternalDataType(authentication.actorId, {
-      dataTypeId,
-    });
-
-    subgraph = await getDataTypeSubgraph(context, authentication, request);
-  }
-
-  return subgraph;
 };
 
 /**
@@ -288,14 +185,6 @@ export const unarchiveDataType: ImpureGraphFunction<
 
   return temporalMetadata as OntologyTemporalMetadata;
 };
-
-export const getDataTypeConversionTargets: ImpureGraphFunction<
-  { dataTypeIds: VersionedUrl[] },
-  Promise<Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getDataTypeConversionTargets(actorId, params)
-    .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
 
 export const checkPermissionsOnDataType: ImpureGraphFunction<
   { dataTypeId: VersionedUrl },

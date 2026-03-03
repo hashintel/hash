@@ -1,14 +1,14 @@
 //@ run: pass
 //@ description: Test field access on input parameter values
 // biome-ignore format: readability
-["::core::graph::tail::collect",
-  ["::core::graph::body::filter",
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
         "vertex.id.entity_id.entity_uuid",
         [".",
-          ["input", "user", {"#struct": {"id": "::core::graph::types::knowledge::entity::EntityUuid"}}],
+          ["input", "user", {"#struct": {"id": "::graph::types::knowledge::entity::EntityUuid"}}],
           "id"
         ]
       ]

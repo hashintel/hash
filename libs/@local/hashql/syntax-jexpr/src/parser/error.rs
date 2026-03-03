@@ -2,10 +2,9 @@ use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
+    diagnostic::Message,
     severity::Severity,
 };
 
@@ -104,13 +103,10 @@ const EXPECTED_EOF_HELP: &str =
     "Remove this token or check for missing delimiters in the preceding expression";
 
 pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
-    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::Error);
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::Error)
+        .primary(Label::new(span, "Extra content after expression"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Extra content after expression"));
-
-    diagnostic.add_help(Help::new(EXPECTED_EOF_HELP));
+    diagnostic.add_message(Message::help(EXPECTED_EOF_HELP));
 
     diagnostic
 }

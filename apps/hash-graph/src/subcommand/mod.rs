@@ -45,7 +45,7 @@ pub enum Subcommand {
     /// This is only needed if the backend was changed in an uncommon way such as schemas being
     /// updated in place. This is a rare operation and should be avoided if possible.
     ReindexCache(ReindexCacheArgs),
-    /// Test server
+    /// Run the Graph test server.
     #[cfg(feature = "test-server")]
     TestServer(TestServerArgs),
 }

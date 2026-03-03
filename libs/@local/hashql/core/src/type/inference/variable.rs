@@ -2,11 +2,9 @@ use alloc::rc::Rc;
 use core::ops::Index;
 
 use ena::unify::{NoError, UnifyKey, UnifyValue};
-use pretty::RcDoc;
 
 use crate::{
-    collection::FastHashMap,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
+    collections::FastHashMap,
     span::SpanId,
     r#type::{
         PartialType, Type,
@@ -22,8 +20,8 @@ pub struct Variable {
 }
 
 impl Variable {
-    #[cfg(test)]
-    pub(crate) const fn synthetic(kind: VariableKind) -> Self {
+    #[must_use]
+    pub const fn synthetic(kind: VariableKind) -> Self {
         Self {
             span: SpanId::SYNTHETIC,
             kind,
@@ -40,16 +38,6 @@ impl Variable {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Variable {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        self.kind.pretty(env, boundary)
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum VariableProvenance {
     Hole,
@@ -61,7 +49,7 @@ pub(crate) enum VariableProvenance {
 /// During type inference, the system works with both concrete types and variables that
 /// need to be solved through constraint satisfaction. These variables can represent
 /// either unknown types or generic parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
 pub enum VariableKind {
     /// A type variable that needs to be solved through constraint satisfaction.
     Hole(HoleId),
@@ -99,19 +87,6 @@ impl VariableKind {
         match self {
             Self::Hole(_) => VariableProvenance::Hole,
             Self::Generic(_) => VariableProvenance::Generic,
-        }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for VariableKind {
-    fn pretty(
-        &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Hole(id) => RcDoc::text(format!("_{id}")),
-            Self::Generic(id) => RcDoc::text(format!("?{id}")),
         }
     }
 }

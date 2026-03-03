@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/visit.rs
 description: Array with multiple consecutive commas should fail
 expression: "[1,,,2]"
 ---
-[31m[array::consecutive-comma] Error:[0m Consecutive commas in array
-   ╭─[ <unknown>:1:5 ]
-   │
- 1 │ [1,,,2]
-   │    ┬┬  
-   │    │╰── Remove this extra comma
-   │    │   
-   │    ╰─── ... and this extra comma
-   │ 
-   │ Help: J-Expr requires exactly one comma between array elements. Use `[item1, item2, item3]` format.
-───╯
+error[array::consecutive-comma]: Consecutive commas in array
+  ╭▸ 
+1 │ [1,,,2]
+  │    ┯─ ... and this extra comma
+  │    │
+  │    Remove this extra comma
+  │
+  ╰ help: J-Expr requires exactly one comma between array elements. Use `[item1, item2, item3]` format.

@@ -11,7 +11,9 @@ fn request_attachment() {
     let report = create_report();
     assert_eq!(report.request_ref::<u32>().count(), 0);
 
-    let report = report.attach(AttachmentA(10)).attach(AttachmentB(20));
+    let report = report
+        .attach_opaque(AttachmentA(10))
+        .attach_opaque(AttachmentB(20));
 
     let request_a = report.request_ref::<AttachmentA>().collect::<Vec<_>>();
     assert_eq!(request_a.len(), 1);

@@ -1,4 +1,4 @@
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import type { RequestHandler } from "express";
 
 import { hydraAdmin } from "../../auth/ory-hydra";
@@ -25,7 +25,6 @@ export const upsertGptOauthClient: RequestHandler<
   Record<string, never>,
   UpsertOAuthClientResponseBody,
   UpsertOAuthClientRequestBody
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const { user } = req;
   const { redirectUri } = req.body;

@@ -1,11 +1,9 @@
 use core::ops::ControlFlow;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::{PrimitiveType, TypeKind};
 use crate::{
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -38,7 +36,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.join(self.kind.element, other.kind.element);
 
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -51,7 +49,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.meet(self.kind.element, other.kind.element);
 
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -126,7 +124,7 @@ impl<'heap> Lattice<'heap> for ListType {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if elements.len() == 1 {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         elements
@@ -150,7 +148,7 @@ impl<'heap> Lattice<'heap> for ListType {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if elements.len() == 1 {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         elements
@@ -227,20 +225,6 @@ impl<'heap> Inference<'heap> for ListType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for ListType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("List")
-            .append(RcDoc::text("<"))
-            .append(boundary.pretty_type(env, self.element).group())
-            .append(RcDoc::text(">"))
-            .group()
-    }
-}
-
 /// Represents a dictionary (key-value mapping) type.
 ///
 /// Dictionary types maintain a key type and a value type, with specific variance behavior:
@@ -281,9 +265,9 @@ impl DictType {
         // Check if the result is the same as the original types, if that is the case we can
         // return the original type id, instead of allocating a new one.
         if value == self.kind.value && keys == [self.kind.key] {
-            SmallVec::from_slice(&[self.id])
+            SmallVec::from_slice_copy(&[self.id])
         } else if value == other.kind.value && keys == [other.kind.key] {
-            SmallVec::from_slice(&[other.id])
+            SmallVec::from_slice_copy(&[other.id])
         } else {
             keys.iter()
                 .map(|&key| {
@@ -325,7 +309,7 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.join(self.kind.value, other.kind.value);
 
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                     key: self.kind.key,
@@ -334,7 +318,7 @@ impl<'heap> Lattice<'heap> for DictType {
             })])
         } else {
             // keys are not equivalent, cannot join
-            SmallVec::from_slice(&[self.id, other.id])
+            SmallVec::from_slice_copy(&[self.id, other.id])
         }
     }
 
@@ -363,7 +347,7 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.meet(self.kind.value, other.kind.value);
 
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                     key: self.kind.key,
@@ -440,7 +424,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
         if value.len() == 1 {
             // Distribution rules - if the returned value is a single type it must be the same type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         value
@@ -467,7 +451,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
         if value.len() == 1 {
             // Distribution rules - if the returned value is a single type it must be the same type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         value
@@ -551,31 +535,6 @@ impl<'heap> Inference<'heap> for DictType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for DictType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("Dict")
-            .append(
-                RcAllocator
-                    .intersperse(
-                        [self.key, self.value]
-                            .into_iter()
-                            .map(|id| boundary.pretty_type(env, id)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .nest(1)
-                    .group()
-                    .angles()
-                    .group()
-                    .into_doc(),
-            )
-            .group()
-    }
-}
-
 // Intrinsics are "magical" types in the HashQL language that have no "substance", in the sense that
 // there's no way to define them in terms of HashQL itself.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -636,7 +595,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
             (Self::List(lhs), Self::List(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (Self::Dict(lhs), Self::Dict(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (Self::List(_), Self::Dict(_)) | (Self::Dict(_), Self::List(_)) => {
-                SmallVec::from_slice(&[self.id, other.id])
+                SmallVec::from_slice_copy(&[self.id, other.id])
             }
         }
     }
@@ -797,19 +756,6 @@ impl<'heap> Inference<'heap> for IntrinsicType {
         match self.kind {
             Self::List(list) => self.with(list).instantiate(env),
             Self::Dict(dict) => self.with(dict).instantiate(env),
-        }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap> for IntrinsicType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::List(list) => list.pretty(env, boundary),
-            Self::Dict(dict) => dict.pretty(env, boundary),
         }
     }
 }

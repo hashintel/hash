@@ -1,30 +1,21 @@
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-   ╭─[ <unknown>:3:41 ]
-   │
- 3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
-   │                                         ────────┬────────  
-   │                                                 ╰────────── Replace this literal with a type name
-   │ 
-   │ Help: Replace this expression with a valid type reference, struct type, or tuple type
-   │ 
-   │ Note: Valid type expressions include:
-   │       - Type names: String, Int, Float
-   │       - Struct types: {name: String, age: Int}
-   │       - Tuple types: (String, Int, Boolean)
-   │       - Unions: (| String Int)
-   │       - Intersections: (& String Int)
-   │       - Generic types: Array<String>, Option<Int>
-───╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+  │                                         ━━━━━━━━━━━━━━━━━ Replace this literal with a type name
+  │
+  ├ help: Replace this expression with a valid type reference, struct type, or tuple type
+  ╰ note: Valid type expressions include:
+          - Type names: String, Int, Float
+          - Struct types: {name: String, age: Int}
+          - Tuple types: (String, Int, Boolean)
+          - Unions: (| String Int)
+          - Intersections: (& String Int)
+          - Generic types: Array<String>, Option<Int>
 
-
-[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
-   ╭─[ <unknown>:3:35 ]
-   │
- 3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
-   │                                   ─┬─  
-   │                                    ╰─── Replace this qualified path with a simple identifier
-   │ 
-   │ Help: The type binding requires a simple type name (like 'String' or 'MyType<T>'), not a qualified path (like 'std::string::String'). Remove the path segments.
-   │ 
-   │ Note: Valid type names are simple identifiers, optionally followed by generic arguments (e.g., 'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this context.
-───╯
+error[special-form-expander::qualified-binding-name]: Qualified path used as binding name
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+  │                                   ━━━ Replace this qualified path with a simple identifier
+  │
+  ├ help: The type binding requires a simple type name (like 'String' or 'MyType<T>'), not a qualified path (like 'std::string::String'). Remove the path segments.
+  ╰ note: Valid type names are simple identifiers, optionally followed by generic arguments (e.g., 'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this context.

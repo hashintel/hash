@@ -1,0 +1,8 @@
+{
+  "sharedRules": [
+    {
+      "path": "AGENTS.md",
+      "type": "manual"
+    }
+  ]
+}

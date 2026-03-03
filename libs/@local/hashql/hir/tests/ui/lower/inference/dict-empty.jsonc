@@ -1,0 +1,7 @@
+//@ run: fail
+//@ description: Empty dict inference
+{
+  "#dict": {}
+  //~^ ERROR Cannot infer type for this variable
+  //~| ERROR Cannot infer type for this variable
+}

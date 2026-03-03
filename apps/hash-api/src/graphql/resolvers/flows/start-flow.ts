@@ -5,10 +5,13 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { ForbiddenError } from "apollo-server-errors";
 
-import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
+import {
+  type MutationStartFlowArgs,
+  type ResolverFn,
+} from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const startFlow: ResolverFn<
   Promise<EntityUuid>,
@@ -17,32 +20,37 @@ export const startFlow: ResolverFn<
   MutationStartFlowArgs
 > = async (
   _,
-  { dataSources, flowTrigger, flowDefinition, webId },
+  { dataSources, flowTrigger, flowDefinition, flowType, webId },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
 
-  if (!user.enabledFeatureFlags.includes("ai")) {
-    throw new ForbiddenError("Flows are not enabled for this user");
+  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
+    throw Error.forbidden("AI flows are not enabled for this user");
   }
 
-  validateFlowDefinition(flowDefinition);
+  validateFlowDefinition(flowDefinition, flowType);
 
-  const workflowId = generateUuid();
+  const workflowId = generateUuid() as EntityUuid;
+
+  if (flowType === "ai" && !dataSources) {
+    throw Error.badRequest("Data sources are required for AI flows");
+  }
+
+  const params: RunFlowWorkflowParams = {
+    ...(flowType === "ai" ? { dataSources } : {}),
+    flowRunId: workflowId,
+    flowTrigger,
+    flowDefinition,
+    userAuthentication: { actorId: user.accountId },
+    webId,
+  };
 
   await temporal.workflow.start<
     (params: RunFlowWorkflowParams) => Promise<RunFlowWorkflowResponse>
   >("runFlow", {
-    taskQueue: "ai",
-    args: [
-      {
-        dataSources,
-        flowTrigger,
-        flowDefinition,
-        userAuthentication: { actorId: user.accountId },
-        webId,
-      },
-    ],
+    taskQueue: flowType,
+    args: [params],
     memo: {
       flowDefinitionId: flowDefinition.flowDefinitionId,
       userAccountId: user.accountId,
@@ -54,5 +62,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId as EntityUuid;
+  return workflowId;
 };

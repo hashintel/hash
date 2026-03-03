@@ -4,5 +4,5 @@ failure-output = "final"
 status-level   = "skip"
 
 [[profile.ci.overrides]]
-filter  = 'package(harpc-net) and test(session::test::echo_tcp_concurrent)'
+filter  = 'package(harpc-net) and (test(session::test::echo_tcp_concurrent) or test(session::test::echo_memory_concurrent))'
 retries = 3

@@ -78,7 +78,7 @@ impl SyntaxKind {
 
     #[expect(clippy::cast_possible_truncation)]
     pub(crate) const fn from_exponent(value: u32) -> Self {
-        assert!((value < VARIANT_COUNT as u32), "invalid index");
+        assert!(value < VARIANT_COUNT as u32, "invalid index");
 
         Self::VARIANTS[value as usize]
     }

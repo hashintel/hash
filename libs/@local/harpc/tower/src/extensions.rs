@@ -1,4 +1,4 @@
-//! This module has been vendored and adapted from http (<https://docs.rs/http/1.1.0/src/http/extensions.rs.html>)
+//! This module has been vendored and adapted from http (<https://docs.rs/http/1.1.0/src/http/extensions.rs.html>).
 
 use core::{
     any::{Any, TypeId},

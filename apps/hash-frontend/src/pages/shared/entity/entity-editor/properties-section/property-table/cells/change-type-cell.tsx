@@ -7,7 +7,7 @@ import type {
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
-import produce from "immer";
+import { produce } from "immer";
 import type { RefObject } from "react";
 
 import { getYCenter } from "../../../../../../../components/grid/utils";

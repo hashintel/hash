@@ -1,5 +1,4 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import type {
@@ -8,6 +7,7 @@ import type {
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { triggerPdfAnalysisWorkflow } from "./shared";
 
@@ -43,7 +43,7 @@ export const requestFileUpload: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (size > maximumFileSizeInBytes) {
-    throw new UserInputError(
+    throw Error.badUserInput(
       `The file size must be less than ${maximumFileSizeInMegaBytes} MB`,
     );
   }

@@ -26,7 +26,7 @@ pub struct EntityTypeMetadata {
 mod metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     #[serde(untagged)]
     enum EntityTypeMetadata {
         #[serde(rename_all = "camelCase")]
@@ -95,7 +95,7 @@ pub type ClosedEntityTypeWithMetadata = OntologyTypeWithMetadata<ClosedEntityTyp
 mod with_metadata_patch {
     use super::*;
 
-    #[derive(tsify_next::Tsify)]
+    #[derive(tsify::Tsify)]
     struct EntityTypeWithMetadata {
         schema: EntityType,
         metadata: EntityTypeMetadata,

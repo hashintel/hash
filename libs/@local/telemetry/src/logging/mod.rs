@@ -24,7 +24,7 @@ use tracing_subscriber::{
 
 use self::{console::ConsoleMakeWriter, formatter::TracingFormatter};
 
-/// Output format emitted to the terminal
+/// Output format emitted to the terminal.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum LogFormat {
@@ -91,7 +91,7 @@ impl ConsoleStream {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Console logging")))]
 pub struct ConsoleConfig {
-    /// Whether to enable logging to stdout/stderr
+    /// Whether to enable logging to stdout/stderr.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -104,7 +104,7 @@ pub struct ConsoleConfig {
     )]
     pub enabled: bool,
 
-    /// Log format used for output
+    /// Log format used for output.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -134,7 +134,7 @@ pub struct ConsoleConfig {
     )]
     pub color: ColorOption,
 
-    /// Logging verbosity to use.
+    /// Logging verbosity level.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -146,7 +146,7 @@ pub struct ConsoleConfig {
     )]
     pub level: Option<Level>,
 
-    /// Stream to write to
+    /// Stream to write to.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -252,7 +252,7 @@ impl FileRotation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("File logging")))]
 pub struct FileConfig {
-    /// Whether to enable logging to a file
+    /// Whether to enable logging to a file.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -265,7 +265,7 @@ pub struct FileConfig {
     )]
     pub enabled: bool,
 
-    /// Log format used for output
+    /// Log format used for output.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -279,7 +279,7 @@ pub struct FileConfig {
     )]
     pub format: LogFormat,
 
-    /// Logging verbosity to use.
+    /// Logging verbosity level.
     #[cfg_attr(
         feature = "clap",
         clap(
@@ -306,20 +306,20 @@ pub struct FileConfig {
     )]
     pub output: PathBuf,
 
-    /// Configuration for log file rotation
+    /// Configuration for log file rotation.
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub rotation: FileRotation,
 }
 
-/// Arguments for configuring the logging setup
+/// Arguments for configuring the logging setup.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct LoggingConfig {
-    /// Configuration for logging to the console
+    /// Configuration for logging to the console.
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub console: ConsoleConfig,
 
-    /// Configuration for logging to a file
+    /// Configuration for logging to a file.
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub file: FileConfig,
 }

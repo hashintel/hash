@@ -11,14 +11,17 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Heap,
-    module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
-    pretty::{PrettyOptions, PrettyPrint as _},
-    span::SpanId,
-    r#type::environment::Environment,
+    module::{
+        ModuleRegistry,
+        locals::{Local, TypeDef},
+        namespace::ModuleNamespace,
+    },
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatter, environment::Environment, kind::generic::GenericArgumentReference},
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
+use crate::suite::common::Annotated;
 
 pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
 
@@ -27,13 +30,18 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         "ast/lowering/type-definition-extractor"
     }
 
+    fn description(&self) -> &'static str {
+        "Type definition extraction from the AST"
+    }
+
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);
@@ -43,7 +51,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -51,7 +59,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut resolver = ImportResolver::new(heap, namespace);
         resolver.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, resolver.take_diagnostics())?;
+        process_issues(diagnostics, resolver.take_diagnostics())?;
 
         let mut mangler = NameMangler::new(heap);
         mangler.visit_expr(&mut expr);
@@ -61,7 +69,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();
-        process_diagnostics(diagnostics, extractor_diagnostics)?;
+        process_issues(diagnostics, extractor_diagnostics)?;
 
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
@@ -69,11 +77,24 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut locals: Vec<_> = locals.iter().collect();
         locals.sort_by_key(|&Local { name, .. }| name);
 
-        for def in locals {
+        let formatter = Formatter::new(heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, &environment);
+
+        for &Local {
+            name,
+            value: TypeDef { id, arguments },
+        } in locals
+        {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                &def.pretty_print(&environment, PrettyOptions::default().without_color())
+                Annotated {
+                    content: format!(
+                        "{name}{}",
+                        GenericArgumentReference::display_mangled(&arguments)
+                    ),
+                    annotation: formatter.render(id, RenderOptions::default().with_plain())
+                }
             );
         }
 

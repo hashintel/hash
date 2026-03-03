@@ -15,8 +15,6 @@ import type {
   GraphNode,
 } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
-/* eslint-disable no-restricted-imports */
-import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
@@ -28,11 +26,14 @@ export type EntityForGraphChart = {
   properties: PropertyObject;
 };
 
+/**
+ * @todo move generateEntityLabel to a publishable package (currently in @local/hash-isomorphic-utils)
+ */
 const generateEntityLabel = (
-  subgraph: Subgraph,
+  _subgraph: Subgraph,
   entity: EntityForGraphChart,
 ) => {
-  return hashGenerateEntityLabel(subgraph, entity);
+  return entity.metadata.recordId.entityId;
 };
 
 const nodeCategories = [{ name: "entity" }, { name: "entityType" }];

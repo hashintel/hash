@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
 description: "Rejects duplicate #list keys"
 expression: "{\"#list\": [], \"#list\": []}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
-   ╭─[ <unknown>:1:15 ]
-   │
- 1 │ {"#list": [], "#list": []}
-   │  ───┬───      ───┬───  
-   │     │            ╰───── Duplicate key
-   │     │                  
-   │     ╰────────────────── First occurrence of `#list`
-   │ 
-   │ Help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.
-───╯
+error[parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#list": [], "#list": []}
+  │  ┬──────      ━━━━━━━ Duplicate key
+  │  │
+  │  First occurrence of `#list`
+  │
+  ╰ help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.

@@ -23,7 +23,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedMultiEntityTypeMap,
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
-  EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
+  EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   GetClosedMultiEntityTypesResponseDefinitions,
 } from "@local/hash-graph-client";
 
@@ -113,7 +113,7 @@ export type ClosedMultiEntityTypesDefinitions = Subtype<
 >;
 
 export type EntityTypeResolveDefinitions = Subtype<
-  EntityTypeResolveDefinitionsGraphApi,
+  GraphApiEntityTypeResolveDefinitions,
   {
     dataTypes: Record<VersionedUrl, ClosedDataTypeDefinition>;
     propertyTypes: Record<VersionedUrl, PropertyType>;
