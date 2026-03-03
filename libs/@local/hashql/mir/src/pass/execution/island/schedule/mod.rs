@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests;
 
-use core::alloc::Allocator;
+use alloc::{alloc::Global, collections::VecDeque};
+use core::{alloc::Allocator, cmp};
 
 use hashql_core::graph::{DirectedGraph as _, Predecessors as _, Successors as _};
 
@@ -55,16 +56,35 @@ impl<A: Allocator> IslandSchedule<A> {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &ScheduledIsland> {
         self.entries.iter()
     }
+
+    #[inline]
+    pub fn level_count(&self) -> usize {
+        self.entries
+            .last()
+            .map_or(0, |entry| entry.level as usize + 1)
+    }
+
+    #[inline]
+    pub fn levels(&self) -> impl Iterator<Item = &[ScheduledIsland]> {
+        self.entries.chunk_by(|lhs, rhs| lhs.level == rhs.level)
+    }
 }
 
-impl<G: Allocator> IslandGraph<G> {
+impl IslandGraph<Global> {
+    #[must_use]
+    pub fn schedule(&self) -> IslandSchedule<Global> {
+        self.schedule_in(Global, Global)
+    }
+}
+
+impl<A: Allocator> IslandGraph<A> {
     /// Computes a topological schedule with level assignment for parallelism.
     ///
     /// Each island is assigned the lowest level such that all its predecessors are at
     /// strictly lower levels. Islands at the same level have no direct dependencies and
     /// can execute concurrently.
     #[expect(clippy::cast_possible_truncation)]
-    pub fn schedule<S>(&self, scratch: S) -> IslandSchedule<S>
+    pub fn schedule_in<S>(&self, scratch: S, alloc: A) -> IslandSchedule<A>
     where
         S: Allocator + Clone,
     {
@@ -77,34 +97,32 @@ impl<G: Allocator> IslandGraph<G> {
             in_degree[island_id] = self.predecessors(island_id).count() as u32;
         }
 
-        let mut queue: Vec<IslandId, _> = Vec::new_in(scratch.clone());
+        let mut queue: VecDeque<IslandId, _> = VecDeque::new_in(scratch);
         for (island_id, _) in self.iter_nodes() {
             if in_degree[island_id] == 0 {
-                queue.push(island_id);
+                queue.push_back(island_id);
             }
         }
 
-        let mut entries = Vec::with_capacity_in(node_count, scratch);
-        let mut head = 0;
+        let mut entries = Vec::with_capacity_in(node_count, alloc);
 
-        while head < queue.len() {
-            let island_id = queue[head];
-            head += 1;
-
+        while let Some(island_id) = queue.pop_front() {
             entries.push(ScheduledIsland {
                 island: island_id,
                 level: levels[island_id],
             });
 
             for successor in self.successors(island_id) {
-                levels[successor] = levels[successor].max(levels[island_id] + 1);
+                levels[successor] = cmp::max(levels[successor], levels[island_id] + 1);
                 in_degree[successor] -= 1;
+
                 if in_degree[successor] == 0 {
-                    queue.push(successor);
+                    queue.push_back(successor);
                 }
             }
         }
 
+        entries.sort_by_key(|entry| entry.level);
         IslandSchedule { entries }
     }
 }
