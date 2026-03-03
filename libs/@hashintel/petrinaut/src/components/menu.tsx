@@ -1,6 +1,9 @@
 import { Menu as ArkMenu } from "@ark-ui/react";
+import { Portal } from "@ark-ui/react/portal";
 import { css } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
+
+import { usePortalContainerRef } from "../state/portal-container-context";
 
 const menuContentStyle = css({
   background: "[white]",
@@ -9,7 +12,7 @@ const menuContentStyle = css({
   border: "1px solid",
   borderColor: "neutral.s20",
   minWidth: "[180px]",
-  zIndex: "[1001]",
+  zIndex: "[1100]",
   padding: "[7px]",
 });
 
@@ -20,7 +23,7 @@ const submenuContentStyle = css({
   border: "1px solid",
   borderColor: "neutral.s20",
   minWidth: "[180px]",
-  zIndex: "[1002]",
+  zIndex: "[1101]",
   padding: "[7px]",
 });
 
@@ -86,55 +89,61 @@ export interface MenuProps {
 }
 
 export const Menu: React.FC<MenuProps> = ({ trigger, items, placement }) => {
+  const portalContainerRef = usePortalContainerRef();
+
   return (
     <ArkMenu.Root
       positioning={placement ? { placement, gutter: 4 } : undefined}
     >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
-      <ArkMenu.Positioner>
-        <ArkMenu.Content className={menuContentStyle}>
-          {items.map((item) =>
-            item.submenu ? (
-              <ArkMenu.Root
-                key={item.id}
-                positioning={{ placement: "right-start", gutter: 4 }}
-              >
-                <ArkMenu.TriggerItem className={triggerItemStyle}>
+      <Portal container={portalContainerRef}>
+        <ArkMenu.Positioner>
+          <ArkMenu.Content className={menuContentStyle}>
+            {items.map((item) =>
+              item.submenu ? (
+                <ArkMenu.Root
+                  key={item.id}
+                  positioning={{ placement: "right-start", gutter: 4 }}
+                >
+                  <ArkMenu.TriggerItem className={triggerItemStyle}>
+                    {item.label}
+                    <span className={triggerItemArrowStyle}>›</span>
+                  </ArkMenu.TriggerItem>
+                  <Portal container={portalContainerRef}>
+                    <ArkMenu.Positioner>
+                      <ArkMenu.Content className={submenuContentStyle}>
+                        {item.submenu.map((subitem) => (
+                          <ArkMenu.Item
+                            key={subitem.id}
+                            id={subitem.id}
+                            disabled={subitem.disabled}
+                            value={subitem.id}
+                            onClick={subitem.onClick}
+                            className={itemStyle}
+                          >
+                            {subitem.label}
+                          </ArkMenu.Item>
+                        ))}
+                      </ArkMenu.Content>
+                    </ArkMenu.Positioner>
+                  </Portal>
+                </ArkMenu.Root>
+              ) : (
+                <ArkMenu.Item
+                  key={item.id}
+                  id={item.id}
+                  disabled={item.disabled}
+                  value={item.id}
+                  onClick={item.onClick}
+                  className={itemStyle}
+                >
                   {item.label}
-                  <span className={triggerItemArrowStyle}>›</span>
-                </ArkMenu.TriggerItem>
-                <ArkMenu.Positioner>
-                  <ArkMenu.Content className={submenuContentStyle}>
-                    {item.submenu.map((subitem) => (
-                      <ArkMenu.Item
-                        key={subitem.id}
-                        id={subitem.id}
-                        disabled={subitem.disabled}
-                        value={subitem.id}
-                        onClick={subitem.onClick}
-                        className={itemStyle}
-                      >
-                        {subitem.label}
-                      </ArkMenu.Item>
-                    ))}
-                  </ArkMenu.Content>
-                </ArkMenu.Positioner>
-              </ArkMenu.Root>
-            ) : (
-              <ArkMenu.Item
-                key={item.id}
-                id={item.id}
-                disabled={item.disabled}
-                value={item.id}
-                onClick={item.onClick}
-                className={itemStyle}
-              >
-                {item.label}
-              </ArkMenu.Item>
-            ),
-          )}
-        </ArkMenu.Content>
-      </ArkMenu.Positioner>
+                </ArkMenu.Item>
+              ),
+            )}
+          </ArkMenu.Content>
+        </ArkMenu.Positioner>
+      </Portal>
     </ArkMenu.Root>
   );
 };

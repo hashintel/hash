@@ -1,9 +1,12 @@
+import { Portal } from "@ark-ui/react/portal";
 import { createListCollection, Select } from "@ark-ui/react/select";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import { TbTrash } from "react-icons/tb";
+
+import { usePortalContainerRef } from "../state/portal-container-context";
 
 // -- Types -------------------------------------------------------------------
 
@@ -262,6 +265,8 @@ export const ArcItem = ({
   onWeightChange,
   onDelete,
 }: ArcItemProps) => {
+  const portalContainerRef = usePortalContainerRef();
+
   const collection = useMemo(
     () =>
       availablePlaces
@@ -305,25 +310,27 @@ export const ArcItem = ({
           <Select.Trigger asChild>
             <div className={nameCellStyle}>{nameCellContent}</div>
           </Select.Trigger>
-          <Select.Positioner>
-            <Select.Content className={selectContentStyle}>
-              {collection.items.map((item) => (
-                <Select.Item
-                  key={item.id}
-                  item={item}
-                  className={selectItemStyle}
-                >
-                  <div
-                    className={selectItemDotStyle}
-                    style={{
-                      backgroundColor: item.color ?? "#d4d4d4",
-                    }}
-                  />
-                  <Select.ItemText>{item.name}</Select.ItemText>
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
+          <Portal container={portalContainerRef}>
+            <Select.Positioner>
+              <Select.Content className={selectContentStyle}>
+                {collection.items.map((item) => (
+                  <Select.Item
+                    key={item.id}
+                    item={item}
+                    className={selectItemStyle}
+                  >
+                    <div
+                      className={selectItemDotStyle}
+                      style={{
+                        backgroundColor: item.color ?? "#d4d4d4",
+                      }}
+                    />
+                    <Select.ItemText>{item.name}</Select.ItemText>
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
         </Select.Root>
       ) : (
         <div className={nameCellStyle}>{nameCellContent}</div>
