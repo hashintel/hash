@@ -13,6 +13,7 @@ import { handleStyling } from "../styles/styling";
 
 const containerStyle = css({
   position: "relative",
+  transform: "translate(-50%, -50%)",
 });
 
 const placeCircleStyle = cva({
