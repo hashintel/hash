@@ -3,6 +3,8 @@ import { createListCollection, Select } from "@ark-ui/react/select";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { TbChevronDown } from "react-icons/tb";
 
+import { usePortalContainerRef } from "../../../../../state/portal-container-context";
+
 const triggerStyle = cva({
   base: {
     display: "flex",
@@ -112,6 +114,7 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const portalContainerRef = usePortalContainerRef();
   const collection = createListCollection({ items: TYPE_COLOR_POOL });
 
   return (
@@ -141,7 +144,7 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
           </Select.Indicator>
         </Select.Trigger>
       </Select.Control>
-      <Portal>
+      <Portal container={portalContainerRef}>
         <Select.Positioner>
           <Select.Content className={contentStyle}>
             <Select.ItemGroup>
