@@ -2,7 +2,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
-import { ArcItem, ArcList } from "../../../../../../components/arc-item";
+import {
+  ArcItem,
+  ArcList,
+  type PlaceOption,
+} from "../../../../../../components/arc-item";
 import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -32,6 +36,60 @@ const TransitionMainContent: React.FC = () => {
       return undefined;
     }
     return types.find((tp) => tp.id === place.colorId)?.displayColor;
+  };
+
+  const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
+    id: pl.id,
+    name: pl.name,
+    color: pl.colorId
+      ? types.find((tp) => tp.id === pl.colorId)?.displayColor
+      : undefined,
+  });
+
+  const getAvailableInputPlaces = (currentPlaceId: string): PlaceOption[] => {
+    const usedIds = new Set(
+      transition.inputArcs
+        .filter((arc) => arc.placeId !== currentPlaceId)
+        .map((arc) => arc.placeId),
+    );
+    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
+  };
+
+  const getAvailableOutputPlaces = (currentPlaceId: string): PlaceOption[] => {
+    const usedIds = new Set(
+      transition.outputArcs
+        .filter((arc) => arc.placeId !== currentPlaceId)
+        .map((arc) => arc.placeId),
+    );
+    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
+  };
+
+  const handleInputArcPlaceChange = (
+    oldPlaceId: string,
+    newPlaceId: string,
+  ) => {
+    updateTransition(transition.id, (existingTransition) => {
+      const arc = existingTransition.inputArcs.find(
+        (ar) => ar.placeId === oldPlaceId,
+      );
+      if (arc) {
+        arc.placeId = newPlaceId;
+      }
+    });
+  };
+
+  const handleOutputArcPlaceChange = (
+    oldPlaceId: string,
+    newPlaceId: string,
+  ) => {
+    updateTransition(transition.id, (existingTransition) => {
+      const arc = existingTransition.outputArcs.find(
+        (ar) => ar.placeId === oldPlaceId,
+      );
+      if (arc) {
+        arc.placeId = newPlaceId;
+      }
+    });
   };
 
   const handleDeleteInputArc = (placeId: string) => {
@@ -85,10 +143,15 @@ const TransitionMainContent: React.FC = () => {
               return (
                 <ArcItem
                   key={arc.placeId}
+                  placeId={arc.placeId}
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
                   color={getPlaceColor(arc.placeId)}
                   disabled={isReadOnly}
+                  availablePlaces={getAvailableInputPlaces(arc.placeId)}
+                  onPlaceChange={(newPlaceId) =>
+                    handleInputArcPlaceChange(arc.placeId, newPlaceId)
+                  }
                   onWeightChange={(weight) => {
                     onArcWeightUpdate(
                       transition.id,
@@ -119,10 +182,15 @@ const TransitionMainContent: React.FC = () => {
               return (
                 <ArcItem
                   key={arc.placeId}
+                  placeId={arc.placeId}
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
                   color={getPlaceColor(arc.placeId)}
                   disabled={isReadOnly}
+                  availablePlaces={getAvailableOutputPlaces(arc.placeId)}
+                  onPlaceChange={(newPlaceId) =>
+                    handleOutputArcPlaceChange(arc.placeId, newPlaceId)
+                  }
                   onWeightChange={(weight) => {
                     onArcWeightUpdate(
                       transition.id,
