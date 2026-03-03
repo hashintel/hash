@@ -1,5 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { use, useState } from "react";
 import {
   TbLockOpen,
   TbMaximize,
@@ -9,10 +9,10 @@ import {
 } from "react-icons/tb";
 import { useReactFlow } from "reactflow";
 
-import { Menu } from "../../../components/menu";
 import { Tooltip } from "../../../components/tooltip";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { EditorContext } from "../../../state/editor-context";
+import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 const BASE_OFFSET = 12;
 
@@ -60,6 +60,7 @@ const buttonStyle = css({
 });
 
 export const ViewportControls: React.FC = () => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { zoomIn, zoomOut } = useReactFlow();
   const {
     collapseAllPanels,
@@ -124,20 +125,19 @@ export const ViewportControls: React.FC = () => {
           <TbLockOpen size={14} />
         </button>
       </Tooltip>
-      <Menu
-        placement="left-end"
-        trigger={
-          <button type="button" className={buttonStyle} aria-label="Settings">
-            <TbSettings size={14} />
-          </button>
-        }
-        items={[
-          {
-            id: "placeholder",
-            label: "Settings coming soon",
-            disabled: true,
-          },
-        ]}
+      <Tooltip content="Settings" display="inline" placement="left">
+        <button
+          type="button"
+          className={buttonStyle}
+          aria-label="Settings"
+          onClick={() => setIsSettingsOpen(true)}
+        >
+          <TbSettings size={14} />
+        </button>
+      </Tooltip>
+      <ViewportSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={(details) => setIsSettingsOpen(details.open)}
       />
     </div>
   );

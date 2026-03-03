@@ -45,6 +45,22 @@ export default defineConfig({
           from: { height: "var(--height)", opacity: "1" },
           to: { height: "0", opacity: "0" },
         },
+        dialogBackdropIn: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        dialogBackdropOut: {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        dialogContentIn: {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        dialogContentOut: {
+          from: { opacity: "1", transform: "scale(1)" },
+          to: { opacity: "0", transform: "scale(0.95)" },
+        },
       },
     },
   },
