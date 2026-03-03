@@ -61,7 +61,7 @@ const nameCellStyle = css({
   height: "[100%]",
   minWidth: "[0]",
   backgroundColor: "[var(--background-color)]",
-  outline: "[var(--border-width) solid var(--border-color)]",
+  border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
   borderRightRadius: "[var(--inset-lip-radius)]",
   cursor: "pointer",
@@ -95,6 +95,8 @@ const chevronStyle = css({
 const separatorContainerStyle = css({
   position: "relative",
   zIndex: 2,
+  marginLeft: "[calc(-1 * var(--border-width))]",
+  marginRight: "[calc(-1 * var(--border-width))]",
 });
 
 const separatorBorderStyle = css({
@@ -151,7 +153,7 @@ const weightCellStyle = css({
   height: "[100%]",
   flexShrink: 0,
   backgroundColor: "[var(--background-color)]",
-  outline: "[var(--border-width) solid var(--border-color)]",
+  border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
   borderLeftRadius: "[var(--inset-lip-radius)]",
   position: "relative",
