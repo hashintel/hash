@@ -13,6 +13,7 @@ const FIRING_ANIMATION_DURATION_MS = 300;
 const containerStyle = css({
   position: "relative",
   background: "[transparent]",
+  transform: "translate(-50%, -50%)",
 });
 
 const transitionBoxStyle = cva({
