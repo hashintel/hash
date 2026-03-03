@@ -1,580 +1,508 @@
-//! Island dependency graph with requirement-based edges and fetch island insertion.
+//! Island dependency graph with data requirement resolution.
 //!
-//! Builds a directed graph over [`Island`]s where edges carry the [`EntityPathBitSet`]s
-//! that flow between islands. Two edge kinds exist:
+//! After [`IslandPlacement`] groups basic blocks into [`Island`]s by target, this module
+//! builds a directed graph over those islands, resolves which traversal paths each island
+//! needs, and inserts synthetic data islands for paths that cannot be satisfied by an
+//! upstream provider.
 //!
-//! - **CFG edges**: derived from block-level control flow crossing island boundaries. The successor
-//!   island consumes data the predecessor island produces.
-//! - **Data edges**: an island needs entity paths from a non-adjacent producer. The data is fetched
-//!   directly from the producer's backend, not routed through intermediaries.
+//! Three edge kinds connect islands:
 //!
-//! When an island requires paths that no dominating predecessor can provide, a
-//! [`FetchIsland`] is inserted as a synthetic parallel predecessor dedicated to fetching
-//! that data from the origin backend.
+//! - [`ControlFlow`]: the source island must complete before the target island begins.
+//! - [`DataFlow`]: the target island consumes data produced by the source island.
+//! - [`Inherits`]: the target island inherits provided paths from the source island.
 //!
-//! The output includes a topological schedule with level assignment for parallelism:
-//! islands at the same level with no edges between them can execute concurrently.
-
-use alloc::alloc::Global;
-use core::alloc::Allocator;
-
-use hashql_core::{
-    graph::{DirectedGraph, Predecessors, Successors, algorithms::dominators},
-    id::{self, Id, IdVec, bit_vec::DenseBitSet},
-};
-
-use super::{Island, IslandId, IslandSlice, IslandVec};
-use crate::pass::execution::{
-    VertexType,
-    target::TargetId,
-    traversal::{EntityPathBitSet, TraversalPath, TraversalPathBitSet},
-};
+//! [`IslandPlacement`]: super::IslandPlacement
+//! [`Island`]: super::Island
+//! [`ControlFlow`]: IslandEdge::ControlFlow
+//! [`DataFlow`]: IslandEdge::DataFlow
+//! [`Inherits`]: IslandEdge::Inherits
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
-id::newtype!(
-    /// Identifies a node in the [`IslandGraph`], which may be either a real [`Island`]
-    /// or a synthetic [`FetchIsland`].
-    pub struct IslandNodeId(u32 is 0..=0xFFFF_FF00)
-);
-id::newtype_collections!(pub type IslandNode* from IslandNodeId);
+use alloc::alloc::Global;
+use core::{
+    alloc::Allocator,
+    ops::{Index, IndexMut},
+};
 
-/// The kind of edge in the island dependency graph.
+use hashql_core::{
+    debug_panic,
+    graph::{
+        DirectedGraph, EdgeId, LinkedGraph, NodeId, Predecessors, Successors, Traverse as _,
+        algorithms::{Dominators, dominators},
+        linked::Edge,
+    },
+    heap::CollectIn as _,
+    id::{
+        HasId as _, Id as _,
+        bit_vec::{BitMatrix, DenseBitSet},
+    },
+};
+
+use super::{Island, IslandId, IslandVec};
+use crate::{
+    body::{
+        Body,
+        basic_block::{BasicBlockId, BasicBlockVec},
+    },
+    pass::execution::{
+        TargetId, VertexType,
+        target::{TargetArray, TargetBitSet},
+        traversal::{TraversalPath, TraversalPathBitSet},
+    },
+};
+
+/// The kind of dependency between two islands.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum IslandEdgeKind {
-    /// Direct control flow between islands (block-level CFG edge crossing an island boundary).
-    Cfg,
-    /// Data dependency where the consumer fetches directly from the producer's backend.
+pub enum IslandEdge {
+    /// The source island must complete before the target island begins.
+    ControlFlow,
+    /// The target island consumes data produced by the source island.
+    DataFlow,
+    /// The target island inherits provided paths from the source island.
+    Inherits,
+}
+
+/// A computation island backed by a set of basic blocks from the placement solver.
+#[derive(Debug)]
+pub struct ExecIsland {
+    members: DenseBitSet<BasicBlockId>,
+}
+
+impl ExecIsland {
+    /// Returns `true` if `block` belongs to this island.
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, block: BasicBlockId) -> bool {
+        self.members.contains(block)
+    }
+
+    /// Iterates over the [`BasicBlockId`]s in this island in ascending order.
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = BasicBlockId> + '_ {
+        self.members.iter()
+    }
+}
+
+/// Whether an island node represents computation or a data fetch.
+#[derive(Debug)]
+pub enum IslandKind {
+    /// An island containing basic blocks that execute on its assigned target.
+    Exec(ExecIsland),
+    /// A synthetic island that fetches data from its assigned target.
     Data,
 }
 
-/// A directed edge in the island dependency graph.
+/// A node in the island dependency graph.
 ///
-/// Carries the set of entity paths that flow from the source island to the target island,
-/// along with the edge kind.
-#[derive(Debug, Clone)]
-pub struct IslandEdge {
-    pub source: IslandNodeId,
-    pub target: IslandNodeId,
-    pub kind: IslandEdgeKind,
-    pub paths: EntityPathBitSet,
-}
-
-/// A synthetic island that exists solely to fetch entity data from a specific backend.
-///
-/// Inserted when a real island requires entity paths that no dominating predecessor
-/// can provide. Groups all unsatisfied paths for a single origin backend into one fetch
-/// operation.
-#[derive(Debug, Clone)]
-pub struct FetchIsland {
-    pub target: TargetId,
-    pub paths: EntityPathBitSet,
-}
-
-/// A node in the island dependency graph: either a real computation island or a
-/// synthetic fetch island.
-#[derive(Debug, Clone)]
-pub enum IslandNode {
-    /// A real island from the placement solver.
-    Real(IslandId),
-    /// A synthetic fetch island inserted to satisfy data requirements.
-    Fetch(FetchIsland),
+/// Each node tracks which traversal paths it requires and which it provides.
+#[derive(Debug)]
+pub struct IslandNode {
+    kind: IslandKind,
+    target: TargetId,
+    requires: TraversalPathBitSet,
+    provides: TraversalPathBitSet,
 }
 
 impl IslandNode {
-    /// Returns the execution target for this node.
+    /// Returns the kind of this island node.
+    #[inline]
     #[must_use]
-    pub fn target(&self, islands: &IslandSlice<Island>) -> TargetId {
-        match self {
-            Self::Real(island_id) => islands[*island_id].target(),
-            Self::Fetch(fetch) => fetch.target,
-        }
+    pub const fn kind(&self) -> &IslandKind {
+        &self.kind
+    }
+
+    /// Returns the execution target this island runs on.
+    #[inline]
+    #[must_use]
+    pub const fn target(&self) -> TargetId {
+        self.target
+    }
+
+    /// Returns the set of traversal paths this island requires.
+    #[inline]
+    #[must_use]
+    pub const fn requires(&self) -> TraversalPathBitSet {
+        self.requires
+    }
+
+    /// Returns the set of traversal paths this island provides.
+    #[inline]
+    #[must_use]
+    pub const fn provides(&self) -> TraversalPathBitSet {
+        self.provides
     }
 }
 
-/// A scheduled island with its parallelism level.
+/// Directed graph over [`IslandNode`]s connected by [`IslandEdge`]s.
 ///
-/// Islands at the same level have no dependencies between them and can execute concurrently.
-/// Level 0 contains islands with no predecessors (entry points and independent fetch islands).
-#[derive(Debug, Copy, Clone)]
-pub struct ScheduledIsland {
-    pub node: IslandNodeId,
-    pub level: u32,
+/// Supports indexing by [`IslandId`] and implements [`DirectedGraph`], [`Successors`],
+/// and [`Predecessors`].
+pub struct IslandGraph<A: Allocator> {
+    vertex: VertexType,
+    inner: LinkedGraph<IslandNode, IslandEdge, A>,
+    lookup: BasicBlockVec<IslandId, A>,
 }
 
-/// The island dependency graph.
-///
-/// Contains the set of island nodes (real + fetch), directed edges with path requirements,
-/// and a topological schedule with level assignment for parallelism.
-#[derive(Debug)]
-pub struct IslandGraph {
-    pub nodes: IslandNodeVec<IslandNode>,
-    pub edges: Vec<IslandEdge>,
-    pub schedule: Vec<ScheduledIsland>,
+impl IslandGraph<Global> {
+    pub fn new(
+        body: &Body<'_>,
+        vertex: VertexType,
+        islands: IslandVec<Island, impl Allocator>,
+    ) -> Self {
+        Self::new_in(body, vertex, islands, Global, Global)
+    }
 }
 
-/// Adapter that provides [`DirectedGraph`], [`Successors`], and [`Predecessors`] over
-/// island nodes, enabling dominator computation on the island-level CFG.
-struct IslandCfg {
-    node_count: usize,
-    successors: IslandNodeVec<Vec<IslandNodeId>>,
-    predecessors: IslandNodeVec<Vec<IslandNodeId>>,
-}
+impl<A: Allocator> IslandGraph<A> {
+    pub fn new_in<S>(
+        body: &Body<'_>,
+        vertex: VertexType,
+        islands: IslandVec<Island, impl Allocator>,
+        scratch: S,
+        alloc: A,
+    ) -> Self
+    where
+        S: Allocator + Clone,
+        A: Clone,
+    {
+        let mut this = Self::build_in(body, vertex, islands, scratch.clone(), alloc);
+        this.resolve(scratch);
 
-impl IslandCfg {
-    fn new(node_count: usize) -> Self {
+        this
+    }
+
+    fn build_in<S>(
+        body: &Body<'_>,
+        vertex: VertexType,
+        islands: IslandVec<Island, impl Allocator>,
+        scratch: S,
+        alloc: A,
+    ) -> Self
+    where
+        S: Allocator,
+        A: Clone,
+    {
+        let mut lookup =
+            BasicBlockVec::from_domain_in(IslandId::MAX, &body.basic_blocks, alloc.clone());
+        let mut graph =
+            LinkedGraph::with_capacity_in(islands.len(), body.basic_blocks.edge_count(), alloc);
+        let mut matrix = BitMatrix::new_in(islands.len(), islands.len(), scratch);
+
+        for (
+            island_id,
+            Island {
+                target,
+                members,
+                traversals,
+            },
+        ) in islands.into_iter_enumerated()
+        {
+            for block_id in &members {
+                lookup[block_id] = island_id;
+            }
+
+            let node_id = graph.add_node(IslandNode {
+                kind: IslandKind::Exec(ExecIsland { members }),
+                target,
+                requires: traversals,
+                provides: TraversalPathBitSet::empty(vertex),
+            });
+            debug_assert_eq!(node_id.as_u32(), island_id.as_u32());
+        }
+
+        for block_id in body.basic_blocks.ids() {
+            let source = lookup[block_id];
+
+            for successor in body.basic_blocks.successors(block_id) {
+                let target = lookup[successor];
+
+                if source == target || matrix.contains(source, target) {
+                    continue;
+                }
+
+                matrix.insert(source, target);
+                graph.add_edge(
+                    NodeId::new(source.as_u32()),
+                    NodeId::new(target.as_u32()),
+                    IslandEdge::ControlFlow,
+                );
+            }
+        }
+
         Self {
-            node_count,
-            successors: IslandNodeVec::from_fn_in(node_count, |_| Vec::new(), Global),
-            predecessors: IslandNodeVec::from_fn_in(node_count, |_| Vec::new(), Global),
+            vertex,
+            inner: graph,
+            lookup,
         }
     }
 
-    fn add_edge(&mut self, source: IslandNodeId, target: IslandNodeId) {
-        if !self.successors[source].contains(&target) {
-            self.successors[source].push(target);
-            self.predecessors[target].push(source);
-        }
+    /// Resolves all island requirements and inserts data islands where needed.
+    pub(crate) fn resolve<S>(&mut self, scratch: S)
+    where
+        S: Allocator + Clone,
+    {
+        let mut topo: Vec<IslandId, _> = self
+            .inner
+            .depth_first_forest_post_order()
+            .map(|node| IslandId::new(node.as_u32()))
+            .collect_in(scratch.clone());
+        topo.reverse();
+
+        let start = self.lookup[BasicBlockId::START];
+
+        RequirementResolver::new(self, start, scratch).resolve(&topo);
     }
 }
 
-impl DirectedGraph for IslandCfg {
-    type Edge<'this> = (IslandNodeId, IslandNodeId);
-    type EdgeId = (IslandNodeId, IslandNodeId);
-    type Node<'this> = (IslandNodeId, &'this [IslandNodeId]);
-    type NodeId = IslandNodeId;
+impl<A: Allocator> DirectedGraph for IslandGraph<A> {
+    type Edge<'this>
+        = &'this Edge<IslandEdge>
+    where
+        Self: 'this;
+    type EdgeId = EdgeId;
+    type Node<'this>
+        = (IslandId, &'this IslandNode)
+    where
+        Self: 'this;
+    type NodeId = IslandId;
 
     fn node_count(&self) -> usize {
-        self.node_count
+        self.inner.node_count()
     }
 
     fn edge_count(&self) -> usize {
-        self.successors.iter().map(|succs| succs.len()).sum()
+        self.inner.edge_count()
     }
 
     fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
-        self.successors
-            .iter_enumerated()
-            .map(|(id, succs)| (id, succs.as_slice()))
+        self.inner
+            .iter_nodes()
+            .map(|node| (IslandId::from_u32(node.id().as_u32()), &node.data))
     }
 
     fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
-        // Not needed for dominator computation, provide a dummy implementation.
-        [].into_iter()
+        self.inner.iter_edges()
     }
 }
 
-impl Successors for IslandCfg {
-    type SuccIter<'this> = impl Iterator<Item = IslandNodeId> + 'this;
+impl<A: Allocator> Successors for IslandGraph<A> {
+    type SuccIter<'this>
+        = impl Iterator<Item = Self::NodeId> + 'this
+    where
+        Self: 'this;
 
     fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_> {
-        self.successors[node].iter().copied()
+        self.inner
+            .successors(NodeId::new(node.as_u32()))
+            .map(|node| IslandId::new(node.as_u32()))
     }
 }
 
-impl Predecessors for IslandCfg {
-    type PredIter<'this> = impl Iterator<Item = IslandNodeId> + 'this;
+impl<A: Allocator> Predecessors for IslandGraph<A> {
+    type PredIter<'this>
+        = impl Iterator<Item = Self::NodeId> + 'this
+    where
+        Self: 'this;
 
     fn predecessors(&self, node: Self::NodeId) -> Self::PredIter<'_> {
-        self.predecessors[node].iter().copied()
+        self.inner
+            .predecessors(NodeId::new(node.as_u32()))
+            .map(|node| IslandId::new(node.as_u32()))
     }
 }
 
-/// Maps a block-level CFG into island-level CFG edges.
-///
-/// For each block-level CFG edge where the source and target belong to different islands,
-/// adds an edge between the corresponding island nodes.
-fn build_island_cfg<A: Allocator>(
-    body: &crate::body::Body<'_>,
-    islands: &IslandSlice<Island>,
-    block_to_island: &crate::body::basic_block::BasicBlockSlice<IslandNodeId>,
-    cfg: &mut IslandCfg,
-    edges: &mut Vec<IslandEdge>,
-    alloc: &A,
-) {
-    use hashql_core::graph::Successors as _;
-
-    for block in body.basic_blocks.ids() {
-        let source_island = block_to_island[block];
-
-        for successor in body.basic_blocks.successors(block) {
-            let target_island = block_to_island[successor];
-
-            if source_island != target_island {
-                cfg.add_edge(source_island, target_island);
-
-                // Check if this CFG edge already exists in our edge list.
-                let existing = edges.iter_mut().find(|edge| {
-                    edge.source == source_island
-                        && edge.target == target_island
-                        && edge.kind == IslandEdgeKind::Cfg
-                });
-
-                if existing.is_none() {
-                    edges.push(IslandEdge {
-                        source: source_island,
-                        target: target_island,
-                        kind: IslandEdgeKind::Cfg,
-                        paths: EntityPathBitSet::new_empty(),
-                    });
-                }
-            }
-        }
+impl<A: Allocator> IndexMut<IslandId> for IslandGraph<A> {
+    fn index_mut(&mut self, index: IslandId) -> &mut Self::Output {
+        &mut self.inner[NodeId::new(index.as_u32())].data
     }
 }
 
-/// Resolves data requirements for each island using dominance-aware provider search.
-///
-/// Walks islands in topological order. For each required path in an island's traversal set,
-/// finds the nearest dominating predecessor whose target matches the path's origin backend.
-/// If found, the path is registered on that predecessor (growing its fetch set). If not,
-/// a [`FetchIsland`] is created.
-fn resolve_requirements(
-    islands: &IslandSlice<Island>,
-    nodes: &mut IslandNodeVec<IslandNode>,
-    cfg: &mut IslandCfg,
-    edges: &mut Vec<IslandEdge>,
-    topo_order: &[IslandNodeId],
-    vertex: VertexType,
-) {
-    let doms = dominators(&*cfg, IslandNodeId::new(0));
+impl<A: Allocator> Index<IslandId> for IslandGraph<A> {
+    type Output = IslandNode;
 
-    // For each island, track which paths are "available" from dominating predecessors,
-    // grouped by the origin backend that provides them.
-    // We walk in topological order so predecessors are always processed before successors.
-
-    // Per-node: which paths are available at this node, keyed by origin target.
-    let mut available: IslandNodeVec<[EntityPathBitSet; TargetId::VARIANT_COUNT]> =
-        IslandNodeVec::from_fn_in(
-            nodes.len(),
-            |_| [EntityPathBitSet::new_empty(); TargetId::VARIANT_COUNT],
-            Global,
-        );
-
-    // For real islands, the island's own target makes all its fetched/produced paths available.
-    for node_id in topo_order {
-        let node = &nodes[*node_id];
-
-        if let IslandNode::Real(island_id) = node {
-            let island = &islands[*island_id];
-            let target = island.target();
-
-            // Paths this island accesses are available from its target backend going forward.
-            if let Some(entity_paths) = island.traversals().as_entity() {
-                let avail = &mut available[*node_id][target.as_usize()];
-                for path in entity_paths {
-                    avail.insert(path);
-                }
-            }
-        }
-
-        // Propagate availability to successors: a successor inherits availability from
-        // all dominating predecessors.
-        let current_available = available[*node_id];
-        for succ in cfg.successors[*node_id].clone() {
-            if doms.dominates(*node_id, succ) {
-                for (target_idx, paths) in current_available.iter().enumerate() {
-                    for path in paths {
-                        available[succ][target_idx].insert(path);
-                    }
-                }
-            }
-        }
-    }
-
-    // Now resolve requirements: for each real island, check which of its required paths
-    // are NOT available from any dominating predecessor on the correct origin backend.
-    // Those need FetchIslands.
-    for &node_id in topo_order {
-        let node = &nodes[node_id];
-
-        let island_id = match node {
-            IslandNode::Real(island_id) => *island_id,
-            IslandNode::Fetch(_) => continue,
-        };
-
-        let island = &islands[island_id];
-        let required = island.traversals();
-
-        let Some(entity_paths) = required.as_entity() else {
-            continue;
-        };
-
-        if entity_paths.is_empty() {
-            continue;
-        }
-
-        // Group unsatisfied paths by origin backend.
-        let mut unsatisfied: [EntityPathBitSet; TargetId::VARIANT_COUNT] =
-            [EntityPathBitSet::new_empty(); TargetId::VARIANT_COUNT];
-
-        for path in entity_paths {
-            let traversal_path = TraversalPath::Entity(path);
-            let origin = traversal_path.origin();
-
-            // Check if any origin backend has this path available from a dominating predecessor.
-            let is_satisfied = origin
-                .iter()
-                .any(|origin_target| available[node_id][origin_target.as_usize()].contains(path));
-
-            if is_satisfied {
-                // Find the nearest dominating predecessor that provides this path and
-                // add a data edge if one doesn't already exist.
-                for origin_target in origin.iter() {
-                    if available[node_id][origin_target.as_usize()].contains(path) {
-                        // Find the nearest predecessor on this target by walking up the
-                        // dominator tree.
-                        if let Some(provider) = find_nearest_provider(
-                            node_id,
-                            origin_target,
-                            &doms,
-                            nodes,
-                            islands,
-                            cfg,
-                        ) {
-                            add_data_edge(edges, provider, node_id, path);
-                        }
-                        break;
-                    }
-                }
-            } else {
-                // No provider: needs a FetchIsland. Group by origin backend.
-                // Use the first origin target (for EntityPath, there's always exactly one).
-                if let Some(origin_target) = origin.iter().next() {
-                    unsatisfied[origin_target.as_usize()].insert(path);
-                }
-            }
-        }
-
-        // Create FetchIslands for unsatisfied paths, one per backend.
-        for target in TargetId::all() {
-            let paths = &unsatisfied[target.as_usize()];
-            if paths.is_empty() {
-                continue;
-            }
-
-            let fetch_node_id = IslandNodeId::from_usize(nodes.len());
-
-            // Extend the CFG adapter.
-            cfg.successors.push(Vec::new());
-            cfg.predecessors.push(Vec::new());
-            cfg.node_count += 1;
-
-            // Extend available.
-            // (We won't re-process this node in the topo walk, but the structure must be
-            // consistent.)
-
-            nodes.push(IslandNode::Fetch(FetchIsland {
-                target,
-                paths: *paths,
-            }));
-
-            cfg.add_edge(fetch_node_id, node_id);
-
-            edges.push(IslandEdge {
-                source: fetch_node_id,
-                target: node_id,
-                kind: IslandEdgeKind::Data,
-                paths: *paths,
-            });
-        }
+    fn index(&self, index: IslandId) -> &Self::Output {
+        &self.inner[NodeId::new(index.as_u32())].data
     }
 }
 
-/// Finds the nearest dominating predecessor of `node` whose target matches `origin_target`.
-///
-/// Walks up the dominator tree from `node`, checking each ancestor. Returns the first
-/// (nearest) node that runs on the requested backend.
-fn find_nearest_provider(
-    node: IslandNodeId,
-    origin_target: TargetId,
-    doms: &hashql_core::graph::algorithms::Dominators<IslandNodeId>,
-    nodes: &IslandNodeSlice<IslandNode>,
-    islands: &IslandSlice<Island>,
-    cfg: &IslandCfg,
-) -> Option<IslandNodeId> {
+/// Returns the nearest strict dominator of `node` assigned to `target`, along with its
+/// depth (0 = immediate dominator).
+fn find_dominator_by_target(
+    dominators: &Dominators<IslandId>,
+    graph: &IslandGraph<impl Allocator>,
+    node: IslandId,
+    target: TargetId,
+) -> Option<(IslandId, usize)> {
     let mut current = node;
+    let mut depth = 0;
 
     loop {
-        let parent = doms.immediate_dominator(current)?;
-
+        let parent = dominators.immediate_dominator(current)?;
         if parent == current {
             return None;
         }
 
-        let parent_target = nodes[parent].target(islands);
-        if parent_target == origin_target {
-            return Some(parent);
+        if graph[parent].target == target {
+            return Some((parent, depth));
         }
 
         current = parent;
+        depth += 1;
     }
 }
 
-/// Adds a data edge carrying `path` from `source` to `target`, merging into existing edges.
-fn add_data_edge(
-    edges: &mut Vec<IslandEdge>,
-    source: IslandNodeId,
-    target: IslandNodeId,
-    path: EntityPath,
-) {
-    use crate::pass::execution::traversal::EntityPath;
+/// Resolves data requirements for all islands, inserting data islands where needed.
+struct RequirementResolver<'graph, A: Allocator, S: Allocator> {
+    graph: &'graph mut IslandGraph<A>,
+    dominators: Dominators<IslandId>,
+    merged_provides: IslandVec<TraversalPathBitSet, S>,
+    data_providers: TargetArray<Option<IslandId>>,
+}
 
-    let existing = edges.iter_mut().find(|edge| {
-        edge.source == source && edge.target == target && edge.kind == IslandEdgeKind::Data
-    });
+impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, S> {
+    fn new(graph: &'graph mut IslandGraph<A>, start: IslandId, scratch: S) -> Self {
+        let dominators = dominators(&*graph, start);
+        let merged_provides = IslandVec::from_elem_in(
+            TraversalPathBitSet::empty(graph.vertex),
+            graph.node_count(),
+            scratch,
+        );
 
-    if let Some(edge) = existing {
-        edge.paths.insert(path);
-    } else {
-        let mut paths = EntityPathBitSet::new_empty();
-        paths.insert(path);
-        edges.push(IslandEdge {
-            source,
+        Self {
+            graph,
+            dominators,
+            merged_provides,
+            data_providers: TargetArray::from_elem(None),
+        }
+    }
+
+    fn resolve(mut self, topo: &[IslandId]) {
+        // Iterate in reverse for topological order
+        for &island_id in topo {
+            let island = &self.graph[island_id];
+            let IslandKind::Exec(_) = &island.kind else {
+                debug_panic!("data islands should not be present during requirement resolution");
+                continue;
+            };
+
+            self.inherit_provides(island_id);
+            self.resolve_island(island_id);
+        }
+    }
+
+    /// If a same-target dominator exists, inherits its provided paths via an `Inherits` edge.
+    fn inherit_provides(&mut self, island_id: IslandId) {
+        let island_target = self.graph[island_id].target;
+
+        if let Some((parent, _)) =
+            find_dominator_by_target(&self.dominators, self.graph, island_id, island_target)
+        {
+            self.merged_provides.copy_within(parent..=parent, island_id);
+            self.graph.inner.add_edge(
+                NodeId::from_u32(parent.as_u32()),
+                NodeId::from_u32(island_id.as_u32()),
+                IslandEdge::Inherits,
+            );
+        }
+    }
+
+    /// Resolves requirements for a single island.
+    ///
+    /// Paths whose origin includes this island's own target are self-provided and need no
+    /// external provider. All other paths are resolved via dominator walk or data island.
+    fn resolve_island(&mut self, island_id: IslandId) {
+        let requires = self.graph[island_id].requires;
+        if requires.is_empty() {
+            return;
+        }
+
+        let island_target = self.graph[island_id].target;
+
+        // Cache dominator lookups per target to avoid repeated walks.
+        let mut cached = TargetArray::from_elem(None);
+
+        for requirement in &requires {
+            let origin = requirement.origin();
+            debug_assert!(!origin.is_empty());
+
+            // If this island runs on an origin backend for the path, it self-provides.
+            if origin.contains(island_target) {
+                if !self.merged_provides[island_id].contains(requirement) {
+                    self.merged_provides[island_id].insert(requirement);
+                    self.graph[island_id].provides.insert(requirement);
+                }
+                continue;
+            }
+
+            let provider = self.find_best_provider(&mut cached, island_id, origin);
+            let provider = provider.unwrap_or_else(|| self.get_or_create_data_island(origin));
+
+            self.register_path(provider, island_id, requirement);
+        }
+    }
+
+    /// Finds the nearest dominating provider among the potential origin targets.
+    #[expect(clippy::option_option)]
+    fn find_best_provider(
+        &self,
+        cached: &mut TargetArray<Option<Option<(IslandId, usize)>>>,
+        island_id: IslandId,
+        origin: TargetBitSet,
+    ) -> Option<IslandId> {
+        origin
+            .iter()
+            .filter_map(|target| {
+                *cached[target].get_or_insert_with(|| {
+                    find_dominator_by_target(&self.dominators, self.graph, island_id, target)
+                })
+            })
+            .min_by_key(|&(_, depth)| depth)
+            .map(|(provider, _)| provider)
+    }
+
+    /// Registers a path as provided by `provider` for consumption by `consumer`.
+    fn register_path(&mut self, provider: IslandId, consumer: IslandId, path: TraversalPath) {
+        if !self.merged_provides[provider].contains(path) {
+            self.merged_provides[provider].insert(path);
+            self.graph[provider].provides.insert(path);
+        }
+
+        self.graph.inner.add_edge(
+            NodeId::from_u32(provider.as_u32()),
+            NodeId::from_u32(consumer.as_u32()),
+            IslandEdge::DataFlow,
+        );
+    }
+
+    /// Returns an existing data island for the given origin backend, or creates one.
+    fn get_or_create_data_island(&mut self, origin: TargetBitSet) -> IslandId {
+        // Check if *any* of the providers already have an initialised provider, if that's the case
+        // we create our own.
+        if let Some(provider) = origin.iter().find_map(|target| self.data_providers[target]) {
+            return provider;
+        }
+
+        // `TargetId` is ordered by backend priority, so the first set bit gives us the best target
+        // (note that interpreter is technically first, but never a target for data).
+        let target = origin.first_set().unwrap_or_else(|| unreachable!());
+
+        if let Some(provider) = self.data_providers[target] {
+            return provider;
+        }
+
+        let node = self.graph.inner.add_node(IslandNode {
+            kind: IslandKind::Data,
             target,
-            kind: IslandEdgeKind::Data,
-            paths,
+            requires: TraversalPathBitSet::empty(self.graph.vertex),
+            provides: TraversalPathBitSet::empty(self.graph.vertex),
         });
-    }
-}
+        let provider = IslandId::from_u32(node.as_u32());
+        self.data_providers[target] = Some(provider);
+        self.merged_provides
+            .push(TraversalPathBitSet::empty(self.graph.vertex));
 
-/// Computes a topological schedule with level assignment for parallelism.
-///
-/// Each node is assigned the lowest level such that all its predecessors are at lower levels.
-/// Nodes at the same level have no direct dependencies and can execute concurrently.
-fn compute_schedule(
-    nodes: &IslandNodeSlice<IslandNode>,
-    edges: &[IslandEdge],
-) -> Vec<ScheduledIsland> {
-    let node_count = nodes.len();
-
-    // Compute in-degree for each node.
-    let mut in_degree = IslandNodeVec::from_fn_in(node_count, |_| 0u32, Global);
-    let mut successors: IslandNodeVec<Vec<IslandNodeId>> =
-        IslandNodeVec::from_fn_in(node_count, |_| Vec::new(), Global);
-
-    for edge in edges {
-        // Only count edges within the known node range (FetchIslands added later may
-        // exceed the initial allocation).
-        if edge.source.as_usize() < node_count && edge.target.as_usize() < node_count {
-            in_degree[edge.target] += 1;
-            if !successors[edge.source].contains(&edge.target) {
-                successors[edge.source].push(edge.target);
-            }
-        }
-    }
-
-    let mut levels = IslandNodeVec::from_fn_in(node_count, |_| 0u32, Global);
-    let mut queue: Vec<IslandNodeId> = Vec::new();
-
-    // Seed the queue with nodes that have no predecessors.
-    for node_id in (0..node_count).map(IslandNodeId::from_usize) {
-        if in_degree[node_id] == 0 {
-            queue.push(node_id);
-        }
-    }
-
-    let mut schedule = Vec::with_capacity(node_count);
-    let mut head = 0;
-
-    while head < queue.len() {
-        let node_id = queue[head];
-        head += 1;
-
-        schedule.push(ScheduledIsland {
-            node: node_id,
-            level: levels[node_id],
-        });
-
-        for &succ in &successors[node_id] {
-            levels[succ] = levels[succ].max(levels[node_id] + 1);
-            in_degree[succ] -= 1;
-            if in_degree[succ] == 0 {
-                queue.push(succ);
-            }
-        }
-    }
-
-    schedule
-}
-
-/// Builds the island dependency graph from placement results.
-///
-/// Takes the body CFG, the discovered islands, and produces a graph with:
-/// - Real island nodes mapped 1:1 from the input islands
-/// - FetchIsland nodes for unsatisfied data requirements
-/// - CFG and data edges between nodes
-/// - A topological schedule with parallelism levels
-pub(crate) fn build_island_graph(
-    body: &crate::body::Body<'_>,
-    islands: &IslandVec<Island, impl Allocator>,
-    vertex: VertexType,
-) -> IslandGraph {
-    use crate::body::basic_block::BasicBlockVec;
-
-    let island_count = islands.len();
-
-    // Map each basic block to its island's node ID.
-    let mut block_to_island =
-        BasicBlockVec::from_domain_in(IslandNodeId::new(0), &body.basic_blocks, Global);
-
-    for island_id in islands.ids() {
-        let node_id = IslandNodeId::from_usize(island_id.as_usize());
-        for block in islands[island_id].iter() {
-            block_to_island[block] = node_id;
-        }
-    }
-
-    // Initialize nodes: one per real island.
-    let mut nodes: IslandNodeVec<IslandNode> = IslandNodeVec::from_fn_in(
-        island_count,
-        |id| IslandNode::Real(IslandId::from_usize(id.as_usize())),
-        Global,
-    );
-
-    let mut cfg = IslandCfg::new(island_count);
-    let mut edges = Vec::new();
-
-    // Phase 1: Build island-level CFG edges from block-level CFG.
-    build_island_cfg(
-        body,
-        islands,
-        &block_to_island,
-        &mut cfg,
-        &mut edges,
-        &Global,
-    );
-
-    // Phase 2: Compute topological order for the forward walk.
-    // Use reverse postorder (which is a valid topological order for DAGs).
-    let topo_order = {
-        use hashql_core::graph::Traverse as _;
-        let rpo: Vec<IslandNodeId> = cfg
-            .depth_first_traversal_post_order([IslandNodeId::new(0)])
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect();
-        rpo
-    };
-
-    // Phase 3: Resolve data requirements with dominance-aware provider search.
-    resolve_requirements(
-        islands,
-        &mut nodes,
-        &mut cfg,
-        &mut edges,
-        &topo_order,
-        vertex,
-    );
-
-    // Phase 4: Compute the schedule with parallelism levels.
-    let schedule = compute_schedule(&nodes, &edges);
-
-    IslandGraph {
-        nodes,
-        edges,
-        schedule,
+        provider
     }
 }

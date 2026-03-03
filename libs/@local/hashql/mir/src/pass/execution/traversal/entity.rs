@@ -485,7 +485,8 @@ impl EntityPathBitSet {
     }
 
     /// Returns `true` if `path` is present in the bitset.
-    pub(crate) fn contains(&self, path: EntityPath) -> bool {
+    #[must_use]
+    pub(crate) const fn contains(self, path: EntityPath) -> bool {
         self.0.contains(path)
     }
 

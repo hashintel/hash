@@ -38,10 +38,8 @@ pub use self::{
     cost::{ApproxCost, Cost},
     island::{
         Island, IslandId, IslandVec,
-        graph::{
-            FetchIsland, IslandEdge, IslandEdgeKind, IslandGraph, IslandNode, IslandNodeId,
-            ScheduledIsland,
-        },
+        graph::{ExecIsland, IslandEdge, IslandGraph, IslandKind, IslandNode},
+        schedule::{IslandSchedule, ScheduledIsland},
     },
     placement::error::PlacementDiagnosticCategory,
     target::TargetId,
