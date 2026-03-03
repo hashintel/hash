@@ -1,3 +1,4 @@
+mod delete;
 mod query;
 mod read;
 use alloc::borrow::Cow;
@@ -15,15 +16,16 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityPermissions,
-        EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval,
-        EntityTypesError, EntityValidationReport, EntityValidationType,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
+        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
         protection::transform_filter,
@@ -87,7 +89,7 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, PostgresStore,
-    error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         ResponseCountMap, TraversalContext,
         crud::{QueryIndices, TypedRow},
@@ -407,9 +409,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`DeletionError`] if the database deletion operation fails.
+    /// Returns [`DeletionError::Store`] if the database deletion operation fails.
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entities(&self) -> Result<(), Report<DeletionError>> {
+    pub async fn delete_all_entities(&self) -> Result<(), Report<DeletionError>> {
         tracing::debug!("Deleting all entities");
         self.as_client()
             .client()
@@ -431,7 +433,7 @@ where
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(DeletionError)?;
+            .change_context(DeletionError::Store)?;
 
         Ok(())
     }
@@ -1074,6 +1076,7 @@ where
                         .draft_id
                         .is_none()
                         .then_some(decision_time),
+                    deletion: None,
                 },
                 edition: EntityEditionProvenance {
                     created_by_id: actor_uuid,
@@ -2336,6 +2339,29 @@ where
         }
         let [entity] = entities;
         Ok(entity)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        // TODO: Authorization — check delete permission via PolicyComponents
+
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(DeletionError::Store)?;
+        let summary = transaction
+            .execute_entity_deletion(actor_id, params)
+            .await?;
+        transaction
+            .commit()
+            .await
+            .change_context(DeletionError::Store)?;
+
+        Ok(summary)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

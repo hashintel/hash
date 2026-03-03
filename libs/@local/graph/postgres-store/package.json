@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@rust/hash-graph-migrations": "workspace:*",
+    "@rust/hash-graph-test-data": "workspace:*",
     "@rust/hash-telemetry": "workspace:*"
   }
 }

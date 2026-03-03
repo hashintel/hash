@@ -3447,6 +3447,7 @@ dependencies = [
  "hash-graph-migrations",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
+ "hash-graph-test-data",
  "hash-graph-types",
  "hash-graph-validation",
  "hash-status",

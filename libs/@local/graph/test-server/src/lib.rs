@@ -212,7 +212,7 @@ async fn delete_entities(
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
-        .delete_entities()
+        .delete_all_entities()
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not delete entities");

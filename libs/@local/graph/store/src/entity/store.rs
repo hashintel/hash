@@ -36,7 +36,7 @@ use utoipa::{
 use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     subgraph::{
         Subgraph,
@@ -531,6 +531,52 @@ pub struct HasPermissionForEntitiesParams<'a> {
     pub include_drafts: bool,
 }
 
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(
+    tag = "scope",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum DeletionScope {
+    // Archive,
+    Purge { link_behavior: LinkDeletionBehavior },
+    Erase,
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum LinkDeletionBehavior {
+    Ignore,
+    Error,
+    // Cascade,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteEntitiesParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub include_drafts: bool,
+    #[serde(flatten)]
+    pub scope: DeletionScope,
+    #[serde(default)]
+    pub decision_time: Option<Timestamp<DecisionTime>>,
+}
+
+/// Summary of a deletion operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct DeletionSummary {
+    /// Number of entities fully deleted (tombstoned or erased).
+    pub full_entities: usize,
+    /// Number of draft-only deletions performed.
+    pub draft_deletions: usize,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
@@ -639,6 +685,45 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
+
+    /// Deletes entities matching the `params` filter.
+    ///
+    /// **Purge** keeps `entity_ids` as a tombstone with deletion provenance; all edition data,
+    /// temporal metadata, type associations, embeddings, drafts, and outgoing edges are removed.
+    /// **Erase** additionally removes the `entity_ids` row, leaving no trace.
+    ///
+    /// # Behavioral notes
+    ///
+    /// - **Erase + draft-only targets**: when [`DeletionScope::Erase`] is used but only draft-only
+    ///   targets are produced (e.g., a partial draft match on an entity with a published version),
+    ///   `entity_ids` is **not** deleted because published data still references it. Callers
+    ///   passing `Erase` should not assume complete removal in this case.
+    ///
+    /// - **Filter interaction with `include_drafts`**: [`Filter::for_entity_by_entity_id`] with
+    ///   `draft_id: None` matches on `(web_id, entity_uuid)` without restricting by `draft_id`. The
+    ///   `draft_id IS NULL` constraint comes from `include_drafts: false` in the select compiler.
+    ///   This means `include_drafts: true` + `draft_id: None` matches **all** rows (published + all
+    ///   drafts) for the entity.
+    ///
+    /// - **Double-purge is a no-op**: after the first purge deletes temporal metadata, a second
+    ///   call finds no matching rows and returns successfully without modifying the tombstone.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidDecisionTime`] if `decision_time` exceeds `transaction_time`
+    /// - [`IncomingLinksExist`] if incoming links exist and [`LinkDeletionBehavior::Error`] or
+    ///   [`DeletionScope::Erase`] is requested
+    /// - [`Store`] if a database operation fails
+    ///
+    /// [`InvalidDecisionTime`]: DeletionError::InvalidDecisionTime
+    /// [`IncomingLinksExist`]: DeletionError::IncomingLinksExist
+    /// [`Store`]: DeletionError::Store
+    /// [`Filter::for_entity_by_entity_id`]: crate::filter::Filter::for_entity_by_entity_id
+    fn delete_entities(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: DeleteEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
         &self,

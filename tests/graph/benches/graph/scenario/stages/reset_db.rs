@@ -81,7 +81,7 @@ impl ResetDbStage {
 
             if self.entities {
                 store
-                    .delete_entities()
+                    .delete_all_entities()
                     .await
                     .change_context(ResetDbError::DeleteEntities)?;
                 reset_db_result.deleted_entities = true;
