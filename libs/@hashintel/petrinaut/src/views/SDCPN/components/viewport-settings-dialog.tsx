@@ -4,6 +4,7 @@ import { use } from "react";
 import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
+import type { ArcRendering } from "../../../state/user-settings-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 
 const rowStyle = css({
@@ -88,6 +89,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setKeepPanelsMounted,
     compactNodes,
     setCompactNodes,
+    arcRendering,
+    setArcRendering,
   } = use(UserSettingsContext);
 
   return (
@@ -120,10 +123,15 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             <div className={rowStyle}>
               <span className={labelStyle}>Arcs rendering</span>
               <div className={selectWrapperStyle}>
-                <Select defaultValue="square">
-                  <option value="square">Square</option>
+                <Select
+                  value={arcRendering}
+                  onChange={(event) =>
+                    setArcRendering(event.target.value as ArcRendering)
+                  }
+                >
+                  <option value="smoothstep">Square</option>
                   <option value="bezier">Bezier</option>
-                  <option value="modern">Modern</option>
+                  <option value="custom">Custom</option>
                 </Select>
               </div>
             </div>

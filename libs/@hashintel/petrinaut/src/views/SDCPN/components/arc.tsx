@@ -1,8 +1,15 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { type CSSProperties, use, useEffect, useRef } from "react";
-import { BaseEdge, type EdgeProps, type Position } from "reactflow";
+import {
+  BaseEdge,
+  type EdgeProps,
+  getBezierPath,
+  getSmoothStepPath,
+  type Position,
+} from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
+import { UserSettingsContext } from "../../../state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { ArcData } from "../reactflow-types";
 
@@ -121,7 +128,7 @@ const weightTextStyle = css({
  * Control point offsets are proportional to the horizontal distance
  * so arcs stay tight for nearby nodes and sweep wide for distant ones.
  */
-function getArcBezierPath({
+function getCustomArcPath({
   sourceX,
   sourceY,
   sourcePosition: _sourcePosition,
@@ -170,6 +177,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
 }) => {
   // Derive selected state from EditorContext
   const { selectedItemIds } = use(EditorContext);
+  const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
   const selected = selectedItemIds.has(id);
@@ -183,14 +191,39 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  const [arcPath, labelX, labelY] = getArcBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  // Compute path based on arc rendering setting
+  let arcPath: string;
+  let labelX: number;
+  let labelY: number;
+
+  if (arcRendering === "smoothstep") {
+    [arcPath, labelX, labelY] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  } else if (arcRendering === "bezier") {
+    [arcPath, labelX, labelY] = getBezierPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  } else {
+    [arcPath, labelX, labelY] = getCustomArcPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  }
 
   return (
     <>

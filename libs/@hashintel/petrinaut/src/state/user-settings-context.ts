@@ -7,10 +7,13 @@ import {
 } from "../constants/ui";
 import type { BottomPanelTab, TimelineChartType } from "./editor-context";
 
+export type ArcRendering = "smoothstep" | "bezier" | "custom";
+
 export type UserSettings = {
   showAnimations: boolean;
   keepPanelsMounted: boolean;
   compactNodes: boolean;
+  arcRendering: ArcRendering;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
   propertiesPanelWidth: number;
@@ -24,6 +27,7 @@ export type UserSettingsActions = {
   setShowAnimations: (value: boolean) => void;
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
+  setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
   setPropertiesPanelWidth: (value: number) => void;
@@ -39,6 +43,7 @@ export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
   compactNodes: true,
+  arcRendering: "custom",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
   propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -53,6 +58,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
+  setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
