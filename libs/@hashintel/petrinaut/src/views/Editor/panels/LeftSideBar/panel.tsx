@@ -54,6 +54,10 @@ export const LeftSideBar: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
+  if (!isOpen && !isPanelAnimating) {
+    return null;
+  }
+
   return (
     <GlassPanel
       className={cx(
