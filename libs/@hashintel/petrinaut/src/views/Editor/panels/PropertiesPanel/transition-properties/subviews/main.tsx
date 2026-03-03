@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
+import { ArcItem, ArcList } from "../../../../../../components/arc-item";
 import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -9,27 +10,29 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../context";
-import { ArcItem } from "../sortable-arc-item";
 
 const emptyArcMessageStyle = css({
   fontSize: "[12px]",
   color: "[#999]",
 });
 
-const arcListContainerStyle = css({
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[6px]",
-  overflow: "hidden",
-});
-
 const TransitionMainContent: React.FC = () => {
   const {
     transition,
     places,
+    types,
     isReadOnly,
     updateTransition,
     onArcWeightUpdate,
   } = useTransitionPropertiesContext();
+
+  const getPlaceColor = (placeId: string): string | undefined => {
+    const place = places.find((pl) => pl.id === placeId);
+    if (!place?.colorId) {
+      return undefined;
+    }
+    return types.find((tp) => tp.id === place.colorId)?.displayColor;
+  };
 
   const handleDeleteInputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
@@ -74,7 +77,7 @@ const TransitionMainContent: React.FC = () => {
             Connect inputs to the transition's left side.
           </div>
         ) : (
-          <div className={arcListContainerStyle}>
+          <ArcList>
             {transition.inputArcs.map((arc) => {
               const place = places.find(
                 (placeItem) => placeItem.id === arc.placeId,
@@ -84,8 +87,8 @@ const TransitionMainContent: React.FC = () => {
                   key={arc.placeId}
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
+                  color={getPlaceColor(arc.placeId)}
                   disabled={isReadOnly}
-                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                   onWeightChange={(weight) => {
                     onArcWeightUpdate(
                       transition.id,
@@ -98,7 +101,7 @@ const TransitionMainContent: React.FC = () => {
                 />
               );
             })}
-          </div>
+          </ArcList>
         )}
       </Section>
 
@@ -108,7 +111,7 @@ const TransitionMainContent: React.FC = () => {
             Connect outputs to the transition's right side.
           </div>
         ) : (
-          <div className={arcListContainerStyle}>
+          <ArcList>
             {transition.outputArcs.map((arc) => {
               const place = places.find(
                 (placeItem) => placeItem.id === arc.placeId,
@@ -118,8 +121,8 @@ const TransitionMainContent: React.FC = () => {
                   key={arc.placeId}
                   placeName={place?.name ?? arc.placeId}
                   weight={arc.weight}
+                  color={getPlaceColor(arc.placeId)}
                   disabled={isReadOnly}
-                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                   onWeightChange={(weight) => {
                     onArcWeightUpdate(
                       transition.id,
@@ -132,7 +135,7 @@ const TransitionMainContent: React.FC = () => {
                 />
               );
             })}
-          </div>
+          </ArcList>
         )}
       </Section>
     </SectionList>
