@@ -149,7 +149,7 @@ function getCustomArcPath({
   // Control point offset scales with horizontal distance, with a minimum
   const offset = Math.max(Math.abs(dx) * 0.7, 80);
 
-  const cp1x = sourceX + offset;
+  const cp1x = sourceX + offset / 2;
   const cp1y = sourceY;
   const cp2x = targetX - offset;
   const cp2y = targetY;
