@@ -127,7 +127,8 @@ impl TraversalPathBitSet {
     }
 
     /// Returns `true` if `path` is present in the bitset.
-    pub fn contains(&self, path: TraversalPath) -> bool {
+    #[must_use]
+    pub const fn contains(self, path: TraversalPath) -> bool {
         match (self, path) {
             (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.contains(path),
         }
