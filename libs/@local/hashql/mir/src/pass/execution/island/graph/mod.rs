@@ -239,7 +239,7 @@ impl<A: Allocator> IslandGraph<A> {
     }
 
     /// Resolves all island requirements and inserts data islands where needed.
-    pub(crate) fn resolve<S>(&mut self, scratch: S)
+    fn resolve<S>(&mut self, scratch: S)
     where
         S: Allocator + Clone,
     {
@@ -427,10 +427,9 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
             let origin = requirement.origin();
             debug_assert!(!origin.is_empty());
 
-            // If this island runs on an origin backend for the path, it self-provides.
+            // If this island runs on an origin backend for the path, the data is
+            // locally available and doesn't need to be provided to downstream consumers.
             if origin.contains(island_target) {
-                self.merged_provides[island_id].insert(requirement);
-                self.graph[island_id].provides.insert(requirement);
                 continue;
             }
 
@@ -476,8 +475,7 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
 
     /// Returns an existing data island for the given origin backend, or creates one.
     fn get_or_create_data_island(&mut self, origin: TargetBitSet) -> IslandId {
-        // Check if *any* of the providers already have an initialised provider, if that's the case
-        // we create our own.
+        // Reuse an existing data island if any origin target already has one.
         if let Some(provider) = origin.iter().find_map(|target| self.data_providers[target]) {
             return provider;
         }
@@ -485,10 +483,6 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
         // `TargetId` is ordered by backend priority, so the first set bit gives us the best target
         // (note that interpreter is technically first, but never a target for data).
         let target = origin.first_set().unwrap_or_else(|| unreachable!());
-
-        if let Some(provider) = self.data_providers[target] {
-            return provider;
-        }
 
         let node = self.graph.inner.add_node(IslandNode {
             kind: IslandKind::Data,

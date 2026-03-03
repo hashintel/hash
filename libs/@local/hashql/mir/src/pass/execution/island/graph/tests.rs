@@ -35,9 +35,7 @@ pub(crate) fn make_targets(assignments: &[TargetId]) -> BasicBlockVec<TargetId, 
 pub(crate) fn build_graph(body: &Body<'_>, targets: &[TargetId]) -> IslandGraph<Global> {
     let target_vec = make_targets(targets);
     let islands = IslandPlacement::new().run(body, VertexType::Entity, &target_vec, Global);
-    let mut graph = IslandGraph::build_in(body, VertexType::Entity, islands, Global, Global);
-    graph.resolve(Global);
-    graph
+    IslandGraph::new_in(body, VertexType::Entity, islands, Global, Global)
 }
 
 fn find_island(graph: &IslandGraph<Global>, target: TargetId) -> IslandId {
@@ -96,12 +94,13 @@ fn single_island_no_fetch() {
     assert_matches!(island.kind(), IslandKind::Exec(_));
     assert_eq!(island.target(), TargetId::Postgres);
 
-    let provides = island.provides();
+    // Properties are locally available on Postgres (origin), so provides is empty.
     assert!(
-        provides
+        island
+            .provides()
             .as_entity()
             .expect("entity vertex")
-            .contains(EntityPath::Properties),
+            .is_empty()
     );
 }
 
@@ -138,14 +137,11 @@ fn data_edge_from_predecessor() {
     assert_matches!(graph[postgres].kind(), IslandKind::Exec(_));
     assert_matches!(graph[interpreter].kind(), IslandKind::Exec(_));
 
-    // Postgres self-provides Properties (it's the origin).
-    assert!(
-        graph[postgres]
-            .provides()
-            .as_entity()
-            .expect("entity vertex")
-            .contains(EntityPath::Properties)
-    );
+    // Postgres self-provides exactly Properties (it's the origin).
+    let provides = graph[postgres].provides();
+    let provides = provides.as_entity().expect("entity vertex");
+    assert_eq!(provides.len(), 1);
+    assert!(provides.contains(EntityPath::Properties));
 
     // ControlFlow edge: Postgres → Interpreter (CFG successor).
     assert!(has_edge(
@@ -195,17 +191,14 @@ fn fetch_island_for_unsatisfied_requirement() {
     assert_matches!(graph[exec].kind(), IslandKind::Exec(_));
     assert_matches!(graph[data].kind(), IslandKind::Data);
 
-    // Data island provides Vectors.
-    assert!(
-        graph[data]
-            .provides()
-            .as_entity()
-            .expect("entity vertex")
-            .contains(EntityPath::Vectors)
-    );
-
     // DataFlow edge: Embedding data island → Interpreter exec island.
     assert!(has_edge(&graph, data, exec, IslandEdge::DataFlow));
+
+    // Data island provides exactly Vectors.
+    let provides = graph[data].provides();
+    let provides = provides.as_entity().expect("entity vertex");
+    assert_eq!(provides.len(), 1);
+    assert!(provides.contains(EntityPath::Vectors));
 }
 
 /// Diamond CFG: Postgres branches to Interpreter and Embedding, both merge into a
@@ -259,14 +252,11 @@ fn diamond_branch_needs_fetch() {
     let data = find_data_island(&graph, TargetId::Embedding);
     assert_matches!(graph[data].kind(), IslandKind::Data);
 
-    // The data island provides Vectors.
-    assert!(
-        graph[data]
-            .provides()
-            .as_entity()
-            .expect("entity vertex")
-            .contains(EntityPath::Vectors)
-    );
+    // The data island provides exactly Vectors.
+    let provides = graph[data].provides();
+    let provides = provides.as_entity().expect("entity vertex");
+    assert_eq!(provides.len(), 1);
+    assert!(provides.contains(EntityPath::Vectors));
 
     // bb3 (second Postgres island) consumes Vectors from the data island.
     // Find both Postgres exec islands: bb0 is the entry, bb3 is the merge point.
@@ -362,21 +352,170 @@ fn inherits_edge_same_target_dominator() {
         (postgres_islands[1], postgres_islands[0])
     };
 
-    // The dominator self-provides Properties (origin backend, first to resolve it).
+    // Both islands access Properties locally (origin backend), so neither needs to
+    // provide it to anyone. provides is empty on both.
     assert!(
         graph[dominator]
             .provides()
             .as_entity()
             .expect("entity vertex")
-            .contains(EntityPath::Properties),
+            .is_empty()
     );
-
-    // The child also self-provides Properties (it's on the origin backend and requires it).
     assert!(
         graph[child]
             .provides()
             .as_entity()
             .expect("entity vertex")
-            .contains(EntityPath::Properties),
+            .is_empty()
     );
+}
+
+/// Two Interpreter islands both need Vectors (origin: Embedding). Only one data island
+/// should be created, and both consumers get a `DataFlow` edge from it.
+#[test]
+fn data_island_reused_across_consumers() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj enc = vertex.encodings: ?,
+              vecs = enc.vectors: ?;
+
+        bb0() {
+            val = load vecs;
+            goto bb1();
+        },
+        bb1() {
+            goto bb2();
+        },
+        bb2() {
+            val = load vecs;
+            return val;
+        }
+    });
+
+    // bb0=Interpreter, bb1=Postgres (separates the two Interpreter islands), bb2=Interpreter.
+    let graph = build_graph(
+        &body,
+        &[
+            TargetId::Interpreter,
+            TargetId::Postgres,
+            TargetId::Interpreter,
+        ],
+    );
+
+    // Two Interpreter exec islands + one Postgres exec island + exactly one data island.
+    let data_islands: Vec<_> = (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .filter(|&island_id| matches!(graph[island_id].kind(), IslandKind::Data))
+        .collect();
+    assert_eq!(data_islands.len(), 1);
+
+    let data = data_islands[0];
+    assert_eq!(graph[data].target(), TargetId::Embedding);
+
+    // Both Interpreter exec islands get a DataFlow edge from the single data island.
+    let interpreter_islands: Vec<_> = (0..graph.node_count())
+        .map(IslandId::from_usize)
+        .filter(|&island_id| {
+            matches!(graph[island_id].kind(), IslandKind::Exec(_))
+                && graph[island_id].target() == TargetId::Interpreter
+        })
+        .collect();
+    assert_eq!(interpreter_islands.len(), 2);
+
+    for &exec in &interpreter_islands {
+        assert!(
+            has_edge(&graph, data, exec, IslandEdge::DataFlow),
+            "expected DataFlow edge from data island to exec island {exec:?}",
+        );
+    }
+}
+
+/// Entry island on a non-origin backend: the dominator walk reaches the root without
+/// finding an origin, so a data island is created.
+#[test]
+fn entry_island_needs_fetch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj props = vertex.properties: ?;
+
+        bb0() {
+            val = load props;
+            return val;
+        }
+    });
+
+    // Entry island is Interpreter, but Properties origin is Postgres.
+    // Dominator walk from the entry hits the root (itself), so no dominator found.
+    let graph = build_graph(&body, &[TargetId::Interpreter]);
+
+    assert_eq!(graph.node_count(), 2);
+
+    let exec = find_island(&graph, TargetId::Interpreter);
+    let data = find_data_island(&graph, TargetId::Postgres);
+
+    assert!(has_edge(&graph, data, exec, IslandEdge::DataFlow));
+
+    let provides = graph[data].provides();
+    let provides = provides.as_entity().expect("entity vertex");
+    assert_eq!(provides.len(), 1);
+    assert!(provides.contains(EntityPath::Properties));
+}
+
+/// Control flow edge dedup: two blocks in the same island both have a successor in
+/// another island, but only one `ControlFlow` edge should be created.
+#[test]
+fn control_flow_edge_dedup() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             val: ?, cond: Bool;
+
+        bb0() {
+            cond = load true;
+            goto bb1();
+        },
+        bb1() {
+            if cond then bb2() else bb2();
+        },
+        bb2() {
+            val = load true;
+            return val;
+        }
+    });
+
+    // bb0 and bb1 are both Interpreter (same island). bb2 is Postgres.
+    // bb1→bb2 appears twice (both arms of the branch), but the BitMatrix dedup
+    // ensures only one ControlFlow edge from the Interpreter island to Postgres.
+    let graph = build_graph(
+        &body,
+        &[
+            TargetId::Interpreter,
+            TargetId::Interpreter,
+            TargetId::Postgres,
+        ],
+    );
+
+    assert_eq!(graph.node_count(), 2);
+    assert_eq!(graph.edge_count(), 1);
+
+    let interpreter = find_island(&graph, TargetId::Interpreter);
+    let postgres = find_island(&graph, TargetId::Postgres);
+
+    assert!(has_edge(
+        &graph,
+        interpreter,
+        postgres,
+        IslandEdge::ControlFlow
+    ));
 }
