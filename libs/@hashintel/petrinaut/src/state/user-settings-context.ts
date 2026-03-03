@@ -10,6 +10,7 @@ import type { BottomPanelTab, TimelineChartType } from "./editor-context";
 export type UserSettings = {
   showAnimations: boolean;
   keepPanelsMounted: boolean;
+  compactNodes: boolean;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
   propertiesPanelWidth: number;
@@ -22,6 +23,7 @@ export type UserSettings = {
 export type UserSettingsActions = {
   setShowAnimations: (value: boolean) => void;
   setKeepPanelsMounted: (value: boolean) => void;
+  setCompactNodes: (value: boolean) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
   setPropertiesPanelWidth: (value: number) => void;
@@ -36,6 +38,7 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
+  compactNodes: true,
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
   propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -49,6 +52,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   ...defaultUserSettings,
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
+  setCompactNodes: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},

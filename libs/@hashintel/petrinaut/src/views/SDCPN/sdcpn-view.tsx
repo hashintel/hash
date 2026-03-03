@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background } from "reactflow";
 import { v4 as generateUuid } from "uuid";
@@ -13,7 +13,10 @@ import {
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
+import { UserSettingsContext } from "../../state/user-settings-context";
 import { Arc } from "./components/arc";
+import { ClassicPlaceNode } from "./components/classic-place-node";
+import { ClassicTransitionNode } from "./components/classic-transition-node";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
@@ -28,9 +31,14 @@ import type {
 
 const SNAP_GRID_SIZE = 15;
 
-const REACTFLOW_NODE_TYPES = {
+const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
+};
+
+const CLASSIC_NODE_TYPES = {
+  place: ClassicPlaceNode,
+  transition: ClassicTransitionNode,
 };
 
 const REACTFLOW_EDGE_TYPES = {
@@ -54,6 +62,13 @@ export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
+
+  const { compactNodes } = use(UserSettingsContext);
+  const nodeTypes = useMemo(
+    () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
+    [compactNodes],
+  );
+
   // SDCPN store
   const {
     petriNetId,
@@ -305,7 +320,7 @@ export const SDCPNView: React.FC = () => {
       <ReactFlow
         nodes={nodes}
         edges={arcs}
-        nodeTypes={REACTFLOW_NODE_TYPES}
+        nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
