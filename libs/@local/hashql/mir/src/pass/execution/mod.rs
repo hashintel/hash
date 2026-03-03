@@ -90,17 +90,6 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             &self.scratch,
         );
 
-        let block_costs = BasicBlockCostAnalysis {
-            vertex,
-            assignments: &assignments,
-            costs: &statement_costs,
-        }
-        .analyze_in(
-            &TransferCostConfig::new(InformationRange::full()),
-            &body.basic_blocks,
-            &self.scratch,
-        );
-
         let terminators = TerminatorPlacement::new_in(
             TransferCostConfig::new(InformationRange::full()),
             &self.scratch,
@@ -118,6 +107,17 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             terminators: &mut terminator_costs,
         }
         .run_in(body, &self.scratch);
+
+        let block_costs = BasicBlockCostAnalysis {
+            vertex,
+            assignments: &assignments,
+            costs: &statement_costs,
+        }
+        .analyze_in(
+            &TransferCostConfig::new(InformationRange::full()),
+            &body.basic_blocks,
+            &self.scratch,
+        );
 
         let mut solver = PlacementSolverContext {
             blocks: &block_costs,
