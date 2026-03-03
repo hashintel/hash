@@ -36,23 +36,19 @@ fn data_island_before_consumer() {
     let schedule = graph.schedule();
     let entries = schedule.entries();
 
-    assert!(entries.len() >= 2);
+    assert_eq!(entries.len(), 2);
 
     let exec_entry = entries
         .iter()
-        .find(|entry| matches!(graph[entry.island].kind(), IslandKind::Exec(_)));
+        .find(|entry| matches!(graph[entry.island].kind(), IslandKind::Exec(_)))
+        .expect("should have an exec island");
     let data_entry = entries
         .iter()
-        .find(|entry| matches!(graph[entry.island].kind(), IslandKind::Data));
+        .find(|entry| matches!(graph[entry.island].kind(), IslandKind::Data))
+        .expect("should have a data island");
 
-    if let (Some(exec_entry), Some(data_entry)) = (exec_entry, data_entry) {
-        assert!(
-            exec_entry.level > data_entry.level,
-            "exec island (level {}) should be after data island (level {})",
-            exec_entry.level,
-            data_entry.level
-        );
-    }
+    assert_eq!(data_entry.level, 0);
+    assert_eq!(exec_entry.level, 1);
 }
 
 /// Every island in the graph appears exactly once in the schedule.
