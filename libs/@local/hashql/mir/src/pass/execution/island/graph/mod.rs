@@ -429,10 +429,8 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
 
             // If this island runs on an origin backend for the path, it self-provides.
             if origin.contains(island_target) {
-                if !self.merged_provides[island_id].contains(requirement) {
-                    self.merged_provides[island_id].insert(requirement);
-                    self.graph[island_id].provides.insert(requirement);
-                }
+                self.merged_provides[island_id].insert(requirement);
+                self.graph[island_id].provides.insert(requirement);
                 continue;
             }
 
