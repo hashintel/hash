@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 import {
   BaseEdge,
+  EdgeLabelRenderer,
   type EdgeProps,
   getBezierPath,
   getSmoothStepPath,
@@ -112,18 +113,30 @@ const selectionIndicatorStyle: CSSProperties = {
   strokeWidth: 8,
 };
 
-const symbolTextStyle = css({
-  fontSize: "[13px]",
-  fontWeight: "[400]",
-  fill: "[#999]",
+const weightLabelStyle = css({
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  gap: "[1px]",
+  padding: "[2px 4px]",
+  background: "white",
+  border: "[1px solid #ddd]",
+  borderRadius: "[3px]",
   pointerEvents: "none",
+  lineHeight: "[1]",
+  whiteSpace: "nowrap",
 });
 
-const weightTextStyle = css({
+const symbolSpanStyle = css({
+  fontSize: "[13px]",
+  fontWeight: "[400]",
+  color: "[#999]",
+});
+
+const weightSpanStyle = css({
   fontSize: "[14px]",
   fontWeight: "[600]",
-  fill: "[#333]",
-  pointerEvents: "none",
+  color: "[#333]",
 });
 
 /**
@@ -228,6 +241,8 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
     });
   }
 
+  const showWeightLabel = data !== undefined && data.weight > 1;
+
   return (
     <>
       {/* Selection indicator: thick orange background stroke */}
@@ -252,45 +267,19 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
         style={{ pointerEvents: "none" }}
       />
 
-      {/* Labels container */}
-      <g transform={`translate(${labelX}, ${labelY})`}>
-        {/* Weight label - always show for weights > 1 */}
-        {data && data.weight > 1 ? (
-          <g>
-            {/* White background for readability */}
-            <rect
-              x="-16"
-              y="-10"
-              width="32"
-              height="20"
-              fill="white"
-              stroke="#ddd"
-              strokeWidth="1"
-              rx="3"
-            />
-            {/* Multiplication symbol (grayed out) */}
-            <text
-              x="-6"
-              y="0"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className={symbolTextStyle}
-            >
-              ×
-            </text>
-            {/* Weight number */}
-            <text
-              x="6"
-              y="0"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className={weightTextStyle}
-            >
-              {data.weight}
-            </text>
-          </g>
-        ) : null}
-      </g>
+      {showWeightLabel ? (
+        <EdgeLabelRenderer>
+          <div
+            className={weightLabelStyle}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            <span className={symbolSpanStyle}>×</span>
+            <span className={weightSpanStyle}>{data.weight}</span>
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
     </>
   );
 };
