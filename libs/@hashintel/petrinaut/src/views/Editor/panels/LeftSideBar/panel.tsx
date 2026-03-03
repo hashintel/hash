@@ -9,6 +9,7 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
+import { UserSettingsContext } from "../../../../state/user-settings-context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -54,7 +55,9 @@ export const LeftSideBar: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
-  if (!isOpen && !isPanelAnimating) {
+  const { keepPanelsMounted } = use(UserSettingsContext);
+
+  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
   }
 

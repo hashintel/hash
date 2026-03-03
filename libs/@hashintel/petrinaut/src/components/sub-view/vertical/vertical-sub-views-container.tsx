@@ -1,8 +1,9 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, use, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
+import { UserSettingsContext } from "../../../state/user-settings-context";
 import { InfoIconTooltip } from "../../tooltip";
 import type { SubView } from "../types";
 
@@ -308,11 +309,15 @@ export const VerticalSubViewsContainer: React.FC<
     () => Object.fromEntries(subViews.map((sv) => [sv.id, !defaultExpanded])),
   );
 
+  const { showAnimations } = use(UserSettingsContext);
+
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
 
   const toggleSection = (id: string) => {
-    triggerTransition();
+    if (showAnimations) {
+      triggerTransition();
+    }
     setCollapsedState((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 

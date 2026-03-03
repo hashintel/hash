@@ -1,8 +1,9 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
+import { type ReactNode, use } from "react";
 import { FaChevronUp } from "react-icons/fa6";
 
+import { UserSettingsContext } from "../state/user-settings-context";
 import { InfoIconTooltip } from "./tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
@@ -143,6 +144,8 @@ export const Section = ({
     </div>
   );
 
+  const { showAnimations } = use(UserSettingsContext);
+
   if (collapsible) {
     return (
       <Collapsible.Root
@@ -155,7 +158,9 @@ export const Section = ({
             <FaChevronUp size={10} />
           </Collapsible.Trigger>
         </div>
-        <Collapsible.Content className={collapsibleContentStyle}>
+        <Collapsible.Content
+          className={showAnimations ? collapsibleContentStyle : undefined}
+        >
           <div className={collapsibleContentInnerStyle}>{children}</div>
         </Collapsible.Content>
       </Collapsible.Root>

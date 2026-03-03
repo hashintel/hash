@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import {
   type DraggingStateByNodeId,
@@ -8,16 +8,33 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
+import { UserSettingsContext } from "./user-settings-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
-  const [state, setState] = useState<EditorState>(initialEditorState);
+  const userSettings = use(UserSettingsContext);
+
+  const [state, setState] = useState<EditorState>(() => ({
+    ...initialEditorState,
+    isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
+    leftSidebarWidth: userSettings.leftSidebarWidth,
+    propertiesPanelWidth: userSettings.propertiesPanelWidth,
+    isBottomPanelOpen: userSettings.isBottomPanelOpen,
+    bottomPanelHeight: userSettings.bottomPanelHeight,
+    activeBottomPanelTab: userSettings.activeBottomPanelTab,
+    timelineChartType: userSettings.timelineChartType,
+  }));
+
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
 
   const triggerPanelAnimation = () => {
+    if (!userSettings.showAnimations) {
+      return;
+    }
     clearTimeout(animationTimerRef.current);
     setState((prev) => ({ ...prev, isPanelAnimating: true }));
     // This timeout is not perfectly precise, but good enough for CSS transitions
@@ -97,6 +114,16 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     triggerPanelAnimation,
     __reinitialize: () => setState(initialEditorState),
   };
+
+  useSyncEditorToSettings({
+    isLeftSidebarOpen: state.isLeftSidebarOpen,
+    leftSidebarWidth: state.leftSidebarWidth,
+    propertiesPanelWidth: state.propertiesPanelWidth,
+    isBottomPanelOpen: state.isBottomPanelOpen,
+    bottomPanelHeight: state.bottomPanelHeight,
+    activeBottomPanelTab: state.activeBottomPanelTab,
+    timelineChartType: state.timelineChartType,
+  });
 
   const contextValue: EditorContextValue = {
     ...state,
