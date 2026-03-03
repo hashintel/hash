@@ -86,6 +86,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setShowAnimations,
     keepPanelsMounted,
     setKeepPanelsMounted,
+    compactNodes,
+    setCompactNodes,
   } = use(UserSettingsContext);
 
   return (
@@ -109,8 +111,11 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               />
             </div>
             <div className={rowStyle}>
-              <span className={labelStyle}>Modern nodes look</span>
-              <Switch />
+              <span className={labelStyle}>Compact nodes</span>
+              <Switch
+                checked={compactNodes}
+                onCheckedChange={setCompactNodes}
+              />
             </div>
             <div className={rowStyle}>
               <span className={labelStyle}>Arcs rendering</span>
