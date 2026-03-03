@@ -15,7 +15,6 @@ const backdropStyle = css({
   bottom: "[0]",
   left: "[0]",
   backgroundColor: "[rgba(0, 0, 0, 0.4)]",
-  backdropFilter: "[blur(4px)]",
   zIndex: "[1100]",
   "&[data-state=open]": {
     animation: "dialogBackdropIn 150ms ease-out",
