@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   type DraggingStateByNodeId,
@@ -13,31 +13,51 @@ export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [state, setState] = useState<EditorState>(initialEditorState);
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  const triggerPanelAnimation = () => {
+    clearTimeout(animationTimerRef.current);
+    setState((prev) => ({ ...prev, isPanelAnimating: true }));
+    // This timeout is not perfectly precise, but good enough for CSS transitions
+    animationTimerRef.current = setTimeout(() => {
+      setState((prev) => ({ ...prev, isPanelAnimating: false }));
+    }, 500);
+  };
 
   const actions: EditorActions = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
       setState((prev) => ({ ...prev, editionMode: mode })),
-    setLeftSidebarOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen })),
+    setLeftSidebarOpen: (isOpen) => {
+      triggerPanelAnimation();
+      setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen }));
+    },
     setLeftSidebarWidth: (width) =>
       setState((prev) => ({ ...prev, leftSidebarWidth: width })),
     setPropertiesPanelWidth: (width) =>
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
-    setBottomPanelOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isBottomPanelOpen: isOpen })),
-    toggleBottomPanel: () =>
+    setBottomPanelOpen: (isOpen) => {
+      triggerPanelAnimation();
+      setState((prev) => ({ ...prev, isBottomPanelOpen: isOpen }));
+    },
+    toggleBottomPanel: () => {
+      triggerPanelAnimation();
       setState((prev) => ({
         ...prev,
         isBottomPanelOpen: !prev.isBottomPanelOpen,
-      })),
+      }));
+    },
     setBottomPanelHeight: (height) =>
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelectedResourceId: (id) =>
-      setState((prev) => ({ ...prev, selectedResourceId: id })),
+    setSelectedResourceId: (id) => {
+      triggerPanelAnimation();
+      setState((prev) => ({ ...prev, selectedResourceId: id }));
+    },
     setSelectedItemIds: (ids) =>
       setState((prev) => ({ ...prev, selectedItemIds: ids })),
     addSelectedItemId: (id) =>
@@ -63,15 +83,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       })),
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
-    collapseAllPanels: () =>
+    collapseAllPanels: () => {
+      triggerPanelAnimation();
       setState((prev) => ({
         ...prev,
         isLeftSidebarOpen: false,
         isBottomPanelOpen: false,
         selectedResourceId: null,
-      })),
+      }));
+    },
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
+    triggerPanelAnimation,
     __reinitialize: () => setState(initialEditorState),
   };
 

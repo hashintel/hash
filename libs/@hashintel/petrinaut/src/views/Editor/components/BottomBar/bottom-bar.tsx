@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
@@ -43,6 +43,17 @@ const bottomBarPositionStyle = css({
   gap: "[20px]",
 });
 
+const animatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition: "[bottom 150ms ease-in-out]",
+      },
+    },
+  },
+});
+
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
@@ -62,6 +73,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen,
     setActiveBottomPanelTab,
     bottomPanelHeight,
+    isPanelAnimating,
   } = use(EditorContext);
 
   const { totalDiagnosticsCount } = use(LanguageClientContext);
@@ -95,7 +107,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     : 24;
 
   return (
-    <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
+    <div
+      className={`${bottomBarPositionStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
+      style={{ bottom: bottomOffset }}
+    >
       {/* Edition tools segment */}
       <refractive.div
         className={glassPanelStyle}
