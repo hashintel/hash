@@ -202,10 +202,7 @@ export const EditorView = ({
 
   return (
     <PortalContainerContext value={portalContainerRef}>
-      <Stack
-        ref={portalContainerRef}
-        className={cx(editorRootStyle, "petrinaut-root")}
-      >
+      <Stack className={cx(editorRootStyle, "petrinaut-root")}>
         <div ref={portalContainerRef} className={portalContainerStyle} />
 
         {/* Top Bar - always visible */}
