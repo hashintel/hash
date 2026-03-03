@@ -36,7 +36,13 @@ use self::{
 };
 pub use self::{
     cost::{ApproxCost, Cost},
-    island::{Island, IslandId, IslandVec},
+    island::{
+        Island, IslandId, IslandVec,
+        graph::{
+            FetchIsland, IslandEdge, IslandEdgeKind, IslandGraph, IslandNode, IslandNodeId,
+            ScheduledIsland,
+        },
+    },
     placement::error::PlacementDiagnosticCategory,
     target::TargetId,
     vertex::VertexType,

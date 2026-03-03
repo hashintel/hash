@@ -124,6 +124,12 @@ impl TraversalPathBitSet {
         }
     }
 
+    pub fn contains(&self, path: TraversalPath) -> bool {
+        match (self, path) {
+            (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.contains(path),
+        }
+    }
+
     /// Inserts all possible paths into the set.
     #[inline]
     pub const fn insert_all(&mut self) {

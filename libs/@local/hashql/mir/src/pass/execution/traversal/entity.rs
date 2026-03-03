@@ -464,6 +464,10 @@ impl EntityPathBitSet {
         }
     }
 
+    pub(crate) fn contains(&self, path: EntityPath) -> bool {
+        self.0.contains(path)
+    }
+
     fn normalize(&mut self) {
         for path in &self.0 {
             for &ancestor in path.ancestors() {
