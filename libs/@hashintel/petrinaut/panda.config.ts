@@ -38,12 +38,12 @@ export default defineConfig({
           to: { opacity: "0", transform: "translateY(-10px)" },
         },
         expand: {
-          from: { height: "0" },
-          to: { height: "var(--height)" },
+          from: { height: "0", opacity: "0" },
+          to: { height: "var(--height)", opacity: "1" },
         },
         collapse: {
-          from: { height: "var(--height)" },
-          to: { height: "0" },
+          from: { height: "var(--height)", opacity: "1" },
+          to: { height: "0", opacity: "0" },
         },
       },
     },
