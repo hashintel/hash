@@ -1188,8 +1188,13 @@ export class HashEntity<
       if (isUserEntity) {
         for (const patch of propertyPatches) {
           const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (targetBaseUrl === undefined) {
+            throw new Error(
+              "Cannot replace the entire property object on a user entity",
+            );
+          }
+
           if (
-            targetBaseUrl !== undefined &&
             !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
             !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
           ) {
@@ -1375,8 +1380,12 @@ export class HashLinkEntity<
       if (isUserEntity) {
         for (const patch of propertyPatches) {
           const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (targetBaseUrl === undefined) {
+            throw new Error(
+              "Cannot replace the entire property object on a user entity",
+            );
+          }
           if (
-            targetBaseUrl !== undefined &&
             !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
             !additionalAllowedPropertyBaseUrls?.has(targetBaseUrl)
           ) {
