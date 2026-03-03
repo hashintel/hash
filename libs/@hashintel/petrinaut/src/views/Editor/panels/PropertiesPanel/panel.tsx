@@ -10,6 +10,7 @@ import {
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { UserSettingsContext } from "../../../../state/user-settings-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
@@ -185,7 +186,9 @@ export const PropertiesPanel: React.FC = () => {
   // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
   const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
-  if (!isOpen && !isPanelAnimating) {
+  const { keepPanelsMounted } = use(UserSettingsContext);
+
+  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
   }
 

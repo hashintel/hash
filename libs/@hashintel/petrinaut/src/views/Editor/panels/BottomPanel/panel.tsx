@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { use, useCallback, useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -20,6 +20,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../state/editor-context";
+import { UserSettingsContext } from "../../../../state/user-settings-context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -145,13 +146,9 @@ export const BottomPanel: React.FC = () => {
     }
   }, [isSimulationActive, setBottomPanelOpen, setActiveTab, activeTab]);
 
-  // Handler for tab change that casts string to BottomPanelTab
-  const handleTabChange = useCallback(
-    (tabId: string) => {
-      setActiveTab(tabId as BottomPanelTab);
-    },
-    [setActiveTab],
-  );
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId as BottomPanelTab);
+  };
 
   // Calculate left position based on left sidebar state
   // Add sidebar padding (12px each side) when sidebar is open
@@ -159,7 +156,9 @@ export const BottomPanel: React.FC = () => {
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 
-  if (!isOpen && !isPanelAnimating) {
+  const { keepPanelsMounted } = use(UserSettingsContext);
+
+  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
   }
 
