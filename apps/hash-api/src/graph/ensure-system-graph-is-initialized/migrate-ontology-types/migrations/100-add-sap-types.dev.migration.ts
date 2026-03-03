@@ -936,7 +936,7 @@ const migrate: MigrationFunction = async ({
         description: "Fiscal year in which the material document was posted",
         possibleValues: [
           {
-            dataTypeId: systemDataTypes.year.dataTypeId,
+            dataTypeId: systemDataTypes.calendarYear.dataTypeId,
           },
         ],
       },
@@ -1482,7 +1482,7 @@ const migrate: MigrationFunction = async ({
         description: "Fiscal year for the current valuation data",
         possibleValues: [
           {
-            dataTypeId: systemDataTypes.year.dataTypeId,
+            dataTypeId: systemDataTypes.calendarYear.dataTypeId,
           },
         ],
       },
