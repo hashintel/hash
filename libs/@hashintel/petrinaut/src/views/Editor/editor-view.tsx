@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { use, useRef } from "react";
 
 import { Box } from "../../components/box";
@@ -10,7 +10,6 @@ import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-// import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
@@ -21,19 +20,31 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 
-const fullHeightStyle = css({
-  height: "[100%]",
-});
-
 const rowContainerStyle = css({
-  height: "[100%]",
+  height: "full",
   userSelect: "none",
 });
 
 const canvasContainerStyle = css({
-  width: "[100%]",
+  width: "full",
   position: "relative",
   flexGrow: 1,
+});
+
+const editorRootStyle = css({
+  position: "relative",
+  height: "full",
+  backgroundColor: "neutral.s25",
+});
+
+const portalContainerStyle = css({
+  position: "absolute",
+  top: "0",
+  left: "0",
+  width: "full",
+  height: "full",
+  zIndex: "99999",
+  pointerEvents: "none",
 });
 
 /**
@@ -193,8 +204,10 @@ export const EditorView = ({
     <PortalContainerContext value={portalContainerRef}>
       <Stack
         ref={portalContainerRef}
-        className={`${fullHeightStyle} petrinaut-root`}
+        className={cx(editorRootStyle, "petrinaut-root")}
       >
+        <div ref={portalContainerRef} className={portalContainerStyle} />
+
         {/* Top Bar - always visible */}
         <TopBar
           menuItems={menuItems}

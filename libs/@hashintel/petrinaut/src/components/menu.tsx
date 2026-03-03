@@ -12,7 +12,6 @@ const menuContentStyle = css({
   border: "1px solid",
   borderColor: "neutral.s20",
   minWidth: "[180px]",
-  zIndex: "[1100]",
   padding: "[7px]",
 });
 
@@ -23,8 +22,8 @@ const submenuContentStyle = css({
   border: "1px solid",
   borderColor: "neutral.s20",
   minWidth: "[180px]",
-  zIndex: "[1101]",
   padding: "[7px]",
+  zIndex: "2",
 });
 
 const triggerItemStyle = css({
