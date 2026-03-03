@@ -23,6 +23,7 @@ use crate::{
     },
 };
 
+/// Shorthand for accessing a compile-time [`ConstantSymbol`] from the [`sym`] module.
 macro_rules! sym {
     ($($sym:tt)::*) => {
         sym::$($sym)::*::CONST
@@ -172,6 +173,9 @@ impl TransferCostConfig {
     }
 }
 
+/// Integer type backing the [`FiniteBitSet`] for [`EntityPath`].
+///
+/// Must have at least as many bits as there are [`EntityPath`] variants (asserted below).
 type FiniteBitSetWidth = u32;
 const _: () = {
     assert!(
@@ -181,6 +185,10 @@ const _: () = {
 };
 
 impl EntityPath {
+    /// Resolves a sequence of field projections to an [`EntityPath`].
+    ///
+    /// Returns the resolved path together with the number of projections consumed, or `None`
+    /// if the projections do not map to any known storage location.
     #[must_use]
     pub fn resolve(projections: &[Projection<'_>]) -> Option<(Self, usize)> {
         resolve(projections)
@@ -370,6 +378,7 @@ impl EntityPath {
         }
     }
 
+    /// Returns `true` if this path targets a JSONB column that allows arbitrary sub-paths.
     const fn is_jsonb(self) -> bool {
         matches!(
             self,
@@ -383,6 +392,10 @@ impl EntityPath {
     }
 }
 
+/// Paths that have at least one ancestor composite, collected at compile time.
+///
+/// Used to compute [`EntityPathBitSet::TOP`] by removing children that are subsumed by
+/// their ancestor composites.
 const HAS_ANCESTORS: [EntityPath; HAS_ANCESTOR_COUNT] = {
     let mut out = [EntityPath::Archived; HAS_ANCESTOR_COUNT];
 
@@ -401,6 +414,7 @@ const HAS_ANCESTORS: [EntityPath; HAS_ANCESTOR_COUNT] = {
 
     out
 };
+/// Number of [`EntityPath`] variants that have at least one ancestor composite.
 const HAS_ANCESTOR_COUNT: usize = {
     let mut count = 0;
     let mut index = 0;
@@ -417,6 +431,11 @@ const HAS_ANCESTOR_COUNT: usize = {
     count
 };
 
+/// Bitset of [`EntityPath`] values with composite swallowing.
+///
+/// Insertions respect the composite hierarchy: inserting a composite removes its children,
+/// and inserting a child when its ancestor is already present is a no-op. The lattice top
+/// contains exactly the root-level and childless paths (18 of 25 variants).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EntityPathBitSet(FiniteBitSet<EntityPath, FiniteBitSetWidth>);
 
@@ -437,6 +456,7 @@ impl EntityPathBitSet {
         Self(set)
     };
 
+    /// Creates an empty bitset with no paths set.
     #[expect(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn new_empty() -> Self {
@@ -464,10 +484,14 @@ impl EntityPathBitSet {
         }
     }
 
+    /// Returns `true` if `path` is present in the bitset.
     pub(crate) fn contains(&self, path: EntityPath) -> bool {
         self.0.contains(path)
     }
 
+    /// Re-applies composite swallowing after a raw union.
+    ///
+    /// Removes any path whose ancestor composite is also present in the set.
     fn normalize(&mut self) {
         for path in &self.0 {
             for &ancestor in path.ancestors() {
@@ -544,6 +568,10 @@ impl const core::ops::Deref for EntityPathBitSet {
     }
 }
 
+/// Extracts the field name from the projection at `*index`, advancing the index on success.
+///
+/// Returns `None` if the projection is not a [`FieldByName`](ProjectionKind::FieldByName)
+/// or if `*index` is out of bounds.
 #[inline]
 fn project(projections: &[Projection<'_>], index: &mut usize) -> Option<ConstantSymbol> {
     let projection = projections.get(*index).and_then(|projection| {

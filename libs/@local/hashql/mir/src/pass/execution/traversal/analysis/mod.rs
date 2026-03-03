@@ -12,12 +12,19 @@ use crate::{
     visit::{self, Visitor},
 };
 
+/// Outcome of resolving a vertex access to a storage path.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub(crate) enum TraversalResult {
+    /// The access resolved to a specific storage location.
     Path(TraversalPath),
+    /// The access could not be resolved; full entity hydration is required.
     Complete,
 }
 
+/// MIR visitor that resolves vertex field accesses to [`TraversalResult`]s.
+///
+/// Walks a body's places, finds uses of [`Local::VERTEX`], resolves the projection chain
+/// via [`EntityPath::resolve`], and calls `on_traversal` with the [`Location`] and result.
 // TODO: Each consumer (statement placement per target, island placement) resolves traversal paths
 //   independently. Consider caching resolved paths per body to avoid redundant work.
 //   See: https://linear.app/hash/issue/BE-435
@@ -27,6 +34,8 @@ pub(crate) struct TraversalAnalysisVisitor<F> {
 }
 
 impl<F> TraversalAnalysisVisitor<F> {
+    /// Creates a visitor for the given vertex type, calling `on_traversal` for each resolved
+    /// vertex access.
     pub(crate) const fn new(vertex: VertexType, on_traversal: F) -> Self
     where
         F: FnMut(Location, TraversalResult),
