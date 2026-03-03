@@ -30,8 +30,11 @@ export const SectionList = ({ children }: SectionListProps) => (
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[8px]",
   py: "[12px]",
+});
+
+const sectionGapStyle = css({
+  gap: "[8px]",
 });
 
 const fillHeightSectionStyle = css({
@@ -79,11 +82,32 @@ const triggerButtonStyle = css({
   },
 });
 
+const collapsibleContentStyle = css({
+  overflow: "hidden",
+  animationDuration: "[200ms]",
+  animationTimingFunction: "ease-in-out",
+
+  "&[data-state=open]": {
+    animationName: "expand",
+  },
+  "&[data-state=closed]": {
+    animationName: "collapse",
+  },
+});
+
 const contentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[12px]",
   pl: "[8px]",
+});
+
+const collapsibleContentInnerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
+  pl: "[8px]",
+  pt: "[8px]",
 });
 
 const fillHeightContentStyle = css({
@@ -131,8 +155,8 @@ export const Section = ({
             <FaChevronUp size={10} />
           </Collapsible.Trigger>
         </div>
-        <Collapsible.Content>
-          <div className={contentStyle}>{children}</div>
+        <Collapsible.Content className={collapsibleContentStyle}>
+          <div className={collapsibleContentInnerStyle}>{children}</div>
         </Collapsible.Content>
       </Collapsible.Root>
     );
@@ -142,6 +166,7 @@ export const Section = ({
     <div
       className={cx(
         sectionStyle,
+        sectionGapStyle,
         fillHeight && fillHeightSectionStyle,
         className,
       )}
