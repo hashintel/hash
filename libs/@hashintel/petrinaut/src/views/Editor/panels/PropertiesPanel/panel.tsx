@@ -185,6 +185,10 @@ export const PropertiesPanel: React.FC = () => {
   // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
   const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
+  if (!isOpen && !isPanelAnimating) {
+    return null;
+  }
+
   return (
     <GlassPanel
       className={cx(

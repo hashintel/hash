@@ -159,6 +159,10 @@ export const BottomPanel: React.FC = () => {
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 
+  if (!isOpen && !isPanelAnimating) {
+    return null;
+  }
+
   return (
     <GlassPanel
       className={cx(
