@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { BottomPanelTab, TimelineChartType } from "./editor-context";
-import type { UserSettings } from "./user-settings-context";
+import type { ArcRendering, UserSettings } from "./user-settings-context";
 import {
   defaultUserSettings,
   UserSettingsContext,
@@ -43,6 +43,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, keepPanelsMounted: value })),
     setCompactNodes: (value: boolean) =>
       setState((prev) => ({ ...prev, compactNodes: value })),
+    setArcRendering: (value: ArcRendering) =>
+      setState((prev) => ({ ...prev, arcRendering: value })),
     setIsLeftSidebarOpen: (value: boolean) =>
       setState((prev) => ({ ...prev, isLeftSidebarOpen: value })),
     setLeftSidebarWidth: (value: number) =>
