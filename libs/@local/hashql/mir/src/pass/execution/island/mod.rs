@@ -29,6 +29,8 @@ use crate::{
     visit::Visitor as _,
 };
 
+pub(crate) mod graph;
+pub(crate) mod schedule;
 #[cfg(test)]
 mod tests;
 
