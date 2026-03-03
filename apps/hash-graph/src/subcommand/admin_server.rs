@@ -107,6 +107,10 @@ pub(crate) fn start_admin_server(
     clippy::integer_division_remainder_used,
     reason = "False positive on tokio::select!"
 )]
+#[expect(
+    clippy::exit,
+    reason = "Force shutdown on double ctrl-c is intentional"
+)]
 pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
@@ -150,8 +154,18 @@ pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError
         }
     };
 
-    tracing::info!("Shutting down...");
-    lifecycle.shutdown_and_wait().await;
+    // Double ctrl-c for force shutdown
+    tokio::select! {
+        () = lifecycle.shutdown_and_wait() => {}
+        result = signal::ctrl_c() => {
+            if let Err(error) = result {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+            }
+            tracing::warn!("Forced shutdown");
+            std::process::exit(1);
+        }
+    }
+
     tracing::info!("Shutdown complete");
 
     if aborted {

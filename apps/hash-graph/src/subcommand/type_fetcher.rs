@@ -150,6 +150,10 @@ pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLi
     clippy::integer_division_remainder_used,
     reason = "False positive on tokio::select!"
 )]
+#[expect(
+    clippy::exit,
+    reason = "Force shutdown on double ctrl-c is intentional"
+)]
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
@@ -180,8 +184,18 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
         }
     };
 
-    tracing::info!("Shutting down...");
-    lifecycle.shutdown_and_wait().await;
+    // Double ctrl-c for force shutdown
+    tokio::select! {
+        () = lifecycle.shutdown_and_wait() => {}
+        result = signal::ctrl_c() => {
+            if let Err(error) = result {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+            }
+            tracing::warn!("Forced shutdown");
+            std::process::exit(1);
+        }
+    }
+
     tracing::info!("Shutdown complete");
 
     if aborted {
