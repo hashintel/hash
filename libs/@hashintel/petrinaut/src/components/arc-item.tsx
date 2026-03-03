@@ -1,7 +1,17 @@
+import { createListCollection, Select } from "@ark-ui/react/select";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import { TbTrash } from "react-icons/tb";
+
+// -- Types -------------------------------------------------------------------
+
+export interface PlaceOption {
+  id: string;
+  name: string;
+  color?: string;
+}
 
 // -- ArcList (container) -----------------------------------------------------
 
@@ -54,6 +64,7 @@ const nameCellStyle = css({
   outline: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
   borderRightRadius: "[var(--inset-lip-radius)]",
+  cursor: "pointer",
 });
 
 const colorDotStyle = css({
@@ -179,65 +190,179 @@ const deleteOverlayStyle = css({
   color: "[#ef4444]",
 });
 
+const selectRootStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  height: "[100%]",
+});
+
+// -- Select dropdown styles --------------------------------------------------
+
+const selectContentStyle = css({
+  backgroundColor: "[white]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[8px]",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.12)]",
+  padding: "[4px]",
+  maxHeight: "[200px]",
+  overflowY: "auto",
+  outline: "none",
+  zIndex: 1000,
+});
+
+const selectItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  padding: "[6px 8px]",
+  borderRadius: "[4px]",
+  fontSize: "[14px]",
+  fontWeight: "[500]",
+  cursor: "pointer",
+  outline: "none",
+  "&[data-highlighted]": {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  },
+  '&[data-state="checked"]': {
+    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+  },
+});
+
+const selectItemDotStyle = css({
+  width: "[12px]",
+  height: "[12px]",
+  borderRadius: "[50%]",
+  flexShrink: 0,
+});
+
+// -- Component ---------------------------------------------------------------
+
 interface ArcItemProps {
   placeName: string;
+  placeId: string;
   weight: number;
   color?: string;
   disabled?: boolean;
+  availablePlaces?: PlaceOption[];
+  onPlaceChange?: (placeId: string) => void;
   onWeightChange: (weight: number) => void;
   onDelete?: () => void;
 }
 
 export const ArcItem = ({
   placeName,
+  placeId,
   weight,
   color,
   disabled = false,
+  availablePlaces,
+  onPlaceChange,
   onWeightChange,
   onDelete,
-}: ArcItemProps) => (
-  <div className={cx(rowStyle, disabled && rowDisabledStyle)}>
-    <div className={nameCellStyle}>
+}: ArcItemProps) => {
+  const collection = useMemo(
+    () =>
+      availablePlaces
+        ? createListCollection({
+            items: availablePlaces,
+            itemToValue: (item) => item.id,
+            itemToString: (item) => item.name,
+          })
+        : null,
+    [availablePlaces],
+  );
+
+  const nameCellContent = (
+    <>
       <div
         className={colorDotStyle}
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
       <FaChevronDown size={10} className={chevronStyle} />
-    </div>
-    <div className={separatorContainerStyle}>
-      <div className={separatorBorderStyle} style={separatorMaskStyle}>
-        <div />
-        <div />
-      </div>
-      <div className={separatorBackgroundStyle} style={separatorBarMaskStyle} />
-    </div>
-    <div className={weightCellStyle}>
-      <input
-        type="number"
-        value={weight}
-        min={1}
-        step={1}
-        disabled={disabled}
-        className={weightInputStyle}
-        onChange={(event) => {
-          const newWeight = Number.parseInt(event.target.value, 10);
-          if (!Number.isNaN(newWeight) && newWeight >= 1) {
-            onWeightChange(newWeight);
-          }
-        }}
-      />
-      {onDelete && !disabled && (
-        <button
-          type="button"
-          data-arc-delete=""
-          className={deleteOverlayStyle}
-          onClick={onDelete}
-          aria-label="Delete arc"
+    </>
+  );
+
+  const hasSelect = collection && onPlaceChange && !disabled;
+
+  return (
+    <div className={cx(rowStyle, disabled && rowDisabledStyle)}>
+      {hasSelect ? (
+        <Select.Root
+          collection={collection}
+          value={[placeId]}
+          onValueChange={(details) => {
+            const newId = details.value[0];
+            if (newId && newId !== placeId) {
+              onPlaceChange(newId);
+            }
+          }}
+          positioning={{ sameWidth: true }}
+          className={selectRootStyle}
         >
-          <TbTrash size={14} />
-        </button>
+          <Select.Trigger asChild>
+            <div className={nameCellStyle}>{nameCellContent}</div>
+          </Select.Trigger>
+          <Select.Positioner>
+            <Select.Content className={selectContentStyle}>
+              {collection.items.map((item) => (
+                <Select.Item
+                  key={item.id}
+                  item={item}
+                  className={selectItemStyle}
+                >
+                  <div
+                    className={selectItemDotStyle}
+                    style={{
+                      backgroundColor: item.color ?? "#d4d4d4",
+                    }}
+                  />
+                  <Select.ItemText>{item.name}</Select.ItemText>
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+      ) : (
+        <div className={nameCellStyle}>{nameCellContent}</div>
       )}
+      <div className={separatorContainerStyle}>
+        <div className={separatorBorderStyle} style={separatorMaskStyle}>
+          <div />
+          <div />
+        </div>
+        <div
+          className={separatorBackgroundStyle}
+          style={separatorBarMaskStyle}
+        />
+      </div>
+      <div className={weightCellStyle}>
+        <input
+          type="number"
+          value={weight}
+          min={1}
+          step={1}
+          disabled={disabled}
+          className={weightInputStyle}
+          onChange={(event) => {
+            const newWeight = Number.parseInt(event.target.value, 10);
+            if (!Number.isNaN(newWeight) && newWeight >= 1) {
+              onWeightChange(newWeight);
+            }
+          }}
+        />
+        {onDelete && !disabled && (
+          <button
+            type="button"
+            data-arc-delete=""
+            className={deleteOverlayStyle}
+            onClick={onDelete}
+            aria-label="Delete arc"
+          >
+            <TbTrash size={14} />
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};

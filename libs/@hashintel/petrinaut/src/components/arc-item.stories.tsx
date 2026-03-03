@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { ArcItem, ArcList } from "./arc-item";
+import { ArcItem, ArcList, type PlaceOption } from "./arc-item";
 
 const meta = {
   title: "Components / ArcItem",
@@ -14,24 +14,39 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+const SAMPLE_PLACES: PlaceOption[] = [
+  { id: "place-1", name: "PlantASupply", color: "#FF6B35" },
+  { id: "place-2", name: "Warehouse", color: "#7B68EE" },
+  { id: "place-3", name: "Output" },
+];
+
 const InteractiveArcItem = ({
   initialWeight = 1,
+  placeId = "place-1",
+  availablePlaces,
   ...props
 }: {
   placeName: string;
+  placeId?: string;
   color?: string;
   disabled?: boolean;
   deletable?: boolean;
   initialWeight?: number;
+  availablePlaces?: PlaceOption[];
 }) => {
   const [weight, setWeight] = useState(initialWeight);
+  const [currentPlaceId, setCurrentPlaceId] = useState(placeId);
+  const currentPlace = availablePlaces?.find((pl) => pl.id === currentPlaceId);
   return (
     <div style={{ width: 260 }}>
       <ArcItem
-        placeName={props.placeName}
+        placeId={currentPlaceId}
+        placeName={currentPlace?.name ?? props.placeName}
         weight={weight}
-        color={props.color}
+        color={currentPlace?.color ?? props.color}
         disabled={props.disabled}
+        availablePlaces={availablePlaces}
+        onPlaceChange={setCurrentPlaceId}
         onWeightChange={setWeight}
         onDelete={props.deletable ? () => {} : undefined}
       />
@@ -43,6 +58,20 @@ export const Default: Story = {
   name: "Default",
   render: () => (
     <InteractiveArcItem placeName="PlantASupply" initialWeight={1} deletable />
+  ),
+};
+
+export const WithSelect: Story = {
+  name: "With place select",
+  render: () => (
+    <InteractiveArcItem
+      placeId="place-1"
+      placeName="PlantASupply"
+      color="#FF6B35"
+      initialWeight={2}
+      deletable
+      availablePlaces={SAMPLE_PLACES}
+    />
   ),
 };
 
@@ -100,6 +129,7 @@ const ArcListStory = () => {
     <div style={{ width: 260 }}>
       <ArcList>
         <ArcItem
+          placeId="place-1"
           placeName="PlantASupply"
           color="#FF6B35"
           weight={weights[0]!}
@@ -107,6 +137,7 @@ const ArcListStory = () => {
           onDelete={() => {}}
         />
         <ArcItem
+          placeId="place-2"
           placeName="Warehouse"
           color="#7B68EE"
           weight={weights[1]!}
@@ -114,6 +145,7 @@ const ArcListStory = () => {
           onDelete={() => {}}
         />
         <ArcItem
+          placeId="place-3"
           placeName="Output"
           weight={weights[2]!}
           onWeightChange={(wt) => updateWeight(2, wt)}
