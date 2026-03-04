@@ -11,7 +11,10 @@
 
 use alloc::{borrow::Cow, sync::Arc};
 use core::time::Duration;
-use std::{sync::RwLock, time::Instant};
+use std::{
+    sync::{PoisonError, RwLock},
+    time::Instant,
+};
 
 use axum::{extract::FromRequestParts, http::request::Parts};
 use error_stack::{Report, ResultExt as _};
@@ -242,9 +245,11 @@ impl JwtValidator {
             .get(self.jwks_url.clone())
             .send()
             .await
-            .change_context(JwtError::JwksFetch)?
+            .change_context(JwtError::JwksFetch)
+            .attach(format!("JWKS URL: {}", self.jwks_url))?
             .error_for_status()
-            .change_context(JwtError::JwksFetch)?;
+            .change_context(JwtError::JwksFetch)
+            .attach(format!("JWKS URL: {}", self.jwks_url))?;
 
         let jwks: JwkSet = response
             .json()
@@ -252,7 +257,7 @@ impl JwtValidator {
             .change_context(JwtError::JwksFetch)
             .attach("failed to deserialize JWKS response")?;
 
-        *self.cache.write().expect("JWKS cache lock poisoned") =
+        *self.cache.write().unwrap_or_else(PoisonError::into_inner) =
             Some((Instant::now(), jwks.clone()));
 
         // http_client (mutex guard) is dropped here, after the cache is updated, so concurrent
@@ -264,7 +269,7 @@ impl JwtValidator {
 
     /// Returns cached JWKS if still valid, or `None` if a fetch is needed.
     fn cached_jwks(&self, force_refresh: bool) -> Option<JwkSet> {
-        let cache = self.cache.read().expect("JWKS cache lock poisoned");
+        let cache = self.cache.read().unwrap_or_else(PoisonError::into_inner);
         let (fetched_at, jwks) = (*cache).as_ref()?;
         let age = fetched_at.elapsed();
         if !force_refresh && age < self.jwks_cache_ttl
@@ -298,13 +303,15 @@ fn extract_token_from_headers(headers: &HeaderMap) -> Result<Cow<'_, str>, Repor
             .change_context(JwtError::InvalidTokenEncoding)?;
 
         // RFC 7235: authentication schemes are case-insensitive
-        if let Some(token) = value
+        return value
             .get(..7)
             .filter(|prefix| prefix.eq_ignore_ascii_case("bearer "))
             .and_then(|_| value.get(7..))
-        {
-            return Ok(Cow::Borrowed(token));
-        }
+            .map(Cow::Borrowed)
+            .ok_or_else(|| {
+                Report::new(JwtError::MissingToken)
+                    .attach("Authorization header present but scheme is not Bearer")
+            });
     }
 
     Err(Report::new(JwtError::MissingToken))
@@ -321,7 +328,7 @@ fn extract_token_from_headers(headers: &HeaderMap) -> Result<Cow<'_, str>, Repor
 /// async fn protected_handler(
 ///     JwtAuthentication(claims): JwtAuthentication,
 /// ) -> impl IntoResponse {
-///     format!("Hello, {}", claims.email().unwrap_or_default())
+///     format!("Hello, {}", claims.email.as_deref().unwrap_or_default())
 /// }
 /// ```
 pub struct JwtAuthentication(pub JwtClaims);

@@ -3453,11 +3453,11 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &self,
         email: &str,
     ) -> Result<Option<UserId>, Report<GetActorError>> {
-        Ok(self
+        let rows = self
             .as_client()
-            .query_opt(
+            .query(
                 "
-                SELECT user_actor.id
+                SELECT DISTINCT user_actor.id
                 FROM user_actor
                 JOIN entity_temporal_metadata ON user_actor.id = entity_temporal_metadata.entity_uuid
                 JOIN entity_editions ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
@@ -3479,8 +3479,16 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(GetActorError)?
-            .map(|row| UserId::new(row.get::<_, Uuid>(0))))
+            .change_context(GetActorError)?;
+
+        match rows.as_slice() {
+            [] => Ok(None),
+            [row] => Ok(Some(UserId::new(row.get::<_, Uuid>(0)))),
+            rows => Err(Report::new(GetActorError).attach(format!(
+                "expected at most one user for email {email:?}, found {}",
+                rows.len()
+            ))),
+        }
     }
 
     async fn get_machine_by_id(

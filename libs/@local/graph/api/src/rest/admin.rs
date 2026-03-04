@@ -120,7 +120,7 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
             .map_err(report_to_response)?
             .ok_or_else(|| {
                 report_to_response(
-                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::Unauthenticated),
+                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::PermissionDenied),
                 )
             })?;
 
@@ -129,10 +129,16 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 }
 
 async fn restore_snapshot(
-    _jwt: OptionalJwtAuthentication,
+    jwt: OptionalJwtAuthentication,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "Admin: restoring snapshot"
+    );
+
     let store = store_pool.acquire(None).await.map_err(report_to_response)?;
 
     SnapshotStore::new(store)
@@ -155,9 +161,15 @@ async fn restore_snapshot(
 }
 
 async fn delete_accounts(
-    _jwt: OptionalJwtAuthentication,
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "Admin: deleting all accounts"
+    );
+
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -173,9 +185,15 @@ async fn delete_accounts(
 }
 
 async fn delete_data_types(
-    _jwt: OptionalJwtAuthentication,
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "Admin: deleting all data types"
+    );
+
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -191,9 +209,15 @@ async fn delete_data_types(
 }
 
 async fn delete_property_types(
-    _jwt: OptionalJwtAuthentication,
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "Admin: deleting all property types"
+    );
+
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -209,9 +233,15 @@ async fn delete_property_types(
 }
 
 async fn delete_entity_types(
-    _jwt: OptionalJwtAuthentication,
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "Admin: deleting all entity types"
+    );
+
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
