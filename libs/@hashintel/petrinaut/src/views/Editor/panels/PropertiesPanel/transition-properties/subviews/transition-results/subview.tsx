@@ -186,6 +186,7 @@ const TransitionResultsContent: React.FC = () => {
 export const transitionResultsSubView: SubView = {
   id: "transition-results",
   title: "Transition Results",
+  defaultCollapsed: true,
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
   component: TransitionResultsContent,

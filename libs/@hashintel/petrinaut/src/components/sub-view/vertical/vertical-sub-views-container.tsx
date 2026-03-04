@@ -312,12 +312,12 @@ export const VerticalSubViewsContainer: React.FC<
 
   const containerSettings = subViewPanels[name];
 
-  const isSectionCollapsed = (id: string): boolean => {
-    const saved = containerSettings?.[id];
+  const isSectionCollapsed = (sv: SubView): boolean => {
+    const saved = containerSettings?.[sv.id];
     if (saved !== undefined) {
       return saved.collapsed;
     }
-    return !defaultExpanded;
+    return sv.defaultCollapsed ?? !defaultExpanded;
   };
 
   const getSavedHeight = (id: string): number | undefined =>
@@ -341,16 +341,16 @@ export const VerticalSubViewsContainer: React.FC<
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
 
-  const toggleSection = (id: string) => {
+  const toggleSection = (sv: SubView) => {
     if (showAnimations) {
       triggerTransition();
     }
-    updateSubViewSection(name, id, { collapsed: !isSectionCollapsed(id) });
+    updateSubViewSection(name, sv.id, { collapsed: !isSectionCollapsed(sv) });
   };
 
   const allCollapsed = subViews.every((sv) => {
     const isCollapsible = !sv.main && (sv.collapsible ?? true);
-    return isCollapsible && isSectionCollapsed(sv.id);
+    return isCollapsible && isSectionCollapsed(sv);
   });
 
   return (
@@ -361,7 +361,7 @@ export const VerticalSubViewsContainer: React.FC<
       {subViews.map((subView, index) => {
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);
-        const isExpanded = !isCollapsible || !isSectionCollapsed(subView.id);
+        const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
         const Component = subView.component;
         const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
@@ -381,7 +381,7 @@ export const VerticalSubViewsContainer: React.FC<
                   tooltip={subView.tooltip}
                   main={isMain}
                   isExpanded={isExpanded}
-                  onToggle={() => toggleSection(subView.id)}
+                  onToggle={() => toggleSection(subView)}
                   renderHeaderAction={subView.renderHeaderAction}
                 />
 

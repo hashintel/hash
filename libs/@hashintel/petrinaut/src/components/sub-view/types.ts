@@ -56,6 +56,11 @@ export interface SubView {
    */
   collapsible?: boolean;
   /**
+   * Whether the section should start collapsed before the user has interacted.
+   * Defaults to false (expanded). Ignored when `main` is true.
+   */
+  defaultCollapsed?: boolean;
+  /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */
