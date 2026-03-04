@@ -4,42 +4,94 @@ import { withTooltip } from "./hoc/with-tooltip";
 
 const numberInputStyle = cva({
   base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.15)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
     boxSizing: "border-box",
-    fontFamily: "[monospace]",
+    width: "[100%]",
+    backgroundColor: "[white]",
+    border: "[1px solid rgba(0, 0, 0, 0.09)]",
+    fontWeight: "[500]",
+    color: "[#484848]",
+    outline: "none",
+    transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
+    appearance: "[textfield]",
+    "&::-webkit-inner-spin-button": {
+      display: "none",
+    },
+    "&::-webkit-outer-spin-button": {
+      display: "none",
+    },
+    _hover: {
+      borderColor: "[rgba(0, 0, 0, 0.12)]",
+    },
+    _focus: {
+      borderColor: "[rgba(0, 0, 0, 0.09)]",
+      boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.04)]",
+    },
+    _active: {
+      borderColor: "[rgba(0, 0, 0, 0.06)]",
+      boxShadow: "[inset 0px 2px 1px rgba(0, 0, 0, 0.05)]",
+    },
+    _disabled: {
+      backgroundColor: "[#fcfcfc]",
+      opacity: "[0.7]",
+      cursor: "not-allowed",
+      _hover: {
+        borderColor: "[rgba(0, 0, 0, 0.09)]",
+      },
+    },
+    _placeholder: {
+      color: "[#bbb]",
+    },
   },
   variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-        cursor: "not-allowed",
+    size: {
+      xs: {
+        height: "[24px]",
+        fontSize: "[12px]",
+        borderRadius: "[6px]",
+        paddingX: "[6px]",
       },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
+      sm: {
+        height: "[28px]",
+        fontSize: "[14px]",
+        borderRadius: "[8px]",
+        paddingX: "[8px]",
+      },
+      md: {
+        height: "[32px]",
+        fontSize: "[14px]",
+        borderRadius: "[10px]",
+        paddingX: "[10px]",
+      },
+      lg: {
+        height: "[40px]",
+        fontSize: "[16px]",
+        borderRadius: "[12px]",
+        paddingX: "[12px]",
       },
     },
     hasError: {
       true: {
-        borderColor: "[#ef4444]",
+        borderColor: "[rgba(255, 0, 0, 0.3)]",
+        _focus: {
+          borderColor: "[rgba(255, 0, 0, 0.3)]",
+          boxShadow: "[0px 0px 0px 2px rgba(233, 53, 53, 0.06)]",
+        },
       },
       false: {},
     },
   },
   defaultVariants: {
-    isDisabled: false,
+    size: "sm",
     hasError: false,
   },
 });
 
 type NumberInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  "type"
+  "type" | "size"
 > & {
+  /** Size variant */
+  size?: "xs" | "sm" | "md" | "lg";
   /** Whether the input has an error */
   hasError?: boolean;
   /** Ref to the input element */
@@ -47,6 +99,7 @@ type NumberInputProps = Omit<
 };
 
 const NumberInputBase: React.FC<NumberInputProps> = ({
+  size = "sm",
   hasError = false,
   disabled,
   className,
@@ -57,7 +110,7 @@ const NumberInputBase: React.FC<NumberInputProps> = ({
     ref={ref}
     type="number"
     disabled={disabled}
-    className={`${numberInputStyle({ isDisabled: disabled, hasError })}${className ? ` ${className}` : ""}`}
+    className={`${numberInputStyle({ size, hasError })}${className ? ` ${className}` : ""}`}
     {...props}
   />
 );

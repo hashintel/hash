@@ -125,14 +125,16 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               <div className={selectWrapperStyle}>
                 <Select
                   value={arcRendering}
-                  onChange={(event) =>
-                    setArcRendering(event.target.value as ArcRendering)
+                  onValueChange={(value) =>
+                    setArcRendering(value as ArcRendering)
                   }
-                >
-                  <option value="smoothstep">Square</option>
-                  <option value="bezier">Bezier</option>
-                  <option value="custom">Custom</option>
-                </Select>
+                  options={[
+                    { value: "smoothstep", label: "Square" },
+                    { value: "bezier", label: "Bezier" },
+                    { value: "custom", label: "Custom" },
+                  ]}
+                  portal={false}
+                />
               </div>
             </div>
           </Dialog.Body>

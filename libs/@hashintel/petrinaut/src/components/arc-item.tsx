@@ -1,12 +1,11 @@
-import { Portal } from "@ark-ui/react/portal";
-import { createListCollection, Select } from "@ark-ui/react/select";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import { TbTrash } from "react-icons/tb";
 
-import { usePortalContainerRef } from "../state/portal-container-context";
+import { NumberInput } from "./number-input";
+import { Select, type SelectOption } from "./select";
 
 // -- Types -------------------------------------------------------------------
 
@@ -70,6 +69,15 @@ const nameCellStyle = css({
   borderRadius: "[8px]",
   borderRightRadius: "[var(--inset-lip-radius)]",
   cursor: "pointer",
+});
+
+const nameCellInnerStyle = css({
+  display: "flex",
+  textAlign: "left",
+  alignItems: "center",
+  gap: "[8px]",
+  width: "[100%]",
+  minWidth: "[0]",
 });
 
 const colorDotStyle = css({
@@ -161,25 +169,28 @@ const weightCellStyle = css({
   border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
   borderLeftRadius: "[var(--inset-lip-radius)]",
+  overflow: "hidden",
 });
 
-const weightInputStyle = css({
-  width: "[100%]",
+const weightInputOverrideStyle = css({
   height: "[100%]",
-  border: "none",
+  border: "[none]",
   background: "[transparent]",
-  fontSize: "[14px]",
-  fontWeight: "[500]",
-  color: "[#484848]",
+  borderRadius: "[0]",
   textAlign: "right",
   padding: "[0 8px]",
-  outline: "none",
-  appearance: "[textfield]",
-  "&::-webkit-inner-spin-button": {
-    display: "none",
+  outline: "[none]",
+  _hover: {
+    border: "[none]",
   },
-  "&::-webkit-outer-spin-button": {
-    display: "none",
+  _focus: {
+    boxShadow: "[none]",
+    border: "[none]",
+    outline: "[none]",
+  },
+  _active: {
+    boxShadow: "[none]",
+    border: "[none]",
   },
 });
 
@@ -204,41 +215,29 @@ const deleteButtonStyle = css({
   height: "[100%]",
 });
 
-const selectRootStyle = css({
+// -- Select trigger style overrides for ArcItem -------------------------------
+
+const selectRootOverrideStyle = css({
   flex: "[1]",
   minWidth: "[0]",
   height: "[100%]",
 });
 
-// -- Select dropdown styles --------------------------------------------------
-
-const selectContentStyle = css({
-  backgroundColor: "[white]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+const selectTriggerOverrideStyle = css({
+  backgroundColor: "[var(--background-color)]",
+  border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
-  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.12)]",
-  padding: "[4px]",
-  maxHeight: "[200px]",
-  overflowY: "auto",
-  outline: "none",
-  zIndex: 1000,
-});
-
-const selectItemStyle = css({
-  display: "flex",
-  alignItems: "center",
+  borderRightRadius: "[var(--inset-lip-radius)]",
+  height: "[100%]",
+  padding: "[0 6px]",
   gap: "[8px]",
-  padding: "[6px 8px]",
-  borderRadius: "[4px]",
-  fontSize: "[14px]",
-  fontWeight: "[500]",
-  cursor: "pointer",
-  outline: "none",
-  "&[data-highlighted]": {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  justifyContent: "flex-start",
+  _hover: {
+    borderColor: "[var(--border-color)]",
   },
-  '&[data-state="checked"]': {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+  _focusVisible: {
+    boxShadow: "[none]",
+    borderColor: "[var(--border-color)]",
   },
 });
 
@@ -274,73 +273,61 @@ export const ArcItem = ({
   onWeightChange,
   onDelete,
 }: ArcItemProps) => {
-  const portalContainerRef = usePortalContainerRef();
-
-  const collection = useMemo(
+  const selectOptions: SelectOption[] = useMemo(
     () =>
-      availablePlaces
-        ? createListCollection({
-            items: availablePlaces,
-            itemToValue: (item) => item.id,
-            itemToString: (item) => item.name,
-          })
-        : null,
+      availablePlaces?.map((pl) => ({
+        value: pl.id,
+        label: pl.name,
+        color: pl.color,
+      })) ?? [],
     [availablePlaces],
   );
 
   const nameCellContent = (
-    <>
+    <div className={nameCellInnerStyle}>
       <div
         className={colorDotStyle}
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
       <FaChevronDown size={10} className={chevronStyle} />
-    </>
+    </div>
   );
 
-  const hasSelect = collection && onPlaceChange && !disabled;
+  const hasSelect = availablePlaces && onPlaceChange && !disabled;
 
   return (
     <div className={cx(rowStyle, disabled && rowDisabledStyle)}>
       {hasSelect ? (
-        <Select.Root
-          collection={collection}
-          value={[placeId]}
-          onValueChange={(details) => {
-            const newId = details.value[0];
-            if (newId && newId !== placeId) {
+        <Select
+          value={placeId}
+          onValueChange={(newId) => {
+            if (newId !== placeId) {
               onPlaceChange(newId);
             }
           }}
+          options={selectOptions}
+          className={selectRootOverrideStyle}
+          triggerClassName={selectTriggerOverrideStyle}
+          renderTrigger={() => nameCellContent}
+          renderItem={(item) => {
+            const placeColor = availablePlaces.find(
+              (pl) => pl.id === item.value,
+            )?.color;
+            return (
+              <>
+                <div
+                  className={selectItemDotStyle}
+                  style={{
+                    backgroundColor: placeColor ?? "#d4d4d4",
+                  }}
+                />
+                {item.label}
+              </>
+            );
+          }}
           positioning={{ sameWidth: true }}
-          className={selectRootStyle}
-        >
-          <Select.Trigger asChild>
-            <div className={nameCellStyle}>{nameCellContent}</div>
-          </Select.Trigger>
-          <Portal container={portalContainerRef}>
-            <Select.Positioner>
-              <Select.Content className={selectContentStyle}>
-                {collection.items.map((item) => (
-                  <Select.Item
-                    key={item.id}
-                    item={item}
-                    className={selectItemStyle}
-                  >
-                    <div
-                      className={selectItemDotStyle}
-                      style={{
-                        backgroundColor: item.color ?? "#d4d4d4",
-                      }}
-                    />
-                    <Select.ItemText>{item.name}</Select.ItemText>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Portal>
-        </Select.Root>
+        />
       ) : (
         <div className={nameCellStyle}>{nameCellContent}</div>
       )}
@@ -355,15 +342,18 @@ export const ArcItem = ({
         />
       </div>
       <div className={weightCellStyle}>
-        <input
-          type="number"
+        <NumberInput
           value={weight}
           min={1}
           step={1}
           disabled={disabled}
-          className={weightInputStyle}
+          size="sm"
+          className={weightInputOverrideStyle}
           onChange={(event) => {
-            const newWeight = Number.parseInt(event.target.value, 10);
+            const newWeight = Number.parseInt(
+              (event.target as HTMLInputElement).value,
+              10,
+            );
             if (!Number.isNaN(newWeight) && newWeight >= 1) {
               onWeightChange(newWeight);
             }

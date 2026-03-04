@@ -6,7 +6,7 @@ import { Button } from "../../../../../../components/button";
 import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Select } from "../../../../../../components/select";
+import { Select, type SelectOption } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -32,6 +32,13 @@ const hintTextStyle = css({
   fontSize: "[11px]",
   color: "[#999]",
   fontStyle: "italic",
+});
+
+const typeColorDotStyle = css({
+  width: "[12px]",
+  height: "[12px]",
+  borderRadius: "[50%]",
+  flexShrink: 0,
 });
 
 /**
@@ -156,8 +163,7 @@ const PlaceMainContent: React.FC = () => {
         >
           <Select
             value={place.colorId ?? ""}
-            onChange={(event) => {
-              const value = event.target.value;
+            onValueChange={(value) => {
               const newType = value === "" ? null : value;
               updatePlace(place.id, (existingPlace) => {
                 existingPlace.colorId = newType;
@@ -167,16 +173,48 @@ const PlaceMainContent: React.FC = () => {
                 }
               });
             }}
+            options={[
+              { value: "", label: "None" },
+              ...types.map((type) => ({
+                value: type.id,
+                label: type.name,
+              })),
+            ]}
+            renderTrigger={({ selectedOption }) => {
+              const selectedColor = types.find(
+                (tp) => tp.id === selectedOption?.value,
+              )?.displayColor;
+              return (
+                <>
+                  {selectedColor && (
+                    <div
+                      className={typeColorDotStyle}
+                      style={{ backgroundColor: selectedColor }}
+                    />
+                  )}
+                  <span>{selectedOption?.label ?? "None"}</span>
+                </>
+              );
+            }}
+            renderItem={(item: SelectOption) => {
+              const typeColor = types.find(
+                (tp) => tp.id === item.value,
+              )?.displayColor;
+              return (
+                <>
+                  {typeColor && (
+                    <div
+                      className={typeColorDotStyle}
+                      style={{ backgroundColor: typeColor }}
+                    />
+                  )}
+                  {item.label}
+                </>
+              );
+            }}
             disabled={isReadOnly}
             tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            <option value="">None</option>
-            {types.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </Select>
+          />
 
           {place.colorId && (
             <div className={jumpButtonContainerStyle}>
@@ -246,20 +284,18 @@ const PlaceMainContent: React.FC = () => {
               <>
                 <Select
                   value={place.differentialEquationId ?? undefined}
-                  onChange={(event) => {
+                  onValueChange={(value) => {
                     updatePlace(place.id, (existingPlace) => {
-                      existingPlace.differentialEquationId = event.target.value;
+                      existingPlace.differentialEquationId = value;
                     });
                   }}
+                  options={availableDiffEqs.map((eq) => ({
+                    value: eq.id,
+                    label: eq.name,
+                  }))}
                   disabled={isReadOnly}
                   tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                >
-                  {availableDiffEqs.map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.name}
-                    </option>
-                  ))}
-                </Select>
+                />
 
                 {place.differentialEquationId && (
                   <div className={jumpButtonContainerStyle}>
