@@ -274,7 +274,7 @@ export const Menu: React.FC<MenuProps> = ({
     <ArkMenu.Root
       lazyMount={!!animated}
       unmountOnExit={!!animated}
-      positioning={placement ? { placement, gutter: 4 } : { gutter: 4 }}
+      positioning={placement ? { placement, gutter: 8 } : { gutter: 8 }}
     >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <Portal container={portalContainerRef}>
