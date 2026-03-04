@@ -3463,7 +3463,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 JOIN entity_editions ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
                 WHERE entity_temporal_metadata.decision_time @> now()
                   AND entity_temporal_metadata.transaction_time @> now()
-                  AND entity_editions.properties -> 'https://hash.ai/@h/types/property-type/email/' @> to_jsonb($1::text)",
+                  AND EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements_text(
+                          entity_editions.properties -> 'https://hash.ai/@h/types/property-type/email/'
+                      ) AS stored_email
+                      WHERE LOWER(stored_email) = LOWER($1)
+                  )",
                 &[&email],
             )
             .instrument(tracing::info_span!(
