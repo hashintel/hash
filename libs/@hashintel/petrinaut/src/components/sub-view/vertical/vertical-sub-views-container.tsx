@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, use, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -328,18 +328,15 @@ export const VerticalSubViewsContainer: React.FC<
     {},
   );
 
-  const handleResize = useCallback(
-    (id: string) => (panelSize: { inPixels: number }) => {
-      if (panelSize.inPixels <= HEADER_HEIGHT) {
-        return;
-      }
-      clearTimeout(heightTimers.current[id]);
-      heightTimers.current[id] = setTimeout(() => {
-        updateSubViewSection(name, id, { height: panelSize.inPixels });
-      }, 300);
-    },
-    [name, updateSubViewSection],
-  );
+  const handleResize = (id: string) => (panelSize: { inPixels: number }) => {
+    if (panelSize.inPixels <= HEADER_HEIGHT) {
+      return;
+    }
+    clearTimeout(heightTimers.current[id]);
+    heightTimers.current[id] = setTimeout(() => {
+      updateSubViewSection(name, id, { height: panelSize.inPixels });
+    }, 300);
+  };
 
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
