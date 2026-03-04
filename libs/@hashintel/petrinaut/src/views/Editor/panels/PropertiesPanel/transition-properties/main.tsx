@@ -62,7 +62,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         updateTransition={updateTransition}
         onArcWeightUpdate={onArcWeightUpdate}
       >
-        <VerticalSubViewsContainer subViews={subViews} />
+        <VerticalSubViewsContainer
+          name="transition-properties"
+          subViews={subViews}
+        />
       </TransitionPropertiesProvider>
     </div>
   );

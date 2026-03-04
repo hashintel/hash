@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 
 import type { BottomPanelTab, TimelineChartType } from "./editor-context";
-import type { ArcRendering, UserSettings } from "./user-settings-context";
+import type {
+  ArcRendering,
+  SubViewSectionSettings,
+  UserSettings,
+} from "./user-settings-context";
 import {
   defaultUserSettings,
   UserSettingsContext,
@@ -59,6 +63,28 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, activeBottomPanelTab: value })),
     setTimelineChartType: (value: TimelineChartType) =>
       setState((prev) => ({ ...prev, timelineChartType: value })),
+    updateSubViewSection: (
+      containerName: string,
+      sectionId: string,
+      update: Partial<SubViewSectionSettings>,
+    ) =>
+      setState((prev) => {
+        const existing = prev.subViewPanels[containerName]?.[sectionId];
+        const merged: SubViewSectionSettings = {
+          collapsed: existing?.collapsed ?? false,
+          ...update,
+        };
+        return {
+          ...prev,
+          subViewPanels: {
+            ...prev.subViewPanels,
+            [containerName]: {
+              ...prev.subViewPanels[containerName],
+              [sectionId]: merged,
+            },
+          },
+        };
+      }),
   };
 
   return (

@@ -32,7 +32,10 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   return (
     <div className={containerStyle}>
       <ParameterPropertiesContext value={value}>
-        <VerticalSubViewsContainer subViews={subViews} />
+        <VerticalSubViewsContainer
+          name="parameter-properties"
+          subViews={subViews}
+        />
       </ParameterPropertiesContext>
     </div>
   );

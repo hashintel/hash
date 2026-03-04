@@ -9,6 +9,16 @@ import type { BottomPanelTab, TimelineChartType } from "./editor-context";
 
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
+export type SubViewSectionSettings = {
+  collapsed: boolean;
+};
+
+/** Outer key: container name, inner key: subview ID */
+export type SubViewPanelsSettings = Record<
+  string,
+  Record<string, SubViewSectionSettings>
+>;
+
 export type UserSettings = {
   showAnimations: boolean;
   keepPanelsMounted: boolean;
@@ -21,6 +31,7 @@ export type UserSettings = {
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
+  subViewPanels: SubViewPanelsSettings;
 };
 
 export type UserSettingsActions = {
@@ -35,6 +46,11 @@ export type UserSettingsActions = {
   setBottomPanelHeight: (value: number) => void;
   setActiveBottomPanelTab: (value: BottomPanelTab) => void;
   setTimelineChartType: (value: TimelineChartType) => void;
+  updateSubViewSection: (
+    containerName: string,
+    sectionId: string,
+    update: Partial<SubViewSectionSettings>,
+  ) => void;
 };
 
 export type UserSettingsContextValue = UserSettings & UserSettingsActions;
@@ -51,6 +67,7 @@ export const defaultUserSettings: UserSettings = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
+  subViewPanels: {},
 };
 
 const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
@@ -66,6 +83,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   setTimelineChartType: () => {},
+  updateSubViewSection: () => {},
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextValue>(

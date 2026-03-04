@@ -48,7 +48,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         isReadOnly={isReadOnly}
         updatePlace={updatePlace}
       >
-        <VerticalSubViewsContainer subViews={subViews} />
+        <VerticalSubViewsContainer
+          name="place-properties"
+          subViews={subViews}
+        />
       </PlacePropertiesProvider>
     </div>
   );

@@ -29,7 +29,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   return (
     <div className={containerStyle}>
       <TypePropertiesContext value={value}>
-        <VerticalSubViewsContainer subViews={subViews} />
+        <VerticalSubViewsContainer name="type-properties" subViews={subViews} />
       </TypePropertiesContext>
     </div>
   );
