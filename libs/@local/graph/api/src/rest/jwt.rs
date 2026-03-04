@@ -28,6 +28,13 @@ use crate::rest::status::{BoxedResponse, report_to_response};
 /// How long to cache JWKS keys before re-fetching.
 const JWKS_CACHE_TTL: Duration = Duration::from_hours(1);
 
+/// Minimum interval between forced JWKS refreshes (unknown key ID).
+///
+/// Prevents attackers from triggering unbounded outbound fetches by crafting tokens with arbitrary
+/// `kid` values. During this cooldown, unknown key IDs are rejected from the cached JWKS without a
+/// network request.
+const JWKS_FORCE_REFRESH_COOLDOWN: Duration = Duration::from_secs(30);
+
 /// Asymmetric algorithms we accept in JWT headers.
 ///
 /// This allowlist prevents algorithm confusion attacks (e.g. `HS256` with an RSA public key used as
@@ -204,15 +211,21 @@ impl JwtValidator {
 
     /// Returns the cached JWKS or fetches a fresh copy.
     ///
-    /// When `force_refresh` is `true`, always fetches regardless of cache age.
+    /// When `force_refresh` is `true`, fetches unless the cache was refreshed within the cooldown
+    /// period (to prevent denial-of-service via crafted `kid` values).
     async fn get_jwks(&self, force_refresh: bool) -> Result<JwkSet, Report<JwtError>> {
         // Check cache first (read lock)
-        if !force_refresh {
+        {
             let cache = self.cache.read().await;
-            if let Some((fetched_at, ref jwks)) = *cache
-                && fetched_at.elapsed() < JWKS_CACHE_TTL
-            {
-                return Ok(jwks.clone());
+            if let Some((fetched_at, ref jwks)) = *cache {
+                let age = fetched_at.elapsed();
+                if !force_refresh && age < JWKS_CACHE_TTL {
+                    return Ok(jwks.clone());
+                }
+                if force_refresh && age < JWKS_FORCE_REFRESH_COOLDOWN {
+                    // Within cooldown — use cached keys even for unknown kid
+                    return Ok(jwks.clone());
+                }
             }
         }
 
