@@ -69,6 +69,8 @@ enum AdminActorError {
     MissingEmail,
     #[display("no user account found for the authenticated email")]
     UserNotFound,
+    #[display("store pool not configured on admin routes")]
+    StorePoolNotConfigured,
 }
 
 /// Resolves the authenticated admin actor from JWT claims.
@@ -102,7 +104,12 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
         let pool = parts
             .extensions
             .get::<Arc<PostgresStorePool>>()
-            .expect("store pool must be configured on admin routes");
+            .ok_or_else(|| {
+                report_to_response(
+                    Report::new(AdminActorError::StorePoolNotConfigured)
+                        .attach(StatusCode::Internal),
+                )
+            })?;
 
         let user_id = pool
             .acquire(None)

@@ -11,6 +11,7 @@
 
 use alloc::{borrow::Cow, sync::Arc};
 use core::time::Duration;
+use std::time::Instant;
 
 use axum::{extract::FromRequestParts, http::request::Parts};
 use error_stack::{Report, ResultExt as _};
@@ -111,13 +112,20 @@ impl JwtValidator {
     /// Creates a new JWT validator.
     ///
     /// Does not eagerly fetch JWKS -- the first request triggers the initial fetch.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the HTTP client cannot be built (should not happen with default TLS config).
     #[must_use]
     pub fn new(jwks_url: Url, audience: String, issuer: String) -> Self {
         Self {
             audience,
             issuer,
             jwks_url,
-            http_client: Client::new(),
+            http_client: Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()
+                .expect("failed to build HTTP client"),
             cache: RwLock::new(None),
         }
     }
@@ -208,22 +216,14 @@ impl JwtValidator {
             }
         }
 
-        // Cache miss or expired -- fetch fresh (write lock)
-        let mut cache = self.cache.write().await;
-
-        // Double-check after acquiring write lock (another task may have refreshed)
-        if !force_refresh
-            && let Some((fetched_at, ref jwks)) = *cache
-            && fetched_at.elapsed() < JWKS_CACHE_TTL
-        {
-            return Ok(jwks.clone());
-        }
-
+        // Fetch outside any lock to avoid blocking concurrent validations
         let response = self
             .http_client
             .get(self.jwks_url.clone())
             .send()
             .await
+            .change_context(JwtError::JwksFetch)?
+            .error_for_status()
             .change_context(JwtError::JwksFetch)?;
 
         let jwks: JwkSet = response
@@ -233,8 +233,7 @@ impl JwtValidator {
             .attach("failed to deserialize JWKS response")?;
 
         let result = jwks.clone();
-        *cache = Some((std::time::Instant::now(), jwks));
-        drop(cache);
+        *self.cache.write().await = Some((Instant::now(), jwks));
         Ok(result)
     }
 }
