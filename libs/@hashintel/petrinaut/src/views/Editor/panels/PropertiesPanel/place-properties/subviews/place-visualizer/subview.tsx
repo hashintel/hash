@@ -275,7 +275,7 @@ const VisualizerHeaderAction: React.FC = () => {
       )}
       {hasVisualizer && globalMode === "edit" && (
         <Menu
-          animation="menu"
+          animated
           trigger={
             <button type="button" className={menuButtonStyle}>
               <TbDotsVertical />

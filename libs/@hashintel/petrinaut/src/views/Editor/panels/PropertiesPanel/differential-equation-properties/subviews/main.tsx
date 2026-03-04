@@ -396,7 +396,7 @@ const DiffEqCodeAction: React.FC = () => {
 
   return (
     <Menu
-      animation="menu"
+      animated
       trigger={
         <button type="button" className={menuButtonStyle}>
           <TbDotsVertical />

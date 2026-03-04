@@ -38,7 +38,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ menuItems }) => {
         </button>
       }
       items={menuItems}
-      animation="menu"
+      animated
     />
   );
 };

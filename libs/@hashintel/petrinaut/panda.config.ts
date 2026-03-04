@@ -62,26 +62,12 @@ export default defineConfig({
           to: { opacity: "0", transform: "scale(0.95)" },
         },
         "popover-in": {
-          from: { opacity: "0", transform: "scale(0.98) translateY(4px)" },
-          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
         },
         "popover-out": {
-          from: { opacity: "1", transform: "scale(1) translateY(0)" },
-          to: { opacity: "0", transform: "scale(0.98) translateY(4px)" },
-        },
-        "menu-in": {
-          from: {
-            opacity: "0",
-            transform: "scale(0.98) translateY(-4px)",
-          },
-          to: { opacity: "1", transform: "scale(1) translateY(0)" },
-        },
-        "menu-out": {
-          from: { opacity: "1", transform: "scale(1) translateY(0)" },
-          to: {
-            opacity: "0",
-            transform: "scale(0.98) translateY(-4px)",
-          },
+          from: { opacity: "1", transform: "scale(1)" },
+          to: { opacity: "0", transform: "scale(0.96)" },
         },
       },
     },

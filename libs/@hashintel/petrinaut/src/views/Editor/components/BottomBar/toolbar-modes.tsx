@@ -100,7 +100,7 @@ const CursorModeDropdown: React.FC<{
       }
       items={items}
       placement="top"
-      animation="popover"
+      animated
     />
   );
 };

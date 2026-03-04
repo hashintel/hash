@@ -17,23 +17,14 @@ const menuContentStyle = cva({
     overflow: "hidden",
   },
   variants: {
-    animation: {
-      popover: {
+    animated: {
+      true: {
         transformOrigin: "var(--transform-origin)",
         '&[data-state="open"]': {
           animation: "popover-in 150ms ease-out",
         },
         '&[data-state="closed"]': {
           animation: "popover-out 100ms ease-in",
-        },
-      },
-      menu: {
-        transformOrigin: "[top left]",
-        '&[data-state="open"]': {
-          animation: "menu-in 150ms ease-out",
-        },
-        '&[data-state="closed"]': {
-          animation: "menu-out 100ms ease-in",
         },
       },
     },
@@ -211,8 +202,8 @@ export interface MenuGroup {
 export interface MenuProps {
   trigger: ReactNode;
   items: MenuItem[] | MenuGroup[];
-  /** Animation style for the menu content. No animation by default. */
-  animation?: "popover" | "menu";
+  /** Whether to animate the menu open/close. Adapts direction automatically. */
+  animated?: boolean;
   /** Preferred placement of the menu relative to the trigger. */
   placement?:
     | "top"
@@ -273,7 +264,7 @@ const MenuItemContent = ({ item }: { item: MenuItem }) => (
 export const Menu: React.FC<MenuProps> = ({
   trigger,
   items,
-  animation,
+  animated,
   placement,
 }) => {
   const portalContainerRef = usePortalContainerRef();
@@ -281,14 +272,14 @@ export const Menu: React.FC<MenuProps> = ({
 
   return (
     <ArkMenu.Root
-      lazyMount={!!animation}
-      unmountOnExit={!!animation}
+      lazyMount={!!animated}
+      unmountOnExit={!!animated}
       positioning={placement ? { placement, gutter: 4 } : { gutter: 4 }}
     >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <Portal container={portalContainerRef}>
         <ArkMenu.Positioner>
-          <ArkMenu.Content className={menuContentStyle({ animation })}>
+          <ArkMenu.Content className={menuContentStyle({ animated })}>
             {groups.map((group, groupIndex) => (
               <div key={group.title ?? `group-${String(groupIndex)}`}>
                 {groupIndex > 0 && <div className={separatorStyle} />}
