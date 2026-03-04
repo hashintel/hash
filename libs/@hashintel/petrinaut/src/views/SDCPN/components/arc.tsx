@@ -63,8 +63,11 @@ function useFiringAnimation(
     const path = pathRef.current;
 
     // Stroke width based on total transitions
-    const peakStrokeWidth =
-      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * 6 * weight;
+    const peakStrokeWidth = Math.min(
+      60,
+      BASE_STROKE_WIDTH +
+        Math.log(1 + transitionsToAnimate) * Math.min(3 * weight, 20),
+    );
 
     const animation = path.animate(
       [
