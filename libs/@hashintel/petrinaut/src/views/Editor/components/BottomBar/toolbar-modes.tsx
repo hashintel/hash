@@ -28,12 +28,19 @@ const cursorTriggerStyle = cva({
     height: "8",
     paddingX: "[6px]",
     fontSize: "[20px]",
+    "& > *": {
+      transition: "[transform 0.2s ease]",
+    },
     _hover: {
-      transform: "[scale(1.05)]",
       color: "neutral.s120",
+      "& > *": {
+        transform: "[scale(1.05)]",
+      },
     },
     _active: {
-      transform: "[scale(0.95)]",
+      "& > *": {
+        transform: "[scale(0.95)]",
+      },
     },
   },
   variants: {
@@ -60,6 +67,13 @@ const cursorMenuContentStyle = css({
   minWidth: "[150px]",
   zIndex: "[10001]",
   padding: "[4px]",
+  transformOrigin: "var(--transform-origin)",
+  '&[data-state="open"]': {
+    animation: "popover-in 150ms ease-out",
+  },
+  '&[data-state="closed"]': {
+    animation: "popover-out 100ms ease-in",
+  },
 });
 
 const cursorMenuItemStyle = cva({
@@ -109,6 +123,8 @@ const CursorModeDropdown: React.FC<{
   return (
     <Menu.Root
       positioning={{ placement: "top", gutter: 8 }}
+      lazyMount
+      unmountOnExit
       onSelect={({ value }) => {
         onEditionModeChange(value as EditorEditionMode);
       }}

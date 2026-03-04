@@ -191,7 +191,11 @@ export const PlaybackSettingsMenu = () => {
   };
 
   return (
-    <Popover.Root positioning={{ placement: "top", gutter: 8 }}>
+    <Popover.Root
+      positioning={{ placement: "top", gutter: 8 }}
+      lazyMount
+      unmountOnExit
+    >
       <Popover.Trigger asChild>
         <span style={{ display: "inline-flex" }}>
           <ToolbarButton

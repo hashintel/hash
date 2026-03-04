@@ -61,6 +61,14 @@ export default defineConfig({
           from: { opacity: "1", transform: "scale(1)" },
           to: { opacity: "0", transform: "scale(0.95)" },
         },
+        "popover-in": {
+          from: { opacity: "0", transform: "scale(0.98) translateY(6px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        "popover-out": {
+          from: { opacity: "1", transform: "scale(1) translateY(0)" },
+          to: { opacity: "0", transform: "scale(0.98) translateY(6px)" },
+        },
       },
     },
   },
