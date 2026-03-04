@@ -31,9 +31,7 @@ const panelStyle = cva({
   base: {},
   variants: {
     open: {
-      true: {
-        transform: "translateX(0)",
-      },
+      true: {},
       false: {
         transform: "translateX(100%)",
         pointerEvents: "none",
