@@ -9,6 +9,7 @@ import {
   TbSettings,
 } from "react-icons/tb";
 
+import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
 import {
   formatPlaybackSpeed,
@@ -128,27 +129,9 @@ const popoverDividerStyle = css({
 
 const maxTimeInputStyle = css({
   width: "[60px]",
-  height: "[24px]",
-  padding: "[0 6px]",
-  fontSize: "[13px]",
-  fontWeight: "medium",
   textAlign: "right",
-  color: "neutral.s120",
-  backgroundColor: "neutral.s10",
-  border: "[1px solid]",
-  borderColor: "neutral.s20",
-  borderRadius: "[6px]",
-  outline: "none",
   flexShrink: 0,
   fontVariantNumeric: "tabular-nums",
-  _focus: {
-    borderColor: "blue.s50",
-    boxShadow: "[0 0 0 2px rgba(59, 130, 246, 0.2)]",
-  },
-  "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button": {
-    appearance: "none",
-    margin: "[0]",
-  },
 });
 
 // Split speeds into two rows of 4
@@ -350,14 +333,16 @@ export const PlaybackSettingsMenu = () => {
               <span className={menuItemTextStyle}>End at fixed time</span>
               {stoppingCondition === "fixed" && (
                 <>
-                  <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
+                  <NumberInput
+                    size="xs"
+                    min={0.1}
+                    step={0.1}
                     value={maxTime ?? 10}
                     disabled={hasSimulation}
                     onChange={(event) => {
-                      const value = Number.parseFloat(event.target.value);
+                      const value = Number.parseFloat(
+                        (event.target as HTMLInputElement).value,
+                      );
                       if (!Number.isNaN(value) && value > 0) {
                         setMaxTime(value);
                       }

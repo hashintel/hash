@@ -2,6 +2,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
+import { NumberInput } from "../../../../../components/number-input";
+import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
@@ -55,42 +57,7 @@ const smallLabelStyle = css({
   fontWeight: "[400]",
 });
 
-const inputStyle = css({
-  fontSize: "[13px]",
-  padding: "[5px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[white]",
-  width: "[100px]",
-});
-
-const inputDisabledStyle = css({
-  fontSize: "[13px]",
-  padding: "[5px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  cursor: "not-allowed",
-  width: "[100px]",
-});
-
-const selectStyle = css({
-  fontSize: "[13px]",
-  padding: "[5px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[white]",
-  cursor: "pointer",
-  width: "[100px]",
-});
-
-const selectDisabledStyle = css({
-  fontSize: "[13px]",
-  padding: "[5px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  cursor: "not-allowed",
+const settingInputStyle = css({
   width: "[100px]",
 });
 
@@ -121,24 +88,8 @@ const parameterVarNameStyle = css({
 });
 
 const parameterInputStyle = css({
-  padding: "[4px 8px]",
-  fontSize: "[13px]",
-  borderRadius: "[4px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  backgroundColor: "[white]",
   width: "[80px]",
   textAlign: "right",
-});
-
-const parameterInputDisabledStyle = css({
-  padding: "[4px 8px]",
-  fontSize: "[13px]",
-  borderRadius: "[4px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  width: "[80px]",
-  textAlign: "right",
-  cursor: "not-allowed",
 });
 
 const emptyMessageStyle = css({
@@ -228,21 +179,20 @@ const SimulationSettingsContent: React.FC = () => {
                       {param.variableName}
                     </div>
                   </div>
-                  <input
-                    type="number"
+                  <NumberInput
+                    size="xs"
                     value={
                       parameterValues[param.variableName] ?? param.defaultValue
                     }
                     onChange={(event) =>
-                      setParameterValue(param.variableName, event.target.value)
+                      setParameterValue(
+                        param.variableName,
+                        (event.target as HTMLInputElement).value,
+                      )
                     }
                     placeholder={param.defaultValue}
                     disabled={isSimulationActive}
-                    className={
-                      isSimulationActive
-                        ? parameterInputDisabledStyle
-                        : parameterInputStyle
-                    }
+                    className={parameterInputStyle}
                   />
                 </div>
               ))}
@@ -263,20 +213,22 @@ const SimulationSettingsContent: React.FC = () => {
                 Time Step <span className={smallLabelStyle}>(sec/frame)</span>
                 <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
               </label>
-              <input
+              <NumberInput
                 id="time-step-input"
-                type="number"
-                min="0.01"
-                step="0.01"
+                size="xs"
+                min={0.01}
+                step={0.01}
                 value={dt}
                 onChange={(event) => {
-                  const value = Number.parseFloat(event.target.value);
+                  const value = Number.parseFloat(
+                    (event.target as HTMLInputElement).value,
+                  );
                   if (value > 0) {
                     setDt(value);
                   }
                 }}
                 disabled={isSimulationActive}
-                className={isSimulationActive ? inputDisabledStyle : inputStyle}
+                className={settingInputStyle}
               />
             </div>
             {/* ODE Solver Method Select */}
@@ -285,17 +237,14 @@ const SimulationSettingsContent: React.FC = () => {
               <label htmlFor="ode-solver-select" className={labelStyle}>
                 ODE Solver
               </label>
-              <select
-                id="ode-solver-select"
+              <Select
                 value={odeSolver}
-                onChange={(event) => setOdeSolver(event.target.value)}
+                onValueChange={(value) => setOdeSolver(value)}
+                options={[{ value: "euler", label: "Euler" }]}
+                size="xs"
                 disabled={isSimulationActive}
-                className={
-                  isSimulationActive ? selectDisabledStyle : selectStyle
-                }
-              >
-                <option value="euler">Euler</option>
-              </select>
+                className={settingInputStyle}
+              />
             </div>
           </div>
         </div>

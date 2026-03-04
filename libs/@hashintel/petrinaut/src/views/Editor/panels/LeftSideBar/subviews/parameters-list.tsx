@@ -4,6 +4,7 @@ import { TbPlus } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
+import { NumberInput } from "../../../../../components/number-input";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -59,19 +60,9 @@ const actionsContainerStyle = css({
   gap: "[6px]",
 });
 
-const inputStyle = css({
-  padding: "[2px 6px]",
-  fontSize: "[12px]",
-  borderRadius: "sm",
-  border: "1px solid",
-  borderColor: "neutral.s30",
-  backgroundColor: "[white]",
+const parameterValueInputStyle = css({
   width: "[80px]",
   textAlign: "right",
-  _focus: {
-    outline: "none",
-    borderColor: "blue.s50",
-  },
 });
 
 const deleteButtonStyle = css({
@@ -203,17 +194,20 @@ const ParametersList: React.FC = () => {
               </div>
               <div className={actionsContainerStyle}>
                 {isSimulationMode ? (
-                  <input
-                    type="number"
+                  <NumberInput
+                    size="xs"
                     value={
                       parameterValues[param.variableName] ?? param.defaultValue
                     }
                     onChange={(event) =>
-                      setParameterValue(param.variableName, event.target.value)
+                      setParameterValue(
+                        param.variableName,
+                        (event.target as HTMLInputElement).value,
+                      )
                     }
                     placeholder={param.defaultValue}
                     readOnly={!isSimulationNotRun}
-                    className={inputStyle}
+                    className={parameterValueInputStyle}
                   />
                 ) : (
                   <Tooltip
