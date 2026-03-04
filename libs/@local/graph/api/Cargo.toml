@@ -28,6 +28,7 @@ axum            = { workspace = true, public = true }
 axum-core       = { workspace = true, public = true }
 futures-channel = { workspace = true, public = true }
 http            = { workspace = true, public = true }
+jsonwebtoken    = { workspace = true, public = true }
 tower-http      = { workspace = true, public = true }
 tracing         = { workspace = true, public = true }
 
@@ -57,7 +58,6 @@ frunk                              = { workspace = true }
 futures                            = { workspace = true }
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
-jsonwebtoken                       = { workspace = true, features = ["aws_lc_rs"] }
 mime                               = { workspace = true }
 opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }

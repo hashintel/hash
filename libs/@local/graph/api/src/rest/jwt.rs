@@ -21,31 +21,9 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jw
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use time::OffsetDateTime;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::rest::status::{BoxedResponse, report_to_response};
-
-/// How long to cache JWKS keys before re-fetching.
-const JWKS_CACHE_TTL: Duration = Duration::from_hours(1);
-
-/// Minimum interval between forced JWKS refreshes (unknown key ID).
-///
-/// Prevents attackers from triggering unbounded outbound fetches by crafting tokens with arbitrary
-/// `kid` values. During this cooldown, unknown key IDs are rejected from the cached JWKS without a
-/// network request.
-const JWKS_FORCE_REFRESH_COOLDOWN: Duration = Duration::from_secs(30);
-
-/// Asymmetric algorithms we accept in JWT headers.
-///
-/// This allowlist prevents algorithm confusion attacks (e.g. `HS256` with an RSA public key used as
-/// HMAC secret).
-const ALLOWED_ALGORITHMS: &[Algorithm] = &[
-    Algorithm::RS256,
-    Algorithm::RS384,
-    Algorithm::RS512,
-    Algorithm::ES256,
-    Algorithm::ES384,
-];
 
 /// Raw JWT claims for deserialization from the token payload.
 ///
@@ -103,6 +81,24 @@ pub enum JwtError {
     NotConfigured,
 }
 
+/// Configuration for [`JwtValidator`].
+pub struct JwtValidatorConfig {
+    /// JWKS endpoint URL.
+    pub jwks_url: Url,
+    /// Expected audience claim.
+    pub audience: String,
+    /// Expected issuer claim.
+    pub issuer: String,
+    /// How long to cache JWKS keys before re-fetching.
+    pub jwks_cache_ttl: Duration,
+    /// Minimum interval between forced JWKS refreshes (unknown key ID).
+    pub jwks_refresh_cooldown: Duration,
+    /// HTTP client timeout for JWKS fetches.
+    pub http_timeout: Duration,
+    /// Algorithms accepted in JWT headers.
+    pub allowed_algorithms: Vec<Algorithm>,
+}
+
 /// Validates JWTs against a JWKS endpoint.
 ///
 /// Fetches public keys from the configured JWKS URL and caches them. Keys are refreshed when the
@@ -112,11 +108,16 @@ pub struct JwtValidator {
     issuer: String,
     jwks_url: Url,
     http_client: Client,
-    cache: RwLock<Option<(std::time::Instant, JwkSet)>>,
+    cache: RwLock<Option<(Instant, JwkSet)>>,
+    /// Serializes JWKS fetches so only one outbound request is in-flight at a time.
+    fetch_mutex: Mutex<()>,
+    jwks_cache_ttl: Duration,
+    jwks_refresh_cooldown: Duration,
+    allowed_algorithms: Vec<Algorithm>,
 }
 
 impl JwtValidator {
-    /// Creates a new JWT validator.
+    /// Creates a new JWT validator from the given configuration.
     ///
     /// Does not eagerly fetch JWKS -- the first request triggers the initial fetch.
     ///
@@ -124,16 +125,20 @@ impl JwtValidator {
     ///
     /// Panics if the HTTP client cannot be built (should not happen with default TLS config).
     #[must_use]
-    pub fn new(jwks_url: Url, audience: String, issuer: String) -> Self {
+    pub fn new(config: JwtValidatorConfig) -> Self {
         Self {
-            audience,
-            issuer,
-            jwks_url,
+            audience: config.audience,
+            issuer: config.issuer,
+            jwks_url: config.jwks_url,
             http_client: Client::builder()
-                .timeout(Duration::from_secs(10))
+                .timeout(config.http_timeout)
                 .build()
                 .expect("failed to build HTTP client"),
             cache: RwLock::new(None),
+            fetch_mutex: Mutex::new(()),
+            jwks_cache_ttl: config.jwks_cache_ttl,
+            jwks_refresh_cooldown: config.jwks_refresh_cooldown,
+            allowed_algorithms: config.allowed_algorithms,
         }
     }
 
@@ -154,7 +159,7 @@ impl JwtValidator {
     pub async fn validate(&self, token: &str) -> Result<JwtClaims, Report<JwtError>> {
         let header = decode_header(token).change_context(JwtError::Validation)?;
 
-        if !ALLOWED_ALGORITHMS.contains(&header.alg) {
+        if !self.allowed_algorithms.contains(&header.alg) {
             return Err(Report::new(JwtError::Validation))
                 .attach(format!("algorithm {:?} is not allowed", header.alg));
         }
@@ -213,23 +218,23 @@ impl JwtValidator {
     ///
     /// When `force_refresh` is `true`, fetches unless the cache was refreshed within the cooldown
     /// period (to prevent denial-of-service via crafted `kid` values).
+    ///
+    /// The fetch mutex ensures only one outbound JWKS request is in-flight at a time. Concurrent
+    /// callers wait for the single fetch to complete and then re-check the cache.
     async fn get_jwks(&self, force_refresh: bool) -> Result<JwkSet, Report<JwtError>> {
-        // Check cache first (read lock)
-        {
-            let cache = self.cache.read().await;
-            if let Some((fetched_at, ref jwks)) = *cache {
-                let age = fetched_at.elapsed();
-                if !force_refresh && age < JWKS_CACHE_TTL {
-                    return Ok(jwks.clone());
-                }
-                if force_refresh && age < JWKS_FORCE_REFRESH_COOLDOWN {
-                    // Within cooldown — use cached keys even for unknown kid
-                    return Ok(jwks.clone());
-                }
-            }
+        // Fast path: serve from cache without acquiring the fetch mutex.
+        if let Some(jwks) = self.cached_jwks(force_refresh).await {
+            return Ok(jwks);
         }
 
-        // Fetch outside any lock to avoid blocking concurrent validations
+        // Serialize fetches — only one task fetches at a time.
+        let _fetch_guard = self.fetch_mutex.lock().await;
+
+        // Re-check after acquiring the mutex: another task may have refreshed while we waited.
+        if let Some(jwks) = self.cached_jwks(force_refresh).await {
+            return Ok(jwks);
+        }
+
         let response = self
             .http_client
             .get(self.jwks_url.clone())
@@ -245,9 +250,22 @@ impl JwtValidator {
             .change_context(JwtError::JwksFetch)
             .attach("failed to deserialize JWKS response")?;
 
-        let result = jwks.clone();
-        *self.cache.write().await = Some((Instant::now(), jwks));
-        Ok(result)
+        *self.cache.write().await = Some((Instant::now(), jwks.clone()));
+        Ok(jwks)
+    }
+
+    /// Returns cached JWKS if still valid, or `None` if a fetch is needed.
+    async fn cached_jwks(&self, force_refresh: bool) -> Option<JwkSet> {
+        let cache = self.cache.read().await;
+        let (fetched_at, jwks) = (*cache).as_ref()?;
+        let age = fetched_at.elapsed();
+        if !force_refresh && age < self.jwks_cache_ttl
+            || force_refresh && age < self.jwks_refresh_cooldown
+        {
+            return Some(jwks.clone());
+        }
+        drop(cache);
+        None
     }
 }
 
