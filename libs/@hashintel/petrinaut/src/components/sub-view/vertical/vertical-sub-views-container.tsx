@@ -291,6 +291,8 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
 );
 
 interface VerticalSubViewsContainerProps {
+  /** Unique name used as a key in UserSettingsContext to persist section state */
+  name: string;
   /** Array of subviews to display */
   subViews: SubView[];
   /** Whether sections should be expanded by default */
@@ -304,12 +306,19 @@ interface VerticalSubViewsContainerProps {
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
-> = ({ subViews, defaultExpanded = true }) => {
-  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(subViews.map((sv) => [sv.id, !defaultExpanded])),
-  );
+> = ({ name, subViews, defaultExpanded = true }) => {
+  const { showAnimations, subViewPanels, updateSubViewSection } =
+    use(UserSettingsContext);
 
-  const { showAnimations } = use(UserSettingsContext);
+  const containerSettings = subViewPanels[name];
+
+  const isSectionCollapsed = (id: string): boolean => {
+    const saved = containerSettings?.[id];
+    if (saved !== undefined) {
+      return saved.collapsed;
+    }
+    return !defaultExpanded;
+  };
 
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
@@ -318,12 +327,12 @@ export const VerticalSubViewsContainer: React.FC<
     if (showAnimations) {
       triggerTransition();
     }
-    setCollapsedState((prev) => ({ ...prev, [id]: !prev[id] }));
+    updateSubViewSection(name, id, { collapsed: !isSectionCollapsed(id) });
   };
 
   const allCollapsed = subViews.every((sv) => {
     const isCollapsible = !sv.main && (sv.collapsible ?? true);
-    return isCollapsible && collapsedState[sv.id];
+    return isCollapsible && isSectionCollapsed(sv.id);
   });
 
   return (
@@ -334,7 +343,7 @@ export const VerticalSubViewsContainer: React.FC<
       {subViews.map((subView, index) => {
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);
-        const isExpanded = !isCollapsible || !collapsedState[subView.id];
+        const isExpanded = !isCollapsible || !isSectionCollapsed(subView.id);
         const Component = subView.component;
         const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 

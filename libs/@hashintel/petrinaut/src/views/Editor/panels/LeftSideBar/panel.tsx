@@ -76,7 +76,10 @@ export const LeftSideBar: React.FC = () => {
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}
     >
-      <VerticalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
+      <VerticalSubViewsContainer
+        name="left-sidebar"
+        subViews={LEFT_SIDEBAR_SUBVIEWS}
+      />
     </GlassPanel>
   );
 };
