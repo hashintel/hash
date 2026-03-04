@@ -1,12 +1,10 @@
-import { Menu } from "@ark-ui/react/menu";
-import { Portal } from "@ark-ui/react/portal";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { FaChevronDown, FaRegHand } from "react-icons/fa6";
 import { LuMousePointerClick } from "react-icons/lu";
 import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
 
+import { Menu, type MenuItem } from "../../../../components/menu";
 import type { EditorState } from "../../../../state/editor-context";
-import { usePortalContainerRef } from "../../../../state/portal-container-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -59,77 +57,34 @@ const dropdownArrowStyle = css({
   opacity: "[0.5]",
 });
 
-const cursorMenuContentStyle = css({
-  background: "[white]",
-  borderRadius: "[8px]",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 4px 12px rgba(0, 0, 0, 0.12)]",
-  minWidth: "[150px]",
-  zIndex: "[10001]",
-  padding: "[4px]",
-  transformOrigin: "var(--transform-origin)",
-  '&[data-state="open"]': {
-    animation: "popover-in 150ms ease-out",
-  },
-  '&[data-state="closed"]': {
-    animation: "popover-out 100ms ease-in",
-  },
-});
-
-const cursorMenuItemStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    gap: "[8px]",
-    width: "[100%]",
-    height: "[32px]",
-    paddingX: "[8px]",
-    borderRadius: "[6px]",
-    fontSize: "[14px]",
-    fontWeight: "medium",
-    color: "neutral.s120",
-    cursor: "pointer",
-    _hover: {
-      backgroundColor: "neutral.s10",
-    },
-  },
-  variants: {
-    selected: {
-      true: {
-        backgroundColor: "blue.s20",
-        color: "[#3b82f6]",
-        _hover: {
-          backgroundColor: "blue.s20",
-        },
-      },
-    },
-  },
-});
-
-const shortcutStyle = css({
-  marginLeft: "auto",
-  fontSize: "[12px]",
-  color: "neutral.s80",
-  fontWeight: "normal",
-});
-
 const CursorModeDropdown: React.FC<{
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }> = ({ editionMode, onEditionModeChange }) => {
-  const portalContainerRef = usePortalContainerRef();
   const isCursorMode = editionMode === "select" || editionMode === "pan";
 
+  const items: MenuItem[] = [
+    {
+      id: "select",
+      icon: <LuMousePointerClick size={14} />,
+      label: "Select",
+      suffix: "V",
+      selected: editionMode === "select",
+      onClick: () => onEditionModeChange("select"),
+    },
+    {
+      id: "pan",
+      icon: <FaRegHand size={14} />,
+      label: "Pan",
+      suffix: "H",
+      selected: editionMode === "pan",
+      onClick: () => onEditionModeChange("pan"),
+    },
+  ];
+
   return (
-    <Menu.Root
-      positioning={{ placement: "top", gutter: 8 }}
-      lazyMount
-      unmountOnExit
-      onSelect={({ value }) => {
-        onEditionModeChange(value as EditorEditionMode);
-      }}
-    >
-      <Menu.Trigger asChild>
+    <Menu
+      trigger={
         <button
           type="button"
           className={cursorTriggerStyle({ isActive: isCursorMode })}
@@ -142,34 +97,11 @@ const CursorModeDropdown: React.FC<{
           )}
           <FaChevronDown size={7} className={dropdownArrowStyle} />
         </button>
-      </Menu.Trigger>
-      <Portal container={portalContainerRef}>
-        <Menu.Positioner>
-          <Menu.Content className={cursorMenuContentStyle}>
-            <Menu.Item
-              value="select"
-              className={cursorMenuItemStyle({
-                selected: editionMode === "select",
-              })}
-            >
-              <LuMousePointerClick size={14} />
-              <span>Select</span>
-              <span className={shortcutStyle}>V</span>
-            </Menu.Item>
-            <Menu.Item
-              value="pan"
-              className={cursorMenuItemStyle({
-                selected: editionMode === "pan",
-              })}
-            >
-              <FaRegHand size={14} />
-              <span>Pan</span>
-              <span className={shortcutStyle}>H</span>
-            </Menu.Item>
-          </Menu.Content>
-        </Menu.Positioner>
-      </Portal>
-    </Menu.Root>
+      }
+      items={items}
+      placement="top"
+      animation="popover"
+    />
   );
 };
 
