@@ -41,29 +41,46 @@ impl fmt::Display for AdminAddress {
 
 /// JWT authentication configuration for the admin server.
 ///
-/// When all three fields are provided, JWT authentication is enabled. When none are provided, JWT
-/// authentication is disabled (development mode). Providing a partial configuration is a clap
-/// error.
+/// All three fields must be provided together or not at all. When none are set, JWT authentication
+/// is disabled (development mode). Partial configuration is rejected by clap's `requires`.
+///
+/// Ideally this would be `Option<JwtConfig>` with required fields in `AdminConfig`, but clap does
+/// not support optional flattened structs with required fields. See <https://github.com/clap-rs/clap/issues/5092>.
 #[derive(Debug, Clone, Parser)]
 pub struct JwtConfig {
     /// JWKS endpoint URL for JWT signature validation.
     ///
     /// When set, all admin endpoints (except `/health`) require a valid JWT.
     /// For Cloudflare Access, this is typically `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`.
-    #[clap(long = "jwt-jwks-url", env = "HASH_GRAPH_JWT_JWKS_URL")]
-    pub jwks_url: Url,
+    #[clap(
+        long = "jwt-jwks-url",
+        env = "HASH_GRAPH_JWT_JWKS_URL",
+        requires = "audience",
+        requires = "issuer"
+    )]
+    pub jwks_url: Option<Url>,
 
     /// Expected JWT audience claim.
     ///
     /// For Cloudflare Access, this is the Application Audience (AUD) Tag.
-    #[clap(long = "jwt-audience", env = "HASH_GRAPH_JWT_AUDIENCE")]
-    pub audience: String,
+    #[clap(
+        long = "jwt-audience",
+        env = "HASH_GRAPH_JWT_AUDIENCE",
+        requires = "jwks_url",
+        requires = "issuer"
+    )]
+    pub audience: Option<String>,
 
     /// Expected JWT issuer claim.
     ///
     /// For Cloudflare Access, this is typically `https://<team>.cloudflareaccess.com`.
-    #[clap(long = "jwt-issuer", env = "HASH_GRAPH_JWT_ISSUER")]
-    pub issuer: String,
+    #[clap(
+        long = "jwt-issuer",
+        env = "HASH_GRAPH_JWT_ISSUER",
+        requires = "jwks_url",
+        requires = "audience"
+    )]
+    pub issuer: Option<String>,
 }
 
 /// Configuration for the admin server.
@@ -76,7 +93,7 @@ pub struct AdminConfig {
     pub address: AdminAddress,
 
     #[clap(flatten)]
-    pub jwt: Option<JwtConfig>,
+    pub jwt: JwtConfig,
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
@@ -102,16 +119,22 @@ pub(crate) async fn run_admin_server(
     config: AdminConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let jwt_validator = if let Some(jwt) = config.jwt {
-        tracing::info!(jwks_url = %jwt.jwks_url, "JWT authentication enabled for admin API");
-        Some(Arc::new(JwtValidator::new(
-            jwt.jwks_url,
-            jwt.audience,
-            jwt.issuer,
-        )))
-    } else {
-        tracing::warn!("JWT authentication disabled for admin API -- no JWKS URL configured");
-        None
+    let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
+        (Some(jwks_url), Some(audience), Some(issuer)) => {
+            tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
+            Some(Arc::new(JwtValidator::new(jwks_url, audience, issuer)))
+        }
+        (None, None, None) => {
+            tracing::warn!("JWT authentication disabled for admin API -- no JWKS URL configured");
+            None
+        }
+        _ => {
+            // Clap `requires` should prevent this, but guard against it anyway.
+            return Err(Report::new(GraphError).attach(
+                "partial JWT configuration: --jwt-jwks-url, --jwt-audience, and --jwt-issuer must \
+                 all be provided together",
+            ));
+        }
     };
 
     let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
