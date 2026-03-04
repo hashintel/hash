@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, use, useEffect, useRef, useState } from "react";
+import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -320,6 +320,27 @@ export const VerticalSubViewsContainer: React.FC<
     return !defaultExpanded;
   };
 
+  const getSavedHeight = (id: string): number | undefined =>
+    containerSettings?.[id]?.height;
+
+  // Debounce height saves to avoid writing to context on every drag frame
+  const heightTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+
+  const handleResize = useCallback(
+    (id: string) => (panelSize: { inPixels: number }) => {
+      if (panelSize.inPixels <= HEADER_HEIGHT) {
+        return;
+      }
+      clearTimeout(heightTimers.current[id]);
+      heightTimers.current[id] = setTimeout(() => {
+        updateSubViewSection(name, id, { height: panelSize.inPixels });
+      }, 300);
+    },
+    [name, updateSubViewSection],
+  );
+
   const { active: isAnimating, trigger: triggerTransition } =
     useTransientTransition(200);
 
@@ -351,6 +372,8 @@ export const VerticalSubViewsContainer: React.FC<
           <Fragment key={subView.id}>
             <Panel
               id={subView.id}
+              defaultSize={getSavedHeight(subView.id)}
+              onResize={handleResize(subView.id)}
               minSize={isExpanded ? minSize : HEADER_HEIGHT}
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >

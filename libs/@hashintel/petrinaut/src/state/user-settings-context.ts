@@ -11,6 +11,8 @@ export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
 export type SubViewSectionSettings = {
   collapsed: boolean;
+  /** Last known panel height in pixels */
+  height?: number;
 };
 
 /** Outer key: container name, inner key: subview ID */
