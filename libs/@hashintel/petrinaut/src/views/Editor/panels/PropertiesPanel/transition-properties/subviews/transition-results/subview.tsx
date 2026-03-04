@@ -34,16 +34,6 @@ const aiIconStyle = css({
   fontSize: "[16px]",
 });
 
-const noOutputTypesBoxStyle = css({
-  backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  padding: "[12px]",
-  fontSize: "[12px]",
-  color: "[#666]",
-  lineHeight: "[1.5]",
-});
-
 const contentStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -51,9 +41,11 @@ const contentStyle = css({
   minHeight: "[0]",
 });
 
-const noOutputTitleStyle = css({
-  fontWeight: "medium",
-  marginBottom: "[4px]",
+const messageStyle = css({
+  padding: "[12px]",
+  fontSize: "[12px]",
+  color: "[#666]",
+  lineHeight: "[1.5]",
 });
 
 const ResultsHeaderAction: React.FC = () => {
@@ -62,6 +54,15 @@ const ResultsHeaderAction: React.FC = () => {
   const { globalMode } = use(EditorContext);
 
   if (globalMode !== "edit") {
+    return null;
+  }
+
+  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
+    const place = places.find((p) => p.id === arc.placeId);
+    return place && place.colorId;
+  });
+
+  if (!hasOutputPlaceWithType) {
     return null;
   }
 
@@ -153,13 +154,10 @@ const TransitionResultsContent: React.FC = () => {
 
   if (!hasOutputPlaceWithType) {
     return (
-      <div className={noOutputTypesBoxStyle}>
-        <div className={noOutputTitleStyle}>Transition Results</div>
-        <div>
-          The Transition Results section is not available because none of the
-          output places have a type defined. To enable this feature, assign a
-          type to at least one output place.
-        </div>
+      <div className={messageStyle}>
+        The Transition Results section is not available because none of the
+        output places have a type defined. To enable this feature, assign a type
+        to at least one output place.
       </div>
     );
   }
