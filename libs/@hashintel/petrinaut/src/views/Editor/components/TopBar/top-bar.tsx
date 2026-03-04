@@ -2,6 +2,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { FaBars } from "react-icons/fa6";
 import {
+  TbArrowBackUp,
+  TbArrowForwardUp,
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
@@ -12,8 +14,10 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
+import { UndoRedoContext } from "../../../../state/undo-redo-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
+import { VersionHistoryButton } from "./version-history-button";
 
 const topBarStyle = css({
   display: "flex",
@@ -65,6 +69,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onModeChange,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen } = use(EditorContext);
+  const undoRedo = use(UndoRedoContext);
 
   return (
     <div className={topBarStyle}>
@@ -105,7 +110,29 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
-        {/* Right section - version info, save button, etc. (placeholder for now) */}
+        {undoRedo && (
+          <>
+            <IconButton
+              size="xs"
+              variant="ghost"
+              aria-label="Undo (Cmd+Z)"
+              disabled={!undoRedo.canUndo}
+              onClick={undoRedo.undo}
+            >
+              <TbArrowBackUp size={16} />
+            </IconButton>
+            <IconButton
+              size="xs"
+              variant="ghost"
+              aria-label="Redo (Cmd+Shift+Z)"
+              disabled={!undoRedo.canRedo}
+              onClick={undoRedo.redo}
+            >
+              <TbArrowForwardUp size={16} />
+            </IconButton>
+            <VersionHistoryButton />
+          </>
+        )}
       </div>
     </div>
   );
