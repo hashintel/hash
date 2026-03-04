@@ -43,11 +43,13 @@ const rowStyle = css({
   height: "[28px]",
   position: "relative",
   "& [data-arc-delete]": {
-    opacity: "[0]",
-    transition: "[opacity 100ms ease]",
+    width: "0",
+    opacity: "0",
+    transition: "[width 150ms ease, opacity 150ms ease]",
   },
   "&:hover [data-arc-delete]": {
-    opacity: "[1]",
+    width: "5",
+    opacity: "1",
   },
 });
 
@@ -159,8 +161,6 @@ const weightCellStyle = css({
   border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "[8px]",
   borderLeftRadius: "[var(--inset-lip-radius)]",
-  position: "relative",
-  overflow: "hidden",
 });
 
 const weightInputStyle = css({
@@ -183,16 +183,25 @@ const weightInputStyle = css({
   },
 });
 
-const deleteOverlayStyle = css({
-  position: "absolute",
-  inset: "[0]",
+const deleteContainerStyle = css({
+  overflow: "hidden",
+  flexShrink: 0,
+  height: "[100%]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+const deleteButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  background: "[var(--background-color)]",
+  background: "[none]",
   border: "none",
+  padding: "[0]",
   color: "[#ef4444]",
+  height: "[100%]",
 });
 
 const selectRootStyle = css({
@@ -360,18 +369,19 @@ export const ArcItem = ({
             }
           }}
         />
-        {onDelete && !disabled && (
+      </div>
+      {onDelete && !disabled && (
+        <div data-arc-delete="" className={deleteContainerStyle}>
           <button
             type="button"
-            data-arc-delete=""
-            className={deleteOverlayStyle}
+            className={deleteButtonStyle}
             onClick={onDelete}
             aria-label="Delete arc"
           >
             <TbTrash size={14} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
