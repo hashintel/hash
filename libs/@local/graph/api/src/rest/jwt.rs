@@ -295,13 +295,13 @@ impl<S: Sync> FromRequestParts<S> for JwtAuthentication {
             .map_err(report_to_response)?;
 
         let token = extract_token_from_headers(&parts.headers)
-            .attach_opaque(StatusCode::Unauthorized)
+            .attach_opaque(StatusCode::Unauthenticated)
             .map_err(report_to_response)?;
 
         let claims = validator
             .validate(&token)
             .await
-            .attach_opaque(StatusCode::Unauthorized)
+            .attach_opaque(StatusCode::Unauthenticated)
             .map_err(report_to_response)?;
 
         Ok(Self(claims))
@@ -328,13 +328,13 @@ impl<S: Sync> FromRequestParts<S> for OptionalJwtAuthentication {
         };
 
         let token = extract_token_from_headers(&parts.headers)
-            .attach_opaque(StatusCode::Unauthorized)
+            .attach_opaque(StatusCode::Unauthenticated)
             .map_err(report_to_response)?;
 
         let claims = validator
             .validate(&token)
             .await
-            .attach_opaque(StatusCode::Unauthorized)
+            .attach_opaque(StatusCode::Unauthenticated)
             .map_err(report_to_response)?;
 
         Ok(Self(Some(claims)))

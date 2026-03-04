@@ -3356,7 +3356,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(AccountInsertionError)?
             .ok_or(AccountInsertionError)
-            .attach_opaque(StatusCode::Unauthorized)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
             .create_user(params.user_id)
@@ -3712,7 +3712,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(WebInsertionError)?
             .ok_or(WebInsertionError)
-            .attach_opaque(StatusCode::Unauthorized)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let administrator = if let Some(administrator) = params.administrator {
             transaction

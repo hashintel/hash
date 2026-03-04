@@ -95,7 +95,7 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 
         let email = claims.email.ok_or_else(|| {
             report_to_response(
-                Report::new(AdminActorError::MissingEmail).attach(StatusCode::Unauthorized),
+                Report::new(AdminActorError::MissingEmail).attach(StatusCode::Unauthenticated),
             )
         })?;
 
@@ -113,7 +113,7 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
             .map_err(report_to_response)?
             .ok_or_else(|| {
                 report_to_response(
-                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::Unauthorized),
+                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::Unauthenticated),
                 )
             })?;
 

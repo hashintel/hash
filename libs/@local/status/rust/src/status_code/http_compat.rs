@@ -6,7 +6,7 @@ impl StatusCode {
         match self {
             Self::Ok => 200,
             Self::FailedPrecondition | Self::InvalidArgument | Self::OutOfRange => 400,
-            Self::Unauthorized => 401,
+            Self::Unauthenticated => 401,
             Self::PermissionDenied => 403,
             Self::NotFound => 404,
             Self::Aborted | Self::AlreadyExists => 409,
