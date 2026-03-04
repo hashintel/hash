@@ -176,7 +176,7 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   return (
     <IconButton
       aria-label="Add differential equation"
-      size="sm"
+      size="xxs"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       onClick={() => {

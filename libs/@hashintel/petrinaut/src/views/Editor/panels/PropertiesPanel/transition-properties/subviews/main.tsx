@@ -217,7 +217,7 @@ const DeleteTransitionAction: React.FC = () => {
   return (
     <IconButton
       aria-label="Delete"
-      variant="danger"
+      colorScheme="red"
       onClick={() => {
         if (
           // eslint-disable-next-line no-alert

@@ -388,7 +388,7 @@ const DiffEqCodeAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="sm">
+        <IconButton aria-label="More options" size="xxs">
           <TbDotsVertical />
         </IconButton>
       }

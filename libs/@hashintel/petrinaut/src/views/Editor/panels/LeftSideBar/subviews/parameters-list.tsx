@@ -135,7 +135,7 @@ const ParametersHeaderAction: React.FC = () => {
   return (
     <IconButton
       aria-label="Add parameter"
-      size="sm"
+      size="xxs"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       onClick={handleAddParameter}
