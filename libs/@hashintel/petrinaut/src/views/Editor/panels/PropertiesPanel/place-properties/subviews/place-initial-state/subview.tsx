@@ -141,6 +141,7 @@ export const placeInitialStateSubView: SubView = {
     "Define the initial tokens in this place. During simulation, shows current state.",
   component: PlaceInitialStateContent,
   renderHeaderAction: () => <ClearStateHeaderAction />,
+  defaultCollapsed: true,
   minHeight: 250,
   resizable: {
     defaultHeight: 300,

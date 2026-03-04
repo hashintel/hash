@@ -156,6 +156,7 @@ const TransitionFiringTimeContent: React.FC = () => {
 export const transitionFiringTimeSubView: SubView = {
   id: "transition-firing-time",
   title: "Firing Time",
+  defaultCollapsed: true,
   minHeight: 340,
   tooltip:
     "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",

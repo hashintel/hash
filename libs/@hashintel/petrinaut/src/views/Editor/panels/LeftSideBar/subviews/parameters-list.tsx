@@ -291,6 +291,7 @@ export const parametersListSubView: SubView = {
     "Parameters are injected into dynamics, lambda, and kernel functions.",
   component: ParametersList,
   renderHeaderAction: () => <ParametersHeaderAction />,
+  defaultCollapsed: true,
   resizable: {
     defaultHeight: 100,
     minHeight: 60,

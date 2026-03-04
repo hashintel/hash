@@ -234,6 +234,7 @@ export const differentialEquationsListSubView: SubView = {
   tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
   component: DifferentialEquationsSectionContent,
   renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
+  defaultCollapsed: true,
   resizable: {
     defaultHeight: 100,
     minHeight: 60,

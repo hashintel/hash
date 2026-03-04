@@ -328,5 +328,6 @@ export const placeVisualizerSubView: SubView = {
     "Custom visualization of tokens in this place, defined by visualizer code.",
   component: PlaceVisualizerContent,
   renderHeaderAction: () => <VisualizerHeaderAction />,
+  defaultCollapsed: true,
   minHeight: 200,
 };
