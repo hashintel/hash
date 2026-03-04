@@ -1,7 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { TbPlus } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
+import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -80,32 +82,6 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-});
-
-const addButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "sm",
-  cursor: "pointer",
-  fontSize: "[16px]",
-  color: "neutral.s105",
-  background: "[transparent]",
-  border: "none",
-  width: "[20px]",
-  height: "[20px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "neutral.s120",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.4]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "neutral.s105",
-    },
-  },
 });
 
 /**
@@ -198,30 +174,25 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <Tooltip
-      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-      display="inline"
+    <IconButton
+      aria-label="Add differential equation"
+      size="sm"
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      onClick={() => {
+        const name = `Equation ${differentialEquations.length + 1}`;
+        const id = uuidv4();
+        addDifferentialEquation({
+          id,
+          name,
+          colorId: types.length > 0 ? types[0]!.id : "",
+          code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+        });
+        setSelectedResourceId(id);
+      }}
     >
-      <button
-        type="button"
-        disabled={isReadOnly}
-        onClick={() => {
-          const name = `Equation ${differentialEquations.length + 1}`;
-          const id = uuidv4();
-          addDifferentialEquation({
-            id,
-            name,
-            colorId: types.length > 0 ? types[0]!.id : "",
-            code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-          });
-          setSelectedResourceId(id);
-        }}
-        className={addButtonStyle}
-        aria-label="Add differential equation"
-      >
-        +
-      </button>
-    </Tooltip>
+      <TbPlus />
+    </IconButton>
   );
 };
 

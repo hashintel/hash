@@ -1,6 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { TbPlus } from "react-icons/tb";
 
+import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -87,32 +89,6 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-});
-
-const addButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "xs",
-  cursor: "pointer",
-  fontSize: "[16px]",
-  color: "neutral.s105",
-  background: "[transparent]",
-  border: "none",
-  width: "[20px]",
-  height: "[20px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "neutral.s120",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.4]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "neutral.s105",
-    },
-  },
 });
 
 // Pool of 10 well-differentiated colors for types
@@ -250,40 +226,35 @@ const TypesSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <Tooltip
-      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-      display="inline"
-    >
-      <button
-        type="button"
-        disabled={isReadOnly}
-        onClick={() => {
-          const existingColors = types.map((type) => type.displayColor);
-          const existingNames = types.map((type) => type.name);
-          const nextNumber = getNextTypeNumber(existingNames);
-          const nextColor = getNextAvailableColor(existingColors);
+    <IconButton
+      aria-label="Add token type"
+      size="sm"
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      onClick={() => {
+        const existingColors = types.map((type) => type.displayColor);
+        const existingNames = types.map((type) => type.name);
+        const nextNumber = getNextTypeNumber(existingNames);
+        const nextColor = getNextAvailableColor(existingColors);
 
-          const newType = {
-            id: `type__${Date.now()}`,
-            name: `Type ${nextNumber}`,
-            iconSlug: "circle",
-            displayColor: nextColor,
-            elements: [
-              {
-                elementId: `element__${Date.now()}`,
-                name: "dimension_1",
-                type: "real" as const,
-              },
-            ],
-          };
-          addType(newType);
-        }}
-        className={addButtonStyle}
-        aria-label="Add token type"
-      >
-        +
-      </button>
-    </Tooltip>
+        const newType = {
+          id: `type__${Date.now()}`,
+          name: `Type ${nextNumber}`,
+          iconSlug: "circle",
+          displayColor: nextColor,
+          elements: [
+            {
+              elementId: `element__${Date.now()}`,
+              name: "dimension_1",
+              type: "real" as const,
+            },
+          ],
+        };
+        addType(newType);
+      }}
+    >
+      <TbPlus />
+    </IconButton>
   );
 };
 

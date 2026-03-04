@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
+import { IconButton } from "../../../../../../../components/icon-button";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -62,17 +63,6 @@ const messageStyle = css({
 const visualizerErrorStyle = css({
   padding: "[12px]",
   color: "[#d32f2f]",
-});
-
-const menuButtonStyle = css({
-  background: "[transparent]",
-  border: "none",
-  cursor: "pointer",
-  padding: "[4px]",
-  display: "flex",
-  alignItems: "center",
-  fontSize: "[18px]",
-  color: "[rgba(0, 0, 0, 0.6)]",
 });
 
 const aiMenuItemStyle = css({
@@ -277,9 +267,9 @@ const VisualizerHeaderAction: React.FC = () => {
         <Menu
           animated
           trigger={
-            <button type="button" className={menuButtonStyle}>
+            <IconButton aria-label="More options" size="sm">
               <TbDotsVertical />
-            </button>
+            </IconButton>
           }
           items={[
             {

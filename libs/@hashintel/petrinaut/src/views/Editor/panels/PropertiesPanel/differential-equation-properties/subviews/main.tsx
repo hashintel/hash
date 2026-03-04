@@ -3,6 +3,7 @@ import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
+import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -143,17 +144,6 @@ const confirmButtonStyle = css({
   color: "[white]",
   cursor: "pointer",
   fontSize: "[14px]",
-});
-
-const menuButtonStyle = css({
-  background: "[transparent]",
-  border: "none",
-  cursor: "pointer",
-  padding: "[4px]",
-  display: "flex",
-  alignItems: "center",
-  fontSize: "[18px]",
-  color: "[rgba(0, 0, 0, 0.6)]",
 });
 
 const aiMenuItemStyle = css({
@@ -398,9 +388,9 @@ const DiffEqCodeAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <button type="button" className={menuButtonStyle}>
+        <IconButton aria-label="More options" size="sm">
           <TbDotsVertical />
-        </button>
+        </IconButton>
       }
       items={[
         {

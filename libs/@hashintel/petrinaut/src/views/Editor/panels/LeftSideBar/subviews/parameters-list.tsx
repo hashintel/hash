@@ -1,7 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { TbPlus } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
+import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -9,32 +11,6 @@ import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-
-const addButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "xs",
-  cursor: "pointer",
-  fontSize: "[16px]",
-  color: "neutral.s105",
-  background: "[transparent]",
-  border: "none",
-  width: "[20px]",
-  height: "[20px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "neutral.s120",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.4]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "neutral.s105",
-    },
-  },
-});
 
 const listContainerStyle = css({
   display: "flex",
@@ -157,20 +133,15 @@ const ParametersHeaderAction: React.FC = () => {
   };
 
   return (
-    <Tooltip
-      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-      display="inline"
+    <IconButton
+      aria-label="Add parameter"
+      size="sm"
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      onClick={handleAddParameter}
     >
-      <button
-        type="button"
-        disabled={isReadOnly}
-        onClick={handleAddParameter}
-        className={addButtonStyle}
-        aria-label="Add parameter"
-      >
-        +
-      </button>
-    </Tooltip>
+      <TbPlus />
+    </IconButton>
   );
 };
 
