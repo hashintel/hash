@@ -27,7 +27,7 @@ const entityButtonStyle = css({
   border: "none",
   cursor: "pointer",
   textAlign: "left",
-  fontSize: "[12px]",
+  fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s115",
   _hover: {
@@ -75,7 +75,7 @@ const diagnosticButtonStyle = css({
   color: "[#dc2626]",
   lineHeight: "[1.5]",
   cursor: "pointer",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   transition: "[background-color 0.15s]",
   backgroundColor: "[transparent]",
   border: "none",

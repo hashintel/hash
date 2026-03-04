@@ -16,7 +16,7 @@ import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 const listContainerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[4px]",
+  gap: "1",
 });
 
 const parameterRowStyle = cva({
@@ -27,7 +27,7 @@ const parameterRowStyle = cva({
     justifyContent: "space-between",
     padding: "[4px 2px 4px 8px]",
     fontSize: "[13px]",
-    borderRadius: "[4px]",
+    borderRadius: "sm",
     cursor: "pointer",
   },
   variants: {
@@ -39,7 +39,7 @@ const parameterRowStyle = cva({
         },
       },
       false: {
-        backgroundColor: "[#f9fafb]",
+        backgroundColor: "neutral.s10",
         _hover: {
           backgroundColor: "[rgba(0, 0, 0, 0.03)]",
         },
@@ -51,13 +51,13 @@ const parameterRowStyle = cva({
 const parameterVarNameStyle = css({
   margin: "[0]",
   fontSize: "[11px]",
-  color: "[#6b7280]",
+  color: "neutral.s100",
 });
 
 const actionsContainerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[6px]",
+  gap: "1.5",
 });
 
 const parameterValueInputStyle = css({
@@ -72,15 +72,15 @@ const deleteButtonStyle = css({
   padding: "1",
   borderRadius: "sm",
   cursor: "pointer",
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "neutral.s100",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
-    backgroundColor: "[rgba(255, 0, 0, 0.1)]",
-    color: "[#ef4444]",
+    backgroundColor: "red.bg.subtle.hover",
+    color: "red.s50",
   },
   _disabled: {
     cursor: "not-allowed",
@@ -94,7 +94,7 @@ const deleteButtonStyle = css({
 
 const emptyMessageStyle = css({
   fontSize: "[13px]",
-  color: "[#9ca3af]",
+  color: "neutral.s85",
 });
 
 /**

@@ -166,9 +166,9 @@ const tooltipStyle = css({
   position: "fixed",
   pointerEvents: "none",
   backgroundColor: "[rgba(0, 0, 0, 0.85)]",
-  color: "[white]",
+  color: "neutral.s00",
   padding: "[6px 10px]",
-  borderRadius: "[6px]",
+  borderRadius: "md",
   fontSize: "[11px]",
   lineHeight: "[1.4]",
   zIndex: "[1000]",
@@ -192,7 +192,7 @@ const tooltipColorDotStyle = css({
 });
 
 const tooltipValueStyle = css({
-  fontWeight: "[600]",
+  fontWeight: "semibold",
   marginLeft: "[4px]",
 });
 

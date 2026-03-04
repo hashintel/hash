@@ -22,7 +22,7 @@ const typeRowStyle = cva({
     alignItems: "center",
     gap: "[8px]",
     padding: "[4px 2px 4px 8px]",
-    borderRadius: "[4px]",
+    borderRadius: "sm",
     cursor: "pointer",
   },
   variants: {
@@ -66,7 +66,7 @@ const deleteButtonStyle = css({
   padding: "1",
   borderRadius: "sm",
   cursor: "pointer",
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "neutral.s90",
   background: "[transparent]",
   border: "none",

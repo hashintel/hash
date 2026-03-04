@@ -15,9 +15,9 @@ import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { usePlacePropertiesContext } from "../context";
 
 const errorMessageStyle = css({
-  fontSize: "[12px]",
-  color: "[#ef4444]",
-  marginTop: "[4px]",
+  fontSize: "xs",
+  color: "red.s50",
+  marginTop: "1",
 });
 
 const jumpButtonContainerStyle = css({
@@ -25,19 +25,19 @@ const jumpButtonContainerStyle = css({
 });
 
 const jumpIconStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
 });
 
 const hintTextStyle = css({
   fontSize: "[11px]",
-  color: "[#999]",
+  color: "neutral.s95",
   fontStyle: "italic",
 });
 
 const typeColorDotStyle = css({
-  width: "[12px]",
-  height: "[12px]",
-  borderRadius: "[50%]",
+  width: "3",
+  height: "3",
+  borderRadius: "full",
   flexShrink: 0,
 });
 

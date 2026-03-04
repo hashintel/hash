@@ -5,16 +5,16 @@ const errorContainerStyle = css({
   padding: "[16px]",
   backgroundColor: "[#ffebee]",
   color: "[#c62828]",
-  borderRadius: "[4px]",
-  fontSize: "[12px]",
-  fontFamily: "[monospace]",
+  borderRadius: "sm",
+  fontSize: "xs",
+  fontFamily: "mono",
   maxHeight: "[400px]",
   overflow: "auto",
 });
 
 const errorTitleStyle = css({
   fontWeight: "semibold",
-  fontSize: "[14px]",
+  fontSize: "sm",
   marginBottom: "[8px]",
 });
 

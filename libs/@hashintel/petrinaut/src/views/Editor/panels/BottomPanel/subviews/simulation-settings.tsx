@@ -13,48 +13,48 @@ import { SDCPNContext } from "../../../../../state/sdcpn-context";
 const containerStyle = css({
   display: "flex",
   flexDirection: "row",
-  gap: "[32px]",
+  gap: "8",
 });
 
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[12px]",
+  gap: "3",
   flex: "[1]",
 });
 
 const sectionTitleStyle = css({
   fontSize: "[11px]",
-  fontWeight: "[600]",
+  fontWeight: "semibold",
   textTransform: "uppercase",
-  color: "[rgba(0, 0, 0, 0.5)]",
+  color: "neutral.a80",
   letterSpacing: "[0.5px]",
-  marginBottom: "[4px]",
+  marginBottom: "1",
 });
 
 const settingsRowStyle = css({
   display: "flex",
   flexDirection: "row",
-  gap: "[24px]",
+  gap: "6",
   flexWrap: "wrap",
 });
 
 const settingGroupStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[4px]",
+  gap: "1",
   minWidth: "[120px]",
 });
 
 const labelStyle = css({
-  fontSize: "[12px]",
-  fontWeight: "[500]",
-  color: "[rgba(0, 0, 0, 0.7)]",
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.body",
 });
 
 const smallLabelStyle = css({
   fontSize: "[10px]",
-  fontWeight: "[400]",
+  fontWeight: "normal",
 });
 
 const settingInputStyle = css({
@@ -64,27 +64,28 @@ const settingInputStyle = css({
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[6px]",
+  gap: "1.5",
 });
 
 const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "[6px 10px]",
-  backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-  borderRadius: "[4px]",
+  paddingY: "1.5",
+  paddingX: "2.5",
+  backgroundColor: "neutral.bg.min.active",
+  borderRadius: "sm",
 });
 
 const parameterNameStyle = css({
   fontSize: "[13px]",
-  color: "[#333]",
+  color: "neutral.fg.heading",
 });
 
 const parameterVarNameStyle = css({
   fontSize: "[11px]",
-  color: "[#6b7280]",
-  fontFamily: "[monospace]",
+  color: "neutral.s100",
+  fontFamily: "mono",
 });
 
 const parameterInputStyle = css({
@@ -93,24 +94,25 @@ const parameterInputStyle = css({
 });
 
 const emptyMessageStyle = css({
-  fontSize: "[12px]",
-  color: "[#9ca3af]",
+  fontSize: "xs",
+  color: "neutral.s85",
   fontStyle: "italic",
 });
 
 const errorContainerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[4px]",
-  padding: "[8px 12px]",
-  backgroundColor: "[rgba(211, 47, 47, 0.05)]",
-  borderRadius: "[4px]",
-  marginTop: "[8px]",
+  gap: "1",
+  paddingY: "2",
+  paddingX: "3",
+  backgroundColor: "red.bg.min",
+  borderRadius: "sm",
+  marginTop: "2",
 });
 
 const errorTextStyle = css({
   fontSize: "[11px]",
-  color: "[#d32f2f]",
+  color: "red.s60",
   maxWidth: "[400px]",
   wordWrap: "break-word",
   userSelect: "text",
@@ -120,21 +122,22 @@ const errorTextStyle = css({
 
 const editButtonStyle = css({
   fontSize: "[11px]",
-  padding: "[4px 8px]",
+  paddingY: "1",
+  paddingX: "2",
   border: "[1px solid rgba(211, 47, 47, 0.3)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[white]",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s00",
   cursor: "pointer",
-  color: "[#d32f2f]",
+  color: "red.s60",
   display: "inline-flex",
   alignItems: "center",
-  gap: "[4px]",
-  marginTop: "[4px]",
+  gap: "1",
+  marginTop: "1",
   alignSelf: "flex-start",
 });
 
 const editButtonIconStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
 });
 
 /**

@@ -13,8 +13,8 @@ const triggerStyle = cva({
     gap: "[8px]",
     padding: "[6px 8px]",
     border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    fontSize: "[14px]",
+    borderRadius: "sm",
+    fontSize: "sm",
     width: "[100%]",
   },
   variants: {
@@ -25,7 +25,7 @@ const triggerStyle = cva({
         opacity: "[0.5]",
       },
       false: {
-        backgroundColor: "[white]",
+        backgroundColor: "neutral.s00",
         cursor: "pointer",
         opacity: "[1]",
       },
@@ -48,19 +48,19 @@ const colorSwatchStyle = css({
 });
 
 const colorCodeStyle = css({
-  fontSize: "[12px]",
-  fontFamily: "[monospace]",
+  fontSize: "xs",
+  fontFamily: "mono",
 });
 
 const indicatorIconStyle = css({
-  fontSize: "[16px]",
+  fontSize: "base",
   color: "[#666]",
 });
 
 const contentStyle = css({
-  backgroundColor: "[white]",
+  backgroundColor: "neutral.s00",
   border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   boxShadow: "[0 4px 12px rgba(0, 0, 0, 0.15)]",
   padding: "[4px]",
   zIndex: 1000,
@@ -85,7 +85,7 @@ const itemValueContainerStyle = css({
 });
 
 const checkmarkStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "[#3b82f6]",
 });
 

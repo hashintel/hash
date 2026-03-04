@@ -20,7 +20,7 @@ export interface PlaceOption {
 const arcListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[6px]",
+  gap: "1.5",
 });
 
 export const ArcList = ({ children }: { children: ReactNode }) => (
@@ -60,13 +60,13 @@ const nameCellStyle = css({
   flex: "[1]",
   display: "flex",
   alignItems: "center",
-  gap: "[8px]",
-  px: "[6px]",
+  gap: "2",
+  px: "1.5",
   height: "[100%]",
   minWidth: "[0]",
   backgroundColor: "[var(--background-color)]",
   border: "[var(--border-width) solid var(--border-color)]",
-  borderRadius: "[8px]",
+  borderRadius: "lg",
   borderRightRadius: "[var(--inset-lip-radius)]",
   cursor: "pointer",
 });
@@ -75,7 +75,7 @@ const nameCellInnerStyle = css({
   display: "flex",
   textAlign: "left",
   alignItems: "center",
-  gap: "[8px]",
+  gap: "2",
   width: "[100%]",
   minWidth: "[0]",
 });
@@ -89,10 +89,10 @@ const colorDotStyle = css({
 
 const nameTextStyle = css({
   flex: "[1]",
-  fontSize: "[14px]",
-  fontWeight: "[500]",
+  fontSize: "sm",
+  fontWeight: "medium",
   lineHeight: "[16px]",
-  color: "[#171717]",
+  color: "neutral.fg.heading",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -167,7 +167,7 @@ const weightCellStyle = css({
   flexShrink: 0,
   backgroundColor: "[var(--background-color)]",
   border: "[var(--border-width) solid var(--border-color)]",
-  borderRadius: "[8px]",
+  borderRadius: "lg",
   borderLeftRadius: "[var(--inset-lip-radius)]",
   overflow: "hidden",
 });
@@ -178,7 +178,8 @@ const weightInputOverrideStyle = css({
   background: "[transparent]",
   borderRadius: "[0]",
   textAlign: "right",
-  padding: "[0 8px]",
+  paddingX: "2",
+  paddingY: "0",
   outline: "[none]",
   _hover: {
     border: "[none]",
@@ -226,11 +227,12 @@ const selectRootOverrideStyle = css({
 const selectTriggerOverrideStyle = css({
   backgroundColor: "[var(--background-color)]",
   border: "[var(--border-width) solid var(--border-color)]",
-  borderRadius: "[8px]",
+  borderRadius: "lg",
   borderRightRadius: "[var(--inset-lip-radius)]",
   height: "[100%]",
-  padding: "[0 6px]",
-  gap: "[8px]",
+  paddingX: "1.5",
+  paddingY: "0",
+  gap: "2",
   justifyContent: "flex-start",
   _hover: {
     borderColor: "[var(--border-color)]",

@@ -16,7 +16,7 @@ import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../context";
 
 const emptyArcMessageStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "[#999]",
 });
 

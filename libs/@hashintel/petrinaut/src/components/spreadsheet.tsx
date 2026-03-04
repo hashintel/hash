@@ -20,26 +20,28 @@ const wrapperStyle = css({
 
 const tableContainerStyle = css({
   position: "relative",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "sm",
   overflow: "auto",
   width: "[100%]",
-  backgroundColor: "[#fafafa]",
+  backgroundColor: "neutral.s10",
 });
 
 const tableStyle = css({
   width: "[100%]",
   borderCollapse: "collapse",
-  fontSize: "[12px]",
+  fontSize: "xs",
   tableLayout: "fixed",
 });
 
 const rowNumberHeaderStyle = css({
   position: "sticky",
   top: "[0]",
-  backgroundColor: "[#f5f5f5]",
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
+  backgroundColor: "neutral.s15",
+  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
+  borderRight: "[1px solid {colors.neutral.bd.subtle}]",
   padding: "[4px 8px]",
   textAlign: "center",
   fontWeight: "medium",
@@ -50,12 +52,12 @@ const rowNumberHeaderStyle = css({
 const columnHeaderStyle = css({
   position: "sticky",
   top: "[0]",
-  backgroundColor: "[#f5f5f5]",
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
+  backgroundColor: "neutral.s15",
+  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
   padding: "[4px 8px]",
   textAlign: "left",
   fontWeight: "medium",
-  fontFamily: "[monospace]",
+  fontFamily: "mono",
   minWidth: "[60px]",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -68,15 +70,15 @@ const rowStyle = cva({
   },
   variants: {
     isSelected: {
-      true: { backgroundColor: "[rgba(59, 130, 246, 0.1)]" },
-      false: { backgroundColor: "[white]" },
+      true: { backgroundColor: "blue.bg.min" },
+      false: { backgroundColor: "neutral.s00" },
     },
     isSticky: {
       true: {
         position: "sticky",
         bottom: "[0]",
         zIndex: 1,
-        backgroundColor: "[white]",
+        backgroundColor: "neutral.s00",
         boxShadow: "[0 -1px 4px rgba(0, 0, 0, 0.1)]",
       },
     },
@@ -85,8 +87,8 @@ const rowStyle = cva({
 
 const rowNumberCellStyle = cva({
   base: {
-    borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
+    borderRight: "[1px solid {colors.neutral.bd.subtle}]",
+    borderBottom: "[1px solid {colors.neutral.a05}]",
     padding: "[4px 8px]",
     textAlign: "center",
     fontWeight: "medium",
@@ -94,12 +96,12 @@ const rowNumberCellStyle = cva({
   },
   variants: {
     isSelected: {
-      true: { backgroundColor: "[rgba(59, 130, 246, 0.2)]" },
-      false: { backgroundColor: "[#fafafa]" },
+      true: { backgroundColor: "blue.bg.subtle" },
+      false: { backgroundColor: "neutral.s10" },
     },
     isPhantom: {
-      true: { color: "[#ccc]" },
-      false: { color: "[#666]" },
+      true: { color: "neutral.s70" },
+      false: { color: "neutral.s105" },
     },
     isReadOnly: {
       true: { cursor: "default" },
@@ -110,7 +112,7 @@ const rowNumberCellStyle = cva({
 
 const cellContainerStyle = cva({
   base: {
-    borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
+    borderBottom: "[1px solid {colors.neutral.a05}]",
     padding: "0",
     height: "[28px]",
   },
@@ -119,7 +121,7 @@ const cellContainerStyle = cva({
       true: {
         position: "sticky",
         bottom: "[0]",
-        backgroundColor: "[white]",
+        backgroundColor: "neutral.s00",
       },
     },
   },
@@ -129,8 +131,8 @@ const readOnlyCellStyle = css({
   height: "[28px]",
   display: "flex",
   alignItems: "center",
-  fontFamily: "[monospace]",
-  fontSize: "[12px]",
+  fontFamily: "mono",
+  fontSize: "xs",
   padding: "[4px 8px]",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -142,10 +144,10 @@ const editingInputStyle = css({
   height: "[28px]",
   border: "none",
   padding: "[4px 8px]",
-  fontFamily: "[monospace]",
-  fontSize: "[12px]",
-  backgroundColor: "[rgba(59, 130, 246, 0.05)]",
-  outline: "[2px solid #3b82f6]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  backgroundColor: "blue.bg.min",
+  outline: "[2px solid {colors.blue.s50}]",
   outlineOffset: "[-2px]",
   boxSizing: "border-box",
 });
@@ -155,8 +157,8 @@ const cellButtonStyle = cva({
     width: "[100%]",
     height: "[28px]",
     padding: "[4px 8px]",
-    fontFamily: "[monospace]",
-    fontSize: "[12px]",
+    fontFamily: "mono",
+    fontSize: "xs",
     backgroundColor: "[transparent]",
     outlineOffset: "[-2px]",
     cursor: "default",
@@ -169,7 +171,7 @@ const cellButtonStyle = cva({
   },
   variants: {
     isFocused: {
-      true: { outline: "[2px solid #3b82f6]" },
+      true: { outline: "[2px solid {colors.blue.s50}]" },
       false: { outline: "none" },
     },
   },

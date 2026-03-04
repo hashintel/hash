@@ -112,6 +112,7 @@ const resizeHandleStyle = css({
 const headerRowStyle = css({
   height: "[44px]",
   px: "2",
+
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",

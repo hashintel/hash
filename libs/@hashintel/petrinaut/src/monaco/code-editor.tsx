@@ -12,7 +12,7 @@ const containerStyle = cva({
   base: {
     position: "relative",
     border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
+    borderRadius: "sm",
     overflow: "hidden",
   },
   variants: {

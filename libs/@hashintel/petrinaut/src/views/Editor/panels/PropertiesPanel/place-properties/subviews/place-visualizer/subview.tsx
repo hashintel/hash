@@ -55,7 +55,7 @@ const panelStyle = css({
 
 const messageStyle = css({
   padding: "[12px]",
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "[#666]",
   lineHeight: "[1.5]",
 });
@@ -72,7 +72,7 @@ const aiMenuItemStyle = css({
 });
 
 const aiIconStyle = css({
-  fontSize: "[16px]",
+  fontSize: "base",
 });
 
 /**

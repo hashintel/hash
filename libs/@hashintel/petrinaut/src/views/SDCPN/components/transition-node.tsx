@@ -37,7 +37,7 @@ const firingIndicatorStyle = css({
   position: "absolute",
   top: "[-8px]",
   right: "[-8px]",
-  fontSize: "[16px]",
+  fontSize: "base",
   color: "yellow.s60",
   opacity: "[0]",
   transform: "scale(0.5)",

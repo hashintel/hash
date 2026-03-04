@@ -6,16 +6,16 @@ import type { SubView } from "../types";
 const tabsContainerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[4px]",
+  gap: "1",
 });
 
 const tabButtonStyle = cva({
   base: {
     fontSize: "[11px]",
-    fontWeight: "[500]",
+    fontWeight: "medium",
     padding: "[4px 10px]",
     textTransform: "uppercase",
-    borderRadius: "[3px]",
+    borderRadius: "xs",
     border: "none",
     cursor: "pointer",
     transition: "[all 0.3s ease]",
@@ -42,8 +42,8 @@ const tabButtonStyle = cva({
 });
 
 const contentStyle = css({
-  fontSize: "[12px]",
-  padding: "[12px 12px]",
+  fontSize: "xs",
+  padding: "3",
   flex: "[1]",
   overflowY: "auto",
 });

@@ -31,11 +31,11 @@ export const SectionList = ({ children }: SectionListProps) => (
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  py: "[12px]",
+  py: "3",
 });
 
 const sectionGapStyle = css({
-  gap: "[8px]",
+  gap: "2",
 });
 
 const fillHeightSectionStyle = css({
@@ -52,15 +52,15 @@ const headerStyle = css({
 const headerLeftStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[4px]",
+  gap: "1",
   flex: "[1]",
 });
 
 const titleStyle = css({
-  fontWeight: "[600]",
-  fontSize: "[14px]",
+  fontWeight: "semibold",
+  fontSize: "sm",
   lineHeight: "[14px]",
-  color: "[#404040]",
+  color: "neutral.fg.body",
 });
 
 const triggerButtonStyle = css({
@@ -69,11 +69,11 @@ const triggerButtonStyle = css({
   justifyContent: "center",
   width: "[20px]",
   height: "[20px]",
-  borderRadius: "[6px]",
+  borderRadius: "md",
   cursor: "pointer",
   background: "[transparent]",
   border: "[none]",
-  color: "[#646464]",
+  color: "neutral.s110",
   padding: "[0]",
   "& svg": {
     transition: "[transform 150ms ease-out]",
@@ -99,16 +99,16 @@ const collapsibleContentStyle = css({
 const contentStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[12px]",
-  pl: "[8px]",
+  gap: "3",
+  pl: "2",
 });
 
 const collapsibleContentInnerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[12px]",
-  pl: "[8px]",
-  pt: "[8px]",
+  gap: "3",
+  pl: "2",
+  pt: "2",
 });
 
 const fillHeightContentStyle = css({

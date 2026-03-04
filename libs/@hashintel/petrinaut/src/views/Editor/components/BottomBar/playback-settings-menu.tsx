@@ -28,13 +28,13 @@ const menuItemStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    gap: "[8px]",
+    gap: "2",
     width: "[100%]",
     minWidth: "[130px]",
     height: "[28px]",
-    paddingX: "[8px]",
-    borderRadius: "[8px]",
-    fontSize: "[14px]",
+    paddingX: "2",
+    borderRadius: "lg",
+    fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s120",
     backgroundColor: "[transparent]",
@@ -67,7 +67,7 @@ const menuItemStyle = cva({
 });
 
 const menuItemIconStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "neutral.s100",
   flexShrink: 0,
 });
@@ -80,7 +80,7 @@ const menuItemTextStyle = css({
 });
 
 const checkIconStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "blue.s50",
   flexShrink: 0,
 });
@@ -88,8 +88,8 @@ const checkIconStyle = css({
 const speedGridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(4, 1fr)",
-  paddingX: "[8px]",
-  paddingBottom: "[4px]",
+  paddingX: "2",
+  paddingBottom: "1",
 });
 
 const speedButtonStyle = cva({
@@ -97,13 +97,13 @@ const speedButtonStyle = cva({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "[8px]",
-    fontSize: "[14px]",
+    padding: "2",
+    fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s120",
     backgroundColor: "[transparent]",
     border: "none",
-    borderRadius: "[8px]",
+    borderRadius: "lg",
     cursor: "pointer",
     _hover: {
       backgroundColor: "neutral.s10",
@@ -124,7 +124,7 @@ const speedButtonStyle = cva({
 const popoverDividerStyle = css({
   height: "[1px]",
   backgroundColor: "[transparent]",
-  marginTop: "[4px]",
+  marginTop: "1",
 });
 
 const maxTimeInputStyle = css({

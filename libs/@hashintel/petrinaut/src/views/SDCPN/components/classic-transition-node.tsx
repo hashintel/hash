@@ -68,7 +68,7 @@ const stochasticIconStyle = css({
   alignItems: "center",
   justifyContent: "center",
   color: "blue.s60",
-  fontSize: "[18px]",
+  fontSize: "lg",
 });
 
 const contentWrapperStyle = css({
@@ -90,7 +90,7 @@ const firingIndicatorStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: "[20px]",
+  fontSize: "xl",
   color: "yellow.s60",
   opacity: "[0]",
   transform: "scale(0.5)",

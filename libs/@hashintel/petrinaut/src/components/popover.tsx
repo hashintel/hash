@@ -10,10 +10,10 @@ import { usePortalContainerRef } from "../state/portal-container-context";
 
 const contentStyle = css({
   backgroundColor: "neutral.s25",
-  borderRadius: "[12px]",
+  borderRadius: "xl",
   boxShadow: "[0px 0px 0px 1px rgba(0, 0, 0, 0.08)]",
   overflow: "hidden",
-  zIndex: 1000,
+  zIndex: "dropdown",
   transformOrigin: "var(--transform-origin)",
   '&[data-state="open"]': {
     animation: "popover-in 150ms ease-out",
@@ -27,12 +27,12 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  paddingX: "[12px]",
-  paddingY: "[8px]",
+  paddingX: "3",
+  paddingY: "2",
 });
 
 const titleStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s100",
   textTransform: "uppercase",
@@ -45,38 +45,38 @@ const closeButtonStyle = css({
   justifyContent: "center",
   width: "[24px]",
   height: "[24px]",
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "neutral.s100",
   backgroundColor: "[transparent]",
   border: "none",
-  borderRadius: "[6px]",
+  borderRadius: "md",
   cursor: "pointer",
   _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    backgroundColor: "neutral.bg.min.hover",
   },
 });
 
 const sectionStyle = css({
-  paddingX: "[4px]",
-  paddingBottom: "[4px]",
+  paddingX: "1",
+  paddingBottom: "1",
 });
 
 const sectionCardStyle = css({
-  backgroundColor: "[white]",
-  borderRadius: "[8px]",
+  backgroundColor: "neutral.s00",
+  borderRadius: "lg",
   boxShadow:
     "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
   overflow: "hidden",
-  padding: "[4px]",
+  padding: "1",
 });
 
 const sectionLabelStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s100",
-  paddingX: "[8px]",
-  paddingTop: "[8px]",
-  paddingBottom: "[6px]",
+  paddingX: "2",
+  paddingTop: "2",
+  paddingBottom: "1.5",
 });
 
 // -- Subcomponents -----------------------------------------------------------

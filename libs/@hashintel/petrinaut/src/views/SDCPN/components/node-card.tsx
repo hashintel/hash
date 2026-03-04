@@ -56,13 +56,13 @@ export const nodeCardStyle = cva({
 export const iconContainerBaseStyle = css({
   width: "[40px]",
   height: "[40px]",
-  backgroundColor: "[#f9f9f9]",
+  backgroundColor: "neutral.s10",
   border: "[1px solid rgba(0,0,0,0.06)]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   flexShrink: "0",
-  fontSize: "[24px]",
+  fontSize: "2xl",
   color: "neutral.s80",
   position: "relative",
 });
@@ -71,8 +71,8 @@ export const iconBadgeStyle = css({
   position: "absolute",
   bottom: "[-2px]",
   right: "[-2px]",
-  fontSize: "[12px]",
-  backgroundColor: "[white]",
+  fontSize: "xs",
+  backgroundColor: "neutral.s00",
   borderRadius: "[50%]",
   width: "[16px]",
   height: "[16px]",
@@ -89,7 +89,7 @@ const textAreaStyle = css({
 });
 
 const titleStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[1.2]",
   overflow: "hidden",
@@ -98,7 +98,7 @@ const titleStyle = css({
 });
 
 const subtitleStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "neutral.a90",
   lineHeight: "[1.2]",
   overflow: "hidden",

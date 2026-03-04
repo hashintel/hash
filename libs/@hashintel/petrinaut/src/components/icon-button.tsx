@@ -14,7 +14,7 @@ const iconButtonStyle = cva({
     background: "[transparent]",
     cursor: "pointer",
     transition: "[all 0.15s ease]",
-    fontSize: "[16px]",
+    fontSize: "base",
     overflow: "clip",
   },
   variants: {
@@ -22,27 +22,27 @@ const iconButtonStyle = cva({
       xxs: {
         width: "[20px]",
         height: "[20px]",
-        borderRadius: "[6px]",
+        borderRadius: "md",
       },
       xs: {
         width: "[24px]",
         height: "[24px]",
-        borderRadius: "[8px]",
+        borderRadius: "lg",
       },
       sm: {
         width: "[28px]",
         height: "[28px]",
-        borderRadius: "[8px]",
+        borderRadius: "lg",
       },
       md: {
         width: "[32px]",
         height: "[32px]",
-        borderRadius: "[10px]",
+        borderRadius: "xl",
       },
       lg: {
         width: "[40px]",
         height: "[40px]",
-        borderRadius: "[12px]",
+        borderRadius: "xl",
       },
     },
     variant: {
@@ -142,7 +142,7 @@ const iconButtonStyle = cva({
       css: {
         backgroundColor: "blue.s90",
         borderColor: "blue.s110",
-        color: "[white]",
+        color: "neutral.s00",
         boxShadow:
           "[inset 0px -3px 2px 0px rgba(0, 0, 0, 0.1), inset 0px 2px 0.4px 0px rgba(255, 255, 255, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 2px 3px 0px rgba(0, 0, 0, 0.08)]",
         _hover: {

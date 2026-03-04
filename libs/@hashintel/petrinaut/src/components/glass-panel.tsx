@@ -33,7 +33,7 @@ const resizeHandleStyle = cva({
   base: {
     position: "absolute",
     backgroundColor: "[transparent]",
-    zIndex: "[1001]",
+    zIndex: "sticky",
     transition: "[background-color 0.3s ease]",
   },
   variants: {

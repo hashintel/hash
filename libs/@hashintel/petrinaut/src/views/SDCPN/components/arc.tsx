@@ -114,14 +114,14 @@ const selectionIndicatorStyle: CSSProperties = {
 
 const symbolTextStyle = css({
   fontSize: "[13px]",
-  fontWeight: "[400]",
+  fontWeight: "normal",
   fill: "[#999]",
   pointerEvents: "none",
 });
 
 const weightTextStyle = css({
-  fontSize: "[14px]",
-  fontWeight: "[600]",
+  fontSize: "sm",
+  fontWeight: "semibold",
   fill: "[#333]",
   pointerEvents: "none",
 });

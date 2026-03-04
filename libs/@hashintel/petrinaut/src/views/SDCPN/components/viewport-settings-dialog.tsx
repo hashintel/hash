@@ -11,15 +11,15 @@ const rowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "[12px]",
-  paddingY: "[8px]",
+  gap: "3",
+  paddingY: "2",
 });
 
 const labelStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[1.25]",
-  color: "[#171717]",
+  color: "neutral.fg.heading",
 });
 
 const selectWrapperStyle = css({
@@ -31,22 +31,24 @@ const cancelButtonStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  paddingX: "[12px]",
-  paddingY: "[8px]",
-  fontSize: "[14px]",
+  paddingX: "3",
+  paddingY: "2",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[14px]",
-  color: "[#484848]",
-  backgroundColor: "[white]",
-  border: "[1px solid rgba(0, 0, 0, 0.09)]",
-  borderRadius: "[10px]",
+  color: "neutral.fg.body",
+  backgroundColor: "neutral.s00",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "xl",
   cursor: "pointer",
   transition: "[background-color 0.15s ease]",
   _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+    backgroundColor: "neutral.bg.min.active",
   },
   _active: {
-    backgroundColor: "[rgba(0, 0, 0, 0.06)]",
+    backgroundColor: "neutral.bg.surface",
   },
 });
 
@@ -54,22 +56,22 @@ const confirmButtonStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  paddingX: "[12px]",
-  paddingY: "[8px]",
-  fontSize: "[14px]",
+  paddingX: "3",
+  paddingY: "2",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[14px]",
-  color: "[white]",
-  backgroundColor: "[#484848]",
+  color: "neutral.s00",
+  backgroundColor: "neutral.s115",
   border: "none",
-  borderRadius: "[10px]",
+  borderRadius: "xl",
   cursor: "pointer",
   transition: "[background-color 0.15s ease]",
   _hover: {
-    backgroundColor: "[#3a3a3a]",
+    backgroundColor: "neutral.s110",
   },
   _active: {
-    backgroundColor: "[#2e2e2e]",
+    backgroundColor: "neutral.s120",
   },
 });
 

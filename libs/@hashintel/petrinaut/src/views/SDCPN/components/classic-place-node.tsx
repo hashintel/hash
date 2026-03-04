@@ -67,7 +67,7 @@ const dynamicsIconStyle = css({
   gap: "4",
   justifyContent: "center",
   color: "blue.s110",
-  fontSize: "[18px]",
+  fontSize: "lg",
 });
 
 const contentWrapperStyle = css({
@@ -94,11 +94,11 @@ const labelSegmentStyle = css({
 const tokenCountBadgeStyle = css({
   position: "absolute",
   top: "[70%]",
-  fontSize: "[16px]",
+  fontSize: "base",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "[white]",
+  color: "neutral.s00",
   backgroundColor: "[black]",
   minWidth: "[26px]",
   height: "[26px]",

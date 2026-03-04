@@ -66,25 +66,27 @@ const triggerStyle = cva({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "[6px]",
+    gap: "1.5",
     width: "[100%]",
     boxSizing: "border-box",
-    backgroundColor: "[white]",
-    border: "[1px solid rgba(0, 0, 0, 0.09)]",
-    fontWeight: "[500]",
-    color: "[#484848]",
+    backgroundColor: "neutral.s00",
+    borderWidth: "[1px]",
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+    fontWeight: "medium",
+    color: "neutral.fg.body",
     cursor: "pointer",
     outline: "none",
     transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
     _hover: {
-      borderColor: "[rgba(0, 0, 0, 0.12)]",
+      borderColor: "neutral.bd.subtle.hover",
     },
     _focusVisible: {
-      borderColor: "[rgba(0, 0, 0, 0.09)]",
-      boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.04)]",
+      borderColor: "neutral.bd.subtle",
+      boxShadow: "[0px 0px 0px 2px {colors.neutral.a25}]",
     },
     _disabled: {
-      backgroundColor: "[#fcfcfc]",
+      backgroundColor: "neutral.s10",
       opacity: "[0.7]",
       cursor: "not-allowed",
     },
@@ -93,27 +95,27 @@ const triggerStyle = cva({
     size: {
       xs: {
         height: "[24px]",
-        fontSize: "[12px]",
-        borderRadius: "[8px]",
-        paddingX: "[6px]",
+        fontSize: "xs",
+        borderRadius: "lg",
+        paddingX: "1.5",
       },
       sm: {
         height: "[28px]",
-        fontSize: "[14px]",
-        borderRadius: "[8px]",
-        paddingX: "[8px]",
+        fontSize: "sm",
+        borderRadius: "lg",
+        paddingX: "2",
       },
       md: {
         height: "[32px]",
-        fontSize: "[14px]",
-        borderRadius: "[8px]",
-        paddingX: "[10px]",
+        fontSize: "sm",
+        borderRadius: "lg",
+        paddingX: "2.5",
       },
       lg: {
         height: "[40px]",
-        fontSize: "[16px]",
-        borderRadius: "[12px]",
-        paddingX: "[12px]",
+        fontSize: "base",
+        borderRadius: "xl",
+        paddingX: "3",
       },
     },
   },
@@ -131,13 +133,13 @@ const triggerLabelStyle = css({
 });
 
 const placeholderStyle = css({
-  color: "[#bbb]",
+  color: "neutral.s80",
 });
 
 const customTriggerWrapperStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[8px]",
+  gap: "2",
   width: "[100%]",
   minWidth: "[0]",
 });
@@ -150,33 +152,34 @@ const chevronStyle = css({
 });
 
 const contentStyle = css({
-  backgroundColor: "[white]",
-  borderRadius: "[8px]",
+  backgroundColor: "neutral.s00",
+  borderRadius: "lg",
   boxShadow:
     "[0px 6px 12px -4px rgba(0, 0, 0, 0.12), 0px 2px 4px -1px rgba(0, 0, 0, 0.04), 0px 0px 0px 1px rgba(0, 0, 0, 0.06)]",
-  padding: "[4px]",
+  padding: "1",
   maxHeight: "[200px]",
   overflowY: "auto",
   outline: "none",
-  zIndex: 1000,
+  zIndex: "dropdown",
 });
 
 const itemStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[8px]",
-  padding: "[6px 8px]",
-  borderRadius: "[8px]",
-  fontSize: "[14px]",
-  fontWeight: "[500]",
+  gap: "2",
+  paddingY: "1.5",
+  paddingX: "2",
+  borderRadius: "lg",
+  fontSize: "sm",
+  fontWeight: "medium",
   cursor: "pointer",
   outline: "none",
-  color: "[#484848]",
+  color: "neutral.fg.body",
   "&[data-highlighted]": {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    backgroundColor: "neutral.bg.min.hover",
   },
   '&[data-state="checked"]': {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+    backgroundColor: "neutral.bg.min.active",
   },
 });
 

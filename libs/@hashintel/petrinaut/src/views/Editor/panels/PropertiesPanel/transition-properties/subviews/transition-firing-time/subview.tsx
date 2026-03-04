@@ -26,11 +26,11 @@ const segmentGroupContainerStyle = css({
 });
 
 const infoBoxStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "[#666]",
   backgroundColor: "[rgba(0, 0, 0, 0.03)]",
   padding: "[8px]",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   lineHeight: "[1.5]",
   marginBottom: "[8px]",
 });
@@ -42,7 +42,7 @@ const aiMenuItemStyle = css({
 });
 
 const aiIconStyle = css({
-  fontSize: "[16px]",
+  fontSize: "base",
 });
 
 const FiringTimeHeaderAction: React.FC = () => {

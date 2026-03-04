@@ -22,7 +22,7 @@ import { useDiffEqPropertiesContext } from "../context";
 const typeDropdownButtonStyle = cva({
   base: {
     width: "[100%]",
-    fontSize: "[14px]",
+    fontSize: "sm",
     padding: "[6px 8px]",
     display: "flex",
     justifyContent: "flex-start",
@@ -54,9 +54,9 @@ const dropdownMenuStyle = css({
   left: "[0]",
   right: "[0]",
   marginTop: "[4px]",
-  backgroundColor: "[white]",
+  backgroundColor: "neutral.s00",
   border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
   maxHeight: "[300px]",
   overflowY: "auto",
@@ -71,7 +71,7 @@ const dropdownItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[8px]",
-  fontSize: "[14px]",
+  fontSize: "sm",
   textAlign: "left",
 });
 
@@ -89,8 +89,8 @@ const confirmDialogOverlayStyle = css({
 });
 
 const confirmDialogStyle = css({
-  backgroundColor: "[white]",
-  borderRadius: "[8px]",
+  backgroundColor: "neutral.s00",
+  borderRadius: "lg",
   padding: "[24px]",
   maxWidth: "[400px]",
   boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.2)]",
@@ -98,12 +98,12 @@ const confirmDialogStyle = css({
 
 const confirmDialogTitleStyle = css({
   fontWeight: "semibold",
-  fontSize: "[16px]",
+  fontSize: "base",
   marginBottom: "[12px]",
 });
 
 const confirmDialogTextStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "[#666]",
   marginBottom: "[16px]",
 });
@@ -130,20 +130,20 @@ const confirmDialogButtonsStyle = css({
 const cancelButtonStyle = css({
   padding: "[8px 16px]",
   border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[white]",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s00",
   cursor: "pointer",
-  fontSize: "[14px]",
+  fontSize: "sm",
 });
 
 const confirmButtonStyle = css({
   padding: "[8px 16px]",
   border: "none",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   backgroundColor: "[#2563eb]",
-  color: "[white]",
+  color: "neutral.s00",
   cursor: "pointer",
-  fontSize: "[14px]",
+  fontSize: "sm",
 });
 
 const aiMenuItemStyle = css({
@@ -153,7 +153,7 @@ const aiMenuItemStyle = css({
 });
 
 const aiIconStyle = css({
-  fontSize: "[16px]",
+  fontSize: "base",
 });
 
 const DiffEqMainContent: React.FC = () => {

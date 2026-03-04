@@ -20,7 +20,7 @@ const dimensionsHintStyle = css({
 
 const addDimensionButtonStyle = cva({
   base: {
-    fontSize: "[16px]",
+    fontSize: "base",
     padding: "[2px 8px]",
   },
   variants: {
@@ -38,12 +38,12 @@ const addDimensionButtonStyle = cva({
 });
 
 const emptyDimensionsStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "[#999]",
   fontStyle: "italic",
   padding: "[8px]",
   backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-  borderRadius: "[4px]",
+  borderRadius: "sm",
   textAlign: "center",
 });
 
@@ -132,7 +132,7 @@ const dimensionNameInputStyle = css({
 
 const deleteDimensionButtonStyle = cva({
   base: {
-    fontSize: "[16px]",
+    fontSize: "base",
     width: "[28px]",
     height: "[28px]",
     borderRadius: "[3px]",

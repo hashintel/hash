@@ -25,7 +25,7 @@ const equationRowStyle = cva({
     justifyContent: "space-between",
     padding: "[4px 2px 4px 8px]",
     fontSize: "[13px]",
-    borderRadius: "[4px]",
+    borderRadius: "sm",
     cursor: "pointer",
   },
   variants: {
@@ -37,7 +37,7 @@ const equationRowStyle = cva({
         },
       },
       false: {
-        backgroundColor: "[#f9fafb]",
+        backgroundColor: "neutral.s10",
         _hover: {
           backgroundColor: "[rgba(0, 0, 0, 0.05)]",
         },
@@ -59,7 +59,7 @@ const deleteButtonStyle = css({
   padding: "1",
   borderRadius: "sm",
   cursor: "pointer",
-  fontSize: "[14px]",
+  fontSize: "sm",
   color: "neutral.s90",
   background: "[transparent]",
   border: "none",

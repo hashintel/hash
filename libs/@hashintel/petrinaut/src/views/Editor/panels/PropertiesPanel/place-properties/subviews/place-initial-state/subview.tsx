@@ -12,7 +12,7 @@ import { InitialStateEditor } from "./initial-state-editor";
 
 const fieldLabelStyle = css({
   fontWeight: "medium",
-  fontSize: "[12px]",
+  fontSize: "xs",
   marginBottom: "[4px]",
 });
 
@@ -27,7 +27,7 @@ const clearButtonStyle = css({
   padding: "[1px 4px]",
   border: "[1px solid rgba(0, 0, 0, 0.2)]",
   borderRadius: "[3px]",
-  backgroundColor: "[white]",
+  backgroundColor: "neutral.s00",
   cursor: "pointer",
   color: "[#666]",
   display: "flex",

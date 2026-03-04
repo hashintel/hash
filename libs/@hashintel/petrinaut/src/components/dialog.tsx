@@ -15,7 +15,7 @@ const backdropStyle = css({
   bottom: "[0]",
   left: "[0]",
   backgroundColor: "[rgba(0, 0, 0, 0.4)]",
-  zIndex: "[1100]",
+  zIndex: "sticky",
   "&[data-state=open]": {
     animation: "dialogBackdropIn 150ms ease-out",
   },
@@ -34,17 +34,17 @@ const positionerStyle = css({
   alignItems: "center",
   justifyContent: "center",
   pointerEvents: "auto",
-  zIndex: "[1100]",
+  zIndex: "sticky",
 });
 
 /** Outer gray container — matches Figma "size=sm, glass=false" frame. */
 const outerStyle = css({
-  backgroundColor: "[#fcfcfc]",
-  borderRadius: "[16px]",
-  padding: "[4px]",
+  backgroundColor: "neutral.s10",
+  borderRadius: "2xl",
+  padding: "1",
   display: "flex",
   flexDirection: "column",
-  gap: "[4px]",
+  gap: "1",
   maxWidth: "[400px]",
   width: "[90vw]",
   maxHeight: "[85vh]",
@@ -63,8 +63,8 @@ const outerStyle = css({
 /** Inner white card that holds header + body. */
 const cardStyle = css({
   position: "relative",
-  backgroundColor: "[white]",
-  borderRadius: "[12px]",
+  backgroundColor: "neutral.s00",
+  borderRadius: "xl",
   boxShadow:
     "[0px 0px 0px 1px rgba(0,0,0,0.08), 0px 12px 32px 0px rgba(0,0,0,0.02)]",
   overflow: "clip",
@@ -78,55 +78,55 @@ const cardStyle = css({
 
 const closeButtonStyle = css({
   position: "absolute",
-  top: "[8px]",
-  right: "[8px]",
+  top: "2",
+  right: "2",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   width: "[30px]",
   height: "[30px]",
-  fontSize: "[16px]",
+  fontSize: "base",
   color: "neutral.s100",
   backgroundColor: "[transparent]",
   border: "none",
-  borderRadius: "[8px]",
+  borderRadius: "lg",
   cursor: "pointer",
   zIndex: "[3]",
   _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    backgroundColor: "neutral.bg.min.hover",
   },
 });
 
 const headerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[4px]",
-  paddingX: "[20px]",
-  paddingTop: "[16px]",
-  paddingBottom: "[16px]",
+  gap: "1",
+  paddingX: "5",
+  paddingTop: "4",
+  paddingBottom: "4",
   paddingRight: "[46px]",
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.02)]",
+  borderBottom: "[1px solid {colors.neutral.a10}]",
   flexShrink: "[0]",
 });
 
 const titleStyle = css({
-  fontSize: "[18px]",
+  fontSize: "lg",
   fontWeight: "semibold",
   lineHeight: "[20px]",
-  color: "[#171717]",
+  color: "neutral.fg.heading",
   margin: "[0]",
 });
 
 const descriptionStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[1.25]",
-  color: "[#8d8d8d]",
+  color: "neutral.s90",
   margin: "[0]",
 });
 
 const bodyStyle = css({
-  padding: "[20px]",
+  padding: "5",
   overflowY: "auto",
   flex: "[1]",
 });
@@ -135,9 +135,9 @@ const footerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: "[8px]",
-  paddingX: "[16px]",
-  paddingY: "[12px]",
+  gap: "2",
+  paddingX: "4",
+  paddingY: "3",
   flexShrink: "[0]",
   zIndex: "[1]",
 });

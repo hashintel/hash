@@ -10,7 +10,7 @@ const iconContainerStyle = cva({
     display: "flex",
     alignItems: "center",
     gap: "[2px]",
-    borderRadius: "[6px]",
+    borderRadius: "md",
     padding: "[1px 5px]",
     height: "[22px]",
   },
@@ -29,7 +29,7 @@ const iconContainerStyle = cva({
 });
 
 const countStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   fontWeight: "medium",
 });
 

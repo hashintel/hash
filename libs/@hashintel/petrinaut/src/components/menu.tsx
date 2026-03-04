@@ -9,8 +9,8 @@ import { usePortalContainerRef } from "../state/portal-container-context";
 
 const menuContentStyle = cva({
   base: {
-    backgroundColor: "[white]",
-    borderRadius: "[12px]",
+    backgroundColor: "neutral.s00",
+    borderRadius: "xl",
     boxShadow:
       "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
     minWidth: "[180px]",
@@ -32,8 +32,8 @@ const menuContentStyle = cva({
 });
 
 const submenuContentStyle = css({
-  backgroundColor: "[white]",
-  borderRadius: "[12px]",
+  backgroundColor: "neutral.s00",
+  borderRadius: "xl",
   boxShadow:
     "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
   minWidth: "[180px]",
@@ -51,17 +51,17 @@ const submenuContentStyle = css({
 const groupStyle = css({
   display: "flex",
   flexDirection: "column",
-  padding: "[4px]",
+  padding: "1",
 });
 
 const groupTitleStyle = css({
   display: "flex",
   alignItems: "center",
   height: "[28px]",
-  paddingLeft: "[8px]",
-  paddingRight: "[8px]",
-  paddingBlock: "[8px]",
-  fontSize: "[12px]",
+  paddingLeft: "2",
+  paddingRight: "2",
+  paddingBlock: "2",
+  fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s100",
   textTransform: "uppercase",
@@ -84,12 +84,12 @@ const itemStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    gap: "[8px]",
+    gap: "2",
     minHeight: "[32px]",
     minWidth: "[130px]",
-    padding: "[8px]",
-    borderRadius: "[8px]",
-    fontSize: "[14px]",
+    padding: "2",
+    borderRadius: "lg",
+    fontSize: "sm",
     fontWeight: "medium",
     lineHeight: "[14px]",
     color: "neutral.s120",
@@ -125,8 +125,8 @@ const itemStyle = cva({
 
 const itemIconStyle = css({
   flexShrink: 0,
-  width: "[14px]",
-  height: "[14px]",
+  width: "3.5",
+  height: "3.5",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -140,7 +140,7 @@ const itemLabelStyle = css({
 });
 
 const itemDescriptionStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   fontWeight: "normal",
   lineHeight: "[1.5]",
   color: "neutral.s100",
@@ -148,7 +148,7 @@ const itemDescriptionStyle = css({
 
 const itemSuffixStyle = css({
   marginLeft: "auto",
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "neutral.s80",
   fontWeight: "normal",
   flexShrink: 0,
@@ -157,12 +157,12 @@ const itemSuffixStyle = css({
 const triggerItemStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[8px]",
+  gap: "2",
   minHeight: "[32px]",
   minWidth: "[130px]",
-  padding: "[8px]",
-  borderRadius: "[8px]",
-  fontSize: "[14px]",
+  padding: "2",
+  borderRadius: "lg",
+  fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[14px]",
   color: "neutral.s120",
@@ -174,7 +174,7 @@ const triggerItemStyle = css({
 });
 
 const triggerItemArrowStyle = css({
-  fontSize: "[12px]",
+  fontSize: "xs",
   color: "neutral.s100",
 });
 
