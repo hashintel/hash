@@ -11,8 +11,7 @@ import { usePortalContainerRef } from "../state/portal-container-context";
 const contentStyle = css({
   backgroundColor: "neutral.s25",
   borderRadius: "[12px]",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 20px 25px -5px rgba(0, 0, 0, 0.1)]",
+  boxShadow: "[0px 0px 0px 1px rgba(0, 0, 0, 0.08)]",
   overflow: "hidden",
   zIndex: 1000,
   transformOrigin: "var(--transform-origin)",
