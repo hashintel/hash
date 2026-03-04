@@ -147,14 +147,14 @@ impl JwtValidator {
     pub async fn validate(&self, token: &str) -> Result<JwtClaims, Report<JwtError>> {
         let header = decode_header(token).change_context(JwtError::Validation)?;
 
-        let kid = header.kid.ok_or(JwtError::MissingKeyId)?;
-
-        let decoding_key = self.resolve_decoding_key(&kid).await?;
-
         if !ALLOWED_ALGORITHMS.contains(&header.alg) {
             return Err(Report::new(JwtError::Validation))
                 .attach(format!("algorithm {:?} is not allowed", header.alg));
         }
+
+        let kid = header.kid.ok_or(JwtError::MissingKeyId)?;
+
+        let decoding_key = self.resolve_decoding_key(&kid).await?;
 
         // jsonwebtoken v10 requires all algorithms in the validation list to share the same key
         // family, so we pass only the token's algorithm (already checked above).
@@ -257,7 +257,13 @@ fn extract_token_from_headers(headers: &HeaderMap) -> Result<Cow<'_, str>, Repor
         let value = value
             .to_str()
             .change_context(JwtError::InvalidTokenEncoding)?;
-        if let Some(token) = value.strip_prefix("Bearer ") {
+
+        // RFC 7235: authentication schemes are case-insensitive
+        if let Some(token) = value
+            .get(..7)
+            .filter(|prefix| prefix.eq_ignore_ascii_case("bearer "))
+            .and_then(|_| value.get(7..))
+        {
             return Ok(Cow::Borrowed(token));
         }
     }
