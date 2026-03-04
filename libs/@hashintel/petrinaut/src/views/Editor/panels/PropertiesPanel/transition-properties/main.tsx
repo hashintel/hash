@@ -41,15 +41,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 }) => {
   const isReadOnly = useIsReadOnly();
 
-  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
-    const place = places.find((pl) => pl.id === arc.placeId);
-    return place && place.colorId;
-  });
-
   const subViews: SubView[] = [
     transitionMainContentSubView,
     transitionFiringTimeSubView,
-    ...(hasOutputPlaceWithType ? [transitionResultsSubView] : []),
+    transitionResultsSubView,
   ];
 
   return (
