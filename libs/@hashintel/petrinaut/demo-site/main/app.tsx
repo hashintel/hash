@@ -86,25 +86,6 @@ export const DevApp = () => {
     );
   };
 
-  const mutatePetriNetDefinitionBase = (
-    definitionMutationFn: (draft: SDCPN) => void,
-  ) => {
-    if (!currentNetId) {
-      return;
-    }
-
-    setStoredSDCPNs((prev) =>
-      produce(prev, (draft) => {
-        if (draft[currentNetId]) {
-          draft[currentNetId].sdcpn = produce(
-            draft[currentNetId].sdcpn,
-            definitionMutationFn,
-          );
-        }
-      }),
-    );
-  };
-
   const emptySDCPN: SDCPN = {
     places: [],
     transitions: [],
@@ -129,26 +110,26 @@ export const DevApp = () => {
       : emptySDCPN,
   );
 
-  // A ref to access the latest storedSDCPNs in the microtask callback
-  const storedSDCPNsRef = useRef(storedSDCPNs);
-  storedSDCPNsRef.current = storedSDCPNs;
-
   const mutatePetriNetDefinition = (
     definitionMutationFn: (draft: SDCPN) => void,
   ) => {
-    mutatePetriNetDefinitionBase(definitionMutationFn);
+    if (!currentNetId || !currentNet || isOldFormatInLocalStorage(currentNet)) {
+      return;
+    }
 
-    // Push the new SDCPN onto the history stack after the state update settles
-    queueMicrotask(() => {
-      const netId = currentNetId;
-      if (!netId) {
-        return;
-      }
-      const latest = storedSDCPNsRef.current[netId];
-      if (latest && !isOldFormatInLocalStorage(latest)) {
-        pushState(latest.sdcpn);
-      }
-    });
+    // Compute the new SDCPN synchronously so we can push it to history
+    // without relying on async state reads.
+    const newSDCPN = produce(currentNet.sdcpn, definitionMutationFn);
+
+    setStoredSDCPNs((prev) =>
+      produce(prev, (draft) => {
+        if (draft[currentNetId]) {
+          draft[currentNetId].sdcpn = newSDCPN;
+        }
+      }),
+    );
+
+    pushState(newSDCPN);
   };
 
   const prevNetIdRef = useRef(currentNetId);
