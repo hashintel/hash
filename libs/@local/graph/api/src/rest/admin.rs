@@ -166,7 +166,7 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 
 /// Restores a snapshot from a JSON Lines stream, replacing all existing data.
 ///
-/// Only available when JWT is not configured.
+/// Only available when JWT is not configured. See [`SnapshotStore::restore_snapshot`] for details.
 async fn restore_snapshot(
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
@@ -193,6 +193,10 @@ async fn restore_snapshot(
 }
 
 /// Deletes **all** accounts. Only available when JWT is not configured.
+///
+/// See [`PostgresStore::delete_principals`] for details.
+///
+/// [`PostgresStore::delete_principals`]: hash_graph_postgres_store::store::PostgresStore::delete_principals
 async fn delete_accounts(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -211,6 +215,10 @@ async fn delete_accounts(
 }
 
 /// Deletes **all** data types. Only available when JWT is not configured.
+///
+/// See [`PostgresStore::delete_data_types`] for details.
+///
+/// [`PostgresStore::delete_data_types`]: hash_graph_postgres_store::store::PostgresStore::delete_data_types
 async fn delete_data_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -229,6 +237,10 @@ async fn delete_data_types(
 }
 
 /// Deletes **all** property types. Only available when JWT is not configured.
+///
+/// See [`PostgresStore::delete_property_types`] for details.
+///
+/// [`PostgresStore::delete_property_types`]: hash_graph_postgres_store::store::PostgresStore::delete_property_types
 async fn delete_property_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -247,6 +259,10 @@ async fn delete_property_types(
 }
 
 /// Deletes **all** entity types. Only available when JWT is not configured.
+///
+/// See [`PostgresStore::delete_entity_types`] for details.
+///
+/// [`PostgresStore::delete_entity_types`]: hash_graph_postgres_store::store::PostgresStore::delete_entity_types
 async fn delete_entity_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -265,6 +281,11 @@ async fn delete_entity_types(
 }
 
 /// Deletes entities matching the given filter and scope with full provenance tracking.
+///
+/// See [`EntityStore::delete_entities`] for behavioral details, scoping rules, and error
+/// conditions.
+///
+/// [`EntityStore::delete_entities`]: hash_graph_store::entity::EntityStore::delete_entities
 async fn delete_entities(
     AdminActorId(actor_id): AdminActorId,
     pool: Extension<Arc<PostgresStorePool>>,
