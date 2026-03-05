@@ -2,8 +2,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { FaBars } from "react-icons/fa6";
 import {
-  TbArrowBackUp,
-  TbArrowForwardUp,
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
@@ -110,29 +108,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
-        {undoRedo && (
-          <>
-            <IconButton
-              size="xs"
-              variant="ghost"
-              aria-label="Undo (Cmd+Z)"
-              disabled={!undoRedo.canUndo}
-              onClick={undoRedo.undo}
-            >
-              <TbArrowBackUp size={16} />
-            </IconButton>
-            <IconButton
-              size="xs"
-              variant="ghost"
-              aria-label="Redo (Cmd+Shift+Z)"
-              disabled={!undoRedo.canRedo}
-              onClick={undoRedo.redo}
-            >
-              <TbArrowForwardUp size={16} />
-            </IconButton>
-            <VersionHistoryButton />
-          </>
-        )}
+        {undoRedo && <VersionHistoryButton />}
       </div>
     </div>
   );
