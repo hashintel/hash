@@ -158,16 +158,7 @@ const TypesSectionContent: React.FC = () => {
               variant="ghost"
               colorScheme="red"
               disabled={isReadOnly}
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
-                  )
-                ) {
-                  removeType(type.id);
-                }
-              }}
+              onClick={() => removeType(type.id)}
               aria-label={`Delete token type ${type.name}`}
               tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
             >
