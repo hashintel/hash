@@ -1,49 +1,14 @@
-import { Portal } from "@ark-ui/react/portal";
-import { createListCollection, Select } from "@ark-ui/react/select";
-import { css, cva } from "@hashintel/ds-helpers/css";
-import { TbChevronDown } from "react-icons/tb";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../../../../state/portal-container-context";
-
-const triggerStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "[8px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "sm",
-    fontSize: "sm",
-    width: "[100%]",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-        opacity: "[0.5]",
-      },
-      false: {
-        backgroundColor: "neutral.s00",
-        cursor: "pointer",
-        opacity: "[1]",
-      },
-    },
-  },
-});
-
-const triggerValueContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
+import { Select } from "../../../../../components/select";
 
 const colorSwatchStyle = css({
-  width: "[20px]",
-  height: "[20px]",
-  borderRadius: "[3px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  width: "4",
+  height: "4",
+  borderRadius: "xs",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
   flexShrink: 0,
 });
 
@@ -52,41 +17,11 @@ const colorCodeStyle = css({
   fontFamily: "mono",
 });
 
-const indicatorIconStyle = css({
-  fontSize: "base",
-  color: "[#666]",
-});
-
-const contentStyle = css({
-  backgroundColor: "neutral.s00",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "sm",
-  boxShadow: "[0 4px 12px rgba(0, 0, 0, 0.15)]",
-  padding: "[4px]",
-  zIndex: 1000,
-});
-
-const itemStyle = css({
+const itemContainerStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: "[8px]",
-  padding: "[8px 10px]",
-  cursor: "pointer",
-  borderRadius: "[3px]",
-  fontSize: "[13px]",
-  transition: "[background-color 0.15s ease]",
-});
-
-const itemValueContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
-
-const checkmarkStyle = css({
-  fontSize: "sm",
-  color: "[#3b82f6]",
+  gap: "2",
+  width: "[100%]",
 });
 
 // Pool of 10 well-differentiated colors for types
@@ -114,61 +49,33 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
   onChange,
   disabled = false,
 }) => {
-  const portalContainerRef = usePortalContainerRef();
-  const collection = createListCollection({ items: TYPE_COLOR_POOL });
-
   return (
-    <Select.Root
-      collection={collection}
-      value={[value]}
-      onValueChange={(details) => {
-        const selectedColor = details.value[0];
-        if (selectedColor) {
-          onChange(selectedColor);
-        }
-      }}
+    <Select
+      value={value}
+      onValueChange={onChange}
+      options={TYPE_COLOR_POOL}
       disabled={disabled}
-      positioning={{ sameWidth: true }}
-    >
-      <Select.Control>
-        <Select.Trigger className={triggerStyle({ isDisabled: disabled })}>
-          <div className={triggerValueContainerStyle}>
-            <div
-              className={colorSwatchStyle}
-              style={{ backgroundColor: value }}
-            />
-            <div className={colorCodeStyle}>{value}</div>
-          </div>
-          <Select.Indicator>
-            <TbChevronDown className={indicatorIconStyle} />
-          </Select.Indicator>
-        </Select.Trigger>
-      </Select.Control>
-      <Portal container={portalContainerRef}>
-        <Select.Positioner>
-          <Select.Content className={contentStyle}>
-            <Select.ItemGroup>
-              {collection.items.map((item) => (
-                <Select.Item key={item.value} item={item} className={itemStyle}>
-                  <div className={itemValueContainerStyle}>
-                    <div
-                      className={colorSwatchStyle}
-                      style={{ backgroundColor: item.value }}
-                    />
-                    <Select.ItemText>
-                      <div className={colorCodeStyle}>{item.value}</div>
-                    </Select.ItemText>
-                  </div>
-                  <Select.ItemIndicator>
-                    <span className={checkmarkStyle}>✓</span>
-                  </Select.ItemIndicator>
-                </Select.Item>
-              ))}
-            </Select.ItemGroup>
-          </Select.Content>
-        </Select.Positioner>
-      </Portal>
-      <Select.HiddenSelect />
-    </Select.Root>
+      size="sm"
+      renderTrigger={({ selectedOption }) => (
+        <div className={itemContainerStyle}>
+          <div
+            className={colorSwatchStyle}
+            style={{ backgroundColor: selectedOption?.value ?? value }}
+          />
+          <span className={colorCodeStyle}>
+            {selectedOption?.value ?? value}
+          </span>
+        </div>
+      )}
+      renderItem={(option) => (
+        <div className={itemContainerStyle}>
+          <div
+            className={colorSwatchStyle}
+            style={{ backgroundColor: option.value }}
+          />
+          <span className={colorCodeStyle}>{option.value}</span>
+        </div>
+      )}
+    />
   );
 };

@@ -1,8 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
+import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button } from "../../../../../../components/button";
+import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -12,37 +13,12 @@ import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 
-const dimensionsHintStyle = css({
-  fontSize: "[11px]",
-  color: "[#666]",
-  fontWeight: "normal",
-});
-
-const addDimensionButtonStyle = cva({
-  base: {
-    fontSize: "base",
-    padding: "[2px 8px]",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        color: "[#999]",
-      },
-      false: {
-        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-        color: "[#3b82f6]",
-      },
-    },
-  },
-});
-
 const emptyDimensionsStyle = css({
   fontSize: "xs",
-  color: "[#999]",
+  color: "neutral.s90",
   fontStyle: "italic",
-  padding: "[8px]",
-  backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+  padding: "2",
+  backgroundColor: "neutral.a05",
   borderRadius: "sm",
   textAlign: "center",
 });
@@ -50,33 +26,40 @@ const emptyDimensionsStyle = css({
 const dimensionsListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[6px]",
+  gap: "1.5",
 });
 
 const dimensionRowStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    gap: "[6px]",
-    padding: "[6px]",
-    borderRadius: "[3px]",
+    gap: "1",
+    padding: "1",
+    paddingLeft: "2",
+    borderRadius: "md",
     transition: "[all 0.15s ease]",
   },
   variants: {
     isDragged: {
       true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+        backgroundColor: "blue.bg.min",
+        borderWidth: "[1px]",
+        borderStyle: "solid",
+        borderColor: "neutral.bd.subtle",
       },
       false: {
-        backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+        backgroundColor: "neutral.a20",
+        borderWidth: "[1px]",
+        borderStyle: "solid",
+        borderColor: "neutral.bd.subtle",
       },
     },
     isDragOver: {
       true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.05)]",
-        border: "[1px dashed #3b82f6]",
+        backgroundColor: "blue.bg.min",
+        borderWidth: "[1px]",
+        borderStyle: "dashed",
+        borderColor: "blue.s50",
       },
       false: {},
     },
@@ -88,7 +71,7 @@ const dragHandleStyle = cva({
     display: "flex",
     flexDirection: "column",
     gap: "[1.5px]",
-    opacity: "[0.4]",
+    opacity: "[0.3]",
     flexShrink: 0,
   },
   variants: {
@@ -106,18 +89,15 @@ const dragHandleStyle = cva({
 const dragHandleLineStyle = css({
   width: "[10px]",
   height: "[1.5px]",
-  backgroundColor: "[#666]",
-  borderRadius: "[1px]",
+  backgroundColor: "neutral.s105",
 });
 
 const indexChipStyle = css({
   fontSize: "[11px]",
-  fontWeight: "semibold",
-  color: "[#666]",
-  backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-  borderRadius: "[3px]",
-  width: "[24px]",
-  height: "[24px]",
+  fontWeight: "medium",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s100",
+  width: "3",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -125,35 +105,8 @@ const indexChipStyle = css({
 });
 
 const dimensionNameInputStyle = css({
-  fontSize: "[13px]",
-  padding: "[5px 8px]",
-  flex: "1",
-});
-
-const deleteDimensionButtonStyle = cva({
-  base: {
-    fontSize: "base",
-    width: "[28px]",
-    height: "[28px]",
-    borderRadius: "[3px]",
-    fontWeight: "semibold",
-    lineHeight: "[1]",
-    flexShrink: 0,
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        border: "[1px solid rgba(0, 0, 0, 0.1)]",
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        color: "[#999]",
-      },
-      false: {
-        border: "[1px solid rgba(239, 68, 68, 0.2)]",
-        backgroundColor: "[rgba(239, 68, 68, 0.08)]",
-        color: "[#ef4444]",
-      },
-    },
-  },
+  fontSize: "sm",
+  flex: "[1]",
 });
 
 const slugifyToIdentifier = (input: string): string => {
@@ -325,19 +278,19 @@ const TypeMainContent: React.FC = () => {
 
       <Section
         title="Dimensions"
+        tooltip="A type is an ordered tuple of real-valued dimensions. The index of each dimension determines its position in the token vector."
         renderHeaderAction={() => (
-          <>
-            <span className={dimensionsHintStyle}>(order matters)</span>
-            <Button
-              onClick={handleAddElement}
-              disabled={isDisabled}
-              className={addDimensionButtonStyle({ isDisabled })}
-              aria-label="Add dimension"
-              tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              +
-            </Button>
-          </>
+          <IconButton
+            onClick={handleAddElement}
+            disabled={isDisabled}
+            size="xxs"
+            variant="ghost"
+            colorScheme="brand"
+            aria-label="Add dimension"
+            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            <TbPlus />
+          </IconButton>
         )}
       >
         {type.elements.length === 0 ? (
@@ -397,19 +350,19 @@ const TypeMainContent: React.FC = () => {
                 />
 
                 {/* Delete button */}
-                <Button
+                <IconButton
                   onClick={() => {
                     handleDeleteElement(element.elementId, element.name);
                   }}
                   disabled={isDisabled || type.elements.length === 1}
-                  className={deleteDimensionButtonStyle({
-                    isDisabled: isDisabled || type.elements.length === 1,
-                  })}
+                  size="xxs"
+                  variant="ghost"
+                  colorScheme="red"
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                 >
-                  ×
-                </Button>
+                  <TbX />
+                </IconButton>
               </div>
             ))}
           </div>
