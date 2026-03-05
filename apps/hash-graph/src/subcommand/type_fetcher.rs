@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use futures::{FutureExt as _, StreamExt as _, future};
+use futures::{StreamExt as _, future};
 use hash_graph_type_fetcher::{
     fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
@@ -18,9 +18,13 @@ use tracing::Instrument as _;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::wait_healthcheck,
+    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
 };
 
+/// Address configuration for the type fetcher server.
+///
+/// Shared between the standalone `type-fetcher` subcommand and the `server`
+/// subcommand (via `--embed-type-fetcher`).
 #[derive(Debug, Clone, Parser)]
 pub struct TypeFetcherAddress {
     /// The host the type fetcher RPC server is listening at.
@@ -36,43 +40,39 @@ pub struct TypeFetcherAddress {
     pub type_fetcher_port: u16,
 }
 
+/// Configuration for the type fetcher server.
+///
+/// Shared between the standalone `type-fetcher` subcommand and the `server`
+/// subcommand (via `--embed-type-fetcher`).
+#[derive(Debug, Clone, Parser)]
+pub struct TypeFetcherConfig {
+    #[clap(flatten)]
+    pub address: TypeFetcherAddress,
+}
+
+/// CLI arguments for the standalone `type-fetcher` subcommand.
 #[derive(Debug, Parser)]
 pub struct TypeFetcherArgs {
     #[clap(flatten)]
-    pub address: TypeFetcherAddress,
+    pub config: TypeFetcherConfig,
 
-    /// Runs the healthcheck for the type fetcher.
-    #[clap(long, default_value_t = false)]
-    pub healthcheck: bool,
-
-    /// Waits for the healthcheck to become healthy.
-    #[clap(long, default_value_t = false, requires = "healthcheck")]
-    pub wait: bool,
-
-    /// Timeout for the wait flag in seconds.
-    #[clap(long, requires = "wait")]
-    pub timeout: Option<u64>,
+    #[clap(flatten)]
+    pub healthcheck: HealthcheckArgs,
 }
 
+/// Runs the type fetcher server, shutting down when `shutdown` is cancelled.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "False positive on tokio::select!"
 )]
-pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
-    if args.healthcheck {
-        return wait_healthcheck(
-            || healthcheck(args.address.clone()),
-            args.wait,
-            args.timeout.map(Duration::from_secs),
-        )
-        .await
-        .change_context(GraphError);
-    }
-
+pub(crate) async fn run_type_fetcher(
+    config: TypeFetcherConfig,
+    shutdown: CancellationToken,
+) -> Result<(), Report<GraphError>> {
     let mut listener = tarpc::serde_transport::tcp::listen(
         (
-            args.address.type_fetcher_host,
-            args.address.type_fetcher_port,
+            config.address.type_fetcher_host,
+            config.address.type_fetcher_port,
         ),
         tarpc::tokio_serde::formats::Json::default,
     )
@@ -83,16 +83,20 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
 
     listener.config_mut().max_frame_length(usize::MAX);
 
-    let cancellation_token = CancellationToken::new();
-    let cancellation_token_ref = &cancellation_token;
+    let shutdown_ref = &shutdown;
 
     // Allow listener to accept up to 255 connections at a time.
-    //
-    // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
-    // useful information we would like to store or report on.
     let server_task = async move {
         listener
-            .filter_map(|result| future::ready(result.ok()))
+            .filter_map(|result| {
+                future::ready(match result {
+                    Ok(conn) => Some(conn),
+                    Err(error) => {
+                        tracing::warn!("Failed to accept type fetcher connection: {error}");
+                        None
+                    }
+                })
+            })
             .map(server::BaseChannel::with_defaults)
             .map(|channel| {
                 channel
@@ -104,12 +108,12 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
                         .serve(),
                     )
                     .for_each(async move |response| {
-                        let cancellation_token = cancellation_token_ref.clone();
+                        let shutdown = shutdown_ref.clone();
                         tokio::spawn(
                             async move {
                                 tokio::select! {
                                     () = response => {}
-                                    () = cancellation_token.cancelled() => {
+                                    () = shutdown.cancelled() => {
                                         tracing::debug!("Type fetcher response task cancelled");
                                     }
                                 }
@@ -127,19 +131,78 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
         () = server_task => {
             tracing::info!("Type fetcher server task completed");
         }
-        () = signal::ctrl_c().map(|result| match result {
-            Ok(()) => (),
-            Err(error) => {
-                tracing::error!("Failed to install Ctrl+C handler: {error}");
-                // Continue with shutdown even if signal handling had issues
-            }
-        }) => {
-            tracing::info!("Received SIGINT, shutting down type fetcher gracefully");
-            cancellation_token.cancel();
-        }
+        () = shutdown.cancelled() => {}
     }
 
     Ok(())
+}
+
+/// Spawns the type fetcher server as a background task with lifecycle management.
+pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLifecycle) {
+    let shutdown = lifecycle.shutdown.clone();
+    lifecycle.spawn("Type fetcher", async move {
+        run_type_fetcher(config, shutdown).await
+    });
+}
+
+/// Standalone `type-fetcher` subcommand entrypoint.
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "False positive on tokio::select!"
+)]
+#[expect(
+    clippy::exit,
+    reason = "Force shutdown on double ctrl-c is intentional"
+)]
+pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
+    if args.healthcheck.healthcheck {
+        return wait_healthcheck(
+            || healthcheck(args.config.address.clone()),
+            &args.healthcheck,
+        )
+        .await
+        .change_context(GraphError);
+    }
+
+    let lifecycle = ServerLifecycle::new();
+    start_type_fetcher(args.config, &lifecycle);
+
+    // Wait for shutdown signal or unexpected server exit
+    let aborted = tokio::select! {
+        result = signal::ctrl_c() => {
+            match result {
+                Ok(()) => false,
+                Err(error) => {
+                    tracing::error!("Failed to install Ctrl+C handler: {error}");
+                    true
+                }
+            }
+        }
+        () = lifecycle.abort.cancelled() => {
+            tracing::error!("Type fetcher exited unexpectedly");
+            true
+        }
+    };
+
+    // Double ctrl-c for force shutdown
+    tokio::select! {
+        () = lifecycle.shutdown_and_wait() => {}
+        result = signal::ctrl_c() => {
+            if let Err(error) = result {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+            }
+            tracing::warn!("Forced shutdown");
+            std::process::exit(1);
+        }
+    }
+
+    tracing::info!("Shutdown complete");
+
+    if aborted {
+        Err(GraphError.into())
+    } else {
+        Ok(())
+    }
 }
 
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {

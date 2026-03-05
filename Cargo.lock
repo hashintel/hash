@@ -3221,7 +3221,6 @@ dependencies = [
  "hash-graph-authorization",
  "hash-graph-postgres-store",
  "hash-graph-store",
- "hash-graph-test-server",
  "hash-graph-type-fetcher",
  "hash-telemetry",
  "hash-temporal-client",
@@ -3287,6 +3286,8 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "time",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-http",
  "tracing",
@@ -3539,28 +3540,6 @@ dependencies = [
  "type-system",
  "uuid",
  "xxhash-rust",
-]
-
-[[package]]
-name = "hash-graph-test-server"
-version = "0.0.0"
-dependencies = [
- "axum",
- "error-stack",
- "futures",
- "hash-codec",
- "hash-graph-api",
- "hash-graph-authorization",
- "hash-graph-postgres-store",
- "hash-graph-store",
- "hash-graph-type-defs",
- "hash-status",
- "simple-mermaid",
- "tokio",
- "tokio-util",
- "tracing",
- "type-system",
- "uuid",
 ]
 
 [[package]]

@@ -17,7 +17,7 @@ import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-inst
 import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({

@@ -78,8 +78,6 @@ jobs:
           IMAGE_NAME: ${{ github.repository }}/graph
           IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
-          BUILD_ARGS: |
-            ENABLE_TEST_SERVER=yes
 
   build-api:
     name: Build and push HASH api image
