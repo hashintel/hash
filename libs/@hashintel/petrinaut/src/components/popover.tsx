@@ -5,6 +5,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { TbX } from "react-icons/tb";
 
 import { usePortalContainerRef } from "../state/portal-container-context";
+import { IconButton } from "./icon-button";
 
 // -- Styles ------------------------------------------------------------------
 
@@ -111,8 +112,15 @@ const Content = ({
 const Header = ({ children }: { children: ReactNode }) => (
   <div className={headerStyle}>
     <ArkPopover.Title className={titleStyle}>{children}</ArkPopover.Title>
-    <ArkPopover.CloseTrigger className={closeButtonStyle} aria-label="Close">
-      <TbX />
+    <ArkPopover.CloseTrigger asChild>
+      <IconButton
+        aria-label="Close"
+        size="xs"
+        variant="ghost"
+        className={closeButtonStyle}
+      >
+        <TbX />
+      </IconButton>
     </ArkPopover.CloseTrigger>
   </div>
 );
