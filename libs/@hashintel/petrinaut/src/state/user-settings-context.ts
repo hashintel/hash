@@ -66,7 +66,7 @@ export type UserSettingsContextValue = UserSettings & UserSettingsActions;
 export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
-  compactNodes: true,
+  compactNodes: false,
   arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
