@@ -9,6 +9,9 @@ import { EditorContext } from "../../../state/editor-context";
 import type { NodeType } from "../reactflow-types";
 
 const miniMapClassName = css({
+  backgroundColor: "white.a90",
+  borderRadius: "md",
+  backdropFilter: "[blur(7px)]",
   "& svg": {
     borderRadius: "md",
   },
