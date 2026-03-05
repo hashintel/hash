@@ -26,6 +26,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { orgNameIsInvalid } from "@local/hash-isomorphic-utils/organization";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Organization,
@@ -136,6 +137,11 @@ export const createOrg: ImpureGraphFunction<
     throw new Error(
       `An account or an account group with shortname "${shortname}" already exists.`,
     );
+  }
+
+  const nameValidation = orgNameIsInvalid(name);
+  if (nameValidation !== true) {
+    throw new Error(nameValidation);
   }
 
   let orgWebId: WebId;
@@ -340,18 +346,6 @@ export const getOrgByShortname: ImpureGraphFunction<
 };
 
 /**
- * Whether an org name is invalid
- *
- * @param params.orgName - the org name
- */
-export const orgNameIsInvalid: PureGraphFunction<
-  { orgName: string },
-  boolean
-> = ({ orgName }) => {
-  return orgName === "";
-};
-
-/**
  * Update the name of an Organization
  *
  * @param params.org - the org
@@ -366,8 +360,9 @@ export const updateOrgName: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { org, updatedOrgName } = params;
 
-  if (orgNameIsInvalid({ orgName: updatedOrgName })) {
-    throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
+  const nameValidation = orgNameIsInvalid(updatedOrgName);
+  if (nameValidation !== true) {
+    throw new Error(nameValidation);
   }
 
   const updatedEntity = await updateEntity(ctx, authentication, {
