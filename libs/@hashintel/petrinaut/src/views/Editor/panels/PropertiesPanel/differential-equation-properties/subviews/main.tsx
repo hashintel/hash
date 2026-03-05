@@ -1,4 +1,4 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
@@ -7,6 +7,7 @@ import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
+import { Select } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -19,60 +20,11 @@ import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
 
-const typeDropdownButtonStyle = cva({
-  base: {
-    width: "[100%]",
-    fontSize: "sm",
-    padding: "[6px 8px]",
-    display: "flex",
-    justifyContent: "flex-start",
-    gap: "[8px]",
-    textAlign: "left",
-  },
-  variants: {
-    isDisabled: {
-      true: {},
-      false: {},
-    },
-  },
-});
-
 const colorDotStyle = css({
   width: "[12px]",
   height: "[12px]",
   borderRadius: "[50%]",
   flexShrink: 0,
-});
-
-const placeholderStyle = css({
-  color: "[rgba(0, 0, 0, 0.4)]",
-});
-
-const dropdownMenuStyle = css({
-  position: "absolute",
-  top: "[100%]",
-  left: "[0]",
-  right: "[0]",
-  marginTop: "[4px]",
-  backgroundColor: "neutral.s00",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "sm",
-  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
-  maxHeight: "[300px]",
-  overflowY: "auto",
-  zIndex: 1000,
-});
-
-const dropdownItemStyle = css({
-  width: "[100%]",
-  padding: "[8px 12px]",
-  border: "none",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-  fontSize: "sm",
-  textAlign: "left",
 });
 
 const confirmDialogOverlayStyle = css({
@@ -127,25 +79,6 @@ const confirmDialogButtonsStyle = css({
   justifyContent: "flex-end",
 });
 
-const cancelButtonStyle = css({
-  padding: "[8px 16px]",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  borderRadius: "sm",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  fontSize: "sm",
-});
-
-const confirmButtonStyle = css({
-  padding: "[8px 16px]",
-  border: "none",
-  borderRadius: "sm",
-  backgroundColor: "[#2563eb]",
-  color: "neutral.s00",
-  cursor: "pointer",
-  fontSize: "sm",
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
@@ -161,13 +94,7 @@ const DiffEqMainContent: React.FC = () => {
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-
   const isReadOnly = useIsReadOnly();
-
-  const associatedType = types.find(
-    (type) => type.id === differentialEquation.colorId,
-  );
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -230,75 +157,47 @@ const DiffEqMainContent: React.FC = () => {
       </Section>
 
       <Section title="Associated Type">
-        <div style={{ position: "relative" }}>
-          <Button
-            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-            onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-            disabled={isReadOnly}
-            className={typeDropdownButtonStyle({ isDisabled: isReadOnly })}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            {associatedType ? (
+        <Select
+          value={differentialEquation.colorId}
+          onValueChange={handleTypeChange}
+          options={types.map((type) => ({
+            value: type.id,
+            label: type.name,
+          }))}
+          placeholder="Select a type"
+          size="sm"
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          renderTrigger={({ selectedOption }) => {
+            const type = selectedOption
+              ? types.find((tp) => tp.id === selectedOption.value)
+              : undefined;
+            if (!type) {
+              return null;
+            }
+            return (
               <>
                 <div
                   className={colorDotStyle}
-                  style={{ backgroundColor: associatedType.displayColor }}
+                  style={{ backgroundColor: type.displayColor }}
                 />
-                <span>{associatedType.name}</span>
+                <span>{type.name}</span>
               </>
-            ) : (
-              <span className={placeholderStyle}>Select a type</span>
-            )}
-          </Button>
-          {showTypeDropdown && !isReadOnly && (
-            <div className={dropdownMenuStyle}>
-              {types.length === 0 ? (
+            );
+          }}
+          renderItem={(option) => {
+            const type = types.find((tp) => tp.id === option.value);
+            return (
+              <>
                 <div
-                  className={dropdownItemStyle}
-                  style={{ color: "rgba(0, 0, 0, 0.4)" }}
-                >
-                  Create a type first
-                </div>
-              ) : (
-                types.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => {
-                      handleTypeChange(type.id);
-                      setShowTypeDropdown(false);
-                    }}
-                    className={dropdownItemStyle}
-                    style={{
-                      backgroundColor:
-                        type.id === differentialEquation.colorId
-                          ? "rgba(0, 0, 0, 0.05)"
-                          : "transparent",
-                    }}
-                    onMouseEnter={(event) => {
-                      // eslint-disable-next-line no-param-reassign
-                      event.currentTarget.style.backgroundColor =
-                        "rgba(0, 0, 0, 0.05)";
-                    }}
-                    onMouseLeave={(event) => {
-                      // eslint-disable-next-line no-param-reassign
-                      event.currentTarget.style.backgroundColor =
-                        type.id === differentialEquation.colorId
-                          ? "rgba(0, 0, 0, 0.05)"
-                          : "transparent";
-                    }}
-                  >
-                    <div
-                      className={colorDotStyle}
-                      style={{ backgroundColor: type.displayColor }}
-                    />
-                    <span>{type.name}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+                  className={colorDotStyle}
+                  style={{ backgroundColor: type?.displayColor }}
+                />
+                {option.label}
+              </>
+            );
+          }}
+        />
       </Section>
 
       {/* Confirmation Dialog */}
@@ -336,12 +235,19 @@ const DiffEqMainContent: React.FC = () => {
               you want to continue?
             </div>
             <div className={confirmDialogButtonsStyle}>
-              <Button onClick={cancelTypeChange} className={cancelButtonStyle}>
+              <Button
+                variant="secondary"
+                colorScheme="neutral"
+                size="sm"
+                onClick={cancelTypeChange}
+              >
                 Cancel
               </Button>
               <Button
+                variant="primary"
+                colorScheme="brand"
+                size="sm"
                 onClick={confirmTypeChange}
-                className={confirmButtonStyle}
               >
                 Change Type
               </Button>

@@ -24,10 +24,6 @@ const jumpButtonContainerStyle = css({
   textAlign: "right",
 });
 
-const jumpIconStyle = css({
-  fontSize: "sm",
-});
-
 const hintTextStyle = css({
   fontSize: "[11px]",
   color: "neutral.s95",
@@ -219,12 +215,15 @@ const PlaceMainContent: React.FC = () => {
           {place.colorId && (
             <div className={jumpButtonContainerStyle}>
               <Button
+                variant="secondary"
+                colorScheme="neutral"
+                size="xs"
                 onClick={() => {
                   setSelectedResourceId(place.colorId);
                 }}
+                iconRight={<TbArrowRight />}
               >
                 Jump to Type
-                <TbArrowRight className={jumpIconStyle} />
               </Button>
             </div>
           )}
@@ -300,12 +299,15 @@ const PlaceMainContent: React.FC = () => {
                 {place.differentialEquationId && (
                   <div className={jumpButtonContainerStyle}>
                     <Button
+                      variant="secondary"
+                      colorScheme="neutral"
+                      size="xs"
                       onClick={() => {
                         setSelectedResourceId(place.differentialEquationId);
                       }}
+                      iconRight={<TbArrowRight />}
                     >
                       Jump to Differential Equation
-                      <TbArrowRight className={jumpIconStyle} />
                     </Button>
                   </div>
                 )}

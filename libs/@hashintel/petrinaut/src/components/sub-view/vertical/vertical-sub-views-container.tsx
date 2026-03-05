@@ -121,7 +121,6 @@ const headerRowStyle = css({
 const headerActionStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
-  overflow: "hidden",
   display: "flex",
   alignItems: "center",
   gap: "1",

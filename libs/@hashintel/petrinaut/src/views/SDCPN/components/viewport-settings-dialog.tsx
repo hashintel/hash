@@ -1,6 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
+import { Button } from "../../../components/button";
 import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
@@ -25,54 +26,6 @@ const labelStyle = css({
 const selectWrapperStyle = css({
   width: "[120px]",
   flexShrink: "[0]",
-});
-
-const cancelButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingX: "3",
-  paddingY: "2",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.fg.body",
-  backgroundColor: "neutral.s00",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "xl",
-  cursor: "pointer",
-  transition: "[background-color 0.15s ease]",
-  _hover: {
-    backgroundColor: "neutral.bg.min.active",
-  },
-  _active: {
-    backgroundColor: "neutral.bg.surface",
-  },
-});
-
-const confirmButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingX: "3",
-  paddingY: "2",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s00",
-  backgroundColor: "neutral.s115",
-  border: "none",
-  borderRadius: "xl",
-  cursor: "pointer",
-  transition: "[background-color 0.15s ease]",
-  _hover: {
-    backgroundColor: "neutral.s110",
-  },
-  _active: {
-    backgroundColor: "neutral.s120",
-  },
 });
 
 interface ViewportSettingsDialogProps {
@@ -142,16 +95,21 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           </Dialog.Body>
         </Dialog.Card>
         <Dialog.Footer>
-          <Dialog.CloseTrigger asChild>
-            <button type="button" className={cancelButtonStyle}>
-              Cancel
-            </button>
-          </Dialog.CloseTrigger>
-          <Dialog.CloseTrigger asChild>
-            <button type="button" className={confirmButtonStyle}>
-              Confirm
-            </button>
-          </Dialog.CloseTrigger>
+          <Button
+            variant="secondary"
+            colorScheme="neutral"
+            size="md"
+            onClick={() => onOpenChange({ open: false })}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="neutral"
+            size="md"
+            onClick={() => onOpenChange({ open: false })}
+          >
+            Confirm
+          </Button>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>

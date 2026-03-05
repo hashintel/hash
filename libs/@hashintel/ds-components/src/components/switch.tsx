@@ -24,7 +24,7 @@ const switchControlStyles = (disabled: boolean) =>
     transition: "[all 0.2s ease]",
     backgroundColor: "neutral.s40",
     _checked: {
-      backgroundColor: "green.s40",
+      backgroundColor: "green.s80",
     },
   });
 
