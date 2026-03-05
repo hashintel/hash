@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useMemo } from "react";
+import { use } from "react";
 import type { MiniMapNodeProps, MiniMapProps } from "reactflow";
 import { MiniMap as ReactFlowMiniMap, useStore } from "reactflow";
 
@@ -14,64 +14,53 @@ const miniMapClassName = css({
   },
 });
 
-/** Default colors for nodes without a type color */
-const DEFAULT_PLACE_FILL = "#f8f8f8";
-const DEFAULT_PLACE_STROKE = "#666666";
+const SHAPE_SIZE = 90;
+const TRANSITION_WIDTH_RATIO = 1.5;
+const DEFAULT_PLACE_FILL = "#0F0F0F";
 const DEFAULT_TRANSITION_FILL = "#6b7280";
-
-const PLACE_STROKE_WIDTH = 2;
 
 /**
  * Custom node renderer for the MiniMap.
  * Renders place nodes as circles and transition nodes as rectangles.
  */
-const MiniMapNode: React.FC<MiniMapNodeProps> = ({
-  id,
-  x,
-  y,
-  width,
-  height,
-}) => {
+const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
     (state) => state.nodeInternals.get(id) as NodeType | undefined,
   );
 
+  if (!node) {
+    return null;
+  }
+
   // Compute colors based on node type and type color
-  const { fill, stroke } = useMemo(() => {
-    if (node?.data.type === "place") {
-      const typeColor = node.data.typeColor;
+  const fill =
+    node.data.type === "place"
+      ? node.data.typeColor
+        ? hexToHsl(node.data.typeColor).saturation(50).css(1)
+        : DEFAULT_PLACE_FILL
+      : DEFAULT_TRANSITION_FILL;
 
-      if (typeColor) {
-        const hsl = hexToHsl(typeColor);
-        return {
-          fill: hsl.lighten(20).css(0.9),
-          stroke: hsl.lighten(-15).saturate(-20).css(1),
-        };
-      }
-
-      return { fill: DEFAULT_PLACE_FILL, stroke: DEFAULT_PLACE_STROKE };
-    }
-
-    // Transitions: solid grey with no stroke
-    return { fill: DEFAULT_TRANSITION_FILL, stroke: undefined };
-  }, [node?.data]);
-
-  if (node?.data.type === "place") {
-    const radius = Math.min(width, height) / 2 - PLACE_STROKE_WIDTH / 2;
+  if (node.data.type === "place") {
     return (
       <circle
-        cx={x + width / 2}
-        cy={y + height / 2}
-        r={Math.max(radius, 1)}
+        cx={x + SHAPE_SIZE / 2}
+        cy={y + SHAPE_SIZE / 2}
+        r={SHAPE_SIZE / 2}
         fill={fill}
-        stroke={stroke}
-        strokeWidth={PLACE_STROKE_WIDTH}
       />
     );
   }
 
-  return <rect x={x} y={y} width={width} height={height} fill={fill} />;
+  return (
+    <rect
+      x={x - SHAPE_SIZE}
+      y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
+      width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+      height={SHAPE_SIZE}
+      fill={fill}
+    />
+  );
 };
 
 /**
