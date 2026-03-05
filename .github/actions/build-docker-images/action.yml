@@ -89,7 +89,6 @@ runs:
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
-          ENABLE_TEST_SERVER=yes
 
     - name: Build hash-graph image (fork)
       if: inputs.hash-graph == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -107,7 +106,6 @@ runs:
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
-          ENABLE_TEST_SERVER=yes
 
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true' && github.event.pull_request.head.repo.full_name == github.repository

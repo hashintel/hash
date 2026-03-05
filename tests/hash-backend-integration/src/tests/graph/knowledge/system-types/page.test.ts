@@ -29,7 +29,7 @@ import type {
 import { generateKeyBetween } from "fractional-indexing";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({

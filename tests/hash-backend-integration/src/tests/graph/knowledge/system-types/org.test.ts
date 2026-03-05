@@ -9,7 +9,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestOrg } from "../../../util";
 
 const logger = new Logger({

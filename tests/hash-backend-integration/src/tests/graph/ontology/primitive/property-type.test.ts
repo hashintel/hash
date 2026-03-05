@@ -21,7 +21,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,

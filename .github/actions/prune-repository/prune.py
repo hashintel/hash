@@ -36,9 +36,6 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     # Test data crates
     "@blockprotocol/type-system-rs": ["@rust/hash-graph-test-data"],
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],
-    # Graph app required for these crates
-    "@rust/hash-graph-type-fetcher": ["@apps/hash-graph"],
-    "@rust/hash-graph-test-server": ["@apps/hash-graph"],
 }
 
 TURBO_QUERY = """

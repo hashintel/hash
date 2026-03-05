@@ -66,6 +66,8 @@ serde                              = { workspace = true, features = ['derive'] }
 serde_json                         = { workspace = true, features = ["raw_value"] }
 simple-mermaid                     = { workspace = true }
 time                               = { workspace = true }
+tokio                              = { workspace = true }
+tokio-util                         = { workspace = true, features = ["codec", "io"] }
 tower                              = { workspace = true }
 tracing-opentelemetry              = { workspace = true }
 utoipa                             = { workspace = true }

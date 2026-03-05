@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { resetGraph, restoreSnapshot } from "../test-server";
+import { resetGraph, restoreSnapshot } from "../admin-server";
 
 afterAll(async () => {
   await resetGraph();

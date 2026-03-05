@@ -12,6 +12,7 @@
     "test:integration:manual": "cargo test --bench manual-queries"
   },
   "devDependencies": {
+    "@apps/hash-graph": "workspace:*",
     "@blockprotocol/type-system-rs": "workspace:*",
     "@rust/error-stack": "workspace:*",
     "@rust/hash-graph-api": "workspace:*",

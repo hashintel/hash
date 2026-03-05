@@ -1,6 +1,14 @@
 
 ### Delete entities
-DELETE http://127.0.0.1:4001/entities
+POST http://127.0.0.1:4001/entities/delete
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{
+  "filter": { "all": [] },
+  "includeDrafts": true,
+  "scope": "erase"
+}
 
 > {%
     client.test("status", function() {

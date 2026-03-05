@@ -36,7 +36,7 @@ import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomor
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestUser,

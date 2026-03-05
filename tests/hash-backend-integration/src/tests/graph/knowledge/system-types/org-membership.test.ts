@@ -13,7 +13,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
