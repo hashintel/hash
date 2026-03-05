@@ -201,14 +201,20 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
 
   // Sync internal state when data prop changes externally
   useEffect(() => {
-    if (data.length > 0) {
-      setTableData(data);
-    } else {
-      setTableData([]);
-      setSelectedRow(null);
-      setFocusedCell(null);
-      setEditingCell(null);
-    }
+    setTableData((prev) => {
+      if (
+        prev.length === data.length &&
+        prev.every((row, i) => row === data[i])
+      ) {
+        return prev;
+      }
+      if (data.length === 0) {
+        setSelectedRow(null);
+        setFocusedCell(null);
+        setEditingCell(null);
+      }
+      return data.length > 0 ? data : [];
+    });
   }, [data]);
 
   const updateCell = (row: number, col: number, value: number) => {

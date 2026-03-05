@@ -22,38 +22,14 @@ const ConditionalPortal: React.FC<{
 
 // -- Figma design tokens ------------------------------------------------------
 
-const SIZE_MAP = {
-  xs: {
-    height: "24px",
-    fontSize: "12px",
-    radius: "8px",
-    px: "6px",
-    iconSize: 10,
-  },
-  sm: {
-    height: "28px",
-    fontSize: "14px",
-    radius: "8px",
-    px: "8px",
-    iconSize: 12,
-  },
-  md: {
-    height: "32px",
-    fontSize: "14px",
-    radius: "8px",
-    px: "10px",
-    iconSize: 14,
-  },
-  lg: {
-    height: "40px",
-    fontSize: "16px",
-    radius: "12px",
-    px: "12px",
-    iconSize: 16,
-  },
-} as const;
+type SelectSize = "xs" | "sm" | "md" | "lg";
 
-type SelectSize = keyof typeof SIZE_MAP;
+const ICON_SIZE: Record<SelectSize, number> = {
+  xs: 10,
+  sm: 12,
+  md: 14,
+  lg: 16,
+};
 
 // -- Styles -------------------------------------------------------------------
 
@@ -257,7 +233,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
     ? options.find((opt) => opt.value === value)
     : undefined;
 
-  const iconSize = SIZE_MAP[size].iconSize;
+  const iconSize = ICON_SIZE[size];
 
   return (
     <ArkSelect.Root
