@@ -147,6 +147,9 @@ const itemDescriptionStyle = css({
 });
 
 const itemSuffixStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
   marginLeft: "auto",
   fontSize: "xs",
   color: "neutral.s80",
