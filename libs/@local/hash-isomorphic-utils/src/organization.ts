@@ -6,29 +6,7 @@ import type {
   InvitationViaShortname,
 } from "./system-types/shared.js";
 
-const orgNameMaxLength = 256;
-
-/**
- * Allows letters (any script), digits, spaces, and common punctuation.
- * Notably excludes < and > to prevent HTML injection.
- */
-const validOrgNamePattern = /^[\p{L}\p{N}\s\-_.,:;'"&@#!?+=/\\()[\]{}]+$/u;
-
-export const orgNameIsInvalid = (orgName: string): string | true => {
-  if (orgName.length === 0) {
-    return "Organization name is required";
-  }
-  if (orgName.length > orgNameMaxLength) {
-    return `Organization name must be ${orgNameMaxLength} characters or fewer`;
-  }
-  if (orgName !== orgName.trim()) {
-    return "Organization name must not have leading or trailing whitespace";
-  }
-  if (!validOrgNamePattern.test(orgName)) {
-    return "Organization name contains invalid characters";
-  }
-  return true;
-};
+export { orgNameIsInvalid } from "@local/hash-graph-sdk/org-entity-restrictions";
 
 export const isInvitationByEmail = (
   invitation: HashEntity,

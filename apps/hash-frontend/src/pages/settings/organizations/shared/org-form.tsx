@@ -219,6 +219,15 @@ export const OrgForm = ({
               const result = orgNameIsInvalid(value);
               return result === true || result;
             },
+            onBlur: (event) => {
+              const trimmed = (event.target.value as string).trim();
+              if (trimmed !== event.target.value) {
+                setValue("name", trimmed, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }
+            },
           })}
           sx={{ width: 300 }}
         />

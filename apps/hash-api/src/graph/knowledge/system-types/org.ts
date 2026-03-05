@@ -139,7 +139,8 @@ export const createOrg: ImpureGraphFunction<
     );
   }
 
-  const nameValidation = orgNameIsInvalid(name);
+  const trimmedName = name.trim();
+  const nameValidation = orgNameIsInvalid(trimmedName);
   if (nameValidation !== true) {
     throw new Error(nameValidation);
   }
@@ -196,7 +197,7 @@ export const createOrg: ImpureGraphFunction<
         },
       },
       "https://hash.ai/@h/types/property-type/organization-name/": {
-        value: name,
+        value: trimmedName,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -359,11 +360,6 @@ export const updateOrgName: ImpureGraphFunction<
   true
 > = async (ctx, authentication, params) => {
   const { org, updatedOrgName } = params;
-
-  const nameValidation = orgNameIsInvalid(updatedOrgName);
-  if (nameValidation !== true) {
-    throw new Error(nameValidation);
-  }
 
   const updatedEntity = await updateEntity(ctx, authentication, {
     entity: org.entity,

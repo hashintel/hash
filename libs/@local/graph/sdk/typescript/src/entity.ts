@@ -86,11 +86,19 @@ import type {
   EntityTypeResolveDefinitions,
 } from "./ontology.js";
 import {
+  organizationEntityTypeBaseUrl,
+  organizationNamePropertyBaseUrl,
+  orgNameIsInvalid,
+} from "./org-entity-restrictions.js";
+import {
   deserializeGraphVertices,
   mapGraphApiSubgraphToSubgraph,
   serializeGraphVertices,
 } from "./subgraph.js";
 import {
+  displayNameIsInvalid,
+  displayNamePropertyBaseUrl,
+  shortnamePropertyBaseUrl,
   userEntityTypeBaseUrl,
   userSelfUpdatablePropertyBaseUrls,
 } from "./user-entity-restrictions.js";
@@ -1201,6 +1209,69 @@ export class HashEntity<
             throw new Error(
               `Property patch targeting '${targetBaseUrl}' is not allowed on a user entity. Allowed properties: ${[...userSelfUpdatablePropertyBaseUrls, ...(additionalAllowedPropertyBaseUrls ?? [])].join(", ")}`,
             );
+          }
+
+          if (targetBaseUrl === displayNamePropertyBaseUrl) {
+            if (patch.op === "remove") {
+              throw new Error("Cannot remove the display name of a user");
+            }
+
+            const rawName = patch.property.value;
+            if (typeof rawName === "string") {
+              const trimmedName = rawName.trim();
+              const validation = displayNameIsInvalid(trimmedName);
+              if (validation !== true) {
+                throw new Error(validation);
+              }
+              if (trimmedName !== rawName) {
+                patch.property.value = trimmedName;
+              }
+            }
+          }
+        }
+      }
+
+      const isOrgEntity = this.metadata.entityTypeIds.some(
+        (id) => extractBaseUrl(id) === organizationEntityTypeBaseUrl,
+      );
+
+      if (isOrgEntity) {
+        for (const patch of propertyPatches) {
+          const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+          if (targetBaseUrl === undefined) {
+            throw new Error(
+              "Cannot replace the entire property object on an organization",
+            );
+          }
+
+          if (patch.path[0] === shortnamePropertyBaseUrl) {
+            if (patch.op === "remove") {
+              throw new Error("Cannot remove the organization shortname");
+            }
+
+            if (
+              patch.property.value !== this.properties[shortnamePropertyBaseUrl]
+            ) {
+              throw new Error("Cannot change the shortname of an organization");
+            }
+          }
+
+          if (patch.path[0] === organizationNamePropertyBaseUrl) {
+            if (patch.op === "remove") {
+              throw new Error("Cannot remove the organization name");
+            }
+
+            const rawName = patch.property.value;
+            if (typeof rawName === "string") {
+              const trimmedName = rawName.trim();
+              const validation = orgNameIsInvalid(trimmedName);
+              if (validation !== true) {
+                throw new Error(validation);
+              }
+              if (trimmedName !== rawName) {
+                patch.property.value = trimmedName;
+              }
+            }
           }
         }
       }

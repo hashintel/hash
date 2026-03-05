@@ -1,4 +1,5 @@
 import { TextField } from "@hashintel/design-system";
+import { displayNameIsInvalid } from "@local/hash-graph-sdk/user-entity-restrictions";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import type { BoxProps } from "@mui/material";
 import {
@@ -163,7 +164,20 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             placeholder="Jonathan Smith"
             autoFocus
             sx={{ width: inputWidth }}
-            {...register("displayName", { required: true })}
+            {...register("displayName", {
+              required: "Display name is required",
+              validate: (value) => {
+                const result = displayNameIsInvalid(value);
+                return result === true || result;
+              },
+              onBlur: (event) => {
+                const trimmed = (event.target.value as string).trim();
+                if (trimmed !== event.target.value) {
+                  // eslint-disable-next-line no-param-reassign
+                  event.target.value = trimmed;
+                }
+              },
+            })}
           />
         </Box>
         <Box>

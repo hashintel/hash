@@ -1,11 +1,26 @@
 import type { BaseUrl } from "@blockprotocol/type-system";
 
+import { nameIsInvalid } from "./validate-name.js";
+
 /**
  * The base URL of the User entity type, used to detect user entities
  * when enforcing property update restrictions.
  */
 export const userEntityTypeBaseUrl =
   "https://hash.ai/@h/types/entity-type/user/" as BaseUrl;
+
+/**
+ * The base URL of the display-name property type.
+ */
+export const displayNamePropertyBaseUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/" as BaseUrl;
+
+/**
+ * Validates a user display name. Returns `true` if the name is valid,
+ * or an error message string if it is invalid.
+ */
+export const displayNameIsInvalid = (displayName: string): string | true =>
+  nameIsInvalid(displayName, "Display name");
 
 /**
  * Property base URLs on the User entity type that regular users are allowed to self-update.
