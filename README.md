@@ -120,7 +120,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
    docker run hello-world
    ```
 
-6. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
+6. You will need to create an `.env.local` file in the repository root with the following values (Note: if you are not using AI-related features, dummy values are sufficient):
 
    ```sh
    OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
@@ -171,6 +171,8 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    - `alice@example.com`, `bob@example.com` – regular users
    - `admin@example.com` – an admin
+  
+  Note: seeding only runs when `NODE_ENV=development`, start the Graph API separately using `yarn start:graph` then launch the app using `yarn dev` in a separate terminal to start it in development environment.
 
 ##### Running the browser plugin
 
