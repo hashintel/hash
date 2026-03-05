@@ -39,22 +39,27 @@ use crate::rest::status::report_to_response;
 
 /// Creates the admin API router.
 ///
-/// When `jwt_validator` is `Some`, all endpoints except `/health` require a valid
-/// JWT token. When `None`, JWT authentication is disabled (development mode).
+/// When `jwt_validator` is `Some`, only `/health` and `/entities/delete` are available.
+/// Bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
+/// `/entity-types`) are only registered when JWT is **not** configured.
 pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
     // Health endpoint is always public (used by load balancers and healthchecks)
     let public = Router::new().route("/health", get(async || "Healthy"));
 
-    let mut protected = Router::new()
-        .route("/snapshot", post(restore_snapshot))
-        .route("/accounts", delete(delete_accounts))
-        .route("/data-types", delete(delete_data_types))
-        .route("/property-types", delete(delete_property_types))
-        .route("/entity-types", delete(delete_entity_types))
-        .route("/entities/delete", post(delete_entities));
+    let mut protected = Router::new().route("/entities/delete", post(delete_entities));
 
     if let Some(validator) = jwt_validator {
         protected = protected.layer(Extension(validator));
+    } else {
+        // Bulk destructive endpoints are only available when JWT is not configured.
+        // In production/staging (JWT enabled), these are disabled to prevent accidental
+        // data loss — use snapshots or targeted entity deletion instead.
+        protected = protected
+            .route("/snapshot", post(restore_snapshot))
+            .route("/accounts", delete(delete_accounts))
+            .route("/data-types", delete(delete_data_types))
+            .route("/property-types", delete(delete_property_types))
+            .route("/entity-types", delete(delete_entity_types));
     }
 
     public
@@ -129,16 +134,9 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 }
 
 async fn restore_snapshot(
-    jwt: OptionalJwtAuthentication,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "Admin: restoring snapshot"
-    );
-
     let store = store_pool.acquire(None).await.map_err(report_to_response)?;
 
     SnapshotStore::new(store)
@@ -161,15 +159,8 @@ async fn restore_snapshot(
 }
 
 async fn delete_accounts(
-    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "Admin: deleting all accounts"
-    );
-
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -185,15 +176,8 @@ async fn delete_accounts(
 }
 
 async fn delete_data_types(
-    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "Admin: deleting all data types"
-    );
-
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -209,15 +193,8 @@ async fn delete_data_types(
 }
 
 async fn delete_property_types(
-    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "Admin: deleting all property types"
-    );
-
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -233,15 +210,8 @@ async fn delete_property_types(
 }
 
 async fn delete_entity_types(
-    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "Admin: deleting all entity types"
-    );
-
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
