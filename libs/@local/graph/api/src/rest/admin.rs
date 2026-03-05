@@ -1,7 +1,38 @@
 //! Admin API routes for database management operations.
 //!
-//! These routes are served on a separate admin port and provide operations like
-//! entity deletion, snapshot restoration, and bulk cleanup of ontology types.
+//! Served on a dedicated port (default: 4001, configured via `HASH_GRAPH_ADMIN_PORT`), separate
+//! from the main Graph API.
+//!
+//! # Endpoints
+//!
+//! | Method   | Path               | Auth | Availability             |
+//! |----------|--------------------|------|--------------------------|
+//! | `GET`    | `/health`          | —    | Always                   |
+//! | `POST`   | `/entities/delete` | JWT  | Always                   |
+//! | `POST`   | `/snapshot`        | —    | Only without JWT         |
+//! | `DELETE` | `/accounts`        | —    | Only without JWT         |
+//! | `DELETE` | `/data-types`      | —    | Only without JWT         |
+//! | `DELETE` | `/property-types`  | —    | Only without JWT         |
+//! | `DELETE` | `/entity-types`    | —    | Only without JWT         |
+//!
+//! # Authentication
+//!
+//! JWT tokens are extracted from headers in order:
+//! 1. `Cf-Access-Jwt-Assertion` (Cloudflare Access)
+//! 2. `Authorization: Bearer <token>`
+//!
+//! When JWT is configured (`--jwt-jwks-url`), the token's `email` claim is resolved to a HASH
+//! user actor for provenance tracking on `/entities/delete`. When JWT is not configured, the
+//! `X-Authenticated-User-Actor-Id` header is used instead.
+//!
+//! See [`super::jwt`] for validation details.
+//!
+//! # Operational runbook
+//!
+//! See the [Graph Admin API] Notion page for access instructions and troubleshooting.
+//! **Update that page when endpoints or authentication behaviour change.**
+//!
+//! [Graph Admin API]: https://www.notion.so/hashintel/Graph-Admin-API-31a3c81fe02480f792c9d7bedfdc49db
 
 use alloc::sync::Arc;
 
@@ -81,7 +112,7 @@ enum AdminActorError {
 /// Resolves the authenticated admin actor from JWT claims.
 ///
 /// When JWT authentication is configured, resolves the actor ID by looking up the email from the
-/// token claims. When JWT is disabled (dev mode), falls back to the `X-Authenticated-User-Actor-Id`
+/// token claims. When JWT is not configured, falls back to the `X-Authenticated-User-Actor-Id`
 /// header.
 struct AdminActorId(AuthenticatedActor);
 
@@ -92,7 +123,7 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
         let jwt = OptionalJwtAuthentication::from_request_parts(parts, state).await?;
 
         let Some(claims) = jwt.0 else {
-            // No JWT configured (dev mode) — fall back to header
+            // No JWT configured — fall back to header
             let AuthenticatedUserHeader(actor_id) =
                 AuthenticatedUserHeader::from_request_parts(parts, state)
                     .await
@@ -133,6 +164,9 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
     }
 }
 
+/// Restores a snapshot from a JSON Lines stream, replacing all existing data.
+///
+/// Only available when JWT is not configured.
 async fn restore_snapshot(
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
@@ -158,6 +192,7 @@ async fn restore_snapshot(
     )))
 }
 
+/// Deletes **all** accounts. Only available when JWT is not configured.
 async fn delete_accounts(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -175,6 +210,7 @@ async fn delete_accounts(
     )))
 }
 
+/// Deletes **all** data types. Only available when JWT is not configured.
 async fn delete_data_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -192,6 +228,7 @@ async fn delete_data_types(
     )))
 }
 
+/// Deletes **all** property types. Only available when JWT is not configured.
 async fn delete_property_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
@@ -209,6 +246,7 @@ async fn delete_property_types(
     )))
 }
 
+/// Deletes **all** entity types. Only available when JWT is not configured.
 async fn delete_entity_types(
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
