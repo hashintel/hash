@@ -166,7 +166,7 @@ const weightCellStyle = css({
   height: "[100%]",
   flexShrink: 0,
   backgroundColor: "[var(--background-color)]",
-  border: "[var(--border-width) solid var(--border-color)]",
+  border: "none",
   borderRadius: "lg",
   borderLeftRadius: "[var(--inset-lip-radius)]",
   overflow: "hidden",
