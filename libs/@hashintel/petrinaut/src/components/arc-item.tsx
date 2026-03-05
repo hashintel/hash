@@ -161,37 +161,29 @@ const separatorBarMaskStyle: React.CSSProperties = {
   WebkitMaskComposite: "source-in" as string,
 };
 
-const weightCellStyle = css({
+const weightInputStyle = css({
   width: "[54px]",
   height: "[100%]",
   flexShrink: 0,
   backgroundColor: "[var(--background-color)]",
-  border: "none",
+  border: "[var(--border-width) solid var(--border-color)]",
   borderRadius: "lg",
   borderLeftRadius: "[var(--inset-lip-radius)]",
-  overflow: "hidden",
-});
-
-const weightInputOverrideStyle = css({
-  height: "[100%]",
-  border: "[none]",
-  background: "[transparent]",
-  borderRadius: "[0]",
   textAlign: "right",
   paddingX: "2",
   paddingY: "0",
   outline: "[none]",
   _hover: {
-    border: "[none]",
+    borderColor: "[var(--border-color)]",
   },
   _focus: {
     boxShadow: "[none]",
-    border: "[none]",
+    borderColor: "[var(--border-color)]",
     outline: "[none]",
   },
   _active: {
     boxShadow: "[none]",
-    border: "[none]",
+    borderColor: "[var(--border-color)]",
   },
 });
 
@@ -343,25 +335,23 @@ export const ArcItem = ({
           style={separatorBarMaskStyle}
         />
       </div>
-      <div className={weightCellStyle}>
-        <NumberInput
-          value={weight}
-          min={1}
-          step={1}
-          disabled={disabled}
-          size="sm"
-          className={weightInputOverrideStyle}
-          onChange={(event) => {
-            const newWeight = Number.parseInt(
-              (event.target as HTMLInputElement).value,
-              10,
-            );
-            if (!Number.isNaN(newWeight) && newWeight >= 1) {
-              onWeightChange(newWeight);
-            }
-          }}
-        />
-      </div>
+      <NumberInput
+        value={weight}
+        min={1}
+        step={1}
+        disabled={disabled}
+        size="sm"
+        className={weightInputStyle}
+        onChange={(event) => {
+          const newWeight = Number.parseInt(
+            (event.target as HTMLInputElement).value,
+            10,
+          );
+          if (!Number.isNaN(newWeight) && newWeight >= 1) {
+            onWeightChange(newWeight);
+          }
+        }}
+      />
       {onDelete && !disabled && (
         <div data-arc-delete="" className={deleteContainerStyle}>
           <button
