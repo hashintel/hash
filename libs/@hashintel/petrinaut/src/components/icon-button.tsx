@@ -14,7 +14,6 @@ const iconButtonStyle = cva({
     background: "[transparent]",
     cursor: "pointer",
     transition: "[all 0.15s ease]",
-    fontSize: "base",
     overflow: "clip",
   },
   variants: {
@@ -23,26 +22,31 @@ const iconButtonStyle = cva({
         width: "[20px]",
         height: "[20px]",
         borderRadius: "md",
+        fontSize: "xs",
       },
       xs: {
         width: "[24px]",
         height: "[24px]",
         borderRadius: "lg",
+        fontSize: "sm",
       },
       sm: {
         width: "[28px]",
         height: "[28px]",
         borderRadius: "lg",
+        fontSize: "base",
       },
       md: {
         width: "[32px]",
         height: "[32px]",
         borderRadius: "xl",
+        fontSize: "lg",
       },
       lg: {
         width: "[40px]",
         height: "[40px]",
         borderRadius: "xl",
+        fontSize: "xl",
       },
     },
     variant: {

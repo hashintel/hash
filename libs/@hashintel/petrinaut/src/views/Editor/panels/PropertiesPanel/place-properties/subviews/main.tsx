@@ -325,6 +325,7 @@ const DeletePlaceAction: React.FC = () => {
   return (
     <IconButton
       aria-label="Delete"
+      size="xs"
       colorScheme="red"
       onClick={() => {
         if (
@@ -339,7 +340,7 @@ const DeletePlaceAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >
-      <TbTrash size={16} />
+      <TbTrash />
     </IconButton>
   );
 };

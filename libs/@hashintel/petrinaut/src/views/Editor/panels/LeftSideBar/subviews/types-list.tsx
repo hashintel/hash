@@ -197,7 +197,7 @@ const TypesSectionHeaderAction: React.FC = () => {
   return (
     <IconButton
       aria-label="Add token type"
-      size="xxs"
+      size="xs"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       onClick={() => {

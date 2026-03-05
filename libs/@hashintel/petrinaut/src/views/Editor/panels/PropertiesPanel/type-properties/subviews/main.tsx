@@ -283,7 +283,7 @@ const TypeMainContent: React.FC = () => {
           <IconButton
             onClick={handleAddElement}
             disabled={isDisabled}
-            size="xxs"
+            size="xs"
             variant="ghost"
             colorScheme="brand"
             aria-label="Add dimension"

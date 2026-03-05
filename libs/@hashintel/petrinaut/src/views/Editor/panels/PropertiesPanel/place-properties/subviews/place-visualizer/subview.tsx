@@ -267,7 +267,7 @@ const VisualizerHeaderAction: React.FC = () => {
         <Menu
           animated
           trigger={
-            <IconButton aria-label="More options" size="xxs">
+            <IconButton aria-label="More options" size="xs">
               <TbDotsVertical />
             </IconButton>
           }
