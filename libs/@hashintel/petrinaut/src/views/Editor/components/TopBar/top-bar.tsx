@@ -84,7 +84,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <Menu
           trigger={
-            <IconButton aria-label="Menu" size="xs" variant="ghost">
+            <IconButton aria-label="Menu" size="sm" variant="ghost">
               <FaBars />
             </IconButton>
           }
