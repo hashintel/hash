@@ -5,6 +5,7 @@ import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
 import { LanguageClientContext } from "../../../../lsp/context";
 import {
+  type CursorMode,
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
@@ -61,12 +62,16 @@ interface BottomBarProps {
   mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
+  cursorMode: CursorMode;
+  onCursorModeChange: (mode: CursorMode) => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   mode,
   editionMode,
   onEditionModeChange,
+  cursorMode,
+  onCursorModeChange,
 }) => {
   const {
     isBottomPanelOpen,
@@ -94,12 +99,12 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       mode === "simulate" &&
       (editionMode === "add-place" || editionMode === "add-transition")
     ) {
-      onEditionModeChange("pan");
+      onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);
 
   // Setup keyboard shortcuts
-  useKeyboardShortcuts(mode, onEditionModeChange);
+  useKeyboardShortcuts(mode, onEditionModeChange, onCursorModeChange);
 
   // Calculate bottom offset based on bottom panel visibility
   const bottomOffset = isBottomPanelOpen
@@ -125,6 +130,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           <ToolbarModes
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
+            cursorMode={cursorMode}
+            onCursorModeChange={onCursorModeChange}
           />
         </div>
       </refractive.div>

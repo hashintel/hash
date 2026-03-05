@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-import type { BottomPanelTab, TimelineChartType } from "./editor-context";
+import type {
+  BottomPanelTab,
+  CursorMode,
+  TimelineChartType,
+} from "./editor-context";
 import type {
   ArcRendering,
   SubViewSectionSettings,
@@ -49,6 +53,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, compactNodes: value })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
+    setCursorMode: (value: CursorMode) =>
+      setState((prev) => ({ ...prev, cursorMode: value })),
     setIsLeftSidebarOpen: (value: boolean) =>
       setState((prev) => ({ ...prev, isLeftSidebarOpen: value })),
     setLeftSidebarWidth: (value: number) =>

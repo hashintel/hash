@@ -4,7 +4,7 @@ import { LuMousePointerClick } from "react-icons/lu";
 import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
 
 import { Menu, type MenuItem } from "../../../../components/menu";
-import type { EditorState } from "../../../../state/editor-context";
+import type { CursorMode, EditorState } from "../../../../state/editor-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -60,8 +60,13 @@ const dropdownArrowStyle = css({
 const CursorModeDropdown: React.FC<{
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
-}> = ({ editionMode, onEditionModeChange }) => {
-  const isCursorMode = editionMode === "select" || editionMode === "pan";
+  cursorMode: CursorMode;
+  onCursorModeChange: (mode: CursorMode) => void;
+}> = ({ editionMode, onEditionModeChange, cursorMode, onCursorModeChange }) => {
+  const handleCursorChange = (mode: CursorMode) => {
+    onCursorModeChange(mode);
+    onEditionModeChange("cursor");
+  };
 
   const items: MenuItem[] = [
     {
@@ -69,16 +74,16 @@ const CursorModeDropdown: React.FC<{
       icon: <LuMousePointerClick size={14} />,
       label: "Select",
       suffix: "V",
-      selected: editionMode === "select",
-      onClick: () => onEditionModeChange("select"),
+      selected: cursorMode === "select",
+      onClick: () => handleCursorChange("select"),
     },
     {
       id: "pan",
       icon: <FaRegHand size={14} />,
       label: "Pan",
       suffix: "H",
-      selected: editionMode === "pan",
-      onClick: () => onEditionModeChange("pan"),
+      selected: cursorMode === "pan",
+      onClick: () => handleCursorChange("pan"),
     },
   ];
 
@@ -87,10 +92,10 @@ const CursorModeDropdown: React.FC<{
       trigger={
         <button
           type="button"
-          className={cursorTriggerStyle({ isActive: isCursorMode })}
+          className={cursorTriggerStyle({ isActive: editionMode === "cursor" })}
           aria-label="Cursor mode"
         >
-          {editionMode === "pan" ? (
+          {cursorMode === "pan" ? (
             <FaRegHand size={16} />
           ) : (
             <LuMousePointerClick size={16} />
@@ -108,11 +113,15 @@ const CursorModeDropdown: React.FC<{
 interface ToolbarModesProps {
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
+  cursorMode: CursorMode;
+  onCursorModeChange: (mode: CursorMode) => void;
 }
 
 export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   editionMode,
   onEditionModeChange,
+  cursorMode,
+  onCursorModeChange,
 }) => {
   const isReadOnly = useIsReadOnly();
 
@@ -121,6 +130,8 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
       <CursorModeDropdown
         editionMode={editionMode}
         onEditionModeChange={onEditionModeChange}
+        cursorMode={cursorMode}
+        onCursorModeChange={onCursorModeChange}
       />
       {!isReadOnly && (
         <>

@@ -82,6 +82,7 @@ export const SDCPNView: React.FC = () => {
   const {
     editionMode,
     setEditionMode,
+    cursorMode,
     selectedItemIds,
     setSelectedItemIds,
     setSelectedResourceId,
@@ -180,7 +181,7 @@ export const SDCPNView: React.FC = () => {
       });
     }
     setSelectedItemIds(new Set([id]));
-    setEditionMode("select");
+    setEditionMode("cursor");
   }
 
   function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
@@ -195,7 +196,7 @@ export const SDCPNView: React.FC = () => {
     }
 
     // Clear selection when clicking empty canvas in select mode
-    if (editionMode === "select" || editionMode === "pan") {
+    if (editionMode === "cursor") {
       setSelectedItemIds(new Set());
       setSelectedResourceId(null);
       return;
@@ -285,7 +286,7 @@ export const SDCPNView: React.FC = () => {
   // Determine ReactFlow props based on edition mode
   const isAddMode =
     editionMode === "add-place" || editionMode === "add-transition";
-  const isPanMode = editionMode === "pan";
+  const isPanMode = editionMode === "cursor" && cursorMode === "pan";
 
   // Set cursor style based on mode
   const getCursorStyle = () => {
@@ -338,7 +339,7 @@ export const SDCPNView: React.FC = () => {
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
-        panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
+        panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}

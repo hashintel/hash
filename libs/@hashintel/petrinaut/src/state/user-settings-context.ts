@@ -5,7 +5,11 @@ import {
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "../constants/ui";
-import type { BottomPanelTab, TimelineChartType } from "./editor-context";
+import type {
+  BottomPanelTab,
+  CursorMode,
+  TimelineChartType,
+} from "./editor-context";
 
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
@@ -26,6 +30,7 @@ export type UserSettings = {
   keepPanelsMounted: boolean;
   compactNodes: boolean;
   arcRendering: ArcRendering;
+  cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
   propertiesPanelWidth: number;
@@ -47,6 +52,7 @@ export type UserSettingsActions = {
   setIsBottomPanelOpen: (value: boolean) => void;
   setBottomPanelHeight: (value: number) => void;
   setActiveBottomPanelTab: (value: BottomPanelTab) => void;
+  setCursorMode: (value: CursorMode) => void;
   setTimelineChartType: (value: TimelineChartType) => void;
   updateSubViewSection: (
     containerName: string,
@@ -62,6 +68,7 @@ export const defaultUserSettings: UserSettings = {
   keepPanelsMounted: true,
   compactNodes: true,
   arcRendering: "custom",
+  cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
   propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -84,6 +91,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setIsBottomPanelOpen: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
+  setCursorMode: () => {},
   setTimelineChartType: () => {},
   updateSubViewSection: () => {},
 };

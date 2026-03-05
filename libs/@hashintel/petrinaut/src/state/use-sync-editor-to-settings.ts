@@ -1,6 +1,10 @@
 import { use, useEffect, useRef } from "react";
 
-import type { BottomPanelTab, TimelineChartType } from "./editor-context";
+import type {
+  BottomPanelTab,
+  CursorMode,
+  TimelineChartType,
+} from "./editor-context";
 import { UserSettingsContext } from "./user-settings-context";
 
 /**
@@ -10,6 +14,7 @@ import { UserSettingsContext } from "./user-settings-context";
  * with defaults before the editor has had a chance to initialize from them.
  */
 export const useSyncEditorToSettings = (values: {
+  cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
   propertiesPanelWidth: number;
@@ -19,6 +24,7 @@ export const useSyncEditorToSettings = (values: {
   timelineChartType: TimelineChartType;
 }) => {
   const {
+    setCursorMode,
     setIsLeftSidebarOpen,
     setLeftSidebarWidth,
     setPropertiesPanelWidth,
@@ -39,6 +45,7 @@ export const useSyncEditorToSettings = (values: {
 
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
+      setCursorMode(values.cursorMode);
       setIsLeftSidebarOpen(values.isLeftSidebarOpen);
       setLeftSidebarWidth(values.leftSidebarWidth);
       setPropertiesPanelWidth(values.propertiesPanelWidth);
@@ -50,6 +57,7 @@ export const useSyncEditorToSettings = (values: {
 
     return () => clearTimeout(timerRef.current);
   }, [
+    values.cursorMode,
     values.isLeftSidebarOpen,
     values.leftSidebarWidth,
     values.propertiesPanelWidth,
@@ -57,6 +65,7 @@ export const useSyncEditorToSettings = (values: {
     values.bottomPanelHeight,
     values.activeBottomPanelTab,
     values.timelineChartType,
+    setCursorMode,
     setIsLeftSidebarOpen,
     setLeftSidebarWidth,
     setPropertiesPanelWidth,

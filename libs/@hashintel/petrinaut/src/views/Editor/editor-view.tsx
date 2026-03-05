@@ -72,6 +72,8 @@ export const EditorView = ({
     globalMode: mode,
     editionMode,
     setEditionMode,
+    cursorMode,
+    setCursorMode,
     clearSelection,
   } = use(EditorContext);
 
@@ -235,6 +237,8 @@ export const EditorView = ({
               mode={mode}
               editionMode={editionMode}
               onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
             />
           </Box>
         </Stack>

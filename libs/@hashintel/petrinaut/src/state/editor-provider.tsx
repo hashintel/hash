@@ -18,6 +18,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
+    cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
     leftSidebarWidth: userSettings.leftSidebarWidth,
     propertiesPanelWidth: userSettings.propertiesPanelWidth,
@@ -48,6 +49,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
       setState((prev) => ({ ...prev, editionMode: mode })),
+    setCursorMode: (mode) =>
+      setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
       triggerPanelAnimation();
       setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen }));
@@ -116,6 +119,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   };
 
   useSyncEditorToSettings({
+    cursorMode: state.cursorMode,
     isLeftSidebarOpen: state.isLeftSidebarOpen,
     leftSidebarWidth: state.leftSidebarWidth,
     propertiesPanelWidth: state.propertiesPanelWidth,

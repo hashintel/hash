@@ -12,7 +12,8 @@ export type DraggingStateByNodeId = Record<
 >;
 
 type EditorGlobalMode = "edit" | "simulate";
-type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
+type EditorEditionMode = "cursor" | "add-place" | "add-transition";
+export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
   | "diagnostics"
   | "simulation-settings"
@@ -26,6 +27,7 @@ export type TimelineChartType = "run" | "stacked";
 export type EditorState = {
   globalMode: EditorGlobalMode;
   editionMode: EditorEditionMode;
+  cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
   propertiesPanelWidth: number;
@@ -45,6 +47,7 @@ export type EditorState = {
 export type EditorActions = {
   setGlobalMode: (mode: EditorGlobalMode) => void;
   setEditionMode: (mode: EditorEditionMode) => void;
+  setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
   setPropertiesPanelWidth: (width: number) => void;
@@ -72,7 +75,8 @@ export type EditorContextValue = EditorState & EditorActions;
 
 export const initialEditorState: EditorState = {
   globalMode: "edit",
-  editionMode: "select",
+  editionMode: "cursor",
+  cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
   propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -90,6 +94,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
   setGlobalMode: () => {},
   setEditionMode: () => {},
+  setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
