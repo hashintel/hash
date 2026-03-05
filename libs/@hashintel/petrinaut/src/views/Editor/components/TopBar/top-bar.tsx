@@ -1,17 +1,18 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { FaBars } from "react-icons/fa6";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
 
-import type { MenuItem } from "../../../../components/menu";
+import { IconButton } from "../../../../components/icon-button";
+import { Menu, type MenuItem } from "../../../../components/menu";
 import {
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
 import { FloatingTitle } from "./floating-title";
-import { HamburgerMenu } from "./hamburger-menu";
 import { ModeSelector } from "./mode-selector";
 
 const topBarStyle = css({
@@ -46,23 +47,6 @@ const rightSectionStyle = css({
   minWidth: "[0]",
 });
 
-const sidebarToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  border: "[1px solid]",
-  borderColor: "neutral.s40",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  flexShrink: 0,
-  _hover: {
-    backgroundColor: "neutral.s10",
-  },
-});
-
 interface TopBarProps {
   menuItems: MenuItem[];
   title: string;
@@ -85,19 +69,29 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
-        <button
-          type="button"
+        <IconButton
+          size="xs"
+          variant="ghost"
           onClick={() => setLeftSidebarOpen(!isLeftSidebarOpen)}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          className={sidebarToggleStyle}
         >
           {isLeftSidebarOpen ? (
             <TbLayoutSidebarLeftCollapse size={16} />
           ) : (
             <TbLayoutSidebarRightCollapse size={16} />
           )}
-        </button>
-        <HamburgerMenu menuItems={menuItems} />
+        </IconButton>
+
+        <Menu
+          trigger={
+            <IconButton aria-label="Menu" size="xs" variant="ghost">
+              <FaBars />
+            </IconButton>
+          }
+          items={menuItems}
+          animated
+        />
+
         {!hideNetManagementControls && (
           <FloatingTitle
             value={title}

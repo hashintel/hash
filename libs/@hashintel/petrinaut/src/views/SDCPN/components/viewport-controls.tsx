@@ -9,7 +9,7 @@ import {
 } from "react-icons/tb";
 import { useReactFlow } from "reactflow";
 
-import { Tooltip } from "../../../components/tooltip";
+import { IconButton } from "../../../components/icon-button";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { EditorContext } from "../../../state/editor-context";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
@@ -32,30 +32,6 @@ const animatingStyle = cva({
         transition: "[right 150ms ease-in-out, bottom 150ms ease-in-out]",
       },
     },
-  },
-});
-
-const buttonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "6",
-  height: "6",
-  backgroundColor: "white",
-  borderWidth: "thin",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  cursor: "pointer",
-  color: "neutral.s110",
-  padding: "0",
-  transition: "[all 0.15s ease]",
-  _hover: {
-    backgroundColor: "neutral.s10",
-    color: "neutral.s120",
-    transform: "[scale(1.05)]",
-  },
-  _active: {
-    transform: "[scale(0.92)]",
   },
 });
 
@@ -83,58 +59,53 @@ export const ViewportControls: React.FC = () => {
       className={`${containerStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
       style={{ right: rightOffset, bottom: bottomOffset }}
     >
-      <Tooltip content="Zoom in" display="inline" placement="left">
-        <button
-          type="button"
-          className={buttonStyle}
-          aria-label="Zoom in"
-          onClick={() => zoomIn()}
-        >
-          <TbPlus size={14} />
-        </button>
-      </Tooltip>
-      <Tooltip content="Zoom out" display="inline" placement="left">
-        <button
-          type="button"
-          className={buttonStyle}
-          aria-label="Zoom out"
-          onClick={() => zoomOut()}
-        >
-          <TbMinus size={14} />
-        </button>
-      </Tooltip>
-      <Tooltip content="Fullscreen" display="inline" placement="left">
-        <button
-          type="button"
-          className={buttonStyle}
-          aria-label="Fullscreen"
-          onClick={collapseAllPanels}
-        >
-          <TbMaximize size={14} />
-        </button>
-      </Tooltip>
-      <Tooltip content="Lock view" display="inline" placement="left">
-        <button
-          type="button"
-          className={buttonStyle}
-          aria-label="Lock view"
-          onClick={() => {
-            // Placeholder for future lock view functionality
-          }}
-        >
-          <TbLockOpen size={14} />
-        </button>
-      </Tooltip>
-      <Tooltip content="Settings" display="inline" placement="left">
-        <button
-          type="button"
-          className={buttonStyle}
-          aria-label="Settings"
-          onClick={() => setIsSettingsOpen(true)}
-        >
-          <TbSettings size={14} />
-        </button>
-      </Tooltip>
+      <IconButton
+        size="xs"
+        variant="outline"
+        aria-label="Zoom in"
+        tooltip="Zoom in"
+        onClick={() => zoomIn()}
+      >
+        <TbPlus size={14} />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant="outline"
+        aria-label="Zoom out"
+        tooltip="Zoom out"
+        onClick={() => zoomOut()}
+      >
+        <TbMinus size={14} />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant="outline"
+        aria-label="Fullscreen"
+        tooltip="Fullscreen"
+        onClick={collapseAllPanels}
+      >
+        <TbMaximize size={14} />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant="outline"
+        aria-label="Lock view"
+        tooltip="Lock view"
+        onClick={() => {
+          // Placeholder for future lock view functionality
+        }}
+      >
+        <TbLockOpen size={14} />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant="outline"
+        aria-label="Settings"
+        tooltip="Settings"
+        onClick={() => setIsSettingsOpen(true)}
+      >
+        <TbSettings size={14} />
+      </IconButton>
       <ViewportSettingsDialog
         open={isSettingsOpen}
         onOpenChange={(details) => setIsSettingsOpen(details.open)}

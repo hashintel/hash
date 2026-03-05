@@ -1,10 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus } from "react-icons/tb";
+import { TbPlus, TbX } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
-import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
@@ -57,33 +56,6 @@ const typeNameStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-});
-
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "1",
-  borderRadius: "sm",
-  cursor: "pointer",
-  fontSize: "sm",
-  color: "neutral.s90",
-  background: "[transparent]",
-  border: "none",
-  width: "[20px]",
-  height: "[20px]",
-  _hover: {
-    backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-    color: "red.s90",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.3]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "neutral.s90",
-    },
-  },
 });
 
 const emptyMessageStyle = css({
@@ -181,29 +153,26 @@ const TypesSectionContent: React.FC = () => {
               style={{ backgroundColor: type.displayColor }}
             />
             <span className={typeNameStyle}>{type.name}</span>
-            <Tooltip
-              content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-              display="inline"
+            <IconButton
+              size="xxs"
+              variant="ghost"
+              colorScheme="red"
+              disabled={isReadOnly}
+              onClick={() => {
+                if (
+                  // eslint-disable-next-line no-alert
+                  window.confirm(
+                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
+                  )
+                ) {
+                  removeType(type.id);
+                }
+              }}
+              aria-label={`Delete token type ${type.name}`}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
             >
-              <button
-                type="button"
-                disabled={isReadOnly}
-                onClick={() => {
-                  if (
-                    // eslint-disable-next-line no-alert
-                    window.confirm(
-                      `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
-                    )
-                  ) {
-                    removeType(type.id);
-                  }
-                }}
-                className={deleteButtonStyle}
-                aria-label={`Delete token type ${type.name}`}
-              >
-                ×
-              </button>
-            </Tooltip>
+              <TbX />
+            </IconButton>
           </div>
         );
       })}

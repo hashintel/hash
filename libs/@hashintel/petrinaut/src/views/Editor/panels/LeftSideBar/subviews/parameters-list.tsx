@@ -1,12 +1,11 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus } from "react-icons/tb";
+import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import type { SubView } from "../../../../../components/sub-view/types";
-import { Tooltip } from "../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
@@ -63,33 +62,6 @@ const actionsContainerStyle = css({
 const parameterValueInputStyle = css({
   width: "[80px]",
   textAlign: "right",
-});
-
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "1",
-  borderRadius: "sm",
-  cursor: "pointer",
-  fontSize: "sm",
-  color: "neutral.s100",
-  background: "[transparent]",
-  border: "none",
-  width: "[20px]",
-  height: "[20px]",
-  _hover: {
-    backgroundColor: "red.bg.subtle.hover",
-    color: "red.s50",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.3]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "neutral.s100",
-    },
-  },
 });
 
 const emptyMessageStyle = css({
@@ -210,29 +182,26 @@ const ParametersList: React.FC = () => {
                     className={parameterValueInputStyle}
                   />
                 ) : (
-                  <Tooltip
-                    content={
+                  <IconButton
+                    size="xxs"
+                    variant="ghost"
+                    colorScheme="red"
+                    disabled={isReadOnly}
+                    onClick={() => {
+                      if (
+                        // eslint-disable-next-line no-alert
+                        window.confirm(`Delete parameter "${param.name}"?`)
+                      ) {
+                        removeParameter(param.id);
+                      }
+                    }}
+                    aria-label={`Delete ${param.name}`}
+                    tooltip={
                       isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
                     }
-                    display="inline"
                   >
-                    <button
-                      type="button"
-                      disabled={isReadOnly}
-                      onClick={() => {
-                        if (
-                          // eslint-disable-next-line no-alert
-                          window.confirm(`Delete parameter "${param.name}"?`)
-                        ) {
-                          removeParameter(param.id);
-                        }
-                      }}
-                      className={deleteButtonStyle}
-                      aria-label={`Delete ${param.name}`}
-                    >
-                      ×
-                    </button>
-                  </Tooltip>
+                    <TbX />
+                  </IconButton>
                 )}
               </div>
             </div>

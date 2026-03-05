@@ -3,6 +3,7 @@ import { use, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
+import { IconButton } from "../../../../components/icon-button";
 import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
@@ -66,24 +67,6 @@ const headerRightStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
-});
-
-const closeButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[22px]",
-  height: "[22px]",
-  border: "none",
-  borderRadius: "[5px]",
-  background: "[transparent]",
-  color: "neutral.s100",
-  cursor: "pointer",
-  transition: "[all 0.15s ease]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-    color: "neutral.s115",
-  },
 });
 
 /**
@@ -193,14 +176,14 @@ export const BottomPanel: React.FC = () => {
             subViews={subViews}
             activeTabId={activeTab}
           />
-          <button
-            type="button"
+          <IconButton
+            size="xxs"
+            variant="ghost"
             onClick={toggleBottomPanel}
-            className={closeButtonStyle}
             aria-label="Close panel"
           >
             <FaXmark size={14} />
-          </button>
+          </IconButton>
         </div>
       </div>
 
