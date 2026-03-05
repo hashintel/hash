@@ -4,6 +4,7 @@ import { type ReactNode, use } from "react";
 import { FaChevronUp } from "react-icons/fa6";
 
 import { UserSettingsContext } from "../state/user-settings-context";
+import { IconButton } from "./icon-button";
 import { InfoIconTooltip } from "./tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
@@ -154,8 +155,11 @@ export const Section = ({
       >
         <div className={headerStyle}>
           {headerLeft}
-          <Collapsible.Trigger className={triggerButtonStyle}>
-            <FaChevronUp size={10} />
+          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+          <Collapsible.Trigger className={triggerButtonStyle} asChild>
+            <IconButton size="xs" variant="ghost" aria-label="Toggle section">
+              <FaChevronUp size={10} />
+            </IconButton>
           </Collapsible.Trigger>
         </div>
         <Collapsible.Content

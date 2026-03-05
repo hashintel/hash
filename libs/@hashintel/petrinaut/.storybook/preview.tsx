@@ -21,8 +21,8 @@ const preview: Preview = {
               position: "absolute",
               top: "0",
               left: "0",
-              width: "full",
-              height: "full",
+              width: "100%",
+              height: "100%",
               zIndex: "99999",
               pointerEvents: "none",
             }}
