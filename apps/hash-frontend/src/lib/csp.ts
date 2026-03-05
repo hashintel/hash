@@ -16,8 +16,11 @@ export const buildCspHeader = (nonce: string): string => {
       `'nonce-${nonce}'`,
       // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
       "'wasm-unsafe-eval'",
-      // Next.js dev mode uses eval() for Fast Refresh / HMR
-      ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
+      // Next.js dev mode uses eval() for Fast Refresh / HMR.
+      // In production the dashboard data-script runner (run-data-script.ts) also
+      // relies on `new Function()` which requires unsafe-eval.
+      /** @todo H-6138 Replace with a sandboxed iframe to remove unsafe-eval in production. */
+      "'unsafe-eval'",
       // Google Identity Services (OAuth sign-in)
       "https://accounts.google.com",
       // Google Picker API (Google Sheets integration)
