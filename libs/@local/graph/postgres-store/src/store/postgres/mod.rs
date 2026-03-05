@@ -3449,6 +3449,48 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             }))
     }
 
+    async fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<UserId>, Report<GetActorError>> {
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT DISTINCT user_actor.id
+                FROM user_actor
+                JOIN entity_temporal_metadata ON user_actor.id = entity_temporal_metadata.entity_uuid
+                JOIN entity_editions ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+                WHERE entity_temporal_metadata.decision_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements_text(
+                          entity_editions.properties -> 'https://hash.ai/@h/types/property-type/email/'
+                      ) AS stored_email
+                      WHERE LOWER(stored_email) = LOWER($1)
+                  )",
+                &[&email],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(GetActorError)?;
+
+        match rows.as_slice() {
+            [] => Ok(None),
+            [row] => Ok(Some(UserId::new(row.get::<_, Uuid>(0)))),
+            rows => Err(Report::new(GetActorError).attach(format!(
+                "expected at most one user for email {email:?}, found {}",
+                rows.len()
+            ))),
+        }
+    }
+
     async fn get_machine_by_id(
         &self,
         _actor_id: ActorEntityUuid,

@@ -721,7 +721,7 @@ pub trait EntityStore {
     /// [`Filter::for_entity_by_entity_id`]: crate::filter::Filter::for_entity_by_entity_id
     fn delete_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: AuthenticatedActor,
         params: DeleteEntitiesParams<'_>,
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 

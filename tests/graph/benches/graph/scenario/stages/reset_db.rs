@@ -86,7 +86,7 @@ impl ResetDbStage {
             if self.entities {
                 store
                     .delete_entities(
-                        ActorEntityUuid::new(uuid::Uuid::nil()),
+                        ActorEntityUuid::new(uuid::Uuid::nil()).into(),
                         DeleteEntitiesParams {
                             filter: Filter::All(Vec::new()),
                             include_drafts: true,

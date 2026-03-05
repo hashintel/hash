@@ -34,7 +34,7 @@ async fn removes_entity_ids_row() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -76,7 +76,7 @@ async fn satellite_tables_cleaned() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -163,7 +163,7 @@ async fn entity_with_history() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -208,7 +208,7 @@ async fn double_deletion_is_noop() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -230,7 +230,7 @@ async fn double_deletion_is_noop() {
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -269,7 +269,7 @@ async fn entity_reuse_after_erase() {
 
     api.store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -350,7 +350,7 @@ async fn promoted_draft_only_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_entity_id),
                 include_drafts: true,
@@ -419,7 +419,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,

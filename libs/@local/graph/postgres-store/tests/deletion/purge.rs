@@ -80,7 +80,7 @@ async fn published_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -171,7 +171,7 @@ async fn published_entity_with_history() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -219,7 +219,7 @@ async fn no_match_is_noop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(nonexistent_id),
                 include_drafts: false,
@@ -260,7 +260,7 @@ async fn include_drafts_irrelevant_for_published() {
     let summary_a = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -276,7 +276,7 @@ async fn include_drafts_irrelevant_for_published() {
     let summary_b = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: true,
@@ -316,7 +316,7 @@ async fn purge_error_succeeds_without_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -357,7 +357,7 @@ async fn tombstone_has_deletion_provenance() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -399,7 +399,7 @@ async fn satellite_tables_cleaned() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -453,7 +453,7 @@ async fn double_deletion_is_noop() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -474,7 +474,7 @@ async fn double_deletion_is_noop() {
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -519,7 +519,7 @@ async fn multiple_entities_in_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id, purge_params(filter))
+        .delete_entities(api.account_id.into(), purge_params(filter))
         .await
         .expect("could not delete entities");
 
@@ -555,7 +555,7 @@ async fn other_entity_unaffected() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(id_a)),
         )
         .await
@@ -612,7 +612,7 @@ async fn batch_with_mixed_entity_states() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter,
                 include_drafts: true,
@@ -694,7 +694,7 @@ async fn cross_web_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id, purge_params(filter))
+        .delete_entities(api.account_id.into(), purge_params(filter))
         .await
         .expect("could not delete cross-web batch");
 
@@ -754,7 +754,7 @@ async fn query_after_purge_returns_empty() {
 
     api.store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -786,7 +786,7 @@ async fn different_actor_deleting() {
     let summary = api
         .store
         .delete_entities(
-            actor_b,
+            actor_b.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -851,7 +851,7 @@ async fn entity_with_embeddings() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -895,7 +895,7 @@ async fn large_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id, purge_params(filter))
+        .delete_entities(api.account_id.into(), purge_params(filter))
         .await
         .expect("could not delete large batch");
 
@@ -937,7 +937,7 @@ async fn filter_by_entity_type() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_type),
                 include_drafts: false,
@@ -1001,7 +1001,7 @@ async fn archived_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1037,7 +1037,7 @@ async fn provenance_merge_preserves_existing_keys() {
 
     api.store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1071,7 +1071,7 @@ async fn erase_after_purge_is_noop() {
 
     api.store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1080,7 +1080,7 @@ async fn erase_after_purge_is_noop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,

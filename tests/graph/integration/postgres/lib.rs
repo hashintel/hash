@@ -855,7 +855,7 @@ impl EntityStore for DatabaseApi<'_> {
 
     async fn delete_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: AuthenticatedActor,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
         self.store.delete_entities(actor_id, params).await

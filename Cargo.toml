@@ -172,6 +172,7 @@ insta                              = { version = "1.43.2", default-features = fa
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
+jsonwebtoken                       = { version = "10.3.0", default-features = false }
 lcov                               = { version = "0.8.1" }
 lexical                            = { version = "7.0.5", default-features = false }
 libp2p                             = { version = "0.56.0", default-features = false }

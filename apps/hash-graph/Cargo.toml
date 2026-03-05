@@ -30,6 +30,7 @@ axum = { workspace = true }
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = { workspace = true }
 futures = { workspace = true }
+jsonwebtoken = { workspace = true }
 mimalloc = { workspace = true }
 multiaddr = { workspace = true }
 regex = { workspace = true }

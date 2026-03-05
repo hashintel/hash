@@ -28,6 +28,7 @@ axum            = { workspace = true, public = true }
 axum-core       = { workspace = true, public = true }
 futures-channel = { workspace = true, public = true }
 http            = { workspace = true, public = true }
+jsonwebtoken    = { workspace = true, public = true, features = ["aws_lc_rs"] }
 tower-http      = { workspace = true, public = true }
 tracing         = { workspace = true, public = true }
 
@@ -61,6 +62,7 @@ mime                               = { workspace = true }
 opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
 opentelemetry_sdk                  = { workspace = true, features = ["rt-tokio"] }
+reqwest                            = { workspace = true }
 sentry                             = { workspace = true }
 serde                              = { workspace = true, features = ['derive'] }
 serde_json                         = { workspace = true, features = ["raw_value"] }

@@ -1,12 +1,15 @@
-use core::{fmt, net::SocketAddr, time::Duration};
+use alloc::sync::Arc;
+use core::{fmt, net::SocketAddr, str::FromStr as _, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use hash_graph_api::rest::jwt::{JwtValidator, JwtValidatorConfig};
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
-use reqwest::Client;
+use jsonwebtoken::Algorithm;
+use reqwest::{Client, Url};
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
@@ -18,8 +21,8 @@ use crate::{
 
 /// Address configuration for the admin server.
 ///
-/// Shared between the standalone `admin-server` subcommand and the `server`
-/// subcommand (via `--embed-admin`).
+/// Shared between the standalone `admin-server` subcommand and the `server` subcommand (via
+/// `--embed-admin`).
 #[derive(Debug, Clone, Parser)]
 pub struct AdminAddress {
     /// The host the admin server is listening at.
@@ -37,14 +40,114 @@ impl fmt::Display for AdminAddress {
     }
 }
 
+/// Parses a JWT algorithm name (e.g. `"RS256"`) into a [`jsonwebtoken::Algorithm`].
+///
+/// # Errors
+///
+/// Returns an error string if the algorithm name is not recognized.
+fn parse_jwt_algorithm(name: &str) -> Result<Algorithm, String> {
+    Algorithm::from_str(name).map_err(|_err| format!("unknown JWT algorithm: {name}"))
+}
+
+/// JWT authentication configuration for the admin server.
+///
+/// All three identity fields (`jwks_url`, `audience`, `issuer`) must be provided together or not at
+/// all. When none are set, JWT authentication is disabled (development mode). Partial configuration
+/// is rejected by clap's `requires`.
+///
+/// Operational parameters (cache TTL, refresh cooldown, HTTP timeout, algorithms) have sensible
+/// defaults and only take effect when JWT authentication is enabled.
+///
+/// Ideally this would be `Option<JwtConfig>` with required fields in `AdminConfig`, but clap does
+/// not support optional flattened structs with required fields. See
+/// <https://github.com/clap-rs/clap/issues/5092>.
+#[derive(Debug, Clone, Parser)]
+pub struct JwtConfig {
+    /// JWKS endpoint URL for JWT signature validation.
+    ///
+    /// When set, all admin endpoints (except `/health`) require a valid JWT.
+    /// For Cloudflare Access, this is typically
+    /// `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`.
+    #[clap(
+        long = "jwt-jwks-url",
+        env = "HASH_GRAPH_JWT_JWKS_URL",
+        requires = "audience",
+        requires = "issuer"
+    )]
+    pub jwks_url: Option<Url>,
+
+    /// Expected JWT audience claim.
+    ///
+    /// For Cloudflare Access, this is the Application Audience (AUD) Tag.
+    #[clap(
+        long = "jwt-audience",
+        env = "HASH_GRAPH_JWT_AUDIENCE",
+        requires = "jwks_url",
+        requires = "issuer"
+    )]
+    pub audience: Option<String>,
+
+    /// Expected JWT issuer claim.
+    ///
+    /// For Cloudflare Access, this is typically `https://<team>.cloudflareaccess.com`.
+    #[clap(
+        long = "jwt-issuer",
+        env = "HASH_GRAPH_JWT_ISSUER",
+        requires = "jwks_url",
+        requires = "audience"
+    )]
+    pub issuer: Option<String>,
+
+    /// How long to cache JWKS keys before re-fetching (in seconds).
+    #[clap(
+        long = "jwt-jwks-cache-ttl",
+        env = "HASH_GRAPH_JWT_JWKS_CACHE_TTL",
+        default_value_t = 600
+    )]
+    pub jwks_cache_ttl_secs: u64,
+
+    /// Minimum interval between forced JWKS refreshes in seconds.
+    ///
+    /// Prevents denial-of-service via crafted `kid` values triggering unbounded JWKS fetches.
+    #[clap(
+        long = "jwt-jwks-refresh-cooldown",
+        env = "HASH_GRAPH_JWT_JWKS_REFRESH_COOLDOWN",
+        default_value_t = 30
+    )]
+    pub jwks_refresh_cooldown_secs: u64,
+
+    /// HTTP client timeout for JWKS fetches (in seconds).
+    #[clap(
+        long = "jwt-http-timeout",
+        env = "HASH_GRAPH_JWT_HTTP_TIMEOUT",
+        default_value_t = 10
+    )]
+    pub http_timeout_secs: u64,
+
+    /// Algorithms accepted in JWT headers.
+    ///
+    /// Only asymmetric algorithms should be allowed to prevent algorithm confusion attacks.
+    #[clap(
+        long = "jwt-allowed-algorithm",
+        env = "HASH_GRAPH_JWT_ALLOWED_ALGORITHMS",
+        value_delimiter = ',',
+        value_parser = parse_jwt_algorithm,
+        default_values = ["RS256", "RS384", "RS512", "ES256", "ES384"]
+    )]
+    pub allowed_algorithms: Vec<Algorithm>,
+}
+
 /// Configuration for the admin server.
 ///
-/// Shared between the standalone `admin-server` subcommand and the `server`
-/// subcommand (via `--embed-admin`).
+/// Shared between the standalone `admin-server` subcommand and the `server` subcommand (via
+/// `--embed-admin`).
 #[derive(Debug, Clone, Parser)]
 pub struct AdminConfig {
     #[clap(flatten)]
     pub address: AdminAddress,
+
+    #[clap(flatten)]
+    pub jwt: JwtConfig,
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
@@ -70,7 +173,33 @@ pub(crate) async fn run_admin_server(
     config: AdminConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let router = hash_graph_api::rest::admin::routes(pool);
+    let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
+        (Some(jwks_url), Some(audience), Some(issuer)) => {
+            tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
+            Some(Arc::new(JwtValidator::new(JwtValidatorConfig {
+                jwks_url,
+                audience,
+                issuer,
+                jwks_cache_ttl: Duration::from_secs(config.jwt.jwks_cache_ttl_secs),
+                jwks_refresh_cooldown: Duration::from_secs(config.jwt.jwks_refresh_cooldown_secs),
+                http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
+                allowed_algorithms: config.jwt.allowed_algorithms,
+            })))
+        }
+        (None, None, None) => {
+            tracing::warn!("JWT authentication disabled for admin API -- no JWKS URL configured");
+            None
+        }
+        _ => {
+            // Clap `requires` should prevent this, but guard against it anyway.
+            return Err(Report::new(GraphError).attach(
+                "partial JWT configuration: --jwt-jwks-url, --jwt-audience, and --jwt-issuer must \
+                 all be provided together",
+            ));
+        }
+    };
+
+    let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
 
     let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
         .await

@@ -36,7 +36,7 @@ async fn purge_error_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -86,7 +86,7 @@ async fn purge_ignore_succeeds_with_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -139,7 +139,7 @@ async fn erase_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -203,7 +203,7 @@ async fn purge_link_entity_removes_all_edges() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -271,7 +271,7 @@ async fn self_referential_batch_not_counted() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -348,7 +348,7 @@ async fn draft_deletion_skips_link_check() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
@@ -407,7 +407,7 @@ async fn incoming_link_count_is_accurate() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -447,7 +447,7 @@ async fn self_loop_link() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -469,7 +469,7 @@ async fn self_loop_link() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -520,7 +520,7 @@ async fn chain_deletion() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -542,7 +542,7 @@ async fn chain_deletion() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -592,7 +592,7 @@ async fn bidirectional_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -614,7 +614,7 @@ async fn bidirectional_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -664,7 +664,7 @@ async fn erase_batch_excludes_in_batch_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -728,7 +728,7 @@ async fn erase_link_entity_alone_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
