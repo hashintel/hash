@@ -90,10 +90,18 @@ export function useUndoRedo(initialSDCPN: SDCPN) {
     bump();
   };
 
+  const clearDebounce = () => {
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  };
+
   const undo = (): SDCPN | null => {
     if (currentIndexRef.current <= 0) {
       return null;
     }
+    clearDebounce();
     currentIndexRef.current -= 1;
     bump();
     return historyRef.current[currentIndexRef.current]!.sdcpn;
@@ -103,6 +111,7 @@ export function useUndoRedo(initialSDCPN: SDCPN) {
     if (currentIndexRef.current >= historyRef.current.length - 1) {
       return null;
     }
+    clearDebounce();
     currentIndexRef.current += 1;
     bump();
     return historyRef.current[currentIndexRef.current]!.sdcpn;
@@ -112,6 +121,7 @@ export function useUndoRedo(initialSDCPN: SDCPN) {
     if (index < 0 || index >= historyRef.current.length) {
       return null;
     }
+    clearDebounce();
     currentIndexRef.current = index;
     bump();
     return historyRef.current[index]!.sdcpn;

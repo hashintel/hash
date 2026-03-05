@@ -17,13 +17,19 @@ export function useKeyboardShortcuts(
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
 
-      // Handle undo/redo shortcuts before the input focus check,
-      // but let Monaco editors handle their own undo/redo.
+      // Handle undo/redo shortcuts, but let Monaco editors, inputs,
+      // textareas, and contentEditable elements handle their own undo/redo.
+      const isTextInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable ||
+        target.closest(".monaco-editor") !== null;
+
       if (
         undoRedo &&
+        !isTextInput &&
         (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === "z" &&
-        !target.closest(".monaco-editor")
+        event.key.toLowerCase() === "z"
       ) {
         event.preventDefault();
         if (event.shiftKey) {
