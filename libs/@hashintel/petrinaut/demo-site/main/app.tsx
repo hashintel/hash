@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { MinimalNetMetadata, SDCPN } from "../../src/core/types/sdcpn";
 import { convertOldFormatToSDCPN } from "../../src/old-formats/convert-old-format";
@@ -9,6 +9,7 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
+import { useUndoRedo } from "./app/use-undo-redo";
 
 export const DevApp = () => {
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -72,25 +73,99 @@ export const DevApp = () => {
     [currentNetId, setStoredSDCPNs],
   );
 
-  const mutatePetriNetDefinition = useCallback(
-    (definitionMutationFn: (draft: SDCPN) => void) => {
-      if (!currentNetId) {
-        return;
-      }
+  const setSDCPNDirectly = (sdcpn: SDCPN) => {
+    if (!currentNetId) {
+      return;
+    }
+    setStoredSDCPNs((prev) =>
+      produce(prev, (draft) => {
+        if (draft[currentNetId]) {
+          draft[currentNetId].sdcpn = sdcpn;
+        }
+      }),
+    );
+  };
 
-      setStoredSDCPNs((prev) =>
-        produce(prev, (draft) => {
-          if (draft[currentNetId]) {
-            draft[currentNetId].sdcpn = produce(
-              draft[currentNetId].sdcpn,
-              definitionMutationFn,
-            );
-          }
-        }),
-      );
-    },
-    [currentNetId, setStoredSDCPNs],
+  const emptySDCPN: SDCPN = {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  };
+
+  const {
+    pushState,
+    undo: undoHistory,
+    redo: redoHistory,
+    goToIndex: goToHistoryIndex,
+    canUndo,
+    canRedo,
+    history,
+    currentIndex,
+    reset: resetHistory,
+  } = useUndoRedo(
+    currentNet && !isOldFormatInLocalStorage(currentNet)
+      ? currentNet.sdcpn
+      : emptySDCPN,
   );
+
+  const mutatePetriNetDefinition = (
+    definitionMutationFn: (draft: SDCPN) => void,
+  ) => {
+    if (!currentNetId || !currentNet || isOldFormatInLocalStorage(currentNet)) {
+      return;
+    }
+
+    // Compute the new SDCPN synchronously so we can push it to history
+    // without relying on async state reads.
+    const newSDCPN = produce(currentNet.sdcpn, definitionMutationFn);
+
+    setStoredSDCPNs((prev) =>
+      produce(prev, (draft) => {
+        if (draft[currentNetId]) {
+          draft[currentNetId].sdcpn = newSDCPN;
+        }
+      }),
+    );
+
+    pushState(newSDCPN);
+  };
+
+  const prevNetIdRef = useRef(currentNetId);
+  useEffect(() => {
+    if (currentNetId !== prevNetIdRef.current) {
+      prevNetIdRef.current = currentNetId;
+      if (currentNet && !isOldFormatInLocalStorage(currentNet)) {
+        resetHistory(currentNet.sdcpn);
+      }
+    }
+  }, [currentNetId, currentNet, resetHistory]);
+
+  const undoRedo = {
+    undo: () => {
+      const sdcpn = undoHistory();
+      if (sdcpn) {
+        setSDCPNDirectly(sdcpn);
+      }
+    },
+    redo: () => {
+      const sdcpn = redoHistory();
+      if (sdcpn) {
+        setSDCPNDirectly(sdcpn);
+      }
+    },
+    canUndo,
+    canRedo,
+    history: history.current,
+    currentIndex,
+    goToIndex: (index: number) => {
+      const sdcpn = goToHistoryIndex(index);
+      if (sdcpn) {
+        setSDCPNDirectly(sdcpn);
+      }
+    },
+  };
 
   // Initialize with a default net if none exists
   useEffect(() => {
@@ -168,6 +243,7 @@ export const DevApp = () => {
         readonly={false}
         setTitle={setTitle}
         title={currentNet.title}
+        undoRedo={undoRedo}
       />
     </div>
   );
