@@ -10,7 +10,7 @@ import { UserSettingsContext } from "../../../state/user-settings-context";
 
 const rowStyle = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "space-between",
   gap: "3",
   paddingY: "2",
@@ -23,8 +23,14 @@ const labelStyle = css({
   color: "neutral.fg.heading",
 });
 
+const descriptionStyle = css({
+  fontSize: "xs",
+  color: "neutral.fg.subtle",
+  lineHeight: "[1.4]",
+});
+
 const selectWrapperStyle = css({
-  width: "[120px]",
+  width: "[160px]",
   flexShrink: "[0]",
 });
 
@@ -55,14 +61,25 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Dialog.Header>Settings</Dialog.Header>
           <Dialog.Body>
             <div className={rowStyle}>
-              <span className={labelStyle}>Animations</span>
+              <div>
+                <span className={labelStyle}>Animations</span>
+                <p className={descriptionStyle}>
+                  Animate panel transitions and UI interactions
+                </p>
+              </div>
               <Switch
                 checked={showAnimations}
                 onCheckedChange={setShowAnimations}
               />
             </div>
             <div className={rowStyle}>
-              <span className={labelStyle}>Keep panels mounted</span>
+              <div>
+                <span className={labelStyle}>Keep panels mounted</span>
+                <p className={descriptionStyle}>
+                  Keep all panel views loaded even if not currently selected,
+                  which speeds up switching but may affect performance
+                </p>
+              </div>
               <Switch
                 checked={keepPanelsMounted}
                 onCheckedChange={setKeepPanelsMounted}
@@ -86,7 +103,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                   options={[
                     { value: "smoothstep", label: "Square" },
                     { value: "bezier", label: "Bezier" },
-                    { value: "custom", label: "Custom" },
+                    { value: "custom", label: "Adaptive Bezier" },
                   ]}
                   portal={false}
                 />

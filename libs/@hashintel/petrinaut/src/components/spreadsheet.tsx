@@ -208,13 +208,13 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       ) {
         return prev;
       }
-      if (data.length === 0) {
-        setSelectedRow(null);
-        setFocusedCell(null);
-        setEditingCell(null);
-      }
       return data.length > 0 ? data : [];
     });
+    if (data.length === 0) {
+      setSelectedRow(null);
+      setFocusedCell(null);
+      setEditingCell(null);
+    }
   }, [data]);
 
   const updateCell = (row: number, col: number, value: number) => {
