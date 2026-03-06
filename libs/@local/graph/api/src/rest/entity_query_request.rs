@@ -591,8 +591,8 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
 impl<'p> EntityQueryOptions<'_, 'p> {
     /// # Errors
     ///
-    /// Returns [`EntityQueryOptionsError::LimitExceeded`] if the requested limit exceeds the
-    /// configured maximum in [`ApiConfig::query_entity_limit`].
+    /// Returns `LimitExceeded` if the requested limit exceeds the configured maximum in
+    /// [`ApiConfig::query_entity_limit`].
     pub fn into_params<'f>(
         self,
         filter: Filter<'f, Entity>,
@@ -636,8 +636,8 @@ impl<'p> EntityQueryOptions<'_, 'p> {
 
     /// # Errors
     ///
-    /// Returns [`EntityQueryOptionsError::LimitExceeded`] if the requested limit exceeds the
-    /// configured maximum in [`ApiConfig::query_entity_limit`].
+    /// Returns `LimitExceeded` if the requested limit exceeds the configured maximum in
+    /// [`ApiConfig::query_entity_limit`].
     pub fn into_traversal_params<'q>(
         self,
         filter: Filter<'q, Entity>,
