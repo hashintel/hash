@@ -14,7 +14,7 @@ use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    rest::{QueryLogger, RestApiStore, RestRouterDependencies, rest_api_router},
+    rest::{ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, rest_api_router},
     rpc::Dependencies,
 };
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
@@ -163,6 +163,9 @@ pub struct ServerConfig {
     /// development/testing environments.
     #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
     pub skip_filter_protection: bool,
+
+    #[clap(flatten)]
+    pub api_config: ApiConfig,
 
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
@@ -340,6 +343,7 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         temporal_client,
         query_logger,
+        api_config: config.api_config,
     });
     start_rest_server(router, config.http_address, lifecycle);
 

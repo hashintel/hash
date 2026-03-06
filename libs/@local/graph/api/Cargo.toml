@@ -49,6 +49,9 @@ hashql-hir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 
+# Private third-party dependencies (optional)
+clap = { workspace = true, optional = true, features = ["derive", "env"] }
+
 # Private third-party dependencies
 bytes                              = { workspace = true }
 derive-where                       = { workspace = true }
@@ -74,6 +77,9 @@ tower                              = { workspace = true }
 tracing-opentelemetry              = { workspace = true }
 utoipa                             = { workspace = true }
 uuid                               = { workspace = true }
+
+[features]
+clap = ["dep:clap"]
 
 [lints]
 workspace = true
