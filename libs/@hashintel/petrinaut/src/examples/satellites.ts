@@ -96,8 +96,6 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
 });`,
         x: 30,
         y: 83.33333333333333,
-        width: 130,
-        height: 130,
       },
       {
         id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
@@ -107,8 +105,6 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 510,
         y: 75,
-        width: 130,
-        height: 130,
       },
     ],
     transitions: [
@@ -164,8 +160,6 @@ export default TransitionKernel((tokens) => {
 })`,
         x: 255,
         y: 180,
-        width: 160,
-        height: 80,
       },
       {
         id: "716fe1e5-9b35-413f-83fe-99b28ba73945",
@@ -212,8 +206,6 @@ export default TransitionKernel((tokens) => {
 })`,
         x: 255,
         y: 30,
-        width: 160,
-        height: 80,
       },
     ],
     types: [

@@ -18,6 +18,7 @@ import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
+import { UserSettingsProvider } from "./state/user-settings-provider";
 import { EditorView } from "./views/Editor/editor-view";
 
 export { isSDCPNEqual } from "./lib/deep-equal";
@@ -102,11 +103,13 @@ export const Petrinaut = ({
           <MonacoProvider>
             <SimulationProvider>
               <PlaybackProvider>
-                <EditorProvider>
-                  <EditorView
-                    hideNetManagementControls={hideNetManagementControls}
-                  />
-                </EditorProvider>
+                <UserSettingsProvider>
+                  <EditorProvider>
+                    <EditorView
+                      hideNetManagementControls={hideNetManagementControls}
+                    />
+                  </EditorProvider>
+                </UserSettingsProvider>
               </PlaybackProvider>
             </SimulationProvider>
           </MonacoProvider>

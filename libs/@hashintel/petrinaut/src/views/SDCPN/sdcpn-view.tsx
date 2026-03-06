@@ -1,9 +1,9 @@
 import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import ReactFlow, { Background } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import {
@@ -13,10 +13,14 @@ import {
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
+import { UserSettingsContext } from "../../state/user-settings-context";
 import { Arc } from "./components/arc";
+import { ClassicPlaceNode } from "./components/classic-place-node";
+import { ClassicTransitionNode } from "./components/classic-transition-node";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
+import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type {
@@ -24,13 +28,17 @@ import type {
   NodeData,
   PetrinautReactFlowInstance,
 } from "./reactflow-types";
-import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
 
-const REACTFLOW_NODE_TYPES = {
+const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
+};
+
+const CLASSIC_NODE_TYPES = {
+  place: ClassicPlaceNode,
+  transition: ClassicTransitionNode,
 };
 
 const REACTFLOW_EDGE_TYPES = {
@@ -55,6 +63,12 @@ export const SDCPNView: React.FC = () => {
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
+  const { compactNodes } = use(UserSettingsContext);
+  const nodeTypes = useMemo(
+    () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
+    [compactNodes],
+  );
+
   // SDCPN store
   const {
     petriNetId,
@@ -68,6 +82,7 @@ export const SDCPNView: React.FC = () => {
   const {
     editionMode,
     setEditionMode,
+    cursorMode,
     selectedItemIds,
     setSelectedItemIds,
     setSelectedResourceId,
@@ -138,8 +153,6 @@ export const SDCPNView: React.FC = () => {
     nodeType: "place" | "transition",
     position: { x: number; y: number },
   ) {
-    const { width, height } = nodeDimensions[nodeType];
-
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
 
@@ -152,8 +165,6 @@ export const SDCPNView: React.FC = () => {
         differentialEquationId: null,
         x: position.x,
         y: position.y,
-        width,
-        height,
         visualizerCode: undefined,
       });
     } else {
@@ -167,12 +178,10 @@ export const SDCPNView: React.FC = () => {
         transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
         x: position.x,
         y: position.y,
-        width,
-        height,
       });
     }
     setSelectedItemIds(new Set([id]));
-    setEditionMode("select");
+    setEditionMode("cursor");
   }
 
   function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
@@ -187,7 +196,7 @@ export const SDCPNView: React.FC = () => {
     }
 
     // Clear selection when clicking empty canvas in select mode
-    if (editionMode === "select" || editionMode === "pan") {
+    if (editionMode === "cursor") {
       setSelectedItemIds(new Set());
       setSelectedResourceId(null);
       return;
@@ -200,12 +209,11 @@ export const SDCPNView: React.FC = () => {
     }
 
     const nodeType = editionMode === "add-place" ? "place" : "transition";
-    const { width, height } = nodeDimensions[nodeType];
 
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -231,11 +239,10 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const { width, height } = nodeDimensions[nodeType];
     const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
     const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -279,7 +286,7 @@ export const SDCPNView: React.FC = () => {
   // Determine ReactFlow props based on edition mode
   const isAddMode =
     editionMode === "add-place" || editionMode === "add-transition";
-  const isPanMode = editionMode === "pan";
+  const isPanMode = editionMode === "cursor" && cursorMode === "pan";
 
   // Set cursor style based on mode
   const getCursorStyle = () => {
@@ -314,7 +321,7 @@ export const SDCPNView: React.FC = () => {
       <ReactFlow
         nodes={nodes}
         edges={arcs}
-        nodeTypes={REACTFLOW_NODE_TYPES}
+        nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
@@ -331,9 +338,8 @@ export const SDCPNView: React.FC = () => {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
-        connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
-        panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
+        panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}
@@ -343,6 +349,7 @@ export const SDCPNView: React.FC = () => {
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
+        <ViewportControls />
       </ReactFlow>
     </div>
   );

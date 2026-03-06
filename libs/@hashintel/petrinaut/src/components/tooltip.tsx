@@ -1,14 +1,17 @@
 import { ark } from "@ark-ui/react/factory";
+import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
+
+import { usePortalContainerRef } from "../state/portal-container-context";
 
 const tooltipContentStyle = css({
   backgroundColor: "neutral.s120",
   color: "neutral.s10",
   borderRadius: "xl",
   fontSize: "[13px]",
-  zIndex: "[10000]",
+  zIndex: "tooltip",
   boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
   padding: "[6px 10px]",
   maxWidth: "[min(300px, var(--available-width))]",
@@ -50,6 +53,11 @@ interface TooltipProps {
    */
   display?: "block" | "inline";
   /**
+   * Preferred placement of the tooltip relative to the trigger.
+   * @default "top"
+   */
+  placement?: "top" | "bottom" | "left" | "right";
+  /**
    * Optional className to apply to the trigger wrapper element.
    */
   className?: string;
@@ -65,8 +73,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   display = "block",
+  placement = "top",
   className,
 }) => {
+  const portalContainerRef = usePortalContainerRef();
+
   if (!content) {
     return children;
   }
@@ -76,7 +87,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       openDelay={200}
       closeDelay={0}
       positioning={{
-        placement: "top",
+        placement,
         flip: true,
         slide: true,
         overflowPadding: 8,
@@ -87,11 +98,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
           {children}
         </ark.span>
       </ArkTooltip.Trigger>
-      <ArkTooltip.Positioner>
-        <ArkTooltip.Content className={tooltipContentStyle}>
-          {content}
-        </ArkTooltip.Content>
-      </ArkTooltip.Positioner>
+      <Portal container={portalContainerRef}>
+        <ArkTooltip.Positioner>
+          <ArkTooltip.Content className={tooltipContentStyle}>
+            {content}
+          </ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </Portal>
     </ArkTooltip.Root>
   );
 };
@@ -100,9 +113,9 @@ const circleInfoIconStyle = css({
   display: "inline-block",
   width: "[11px]",
   height: "[11px]",
-  marginLeft: "[6.4px]",
+  marginLeft: "1.5",
   marginBottom: "[1.6px]",
-  color: "[rgb(160, 160, 160)]",
+  color: "neutral.s85",
   verticalAlign: "middle",
   fill: "[currentColor]",
 });

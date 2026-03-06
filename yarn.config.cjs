@@ -17,9 +17,11 @@ const enforcedDevDependencies = {
 
 const ignoredDependencies = [
   "@sentry/webpack-plugin",
-  // Petrinaut uses Vite 8
+  // Petrinaut uses Vite 8 and Storybook 10
   "vite",
   "@vitejs/plugin-react",
+  "storybook",
+  "@storybook/react-vite",
   // Petrinaut uses multiple packages which are many versions behind in other workspaces
   // To be un-ignored once H-5639 completed
   "vitest",

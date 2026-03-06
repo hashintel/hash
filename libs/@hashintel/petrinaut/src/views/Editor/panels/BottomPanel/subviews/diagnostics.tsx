@@ -1,0 +1,290 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { use, useCallback, useMemo, useState } from "react";
+import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
+import type { Diagnostic } from "vscode-languageserver-types";
+
+import type { SubView } from "../../../../../components/sub-view/types";
+import { LanguageClientContext } from "../../../../../lsp/context";
+import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+import { EditorContext } from "../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../state/sdcpn-context";
+
+const emptyMessageStyle = css({
+  color: "neutral.s100",
+  fontStyle: "italic",
+});
+
+const entityGroupStyle = css({
+  marginBottom: "[8px]",
+});
+
+const entityButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  width: "[100%]",
+  padding: "[4px 0]",
+  border: "none",
+  cursor: "pointer",
+  textAlign: "left",
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s115",
+  _hover: {
+    color: "neutral.s120",
+  },
+});
+
+const errorCountStyle = css({
+  color: "[#dc2626]",
+  fontWeight: "normal",
+});
+
+const expandedContentStyle = css({
+  paddingLeft: "[16px]",
+  marginTop: "[4px]",
+});
+
+const itemGroupStyle = css({
+  marginBottom: "[8px]",
+});
+
+const subTypeStyle = css({
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  color: "neutral.s105",
+  marginBottom: "[2px]",
+});
+
+const diagnosticsListStyle = css({
+  margin: "[0]",
+  paddingLeft: "[12px]",
+  listStyle: "none",
+});
+
+const diagnosticItemStyle = css({
+  marginBottom: "[4px]",
+});
+
+const diagnosticButtonStyle = css({
+  marginLeft: "[8px]",
+  padding: "[2px 4px]",
+  fontSize: "[11px]",
+  fontFamily:
+    "[ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace]",
+  color: "[#dc2626]",
+  lineHeight: "[1.5]",
+  cursor: "pointer",
+  borderRadius: "sm",
+  transition: "[background-color 0.15s]",
+  backgroundColor: "[transparent]",
+  border: "none",
+  textAlign: "left",
+  width: "[100%]",
+  _hover: {
+    backgroundColor: "[rgba(220, 38, 38, 0.08)]",
+  },
+});
+
+const bulletStyle = css({
+  marginRight: "[4px]",
+});
+
+const positionStyle = css({
+  color: "neutral.s100",
+  marginLeft: "[8px]",
+});
+
+type EntityType = "transition" | "differential-equation";
+
+interface GroupedDiagnostics {
+  entityType: EntityType;
+  entityId: string;
+  entityName: string;
+  errorCount: number;
+  items: Array<{
+    subType: "lambda" | "kernel" | null;
+    diagnostics: Diagnostic[];
+  }>;
+}
+
+/**
+ * DiagnosticsContent shows the full list of diagnostics grouped by entity.
+ */
+const DiagnosticsContent: React.FC = () => {
+  const { diagnosticsByUri, totalDiagnosticsCount } = use(
+    LanguageClientContext,
+  );
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { setSelectedResourceId } = use(EditorContext);
+  // Track collapsed entities (all expanded by default)
+  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
+    new Set(),
+  );
+
+  // Handler to select an entity when clicking on a diagnostic
+  const handleSelectEntity = useCallback(
+    (entityId: string) => {
+      setSelectedResourceId(entityId);
+    },
+    [setSelectedResourceId],
+  );
+
+  // Group diagnostics by entity (transition or differential equation)
+  const groupedDiagnostics = useMemo(() => {
+    const groups = new Map<string, GroupedDiagnostics>();
+
+    for (const [uri, diagnostics] of diagnosticsByUri) {
+      const parsed = parseDocumentUri(uri);
+      if (!parsed) {
+        continue;
+      }
+
+      const entityId = parsed.itemId;
+      let entityType: EntityType;
+      let entityName: string;
+      let subType: "lambda" | "kernel" | null;
+
+      if (parsed.itemType === "differential-equation") {
+        entityType = "differential-equation";
+        const de = petriNetDefinition.differentialEquations.find(
+          (deItem) => deItem.id === entityId,
+        );
+        entityName = de?.name ?? entityId;
+        subType = null;
+      } else {
+        entityType = "transition";
+        const transition = petriNetDefinition.transitions.find(
+          (tr) => tr.id === entityId,
+        );
+        entityName = transition?.name ?? entityId;
+        subType = parsed.itemType === "transition-lambda" ? "lambda" : "kernel";
+      }
+
+      const key = `${entityType}:${entityId}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          entityType,
+          entityId,
+          entityName,
+          errorCount: 0,
+          items: [],
+        });
+      }
+
+      const group = groups.get(key)!;
+      group.errorCount += diagnostics.length;
+      group.items.push({
+        subType,
+        diagnostics,
+      });
+    }
+
+    return Array.from(groups.values());
+  }, [diagnosticsByUri, petriNetDefinition]);
+
+  const toggleEntity = useCallback((entityKey: string) => {
+    setCollapsedEntities((prev) => {
+      const next = new Set(prev);
+      if (next.has(entityKey)) {
+        next.delete(entityKey);
+      } else {
+        next.add(entityKey);
+      }
+      return next;
+    });
+  }, []);
+
+  if (totalDiagnosticsCount === 0) {
+    return (
+      <div className={emptyMessageStyle}>No errors detected in your model</div>
+    );
+  }
+
+  return (
+    <>
+      {groupedDiagnostics.map((group) => {
+        const entityKey = `${group.entityType}:${group.entityId}`;
+        const isExpanded = !collapsedEntities.has(entityKey);
+        const entityLabel =
+          group.entityType === "transition"
+            ? `Transition: ${group.entityName}`
+            : `Differential Equation: ${group.entityName}`;
+
+        return (
+          <div key={entityKey} className={entityGroupStyle}>
+            {/* Collapsible entity header */}
+            <button
+              type="button"
+              onClick={() => toggleEntity(entityKey)}
+              className={entityButtonStyle}
+            >
+              {isExpanded ? (
+                <FaChevronDown size={10} />
+              ) : (
+                <FaChevronRight size={10} />
+              )}
+              <span>{entityLabel}</span>
+              <span className={errorCountStyle}>
+                ({group.errorCount} error
+                {group.errorCount !== 1 ? "s" : ""})
+              </span>
+            </button>
+
+            {/* Expanded diagnostics */}
+            {isExpanded && (
+              <div className={expandedContentStyle}>
+                {group.items.map((itemGroup) => (
+                  <div
+                    key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
+                    className={itemGroupStyle}
+                  >
+                    {/* Show sub-type for transitions */}
+                    {itemGroup.subType && (
+                      <div className={subTypeStyle}>
+                        {itemGroup.subType === "lambda" ? "Lambda" : "Kernel"}
+                      </div>
+                    )}
+
+                    {/* Diagnostics list */}
+                    <ul className={diagnosticsListStyle}>
+                      {itemGroup.diagnostics.map((diagnostic) => (
+                        <li
+                          key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
+                          className={diagnosticItemStyle}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleSelectEntity(group.entityId)}
+                            className={diagnosticButtonStyle}
+                          >
+                            <span className={bulletStyle}>•</span>
+                            {diagnostic.message}
+                            <span className={positionStyle}>
+                              (Ln {diagnostic.range.start.line + 1}, Col{" "}
+                              {diagnostic.range.start.character + 1})
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
+/**
+ * SubView definition for Diagnostics.
+ */
+export const diagnosticsSubView: SubView = {
+  id: "diagnostics",
+  title: "Diagnostics",
+  tooltip: "View compilation errors and warnings in your model code.",
+  component: DiagnosticsContent,
+};

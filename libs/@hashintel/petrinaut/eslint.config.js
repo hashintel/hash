@@ -11,6 +11,9 @@ export default [
             "postcss.config.cjs",
             "vite.config.ts",
             "vite.site.config.ts",
+            ".storybook/main.ts",
+            ".storybook/manager.tsx",
+            ".storybook/preview.tsx",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
@@ -39,6 +42,7 @@ export default [
       // Disabled because React Compiler handles optimization automatically
       "react/jsx-no-bind": "off",
       "react/jsx-no-constructed-context-values": "off",
+      "react-hooks/exhaustive-deps": "off",
       "no-restricted-imports": [
         "error",
         {

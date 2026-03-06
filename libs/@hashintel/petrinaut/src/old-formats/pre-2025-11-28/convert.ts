@@ -12,12 +12,15 @@ export const convertPre20251128ToSDCPN = (old: Pre20251128SDCPN): SDCPN => {
 
   return {
     ...cloned,
-    places: cloned.places.map((place) => ({
+    places: cloned.places.map(({ width: _w, height: _h, ...place }) => ({
       ...place,
       colorId: place.type,
       dynamicsEnabled: place.dynamicsEnabled,
       differentialEquationId: place.differentialEquationCode?.refId ?? null,
     })),
+    transitions: cloned.transitions.map(
+      ({ width: _w, height: _h, ...transition }) => transition,
+    ),
     types: cloned.types.map((type) => ({
       ...type,
       iconSlug: type.iconId,

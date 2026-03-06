@@ -3,24 +3,24 @@
  */
 
 import type { SubView } from "../components/sub-view/types";
-import { diagnosticsSubView } from "../views/Editor/subviews/diagnostics";
-import { differentialEquationsListSubView } from "../views/Editor/subviews/differential-equations-list";
-import { nodesListSubView } from "../views/Editor/subviews/nodes-list";
-import { parametersListSubView } from "../views/Editor/subviews/parameters-list";
-import { simulationSettingsSubView } from "../views/Editor/subviews/simulation-settings";
-import { simulationTimelineSubView } from "../views/Editor/subviews/simulation-timeline";
-import { typesListSubView } from "../views/Editor/subviews/types-list";
+import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
+import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
+import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
+import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
+import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
+import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
+import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
 
 // Panel margin (spacing around panels)
-export const PANEL_MARGIN = 6;
+export const PANEL_MARGIN = 0;
 
 // Resize handle
-export const RESIZE_HANDLE_SIZE = PANEL_MARGIN * 2;
-export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2);
+export const RESIZE_HANDLE_SIZE = 5;
+export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
 
 // Left Sidebar
 export const DEFAULT_LEFT_SIDEBAR_WIDTH = 320;
-export const MIN_LEFT_SIDEBAR_WIDTH = 280;
+export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 
 // Properties Panel (right side)

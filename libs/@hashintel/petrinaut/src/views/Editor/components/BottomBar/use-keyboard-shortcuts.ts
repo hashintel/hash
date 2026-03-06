@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { EditorState } from "../../../../state/editor-context";
+import type { CursorMode, EditorState } from "../../../../state/editor-context";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
@@ -8,6 +8,7 @@ type EditorEditionMode = EditorState["editionMode"];
 export function useKeyboardShortcuts(
   mode: EditorMode,
   onEditionModeChange: (mode: EditorEditionMode) => void,
+  onCursorModeChange: (mode: CursorMode) => void,
 ) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -32,18 +33,20 @@ export function useKeyboardShortcuts(
 
       // Switch modes based on key
       switch (event.key.toLowerCase()) {
-        // If escape is pressed, switch to select mode
+        // If escape is pressed, switch to cursor mode (keep current cursor)
         case "escape":
           event.preventDefault();
-          onEditionModeChange("select");
+          onEditionModeChange("cursor");
           break;
         case "v":
           event.preventDefault();
-          onEditionModeChange("select");
+          onCursorModeChange("select");
+          onEditionModeChange("cursor");
           break;
         case "h":
           event.preventDefault();
-          onEditionModeChange("pan");
+          onCursorModeChange("pan");
+          onEditionModeChange("cursor");
           break;
         case "n":
           if (mode === "edit") {
@@ -64,5 +67,5 @@ export function useKeyboardShortcuts(
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mode, onEditionModeChange]);
+  }, [mode, onEditionModeChange, onCursorModeChange]);
 }

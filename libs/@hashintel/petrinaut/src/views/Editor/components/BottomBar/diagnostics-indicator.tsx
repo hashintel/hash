@@ -10,9 +10,9 @@ const iconContainerStyle = cva({
     display: "flex",
     alignItems: "center",
     gap: "[2px]",
-    borderRadius: "[6px]",
-    padding: "[1px 6px]",
-    height: "[25px]",
+    borderRadius: "md",
+    padding: "[1px 5px]",
+    height: "[22px]",
   },
   variants: {
     status: {
@@ -29,7 +29,7 @@ const iconContainerStyle = cva({
 });
 
 const countStyle = css({
-  fontSize: "[14px]",
+  fontSize: "sm",
   fontWeight: "medium",
 });
 
@@ -69,11 +69,11 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
       >
         {hasErrors ? (
           <>
-            <FaXmark size={16} />
+            <FaXmark size={15} />
             <span className={countStyle}>{totalDiagnosticsCount}</span>
           </>
         ) : (
-          <FaCheck size={16} />
+          <FaCheck size={15} />
         )}
       </div>
     </ToolbarButton>

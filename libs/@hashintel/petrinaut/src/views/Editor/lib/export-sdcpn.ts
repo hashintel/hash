@@ -5,7 +5,7 @@ import { removeVisualInformation } from "./remove-visual-info";
  * Saves the SDCPN to a JSON file by triggering a browser download.
  * @param petriNetDefinition - The SDCPN to save
  * @param title - The title of the SDCPN
- * @param removeVisualInfo - If true, removes visual positioning information (x, y, width, height) from places and transitions
+ * @param removeVisualInfo - If true, removes visual positioning information (x, y) from places and transitions
  */
 export function exportSDCPN({
   petriNetDefinition,

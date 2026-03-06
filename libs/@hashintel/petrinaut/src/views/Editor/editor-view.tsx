@@ -1,5 +1,5 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { css, cx } from "@hashintel/ds-helpers/css";
+import { use, useRef } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -8,11 +8,11 @@ import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
+import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-// import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-// import { ModeSelector } from "./components/mode-selector";
+import { TopBar } from "./components/TopBar/top-bar";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { exportTikZ } from "./lib/export-tikz";
 import { importSDCPN } from "./lib/import-sdcpn";
@@ -20,28 +20,32 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 
-const fullHeightStyle = css({
-  height: "[100%]",
-});
-
 const rowContainerStyle = css({
-  height: "[100%]",
+  height: "full",
   userSelect: "none",
 });
 
 const canvasContainerStyle = css({
-  width: "[100%]",
+  width: "full",
   position: "relative",
   flexGrow: 1,
 });
 
-// const modeSelectorPositionStyle = css({
-//   position: "absolute",
-//   top: "[24px]",
-//   left: "[50%]",
-//   transform: "translateX(-50%)",
-//   zIndex: 1000,
-// });
+const editorRootStyle = css({
+  position: "relative",
+  height: "full",
+  backgroundColor: "neutral.s25",
+});
+
+const portalContainerStyle = css({
+  position: "absolute",
+  top: "0",
+  left: "0",
+  width: "full",
+  height: "full",
+  zIndex: "99999",
+  pointerEvents: "none",
+});
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -68,6 +72,8 @@ export const EditorView = ({
     globalMode: mode,
     editionMode,
     setEditionMode,
+    cursorMode,
+    setCursorMode,
     clearSelection,
   } = use(EditorContext);
 
@@ -109,145 +115,134 @@ export const EditorView = ({
     });
   }
 
+  const menuItems = [
+    {
+      id: "new",
+      label: "New",
+      onClick: handleNew,
+    },
+    ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
+      ? [
+          {
+            id: "open",
+            label: "Open",
+            submenu: existingNets.map((net) => ({
+              id: `open-${net.netId}`,
+              label: net.title,
+              onClick: () => {
+                loadPetriNet(net.netId);
+                clearSelection();
+              },
+            })),
+          },
+        ]
+      : []),
+    {
+      id: "export",
+      label: "Export",
+      submenu: [
+        {
+          id: "export-json",
+          label: "JSON",
+          onClick: handleExport,
+        },
+        {
+          id: "export-without-visuals",
+          label: "JSON without visual info",
+          onClick: handleExportWithoutVisualInfo,
+        },
+        {
+          id: "export-tikz",
+          label: "TikZ",
+          onClick: handleExportTikZ,
+        },
+      ],
+    },
+    {
+      id: "import",
+      label: "Import",
+      onClick: handleImport,
+    },
+    {
+      id: "layout",
+      label: "Layout",
+      onClick: layoutGraph,
+    },
+    {
+      id: "load-example",
+      label: "Load example",
+      submenu: [
+        {
+          id: "load-example-satellites",
+          label: "Satellites",
+          onClick: () => {
+            createNewNet(satellitesSDCPN);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-production-machines",
+          label: "Production Machines",
+          onClick: () => {
+            createNewNet(productionMachines);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-sir-model",
+          label: "SIR Model",
+          onClick: () => {
+            createNewNet(sirModel);
+            clearSelection();
+          },
+        },
+      ],
+    },
+  ];
+
+  const portalContainerRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Stack className={`${fullHeightStyle} petrinaut-root`}>
-      <Stack direction="row" className={rowContainerStyle}>
-        <Box className={canvasContainerStyle}>
-          {/* Floating Mode Selector - Top Center */}
-          {/* <div className={modeSelectorPositionStyle}>
-            <ModeSelector mode={mode} onChange={handleModeChange} />
-          </div> */}
+    <PortalContainerContext value={portalContainerRef}>
+      <Stack className={cx(editorRootStyle, "petrinaut-root")}>
+        <div ref={portalContainerRef} className={portalContainerStyle} />
 
-          {/* Left Sidebar with Menu, Title, and Tools */}
-          <LeftSideBar
-            hideNetManagementControls={hideNetManagementControls}
-            menuItems={[
-              {
-                id: "new",
-                label: "New",
-                onClick: handleNew,
-              },
-              ...(!hideNetManagementControls &&
-              Object.keys(existingNets).length > 0
-                ? [
-                    {
-                      id: "open",
-                      label: "Open",
-                      submenu: existingNets.map((net) => ({
-                        id: `open-${net.netId}`,
-                        label: net.title,
-                        onClick: () => {
-                          loadPetriNet(net.netId);
-                          clearSelection();
-                        },
-                      })),
-                    },
-                  ]
-                : []),
-              {
-                id: "export",
-                label: "Export",
-                submenu: [
-                  {
-                    id: "export-json",
-                    label: "JSON",
-                    onClick: handleExport,
-                  },
-                  {
-                    id: "export-without-visuals",
-                    label: "JSON without visual info",
-                    onClick: handleExportWithoutVisualInfo,
-                  },
-                  {
-                    id: "export-tikz",
-                    label: "TikZ",
-                    onClick: handleExportTikZ,
-                  },
-                ],
-              },
-              {
-                id: "import",
-                label: "Import",
-                onClick: handleImport,
-              },
-              {
-                id: "layout",
-                label: "Layout",
-                onClick: layoutGraph,
-              },
-              {
-                id: "load-example",
-                label: "Load example",
-                submenu: [
-                  /**
-                   * @todo H-5641: once probabilistic transition kernel available,
-                   *       update this example so that the Manufacture step probabilistically
-                   *       produces either good or bad product, then enable a 'Dispose' or 'Dispatch'
-                   *       transition depending on which was randomly selected.
-                   */
-                  // {
-                  //   id: "load-example-supply-chain",
-                  //   label: "Supply Chain",
-                  //   onClick: () => {
-                  //     createNewNet(supplyChainSDCPN);
-                  //     clearSelection();
-                  //   },
-                  // },
-                  // {
-                  //   id: "load-example-supply-chain-stochastic",
-                  //   label: "Supply Chain (Stochastic)",
-                  //   onClick: () => {
-                  //     createNewNet(supplyChainStochasticSDCPN);
-                  //     clearSelection();
-                  //   },
-                  // },
-                  {
-                    id: "load-example-satellites",
-                    label: "Satellites",
-                    onClick: () => {
-                      createNewNet(satellitesSDCPN);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-production-machines",
-                    label: "Production Machines",
-                    onClick: () => {
-                      createNewNet(productionMachines);
-                      clearSelection();
-                    },
-                  },
-                  {
-                    id: "load-example-sir-model",
-                    label: "SIR Model",
-                    onClick: () => {
-                      createNewNet(sirModel);
-                      clearSelection();
-                    },
-                  },
-                ],
-              },
-            ]}
-            title={title}
-            onTitleChange={setTitle}
-          />
+        {/* Top Bar - always visible */}
+        <TopBar
+          menuItems={menuItems}
+          title={title}
+          onTitleChange={setTitle}
+          hideNetManagementControls={hideNetManagementControls}
+          mode={mode}
+          onModeChange={() => {
+            // Mode change handled by TopBar; currently only "edit" is enabled
+          }}
+        />
 
-          {/* Properties Panel - Right Side */}
-          <PropertiesPanel />
+        <Stack direction="row" className={rowContainerStyle}>
+          <Box className={canvasContainerStyle}>
+            {/* Left Sidebar - Tools and content panels */}
+            <LeftSideBar />
 
-          {/* SDCPN Visualization */}
-          <SDCPNView />
+            {/* Properties Panel - Right Side */}
+            <PropertiesPanel />
 
-          {/* Bottom Panel - Diagnostics, Simulation Settings */}
-          <BottomPanel />
+            {/* SDCPN Visualization */}
+            <SDCPNView />
 
-          <BottomBar
-            mode={mode}
-            editionMode={editionMode}
-            onEditionModeChange={setEditionMode}
-          />
-        </Box>
+            {/* Bottom Panel - Diagnostics, Simulation Settings */}
+            <BottomPanel />
+
+            <BottomBar
+              mode={mode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+            />
+          </Box>
+        </Stack>
       </Stack>
-    </Stack>
+    </PortalContainerContext>
   );
 };
