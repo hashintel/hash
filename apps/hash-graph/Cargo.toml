@@ -16,7 +16,7 @@ error-stack               = { workspace = true }
 harpc-codec               = { workspace = true, features = ["json"] }
 harpc-server              = { workspace = true }
 hash-codec                = { workspace = true }
-hash-graph-api            = { workspace = true }
+hash-graph-api            = { workspace = true, features = ["clap"] }
 hash-graph-authorization  = { workspace = true }
 hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-store          = { workspace = true }

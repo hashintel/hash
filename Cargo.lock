@@ -3247,6 +3247,7 @@ dependencies = [
  "axum",
  "axum-core",
  "bytes",
+ "clap",
  "derive-where",
  "derive_more",
  "error-stack",

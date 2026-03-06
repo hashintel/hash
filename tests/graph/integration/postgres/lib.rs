@@ -760,7 +760,7 @@ impl EntityStore for DatabaseApi<'_> {
         mut params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
+        let limit = params.limit;
         params.include_count = true;
 
         let count = self
@@ -778,8 +778,8 @@ impl EntityStore for DatabaseApi<'_> {
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entities returned
-        if !has_limit {
+        // if the limit is large enough, the count should be equal to the number of entities
+        if count <= limit {
             assert_eq!(count, response.entities.len());
         }
 
@@ -797,7 +797,7 @@ impl EntityStore for DatabaseApi<'_> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -814,8 +814,8 @@ impl EntityStore for DatabaseApi<'_> {
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entities returned
-        if !has_limit {
+        // if the limit is large enough, the count should be equal to the number of entities
+        if count <= limit {
             assert_eq!(count, response.subgraph.roots.len());
         }
 

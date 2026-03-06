@@ -21,6 +21,7 @@ use axum::{
     Json,
     response::{Html, IntoResponse as _},
 };
+use error_stack::Report;
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
@@ -65,7 +66,7 @@ use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
-use super::status::BoxedResponse;
+use super::{ApiConfig, status::BoxedResponse};
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -485,7 +486,7 @@ impl<'q> EntityQuery<'q> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
-enum EntityQueryOptionsError {
+pub enum EntityQueryOptionsError {
     #[display(
         "Field '{field}' is only valid in subgraph requests. Use the subgraph endpoint instead."
     )]
@@ -495,6 +496,8 @@ enum EntityQueryOptionsError {
          instead."
     )]
     InvalidFieldForEntityOptions { field: &'static str },
+    #[display("The requested limit ({requested}) exceeds the maximum allowed limit ({max}).")]
+    LimitExceeded { requested: usize, max: usize },
 }
 
 impl core::error::Error for EntityQueryOptionsError {}
@@ -597,12 +600,31 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
 }
 
 impl<'p> EntityQueryOptions<'_, 'p> {
-    #[must_use]
-    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> QueryEntitiesParams<'f>
+    /// # Errors
+    ///
+    /// Returns [`EntityQueryOptionsError::LimitExceeded`] if the requested limit exceeds the
+    /// configured maximum in [`ApiConfig::query_entity_limit`].
+    pub fn into_params<'f>(
+        self,
+        filter: Filter<'f, Entity>,
+        config: ApiConfig,
+    ) -> Result<QueryEntitiesParams<'f>, Report<EntityQueryOptionsError>>
     where
         'p: 'f,
     {
-        QueryEntitiesParams {
+        let max = config.query_entity_limit;
+        let limit = match self.limit {
+            Some(requested) if requested > max => {
+                return Err(Report::new(EntityQueryOptionsError::LimitExceeded {
+                    requested,
+                    max,
+                }));
+            }
+            Some(limit) => limit,
+            None => max,
+        };
+
+        Ok(QueryEntitiesParams {
             filter,
             sorting: generate_sorting_paths(
                 self.sorting_paths,
@@ -610,7 +632,7 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 self.cursor,
                 &self.temporal_axes,
             ),
-            limit: self.limit,
+            limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
             include_count: self.include_count,
@@ -622,33 +644,37 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             include_type_ids: self.include_type_ids,
             include_type_titles: self.include_type_titles,
             include_permissions: self.include_permissions,
-        }
+        })
     }
 
-    #[must_use]
+    /// # Errors
+    ///
+    /// Returns [`EntityQueryOptionsError::LimitExceeded`] if the requested limit exceeds the
+    /// configured maximum in [`ApiConfig::query_entity_limit`].
     pub fn into_traversal_params<'q>(
         self,
         filter: Filter<'q, Entity>,
         traversal: SubgraphTraversalParams,
-    ) -> QueryEntitySubgraphParams<'q>
+        config: ApiConfig,
+    ) -> Result<QueryEntitySubgraphParams<'q>, Report<EntityQueryOptionsError>>
     where
         'p: 'q,
     {
         match traversal {
             SubgraphTraversalParams::Paths { traversal_paths } => {
-                QueryEntitySubgraphParams::Paths {
+                Ok(QueryEntitySubgraphParams::Paths {
                     traversal_paths,
-                    request: self.into_params(filter),
-                }
+                    request: self.into_params(filter, config)?,
+                })
             }
             SubgraphTraversalParams::ResolveDepths {
                 traversal_paths,
                 graph_resolve_depths,
-            } => QueryEntitySubgraphParams::ResolveDepths {
+            } => Ok(QueryEntitySubgraphParams::ResolveDepths {
                 traversal_paths,
                 graph_resolve_depths,
-                request: self.into_params(filter),
-            },
+                request: self.into_params(filter, config)?,
+            }),
         }
     }
 }
