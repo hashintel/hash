@@ -71,39 +71,33 @@ use super::{ApiConfig, status::BoxedResponse};
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
     paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
-    limit: Option<usize>,
-    cursor: Option<EntityQueryCursor<'_>>,
     temporal_axes: &QueryTemporalAxesUnresolved,
-) -> EntityQuerySorting<'static> {
+) -> Vec<EntityQuerySortingRecord<'static>> {
     let temporal_axes_sorting_path = match temporal_axes {
         QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
         QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
     };
 
-    let sorting = paths
+    paths
         .map_or_else(
             || {
-                if limit.is_some() || cursor.is_some() {
-                    vec![
-                        EntityQuerySortingRecord {
-                            path: temporal_axes_sorting_path.clone(),
-                            ordering: Ordering::Descending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::Uuid,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::WebId,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                    ]
-                } else {
-                    Vec::new()
-                }
+                vec![
+                    EntityQuerySortingRecord {
+                        path: temporal_axes_sorting_path.clone(),
+                        ordering: Ordering::Descending,
+                        nulls: None,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::Uuid,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::WebId,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    },
+                ]
             },
             |mut paths| {
                 let mut has_temporal_axis = false;
@@ -151,12 +145,7 @@ fn generate_sorting_paths(
         )
         .into_iter()
         .map(EntityQuerySortingRecord::into_owned)
-        .collect();
-
-    EntityQuerySorting {
-        paths: sorting,
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }
+        .collect()
 }
 
 /// Internal deserialization proxy for `QueryEntitiesRequest`.
@@ -626,12 +615,10 @@ impl<'p> EntityQueryOptions<'_, 'p> {
 
         Ok(QueryEntitiesParams {
             filter,
-            sorting: generate_sorting_paths(
-                self.sorting_paths,
-                self.limit,
-                self.cursor,
-                &self.temporal_axes,
-            ),
+            sorting: EntityQuerySorting {
+                paths: generate_sorting_paths(self.sorting_paths, &self.temporal_axes),
+                cursor: self.cursor.map(EntityQueryCursor::into_owned),
+            },
             limit,
             conversions: self.conversions,
             include_drafts: self.include_drafts,
