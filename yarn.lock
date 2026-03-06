@@ -490,7 +490,7 @@ __metadata:
     exponential-backoff: "npm:3.1.3"
     express: "npm:5.2.0"
     express-handlebars: "npm:8.0.4"
-    express-rate-limit: "npm:8.2.1"
+    express-rate-limit: "npm:8.2.2"
     fractional-indexing: "npm:3.2.0"
     googleapis: "npm:133.0.0"
     graphql: "npm:16.11.0"
@@ -28222,7 +28222,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express-rate-limit@npm:8.2.1, express-rate-limit@npm:^8.2.1":
+"express-rate-limit@npm:8.2.2":
+  version: 8.2.2
+  resolution: "express-rate-limit@npm:8.2.2"
+  dependencies:
+    ip-address: "npm:10.1.0"
+  peerDependencies:
+    express: ">= 4.11"
+  checksum: 10c0/b1979aa4b0b45ac8ed52d364fe59c095ac9eefcec0877261c3f71cfed8cb02223ed69a177d7b9869bf4f437df8059120ce7518fb67c00edd8523ed278534df92
+  languageName: node
+  linkType: hard
+
+"express-rate-limit@npm:^8.2.1":
   version: 8.2.1
   resolution: "express-rate-limit@npm:8.2.1"
   dependencies:
@@ -31555,6 +31566,13 @@ __metadata:
   version: 10.0.1
   resolution: "ip-address@npm:10.0.1"
   checksum: 10c0/1634d79dae18394004775cb6d699dc46b7c23df6d2083164025a2b15240c1164fccde53d0e08bd5ee4fc53913d033ab6b5e395a809ad4b956a940c446e948843
+  languageName: node
+  linkType: hard
+
+"ip-address@npm:10.1.0":
+  version: 10.1.0
+  resolution: "ip-address@npm:10.1.0"
+  checksum: 10c0/0103516cfa93f6433b3bd7333fa876eb21263912329bfa47010af5e16934eeeff86f3d2ae700a3744a137839ddfad62b900c7a445607884a49b5d1e32a3d7566
   languageName: node
   linkType: hard
 
