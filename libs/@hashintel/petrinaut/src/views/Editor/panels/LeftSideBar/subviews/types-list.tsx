@@ -7,6 +7,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const listContainerStyle = css({
@@ -117,14 +118,15 @@ const TypesSectionContent: React.FC = () => {
     removeType,
   } = use(SDCPNContext);
 
-  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
+  const { selection, selectItem, toggleItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
       {types.map((type) => {
-        const isSelected = selectedResourceId === type.id;
+        const isSelected = selection.has(type.id);
+        const item: SelectionItem = { type: "type", id: type.id };
 
         return (
           <div
@@ -137,13 +139,17 @@ const TypesSectionContent: React.FC = () => {
               ) {
                 return;
               }
-              setSelectedResourceId(type.id);
+              if (event.metaKey || event.ctrlKey) {
+                toggleItem(item);
+              } else {
+                selectItem(item);
+              }
             }}
             role="button"
             tabIndex={0}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
-                setSelectedResourceId(type.id);
+                selectItem(item);
               }
             }}
             className={typeRowStyle({ isSelected })}
@@ -182,6 +188,7 @@ const TypesSectionHeaderAction: React.FC = () => {
     petriNetDefinition: { types },
     addType,
   } = use(SDCPNContext);
+  const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
@@ -197,8 +204,9 @@ const TypesSectionHeaderAction: React.FC = () => {
         const nextNumber = getNextTypeNumber(existingNames);
         const nextColor = getNextAvailableColor(existingColors);
 
+        const id = `type__${Date.now()}`;
         const newType = {
-          id: `type__${Date.now()}`,
+          id,
           name: `Type ${nextNumber}`,
           iconSlug: "circle",
           displayColor: nextColor,
@@ -211,6 +219,7 @@ const TypesSectionHeaderAction: React.FC = () => {
           ],
         };
         addType(newType);
+        selectItem({ type: "type", id });
       }}
     >
       <TbPlus />

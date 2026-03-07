@@ -11,6 +11,7 @@ import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
+import { useSelectionCleanup } from "../../state/use-selection-cleanup";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
@@ -77,6 +78,9 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
   } = use(EditorContext);
+
+  // Clean up stale selections when items are deleted
+  useSelectionCleanup();
 
   function handleNew() {
     createNewNet({

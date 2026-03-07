@@ -8,6 +8,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
@@ -31,6 +32,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+
+  const focusNodeRef = useRef<(nodeId: string) => void>(() => {});
 
   const triggerPanelAnimation = () => {
     if (!userSettings.showAnimations) {
@@ -74,26 +77,77 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelectedResourceId: (id) => {
-      triggerPanelAnimation();
-      setState((prev) => ({ ...prev, selectedResourceId: id }));
+    setSelection: (selection: SelectionMap) =>
+      setState((prev) => ({ ...prev, selection })),
+    selectItem: (item: SelectionItem) => {
+      setState((prev) => {
+        const wasEmpty = prev.selection.size === 0;
+        const newSelection: SelectionMap = new Map([[item.id, item]]);
+        const willBeEmpty = false;
+        if (wasEmpty !== willBeEmpty) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection };
+      });
     },
-    setSelectedItemIds: (ids) =>
-      setState((prev) => ({ ...prev, selectedItemIds: ids })),
-    addSelectedItemId: (id) =>
+    toggleItem: (item: SelectionItem) => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.add(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    removeSelectedItemId: (id) =>
+        const newSelection = new Map(prev.selection);
+        if (newSelection.has(item.id)) {
+          newSelection.delete(item.id);
+        } else {
+          newSelection.set(item.id, item);
+        }
+        const visibilityChanged =
+          (prev.selection.size === 0) !== (newSelection.size === 0);
+        if (visibilityChanged) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection };
+      });
+    },
+    addToSelection: (items: SelectionItem[]) => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.delete(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    clearSelection: () =>
-      setState((prev) => ({ ...prev, selectedItemIds: new Set() })),
+        const newSelection = new Map(prev.selection);
+        for (const item of items) {
+          newSelection.set(item.id, item);
+        }
+        const visibilityChanged =
+          (prev.selection.size === 0) !== (newSelection.size === 0);
+        if (visibilityChanged) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection };
+      });
+    },
+    removeFromSelection: (ids: string[]) => {
+      setState((prev) => {
+        const newSelection = new Map(prev.selection);
+        for (const id of ids) {
+          newSelection.delete(id);
+        }
+        const visibilityChanged =
+          (prev.selection.size === 0) !== (newSelection.size === 0);
+        if (visibilityChanged) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection };
+      });
+    },
+    clearSelection: () => {
+      setState((prev) => {
+        if (prev.selection.size > 0) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: new Map() };
+      });
+    },
+    focusNode: (nodeId: string) => {
+      focusNodeRef.current(nodeId);
+    },
+    registerFocusNode: (fn: (nodeId: string) => void) => {
+      focusNodeRef.current = fn;
+    },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -109,7 +163,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...prev,
         isLeftSidebarOpen: false,
         isBottomPanelOpen: false,
-        selectedResourceId: null,
+        selection: new Map(),
       }));
     },
     setTimelineChartType: (chartType) =>

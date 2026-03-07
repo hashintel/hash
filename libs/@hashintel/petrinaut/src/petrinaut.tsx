@@ -1,4 +1,4 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 import "./index.css";
 
 import type {

@@ -10,8 +10,11 @@ import {
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { usePanelTarget } from "../../../../state/use-selection";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { ArcProperties } from "./arc-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
+import { MultiSelectionPanel } from "./multi-selection-panel";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";
@@ -55,7 +58,6 @@ const glassPanelContentStyle = css({
  */
 export const PropertiesPanel: React.FC = () => {
   const {
-    selectedResourceId,
     setPropertiesPanelWidth,
     isBottomPanelOpen,
     bottomPanelHeight,
@@ -63,15 +65,18 @@ export const PropertiesPanel: React.FC = () => {
   } = use(EditorContext);
 
   const {
-    getItemType,
     petriNetDefinition,
     updatePlace,
     updateTransition,
     updateArcWeight,
+    removeArc,
     updateType,
     updateDifferentialEquation,
     updateParameter,
+    deleteItemsByIds,
   } = use(SDCPNContext);
+
+  const panelTarget = usePanelTarget();
 
   const [panelWidth, setPanelWidthLocal] = useState(
     DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -91,20 +96,17 @@ export const PropertiesPanel: React.FC = () => {
     setPropertiesPanelWidth(DEFAULT_PROPERTIES_PANEL_WIDTH);
   }, [setPropertiesPanelWidth]);
 
-  // Determine if the panel should be open and compute content
-  const itemType = selectedResourceId ? getItemType(selectedResourceId) : null;
-  const isOpen =
-    selectedResourceId !== null && itemType !== null && itemType !== "arc";
+  const isOpen = panelTarget.kind !== "none";
 
   let content: React.ReactNode = null;
 
-  if (isOpen) {
-    const selectedId = selectedResourceId;
+  if (panelTarget.kind === "single") {
+    const { item } = panelTarget;
 
-    switch (itemType) {
+    switch (item.type) {
       case "place": {
         const placeData = petriNetDefinition.places.find(
-          (place) => place.id === selectedId,
+          (place) => place.id === item.id,
         );
         if (placeData) {
           content = (
@@ -120,7 +122,7 @@ export const PropertiesPanel: React.FC = () => {
 
       case "transition": {
         const transitionData = petriNetDefinition.transitions.find(
-          (transition) => transition.id === selectedId,
+          (transition) => transition.id === item.id,
         );
         if (transitionData) {
           content = (
@@ -136,9 +138,21 @@ export const PropertiesPanel: React.FC = () => {
         break;
       }
 
+      case "arc": {
+        content = (
+          <ArcProperties
+            arcId={item.id}
+            petriNetDefinition={petriNetDefinition}
+            updateArcWeight={updateArcWeight}
+            removeArc={removeArc}
+          />
+        );
+        break;
+      }
+
       case "type": {
         const typeData = petriNetDefinition.types.find(
-          (type) => type.id === selectedId,
+          (type) => type.id === item.id,
         );
         if (typeData) {
           content = <TypeProperties type={typeData} updateType={updateType} />;
@@ -148,7 +162,7 @@ export const PropertiesPanel: React.FC = () => {
 
       case "differentialEquation": {
         const equationData = petriNetDefinition.differentialEquations.find(
-          (equation) => equation.id === selectedId,
+          (equation) => equation.id === item.id,
         );
         if (equationData) {
           content = (
@@ -165,7 +179,7 @@ export const PropertiesPanel: React.FC = () => {
 
       case "parameter": {
         const parameterData = petriNetDefinition.parameters.find(
-          (parameter) => parameter.id === selectedId,
+          (parameter) => parameter.id === item.id,
         );
         if (parameterData) {
           content = (
@@ -178,6 +192,13 @@ export const PropertiesPanel: React.FC = () => {
         break;
       }
     }
+  } else if (panelTarget.kind === "multi") {
+    content = (
+      <MultiSelectionPanel
+        items={panelTarget.items}
+        deleteItemsByIds={deleteItemsByIds}
+      />
+    );
   }
 
   // Calculate bottom offset based on bottom panel visibility

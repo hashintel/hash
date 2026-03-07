@@ -1,9 +1,9 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
+import type { Connection } from "@xyflow/react";
+import { Background, ReactFlow, useReactFlow } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import {
@@ -12,6 +12,7 @@ import {
 } from "../../core/default-codes";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
+import type { SelectionItem } from "../../state/selection";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
 import { Arc } from "./components/arc";
@@ -23,11 +24,7 @@ import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
-import type {
-  ArcData,
-  NodeData,
-  PetrinautReactFlowInstance,
-} from "./reactflow-types";
+import type { NodeType, PetrinautReactFlowInstance } from "./reactflow-types";
 
 const SNAP_GRID_SIZE = 15;
 
@@ -55,6 +52,33 @@ const canvasContainerStyle = css({
 });
 
 /**
+ * Inner component that registers focusNode via useReactFlow (must be inside ReactFlow provider).
+ */
+const FocusNodeRegistrar: React.FC = () => {
+  const { setCenter } = useReactFlow();
+  const { registerFocusNode } = use(EditorContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+
+  useEffect(() => {
+    registerFocusNode((nodeId: string) => {
+      const place = petriNetDefinition.places.find((pl) => pl.id === nodeId);
+      if (place) {
+        void setCenter(place.x, place.y, { duration: 400, zoom: 1 });
+        return;
+      }
+      const transition = petriNetDefinition.transitions.find(
+        (tr) => tr.id === nodeId,
+      );
+      if (transition) {
+        void setCenter(transition.x, transition.y, { duration: 400, zoom: 1 });
+      }
+    });
+  }, [setCenter, registerFocusNode, petriNetDefinition]);
+
+  return null;
+};
+
+/**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from SDCPNContext and EditorContext, and handles all ReactFlow interactions.
  */
@@ -76,6 +100,7 @@ export const SDCPNView: React.FC = () => {
     addTransition,
     addArc,
     deleteItemsByIds,
+    getItemType,
     readonly,
   } = use(SDCPNContext);
 
@@ -83,9 +108,9 @@ export const SDCPNView: React.FC = () => {
     editionMode,
     setEditionMode,
     cursorMode,
-    selectedItemIds,
-    setSelectedItemIds,
-    setSelectedResourceId,
+    selection,
+    selectItem,
+    toggleItem,
     clearSelection,
   } = use(EditorContext);
 
@@ -97,7 +122,11 @@ export const SDCPNView: React.FC = () => {
 
   // Center viewport on SDCPN load
   useEffect(() => {
-    reactFlowInstance?.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
+    void reactFlowInstance?.fitView({
+      padding: 0.4,
+      minZoom: 0.4,
+      maxZoom: 1.1,
+    });
   }, [reactFlowInstance, petriNetId]);
 
   // Readonly if simulation mode or readonly has been provided by external consumer.
@@ -121,8 +150,8 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const source = connection.source ?? "";
-    const target = connection.target ?? "";
+    const source = connection.source;
+    const target = connection.target;
 
     const sourceNode = nodes.find((node) => node.id === source);
     const targetNode = nodes.find((node) => node.id === target);
@@ -144,7 +173,7 @@ export const SDCPNView: React.FC = () => {
     }
   }
 
-  function onInit(instance: ReactFlowInstance<NodeData, ArcData>) {
+  function onInit(instance: PetrinautReactFlowInstance) {
     setReactFlowInstance(instance);
   }
 
@@ -180,14 +209,21 @@ export const SDCPNView: React.FC = () => {
         y: position.y,
       });
     }
-    setSelectedItemIds(new Set([id]));
+    selectItem({ type: nodeType, id });
     setEditionMode("cursor");
   }
 
-  function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
-    // Set the selected resource ID for properties panel
-    setSelectedResourceId(node.id);
-    setSelectedItemIds(new Set([node.id]));
+  function onNodeClick(event: React.MouseEvent, node: NodeType) {
+    const itemType = getItemType(node.id);
+    if (!itemType) {
+      return;
+    }
+    const item: SelectionItem = { type: itemType, id: node.id };
+    if (event.metaKey || event.ctrlKey) {
+      toggleItem(item);
+    } else {
+      selectItem(item);
+    }
   }
 
   function onPaneClick(event: React.MouseEvent) {
@@ -197,8 +233,7 @@ export const SDCPNView: React.FC = () => {
 
     // Clear selection when clicking empty canvas in select mode
     if (editionMode === "cursor") {
-      setSelectedItemIds(new Set());
-      setSelectedResourceId(null);
+      clearSelection();
       return;
     }
 
@@ -210,10 +245,9 @@ export const SDCPNView: React.FC = () => {
 
     const nodeType = editionMode === "add-place" ? "place" : "transition";
 
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top,
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -239,10 +273,9 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top,
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -287,6 +320,7 @@ export const SDCPNView: React.FC = () => {
   const isAddMode =
     editionMode === "add-place" || editionMode === "add-transition";
   const isPanMode = editionMode === "cursor" && cursorMode === "pan";
+  const isSelectMode = editionMode === "cursor" && cursorMode === "select";
 
   // Set cursor style based on mode
   const getCursorStyle = () => {
@@ -312,9 +346,8 @@ export const SDCPNView: React.FC = () => {
         // Quick-and-dirty way to delete selected items with keyboard
         // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
         if ((key === "Delete" || key === "Backspace") && !isReadonly) {
-          setSelectedResourceId(null);
+          deleteItemsByIds(new Set(selection.keys()));
           clearSelection();
-          deleteItemsByIds(selectedItemIds);
         }
       }}
     >
@@ -329,9 +362,13 @@ export const SDCPNView: React.FC = () => {
         onInit={onInit}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
-        onEdgeClick={(_e, edge) => {
-          setSelectedResourceId(null);
-          setSelectedItemIds(new Set([edge.id]));
+        onEdgeClick={(event, edge) => {
+          const item: SelectionItem = { type: "arc", id: edge.id };
+          if (event.metaKey || event.ctrlKey) {
+            toggleItem(item);
+          } else {
+            selectItem(item);
+          }
         }}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
@@ -340,6 +377,7 @@ export const SDCPNView: React.FC = () => {
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
         panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
+        selectionOnDrag={isSelectMode && !isReadonly}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}
@@ -350,6 +388,7 @@ export const SDCPNView: React.FC = () => {
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
         <ViewportControls />
+        <FocusNodeRegistrar />
       </ReactFlow>
     </div>
   );
