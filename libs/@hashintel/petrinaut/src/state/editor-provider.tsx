@@ -78,7 +78,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
     setSelection: (selection: SelectionMap) =>
-      setState((prev) => ({ ...prev, selection })),
+      setState((prev) => {
+        const visibilityChanged =
+          (prev.selection.size === 0) !== (selection.size === 0);
+        if (visibilityChanged) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection };
+      }),
     selectItem: (item: SelectionItem) => {
       setState((prev) => {
         const wasEmpty = prev.selection.size === 0;
