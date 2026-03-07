@@ -19,21 +19,16 @@ import {
 export function useApplyNodeChanges() {
   const { getItemType, updatePlacePosition, updateTransitionPosition } =
     use(SDCPNContext);
-  const {
-    draggingStateByNodeId,
-    updateDraggingStateByNodeId,
-    setSelection,
-    selection,
-  } = use(EditorContext);
+  const { updateDraggingStateByNodeId, setSelection, selection } =
+    use(EditorContext);
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   return (changes: (NodeChange | EdgeChange)[]) => {
-    const positionUpdates: Array<{
+    const positionCommits: Array<{
       id: string;
       position: { x: number; y: number };
     }> = [];
-
     let selectionChanged = false;
 
     // Check if current selection has any non-node items (types, etc.)
@@ -84,30 +79,14 @@ export function useApplyNodeChanges() {
               position: change.position ?? { x: 0, y: 0 },
             },
           }));
-        } else {
-          const lastPosition = draggingStateByNodeId[change.id]?.position;
-
-          if (!lastPosition) {
-            // we've had a dragging: false with no preceding dragging: true, so the node has not been dragged anywhere.
-            continue;
-          }
-
-          /**
-           * When dragging stops, we receive a change event with 'dragging: false' but no position.
-           * We use the last position we received to report the change to the consumer.
-           */
-          positionUpdates.push({
+        } else if (change.position) {
+          // Drag ended for this node. Use `change.position` directly rather than
+          // reading from `draggingStateByNodeId`, because the closure may be stale:
+          // ReactFlow syncs `onNodesChange` to its store via useEffect, so between
+          // rapid mouse events the callback may reference an older render's state.
+          positionCommits.push({
             id: change.id,
-            position: lastPosition,
-          });
-
-          // Clear the dragging state for this node now that the drag is complete
-          // and the position has been collected for commit to the SDCPN store.
-          // Keeping stale positions here would cause them to be re-applied
-          // if ReactFlow emits a spurious position change after an undo.
-          updateDraggingStateByNodeId((existing) => {
-            const { [change.id]: _, ...rest } = existing;
-            return rest;
+            position: change.position,
           });
         }
       }
@@ -118,22 +97,23 @@ export function useApplyNodeChanges() {
       setSelection(newSelection);
     }
 
-    // Apply position updates to SDCPN store
-    for (const { id, position } of positionUpdates) {
-      // Get item type to determine whether it's a place or transition
-      const itemType = getItemType(id);
-
-      if (itemType === "place") {
-        updatePlacePosition(id, {
-          x: position.x + dims.place.width / 2,
-          y: position.y + dims.place.height / 2,
-        });
-      } else if (itemType === "transition") {
-        updateTransitionPosition(id, {
-          x: position.x + dims.transition.width / 2,
-          y: position.y + dims.transition.height / 2,
-        });
+    // Commit final positions from drag-end changes to the SDCPN store.
+    if (positionCommits.length > 0) {
+      for (const { id, position } of positionCommits) {
+        const itemType = getItemType(id);
+        if (itemType === "place") {
+          updatePlacePosition(id, {
+            x: position.x + dims.place.width / 2,
+            y: position.y + dims.place.height / 2,
+          });
+        } else if (itemType === "transition") {
+          updateTransitionPosition(id, {
+            x: position.x + dims.transition.width / 2,
+            y: position.y + dims.transition.height / 2,
+          });
+        }
       }
+      updateDraggingStateByNodeId(() => ({}));
     }
   };
 }

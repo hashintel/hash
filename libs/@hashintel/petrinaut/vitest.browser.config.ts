@@ -10,6 +10,9 @@ export default defineConfig({
       },
     }),
   ],
+  // css: {
+  //   postcss: "./postcss.config.cjs",
+  // },
   define: {
     "process.versions": JSON.stringify({ pnp: undefined }),
   },
@@ -21,7 +24,7 @@ export default defineConfig({
     browser: {
       enabled: true,
       provider: playwright(),
-      headless: true,
+      // headless: true,
       instances: [{ browser: "chromium" }],
     },
   },

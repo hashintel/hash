@@ -12,7 +12,6 @@ import {
 } from "../../core/default-codes";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-import type { SelectionItem } from "../../state/selection";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
 import { Arc } from "./components/arc";
@@ -24,7 +23,7 @@ import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
-import type { NodeType, PetrinautReactFlowInstance } from "./reactflow-types";
+import type { PetrinautReactFlowInstance } from "./reactflow-types";
 
 const SNAP_GRID_SIZE = 15;
 
@@ -100,7 +99,6 @@ export const SDCPNView: React.FC = () => {
     addTransition,
     addArc,
     deleteItemsByIds,
-    getItemType,
     readonly,
   } = use(SDCPNContext);
 
@@ -110,7 +108,6 @@ export const SDCPNView: React.FC = () => {
     cursorMode,
     selection,
     selectItem,
-    toggleItem,
     clearSelection,
   } = use(EditorContext);
 
@@ -213,18 +210,10 @@ export const SDCPNView: React.FC = () => {
     setEditionMode("cursor");
   }
 
-  function onNodeClick(event: React.MouseEvent, node: NodeType) {
-    const itemType = getItemType(node.id);
-    if (!itemType) {
-      return;
-    }
-    const item: SelectionItem = { type: itemType, id: node.id };
-    if (event.metaKey || event.ctrlKey) {
-      toggleItem(item);
-    } else {
-      selectItem(item);
-    }
-  }
+  // Node click selection is handled by ReactFlow's internal handleNodeClick
+  // which fires select changes through onNodesChange → useApplyNodeChanges.
+  // We don't need an onNodeClick handler for selection — doing so would
+  // conflict with ReactFlow's internal selection management.
 
   function onPaneClick(event: React.MouseEvent) {
     if (!reactFlowInstance || !canvasContainer.current) {
@@ -360,16 +349,7 @@ export const SDCPNView: React.FC = () => {
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
-        onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
-        onEdgeClick={(event, edge) => {
-          const item: SelectionItem = { type: "arc", id: edge.id };
-          if (event.metaKey || event.ctrlKey) {
-            toggleItem(item);
-          } else {
-            selectItem(item);
-          }
-        }}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
