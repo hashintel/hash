@@ -22,7 +22,7 @@
   "dependencies": {
     "@babel/core": "7.28.4",
     "@babel/eslint-parser": "7.28.4",
-    "@eslint/eslintrc": "3.3.3",
+    "@eslint/eslintrc": "3.3.4",
     "effect": "3.18.4",
     "eslint": "9.39.3",
     "eslint-config-airbnb": "19.0.4",
