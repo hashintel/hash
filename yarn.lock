@@ -8002,7 +8002,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@typescript/native-preview": "npm:7.0.0-dev.20260216.1"
     "@vitejs/plugin-react": "npm:5.1.4"
-    "@vitest/browser-playwright": "npm:4.0.18"
+    "@vitest/browser-playwright": "npm:^4.0.16"
     "@xyflow/react": "npm:12.10.1"
     babel-plugin-react-compiler: "npm:1.0.0"
     d3-array: "npm:3.2.4"
@@ -8022,7 +8022,7 @@ __metadata:
     vite: "npm:8.0.0-beta.14"
     vite-plugin-dts: "npm:4.5.4"
     vitest: "npm:4.0.18"
-    vitest-browser-react: "npm:2.0.5"
+    vitest-browser-react: "npm:^2.0.2"
     vscode-languageserver-types: "npm:3.17.5"
     web-worker: "npm:1.4.1"
   peerDependencies:
@@ -19822,7 +19822,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/browser-playwright@npm:4.0.18, @vitest/browser-playwright@npm:^4.0.16":
+"@vitest/browser-playwright@npm:^4.0.16":
   version: 4.0.18
   resolution: "@vitest/browser-playwright@npm:4.0.18"
   dependencies:
@@ -45275,15 +45275,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-sync-external-store@npm:1.2.2":
-  version: 1.2.2
-  resolution: "use-sync-external-store@npm:1.2.2"
-  peerDependencies:
-    react: ^16.8.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/23b1597c10adf15b26ade9e8c318d8cc0abc9ec0ab5fc7ca7338da92e89c2536abd150a5891bf076836c352fdfa104fc7231fb48f806fd9960e0cbe03601abaf
-  languageName: node
-  linkType: hard
-
 "use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.4.0, use-sync-external-store@npm:^1.5.0":
   version: 1.6.0
   resolution: "use-sync-external-store@npm:1.6.0"
@@ -45733,7 +45724,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest-browser-react@npm:2.0.5, vitest-browser-react@npm:^2.0.2":
+"vitest-browser-react@npm:^2.0.2":
   version: 2.0.5
   resolution: "vitest-browser-react@npm:2.0.5"
   peerDependencies:
@@ -47117,7 +47108,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zustand@npm:^4.4.0":
+"zustand@npm:^4.4.0, zustand@npm:^4.4.1":
   version: 4.5.7
   resolution: "zustand@npm:4.5.7"
   dependencies:
@@ -47134,26 +47125,6 @@ __metadata:
     react:
       optional: true
   checksum: 10c0/55559e37a82f0c06cadc61cb08f08314c0fe05d6a93815e41e3376130c13db22a5017cbb0cd1f018c82f2dad0051afe3592561d40f980bd4082e32005e8a950c
-  languageName: node
-  linkType: hard
-
-"zustand@npm:^4.4.1":
-  version: 4.5.5
-  resolution: "zustand@npm:4.5.5"
-  dependencies:
-    use-sync-external-store: "npm:1.2.2"
-  peerDependencies:
-    "@types/react": ">=16.8"
-    immer: ">=9.0.6"
-    react: ">=16.8"
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-    immer:
-      optional: true
-    react:
-      optional: true
-  checksum: 10c0/d04469d76b29c7e4070da269886de4efdadedd3d3824dc2a06ac4ff62e3b5877f925e927afe7382de651829872b99adec48082f1bd69fe486149be666345e626
   languageName: node
   linkType: hard
 
