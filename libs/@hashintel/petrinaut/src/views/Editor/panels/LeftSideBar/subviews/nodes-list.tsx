@@ -5,6 +5,7 @@ import { FaCircle, FaSquare } from "react-icons/fa6";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import type { SelectionItem } from "../../../../../state/selection";
 
 const listContainerStyle = css({
   display: "flex",
@@ -90,28 +91,37 @@ const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
   } = use(SDCPNContext);
-  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
+  const { selection, selectItem, toggleItem, focusNode } = use(EditorContext);
 
-  const handleLayerClick = (id: string) => {
-    // Single select: replace selection
-    setSelectedResourceId(id);
+  const handleLayerClick = (event: React.MouseEvent, item: SelectionItem) => {
+    if (event.metaKey || event.ctrlKey) {
+      toggleItem(item);
+    } else {
+      selectItem(item);
+    }
+    // Pan to node for places and transitions
+    if (item.type === "place" || item.type === "transition") {
+      focusNode(item.id);
+    }
   };
 
   return (
     <div className={listContainerStyle}>
       {/* Places */}
       {places.map((place) => {
-        const isSelected = selectedResourceId === place.id;
+        const isSelected = selection.has(place.id);
+        const item: SelectionItem = { type: "place", id: place.id };
         return (
           <div
             key={place.id}
             role="button"
             tabIndex={0}
-            onClick={() => handleLayerClick(place.id)}
+            onClick={(event) => handleLayerClick(event, item)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                handleLayerClick(place.id);
+                selectItem(item);
+                focusNode(place.id);
               }
             }}
             className={nodeRowStyle({ isSelected })}
@@ -126,17 +136,22 @@ const NodesSectionContent: React.FC = () => {
 
       {/* Transitions */}
       {transitions.map((transition) => {
-        const isSelected = selectedResourceId === transition.id;
+        const isSelected = selection.has(transition.id);
+        const item: SelectionItem = {
+          type: "transition",
+          id: transition.id,
+        };
         return (
           <div
             key={transition.id}
             role="button"
             tabIndex={0}
-            onClick={() => handleLayerClick(transition.id)}
+            onClick={(event) => handleLayerClick(event, item)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                handleLayerClick(transition.id);
+                selectItem(item);
+                focusNode(transition.id);
               }
             }}
             className={nodeRowStyle({ isSelected })}

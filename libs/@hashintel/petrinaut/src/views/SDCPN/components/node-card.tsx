@@ -1,6 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { Handle, Position } from "@xyflow/react";
 import type { ReactNode } from "react";
-import { Handle, Position } from "reactflow";
 
 import { handleStyling } from "../styles/styling";
 
@@ -8,7 +8,6 @@ export type SelectionVariant = "resource" | "reactflow" | "none";
 
 const containerStyle = css({
   position: "relative",
-  transform: "translate(-50%, -50%)",
 });
 
 /**

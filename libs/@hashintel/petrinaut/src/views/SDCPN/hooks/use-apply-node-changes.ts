@@ -1,8 +1,14 @@
+import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { use } from "react";
-import type { EdgeChange, NodeChange } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
+import type { SelectionItem, SelectionMap } from "../../../state/selection";
+import { UserSettingsContext } from "../../../state/user-settings-context";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "../styles/styling";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
@@ -16,9 +22,11 @@ export function useApplyNodeChanges() {
   const {
     draggingStateByNodeId,
     updateDraggingStateByNodeId,
-    setSelectedItemIds,
-    selectedItemIds,
+    setSelection,
+    selection,
   } = use(EditorContext);
+  const { compactNodes } = use(UserSettingsContext);
+  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{
@@ -29,23 +37,25 @@ export function useApplyNodeChanges() {
     let selectionChanged = false;
 
     // Check if current selection has any non-node items (types, etc.)
-    const hasNonNodeSelection = Array.from(selectedItemIds).some((id) => {
-      const itemType = getItemType(id);
-      return (
-        itemType !== "place" && itemType !== "transition" && itemType !== "arc"
-      );
-    });
+    const hasNonCanvasSelection = Array.from(selection.values()).some(
+      (item) =>
+        item.type !== "place" &&
+        item.type !== "transition" &&
+        item.type !== "arc",
+    );
 
-    // If we have non-node items selected, clear them when ReactFlow tries to select something
+    // If we have non-canvas items selected, clear them when ReactFlow tries to select something
     // Otherwise, keep the existing selection and let ReactFlow modify it
-    const newSelectedIds = new Set(hasNonNodeSelection ? [] : selectedItemIds);
+    const newSelection: SelectionMap = new Map(
+      hasNonCanvasSelection ? [] : selection,
+    );
 
     for (const change of changes) {
       if (
         // We add nodes in onDrop, we won't handle these kind of changes
         change.type === "add" ||
-        // unclear what reset is supposed to do, it's not handled in reactflow's applyChange implementation
-        change.type === "reset" ||
+        // We handle replace the same as add — our SDCPN store is the source of truth
+        change.type === "replace" ||
         // We don't allow resizing at the moment
         change.type === "dimensions"
       ) {
@@ -54,10 +64,14 @@ export function useApplyNodeChanges() {
 
       if (change.type === "select") {
         selectionChanged = true;
-        if (change.selected && !selectedItemIds.has(change.id)) {
-          newSelectedIds.add(change.id);
-        } else if (!change.selected && selectedItemIds.has(change.id)) {
-          newSelectedIds.delete(change.id);
+        if (change.selected && !selection.has(change.id)) {
+          const itemType = getItemType(change.id);
+          if (itemType) {
+            const item: SelectionItem = { type: itemType, id: change.id };
+            newSelection.set(change.id, item);
+          }
+        } else if (!change.selected && selection.has(change.id)) {
+          newSelection.delete(change.id);
         }
       }
 
@@ -101,7 +115,7 @@ export function useApplyNodeChanges() {
 
     // Apply selection changes to EditorStore
     if (selectionChanged) {
-      setSelectedItemIds(newSelectedIds);
+      setSelection(newSelection);
     }
 
     // Apply position updates to SDCPN store
@@ -110,9 +124,15 @@ export function useApplyNodeChanges() {
       const itemType = getItemType(id);
 
       if (itemType === "place") {
-        updatePlacePosition(id, { x: position.x, y: position.y });
+        updatePlacePosition(id, {
+          x: position.x + dims.place.width / 2,
+          y: position.y + dims.place.height / 2,
+        });
       } else if (itemType === "transition") {
-        updateTransitionPosition(id, { x: position.x, y: position.y });
+        updateTransitionPosition(id, {
+          x: position.x + dims.transition.width / 2,
+          y: position.y + dims.transition.height / 2,
+        });
       }
     }
   };

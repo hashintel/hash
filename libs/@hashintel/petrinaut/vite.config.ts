@@ -19,7 +19,7 @@ export default defineConfig(({ command }) => ({
         "@hashintel/ds-helpers",
         "react",
         "react-dom",
-        "reactflow",
+        "@xyflow/react",
         "monaco-editor",
         "@babel/standalone",
       ],

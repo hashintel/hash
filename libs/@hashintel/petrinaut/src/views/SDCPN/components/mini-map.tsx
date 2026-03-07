@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
+import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
+import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 import { use } from "react";
-import type { MiniMapNodeProps, MiniMapProps } from "reactflow";
-import { MiniMap as ReactFlowMiniMap, useStore } from "reactflow";
 
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { hexToHsl } from "../../../lib/hsl-color";
@@ -29,7 +29,7 @@ const DEFAULT_TRANSITION_FILL = "#6b7280";
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
-    (state) => state.nodeInternals.get(id) as NodeType | undefined,
+    (state) => state.nodeLookup.get(id) as NodeType | undefined,
   );
 
   if (!node) {
@@ -72,10 +72,10 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { selectedResourceId, propertiesPanelWidth, isPanelAnimating } =
+  const { selection, propertiesPanelWidth, isPanelAnimating } =
     use(EditorContext);
 
-  const isPropertiesPanelVisible = selectedResourceId !== null;
+  const isPropertiesPanelVisible = selection.size > 0;
   const minimapOffset = 12;
   const panelOffset = isPropertiesPanelVisible
     ? propertiesPanelWidth + PANEL_MARGIN

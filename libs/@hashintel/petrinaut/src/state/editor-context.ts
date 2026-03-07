@@ -5,6 +5,7 @@ import {
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "../constants/ui";
+import type { SelectionItem, SelectionMap } from "./selection";
 
 export type DraggingStateByNodeId = Record<
   string,
@@ -34,8 +35,7 @@ export type EditorState = {
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
-  selectedResourceId: string | null;
-  selectedItemIds: Set<string>;
+  selection: SelectionMap;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   isPanelAnimating: boolean;
@@ -55,11 +55,14 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setSelectedResourceId: (id: string | null) => void;
-  setSelectedItemIds: (ids: Set<string>) => void;
-  addSelectedItemId: (id: string) => void;
-  removeSelectedItemId: (id: string) => void;
+  setSelection: (selection: SelectionMap) => void;
+  selectItem: (item: SelectionItem) => void;
+  toggleItem: (item: SelectionItem) => void;
+  addToSelection: (items: SelectionItem[]) => void;
+  removeFromSelection: (ids: string[]) => void;
   clearSelection: () => void;
+  focusNode: (nodeId: string) => void;
+  registerFocusNode: (fn: (nodeId: string) => void) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -83,8 +86,7 @@ export const initialEditorState: EditorState = {
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
-  selectedResourceId: null,
-  selectedItemIds: new Set(),
+  selection: new Map(),
   draggingStateByNodeId: {},
   timelineChartType: "run",
   isPanelAnimating: false,
@@ -102,11 +104,14 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
-  setSelectedResourceId: () => {},
-  setSelectedItemIds: () => {},
-  addSelectedItemId: () => {},
-  removeSelectedItemId: () => {},
+  setSelection: () => {},
+  selectItem: () => {},
+  toggleItem: () => {},
+  addToSelection: () => {},
+  removeFromSelection: () => {},
   clearSelection: () => {},
+  focusNode: () => {},
+  registerFocusNode: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
