@@ -30,10 +30,9 @@ pub trait ValidateOntologyType<T> {
     fn validate(&self, ontology_type: &T) -> Result<(), Report<DomainValidationError>>;
 }
 
-#[expect(dead_code, reason = "We currently don't validate the shortname")]
 struct ShortNameAndKind<'a> {
-    pub short_name: &'a str,
-    pub kind: &'a str,
+    short_name: &'a str,
+    kind: &'a str,
 }
 
 /// Responsible for validating Type Urls against a known valid pattern.
@@ -103,6 +102,19 @@ impl DomainValidator {
 
         Ok(ShortNameAndKind { short_name, kind })
     }
+
+    /// Extracts the shortname from a type URL.
+    ///
+    /// # Errors
+    ///
+    /// - [`DomainValidationError`], if the URL doesn't match or is missing the shortname capture
+    pub fn extract_shortname<'a>(
+        &'a self,
+        url: &'a str,
+    ) -> Result<&'a str, Report<DomainValidationError>> {
+        self.extract_shortname_and_kind(url)
+            .map(|result| result.short_name)
+    }
 }
 
 impl ValidateOntologyType<DataType> for DomainValidator {
@@ -124,10 +136,6 @@ impl ValidateOntologyType<DataType> for DomainValidator {
             });
         }
 
-        // TODO: check that the user has write access to the shortname, this will require us
-        //       making the graph aware of shortnames. We can store them alongside accountIds. We
-        //       should not have to make the graph aware of User entities being a thing however.
-        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -151,10 +159,6 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             });
         }
 
-        // TODO: check that the user has write access to the shortname, this will require us
-        //       making the graph aware of shortnames. We can store them alongside accountIds. We
-        //       should  not have to make the graph aware of User entities being a thing however.
-        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -178,10 +182,6 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             });
         }
 
-        // TODO: check that the user has write access to the shortname, this will require us
-        //       making the graph aware of shortnames. We can store them alongside accountIds. We
-        //       should not have to make the graph aware of User entities being a thing however.
-        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }

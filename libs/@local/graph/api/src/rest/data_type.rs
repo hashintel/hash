@@ -1,7 +1,7 @@
 //! Web routes for CRU operations on Data Types.
 
 use alloc::sync::Arc;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map};
 
 use axum::{
     Extension, Router,
@@ -14,6 +14,7 @@ use hash_graph_postgres_store::{
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_store::{
+    account::AccountStore as _,
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
         DataTypeStore, FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -143,7 +144,6 @@ impl DataTypeResource {
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
-    web_id: WebId,
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
 }
@@ -182,33 +182,53 @@ where
 
     let Json(CreateDataTypeRequest {
         schema,
-        web_id,
         provenance,
         conversions,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
-    let mut metadata = store
-        .create_data_types(
-            actor_id,
-            schema
-                .into_iter()
-                .map(|schema| {
-                    domain_validator
-                        .validate(&schema)
-                        .map_err(report_to_response)?;
+    let mut web_cache = HashMap::<String, WebId>::new();
+    let mut params = Vec::new();
+    for schema in schema {
+        domain_validator
+            .validate(&schema)
+            .map_err(report_to_response)?;
 
-                    Ok(CreateDataTypeParams {
-                        schema,
-                        ownership: OntologyOwnership::Local { web_id },
-                        conflict_behavior: ConflictBehavior::Fail,
-                        provenance: provenance.clone(),
-                        conversions: conversions.clone(),
-                    })
-                })
-                .collect::<Result<Vec<_>, BoxedResponse>>()?,
-        )
+        let shortname = domain_validator
+            .extract_shortname(schema.id.base_url.as_str())
+            .map_err(report_to_response)?;
+
+        let web_id = match web_cache.entry(shortname.to_owned()) {
+            hash_map::Entry::Occupied(entry) => *entry.get(),
+            hash_map::Entry::Vacant(entry) => {
+                let web_id = store
+                    .get_web_by_shortname(actor_id, shortname)
+                    .await
+                    .map_err(report_to_response)?
+                    .ok_or_else(|| {
+                        status_to_response(Status::<()>::new(
+                            hash_status::StatusCode::NotFound,
+                            Some(format!("No web found for shortname `{shortname}`")),
+                            vec![],
+                        ))
+                    })?
+                    .id;
+                *entry.insert(web_id)
+            }
+        };
+
+        params.push(CreateDataTypeParams {
+            schema,
+            ownership: OntologyOwnership::Local { web_id },
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: provenance.clone(),
+            conversions: conversions.clone(),
+        });
+    }
+
+    let mut metadata = store
+        .create_data_types(actor_id, params)
         .await
         .map_err(report_to_response)?;
 
