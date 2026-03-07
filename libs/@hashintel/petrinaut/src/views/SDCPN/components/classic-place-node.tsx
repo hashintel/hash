@@ -1,19 +1,18 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use } from "react";
 import { TbMathFunction } from "react-icons/tb";
-import { Handle, type NodeProps, Position } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
-import type { PlaceNodeData } from "../reactflow-types";
+import type { PlaceNodeType } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 
 const containerStyle = css({
   position: "relative",
-  transform: "translate(-50%, -50%)",
 });
 
 const placeCircleStyle = cva({
@@ -108,13 +107,13 @@ const tokenCountBadgeStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
+export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   id,
   data,
   isConnectable,
   selected,
-}: NodeProps<PlaceNodeData>) => {
-  const { globalMode, selectedResourceId } = use(EditorContext);
+}: NodeProps<PlaceNodeType>) => {
+  const { globalMode, selection } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -130,8 +129,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   }
 
   // Determine selection state
-  const isSelectedByResource = selectedResourceId === id;
-  const selectionVariant = isSelectedByResource
+  const isInSelection = selection.has(id);
+  const selectionVariant = isInSelection
     ? "resource"
     : selected
       ? "reactflow"

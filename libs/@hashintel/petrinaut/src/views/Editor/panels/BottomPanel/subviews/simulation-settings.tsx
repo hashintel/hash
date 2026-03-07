@@ -145,7 +145,11 @@ const editButtonIconStyle = css({
  * Split into two sections: Computation and Parameters.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const { setGlobalMode, setSelectedResourceId } = use(EditorContext);
+  const { setGlobalMode, selectItem } = use(EditorContext);
+  const {
+    getItemType,
+    petriNetDefinition: { parameters },
+  } = use(SDCPNContext);
   const {
     state: simulationState,
     error: simulationError,
@@ -155,10 +159,6 @@ const SimulationSettingsContent: React.FC = () => {
     parameterValues,
     setParameterValue,
   } = use(SimulationContext);
-
-  const {
-    petriNetDefinition: { parameters },
-  } = use(SDCPNContext);
 
   // Local state for ODE solver (not used in simulation yet, but UI is ready)
   const [odeSolver, setOdeSolver] = useState("euler");
@@ -262,7 +262,10 @@ const SimulationSettingsContent: React.FC = () => {
               type="button"
               onClick={() => {
                 setGlobalMode("edit");
-                setSelectedResourceId(errorItemId);
+                const itemType = getItemType(errorItemId);
+                if (itemType) {
+                  selectItem({ type: itemType, id: errorItemId });
+                }
               }}
               className={editButtonStyle}
             >

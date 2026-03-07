@@ -1,11 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
+import type { NodeProps } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
 import { TbBolt, TbLambda, TbSquareFilled } from "react-icons/tb";
-import type { NodeProps } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { TransitionNodeData } from "../reactflow-types";
+import type { TransitionNodeType } from "../reactflow-types";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -99,15 +99,15 @@ function useFiringAnimation(
   }, [firingDelta, boxRef, boltRef]);
 }
 
-export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
+export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   id,
   data,
   isConnectable,
   selected,
-}: NodeProps<TransitionNodeData>) => {
+}: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { selectedResourceId } = use(EditorContext);
+  const { selection } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -120,8 +120,8 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
   // Determine selection state
-  const isSelectedByResource = selectedResourceId === id;
-  const selectionVariant: SelectionVariant = isSelectedByResource
+  const isInSelection = selection.has(id);
+  const selectionVariant: SelectionVariant = isInSelection
     ? "resource"
     : selected
       ? "reactflow"

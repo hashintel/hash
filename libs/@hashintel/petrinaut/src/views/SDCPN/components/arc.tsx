@@ -1,17 +1,17 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { type CSSProperties, use, useEffect, useRef } from "react";
 import {
   BaseEdge,
   type EdgeProps,
   getBezierPath,
   getSmoothStepPath,
   type Position,
-} from "reactflow";
+} from "@xyflow/react";
+import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { EditorContext } from "../../../state/editor-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { ArcData } from "../reactflow-types";
+import type { ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
@@ -166,7 +166,7 @@ function getCustomArcPath({
   return [path, labelX, labelY];
 }
 
-export const Arc: React.FC<EdgeProps<ArcData>> = ({
+export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   id,
   sourceX,
   sourceY,
@@ -179,11 +179,11 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   markerEnd,
 }) => {
   // Derive selected state from EditorContext
-  const { selectedItemIds } = use(EditorContext);
+  const { selection } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
-  const selected = selectedItemIds.has(id);
+  const selected = selection.has(id);
 
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);

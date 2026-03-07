@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
 import {
   TbLockOpen,
@@ -7,7 +8,6 @@ import {
   TbPlus,
   TbSettings,
 } from "react-icons/tb";
-import { useReactFlow } from "reactflow";
 
 import { IconButton } from "../../../components/icon-button";
 import { PANEL_MARGIN } from "../../../constants/ui";
@@ -40,14 +40,14 @@ export const ViewportControls: React.FC = () => {
   const { zoomIn, zoomOut } = useReactFlow();
   const {
     collapseAllPanels,
-    selectedResourceId,
+    selection,
     propertiesPanelWidth,
     isBottomPanelOpen,
     bottomPanelHeight,
     isPanelAnimating,
   } = use(EditorContext);
 
-  const isPropertiesPanelVisible = selectedResourceId !== null;
+  const isPropertiesPanelVisible = selection.size > 0;
   const rightOffset =
     BASE_OFFSET +
     (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);

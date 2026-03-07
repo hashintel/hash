@@ -43,9 +43,10 @@ const typeColorDotStyle = css({
  */
 const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { setSelectedResourceId } = use(EditorContext);
+  const { selectItem } = use(EditorContext);
 
   const {
+    getItemType,
     petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
 
@@ -219,7 +220,12 @@ const PlaceMainContent: React.FC = () => {
                 colorScheme="neutral"
                 size="xs"
                 onClick={() => {
-                  setSelectedResourceId(place.colorId);
+                  if (place.colorId) {
+                    const itemType = getItemType(place.colorId);
+                    if (itemType) {
+                      selectItem({ type: itemType, id: place.colorId });
+                    }
+                  }
                 }}
                 iconRight={<TbArrowRight />}
               >
@@ -303,7 +309,12 @@ const PlaceMainContent: React.FC = () => {
                       colorScheme="neutral"
                       size="xs"
                       onClick={() => {
-                        setSelectedResourceId(place.differentialEquationId);
+                        if (place.differentialEquationId) {
+                          selectItem({
+                            type: "differentialEquation",
+                            id: place.differentialEquationId,
+                          });
+                        }
                       }}
                       iconRight={<TbArrowRight />}
                     >

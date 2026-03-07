@@ -9,6 +9,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const listContainerStyle = css({
@@ -66,14 +67,18 @@ const DifferentialEquationsSectionContent: React.FC = () => {
     removeDifferentialEquation,
   } = use(SDCPNContext);
 
-  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
+  const { selection, selectItem, toggleItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
       {differentialEquations.map((eq) => {
-        const isSelected = selectedResourceId === eq.id;
+        const isSelected = selection.has(eq.id);
+        const item: SelectionItem = {
+          type: "differentialEquation",
+          id: eq.id,
+        };
 
         return (
           <div
@@ -86,13 +91,17 @@ const DifferentialEquationsSectionContent: React.FC = () => {
               ) {
                 return;
               }
-              setSelectedResourceId(eq.id);
+              if (event.metaKey || event.ctrlKey) {
+                toggleItem(item);
+              } else {
+                selectItem(item);
+              }
             }}
             role="button"
             tabIndex={0}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
-                setSelectedResourceId(eq.id);
+                selectItem(item);
               }
             }}
             className={equationRowStyle({ isSelected })}
@@ -129,7 +138,7 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,
   } = use(SDCPNContext);
-  const { setSelectedResourceId } = use(EditorContext);
+  const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
@@ -148,7 +157,7 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
           colorId: types.length > 0 ? types[0]!.id : "",
           code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
         });
-        setSelectedResourceId(id);
+        selectItem({ type: "differentialEquation", id });
       }}
     >
       <TbPlus />
