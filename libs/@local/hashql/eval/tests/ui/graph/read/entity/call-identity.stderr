@@ -1,8 +1,8 @@
 error[graph-read-compiler::call-unsupported]: Function calls not supported
    ╭▸ 
  9 │ ┌       ["==",
-10 │ │         ["identity", "vertex.id.entity_id.entity_uuid"],
-   │ │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call not supported here
+10 │ │         ["identity", "vertex.metadata.record_id.entity_id.entity_uuid"],
+   │ │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call not supported here
 11 │ │         //~^ ERROR Function call not supported here
 12 │ │         ["::graph::types::knowledge::entity::EntityUuid",
    ‡ │

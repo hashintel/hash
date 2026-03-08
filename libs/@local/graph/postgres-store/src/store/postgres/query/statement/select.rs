@@ -22,6 +22,7 @@ pub struct SelectStatement {
     #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
+    pub offset: Option<usize>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -80,6 +81,11 @@ impl Transpile for SelectStatement {
         if let Some(limit) = self.limit {
             fmt.write_char('\n')?;
             write!(fmt, "LIMIT {limit}")?;
+        }
+
+        if let Some(offset) = self.offset {
+            fmt.write_char('\n')?;
+            write!(fmt, "OFFSET {offset}")?;
         }
 
         Ok(())
