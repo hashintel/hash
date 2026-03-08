@@ -102,8 +102,8 @@ impl Island {
 /// Two blocks belong to the same island when they are connected in the CFG (directly or
 /// transitively through same-target successors) and share the same [`TargetId`]. The pass
 /// uses a union-find to identify these components in nearly linear time.
-pub(crate) struct IslandPlacement<A: Allocator> {
-    scratch: A,
+pub(crate) struct IslandPlacement<S: Allocator> {
+    scratch: S,
 }
 
 impl IslandPlacement<Global> {
@@ -130,7 +130,7 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
     ///
     /// Returns an [`IslandVec`] where each [`Island`] contains the set of blocks that form
     /// a connected same-target component. The output is allocated with `alloc`.
-    pub(crate) fn run<A>(
+    pub(crate) fn run_in<A>(
         &self,
         body: &Body<'_>,
         vertex: VertexType,

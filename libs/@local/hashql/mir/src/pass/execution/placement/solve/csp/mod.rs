@@ -11,7 +11,7 @@
 //! Block ordering uses the MRV (minimum remaining values) heuristic, with highest constraint degree
 //! as tie-breaker. Forward checking narrows domains bidirectionally after each assignment.
 
-use core::{alloc::Allocator, cmp, mem};
+use core::{alloc::Allocator, mem};
 use std::f32;
 
 use hashql_core::{
@@ -415,13 +415,13 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
         // Per-unassigned-block: minimum block cost over remaining domain
         for block in unfixed {
-            let mut min_block = ApproxCost::INF;
+            let min_block = block
+                .possible
+                .iter()
+                .map(|target| self.solver.data.blocks.cost(block.id, target))
+                .min();
 
-            for target in &block.possible {
-                min_block = cmp::min(min_block, self.solver.data.blocks.cost(block.id, target));
-            }
-
-            if min_block < ApproxCost::INF {
+            if let Some(min_block) = min_block {
                 bound += min_block;
             }
         }
@@ -446,7 +446,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
                 #[expect(clippy::option_if_let_else, reason = "readability")]
                 let min_trans = if let Some(succ_possible) = succ_domain {
-                    // Both endpoints involve an unfixed block — min over all compatible pairs
+                    // Both endpoints involve an unfixed block - min over all compatible pairs
                     block
                         .possible
                         .iter()
@@ -457,9 +457,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                                 .then_some(cost.as_approx())
                         })
                         .min()
-                        .unwrap_or(ApproxCost::INF)
                 } else {
-                    // Successor is fixed (or external) — min over block's domain
+                    // Successor is fixed (or external) - min over block's domain
                     let succ_target = self
                         .region
                         .find_block(succ)
@@ -471,20 +470,17 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                         })
                         .or_else(|| self.solver.targets[succ].map(|elem| elem.target));
 
-                    if let Some(succ_target) = succ_target {
+                    succ_target.and_then(|succ_target| {
                         block
                             .possible
                             .iter()
                             .filter_map(|source_target| matrix.get(source_target, succ_target))
                             .map(Cost::as_approx)
                             .min()
-                            .unwrap_or(ApproxCost::INF)
-                    } else {
-                        ApproxCost::INF
-                    }
+                    })
                 };
 
-                if min_trans < ApproxCost::INF {
+                if let Some(min_trans) = min_trans {
                     bound += min_trans;
                 }
             }
@@ -640,7 +636,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             solutions
         } else {
             self.solver
-                .alloc
+                .scratch
                 .allocate_slice_uninit(RETAIN_SOLUTIONS)
                 .write_filled(Solution::new())
         };

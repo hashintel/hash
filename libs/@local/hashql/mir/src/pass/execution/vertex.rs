@@ -1,5 +1,6 @@
 use hashql_core::{
     debug_panic,
+    id::Id,
     symbol::sym,
     r#type::{
         TypeId,
@@ -47,7 +48,8 @@ fn peel<'heap>(
 /// The vertex type of a [`GraphReadFilter`] body's vertex argument.
 ///
 /// [`GraphReadFilter`]: crate::body::Source::GraphReadFilter
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Id)]
+#[repr(u8)]
 pub enum VertexType {
     Entity,
 }

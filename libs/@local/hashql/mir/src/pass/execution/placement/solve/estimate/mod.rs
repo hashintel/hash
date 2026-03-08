@@ -198,7 +198,7 @@ where
                     let mut block_cost = self.solver.data.blocks.cost(edge.target.block, target);
                     block_cost += cost;
 
-                    if block_cost < current_minimum {
+                    if block_cost <= current_minimum {
                         current_minimum = block_cost;
                         minimum_transition_cost = Some(cost);
                     }
@@ -219,7 +219,7 @@ where
                     let mut block_cost = self.solver.data.blocks.cost(edge.source.block, source);
                     block_cost += cost;
 
-                    if block_cost < current_minimum {
+                    if block_cost <= current_minimum {
                         current_minimum = block_cost;
                         minimum_transition_cost = Some(cost);
                     }

@@ -1,0 +1,26 @@
+---
+source: libs/@local/hashql/mir/src/pass/execution/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity<T?15>) -> Boolean {
+    let %2: Boolean
+    let %3: Uuid
+    let %4: EntityUuid
+
+    bb0(): {
+        %3 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
+        %4 = opaque(::graph::types::knowledge::entity::EntityUuid, %3)
+        %2 = %1.id.entity_id.entity_uuid == %4
+
+        return %2
+    }
+}
+---
+
+Assignment:
+  bb0: interpreter
+
+Islands:
+  0: target=interpreter, blocks=[BasicBlockId(0)]
+  1: target=postgres, blocks=[]
+  2: target=embedding, blocks=[]

@@ -19,6 +19,7 @@ mod analysis;
 mod tests;
 
 pub(crate) use analysis::{TraversalAnalysisVisitor, TraversalResult};
+use hashql_core::{id::IdArray, symbol::Symbol};
 
 pub use self::entity::{EntityPath, EntityPathBitSet};
 pub(crate) use self::{access::Access, entity::TransferCostConfig};
@@ -148,6 +149,14 @@ impl TraversalPathBitSet {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = TraversalPath> {
         self.into_iter()
     }
+
+    #[must_use]
+    #[inline]
+    pub const fn vertex(self) -> VertexType {
+        match self {
+            Self::Entity(_) => VertexType::Entity,
+        }
+    }
 }
 
 impl IntoIterator for &TraversalPathBitSet {
@@ -220,6 +229,18 @@ pub enum TraversalPath {
 }
 
 impl TraversalPath {
+    /// Returns a unique symbol identifying this path variant.
+    ///
+    /// Used as column aliases in SQL generation so the interpreter can locate
+    /// result columns by name.
+    #[inline]
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::Entity(path) => path.as_symbol(),
+        }
+    }
+
     /// Returns the set of execution targets that natively serve this path.
     #[inline]
     #[must_use]
@@ -235,5 +256,102 @@ impl TraversalPath {
         match self {
             Self::Entity(path) => path.estimate_size(config),
         }
+    }
+}
+
+/// Traversal path bitsets for all vertex types.
+///
+/// Maps each [`VertexType`] to its [`TraversalPathBitSet`], providing a unified view of path
+/// accesses across all vertex types in a query. Where [`TraversalPathBitSet`] tracks paths for a
+/// single vertex type, the bitmap tracks paths for all of them.
+///
+/// Lattice operations are pointwise via [`TraversalBitMapLattice`]: bottom is all-empty, top has
+/// every slot at its [`TraversalPathBitSet`] top, and join unions each slot independently.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct TraversalPathBitMap(
+    IdArray<VertexType, TraversalPathBitSet, { VertexType::VARIANT_COUNT }>,
+);
+
+impl TraversalPathBitMap {
+    const BOTTOM: Self = Self(IdArray::from_raw([TraversalPathBitSet::empty(
+        VertexType::Entity,
+    )]));
+    const TOP: Self = {
+        let mut entity = TraversalPathBitSet::empty(VertexType::Entity);
+        entity.insert_all();
+
+        Self(IdArray::from_raw([entity]))
+    };
+
+    /// Joins a [`TraversalPathBitSet`] into the slot for its vertex type.
+    pub fn insert(&mut self, bitset: TraversalPathBitSet) {
+        let vertex = bitset.vertex();
+        let lattice = TraversalLattice::new(vertex);
+        lattice.join(&mut self.0[vertex], &bitset);
+    }
+}
+
+impl From<TraversalPathBitSet> for TraversalPathBitMap {
+    fn from(value: TraversalPathBitSet) -> Self {
+        let mut this = TraversalMapLattice.bottom();
+        this[value.vertex()] = value;
+        this
+    }
+}
+
+impl core::ops::Index<VertexType> for TraversalPathBitMap {
+    type Output = TraversalPathBitSet;
+
+    #[inline]
+    fn index(&self, index: VertexType) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl core::ops::IndexMut<VertexType> for TraversalPathBitMap {
+    #[inline]
+    fn index_mut(&mut self, index: VertexType) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+/// Pointwise lattice over [`TraversalPathBitMap`].
+///
+/// Delegates each [`VertexType`] slot to its [`TraversalLattice`], so bottom is all-empty,
+/// top has every slot at its [`TraversalPathBitSet`] top, and join unions each slot
+/// independently.
+#[derive(Debug, Copy, Clone)]
+pub struct TraversalMapLattice;
+
+impl HasBottom<TraversalPathBitMap> for TraversalMapLattice {
+    fn bottom(&self) -> TraversalPathBitMap {
+        TraversalPathBitMap::BOTTOM
+    }
+
+    fn is_bottom(&self, value: &TraversalPathBitMap) -> bool {
+        *value == self.bottom()
+    }
+}
+
+impl HasTop<TraversalPathBitMap> for TraversalMapLattice {
+    fn top(&self) -> TraversalPathBitMap {
+        TraversalPathBitMap::TOP
+    }
+
+    fn is_top(&self, value: &TraversalPathBitMap) -> bool {
+        *value == self.top()
+    }
+}
+
+impl JoinSemiLattice<TraversalPathBitMap> for TraversalMapLattice {
+    fn join(&self, lhs: &mut TraversalPathBitMap, rhs: &TraversalPathBitMap) -> bool {
+        let mut changed = false;
+
+        for (vertex, rhs_bitset) in rhs.0.iter_enumerated() {
+            let lattice = TraversalLattice::new(vertex);
+            changed |= lattice.join(&mut lhs.0[vertex], rhs_bitset);
+        }
+
+        changed
     }
 }

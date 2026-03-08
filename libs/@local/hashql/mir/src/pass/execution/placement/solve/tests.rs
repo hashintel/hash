@@ -1,5 +1,6 @@
 #![expect(clippy::min_ident_chars)]
 
+use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hashql_core::{
@@ -168,7 +169,7 @@ pub(crate) fn run_solver<'heap>(
         terminators,
     };
     let mut solver = data.build_in(body, env.heap);
-    solver.run(&mut context, body)
+    solver.run_in(&mut context, body, env.heap)
 }
 
 pub(crate) fn find_region_of(
@@ -1161,7 +1162,7 @@ fn trivial_failure_emits_diagnostic() {
     let mut solver = data.build_in(&body, &heap);
     let mut context = MirContext::new(&env, &interner);
 
-    let _result = solver.run(&mut context, &body);
+    let _result = solver.run_in(&mut context, &body, Global);
 
     assert_eq!(context.diagnostics.len(), 1);
     let diagnostic = context.diagnostics.iter().next().expect("one diagnostic");
@@ -1230,7 +1231,7 @@ fn cyclic_failure_emits_diagnostic() {
     let mut solver = data.build_in(&body, &heap);
     let mut context = MirContext::new(&env, &interner);
 
-    let _result = solver.run(&mut context, &body);
+    let _result = solver.run_in(&mut context, &body, Global);
 
     assert_eq!(context.diagnostics.len(), 1);
     let diagnostic = context.diagnostics.iter().next().expect("one diagnostic");
@@ -1304,7 +1305,7 @@ fn path_premiums_influence_placement() {
     };
     let mut context = MirContext::new(&env, &interner);
     let mut solver = data.build_in(&body, &heap);
-    let result = solver.run(&mut context, &body);
+    let result = solver.run_in(&mut context, &body, Global);
 
     assert_ne!(
         result[bb(0)],

@@ -9,9 +9,12 @@ use crate::{
     context::MirContext,
     def::DefId,
     intern::Interner,
-    pass::execution::statement_placement::{
-        InterpreterStatementPlacement,
-        tests::{assert_placement, run_placement},
+    pass::execution::{
+        statement_placement::{
+            InterpreterStatementPlacement,
+            tests::{assert_placement, run_placement},
+        },
+        tests::make_entity_uuid_eq_body,
     },
 };
 
@@ -270,6 +273,37 @@ fn storage_statements_zero_cost() {
 
     assert_placement(
         "storage_statements_zero_cost",
+        "interpret",
+        &body,
+        &context,
+        &statement_costs,
+    );
+}
+
+/// Interpreter placement for `EntityUuid == EntityUuid` with real stdlib types.
+///
+/// The interpreter is the universal fallback — it must assign costs to all statements,
+/// including equality on opaque types like `EntityUuid`.
+#[test]
+fn eq_opaque_entity_uuid() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = make_entity_uuid_eq_body(&heap, &interner, &env);
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = InterpreterStatementPlacement::new();
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
+
+    assert_placement(
+        "eq_opaque_entity_uuid",
         "interpret",
         &body,
         &context,

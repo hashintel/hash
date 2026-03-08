@@ -217,9 +217,10 @@ fn goto_allows_cross_backend_non_postgres() {
     );
 
     let matrix = costs.of(BasicBlockId::new(0))[0];
+    // data transfer (1) + backend switch I->E (4) = 5
     assert_eq!(
         matrix.get(TargetId::Interpreter, TargetId::Embedding),
-        Some(cost!(1))
+        Some(cost!(5))
     );
 }
 
@@ -263,9 +264,10 @@ fn switchint_blocks_cross_backend() {
 
     let matrix = costs.of(BasicBlockId::new(0))[0];
     assert_eq!(matrix.get(TargetId::Interpreter, TargetId::Embedding), None);
+    // data transfer (1) + backend switch E->I (4) = 5
     assert_eq!(
         matrix.get(TargetId::Embedding, TargetId::Interpreter),
-        Some(cost!(1))
+        Some(cost!(5))
     );
 }
 
@@ -552,9 +554,10 @@ fn transfer_cost_counts_live_and_params() {
     );
 
     let matrix = costs.of(BasicBlockId::new(0))[1];
+    // data transfer (2) + backend switch P->I (8) = 10
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(2))
+        Some(cost!(10))
     );
 }
 
@@ -647,11 +650,11 @@ fn transfer_cost_from_live_locals() {
         build_targets(&body, &targets),
     );
 
-    // local_cost: `live` scalar = 1
+    // data transfer (1) + backend switch P->I (8) = 9
     let matrix = costs.of(BasicBlockId::new(0))[0];
     assert_eq!(
         matrix.get(TargetId::Postgres, TargetId::Interpreter),
-        Some(cost!(1))
+        Some(cost!(9))
     );
 }
 

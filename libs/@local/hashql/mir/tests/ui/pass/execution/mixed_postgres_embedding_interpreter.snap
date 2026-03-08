@@ -2,6 +2,37 @@
 source: libs/@local/hashql/mir/src/pass/execution/tests.rs
 expression: output
 ---
+fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Integer {
+    let %2: Boolean
+    let %3: ?
+    let %4: Integer
+    let %5: (Integer,)
+    let %6: (Boolean) -> Integer
+    let %7: Integer
+
+    bb0(): {
+        %2 = %1.metadata.archived
+
+        goto -> bb1()
+    }
+
+    bb1(): {
+        %3 = %1.encodings.vectors
+
+        goto -> bb2()
+    }
+
+    bb2(): {
+        %4 = %0.0
+        %5 = (%4)
+        %6 = closure(({def@42} as FnPtr), %5)
+        %7 = apply %6 %2
+
+        return %7
+    }
+}
+---
+
 Assignment:
   bb0: postgres
   bb1: embedding
