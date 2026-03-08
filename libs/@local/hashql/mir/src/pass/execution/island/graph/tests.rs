@@ -469,7 +469,7 @@ fn entry_island_needs_fetch() {
     assert!(provides.contains(EntityPath::Properties));
 }
 
-/// DataFlow edge dedup: an Interpreter island accesses two paths that both originate
+/// `DataFlow` edge dedup: an Interpreter island accesses two paths that both originate
 /// from Postgres (`Properties` and `EntityUuid`). Both resolve to the same Postgres
 /// dominator, but only one `DataFlow` edge should exist between them.
 #[test]
