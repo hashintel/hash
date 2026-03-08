@@ -265,7 +265,7 @@ impl TraversalPath {
 /// accesses across all vertex types in a query. Where [`TraversalPathBitSet`] tracks paths for a
 /// single vertex type, the bitmap tracks paths for all of them.
 ///
-/// Lattice operations are pointwise via [`TraversalBitMapLattice`]: bottom is all-empty, top has
+/// Lattice operations are pointwise via [`TraversalMapLattice`]: bottom is all-empty, top has
 /// every slot at its [`TraversalPathBitSet`] top, and join unions each slot independently.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TraversalPathBitMap(
