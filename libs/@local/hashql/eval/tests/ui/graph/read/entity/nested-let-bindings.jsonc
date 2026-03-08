@@ -5,7 +5,7 @@
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-      ["let", "entity_uuid", "vertex.id.entity_id.entity_uuid",
+      ["let", "entity_uuid", "vertex.metadata.record_id.entity_id.entity_uuid",
       ["let", "user_id",
         ["::graph::types::knowledge::entity::EntityUuid",
           ["::core::uuid::Uuid", { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }]

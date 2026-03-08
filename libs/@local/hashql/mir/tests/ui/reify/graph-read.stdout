@@ -80,7 +80,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
 
     bb0(): {
         %2 = apply ({thunk#5} as FnPtr)
-        %3 = %1.id.entity_id.entity_uuid == %2
+        %3 = %1.metadata.record_id.entity_id.entity_uuid == %2
 
         return %3
     }

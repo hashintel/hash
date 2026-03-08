@@ -82,7 +82,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
 
     bb0(): {
         %2 = apply ({thunk#5} as FnPtr)
-        %3 = %1.id.entity_id.entity_uuid == %2
+        %3 = %1.metadata.record_id.entity_id.entity_uuid == %2
 
         return %3
     }
@@ -189,7 +189,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     bb0(): {
         %3 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
         %4 = opaque(::graph::types::knowledge::entity::EntityUuid, %3)
-        %2 = %1.id.entity_id.entity_uuid == %4
+        %2 = %1.metadata.record_id.entity_id.entity_uuid == %4
 
         return %2
     }
@@ -296,7 +296,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     bb0(): {
         %3 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
         %4 = opaque(::graph::types::knowledge::entity::EntityUuid, %3)
-        %2 = %1.id.entity_id.entity_uuid == %4
+        %2 = %1.metadata.record_id.entity_id.entity_uuid == %4
 
         return %2
     }

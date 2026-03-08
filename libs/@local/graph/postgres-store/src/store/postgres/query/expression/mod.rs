@@ -20,6 +20,7 @@ pub use self::{
     conditional::{Constant, EqualityOperator, Expression, Function, PostgresType},
     from_item::FromItem,
     group_by_clause::GroupByExpression,
+    identifier::Identifier,
     join_type::JoinType,
     order_clause::OrderByExpression,
     select_clause::SelectExpression,

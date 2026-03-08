@@ -2,6 +2,7 @@ mod array;
 pub mod bit_vec;
 mod index;
 mod slice;
+pub mod snapshot_vec;
 mod union_find;
 mod vec;
 
@@ -16,7 +17,8 @@ use ::core::sync::atomic;
 pub use hashql_macros::{Id, define_id as newtype};
 
 pub use self::{
-    array::IdArray, index::IntoSliceIndex, slice::IdSlice, union_find::IdUnionFind, vec::IdVec,
+    array::IdArray, index::IntoSliceIndex, slice::IdSlice, snapshot_vec::IdSnapshotVec,
+    union_find::IdUnionFind, vec::IdVec,
 };
 
 /// Represents errors that can occur when converting values to an [`Id`].
@@ -432,6 +434,7 @@ macro_rules! newtype_collections {
     ($vis:vis type $name:ident* from $id:ty) => {
         $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
         $vis type ${concat($name, Vec)}<T, A = ::alloc::alloc::Global> = $crate::id::IdVec<$id, T, A>;
+        $vis type ${concat($name, SnapshotVec)}<T, S = $crate::id::snapshot_vec::AppendOnly, A = ::alloc::alloc::Global> = $crate::id::IdSnapshotVec<$id, T, S, A>;
         $vis type ${concat($name, UnionFind)}<A = ::alloc::alloc::Global> = $crate::id::IdUnionFind<$id, A>;
 
         $vis type ${concat($name, Set)}<A = ::alloc::alloc::Global> = $crate::collections::FastHashSet<$id, A>;

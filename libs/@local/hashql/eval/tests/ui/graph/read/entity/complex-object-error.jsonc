@@ -6,9 +6,9 @@
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
-        "vertex.id.entity_id",
+        "vertex.metadata.record_id.entity_id",
         //~^ ERROR Cannot query against this complex object
-        "vertex.id.entity_id"
+        "vertex.metadata.record_id.entity_id"
         //~^ ERROR Cannot query against this complex object
       ]
     ]
