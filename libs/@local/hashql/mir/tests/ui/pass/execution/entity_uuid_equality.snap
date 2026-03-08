@@ -24,3 +24,5 @@ Islands:
   0: target=interpreter, blocks=[BasicBlockId(0)]
   1: target=postgres, blocks=[]
   2: target=embedding, blocks=[]
+  bb1 -> bb0: DataFlow
+  bb2 -> bb0: DataFlow

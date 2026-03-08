@@ -9,7 +9,7 @@
 //! that can change its assignment.
 //!
 //! Entry point: [`PlacementSolverContext::build_in`] constructs a [`PlacementSolver`], then
-//! [`PlacementSolver::run`] executes both passes.
+//! [`PlacementSolver::run_in`] executes both passes.
 
 use core::{alloc::Allocator, mem};
 

@@ -33,3 +33,4 @@ Assignment:
 Islands:
   0: target=postgres, blocks=[BasicBlockId(0)]
   1: target=interpreter, blocks=[BasicBlockId(1)]
+  bb0 -> bb1: ControlFlow
