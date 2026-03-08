@@ -42,7 +42,7 @@ fn single_block() {
     });
 
     let targets = make_targets(&[TargetId::Interpreter]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Interpreter);
@@ -71,7 +71,7 @@ fn same_target_chain() {
     });
 
     let targets = make_targets(&[TargetId::Postgres, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Postgres);
@@ -101,7 +101,7 @@ fn different_targets() {
     });
 
     let targets = make_targets(&[TargetId::Interpreter, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 2);
 
@@ -153,7 +153,7 @@ fn diamond_same_target() {
         TargetId::Interpreter,
         TargetId::Interpreter,
     ]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].target(), TargetId::Interpreter);
@@ -198,7 +198,7 @@ fn diamond_mixed_targets() {
         TargetId::Embedding,
         TargetId::Interpreter,
     ]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     // bb0 alone, bb1 alone, bb2 alone, bb3 alone — 4 islands, since no same-target
     // edges exist between any pair of connected blocks.
@@ -250,7 +250,7 @@ fn alternating_targets() {
         TargetId::Interpreter,
         TargetId::Postgres,
     ]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 4);
     for island_id in islands.ids() {
@@ -300,7 +300,7 @@ fn transitive_same_target_chain() {
     });
 
     let targets = make_targets(&[TargetId::Postgres, TargetId::Postgres, TargetId::Postgres]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 1);
     assert_eq!(islands[IslandId::new(0)].count(), 3);
@@ -337,7 +337,7 @@ fn island_joins_traversal_paths() {
     });
 
     let targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
-    let islands = IslandPlacement::new().run(&body, VertexType::Entity, &targets, Global);
+    let islands = IslandPlacement::new().run_in(&body, VertexType::Entity, &targets, Global);
 
     assert_eq!(islands.len(), 1);
     let island = &islands[IslandId::new(0)];

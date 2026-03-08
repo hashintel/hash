@@ -49,9 +49,14 @@ use super::analysis::size_estimation::BodyFootprint;
 use crate::{
     body::{Body, Source, basic_block::BasicBlockVec, local::Local},
     context::MirContext,
-    def::DefIdSlice,
+    def::{DefIdSlice, DefIdVec},
     pass::analysis::size_estimation::InformationRange,
 };
+
+pub struct ExecutionAnalysisResidual<A: Allocator> {
+    pub assignment: BasicBlockVec<TargetId, A>,
+    pub islands: IslandGraph<A>,
+}
 
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
     pub footprints: &'ctx DefIdSlice<BodyFootprint<&'heap Heap>>,
@@ -59,14 +64,12 @@ pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
 }
 
 impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
-    pub fn run(
+    pub fn run_in<A: Allocator + Clone>(
         &self,
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
-    ) -> (
-        BasicBlockVec<TargetId, &'heap Heap>,
-        IslandVec<Island, &'heap Heap>,
-    ) {
+        alloc: A,
+    ) -> ExecutionAnalysisResidual<A> {
         assert_matches!(body.source, Source::GraphReadFilter(_));
 
         let Some(vertex) = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
@@ -129,14 +132,42 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         }
         .build_in(body, &self.scratch);
 
-        let mut assignment = solver.run(context, body);
+        let mut assignment = solver.run_in(context, body, alloc.clone());
 
         let fusion = BasicBlockFusion::new_in(&self.scratch);
         fusion.fuse(body, &mut assignment);
 
         let islands =
-            IslandPlacement::new_in(&self.scratch).run(body, vertex, &assignment, context.heap);
+            IslandPlacement::new_in(&self.scratch).run_in(body, vertex, &assignment, &self.scratch);
+        let islands = IslandGraph::new_in(body, vertex, islands, &self.scratch, alloc);
 
-        (assignment, islands)
+        ExecutionAnalysisResidual {
+            assignment,
+            islands,
+        }
+    }
+
+    pub fn run_all_in<A: Allocator + Clone>(
+        &self,
+        context: &mut MirContext<'_, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+        alloc: A,
+    ) -> DefIdVec<Option<ExecutionAnalysisResidual<A>>, A> {
+        let mut items = DefIdVec::with_capacity_in(bodies.len(), alloc.clone());
+
+        for (def, body) in bodies.iter_enumerated_mut() {
+            match body.source {
+                Source::Ctor(_)
+                | Source::Closure(_, _)
+                | Source::Thunk(_, _)
+                | Source::Intrinsic(_) => continue,
+                Source::GraphReadFilter(_) => {}
+            }
+
+            let residual = self.run_in(context, body, alloc.clone());
+            items.insert(def, residual);
+        }
+
+        items
     }
 }
