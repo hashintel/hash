@@ -32,9 +32,10 @@ pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     expression::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, EqualityOperator,
-        Expression, FromItem, Function, Identifier, JoinType, PostgresType, SelectExpression,
-        TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
-        WhereExpression, WithExpression,
+        Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, Identifier, JoinType,
+        PostgresType, SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
+        VariadicExpression, WhereExpression, WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,

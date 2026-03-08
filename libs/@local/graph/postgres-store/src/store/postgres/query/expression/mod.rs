@@ -18,7 +18,10 @@ pub use self::{
     binary::{BinaryExpression, BinaryOperator},
     column_reference::{ColumnName, ColumnReference},
     conditional::{Constant, EqualityOperator, Expression, Function, PostgresType},
-    from_item::FromItem,
+    from_item::{
+        FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
+        FromItemTableBuilder,
+    },
     group_by_clause::GroupByExpression,
     identifier::Identifier,
     join_type::JoinType,
