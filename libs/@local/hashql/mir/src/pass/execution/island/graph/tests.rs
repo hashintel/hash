@@ -469,6 +469,64 @@ fn entry_island_needs_fetch() {
     assert!(provides.contains(EntityPath::Properties));
 }
 
+/// DataFlow edge dedup: an Interpreter island accesses two paths that both originate
+/// from Postgres (`Properties` and `EntityUuid`). Both resolve to the same Postgres
+/// dominator, but only one `DataFlow` edge should exist between them.
+#[test]
+fn data_flow_edge_dedup() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val1: ?, val2: ?;
+        @proj props = vertex.properties: ?,
+              meta = vertex.metadata: ?,
+              rec = meta.record_id: ?,
+              eid = rec.entity_id: ?,
+              uuid = eid.entity_uuid: ?;
+
+        bb0() {
+            val1 = load props;
+            goto bb1();
+        },
+        bb1() {
+            val1 = load props;
+            val2 = load uuid;
+            return val1;
+        }
+    });
+
+    let graph = build_graph(&body, &[TargetId::Postgres, TargetId::Interpreter]);
+    assert_eq!(graph.node_count(), 2);
+
+    let postgres = find_island(&graph, TargetId::Postgres);
+    let interpreter = find_island(&graph, TargetId::Interpreter);
+
+    // Postgres provides both paths to the Interpreter island.
+    let provides = graph[postgres].provides();
+    let provides = provides.as_entity().expect("entity vertex");
+    assert!(provides.contains(EntityPath::Properties));
+    assert!(provides.contains(EntityPath::EntityUuid));
+    assert_eq!(provides.len(), 2);
+
+    // Exactly two edges: one ControlFlow and one DataFlow, both Postgres -> Interpreter.
+    // Without dedup, the two paths would produce two DataFlow edges to the same consumer.
+    assert_eq!(graph.edge_count(), 2);
+    assert!(has_edge(
+        &graph,
+        postgres,
+        interpreter,
+        IslandEdge::ControlFlow
+    ));
+    assert!(has_edge(
+        &graph,
+        postgres,
+        interpreter,
+        IslandEdge::DataFlow
+    ));
+}
+
 /// Control flow edge dedup: two blocks in the same island both have a successor in
 /// another island, but only one `ControlFlow` edge should be created.
 #[test]
