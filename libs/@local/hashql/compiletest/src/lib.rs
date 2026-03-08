@@ -6,6 +6,8 @@
     coverage_attribute,
 
     // Library Features
+    allocator_api,
+    assert_matches,
     duration_millis_float,
     exitcode_exit_method,
     file_buffered,
