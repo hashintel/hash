@@ -325,6 +325,9 @@ fn backend_switch_cost() -> TransMatrix {
     // resume. This is the heaviest switch path.
     matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(8));
 
+    // Postgres -> Embedding: via interpreter (P->I + I->E = 8+4).
+    matrix.insert(TargetId::Postgres, TargetId::Embedding, cost!(12));
+
     // Interpreter -> Embedding: serialize embedding request.
     matrix.insert(TargetId::Interpreter, TargetId::Embedding, cost!(4));
 
