@@ -36,7 +36,7 @@ use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
     WhereExpression, table::EntityTemporalMetadata,
 };
-use hashql_core::{heap::BumpAllocator, id::Id as _};
+use hashql_core::heap::BumpAllocator;
 use hashql_mir::{
     body::{
         Body,
@@ -110,16 +110,11 @@ impl<A: Allocator> DatabaseContext<'_, A> {
     fn add_temporal_conditions(&mut self) {
         let temporal_metadata = self.projections.temporal_metadata();
 
-        let tx_param = Expression::Parameter(
-            self.parameters
-                .temporal_axis(TemporalAxis::Transaction)
-                .as_usize(),
-        );
-        let dt_param = Expression::Parameter(
-            self.parameters
-                .temporal_axis(TemporalAxis::Decision)
-                .as_usize(),
-        );
+        let tx_param = self
+            .parameters
+            .temporal_axis(TemporalAxis::Transaction)
+            .into();
+        let dt_param = self.parameters.temporal_axis(TemporalAxis::Decision).into();
 
         self.where_expression.add_condition(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {

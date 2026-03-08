@@ -6,7 +6,10 @@
 //! the reverse mapping to bind runtime values in the correct `$N` order.
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, fmt};
+use core::{
+    alloc::Allocator,
+    fmt::{self, Display},
+};
 
 use hash_graph_postgres_store::store::postgres::query::Expression;
 use hashql_core::{
@@ -15,12 +18,19 @@ use hashql_core::{
     symbol::Symbol,
     value::Primitive,
 };
-use hashql_mir::{body::place::FieldIndex, interpret::value::Int};
+use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
 
 id::newtype!(
     /// Index of a SQL parameter in the compiled query, rendered as `$N` by the SQL formatter.
+    #[id(display = !)]
     pub struct ParameterIndex(u32 is 0..=u32::MAX)
 );
+
+impl Display for ParameterIndex {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "${}", self.as_u32() + 1)
+    }
+}
 
 impl From<ParameterIndex> for Expression {
     fn from(value: ParameterIndex) -> Self {
@@ -43,7 +53,7 @@ enum Parameter<'heap> {
     /// A symbol used as a JSON object key in SQL expressions.
     Symbol(Symbol<'heap>),
     /// A captured-environment field access.
-    Env(FieldIndex),
+    Env(DefId, FieldIndex),
     /// Temporal axis range provided by the interpreter at execution time.
     ///
     /// The interpreter binds these based on the user's temporal axes configuration:
@@ -59,7 +69,7 @@ impl fmt::Display for Parameter<'_> {
             Self::Int(int) => write!(fmt, "Int({int})"),
             Self::Primitive(primitive) => write!(fmt, "Primitive({primitive})"),
             Self::Symbol(symbol) => write!(fmt, "Symbol({symbol})"),
-            Self::Env(field) => write!(fmt, "Env(#{})", field.as_u32()),
+            Self::Env(def, field) => write!(fmt, "Env({def}, #{})", field.as_u32()),
             Self::TemporalAxis(axis) => write!(fmt, "TemporalAxis({axis})"),
         }
     }
@@ -129,8 +139,8 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
         self.get_or_insert(Parameter::Primitive(primitive))
     }
 
-    pub(crate) fn env(&mut self, field: FieldIndex) -> ParameterIndex {
-        self.get_or_insert(Parameter::Env(field))
+    pub(crate) fn env(&mut self, body: DefId, field: FieldIndex) -> ParameterIndex {
+        self.get_or_insert(Parameter::Env(body, field))
     }
 
     pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> ParameterIndex {
@@ -150,11 +160,11 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
 
 impl<A: Allocator> fmt::Display for Parameters<'_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (index, param) in self.reverse.iter().enumerate() {
-            if index > 0 {
+        for (index, param) in self.reverse.iter_enumerated() {
+            if index.as_usize() > 0 {
                 fmt.write_str("\n")?;
             }
-            write!(fmt, "${index}: {param}")?;
+            write!(fmt, "{index}: {param}")?;
         }
 
         Ok(())
@@ -168,9 +178,10 @@ mod tests {
 
     use hashql_core::{
         heap::Heap,
+        id::Id as _,
         value::{Primitive, String},
     };
-    use hashql_mir::{body::place::FieldIndex, interpret::value::Int};
+    use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
 
     use super::{Parameters, TemporalAxis};
 
@@ -236,8 +247,8 @@ mod tests {
     #[test]
     fn env_dedup() {
         let mut params = Parameters::new_in(Global);
-        let a = params.env(FieldIndex::new(0));
-        let b = params.env(FieldIndex::new(0));
+        let a = params.env(DefId::MIN, FieldIndex::new(0));
+        let b = params.env(DefId::MIN, FieldIndex::new(0));
 
         assert_eq!(a, b);
         assert_eq!(params.len(), 1);
