@@ -34,11 +34,16 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Integer {
 ---
 
 Assignment:
-  bb0: postgres
+  bb0: interpreter
   bb1: embedding
   bb2: interpreter
 
 Islands:
-  0: target=postgres, blocks=[BasicBlockId(0)]
+  0: target=interpreter, blocks=[BasicBlockId(0)]
   1: target=embedding, blocks=[BasicBlockId(1)]
   2: target=interpreter, blocks=[BasicBlockId(2)]
+  3: target=postgres, blocks=[]
+  bb0 -> bb1: ControlFlow
+  bb1 -> bb2: ControlFlow
+  bb3 -> bb0: DataFlow
+  bb0 -> bb2: Inherits

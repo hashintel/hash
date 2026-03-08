@@ -163,6 +163,18 @@ fn assert_execution<'heap>(
         .expect("infallible");
     }
 
+    #[expect(clippy::use_debug)]
+    for edge in islands.iter_edges() {
+        writeln!(
+            output,
+            "  bb{} -> bb{}: {:?}",
+            edge.source(),
+            edge.target(),
+            edge.data
+        )
+        .expect("infallible");
+    }
+
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut settings = Settings::clone_current();
     settings.set_snapshot_path(dir.join("tests/ui/pass/execution"));
