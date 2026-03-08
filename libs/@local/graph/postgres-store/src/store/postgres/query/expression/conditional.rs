@@ -17,7 +17,7 @@ use crate::store::postgres::query::{
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
-    JsonAgg(Box<Expression>),
+    JsonbAgg(Box<Expression>),
     JsonExtractText(Box<Expression>),
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
@@ -55,7 +55,7 @@ impl Transpile for Function {
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::JsonAgg(expression) => {
+            Self::JsonbAgg(expression) => {
                 fmt.write_str("jsonb_agg(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
@@ -821,9 +821,9 @@ mod tests {
     }
 
     #[test]
-    fn transpile_json_agg() {
+    fn transpile_jsonb_agg() {
         assert_eq!(
-            Expression::Function(Function::JsonAgg(Box::new(Expression::Parameter(1))))
+            Expression::Function(Function::JsonbAgg(Box::new(Expression::Parameter(1))))
                 .transpile_to_string(),
             "jsonb_agg($1)"
         );
