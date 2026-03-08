@@ -29,7 +29,10 @@ pub(crate) fn eval_entity_path<A: Allocator>(
             correlation: Some(db.projections.entity_editions()),
             name: Column::EntityEditions(table::EntityEditions::Properties).into(),
         }),
-        EntityPath::Vectors => unreachable!("embeddings are not supported in postgres"),
+        EntityPath::Vectors => unreachable!(
+            "entity vectors should never reach postgres compilation; the placement pass should \
+             have rejected this"
+        ),
         EntityPath::RecordId => Expression::Function(query::Function::JsonBuildObject(vec![
             (
                 db.parameters.symbol(sym::entity_id).into(),
