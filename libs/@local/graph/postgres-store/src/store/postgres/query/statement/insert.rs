@@ -164,12 +164,12 @@ impl<'p> InsertStatementBuilder<'p> {
                 values: InsertValueItem::Query(Box::new(
                     SelectStatement::builder()
                         .selects(vec![SelectExpression::Asterisk(None)])
-                        .from(FromItem::function(Function::Unnest(Box::new(
+                        .from(FromItem::function(Function::Unnest(vec![
                             Expression::Cast(
                                 Box::new(Expression::Parameter(1)),
                                 PostgresType::Array(Box::new(PostgresType::Row(table))),
                             ),
-                        ))))
+                        ])))
                         .build(),
                 )),
             },

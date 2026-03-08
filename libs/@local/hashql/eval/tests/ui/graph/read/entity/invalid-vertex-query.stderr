@@ -9,7 +9,7 @@ error[graph-read-compiler::path-conversion]: Cannot query against complex object
 13 │ │       ]
    │ └───────┘ ... within this filter expression
    │
-   ├ help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.id.entity_uuid` instead of `entity.id`).
+   ├ help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.metadata.record_id.entity_id.entity_uuid` instead of `entity.metadata.record_id`).
    ╰ note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.
 
 error[graph-read-compiler::path-conversion]: Cannot query against complex object
@@ -23,5 +23,5 @@ error[graph-read-compiler::path-conversion]: Cannot query against complex object
 13 │ │       ]
    │ └───────┘ ... within this filter expression
    │
-   ├ help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.id.entity_uuid` instead of `entity.id`).
+   ├ help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.metadata.record_id.entity_id.entity_uuid` instead of `entity.metadata.record_id`).
    ╰ note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.

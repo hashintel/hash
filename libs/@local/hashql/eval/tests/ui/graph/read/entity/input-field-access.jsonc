@@ -6,7 +6,7 @@
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
-        "vertex.id.entity_id.entity_uuid",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
         [".",
           ["input", "user", {"#struct": {"id": "::graph::types::knowledge::entity::EntityUuid"}}],
           "id"

@@ -1,6 +1,6 @@
 error[graph-read-compiler::path-in-data-construct-unsupported]: Path in data construct unsupported
    ╭▸ 
-10 │           {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]},
+10 │           {"#dict": [["vertex.metadata.record_id.entity_id.entity_uuid", {"#literal": "a"}]]},
    │                        ━━━━━━ path expressions are not supported in data constructs
    │
    ├ help: rewrite the logic to avoid path expressions in data constructs

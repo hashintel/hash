@@ -343,6 +343,7 @@ impl<'id> FromItem<'id> {
     }
 
     /// Creates a NATURAL JOIN using matching column names.
+    #[must_use]
     pub fn natural_join(self, r#type: JoinType, from: impl Into<Self>) -> Self {
         Self::NaturalJoin {
             left: Box::new(self),
@@ -352,6 +353,7 @@ impl<'id> FromItem<'id> {
     }
 
     /// Creates a CROSS JOIN (cartesian product).
+    #[must_use]
     pub fn cross_join(self, from: impl Into<Self>) -> Self {
         Self::CrossJoin {
             left: Box::new(self),
@@ -1040,9 +1042,9 @@ mod tests {
     fn transpile_function() {
         // Function without alias
         assert_eq!(
-            FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+            FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
                 Column::DataTypes(DataTypes::OntologyId).into()
-            ),)))
+            ),]))
             .build()
             .transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id")"#
@@ -1050,9 +1052,9 @@ mod tests {
 
         // Function with alias
         assert_eq!(
-            FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+            FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
                 Column::DataTypes(DataTypes::OntologyId).into()
-            ),)))
+            ),]))
             .alias(TableReference {
                 schema: None,
                 name: TableName::from("ids"),
@@ -1066,9 +1068,9 @@ mod tests {
 
     #[test]
     fn transpile_function_with_column_aliases() {
-        let from_item = FromItem::function(Function::Unnest(Box::new(
-            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
-        )))
+        let from_item = FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
+            Column::DataTypes(DataTypes::OntologyId).into(),
+        )]))
         .alias(TableReference {
             schema: None,
             name: TableName::from("ids"),
@@ -1085,9 +1087,9 @@ mod tests {
 
     #[test]
     fn transpile_function_with_ordinality() {
-        let from_item = FromItem::function(Function::Unnest(Box::new(
-            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
-        )))
+        let from_item = FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
+            Column::DataTypes(DataTypes::OntologyId).into(),
+        )]))
         .with_ordinality(true)
         .build();
 
@@ -1099,9 +1101,9 @@ mod tests {
 
     #[test]
     fn transpile_function_with_ordinality_and_alias() {
-        let from_item = FromItem::function(Function::Unnest(Box::new(
-            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
-        )))
+        let from_item = FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
+            Column::DataTypes(DataTypes::OntologyId).into(),
+        )]))
         .with_ordinality(true)
         .alias(TableReference {
             schema: None,
@@ -1128,9 +1130,9 @@ mod tests {
         assert_eq!(
             base.join(
                 JoinType::LeftOuter,
-                FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+                FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
                     Column::DataTypes(DataTypes::OntologyId).into(),
-                ))))
+                )]))
                 .alias(TableReference {
                     schema: None,
                     name: TableName::from("unnested_ids"),

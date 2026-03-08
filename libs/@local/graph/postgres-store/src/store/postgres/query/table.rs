@@ -833,6 +833,7 @@ pub enum EntityTemporalMetadata {
 }
 
 impl EntityTemporalMetadata {
+    #[must_use]
     pub const fn from_time_axis(time_axis: TimeAxis) -> Self {
         match time_axis {
             TimeAxis::DecisionTime => Self::DecisionTime,
@@ -1888,12 +1889,14 @@ pub enum ForeignKeyReference {
 }
 
 impl ForeignKeyReference {
+    #[must_use]
     pub const fn join_type(self) -> JoinType {
         match self {
             Self::Single { join_type, .. } | Self::Double { join_type, .. } => join_type,
         }
     }
 
+    #[must_use]
     pub const fn table(self) -> Table {
         match self {
             Self::Single { join, .. } => join.table(),
@@ -1925,6 +1928,7 @@ impl ForeignKeyReference {
         }
     }
 
+    #[must_use]
     pub fn conditions(self, on_alias: Alias, join_alias: Alias) -> Vec<Expression> {
         match self {
             Self::Single {
@@ -2168,9 +2172,7 @@ impl Relation {
                                     Expression::ColumnReference(
                                         column.aliased(table.alias.unwrap_or_default()),
                                     ),
-                                    Expression::Constant(Constant::UnsignedInteger(
-                                        inheritance_depth,
-                                    )),
+                                    Expression::Constant(Constant::U32(inheritance_depth)),
                                 )]
                             })
                     })
