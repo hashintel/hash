@@ -3873,11 +3873,14 @@ name = "hashql-eval"
 version = "0.0.0"
 dependencies = [
  "derive_more",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",
  "hashql-hir",
+ "hashql-mir",
+ "insta",
  "simple-mermaid",
  "type-system",
 ]

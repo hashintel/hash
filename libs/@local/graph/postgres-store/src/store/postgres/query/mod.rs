@@ -10,7 +10,7 @@ mod expression;
 mod property_type;
 pub(crate) mod rows;
 mod statement;
-pub(crate) mod table;
+pub mod table;
 
 use core::{
     convert::identity,
@@ -31,8 +31,10 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     expression::{
-        Constant, EqualityOperator, Expression, Function, SelectExpression, WhereExpression,
-        WithExpression,
+        BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, EqualityOperator,
+        Expression, FromItem, Function, Identifier, JoinType, PostgresType, SelectExpression,
+        TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
+        WhereExpression, WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
