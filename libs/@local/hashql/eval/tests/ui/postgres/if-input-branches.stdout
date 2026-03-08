@@ -2,14 +2,14 @@
 
 SELECT ("continuation_2_0"."row")."block" AS "continuation_2_0_block", ("continuation_2_0"."row")."locals" AS "continuation_2_0_locals", ("continuation_2_0"."row")."values" AS "continuation_2_0_values"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-CROSS JOIN LATERAL (SELECT CASE WHEN (($2)::int) = 0 THEN (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $3)::boolean), NULL, NULL, NULL)::continuation) WHEN (($2)::int) = 1 THEN (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)::boolean), NULL, NULL, NULL)::continuation) END AS "row"
+CROSS JOIN LATERAL (SELECT CASE WHEN (($3)::int) = 0 THEN (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)::boolean), NULL, NULL, NULL)::continuation) WHEN (($3)::int) = 1 THEN (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $5)::boolean), NULL, NULL, NULL)::continuation) END AS "row"
 OFFSET 0) AS "continuation_2_0"
-WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_2_0"."row")."filter" IS NOT FALSE
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_2_0"."row")."filter" IS NOT FALSE
 
 ════ Parameters ════════════════════════════════════════════════════════════════
 
-$0: TemporalAxis(Transaction)
-$1: TemporalAxis(Decision)
-$2: Input(flag)
-$3: Input(id_b)
-$4: Input(id_a)
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Input(flag)
+$4: Input(id_b)
+$5: Input(id_a)
