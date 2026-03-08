@@ -19,13 +19,13 @@
 //!
 //! | Transition | Allowed? | Cost |
 //! |------------|----------|------|
-//! | Same backend (A → A) | Always | 0 |
-//! | Any → Interpreter | Always | Transfer cost |
-//! | Other → Postgres | Never | — |
+//! | Same backend (A -> A) | Always | 0 |
+//! | Any -> Interpreter | Always | Transfer cost |
+//! | Other -> Postgres | Never | — |
 //! | Any Postgres in loop | Never | — |
-//! | `GraphRead` edge | Interpreter → Interpreter only | 0 |
+//! | `GraphRead` edge | Interpreter -> Interpreter only | 0 |
 //! | `Goto` edge | Any supported transition | Transfer cost |
-//! | `SwitchInt` edge | Same-backend or → Interpreter only | Transfer cost |
+//! | `SwitchInt` edge | Same-backend or -> Interpreter only | Transfer cost |
 //!
 //! Transfer cost is computed from the estimated size of live locals that must cross the edge.
 //!
@@ -34,7 +34,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    ops::{Index, IndexMut},
+    ops::{AddAssign, Index, IndexMut},
 };
 
 use hashql_core::{
@@ -63,6 +63,7 @@ use crate::{
         local::Local,
         terminator::TerminatorKind,
     },
+    macros::forward_ref_op_assign,
     pass::analysis::{
         dataflow::{
             TraversalLivenessAnalysis,
@@ -82,7 +83,7 @@ mod tests;
 ///
 /// # Invariants
 ///
-/// - Same-backend transitions (`A → A`) always have cost 0, enforced by [`insert`](Self::insert)
+/// - Same-backend transitions (`A -> A`) always have cost 0, enforced by [`insert`](Self::insert)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TransMatrix {
     matrix: [Option<Cost>; TargetId::VARIANT_COUNT * TargetId::VARIANT_COUNT],
@@ -144,7 +145,7 @@ impl TransMatrix {
 
     /// Removes all incoming transitions to `target` from other backends.
     ///
-    /// Self-loops (`target` → `target`) are preserved.
+    /// Self-loops (`target` -> `target`) are preserved.
     #[inline]
     pub(crate) fn remove_incoming(&mut self, target: TargetId) {
         for source in TargetId::all() {
@@ -218,6 +219,20 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
         &mut self.matrix[Self::offset(from, to)]
     }
 }
+
+impl AddAssign<Self> for TransMatrix {
+    /// Element-wise saturating addition. Only entries where both matrices have `Some` are added;
+    /// `None` entries in either matrix are left unchanged.
+    fn add_assign(&mut self, rhs: Self) {
+        for (entry, overhead) in self.matrix.iter_mut().zip(rhs.matrix) {
+            if let (Some(cost), Some(overhead)) = (entry, overhead) {
+                *cost = cost.saturating_add(overhead);
+            }
+        }
+    }
+}
+
+forward_ref_op_assign!(impl AddAssign<Self>::add_assign for TransMatrix);
 
 /// Collection of [`TransMatrix`] entries for all terminator edges in a body.
 ///
@@ -301,6 +316,24 @@ impl<N, S> Metadata<N, S> for ComponentSizeMetadata {
     fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 }
 
+/// Fixed overhead for switching between different execution backends, independent of how much
+/// data crosses the edge.
+fn backend_switch_cost() -> TransMatrix {
+    let mut matrix = TransMatrix::new();
+
+    // Postgres -> Interpreter: continuation ROW + block id + locals/values arrays + interpreter
+    // resume. This is the heaviest switch path.
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(8));
+
+    // Interpreter -> Embedding: serialize embedding request.
+    matrix.insert(TargetId::Interpreter, TargetId::Embedding, cost!(4));
+
+    // Embedding -> Interpreter: deserialize embedding result.
+    matrix.insert(TargetId::Embedding, TargetId::Interpreter, cost!(4));
+
+    matrix
+}
+
 /// Parameters for populating a single edge's [`TransMatrix`].
 struct PopulateEdgeMatrix {
     /// Backends the source block can execute on.
@@ -310,6 +343,8 @@ struct PopulateEdgeMatrix {
 
     /// Cost of transferring live data across this edge.
     transfer_cost: Cost,
+    /// Per-pair fixed overhead for switching backends.
+    switch_cost: TransMatrix,
     /// Whether this edge is part of a loop (disables Postgres transitions).
     is_in_loop: bool,
 }
@@ -321,6 +356,7 @@ impl PopulateEdgeMatrix {
         self.add_interpreter_fallback(matrix);
         self.add_terminator_specific_transitions(matrix, terminator);
         self.apply_postgres_restrictions(matrix);
+        *matrix += self.switch_cost;
     }
 
     /// Adds zero-cost transitions for staying on the same backend.
@@ -472,7 +508,7 @@ impl<S: Allocator> TerminatorPlacement<S> {
 
     /// Computes transition costs for all terminator edges in `body`.
     ///
-    /// For each edge, determines which (source → destination) backend transitions are valid and
+    /// For each edge, determines which (source -> destination) backend transitions are valid and
     /// their associated costs. The `targets` slice provides the set of backends each block can
     /// execute on (from statement placement), and `footprint` provides size estimates for
     /// computing transfer costs.
@@ -489,6 +525,7 @@ impl<S: Allocator> TerminatorPlacement<S> {
     ) -> TerminatorCostVec<A> {
         let live_in = self.compute_liveness(body, vertex);
         let scc = self.compute_scc(body);
+        let switch_cost = backend_switch_cost();
 
         let mut output = TerminatorCostVec::new(&body.basic_blocks, alloc);
         let mut required_locals = DenseBitSet::new_empty(body.local_decls.len());
@@ -514,6 +551,7 @@ impl<S: Allocator> TerminatorPlacement<S> {
                     source_targets: block_targets,
                     target_targets: successor_targets,
                     transfer_cost,
+                    switch_cost,
                     is_in_loop,
                 }
                 .populate(&mut matrices[edge_index], &block.terminator.kind);

@@ -80,6 +80,12 @@ pub trait TextFormatAnnotations {
     where
         Self: 'this;
 
+    /// The type of annotation displayed after basic blocks.
+    type BasicBlockAnnotation<'this, 'heap>: Display
+        = !
+    where
+        Self: 'this;
+
     /// Returns an optional annotation for the given statement at `location`.
     #[expect(unused_variables, reason = "trait definition")]
     fn annotate_statement<'heap>(
@@ -99,9 +105,58 @@ pub trait TextFormatAnnotations {
     ) -> Option<Self::DeclarationAnnotation<'_, 'heap>> {
         None
     }
+
+    /// Returns an optional annotation for the given basic block.
+    #[expect(unused_variables, reason = "trait definition")]
+    fn annotate_basic_block<'heap>(
+        &self,
+        id: BasicBlockId,
+        block: &BasicBlock<'heap>,
+    ) -> Option<Self::BasicBlockAnnotation<'_, 'heap>> {
+        None
+    }
 }
 
 impl TextFormatAnnotations for () {}
+
+impl<T: TextFormatAnnotations> TextFormatAnnotations for &mut T {
+    type BasicBlockAnnotation<'this, 'heap>
+        = T::BasicBlockAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+    type DeclarationAnnotation<'this, 'heap>
+        = T::DeclarationAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+    type StatementAnnotation<'this, 'heap>
+        = T::StatementAnnotation<'this, 'heap>
+    where
+        Self: 'this;
+
+    fn annotate_statement<'heap>(
+        &self,
+        location: Location,
+        statement: &Statement<'heap>,
+    ) -> Option<Self::StatementAnnotation<'_, 'heap>> {
+        (**self).annotate_statement(location, statement)
+    }
+
+    fn annotate_local_decl<'heap>(
+        &self,
+        local: Local,
+        declaration: &LocalDecl<'heap>,
+    ) -> Option<Self::DeclarationAnnotation<'_, 'heap>> {
+        (**self).annotate_local_decl(local, declaration)
+    }
+
+    fn annotate_basic_block<'heap>(
+        &self,
+        id: BasicBlockId,
+        block: &BasicBlock<'heap>,
+    ) -> Option<Self::BasicBlockAnnotation<'_, 'heap>> {
+        (**self).annotate_basic_block(id, block)
+    }
+}
 
 /// Configuration for constructing a [`TextFormat`] formatter.
 pub struct TextFormatOptions<W, S, T, A> {
@@ -167,6 +222,14 @@ impl<W, S, T, A> TextFormat<W, S, T, A> {
             annotations,
             line_buffer: Vec::new(),
         }
+    }
+
+    /// Swaps in a new annotation provider and returns the old one.
+    ///
+    /// Useful when formatting multiple bodies in sequence where each body needs
+    /// different annotation context (e.g. per-body execution analysis results).
+    pub const fn replace_annotations(&mut self, annotations: A) -> A {
+        core::mem::replace(&mut self.annotations, annotations)
     }
 }
 
@@ -414,6 +477,14 @@ where
         write!(self.line_buffer, "{id}(")?;
         self.csv(block.params.iter().copied())?;
         write!(self.line_buffer, "): {{")?;
+        if let Some(annotation) = self.annotations.annotate_basic_block(id, block) {
+            // We estimate that we never exceed 80 columns, calculate the remaining width, if we
+            // don't have enough space, we add 4 spaces breathing room.
+            let remaining_width = 80_usize.checked_sub(self.line_buffer.len()).unwrap_or(4);
+            self.line_buffer
+                .resize(self.line_buffer.len() + remaining_width, b' ');
+            write!(self.line_buffer, "// {annotation}")?;
+        }
         self.newline()?;
 
         let mut location = Location {

@@ -32,8 +32,37 @@ use crate::{
             PostgresStatementPlacement, StatementPlacement as _,
             tests::{assert_placement, run_placement},
         },
+        tests::make_entity_uuid_eq_body,
     },
 };
+
+/// Postgres placement for `EntityUuid == EntityUuid` comparison.
+#[test]
+fn eq_opaque_entity_uuid() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = make_entity_uuid_eq_body(&heap, &interner, &env);
+
+    let context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::new_in(Global);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
+
+    assert_placement(
+        "eq_opaque_entity_uuid",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+    );
+}
 
 /// Arithmetic and comparison operations work.
 ///
