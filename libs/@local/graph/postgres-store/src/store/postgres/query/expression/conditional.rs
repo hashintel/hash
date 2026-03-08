@@ -812,10 +812,8 @@ mod tests {
     #[test]
     fn transpile_u128_constant() {
         assert_eq!(
-            Expression::Constant(Constant::U128(
-                340_282_366_920_938_463_463_374_607_431_768_211_455
-            ))
-            .transpile_to_string(),
+            Expression::Constant(Constant::U128(0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF))
+                .transpile_to_string(),
             "340282366920938463463374607431768211455"
         );
     }
