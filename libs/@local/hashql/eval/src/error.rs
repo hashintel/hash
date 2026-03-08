@@ -5,7 +5,6 @@ use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, category::Diagn
 
 #[cfg(feature = "graph")]
 use crate::graph::error::GraphCompilerDiagnosticCategory;
-use crate::postgres::error::PostgresDiagnosticCategory;
 
 pub type EvalDiagnostic<K = Severity> = Diagnostic<EvalDiagnosticCategory, SpanId, K>;
 pub type EvalDiagnosticIssues<K = Severity> = DiagnosticIssues<EvalDiagnosticCategory, SpanId, K>;
@@ -14,7 +13,6 @@ pub type EvalDiagnosticIssues<K = Severity> = DiagnosticIssues<EvalDiagnosticCat
 pub enum EvalDiagnosticCategory {
     #[cfg(feature = "graph")]
     Graph(GraphCompilerDiagnosticCategory),
-    Postgres(PostgresDiagnosticCategory),
 }
 
 impl DiagnosticCategory for EvalDiagnosticCategory {
@@ -30,7 +28,6 @@ impl DiagnosticCategory for EvalDiagnosticCategory {
         match self {
             #[cfg(feature = "graph")]
             Self::Graph(graph) => Some(graph),
-            Self::Postgres(postgres) => Some(postgres),
         }
     }
 }
