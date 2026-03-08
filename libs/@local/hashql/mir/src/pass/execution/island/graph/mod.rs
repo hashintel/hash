@@ -466,11 +466,20 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
             self.graph[provider].provides.insert(path);
         }
 
-        self.graph.inner.add_edge(
-            NodeId::from_u32(provider.as_u32()),
-            NodeId::from_u32(consumer.as_u32()),
-            IslandEdge::DataFlow,
-        );
+        let provider_node = NodeId::from_u32(provider.as_u32());
+        let consumer_node = NodeId::from_u32(consumer.as_u32());
+
+        let exists = self
+            .graph
+            .inner
+            .outgoing_edges(provider_node)
+            .any(|edge| edge.target() == consumer_node && edge.data == IslandEdge::DataFlow);
+
+        if !exists {
+            self.graph
+                .inner
+                .add_edge(provider_node, consumer_node, IslandEdge::DataFlow);
+        }
     }
 
     /// Returns an existing data island for the given origin backend, or creates one.
