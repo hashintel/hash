@@ -24,7 +24,7 @@ id::newtype!(
 
 impl From<ParameterIndex> for Expression {
     fn from(value: ParameterIndex) -> Self {
-        Self::Parameter(value.as_usize())
+        Self::Parameter(value.as_usize() + 1)
     }
 }
 
