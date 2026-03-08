@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Simplest filter — constant true, no branching
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      {"#literal": true}
+    ]
+  ]
+]

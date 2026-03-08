@@ -1,0 +1,35 @@
+//@ run: pass
+//@ description: Multiple parameter categories in one filter - temporal, env, input, primitive, entity paths
+// biome-ignore format: readability
+["if", { "#literal": true },
+  ["let", "env_uuid",
+    ["input", "env_val", "::graph::types::knowledge::entity::EntityUuid"],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::body::filter",
+          ["::graph::head::entities", ["input", "time_axis", "_"]],
+          ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+            ["==",
+              "vertex.metadata.archived",
+              { "#literal": false }
+            ]
+          ]
+        ],
+        ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+          ["==",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            "env_uuid"
+          ]
+        ]
+      ]
+    ]
+  ],
+  ["::graph::tail::collect",
+    ["::graph::body::filter",
+      ["::graph::head::entities", ["input", "time_axis", "_"]],
+      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+        { "#literal": true }
+      ]
+    ]
+  ]
+]

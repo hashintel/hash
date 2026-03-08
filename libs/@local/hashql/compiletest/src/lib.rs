@@ -7,6 +7,7 @@
     if_let_guard,
 
     // Library Features
+    allocator_api,
     assert_matches,
     duration_millis_float,
     exitcode_exit_method,

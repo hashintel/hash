@@ -1,0 +1,13 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_3_0"."row")."block" AS "continuation_3_0_block", ("continuation_3_0"."row")."locals" AS "continuation_3_0_locals", ("continuation_3_0"."row")."values" AS "continuation_3_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL (SELECT CASE WHEN (($2 IS NOT NULL)::int) = 0 THEN (ROW(1, NULL, NULL, NULL)::continuation) WHEN (($2 IS NOT NULL)::int) = 1 THEN (ROW($2, NULL, NULL, NULL)::continuation) END AS "row"
+OFFSET 0) AS "continuation_3_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_3_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$0: TemporalAxis(Transaction)
+$1: TemporalAxis(Decision)
+$2: Input(optional_flag)

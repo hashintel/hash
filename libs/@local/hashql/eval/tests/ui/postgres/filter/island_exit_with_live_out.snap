@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW(NULL, 1, ARRAY[7]::int[], ARRAY[jsonb_build_object($0, jsonb_build_object($1, "entity_temporal_metadata_0_0_0"."web_id", $2, "entity_temporal_metadata_0_0_0"."entity_uuid", $3, "entity_temporal_metadata_0_0_0"."draft_id"), $3, "entity_temporal_metadata_0_0_0"."draft_id")]::jsonb[])::continuation)

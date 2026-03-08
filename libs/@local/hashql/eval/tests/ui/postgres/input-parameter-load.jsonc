@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Input parameter as comparison operand - tests RValue::Input compilation and parameter dedup
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "user_id", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

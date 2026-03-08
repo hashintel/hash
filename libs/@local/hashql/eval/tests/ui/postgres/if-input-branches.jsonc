@@ -1,0 +1,21 @@
+//@ run: pass
+//@ description: Runtime branching - input parameter as discriminant forces CASE WHEN in SQL
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["if",
+        ["input", "flag", "Boolean"],
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          ["input", "id_a", "::graph::types::knowledge::entity::EntityUuid"]
+        ],
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          ["input", "id_b", "::graph::types::knowledge::entity::EntityUuid"]
+        ]
+      ]
+    ]
+  ]
+]

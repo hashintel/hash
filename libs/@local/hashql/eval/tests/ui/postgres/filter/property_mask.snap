@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== SQL ======================================
+
+SELECT ("entity_editions_0_0_1"."properties" - $99) AS "properties", jsonb_build_object($2, jsonb_build_object($3, "entity_temporal_metadata_0_0_0"."web_id", $4, "entity_temporal_metadata_0_0_0"."entity_uuid", $5, "entity_temporal_metadata_0_0_0"."draft_id"), $5, "entity_temporal_metadata_0_0_0"."draft_id") AS "record_id", jsonb_build_object($6, "entity_temporal_metadata_0_0_0"."decision_time", $7, "entity_temporal_metadata_0_0_0"."transaction_time") AS "temporal_versioning", "entity_is_of_type_ids_0_0_2"."entity_type_ids" AS "entity_type_ids", "entity_editions_0_0_1"."archived" AS "archived", "entity_editions_0_0_1"."confidence" AS "confidence", "entity_ids_0_0_3"."provenance" AS "provenance_inferred", "entity_editions_0_0_1"."provenance" AS "provenance_edition", ("entity_editions_0_0_1"."property_metadata" - $99) AS "property_metadata", "entity_has_left_entity_0_0_4"."left_web_id" AS "left_entity_web_id", "entity_has_left_entity_0_0_4"."left_entity_uuid" AS "left_entity_uuid", "entity_has_right_entity_0_0_5"."right_web_id" AS "right_entity_web_id", "entity_has_right_entity_0_0_5"."right_entity_uuid" AS "right_entity_uuid", "entity_has_left_entity_0_0_4"."confidence" AS "left_entity_confidence", "entity_has_right_entity_0_0_5"."confidence" AS "right_entity_confidence", "entity_has_left_entity_0_0_4"."provenance" AS "left_entity_provenance", "entity_has_right_entity_0_0_5"."provenance" AS "right_entity_provenance", ("continuation_0_0"."row")."block" AS "continuation_0_0_block", ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals", ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+INNER JOIN "entity_editions" AS "entity_editions_0_0_1"
+  ON "entity_editions_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+INNER JOIN "entity_ids" AS "entity_ids_0_0_3"
+  ON "entity_ids_0_0_3"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+ AND "entity_ids_0_0_3"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+LEFT OUTER JOIN LATERAL (SELECT jsonb_agg(jsonb_build_object($8, "b", $9, "v")) AS "entity_type_ids"
+FROM "entity_is_of_type_ids" AS "eit"
+CROSS JOIN UNNEST("eit"."base_urls", "eit"."versions") AS "u"("b", "v")
+WHERE "eit"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "entity_is_of_type_ids_0_0_2"
+  ON TRUE
+LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_0_4"
+  ON "entity_has_left_entity_0_0_4"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+ AND "entity_has_left_entity_0_0_4"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_0_5"
+  ON "entity_has_right_entity_0_0_5"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+ AND "entity_has_right_entity_0_0_5"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+CROSS JOIN LATERAL (SELECT (ROW(NULL, 1, ARRAY[]::int[], ARRAY[]::jsonb[])::continuation) AS "row"
+OFFSET 0) AS "continuation_0_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_0_0"."row")."filter" IS NOT FALSE
+================================== Parameters ==================================
+
+$0: TemporalAxis(Transaction)
+$1: TemporalAxis(Decision)
+$2: Symbol(entity_id)
+$3: Symbol(web_id)
+$4: Symbol(entity_uuid)
+$5: Symbol(draft_id)
+$6: Symbol(decision_time)
+$7: Symbol(transaction_time)
+$8: Symbol(base_url)
+$9: Symbol(version)

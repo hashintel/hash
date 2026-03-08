@@ -1,0 +1,36 @@
+fn {graph::read::filter@11}(%0: (::graph::types::knowledge::entity::EntityUuid,), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {                                                                    // postgres
+        %2 = %1.metadata.record_id.entity_id.entity_uuid == %0.0
+
+        return %2
+    }
+}
+
+fn {graph::read::filter@27}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    bb0(): {                                                                    // interpreter
+        return 1
+    }
+}
+
+thunk {thunk#8}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::types::knowledge::entity::EntityUuid
+    let %1: ::graph::TimeAxis
+    let %2: List<::graph::types::knowledge::entity::Entity>
+    let %3: (::graph::types::knowledge::entity::EntityUuid,)
+
+    bb0(): {
+        %0 = input LOAD target
+        %1 = input LOAD time_axis
+        %3 = (%0)
+
+        graph read entities(%1)
+        |> filter({graph::read::filter@11}, %3)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%2): {
+        return %2
+    }
+}
