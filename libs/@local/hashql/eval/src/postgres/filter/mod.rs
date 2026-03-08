@@ -95,7 +95,12 @@ impl From<Continuation> for Expression {
         // (filter, block, locals, values)
         let row = match continuation {
             Continuation::Return { filter } => {
-                vec![filter, null.clone(), null.clone(), null]
+                vec![
+                    filter.grouped().cast(PostgresType::Boolean),
+                    null.clone(),
+                    null.clone(),
+                    null,
+                ]
             }
             Continuation::IslandExit {
                 block,
