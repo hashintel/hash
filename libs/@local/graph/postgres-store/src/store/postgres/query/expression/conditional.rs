@@ -688,7 +688,8 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, SelectCompiler, test_helper::max_version_expression,
+        Alias, Identifier, PostgresQueryPath as _, SelectCompiler,
+        test_helper::max_version_expression,
     };
 
     #[test]
@@ -798,6 +799,99 @@ mod tests {
             element_type: PostgresType::Text,
         });
         assert_eq!(empty_array.transpile_to_string(), "ARRAY[]::text[]");
+    }
+
+    #[test]
+    fn transpile_null_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::Null).transpile_to_string(),
+            "NULL"
+        );
+    }
+
+    #[test]
+    fn transpile_u128_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::U128(
+                340_282_366_920_938_463_463_374_607_431_768_211_455
+            ))
+            .transpile_to_string(),
+            "340282366920938463463374607431768211455"
+        );
+    }
+
+    #[test]
+    fn transpile_json_agg() {
+        assert_eq!(
+            Expression::Function(Function::JsonAgg(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "jsonb_agg($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_unnest_multiple() {
+        assert_eq!(
+            Expression::Function(Function::Unnest(vec![
+                Expression::Parameter(1),
+                Expression::Parameter(2),
+                Expression::Parameter(3),
+            ]))
+            .transpile_to_string(),
+            "UNNEST($1, $2, $3)"
+        );
+    }
+
+    #[test]
+    fn transpile_field_access() {
+        assert_eq!(
+            Expression::FieldAccess {
+                expr: Box::new(Expression::Parameter(1)),
+                field: ColumnName::from(Identifier::from("filter")),
+            }
+            .transpile_to_string(),
+            r#"($1)."filter""#
+        );
+    }
+
+    #[test]
+    fn transpile_is_not_false() {
+        assert_eq!(
+            Expression::Unary(UnaryExpression {
+                op: UnaryOperator::IsNotFalse,
+                expr: Box::new(Expression::Parameter(1)),
+            })
+            .transpile_to_string(),
+            "$1 IS NOT FALSE"
+        );
+    }
+
+    #[test]
+    fn transpile_cast_types() {
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::JsonB)
+                .transpile_to_string(),
+            "($1::jsonb)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Numeric)
+                .transpile_to_string(),
+            "($1::numeric)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Int)
+                .transpile_to_string(),
+            "($1::int)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::BigInt)
+                .transpile_to_string(),
+            "($1::bigint)"
+        );
     }
 
     fn test_condition<'p, 'f: 'p>(
