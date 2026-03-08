@@ -4,4 +4,4 @@ expression: report.to_string()
 ---
 ==================== Island (entry: bb0, target: postgres) =====================
 
-CASE WHEN (($6)::int) = 0 THEN (ROW(NULL, 2, ARRAY[]::int[], ARRAY[]::jsonb[])::continuation) WHEN (($6)::int) = 1 THEN (ROW(1, NULL, NULL, NULL)::continuation) END
+CASE WHEN (($6)::int) = 0 THEN (ROW(NULL, 2, ARRAY[]::int[], ARRAY[]::jsonb[])::continuation) WHEN (($6)::int) = 1 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) END
