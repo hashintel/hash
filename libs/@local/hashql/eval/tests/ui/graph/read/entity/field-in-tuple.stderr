@@ -1,6 +1,6 @@
 error[graph-read-compiler::path-in-data-construct-unsupported]: Path in data construct unsupported
   ╭▸ 
-9 │         [".", {"#tuple": ["vertex.id.entity_id.entity_uuid"]}, { "#literal": 0 }],
+9 │         [".", {"#tuple": ["vertex.metadata.record_id.entity_id.entity_uuid"]}, { "#literal": 0 }],
   │                            ━━━━━━ path expressions are not supported in data constructs
   │
   ├ help: rewrite the logic to avoid path expressions in data constructs

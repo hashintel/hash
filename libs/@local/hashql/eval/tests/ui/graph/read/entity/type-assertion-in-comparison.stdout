@@ -24,7 +24,7 @@ let %1 = thunk ->
             %19 = ::graph::head::entities(%17)
                   |> ::graph::body::filter((vertex:0: Entity): Boolean ->
                       let %18 = %5(),
-                          %6 = vertex:0.id.entity_id.entity_uuid == %18
+                          %6 = vertex:0.metadata.record_id.entity_id.entity_uuid == %18
                       in
                       %6
                   )

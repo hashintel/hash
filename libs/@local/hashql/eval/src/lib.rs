@@ -12,13 +12,19 @@
 
     // Library Features
     iterator_try_collect,
+    assert_matches,
+    allocator_api,
+    iter_array_chunks,
+    maybe_uninit_fill
 )]
 
 extern crate alloc;
 
+pub mod context;
 pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
+pub mod postgres;
 
 #[cfg(test)]
 mod tests {
