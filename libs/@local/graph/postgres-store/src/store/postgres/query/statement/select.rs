@@ -123,7 +123,8 @@ mod tests {
     use uuid::Uuid;
 
     use crate::store::postgres::query::{
-        Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
+        Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
+        Transpile as _, test_helper::trim_whitespace,
     };
 
     #[track_caller]
@@ -1283,6 +1284,20 @@ mod tests {
                 &Embedding::from(vec![0.0; 1536]),
                 &Real::from_natural(5, -1),
             ],
+        );
+    }
+
+    #[test]
+    fn transpile_offset() {
+        let statement = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .limit(10)
+            .offset(20)
+            .build();
+
+        assert_eq!(
+            trim_whitespace(&statement.transpile_to_string()),
+            "SELECT * LIMIT 10 OFFSET 20"
         );
     }
 
