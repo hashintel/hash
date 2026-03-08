@@ -6,9 +6,9 @@ INNER JOIN "entity_editions" AS "entity_editions_0_0_1"
   ON "entity_editions_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 CROSS JOIN LATERAL (SELECT (ROW(((NOT("entity_editions_0_0_1"."archived"))::boolean), NULL, NULL, NULL)::continuation) AS "row"
 OFFSET 0) AS "continuation_1_0"
-WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_1_0"."row")."filter" IS NOT FALSE
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_1_0"."row")."filter" IS NOT FALSE
 
 ════ Parameters ════════════════════════════════════════════════════════════════
 
-$0: TemporalAxis(Transaction)
-$1: TemporalAxis(Decision)
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)

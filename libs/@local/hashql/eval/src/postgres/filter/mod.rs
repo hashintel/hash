@@ -295,7 +295,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 },
                 rest @ ..,
             ] => {
-                let param = db.parameters.env(*field);
+                let param = db.parameters.env(self.body.id, *field);
                 (param.into(), rest)
             }
             [..] => {
