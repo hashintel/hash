@@ -1,0 +1,16 @@
+//@ run: pass
+//@ description: Opaque type wrapper - AggregateKind::Opaque passes through inner operand unchanged
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["::graph::types::knowledge::entity::EntityUuid",
+          ["::core::uuid::Uuid", ["input", "id", "_"]]
+        ]
+      ]
+    ]
+  ]
+]

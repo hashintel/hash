@@ -41,6 +41,10 @@ pub(crate) trait MirRenderer {
     );
 }
 
+impl MirRenderer for () {
+    fn render<'heap>(&mut self, _: &mut RenderContext<'_, 'heap>, _: &DefIdSlice<Body<'heap>>) {}
+}
+
 impl<R> MirRenderer for &mut R
 where
     R: MirRenderer,

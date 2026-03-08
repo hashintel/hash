@@ -1,0 +1,14 @@
+//@ run: skip reason="property subscript requires a concrete entity type; the type system cannot resolve unknown field access on vertex.properties yet"
+//@ description: Multi-level property access - json_extract_path with multiple keys
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        [".", [".", "vertex.properties", "address"], "city"],
+        { "#literal": "London" }
+      ]
+    ]
+  ]
+]
