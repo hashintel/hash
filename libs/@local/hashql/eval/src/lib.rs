@@ -19,11 +19,9 @@
 
 extern crate alloc;
 
-pub mod context;
 pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
-pub mod postgres;
 
 #[cfg(test)]
 mod tests {
