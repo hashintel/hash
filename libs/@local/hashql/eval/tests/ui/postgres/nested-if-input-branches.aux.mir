@@ -1,0 +1,82 @@
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD time_axis
+
+        return %0
+    }
+}
+
+thunk {thunk#10}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = input LOAD foo
+
+        return %0
+    }
+}
+
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+    let %3: ::graph::types::knowledge::entity::EntityUuid
+    let %4: Boolean
+    let %5: ::graph::types::knowledge::entity::EntityUuid
+    let %6: Boolean
+    let %7: ::graph::types::knowledge::entity::EntityUuid
+    let %8: Boolean
+    let %9: Boolean
+
+    bb0(): {                                                                    // postgres
+        %9 = input LOAD foo
+
+        switchInt(%9) -> [0: bb4(), 1: bb1()]
+    }
+
+    bb1(): {                                                                    // postgres
+        %2 = input LOAD bar
+
+        switchInt(%2) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {                                                                    // postgres
+        %3 = input LOAD id_a
+        %4 = %1.metadata.record_id.entity_id.entity_uuid == %3
+
+        return %4
+    }
+
+    bb3(): {                                                                    // postgres
+        %5 = input LOAD id_b
+        %6 = %1.metadata.record_id.entity_id.entity_uuid == %5
+
+        return %6
+    }
+
+    bb4(): {                                                                    // postgres
+        %7 = input LOAD id_c
+        %8 = %1.metadata.record_id.entity_id.entity_uuid == %7
+
+        return %8
+    }
+}
+
+thunk {thunk#12}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: List<::graph::types::knowledge::entity::Entity>
+    let %1: ()
+    let %2: ::graph::TimeAxis
+
+    bb0(): {
+        %2 = input LOAD time_axis
+        %1 = ()
+
+        graph read entities(%2)
+        |> filter({graph::read::filter@7}, %1)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%0): {
+        return %0
+    }
+}

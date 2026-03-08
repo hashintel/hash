@@ -1,0 +1,20 @@
+//@ run: pass
+//@ description: Dict aggregate from entity fields - AggregateKind::Dict → jsonb_build_object with key-value pairs
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        { "#dict": [
+          ["vertex.metadata.record_id.entity_id.entity_uuid",
+           "vertex.metadata.record_id.entity_id.web_id"]
+        ]},
+        { "#dict": [
+          [["input", "k", "::graph::types::knowledge::entity::EntityUuid"],
+           ["input", "v", "::graph::types::principal::actor_group::web::WebId"]]
+        ]}
+      ]
+    ]
+  ]
+]

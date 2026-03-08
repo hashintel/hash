@@ -1,0 +1,66 @@
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD time_axis
+
+        return %0
+    }
+}
+
+thunk {thunk#6}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = input LOAD flag
+
+        return %0
+    }
+}
+
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+    let %3: Boolean
+    let %4: ::graph::types::knowledge::entity::EntityUuid
+    let %5: Boolean
+    let %6: Boolean
+
+    bb0(): {                                                                    // postgres
+        %6 = input LOAD flag
+
+        switchInt(%6) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {                                                                    // postgres
+        %2 = input LOAD id_a
+        %3 = %1.metadata.record_id.entity_id.entity_uuid == %2
+
+        return %3
+    }
+
+    bb2(): {                                                                    // postgres
+        %4 = input LOAD id_b
+        %5 = %1.metadata.record_id.entity_id.entity_uuid == %4
+
+        return %5
+    }
+}
+
+thunk {thunk#8}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: List<::graph::types::knowledge::entity::Entity>
+    let %1: ()
+    let %2: ::graph::TimeAxis
+
+    bb0(): {
+        %2 = input LOAD time_axis
+        %1 = ()
+
+        graph read entities(%2)
+        |> filter({graph::read::filter@7}, %1)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%0): {
+        return %0
+    }
+}

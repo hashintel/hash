@@ -1,0 +1,14 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_3_0"."row")."block" AS "continuation_3_0_block", ("continuation_3_0"."row")."locals" AS "continuation_3_0_locals", ("continuation_3_0"."row")."values" AS "continuation_3_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL (SELECT (ROW(jsonb_build_array("entity_temporal_metadata_0_0_0"."entity_uuid", $2) = jsonb_build_array($3, "entity_temporal_metadata_0_0_0"."entity_uuid"), NULL, NULL, NULL)::continuation) AS "row"
+OFFSET 0) AS "continuation_3_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_3_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$0: TemporalAxis(Transaction)
+$1: TemporalAxis(Decision)
+$2: Input(u)
+$3: Input(v)

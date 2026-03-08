@@ -1,0 +1,17 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_2_0"."row")."block" AS "continuation_2_0_block", ("continuation_2_0"."row")."locals" AS "continuation_2_0_locals", ("continuation_2_0"."row")."values" AS "continuation_2_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL (SELECT CASE WHEN (($2)::int) = 0 THEN (ROW("entity_temporal_metadata_0_0_0"."entity_uuid" = $3, NULL, NULL, NULL)::continuation) WHEN (($2)::int) = 1 THEN CASE WHEN (($4)::int) = 0 THEN (ROW("entity_temporal_metadata_0_0_0"."entity_uuid" = $5, NULL, NULL, NULL)::continuation) WHEN (($4)::int) = 1 THEN (ROW("entity_temporal_metadata_0_0_0"."entity_uuid" = $6, NULL, NULL, NULL)::continuation) END END AS "row"
+OFFSET 0) AS "continuation_2_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $0 AND "entity_temporal_metadata_0_0_0"."decision_time" && $1 AND ("continuation_2_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$0: TemporalAxis(Transaction)
+$1: TemporalAxis(Decision)
+$2: Input(foo)
+$3: Input(id_c)
+$4: Input(bar)
+$5: Input(id_b)
+$6: Input(id_a)

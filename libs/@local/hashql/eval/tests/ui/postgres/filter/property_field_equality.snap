@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW(jsonb_extract_path("entity_editions_0_0_1"."properties", (($0)::text)) = $1, NULL, NULL, NULL)::continuation)

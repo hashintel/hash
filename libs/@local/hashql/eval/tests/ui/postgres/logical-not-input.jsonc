@@ -1,0 +1,11 @@
+//@ run: skip reason="::core::bool::not intrinsic not supported in specialization yet (H-4729)"
+//@ description: Unary NOT on input parameter - UnOp::Not produces NOT in SQL
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["!", ["input", "flag", "Boolean"]]
+    ]
+  ]
+]

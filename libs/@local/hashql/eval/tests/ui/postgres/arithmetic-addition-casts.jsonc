@@ -1,0 +1,17 @@
+//@ run: skip reason="::core::math::add intrinsic not supported in specialization yet (H-4728)"
+//@ description: Arithmetic addition casts both operands to ::numeric, outer comparison does not
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      [">",
+        ["+",
+          ["input", "x", "Integer"],
+          ["input", "y", "Integer"]
+        ],
+        { "#literal": 0 }
+      ]
+    ]
+  ]
+]
