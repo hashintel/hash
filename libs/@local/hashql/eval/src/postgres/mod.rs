@@ -360,6 +360,15 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         // Build FROM: base table + joins + CROSS JOIN LATERALs
         let from = db.projections.build_from(&mut db.parameters, db.laterals);
 
+        // Ensure there's at least one select expression - PostgreSQL requires a non-empty select
+        // list
+        if select_expressions.is_empty() {
+            select_expressions.push(SelectExpression::Expression {
+                expression: Expression::Constant(query::Constant::U32(1)),
+                alias: Some(Identifier::from("placeholder")),
+            });
+        }
+
         let query = SelectStatement::builder()
             .selects(select_expressions)
             .from(from)

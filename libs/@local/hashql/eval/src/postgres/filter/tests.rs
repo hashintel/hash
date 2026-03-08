@@ -196,7 +196,7 @@ fn find_entry_block(
             return block;
         }
     }
-    BasicBlockId::START
+    unreachable!("The postgres island always has an entry block (BasicBlockId::START)")
 }
 struct QueryReport {
     sql: String,
