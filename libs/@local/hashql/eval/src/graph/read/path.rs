@@ -319,6 +319,7 @@ pub(crate) enum PartialEntityMetadataPath<'heap> {
     TemporalVersioning(Option<PartialTemporalVersioningPath>),
     Archived,
     Confidence,
+    EntityTypeIds,
     Provenance(Option<PartialEntityProvenancePath<'heap>>),
     Properties(Option<JsonPath<'heap>>),
 }
@@ -332,6 +333,7 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityMetadataPath<'heap> {
             sym::temporal_versioning::CONST => Some(Self::TemporalVersioning(None)),
             sym::archived::CONST => Some(Self::Archived),
             sym::confidence::CONST => Some(Self::Confidence),
+            sym::entity_type_ids::CONST => Some(Self::EntityTypeIds),
             sym::provenance::CONST => Some(Self::Provenance(None)),
             sym::properties::CONST => Some(Self::Properties(None)),
             _ => None,
@@ -356,7 +358,7 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityMetadataPath<'heap> {
                 .map(Some)
                 .map(Self::Properties)
                 .map_err(Self::Properties),
-            Self::Archived | Self::Confidence => Err(self),
+            Self::Archived | Self::Confidence | Self::EntityTypeIds => Err(self),
         }
     }
 
@@ -377,6 +379,7 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityMetadataPath<'heap> {
             Self::TemporalVersioning(_)
             | Self::Archived
             | Self::Confidence
+            | Self::EntityTypeIds
             | Self::Provenance(_) => Err(self),
         }
     }
@@ -392,6 +395,11 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityMetadataPath<'heap> {
 
             Self::Archived => Some(EntityQueryPath::Archived),
             Self::Confidence => Some(EntityQueryPath::EntityConfidence),
+            Self::EntityTypeIds => Some(EntityQueryPath::EntityTypeEdge {
+                edge_kind: hash_graph_store::subgraph::edges::SharedEdgeKind::IsOfType,
+                path: hash_graph_store::entity_type::EntityTypeQueryPath::VersionedUrl,
+                inheritance_depth: Some(0),
+            }),
 
             Self::Provenance(Some(partial)) => partial.finish(),
             Self::Provenance(None) => None,
