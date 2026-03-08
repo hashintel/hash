@@ -13,12 +13,7 @@
 
 use core::{alloc::Allocator, mem};
 
-use hashql_core::{
-    graph::DirectedGraph as _,
-    heap::{BumpAllocator, Heap},
-    id,
-    span::SpanId,
-};
+use hashql_core::{graph::DirectedGraph as _, heap::BumpAllocator, id, span::SpanId};
 
 use self::{
     condensation::{Condensation, PlacementRegionKind, TrivialPlacementRegion},
@@ -87,7 +82,6 @@ fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementSolverContext<'ctx, A: Allocator> {
     pub blocks: &'ctx BasicBlockCostVec<A>,
-
     pub terminators: &'ctx TerminatorCostVec<A>,
 }
 
@@ -124,7 +118,7 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
 
             options,
             targets,
-            alloc,
+            scratch: alloc,
         }
     }
 }
@@ -134,26 +128,29 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
 /// Uses a two-pass approach: the forward pass assigns targets in topological order, the backward
 /// pass refines them with full boundary context. Rewind-based backtracking recovers from
 /// assignment failures in the forward pass.
-pub(crate) struct PlacementSolver<'ctx, 'alloc, A: Allocator, S: BumpAllocator> {
-    data: PlacementSolverContext<'ctx, A>,
+// We need two allocators here, because the `BumpAllocator` trait does not carry a lifetime, but we
+// move `Copy` data into the bump allocator.
+pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: BumpAllocator> {
+    data: PlacementSolverContext<'ctx, S1>,
 
-    condensation: Condensation<'alloc, S>,
+    condensation: Condensation<'alloc, S2>,
 
     options: &'alloc mut BasicBlockSlice<TargetHeap>,
     targets: &'alloc mut BasicBlockSlice<Option<HeapElement>>,
 
-    alloc: &'alloc S,
+    scratch: &'alloc S2,
 }
 
-impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
+impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S> {
     /// Runs the forward and backward passes, returning the chosen [`TargetId`] for each basic
     /// block.
-    pub(crate) fn run<'heap>(
+    pub(crate) fn run_in<'heap, A: Allocator>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
         body: &Body<'heap>,
-    ) -> BasicBlockVec<TargetId, &'heap Heap> {
-        let mut regions = Vec::with_capacity_in(self.condensation.node_count(), self.alloc);
+        alloc: A,
+    ) -> BasicBlockVec<TargetId, A> {
+        let mut regions = Vec::with_capacity_in(self.condensation.node_count(), self.scratch);
         self.condensation
             .reverse_topological_order()
             .rev()
@@ -176,7 +173,7 @@ impl<'alloc, A: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, A, S> {
 
         // Collect the final assignments into the output vec. Unassigned blocks (from a
         // failed forward pass) default to the interpreter — the universal fallback target.
-        let mut output = BasicBlockVec::with_capacity_in(body.basic_blocks.len(), context.heap);
+        let mut output = BasicBlockVec::with_capacity_in(body.basic_blocks.len(), alloc);
         for target in &*self.targets {
             output.push(
                 target

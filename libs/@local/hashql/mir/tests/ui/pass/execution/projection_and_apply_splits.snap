@@ -2,6 +2,30 @@
 source: libs/@local/hashql/mir/src/pass/execution/tests.rs
 expression: output
 ---
+fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Integer {
+    let %2: Boolean
+    let %3: Integer
+    let %4: (Integer,)
+    let %5: (Boolean) -> Integer
+    let %6: Integer
+
+    bb0(): {
+        %2 = %1.metadata.archived
+        %3 = %0.0
+        %4 = (%3)
+
+        goto -> bb1()
+    }
+
+    bb1(): {
+        %5 = closure(({def@42} as FnPtr), %4)
+        %6 = apply %5 %2
+
+        return %6
+    }
+}
+---
+
 Assignment:
   bb0: postgres
   bb1: interpreter
