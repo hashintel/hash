@@ -40,14 +40,14 @@ export const ViewportControls: React.FC = () => {
   const { zoomIn, zoomOut } = useReactFlow();
   const {
     collapseAllPanels,
-    selection,
+    hasSelection,
     propertiesPanelWidth,
     isBottomPanelOpen,
     bottomPanelHeight,
     isPanelAnimating,
   } = use(EditorContext);
 
-  const isPropertiesPanelVisible = selection.size > 0;
+  const isPropertiesPanelVisible = hasSelection;
   const rightOffset =
     BASE_OFFSET +
     (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);

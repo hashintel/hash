@@ -179,11 +179,11 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   markerEnd,
 }) => {
   // Derive selected state from EditorContext
-  const { selection } = use(EditorContext);
+  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
-  const selected = selection.has(id);
+  const selected = isSelected(id);
 
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);

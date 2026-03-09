@@ -15,7 +15,7 @@ export function useKeyboardShortcuts(
   onCursorModeChange: (mode: CursorMode) => void,
 ) {
   const undoRedo = use(UndoRedoContext);
-  const { selection, clearSelection } = use(EditorContext);
+  const { selection, hasSelection, clearSelection } = use(EditorContext);
   const { deleteItemsByIds, readonly } = use(SDCPNContext);
   const isSimulationReadOnly = useIsReadOnly();
   const isReadonly = isSimulationReadOnly || readonly;
@@ -54,10 +54,10 @@ export function useKeyboardShortcuts(
     if (
       (event.key === "Delete" || event.key === "Backspace") &&
       !isReadonly &&
-      selection.size > 0
+      hasSelection
     ) {
       event.preventDefault();
-      deleteItemsByIds(new Set(selection.keys()));
+      deleteItemsByIds(selection);
       clearSelection();
       return;
     }

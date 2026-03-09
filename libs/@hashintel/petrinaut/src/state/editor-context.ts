@@ -36,6 +36,8 @@ export type EditorState = {
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   selection: SelectionMap;
+  /** Whether any items are currently selected. */
+  hasSelection: boolean;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   isPanelAnimating: boolean;
@@ -55,6 +57,8 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
+  /** Check whether a given ID is in the current selection. */
+  isSelected: (id: string) => boolean;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
   ) => void;
@@ -87,6 +91,7 @@ export const initialEditorState: EditorState = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
   selection: new Map(),
+  hasSelection: false,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   isPanelAnimating: false,
@@ -104,6 +109,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
+  isSelected: () => false,
   setSelection: () => {},
   selectItem: () => {},
   toggleItem: () => {},

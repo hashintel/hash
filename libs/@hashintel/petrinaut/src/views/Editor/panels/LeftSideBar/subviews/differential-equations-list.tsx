@@ -67,14 +67,14 @@ const DifferentialEquationsSectionContent: React.FC = () => {
     removeDifferentialEquation,
   } = use(SDCPNContext);
 
-  const { selection, selectItem, toggleItem } = use(EditorContext);
+  const { isSelected, selectItem, toggleItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
       {differentialEquations.map((eq) => {
-        const isSelected = selection.has(eq.id);
+        const eqSelected = isSelected(eq.id);
         const item: SelectionItem = {
           type: "differentialEquation",
           id: eq.id,
@@ -104,7 +104,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
                 selectItem(item);
               }
             }}
-            className={equationRowStyle({ isSelected })}
+            className={equationRowStyle({ isSelected: eqSelected })}
           >
             <div className={equationNameContainerStyle}>
               <span>{eq.name}</span>

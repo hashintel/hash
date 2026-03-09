@@ -117,7 +117,7 @@ const ParametersList: React.FC = () => {
     petriNetDefinition: { parameters },
     removeParameter,
   } = use(SDCPNContext);
-  const { globalMode, selection, selectItem, toggleItem } = use(EditorContext);
+  const { globalMode, isSelected, selectItem, toggleItem } = use(EditorContext);
   const {
     state: simulationState,
     parameterValues,
@@ -133,7 +133,7 @@ const ParametersList: React.FC = () => {
     <div>
       <div className={listContainerStyle}>
         {parameters.map((param) => {
-          const isSelected = selection.has(param.id);
+          const paramSelected = isSelected(param.id);
           const item: SelectionItem = { type: "parameter", id: param.id };
 
           return (
@@ -161,7 +161,7 @@ const ParametersList: React.FC = () => {
                   selectItem(item);
                 }
               }}
-              className={parameterRowStyle({ isSelected })}
+              className={parameterRowStyle({ isSelected: paramSelected })}
             >
               <div>
                 <div>{param.name}</div>

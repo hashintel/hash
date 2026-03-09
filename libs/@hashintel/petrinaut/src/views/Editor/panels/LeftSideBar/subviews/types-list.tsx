@@ -118,14 +118,14 @@ const TypesSectionContent: React.FC = () => {
     removeType,
   } = use(SDCPNContext);
 
-  const { selection, selectItem, toggleItem } = use(EditorContext);
+  const { isSelected, selectItem, toggleItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
       {types.map((type) => {
-        const isSelected = selection.has(type.id);
+        const typeSelected = isSelected(type.id);
         const item: SelectionItem = { type: "type", id: type.id };
 
         return (
@@ -152,7 +152,7 @@ const TypesSectionContent: React.FC = () => {
                 selectItem(item);
               }
             }}
-            className={typeRowStyle({ isSelected })}
+            className={typeRowStyle({ isSelected: typeSelected })}
           >
             <div
               className={colorDotStyle}

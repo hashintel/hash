@@ -1,4 +1,4 @@
-import { use, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 
 import {
   type DraggingStateByNodeId,
@@ -45,7 +45,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }, 500);
   };
 
-  const actions: EditorActions = {
+  const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
@@ -83,22 +83,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           typeof selectionOrUpdater === "function"
             ? selectionOrUpdater(prev.selection)
             : selectionOrUpdater;
-        const visibilityChanged =
-          (prev.selection.size === 0) !== (selection.size === 0);
-        if (visibilityChanged) {
+        const hasSelection = selection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection };
+        return { ...prev, selection, hasSelection };
       }),
     selectItem: (item: SelectionItem) => {
       setState((prev) => {
-        const wasEmpty = prev.selection.size === 0;
         const newSelection: SelectionMap = new Map([[item.id, item]]);
-        const willBeEmpty = false;
-        if (wasEmpty !== willBeEmpty) {
+        if (!prev.hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection: newSelection };
+        return { ...prev, selection: newSelection, hasSelection: true };
       });
     },
     toggleItem: (item: SelectionItem) => {
@@ -109,12 +106,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         } else {
           newSelection.set(item.id, item);
         }
-        const visibilityChanged =
-          (prev.selection.size === 0) !== (newSelection.size === 0);
-        if (visibilityChanged) {
+        const hasSelection = newSelection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection: newSelection };
+        return { ...prev, selection: newSelection, hasSelection };
       });
     },
     addToSelection: (items: SelectionItem[]) => {
@@ -123,12 +119,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         for (const item of items) {
           newSelection.set(item.id, item);
         }
-        const visibilityChanged =
-          (prev.selection.size === 0) !== (newSelection.size === 0);
-        if (visibilityChanged) {
+        const hasSelection = newSelection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection: newSelection };
+        return { ...prev, selection: newSelection, hasSelection };
       });
     },
     removeFromSelection: (ids: string[]) => {
@@ -137,20 +132,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         for (const id of ids) {
           newSelection.delete(id);
         }
-        const visibilityChanged =
-          (prev.selection.size === 0) !== (newSelection.size === 0);
-        if (visibilityChanged) {
+        const hasSelection = newSelection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection: newSelection };
+        return { ...prev, selection: newSelection, hasSelection };
       });
     },
     clearSelection: () => {
       setState((prev) => {
-        if (prev.selection.size > 0) {
+        if (prev.hasSelection) {
           triggerPanelAnimation();
         }
-        return { ...prev, selection: new Map() };
+        return { ...prev, selection: new Map(), hasSelection: false };
       });
     },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
@@ -169,6 +163,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isLeftSidebarOpen: false,
         isBottomPanelOpen: false,
         selection: new Map(),
+        hasSelection: false,
       }));
     },
     setTimelineChartType: (chartType) =>
@@ -188,9 +183,16 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: state.timelineChartType,
   });
 
+  const { selection } = state;
+  const isSelected = useCallback(
+    (id: string) => selection.has(id),
+    [selection],
+  );
+
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
+    isSelected,
   };
 
   return (

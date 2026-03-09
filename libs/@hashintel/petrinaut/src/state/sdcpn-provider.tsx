@@ -261,93 +261,114 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
 
       return null;
     },
-    deleteItemsByIds(ids) {
+    deleteItemsByIds(items) {
       rest.mutatePetriNetDefinition((sdcpn) => {
-        const idsToProcess = new Set(ids);
+        // Partition selection by type for targeted deletion
+        const placeIds = new Set<string>();
+        const transitionIds = new Set<string>();
+        const arcIds = new Set<string>();
+        const typeIds = new Set<string>();
+        const equationIds = new Set<string>();
+        const parameterIds = new Set<string>();
 
-        /**
-         * Deal with the transitions first because we always need to check them,
-         * in case they, an arc within them or a place referenced by an arc is being deleted.
-         */
-        for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
-          const transition = sdcpn.transitions[i]!;
-          if (idsToProcess.has(transition.id)) {
-            sdcpn.transitions.splice(i, 1);
-            idsToProcess.delete(transition.id);
-            continue;
+        for (const [id, item] of items) {
+          switch (item.type) {
+            case "place":
+              placeIds.add(id);
+              break;
+            case "transition":
+              transitionIds.add(id);
+              break;
+            case "arc":
+              arcIds.add(id);
+              break;
+            case "type":
+              typeIds.add(id);
+              break;
+            case "differentialEquation":
+              equationIds.add(id);
+              break;
+            case "parameter":
+              parameterIds.add(id);
+              break;
           }
+        }
 
-          for (
-            let inputArcIndex = transition.inputArcs.length - 1;
-            inputArcIndex >= 0;
-            inputArcIndex--
-          ) {
-            const inputArc = transition.inputArcs[inputArcIndex]!;
-            const arcId = generateArcId({
-              inputId: inputArc.placeId,
-              outputId: transition.id,
-            });
+        // Transitions need special handling: we always iterate them when places,
+        // transitions, or arcs are being deleted, because arcs live inside transitions
+        // and deleting a place must cascade to remove its connected arcs.
+        const hasCanvasDeletes =
+          placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
 
-            if (idsToProcess.has(arcId) || idsToProcess.has(inputArc.placeId)) {
-              transition.inputArcs.splice(inputArcIndex, 1);
-              idsToProcess.delete(arcId);
+        if (hasCanvasDeletes) {
+          for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
+            const transition = sdcpn.transitions[i]!;
+            if (transitionIds.has(transition.id)) {
+              sdcpn.transitions.splice(i, 1);
+              continue;
             }
-          }
 
-          for (
-            let outputArcIndex = transition.outputArcs.length - 1;
-            outputArcIndex >= 0;
-            outputArcIndex--
-          ) {
-            const outputArc = transition.outputArcs[outputArcIndex]!;
-            const arcId = generateArcId({
-              inputId: transition.id,
-              outputId: outputArc.placeId,
-            });
-
-            if (
-              idsToProcess.has(arcId) ||
-              idsToProcess.has(outputArc.placeId)
+            for (
+              let arcIdx = transition.inputArcs.length - 1;
+              arcIdx >= 0;
+              arcIdx--
             ) {
-              transition.outputArcs.splice(outputArcIndex, 1);
-              idsToProcess.delete(arcId);
+              const inputArc = transition.inputArcs[arcIdx]!;
+              const arcId = generateArcId({
+                inputId: inputArc.placeId,
+                outputId: transition.id,
+              });
+
+              if (arcIds.has(arcId) || placeIds.has(inputArc.placeId)) {
+                transition.inputArcs.splice(arcIdx, 1);
+              }
+            }
+
+            for (
+              let arcIdx = transition.outputArcs.length - 1;
+              arcIdx >= 0;
+              arcIdx--
+            ) {
+              const outputArc = transition.outputArcs[arcIdx]!;
+              const arcId = generateArcId({
+                inputId: transition.id,
+                outputId: outputArc.placeId,
+              });
+
+              if (arcIds.has(arcId) || placeIds.has(outputArc.placeId)) {
+                transition.outputArcs.splice(arcIdx, 1);
+              }
             }
           }
 
-          if (idsToProcess.size === 0) {
-            return;
+          for (let i = sdcpn.places.length - 1; i >= 0; i--) {
+            if (placeIds.has(sdcpn.places[i]!.id)) {
+              sdcpn.places.splice(i, 1);
+            }
           }
         }
 
-        for (let i = sdcpn.places.length - 1; i >= 0; i--) {
-          const place = sdcpn.places[i]!;
-          if (idsToProcess.has(place.id)) {
-            sdcpn.places.splice(i, 1);
-            idsToProcess.delete(place.id);
+        if (typeIds.size > 0) {
+          for (let i = sdcpn.types.length - 1; i >= 0; i--) {
+            if (typeIds.has(sdcpn.types[i]!.id)) {
+              sdcpn.types.splice(i, 1);
+            }
           }
         }
 
-        for (let i = sdcpn.types.length - 1; i >= 0; i--) {
-          const type = sdcpn.types[i]!;
-          if (idsToProcess.has(type.id)) {
-            sdcpn.types.splice(i, 1);
-            idsToProcess.delete(type.id);
+        if (equationIds.size > 0) {
+          for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
+            if (equationIds.has(sdcpn.differentialEquations[i]!.id)) {
+              sdcpn.differentialEquations.splice(i, 1);
+            }
           }
         }
 
-        for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
-          const equation = sdcpn.differentialEquations[i]!;
-          if (idsToProcess.has(equation.id)) {
-            sdcpn.differentialEquations.splice(i, 1);
-            idsToProcess.delete(equation.id);
-          }
-        }
-
-        for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
-          const parameter = sdcpn.parameters[i]!;
-          if (idsToProcess.has(parameter.id)) {
-            sdcpn.parameters.splice(i, 1);
-            idsToProcess.delete(parameter.id);
+        if (parameterIds.size > 0) {
+          for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
+            if (parameterIds.has(sdcpn.parameters[i]!.id)) {
+              sdcpn.parameters.splice(i, 1);
+            }
           }
         }
       });

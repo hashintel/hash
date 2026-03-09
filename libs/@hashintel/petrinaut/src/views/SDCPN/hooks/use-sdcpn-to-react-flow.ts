@@ -27,7 +27,7 @@ import {
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { draggingStateByNodeId, selection } = use(EditorContext);
+  const { draggingStateByNodeId, isSelected } = use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
 
@@ -58,7 +58,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       height: dims.place.height,
       measured: { width: dims.place.width, height: dims.place.height },
       dragging: draggingState?.dragging ?? false,
-      selected: selection.has(place.id),
+      selected: isSelected(place.id),
       data: {
         label: place.name,
         type: "place",
@@ -89,7 +89,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         height: dims.transition.height,
       },
       dragging: draggingState?.dragging ?? false,
-      selected: selection.has(transition.id),
+      selected: isSelected(transition.id),
       data: {
         label: transition.name,
         type: "transition",
@@ -126,7 +126,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         source: inputArc.placeId,
         target: transition.id,
         type: "default" as const,
-        selected: selection.has(arcId),
+        selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: arcColor,
@@ -167,7 +167,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         source: transition.id,
         target: outputArc.placeId,
         type: "default" as const,
-        selected: selection.has(arcId),
+        selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: arcColor,

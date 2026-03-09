@@ -91,7 +91,7 @@ const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
   } = use(SDCPNContext);
-  const { selection, selectItem, toggleItem } = use(EditorContext);
+  const { isSelected, selectItem, toggleItem } = use(EditorContext);
 
   const handleLayerClick = (event: React.MouseEvent, item: SelectionItem) => {
     if (event.metaKey || event.ctrlKey) {
@@ -105,7 +105,7 @@ const NodesSectionContent: React.FC = () => {
     <div className={listContainerStyle}>
       {/* Places */}
       {places.map((place) => {
-        const isSelected = selection.has(place.id);
+        const placeSelected = isSelected(place.id);
         const item: SelectionItem = { type: "place", id: place.id };
         return (
           <div
@@ -119,10 +119,13 @@ const NodesSectionContent: React.FC = () => {
                 selectItem(item);
               }
             }}
-            className={nodeRowStyle({ isSelected })}
+            className={nodeRowStyle({ isSelected: placeSelected })}
           >
-            <FaCircle size={12} className={nodeIconStyle({ isSelected })} />
-            <span className={nodeNameStyle({ isSelected })}>
+            <FaCircle
+              size={12}
+              className={nodeIconStyle({ isSelected: placeSelected })}
+            />
+            <span className={nodeNameStyle({ isSelected: placeSelected })}>
               {place.name || `Place ${place.id}`}
             </span>
           </div>
@@ -131,7 +134,7 @@ const NodesSectionContent: React.FC = () => {
 
       {/* Transitions */}
       {transitions.map((transition) => {
-        const isSelected = selection.has(transition.id);
+        const transitionSelected = isSelected(transition.id);
         const item: SelectionItem = {
           type: "transition",
           id: transition.id,
@@ -148,10 +151,13 @@ const NodesSectionContent: React.FC = () => {
                 selectItem(item);
               }
             }}
-            className={nodeRowStyle({ isSelected })}
+            className={nodeRowStyle({ isSelected: transitionSelected })}
           >
-            <FaSquare size={12} className={nodeIconStyle({ isSelected })} />
-            <span className={nodeNameStyle({ isSelected })}>
+            <FaSquare
+              size={12}
+              className={nodeIconStyle({ isSelected: transitionSelected })}
+            />
+            <span className={nodeNameStyle({ isSelected: transitionSelected })}>
               {transition.name || `Transition ${transition.id}`}
             </span>
           </div>

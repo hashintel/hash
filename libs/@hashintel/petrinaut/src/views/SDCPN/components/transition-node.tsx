@@ -107,7 +107,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { selection } = use(EditorContext);
+  const { isSelected } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -120,7 +120,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
   // Determine selection state
-  const isInSelection = selection.has(id);
+  const isInSelection = isSelected(id);
   const selectionVariant: SelectionVariant = isInSelection
     ? "resource"
     : selected
