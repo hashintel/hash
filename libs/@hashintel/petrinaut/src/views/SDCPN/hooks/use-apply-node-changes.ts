@@ -3,7 +3,7 @@ import { use } from "react";
 
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import type { SelectionItem, SelectionMap } from "../../../state/selection";
+import type { SelectionMap } from "../../../state/selection";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 import {
   classicNodeDimensions,
@@ -18,8 +18,7 @@ import {
  */
 export function useApplyNodeChanges() {
   const { getItemType, mutatePetriNetDefinition } = use(SDCPNContext);
-  const { updateDraggingStateByNodeId, setSelection, selection } =
-    use(EditorContext);
+  const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
@@ -29,20 +28,6 @@ export function useApplyNodeChanges() {
       position: { x: number; y: number };
     }> = [];
     let selectionChanged = false;
-
-    // Check if current selection has any non-node items (types, etc.)
-    const hasNonCanvasSelection = Array.from(selection.values()).some(
-      (item) =>
-        item.type !== "place" &&
-        item.type !== "transition" &&
-        item.type !== "arc",
-    );
-
-    // If we have non-canvas items selected, clear them when ReactFlow tries to select something
-    // Otherwise, keep the existing selection and let ReactFlow modify it
-    const newSelection: SelectionMap = new Map(
-      hasNonCanvasSelection ? [] : selection,
-    );
 
     for (const change of changes) {
       if (
@@ -58,15 +43,6 @@ export function useApplyNodeChanges() {
 
       if (change.type === "select") {
         selectionChanged = true;
-        if (change.selected && !selection.has(change.id)) {
-          const itemType = getItemType(change.id);
-          if (itemType) {
-            const item: SelectionItem = { type: itemType, id: change.id };
-            newSelection.set(change.id, item);
-          }
-        } else if (!change.selected && selection.has(change.id)) {
-          newSelection.delete(change.id);
-        }
       }
 
       if (change.type === "position") {
@@ -91,9 +67,40 @@ export function useApplyNodeChanges() {
       }
     }
 
-    // Apply selection changes to EditorStore
+    // Apply selection changes to EditorStore using a functional updater
+    // so that concurrent onNodesChange and onEdgesChange calls (which
+    // ReactFlow fires separately in the same event tick) don't clobber
+    // each other due to stale closure state.
     if (selectionChanged) {
-      setSelection(newSelection);
+      setSelection((prevSelection) => {
+        const hasNonCanvasItems = Array.from(prevSelection.values()).some(
+          (item) =>
+            item.type !== "place" &&
+            item.type !== "transition" &&
+            item.type !== "arc",
+        );
+
+        const base: SelectionMap = new Map(
+          hasNonCanvasItems ? [] : prevSelection,
+        );
+
+        for (const change of changes) {
+          if (change.type === "select") {
+            if (change.selected && !prevSelection.has(change.id)) {
+              const itemType = getItemType(change.id);
+              // Skip arcs — they are only selectable via direct click
+              // (onEdgeClick), not via drag-to-select box selection.
+              if (itemType && itemType !== "arc") {
+                base.set(change.id, { type: itemType, id: change.id });
+              }
+            } else if (!change.selected && prevSelection.has(change.id)) {
+              base.delete(change.id);
+            }
+          }
+        }
+
+        return base;
+      });
     }
 
     // Commit all final positions from drag-end in a single atomic mutation

@@ -215,6 +215,12 @@ export const SDCPNView: React.FC = () => {
   // We don't need an onNodeClick handler for selection — doing so would
   // conflict with ReactFlow's internal selection management.
 
+  // Edge (arc) selection is handled here instead of in applyNodeChanges,
+  // because we want arcs selectable only by click, not by drag-to-select.
+  function onEdgeClick(_event: React.MouseEvent, edge: { id: string }) {
+    selectItem({ type: "arc", id: edge.id });
+  }
+
   function onPaneClick(event: React.MouseEvent) {
     if (!reactFlowInstance || !canvasContainer.current) {
       return;
@@ -349,6 +355,7 @@ export const SDCPNView: React.FC = () => {
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
+        onEdgeClick={isReadonly ? undefined : onEdgeClick}
         onPaneClick={onPaneClick}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}

@@ -77,8 +77,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelection: (selection: SelectionMap) =>
+    setSelection: (
+      selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+    ) =>
       setState((prev) => {
+        const selection =
+          typeof selectionOrUpdater === "function"
+            ? selectionOrUpdater(prev.selection)
+            : selectionOrUpdater;
         const visibilityChanged =
           (prev.selection.size === 0) !== (selection.size === 0);
         if (visibilityChanged) {

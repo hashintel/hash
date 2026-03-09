@@ -55,7 +55,9 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setSelection: (selection: SelectionMap) => void;
+  setSelection: (
+    selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+  ) => void;
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   addToSelection: (items: SelectionItem[]) => void;
