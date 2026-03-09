@@ -3878,9 +3878,11 @@ dependencies = [
  "hashql-hir",
  "hashql-mir",
  "insta",
+ "serde",
  "serde_json",
  "simple-mermaid",
  "type-system",
+ "url",
 ]
 
 [[package]]

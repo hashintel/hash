@@ -46,14 +46,6 @@ const INT_BITS: NonZero<u8> = NonZero::new(128).unwrap();
 /// Stores an [`i128`] value alongside its bit-width. The width distinguishes booleans
 /// (1 bit, values `0` or `1`) from integers (128 bits, full [`i128`] range).
 ///
-/// # Layout
-///
-/// Uses `#[repr(packed)]` to avoid alignment padding, keeping the struct at 17 bytes
-/// (16 for `i128` + 1 for `NonZero<u8>`) instead of 32.
-///
-/// Because fields may be unaligned, all trait implementations copy fields into locals
-/// before use. Never take a reference to a field of a packed `Int`.
-///
 /// # Examples
 ///
 /// ```
@@ -72,6 +64,8 @@ const INT_BITS: NonZero<u8> = NonZero::new(128).unwrap();
 /// // Bool provenance is preserved: from(true) ≠ from(1)
 /// assert_ne!(Int::from(true), Int::from(1_i32));
 /// ```
+// Uses `#[repr(packed)]` to avoid alignment padding, which would duplicate size, same as
+// rust-lang's ScalarInt.
 #[derive(Copy, Clone)]
 #[repr(Rust, packed)]
 pub struct Int {
