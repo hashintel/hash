@@ -113,23 +113,33 @@ export const DevApp = () => {
   const mutatePetriNetDefinition = (
     definitionMutationFn: (draft: SDCPN) => void,
   ) => {
-    if (!currentNetId || !currentNet || isOldFormatInLocalStorage(currentNet)) {
+    if (!currentNetId) {
       return;
     }
 
-    // Compute the new SDCPN synchronously so we can push it to history
-    // without relying on async state reads.
-    const newSDCPN = produce(currentNet.sdcpn, definitionMutationFn);
+    let newSDCPN: SDCPN | undefined;
 
-    setStoredSDCPNs((prev) =>
-      produce(prev, (draft) => {
-        if (draft[currentNetId]) {
-          draft[currentNetId].sdcpn = newSDCPN;
-        }
-      }),
-    );
+    // Use the updater form so that multiple calls before a re-render
+    // (e.g. multi-node drag end) each see the latest state.
+    setStoredSDCPNs((prev) => {
+      const net = prev[currentNetId];
+      if (!net || isOldFormatInLocalStorage(net)) {
+        return prev;
+      }
+      const updatedSDCPN = produce(net.sdcpn, definitionMutationFn);
+      newSDCPN = updatedSDCPN;
+      return {
+        ...prev,
+        [currentNetId]: {
+          ...net,
+          sdcpn: updatedSDCPN,
+        },
+      };
+    });
 
-    pushState(newSDCPN);
+    if (newSDCPN) {
+      pushState(newSDCPN);
+    }
   };
 
   const prevNetIdRef = useRef(currentNetId);

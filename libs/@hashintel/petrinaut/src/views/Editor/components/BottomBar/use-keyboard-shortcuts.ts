@@ -17,17 +17,17 @@ export function useKeyboardShortcuts(
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
 
-      // Handle undo/redo shortcuts, but let Monaco editors, inputs,
-      // textareas, and contentEditable elements handle their own undo/redo.
-      const isTextInput =
+      const isInputFocused =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable ||
-        target.closest(".monaco-editor") !== null;
+        target.closest(".monaco-editor") !== null ||
+        target.closest("#sentry-feedback") !== null;
 
+      // Handle undo/redo shortcuts, but let inputs handle their own undo/redo.
       if (
         undoRedo &&
-        !isTextInput &&
+        !isInputFocused &&
         (event.metaKey || event.ctrlKey) &&
         event.key.toLowerCase() === "z"
       ) {
@@ -39,15 +39,6 @@ export function useKeyboardShortcuts(
         }
         return;
       }
-
-      // Don't trigger if focus is in an input, textarea, contentEditable, or Monaco editor
-      const isInputFocused =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable ||
-        // Check if we're inside a Monaco editor
-        target.closest(".monaco-editor") !== null ||
-        target.closest("#sentry-feedback") !== null;
 
       if (isInputFocused) {
         return;
