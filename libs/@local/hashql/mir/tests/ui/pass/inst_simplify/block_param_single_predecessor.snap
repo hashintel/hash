@@ -28,7 +28,7 @@ fn {closure@4294967040}() -> Boolean {
     }
 
     bb1(%0): {
-        %1 = 1
+        %1 = true
 
         return %1
     }

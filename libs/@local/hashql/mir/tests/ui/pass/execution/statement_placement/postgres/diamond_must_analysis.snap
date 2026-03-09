@@ -11,7 +11,7 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
     let %7: Boolean
 
     bb0(): {
-        %2 = 1                                                                  // cost: 4
+        %2 = true                                                               // cost: 4
         %3 = %0.0                                                               // cost: 4
         %4 = (%3)                                                               // cost: 4
         %5 = closure(({def@77} as FnPtr), %4)
