@@ -21,6 +21,8 @@ const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_PLACE_FILL = "#0F0F0F";
 const DEFAULT_TRANSITION_FILL = "#6b7280";
+const SELECTED_COLOR = "#3bb9f6";
+const SELECTED_STROKE_WIDTH = 12;
 
 /**
  * Custom node renderer for the MiniMap.
@@ -44,13 +46,18 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         : DEFAULT_PLACE_FILL
       : DEFAULT_TRANSITION_FILL;
 
+  const isSelected = node.selected;
+
   if (node.data.type === "place") {
     return (
       <circle
         cx={x + SHAPE_SIZE / 2}
         cy={y + SHAPE_SIZE / 2}
         r={SHAPE_SIZE / 2}
-        fill={fill}
+        fill={isSelected ? SELECTED_COLOR : fill}
+        stroke={isSelected ? SELECTED_COLOR : "none"}
+        strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
+        strokeOpacity={0.4}
       />
     );
   }
@@ -61,7 +68,10 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
       width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
       height={SHAPE_SIZE}
-      fill={fill}
+      fill={isSelected ? SELECTED_COLOR : fill}
+      stroke={isSelected ? SELECTED_COLOR : "none"}
+      strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
+      strokeOpacity={0.4}
     />
   );
 };
