@@ -2,12 +2,7 @@ import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
 import type { Connection } from "@xyflow/react";
-import {
-  Background,
-  ReactFlow,
-  SelectionMode,
-  useReactFlow,
-} from "@xyflow/react";
+import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
@@ -54,33 +49,6 @@ const canvasContainerStyle = css({
     cursor: `var(--pane-cursor) !important`,
   },
 });
-
-/**
- * Inner component that registers focusNode via useReactFlow (must be inside ReactFlow provider).
- */
-const FocusNodeRegistrar: React.FC = () => {
-  const { setCenter } = useReactFlow();
-  const { registerFocusNode } = use(EditorContext);
-  const { petriNetDefinition } = use(SDCPNContext);
-
-  useEffect(() => {
-    registerFocusNode((nodeId: string) => {
-      const place = petriNetDefinition.places.find((pl) => pl.id === nodeId);
-      if (place) {
-        void setCenter(place.x, place.y, { duration: 400, zoom: 1 });
-        return;
-      }
-      const transition = petriNetDefinition.transitions.find(
-        (tr) => tr.id === nodeId,
-      );
-      if (transition) {
-        void setCenter(transition.x, transition.y, { duration: 400, zoom: 1 });
-      }
-    });
-  }, [setCenter, registerFocusNode, petriNetDefinition]);
-
-  return null;
-};
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
@@ -383,7 +351,6 @@ export const SDCPNView: React.FC = () => {
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
         <ViewportControls />
-        <FocusNodeRegistrar />
       </ReactFlow>
     </div>
   );

@@ -33,8 +33,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     undefined,
   );
 
-  const focusNodeRef = useRef<(nodeId: string) => void>(() => {});
-
   const triggerPanelAnimation = () => {
     if (!userSettings.showAnimations) {
       return;
@@ -154,12 +152,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         }
         return { ...prev, selection: new Map() };
       });
-    },
-    focusNode: (nodeId: string) => {
-      focusNodeRef.current(nodeId);
-    },
-    registerFocusNode: (fn: (nodeId: string) => void) => {
-      focusNodeRef.current = fn;
     },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),

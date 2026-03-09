@@ -91,17 +91,13 @@ const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
   } = use(SDCPNContext);
-  const { selection, selectItem, toggleItem, focusNode } = use(EditorContext);
+  const { selection, selectItem, toggleItem } = use(EditorContext);
 
   const handleLayerClick = (event: React.MouseEvent, item: SelectionItem) => {
     if (event.metaKey || event.ctrlKey) {
       toggleItem(item);
     } else {
       selectItem(item);
-    }
-    // Pan to node for places and transitions
-    if (item.type === "place" || item.type === "transition") {
-      focusNode(item.id);
     }
   };
 
@@ -121,7 +117,6 @@ const NodesSectionContent: React.FC = () => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 selectItem(item);
-                focusNode(place.id);
               }
             }}
             className={nodeRowStyle({ isSelected })}
@@ -151,7 +146,6 @@ const NodesSectionContent: React.FC = () => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 selectItem(item);
-                focusNode(transition.id);
               }
             }}
             className={nodeRowStyle({ isSelected })}

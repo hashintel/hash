@@ -63,8 +63,6 @@ export type EditorActions = {
   addToSelection: (items: SelectionItem[]) => void;
   removeFromSelection: (ids: string[]) => void;
   clearSelection: () => void;
-  focusNode: (nodeId: string) => void;
-  registerFocusNode: (fn: (nodeId: string) => void) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -112,8 +110,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   addToSelection: () => {},
   removeFromSelection: () => {},
   clearSelection: () => {},
-  focusNode: () => {},
-  registerFocusNode: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
