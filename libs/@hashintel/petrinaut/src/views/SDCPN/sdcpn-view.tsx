@@ -2,7 +2,12 @@ import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
 import type { Connection } from "@xyflow/react";
-import { Background, ReactFlow, useReactFlow } from "@xyflow/react";
+import {
+  Background,
+  ReactFlow,
+  SelectionMode,
+  useReactFlow,
+} from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
@@ -86,7 +91,7 @@ export const SDCPNView: React.FC = () => {
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, partialSelection } = use(UserSettingsContext);
   const nodeTypes = useMemo(
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
     [compactNodes],
@@ -368,6 +373,9 @@ export const SDCPNView: React.FC = () => {
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}
+        selectionMode={
+          partialSelection ? SelectionMode.Partial : SelectionMode.Full
+        }
         selectNodesOnDrag={false}
         panOnScroll={false}
         zoomOnScroll

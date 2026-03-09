@@ -235,6 +235,7 @@ function createMockUserSettings(
     setActiveBottomPanelTab: vi.fn(),
     setCursorMode: vi.fn(),
     setTimelineChartType: vi.fn(),
+    setPartialSelection: vi.fn(),
     updateSubViewSection: vi.fn(),
     ...overrides,
   };
