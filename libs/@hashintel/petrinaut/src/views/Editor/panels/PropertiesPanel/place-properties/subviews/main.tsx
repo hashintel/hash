@@ -329,16 +329,7 @@ const DeletePlaceAction: React.FC = () => {
       aria-label="Delete"
       size="xs"
       colorScheme="red"
-      onClick={() => {
-        if (
-          // eslint-disable-next-line no-alert
-          window.confirm(
-            `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
-          )
-        ) {
-          removePlace(place.id);
-        }
-      }}
+      onClick={() => removePlace(place.id)}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >

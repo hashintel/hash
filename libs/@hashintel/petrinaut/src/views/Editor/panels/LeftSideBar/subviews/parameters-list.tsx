@@ -187,14 +187,7 @@ const ParametersList: React.FC = () => {
                     variant="ghost"
                     colorScheme="red"
                     disabled={isReadOnly}
-                    onClick={() => {
-                      if (
-                        // eslint-disable-next-line no-alert
-                        window.confirm(`Delete parameter "${param.name}"?`)
-                      ) {
-                        removeParameter(param.id);
-                      }
-                    }}
+                    onClick={() => removeParameter(param.id)}
                     aria-label={`Delete ${param.name}`}
                     tooltip={
                       isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
