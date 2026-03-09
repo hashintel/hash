@@ -504,7 +504,7 @@ __metadata:
     immer: "npm:10.1.3"
     install: "npm:0.13.0"
     js-yaml: "npm:4.1.1"
-    jsonpath: "npm:1.2.1"
+    jsonpath: "npm:1.3.0"
     keyv: "npm:5.5.3"
     lodash: "npm:4.17.23"
     long: "npm:5.3.2"
@@ -625,7 +625,7 @@ __metadata:
     graphql: "npm:16.11.0"
     iframe-resizer: "npm:4.4.5"
     immer: "npm:10.1.3"
-    jsonpath: "npm:1.2.1"
+    jsonpath: "npm:1.3.0"
     lodash: "npm:4.17.23"
     marked: "npm:4.3.0"
     material-ui-popup-state: "npm:4.1.0"
@@ -22992,16 +22992,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"brace-expansion@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "brace-expansion@npm:2.0.1"
-  dependencies:
-    balanced-match: "npm:^1.0.0"
-  checksum: 10c0/b358f2fe060e2d7a87aa015979ecea07f3c37d4018f8d6deb5bd4c229ad3a0384fe6029bb76cd8be63c81e516ee52d1a0673edbe2023d53a5191732ae3c3e49f
-  languageName: node
-  linkType: hard
-
-"brace-expansion@npm:^2.0.2":
+"brace-expansion@npm:^2.0.1, brace-expansion@npm:^2.0.2":
   version: 2.0.2
   resolution: "brace-expansion@npm:2.0.2"
   dependencies:
@@ -33234,14 +33225,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonpath@npm:1.2.1":
-  version: 1.2.1
-  resolution: "jsonpath@npm:1.2.1"
+"jsonpath@npm:1.3.0":
+  version: 1.3.0
+  resolution: "jsonpath@npm:1.3.0"
   dependencies:
     esprima: "npm:1.2.5"
     static-eval: "npm:2.1.1"
     underscore: "npm:1.13.6"
-  checksum: 10c0/673d4e33c586c11eba16f19c212929fcf397d08f67341c7e2b70730b0c80f137ab18383f7a2e04622090fec065d979e19a714fc51e1b67412c989c855a1f2fc6
+  checksum: 10c0/c7464919dd012837091febc393f4f743b82c422e3e8b4f2677119e7f8a37d8fd32f4969699c029fce3f31569a400b275e9ef089047a06548235089989be35bbe
   languageName: node
   linkType: hard
 
