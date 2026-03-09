@@ -17,8 +17,7 @@ import {
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export function useApplyNodeChanges() {
-  const { getItemType, updatePlacePosition, updateTransitionPosition } =
-    use(SDCPNContext);
+  const { getItemType, mutatePetriNetDefinition } = use(SDCPNContext);
   const { updateDraggingStateByNodeId, setSelection, selection } =
     use(EditorContext);
   const { compactNodes } = use(UserSettingsContext);
@@ -97,22 +96,36 @@ export function useApplyNodeChanges() {
       setSelection(newSelection);
     }
 
-    // Commit final positions from drag-end changes to the SDCPN store.
+    // Commit all final positions from drag-end in a single atomic mutation
+    // so that clearing the dragging state never exposes stale SDCPN positions.
     if (positionCommits.length > 0) {
-      for (const { id, position } of positionCommits) {
-        const itemType = getItemType(id);
-        if (itemType === "place") {
-          updatePlacePosition(id, {
-            x: position.x + dims.place.width / 2,
-            y: position.y + dims.place.height / 2,
-          });
-        } else if (itemType === "transition") {
-          updateTransitionPosition(id, {
-            x: position.x + dims.transition.width / 2,
-            y: position.y + dims.transition.height / 2,
-          });
+      const commits = positionCommits.map(({ id, position }) => ({
+        id,
+        itemType: getItemType(id),
+        position,
+      }));
+
+      mutatePetriNetDefinition((sdcpn) => {
+        for (const { id, itemType, position } of commits) {
+          if (itemType === "place") {
+            for (const place of sdcpn.places) {
+              if (place.id === id) {
+                place.x = position.x + dims.place.width / 2;
+                place.y = position.y + dims.place.height / 2;
+                break;
+              }
+            }
+          } else if (itemType === "transition") {
+            for (const transition of sdcpn.transitions) {
+              if (transition.id === id) {
+                transition.x = position.x + dims.transition.width / 2;
+                transition.y = position.y + dims.transition.height / 2;
+                break;
+              }
+            }
+          }
         }
-      }
+      });
       updateDraggingStateByNodeId(() => ({}));
     }
   };

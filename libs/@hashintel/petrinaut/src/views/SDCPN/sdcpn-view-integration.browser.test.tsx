@@ -525,49 +525,47 @@ describe("SDCPNView (integration)", () => {
       // Step 5: Release the drag
       drag.release();
 
-      // Step 6: Verify AFTER the drag — positions committed to SDCPN store
+      // Step 6: Verify AFTER the drag — positions committed atomically via
+      // a single mutatePetriNetDefinition call (batched).
+      const mutateFn = sdcpnCtx.mutatePetriNetDefinition as ReturnType<
+        typeof vi.fn
+      >;
       await expect
-        .poll(
-          () =>
-            (sdcpnCtx.updatePlacePosition as ReturnType<typeof vi.fn>).mock
-              .calls.length,
-          { timeout: 3_000, message: "updatePlacePosition should be called" },
-        )
+        .poll(() => mutateFn.mock.calls.length, {
+          timeout: 3_000,
+          message: "mutatePetriNetDefinition should be called on drag end",
+        })
         .toBeGreaterThan(0);
 
-      expect(sdcpnCtx.updateTransitionPosition).toHaveBeenCalledWith(
-        "transition__1",
-        expect.objectContaining({
-          x: expect.any(Number),
-          y: expect.any(Number),
-        }),
-      );
+      // Apply the last mutation to a copy of the SDCPN to inspect committed positions
+      const sdcpnCopy = structuredClone(createTestSDCPN());
+      const lastMutation = mutateFn.mock.calls.at(-1)![0] as (
+        draft: SDCPN,
+      ) => void;
+      lastMutation(sdcpnCopy);
 
-      // place__1 committed
-      const placeCalls = (
-        sdcpnCtx.updatePlacePosition as ReturnType<typeof vi.fn>
-      ).mock.calls.filter((call: unknown[]) => call[0] === "place__1");
-      expect(placeCalls.length).toBeGreaterThan(0);
+      // place__1 should have been updated
+      const place1 = sdcpnCopy.places.find((place) => place.id === "place__1")!;
+      expect(place1.x).not.toBe(100);
+      expect(place1.y).not.toBe(100);
 
-      // place__2 NOT committed
-      const place2Calls = (
-        sdcpnCtx.updatePlacePosition as ReturnType<typeof vi.fn>
-      ).mock.calls.filter((call: unknown[]) => call[0] === "place__2");
-      expect(place2Calls).toHaveLength(0);
+      // transition__1 should have been updated
+      const trans1 = sdcpnCopy.transitions.find(
+        (tr) => tr.id === "transition__1",
+      )!;
+      expect(trans1.x).not.toBe(250);
+      expect(trans1.y).not.toBe(250);
+
+      // place__2 should NOT have been updated (unselected)
+      const place2 = sdcpnCopy.places.find((place) => place.id === "place__2")!;
+      expect(place2.x).toBe(400);
+      expect(place2.y).toBe(100);
 
       // Verify relative distance preserved in committed SDCPN positions.
       // Original SDCPN centers: place__1 (100,100), transition__1 (250,250)
       // Distance: dx=150, dy=150
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const lastPlacePos: { x: number; y: number } = placeCalls.at(-1)![1];
-      const transCalls = (
-        sdcpnCtx.updateTransitionPosition as ReturnType<typeof vi.fn>
-      ).mock.calls.filter((call: unknown[]) => call[0] === "transition__1");
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const lastTransPos: { x: number; y: number } = transCalls.at(-1)![1];
-
-      const committedDx = lastTransPos.x - lastPlacePos.x;
-      const committedDy = lastTransPos.y - lastPlacePos.y;
+      const committedDx = trans1.x - place1.x;
+      const committedDy = trans1.y - place1.y;
       expect(committedDx).toBeCloseTo(150, 0);
       expect(committedDy).toBeCloseTo(150, 0);
     });
