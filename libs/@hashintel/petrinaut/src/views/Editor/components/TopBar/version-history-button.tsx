@@ -5,23 +5,13 @@ import { IconButton } from "../../../../components/icon-button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 import { UndoRedoContext } from "../../../../state/undo-redo-context";
 
-function formatRelativeTime(timestamp: string): string {
-  const now = Date.now();
-  const then = new Date(timestamp).getTime();
-  const diffSeconds = Math.round((now - then) / 1000);
-
-  if (diffSeconds < 5) {
-    return "just now";
-  }
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  }
-  const diffMinutes = Math.round(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-  const diffHours = Math.round(diffMinutes / 60);
-  return `${diffHours}h ago`;
+function formatTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export const VersionHistoryButton = () => {
@@ -38,13 +28,8 @@ export const VersionHistoryButton = () => {
       const isCurrent = realIndex === currentIndex;
       return {
         id: `version-${String(realIndex)}`,
-        label: `Version ${realIndex + 1}`,
-        suffix: (
-          <>
-            {formatRelativeTime(entry.timestamp)}
-            {isCurrent && <LuCheck size={14} />}
-          </>
-        ),
+        label: formatTime(entry.timestamp),
+        suffix: isCurrent && <LuCheck size={14} />,
         selected: isCurrent,
         onClick: () => goToIndex(realIndex),
       };
@@ -64,6 +49,8 @@ export const VersionHistoryButton = () => {
       }
       items={menuItems}
       animated
+      maxHeight="310px"
+      closeOnSelect={false}
       placement="bottom-end"
     />
   );
