@@ -22,4 +22,7 @@ mod scratch;
 mod tests;
 pub mod value;
 
-pub use runtime::{CallStack, Runtime, RuntimeConfig};
+pub use self::{
+    locals::Locals,
+    runtime::{CallStack, Runtime, RuntimeConfig},
+};

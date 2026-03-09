@@ -32,7 +32,7 @@ use crate::{
 ///
 /// Stores the values of local variables during interpretation of a function.
 /// Locals are indexed by [`Local`] and may be uninitialized.
-pub(crate) struct Locals<'ctx, 'heap, A: Allocator> {
+pub struct Locals<'ctx, 'heap, A: Allocator> {
     /// Allocator for creating new values.
     alloc: A,
     /// Local variable declarations (for error reporting).
@@ -89,7 +89,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
     /// initialized.
     #[inline]
-    pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
+    pub fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
         self.inner.get(local).ok_or_else(|| {
             let decl = self.decl[local];
             RuntimeError::UninitializedLocal { local, decl }
@@ -98,7 +98,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
 
     /// Gets a mutable reference to a local variable's value.
     #[inline]
-    pub(crate) fn local_mut(&mut self, local: Local) -> &mut Value<'heap, A> {
+    pub fn local_mut(&mut self, local: Local) -> &mut Value<'heap, A> {
         self.inner.fill_until(local, || Value::Unit)
     }
 
