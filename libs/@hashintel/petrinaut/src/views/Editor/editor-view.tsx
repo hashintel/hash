@@ -7,6 +7,8 @@ import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
+import { supplyChainSDCPN } from "../../examples/supply-chain";
+import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
@@ -173,28 +175,22 @@ export const EditorView = ({
       id: "load-example",
       label: "Load example",
       submenu: [
-        /**
-         * @todo H-5641: once probabilistic transition kernel available,
-         *       update this example so that the Manufacture step probabilistically
-         *       produces either good or bad product, then enable a 'Dispose' or 'Dispatch'
-         *       transition depending on which was randomly selected.
-         */
-        // {
-        //   id: "load-example-supply-chain",
-        //   label: "Supply Chain",
-        //   onClick: () => {
-        //     createNewNet(supplyChainSDCPN);
-        //     clearSelection();
-        //   },
-        // },
-        // {
-        //   id: "load-example-supply-chain-stochastic",
-        //   label: "Supply Chain (Stochastic)",
-        //   onClick: () => {
-        //     createNewNet(supplyChainStochasticSDCPN);
-        //     clearSelection();
-        //   },
-        // },
+        {
+          id: "load-example-supply-chain",
+          label: "Supply Chain",
+          onClick: () => {
+            createNewNet(supplyChainSDCPN);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-supply-chain-stochastic",
+          label: "Probabilistic Supply Chain",
+          onClick: () => {
+            createNewNet(supplyChainStochasticSDCPN);
+            clearSelection();
+          },
+        },
         {
           id: "load-example-satellites",
           label: "Satellites",

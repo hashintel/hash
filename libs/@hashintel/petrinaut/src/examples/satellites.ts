@@ -179,7 +179,7 @@ export default TransitionKernel((tokens) => {
         lambdaType: "predicate",
         lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
 export default Lambda((tokens, parameters) => {
-  const { earth_radius } = parameters;
+  const { earth_radius, crash_threshold, satellite_radius } = parameters;
 
   // Get satellite position
   const { x, y } = tokens.Space[0];
@@ -188,7 +188,7 @@ export default Lambda((tokens, parameters) => {
   const distance = Math.hypot(x, y);
 
   // Crash occurs if satellite is too close to Earth
-  return distance < earth_radius;
+  return distance < earth_radius + crash_threshold - satellite_radius;
 })`,
         transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
 export default TransitionKernel((tokens) => {

@@ -88,9 +88,10 @@ export function sampleDistribution(
   switch (distribution.type) {
     case "gaussian": {
       // Box-Muller transform: converts two uniform random values to a standard normal
+      // Use (1 - u1) to avoid Math.log(0) since nextRandom returns [0, 1)
       const [u1, rng1] = nextRandom(rngState);
       const [u2, rng2] = nextRandom(rng1);
-      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      const z = Math.sqrt(-2 * Math.log(1 - u1)) * Math.cos(2 * Math.PI * u2);
       value = distribution.mean + z * distribution.deviation;
       nextRng = rng2;
       break;
@@ -103,9 +104,10 @@ export function sampleDistribution(
     }
     case "lognormal": {
       // Lognormal(μ, σ): if X ~ Normal(μ, σ), then e^X ~ Lognormal(μ, σ)
+      // Use (1 - u1) to avoid Math.log(0) since nextRandom returns [0, 1)
       const [u1, rng1] = nextRandom(rngState);
       const [u2, rng2] = nextRandom(rng1);
-      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      const z = Math.sqrt(-2 * Math.log(1 - u1)) * Math.cos(2 * Math.PI * u2);
       value = Math.exp(distribution.mu + z * distribution.sigma);
       nextRng = rng2;
       break;
