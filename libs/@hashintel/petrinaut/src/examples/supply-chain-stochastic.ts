@@ -113,7 +113,7 @@ export default TransitionKernel(() => {
         lambdaCode: `// Dispatch if product quality exceeds the quality threshold
 export default Lambda((tokens, parameters) => {
   const { quality_threshold } = parameters;
-  return tokens.QAQueue[0].quality > quality_threshold;
+  return tokens.QAQueue[0].quality >= quality_threshold;
 });`,
         transitionKernelCode: "",
         x: 1035,
@@ -128,7 +128,7 @@ export default Lambda((tokens, parameters) => {
         lambdaCode: `// Dispose if product quality is below the quality threshold
 export default Lambda((tokens, parameters) => {
   const { quality_threshold } = parameters;
-  return tokens.QAQueue[0].quality <= quality_threshold;
+  return tokens.QAQueue[0].quality < quality_threshold;
 });`,
         transitionKernelCode: "",
         x: 1035,
