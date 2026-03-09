@@ -6,7 +6,7 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 /**
  * Library build config
  */
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   build: {
     lib: {
       entry: "src/main.ts",
@@ -76,10 +76,13 @@ export default defineConfig({
       },
     }),
 
-    dts({ tsgo: true }).map((plugin) =>
-      // Ensure runs before Vite's native TypeScript transform
-      plugin.name.endsWith("fake-js") ? { ...plugin, enforce: "pre" } : plugin,
-    ),
+    command === "build" &&
+      dts({ tsgo: true }).map((plugin) =>
+        // Ensure runs before Vite's native TypeScript transform
+        plugin.name.endsWith("fake-js")
+          ? { ...plugin, enforce: "pre" }
+          : plugin,
+      ),
   ],
 
   experimental: {
@@ -92,4 +95,4 @@ export default defineConfig({
       return filename;
     },
   },
-});
+}));
