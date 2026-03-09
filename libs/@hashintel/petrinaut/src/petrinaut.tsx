@@ -1,6 +1,8 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
+import { type FunctionComponent } from "react";
+
 import type {
   Color,
   DifferentialEquation,
@@ -103,11 +105,11 @@ export type PetrinautProps = {
   undoRedo?: UndoRedoContextValue;
 };
 
-export const Petrinaut = ({
+export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
   undoRedo,
   ...rest
-}: PetrinautProps) => {
+}) => {
   return (
     <NotificationsProvider>
       <UndoRedoContext value={undoRedo ?? null}>
