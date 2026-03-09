@@ -314,10 +314,6 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             }
           }
 
-          /**
-           * If we have no more ids we can return now.
-           * Places aren't referred to by anything else, so no more ids == no places to delete.
-           */
           if (idsToProcess.size === 0) {
             return;
           }
@@ -328,6 +324,30 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
           if (idsToProcess.has(place.id)) {
             sdcpn.places.splice(i, 1);
             idsToProcess.delete(place.id);
+          }
+        }
+
+        for (let i = sdcpn.types.length - 1; i >= 0; i--) {
+          const type = sdcpn.types[i]!;
+          if (idsToProcess.has(type.id)) {
+            sdcpn.types.splice(i, 1);
+            idsToProcess.delete(type.id);
+          }
+        }
+
+        for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
+          const equation = sdcpn.differentialEquations[i]!;
+          if (idsToProcess.has(equation.id)) {
+            sdcpn.differentialEquations.splice(i, 1);
+            idsToProcess.delete(equation.id);
+          }
+        }
+
+        for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
+          const parameter = sdcpn.parameters[i]!;
+          if (idsToProcess.has(parameter.id)) {
+            sdcpn.parameters.splice(i, 1);
+            idsToProcess.delete(parameter.id);
           }
         }
       });

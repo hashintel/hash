@@ -66,20 +66,13 @@ export const SDCPNView: React.FC = () => {
   );
 
   // SDCPN store
-  const {
-    petriNetId,
-    addPlace,
-    addTransition,
-    addArc,
-    deleteItemsByIds,
-    readonly,
-  } = use(SDCPNContext);
+  const { petriNetId, addPlace, addTransition, addArc, readonly } =
+    use(SDCPNContext);
 
   const {
     editionMode,
     setEditionMode,
     cursorMode,
-    selection,
     selectItem,
     clearSelection,
   } = use(EditorContext);
@@ -302,21 +295,12 @@ export const SDCPNView: React.FC = () => {
   };
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={canvasContainer}
       className={canvasContainerStyle}
       style={{
         // @ts-expect-error CSS variables work at runtime, but are not in the type system
         "--pane-cursor": getCursorStyle() as string,
-      }}
-      onKeyDown={({ key }) => {
-        // Quick-and-dirty way to delete selected items with keyboard
-        // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
-        if ((key === "Delete" || key === "Backspace") && !isReadonly) {
-          deleteItemsByIds(new Set(selection.keys()));
-          clearSelection();
-        }
       }}
     >
       <ReactFlow
