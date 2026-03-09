@@ -110,10 +110,10 @@ export default TransitionKernel(() => {
         inputArcs: [{ placeId: "place__3", weight: 1 }],
         outputArcs: [{ placeId: "place__5", weight: 1 }],
         lambdaType: "predicate",
-        lambdaCode: `// Dispatch if product quality exceeds the defect threshold
+        lambdaCode: `// Dispatch if product quality exceeds the quality threshold
 export default Lambda((tokens, parameters) => {
-  const { defect_rate } = parameters;
-  return tokens.QAQueue[0].quality > defect_rate;
+  const { quality_threshold } = parameters;
+  return tokens.QAQueue[0].quality > quality_threshold;
 });`,
         transitionKernelCode: "",
         x: 1035,
@@ -125,10 +125,10 @@ export default Lambda((tokens, parameters) => {
         inputArcs: [{ placeId: "place__3", weight: 1 }],
         outputArcs: [{ placeId: "place__4", weight: 1 }],
         lambdaType: "predicate",
-        lambdaCode: `// Dispose if product quality is below the defect threshold
+        lambdaCode: `// Dispose if product quality is below the quality threshold
 export default Lambda((tokens, parameters) => {
-  const { defect_rate } = parameters;
-  return tokens.QAQueue[0].quality <= defect_rate;
+  const { quality_threshold } = parameters;
+  return tokens.QAQueue[0].quality <= quality_threshold;
 });`,
         transitionKernelCode: "",
         x: 1035,
@@ -164,9 +164,9 @@ export default Lambda((tokens, parameters) => {
     differentialEquations: [],
     parameters: [
       {
-        id: "param__defect_rate",
-        name: "Defect Rate",
-        variableName: "defect_rate",
+        id: "param__quality_threshold",
+        name: "Quality Threshold",
+        variableName: "quality_threshold",
         type: "real",
         defaultValue: "0.2",
       },
