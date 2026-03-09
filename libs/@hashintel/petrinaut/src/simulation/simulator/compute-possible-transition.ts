@@ -1,5 +1,6 @@
 import { SDCPNItemError } from "../../core/errors";
 import type { ID } from "../../core/types/sdcpn";
+import { isDistribution, sampleDistribution } from "./distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
 import type { SimulationFrame, SimulationInstance } from "./types";
@@ -204,7 +205,9 @@ export function computePossibleTransition(
       // Convert transition kernel output back to place-indexed format
       // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
       // We need to convert this to place IDs and flatten to number[][]
+      // Distribution values are sampled here, advancing the RNG state.
       const addMap: Record<PlaceID, number[][]> = {};
+      let currentRngState = newRngState;
 
       for (const outputArc of transition.instance.outputArcs) {
         const outputPlaceState = frame.places[outputArc.placeId];
@@ -251,10 +254,26 @@ export function computePossibleTransition(
           );
         }
 
-        // Convert token objects back to number arrays in correct order
-        const tokenArrays = outputTokens.map((token) => {
-          return type.elements.map((element) => token[element.name]!);
-        });
+        // Convert token objects back to number arrays in correct order,
+        // sampling any Distribution values using the RNG
+        const tokenArrays: number[][] = [];
+        for (const token of outputTokens) {
+          const values: number[] = [];
+          for (const element of type.elements) {
+            const raw = token[element.name]!;
+            if (isDistribution(raw)) {
+              const [sampled, nextRng] = sampleDistribution(
+                raw,
+                currentRngState,
+              );
+              currentRngState = nextRng;
+              values.push(sampled);
+            } else {
+              values.push(raw);
+            }
+          }
+          tokenArrays.push(values);
+        }
 
         addMap[outputArc.placeId] = tokenArrays;
       }
@@ -275,7 +294,7 @@ export function computePossibleTransition(
         // Map from place ID to array of token values to
         // create as per transition kernel output
         add: addMap,
-        newRngState,
+        newRngState: currentRngState,
       };
     }
   }
