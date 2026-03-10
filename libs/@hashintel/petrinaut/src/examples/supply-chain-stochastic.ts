@@ -13,8 +13,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 20,
-        y: 120,
+        x: -180,
+        y: 360,
       },
       {
         id: "place__1",
@@ -22,8 +22,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 20,
-        y: 600,
+        x: -180,
+        y: 450,
       },
       {
         id: "place__2",
@@ -31,17 +31,17 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 300,
-        y: 300,
+        x: 315,
+        y: 405,
       },
       {
         id: "place__3",
         name: "QAQueue",
-        colorId: null,
+        colorId: "type__product",
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 700,
-        y: 350,
+        x: 795,
+        y: 405,
       },
       {
         id: "place__4",
@@ -49,8 +49,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1100,
-        y: 600,
+        x: 1275,
+        y: 525,
       },
       {
         id: "place__5",
@@ -58,8 +58,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1000,
-        y: 200,
+        x: 1275,
+        y: 300,
       },
       {
         id: "place__6",
@@ -67,8 +67,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1300,
-        y: 380,
+        x: 1755,
+        y: 300,
       },
     ],
     transitions: [
@@ -83,8 +83,8 @@ export const supplyChainStochasticSDCPN: {
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
         transitionKernelCode: "",
-        x: 100,
-        y: 400,
+        x: 75,
+        y: 405,
       },
       {
         id: "transition__1",
@@ -93,38 +93,83 @@ export const supplyChainStochasticSDCPN: {
         outputArcs: [{ placeId: "place__3", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
-        transitionKernelCode: "",
-        x: 490,
-        y: 350,
+        transitionKernelCode: `// Produce a product with random quality
+export default TransitionKernel(() => {
+  return {
+    QAQueue: [
+      { quality: Distribution.Uniform(0, 1) }
+    ],
+  };
+});`,
+        x: 555,
+        y: 405,
       },
       {
         id: "transition__2",
-        name: "Quality Check",
+        name: "Dispatch",
         inputArcs: [{ placeId: "place__3", weight: 1 }],
-        outputArcs: [
-          { placeId: "place__5", weight: 1 },
-          { placeId: "place__4", weight: 1 },
-        ],
-        lambdaType: "stochastic",
-        lambdaCode: "export default Lambda(() => 1 / 2);",
+        outputArcs: [{ placeId: "place__5", weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: `// Dispatch if product quality exceeds the quality threshold
+export default Lambda((tokens, parameters) => {
+  const { quality_threshold } = parameters;
+  return tokens.QAQueue[0].quality >= quality_threshold;
+});`,
         transitionKernelCode: "",
-        x: 870,
-        y: 400,
+        x: 1035,
+        y: 300,
       },
       {
         id: "transition__3",
+        name: "Dispose",
+        inputArcs: [{ placeId: "place__3", weight: 1 }],
+        outputArcs: [{ placeId: "place__4", weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: `// Dispose if product quality is below the quality threshold
+export default Lambda((tokens, parameters) => {
+  const { quality_threshold } = parameters;
+  return tokens.QAQueue[0].quality < quality_threshold;
+});`,
+        transitionKernelCode: "",
+        x: 1035,
+        y: 525,
+      },
+      {
+        id: "transition__4",
         name: "Ship",
         inputArcs: [{ placeId: "place__5", weight: 1 }],
         outputArcs: [{ placeId: "place__6", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1 / 3);",
         transitionKernelCode: "",
-        x: 1150,
-        y: 280,
+        x: 1515,
+        y: 300,
       },
     ],
-    types: [],
+    types: [
+      {
+        id: "type__product",
+        name: "Product",
+        iconSlug: "product-icon",
+        displayColor: "#4CAF50",
+        elements: [
+          {
+            elementId: "element__quality",
+            name: "quality",
+            type: "real",
+          },
+        ],
+      },
+    ],
     differentialEquations: [],
-    parameters: [],
+    parameters: [
+      {
+        id: "param__quality_threshold",
+        name: "Quality Threshold",
+        variableName: "quality_threshold",
+        type: "real",
+        defaultValue: "0.2",
+      },
+    ],
   },
 };

@@ -12,8 +12,10 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
+import { UndoRedoContext } from "../../../../state/undo-redo-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
+import { VersionHistoryButton } from "./version-history-button";
 
 const topBarStyle = css({
   display: "flex",
@@ -65,6 +67,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onModeChange,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen } = use(EditorContext);
+  const undoRedo = use(UndoRedoContext);
 
   return (
     <div className={topBarStyle}>
@@ -105,7 +108,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
-        {/* Right section - version info, save button, etc. (placeholder for now) */}
+        {undoRedo && <VersionHistoryButton />}
       </div>
     </div>
   );

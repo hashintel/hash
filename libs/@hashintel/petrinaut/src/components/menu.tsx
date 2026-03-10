@@ -147,6 +147,9 @@ const itemDescriptionStyle = css({
 });
 
 const itemSuffixStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
   marginLeft: "auto",
   fontSize: "xs",
   color: "neutral.s80",
@@ -204,6 +207,10 @@ export interface MenuProps {
   items: MenuItem[] | MenuGroup[];
   /** Whether to animate the menu open/close. Adapts direction automatically. */
   animated?: boolean;
+  /** Maximum height of the menu content (enables scrolling). */
+  maxHeight?: string;
+  /** Whether to close the menu when an item is selected. Defaults to true. */
+  closeOnSelect?: boolean;
   /** Preferred placement of the menu relative to the trigger. */
   placement?:
     | "top"
@@ -265,6 +272,8 @@ export const Menu: React.FC<MenuProps> = ({
   trigger,
   items,
   animated,
+  maxHeight,
+  closeOnSelect,
   placement,
 }) => {
   const portalContainerRef = usePortalContainerRef();
@@ -274,12 +283,16 @@ export const Menu: React.FC<MenuProps> = ({
     <ArkMenu.Root
       lazyMount={!!animated}
       unmountOnExit={!!animated}
+      closeOnSelect={closeOnSelect}
       positioning={placement ? { placement, gutter: 8 } : { gutter: 8 }}
     >
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
       <Portal container={portalContainerRef}>
         <ArkMenu.Positioner>
-          <ArkMenu.Content className={menuContentStyle({ animated })}>
+          <ArkMenu.Content
+            className={menuContentStyle({ animated })}
+            style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
+          >
             {groups.map((group, groupIndex) => (
               <div key={group.title ?? `group-${String(groupIndex)}`}>
                 {groupIndex > 0 && <div className={separatorStyle} />}

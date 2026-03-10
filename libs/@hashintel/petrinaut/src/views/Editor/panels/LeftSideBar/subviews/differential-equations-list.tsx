@@ -105,16 +105,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
               variant="ghost"
               colorScheme="red"
               disabled={isReadOnly}
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
-                  )
-                ) {
-                  removeDifferentialEquation(eq.id);
-                }
-              }}
+              onClick={() => removeDifferentialEquation(eq.id)}
               aria-label={`Delete equation ${eq.name}`}
               tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
             >
