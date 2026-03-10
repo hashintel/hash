@@ -87,13 +87,14 @@ export function useApplyNodeChanges() {
             position: lastPosition,
           });
 
-          updateDraggingStateByNodeId((existing) => ({
-            ...existing,
-            [change.id]: {
-              dragging: false,
-              position: lastPosition,
-            },
-          }));
+          // Clear the dragging state for this node now that the drag is complete
+          // and the position has been collected for commit to the SDCPN store.
+          // Keeping stale positions here would cause them to be re-applied
+          // if ReactFlow emits a spurious position change after an undo.
+          updateDraggingStateByNodeId((existing) => {
+            const { [change.id]: _, ...rest } = existing;
+            return rest;
+          });
         }
       }
     }

@@ -195,16 +195,7 @@ const TypeMainContent: React.FC = () => {
     }
   };
 
-  const handleDeleteElement = (elementId: string, elementName: string) => {
-    // eslint-disable-next-line no-alert
-    const confirmed = window.confirm(
-      `Delete element "${elementName}"?\n\nThis cannot be undone.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+  const handleDeleteElement = (elementId: string) => {
     updateType(type.id, (existingType) => {
       const index = existingType.elements.findIndex(
         (elem) => elem.elementId === elementId,
@@ -352,7 +343,7 @@ const TypeMainContent: React.FC = () => {
                 {/* Delete button */}
                 <IconButton
                   onClick={() => {
-                    handleDeleteElement(element.elementId, element.name);
+                    handleDeleteElement(element.elementId);
                   }}
                   disabled={isDisabled || type.elements.length === 1}
                   size="xxs"
