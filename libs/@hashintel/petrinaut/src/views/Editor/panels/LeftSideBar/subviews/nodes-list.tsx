@@ -24,7 +24,7 @@ const nodeIconStyle = cva({
 
 const nodeNameStyle = cva({
   base: {
-    fontSize: "[13px]",
+    fontSize: "sm",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
@@ -33,11 +33,9 @@ const nodeNameStyle = cva({
     isSelected: {
       true: {
         color: "[#1e40af]",
-        fontWeight: "medium",
       },
       false: {
-        color: "[#374151]",
-        fontWeight: "normal",
+        color: "neutral.s105",
       },
     },
   },

@@ -14,49 +14,78 @@ import type { SelectionItem } from "../../../../../state/selection";
 export const listContainerStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[2px]",
 });
 
 export const listItemRowStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    gap: "[8px]",
-    padding: "[4px 2px 4px 8px]",
-    borderRadius: "sm",
+    gap: "1",
+    minHeight: "8",
+    pl: "2",
+    pr: "1",
+    py: "1",
+    borderRadius: "lg",
     cursor: "pointer",
-    fontSize: "[13px]",
+    fontSize: "sm",
+    fontWeight: "medium",
+    color: "neutral.s105",
+
+    /* Reveal the action button on hover or when its menu is open */
+    "& [data-row-action]": {
+      opacity: "[0]",
+      transition: "[opacity 150ms ease-out]",
+    },
+    "& [data-row-action] svg": {
+      transform: "[translateX(4px)]",
+      transition: "[transform 150ms ease-out]",
+    },
+    "&:hover [data-row-action], & [data-row-action][data-state=open]": {
+      opacity: "[1]",
+    },
+    "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg": {
+      transform: "none",
+    },
   },
   variants: {
     isSelected: {
       true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
+        backgroundColor: "neutral.bg.subtle",
         _hover: {
-          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
+          backgroundColor: "neutral.bg.subtle.hover",
         },
       },
       false: {
         backgroundColor: "[transparent]",
         _hover: {
-          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+          backgroundColor: "neutral.bg.subtle.hover",
         },
       },
     },
   },
 });
 
+export const listItemContentStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  flex: "[1]",
+  minWidth: "[0]",
+});
+
 export const listItemNameStyle = css({
   flex: "[1]",
-  fontSize: "[13px]",
-  color: "[#374151]",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s105",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });
 
 export const emptyMessageStyle = css({
-  fontSize: "[13px]",
-  color: "[#9ca3af]",
+  fontSize: "sm",
+  color: "neutral.s85",
 });
 
 interface FilterableListItem {
@@ -87,7 +116,7 @@ const FilterHeaderAction: React.FC<{
   </>
 );
 
-function FilterableListContent<T extends FilterableListItem>({
+const FilterableListContent = <T extends FilterableListItem>({
   useItems,
   getSelectionItem,
   renderItem,
@@ -97,7 +126,7 @@ function FilterableListContent<T extends FilterableListItem>({
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   emptyMessage: string;
-}) {
+}) => {
   const items = useItems();
   const {
     isSelected: checkIsSelected,
@@ -117,7 +146,7 @@ function FilterableListContent<T extends FilterableListItem>({
             onClick={(event) => {
               if (
                 event.target instanceof HTMLElement &&
-                (event.target.closest("button[aria-label^='Delete']") ||
+                (event.target.closest("button[aria-label='More options']") ||
                   event.target.closest("input"))
               ) {
                 return;
@@ -146,7 +175,7 @@ function FilterableListContent<T extends FilterableListItem>({
       )}
     </div>
   );
-}
+};
 
 /**
  * Creates a SubView definition for a filterable list.

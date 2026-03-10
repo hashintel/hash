@@ -1,8 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
+import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
+import { Menu } from "../../../../../components/menu";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
@@ -142,17 +143,24 @@ export const typesListSubView: SubView = createFilterableListSubView({
           style={{ backgroundColor: type.displayColor }}
         />
         <span className={listItemNameStyle}>{type.name}</span>
-        <IconButton
-          size="xxs"
-          variant="ghost"
-          colorScheme="red"
-          disabled={isReadOnly}
-          onClick={() => removeType(type.id)}
-          aria-label={`Delete token type ${type.name}`}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        >
-          <TbX />
-        </IconButton>
+        <Menu
+          animated
+          trigger={
+            <IconButton aria-label="More options" size="xxs" data-row-action>
+              <TbDots />
+            </IconButton>
+          }
+          items={[
+            {
+              id: "delete",
+              label: "Delete",
+              icon: <TbTrash />,
+              destructive: true,
+              disabled: isReadOnly,
+              onClick: () => removeType(type.id),
+            },
+          ]}
+        />
       </>
     );
   },

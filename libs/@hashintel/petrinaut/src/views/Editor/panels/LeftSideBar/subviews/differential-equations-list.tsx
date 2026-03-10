@@ -1,9 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
+import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
+import { Menu } from "../../../../../components/menu";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
@@ -17,6 +18,10 @@ const equationNameContainerStyle = css({
   alignItems: "center",
   gap: "[6px]",
   flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 /**
@@ -84,17 +89,24 @@ export const differentialEquationsListSubView: SubView =
           <div className={equationNameContainerStyle}>
             <span>{eq.name}</span>
           </div>
-          <IconButton
-            size="xxs"
-            variant="ghost"
-            colorScheme="red"
-            disabled={isReadOnly}
-            onClick={() => removeDifferentialEquation(eq.id)}
-            aria-label={`Delete equation ${eq.name}`}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            <TbX />
-          </IconButton>
+          <Menu
+            animated
+            trigger={
+              <IconButton aria-label="More options" size="xxs" data-row-action>
+                <TbDots />
+              </IconButton>
+            }
+            items={[
+              {
+                id: "delete",
+                label: "Delete",
+                icon: <TbTrash />,
+                destructive: true,
+                disabled: isReadOnly,
+                onClick: () => removeDifferentialEquation(eq.id),
+              },
+            ]}
+          />
         </>
       );
     },

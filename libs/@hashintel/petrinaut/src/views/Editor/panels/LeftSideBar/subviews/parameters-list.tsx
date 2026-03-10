@@ -1,9 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
+import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
+import { Menu } from "../../../../../components/menu";
 import { NumberInput } from "../../../../../components/number-input";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -76,6 +77,19 @@ const parameterRowContentStyle = cva({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    minWidth: "[0]",
+    gap: "1",
+  },
+});
+
+const parameterNameStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+  "& > div": {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
 });
 
@@ -116,7 +130,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
 
     return (
       <div className={parameterRowContentStyle()}>
-        <div>
+        <div className={parameterNameStyle}>
           <div>{param.name}</div>
           <pre className={parameterVarNameStyle}>{param.variableName}</pre>
         </div>
@@ -136,17 +150,28 @@ export const parametersListSubView: SubView = createFilterableListSubView({
               className={parameterValueInputStyle}
             />
           ) : (
-            <IconButton
-              size="xxs"
-              variant="ghost"
-              colorScheme="red"
-              disabled={isReadOnly}
-              onClick={() => removeParameter(param.id)}
-              aria-label={`Delete ${param.name}`}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              <TbX />
-            </IconButton>
+            <Menu
+              animated
+              trigger={
+                <IconButton
+                  aria-label="More options"
+                  size="xxs"
+                  data-row-action
+                >
+                  <TbDots />
+                </IconButton>
+              }
+              items={[
+                {
+                  id: "delete",
+                  label: "Delete",
+                  icon: <TbTrash />,
+                  destructive: true,
+                  disabled: isReadOnly,
+                  onClick: () => removeParameter(param.id),
+                },
+              ]}
+            />
           )}
         </div>
       </div>
