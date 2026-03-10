@@ -10,7 +10,6 @@ export default [
             "panda.config.ts",
             "postcss.config.cjs",
             "vite.config.ts",
-            "vite.site.config.ts",
             ".storybook/main.ts",
             ".storybook/manager.tsx",
             ".storybook/preview.tsx",
@@ -18,23 +17,6 @@ export default [
         },
         tsconfigRootDir: import.meta.dirname,
       },
-    },
-  },
-  {
-    files: ["demo-site/**/*"],
-    languageOptions: {
-      parserOptions: {
-        projectService: {
-          defaultProject: "./demo-site/tsconfig.json",
-        },
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-  {
-    files: ["demo-site/**/*.tsx"],
-    rules: {
-      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
     },
   },
   {

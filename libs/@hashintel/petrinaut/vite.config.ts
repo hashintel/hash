@@ -7,6 +7,13 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
  * Library build config
  */
 export default defineConfig(({ command }) => ({
+  define: {
+    // TypeScript's internals reference `process.versions` directly (not just
+    // `typeof process`). This covers bare access in both main and worker code
+    // during dev/storybook. The worker.plugins below handle the `typeof` form.
+    "process.versions": JSON.stringify({ pnp: undefined }),
+  },
+
   build: {
     lib: {
       entry: "src/main.ts",
@@ -20,7 +27,6 @@ export default defineConfig(({ command }) => ({
         "react",
         "react-dom",
         "@xyflow/react",
-        "monaco-editor",
         "@babel/standalone",
       ],
       output: {
