@@ -40,7 +40,7 @@ use hashql_core::heap::BumpAllocator;
 use hashql_mir::{
     body::{
         Body,
-        terminator::{GraphRead, GraphReadBody},
+        terminator::{GraphRead, GraphReadBody, GraphReadHead},
     },
     def::DefId,
     pass::{
@@ -287,10 +287,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
     }
 
-    /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
-    ///
-    /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-    pub fn compile(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    fn compile_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -373,6 +370,18 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         PreparedQuery {
             parameters: db.parameters,
             statement: query,
+        }
+    }
+
+    /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
+    ///
+    /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+    pub fn compile(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    where
+        A: Clone,
+    {
+        match read.head {
+            GraphReadHead::Entity { .. } => self.compile_entity(read),
         }
     }
 }

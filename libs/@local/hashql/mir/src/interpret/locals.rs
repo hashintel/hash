@@ -184,7 +184,12 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// - For place operands: evaluates the place and borrows the value
     /// - For constant operands: converts the constant to a value
-    pub(crate) fn operand(
+    ///
+    /// # Errors
+    ///
+    /// - [`RuntimeError`] if the local is unassigned, or does is malformed, such that indexing
+    ///   operations failed.
+    pub fn operand(
         &self,
         operand: &Operand<'heap>,
     ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, A>>
