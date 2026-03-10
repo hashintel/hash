@@ -6,7 +6,7 @@ const preventAbbreviations = (): ESConfig => ({
     "unicorn/prevent-abbreviations": [
       "error",
       {
-        checkFilenames: true,
+        checkFilenames: false,
         checkProperties: true,
         checkDefaultAndNamespaceImports: true,
         checkShorthandImports: "internal",
