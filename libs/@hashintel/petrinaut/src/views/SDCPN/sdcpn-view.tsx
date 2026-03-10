@@ -329,6 +329,7 @@ export const SDCPNView: React.FC = () => {
           partialSelection ? SelectionMode.Partial : SelectionMode.Full
         }
         selectNodesOnDrag={false}
+        deleteKeyCode={null}
         panOnScroll={false}
         zoomOnScroll
       >
