@@ -9,6 +9,7 @@ hashql_macros::define_symbols! {
     archived,
     archived_by_id,
     bar,
+    base_url,
     BaseUrl,
     bit_and,
     bit_not,
@@ -110,6 +111,7 @@ hashql_macros::define_symbols! {
     unknown,
     Url,
     vectors,
+    version,
     web_id,
     // [tidy] sort alphabetically end
 
