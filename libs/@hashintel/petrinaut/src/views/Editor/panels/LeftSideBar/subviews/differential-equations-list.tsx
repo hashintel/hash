@@ -1,4 +1,4 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
@@ -9,126 +9,15 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-
-const listContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[4px]",
-});
-
-const equationRowStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "[4px 2px 4px 8px]",
-    fontSize: "[13px]",
-    borderRadius: "sm",
-    cursor: "pointer",
-  },
-  variants: {
-    isSelected: {
-      true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
-        _hover: {
-          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
-        },
-      },
-      false: {
-        backgroundColor: "neutral.s10",
-        _hover: {
-          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        },
-      },
-    },
-  },
-});
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 const equationNameContainerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
+  flex: "[1]",
 });
-
-const emptyMessageStyle = css({
-  fontSize: "[13px]",
-  color: "[#9ca3af]",
-});
-
-/**
- * DifferentialEquationsSectionContent displays the list of differential equations.
- * This is the content portion without the collapsible header.
- */
-const DifferentialEquationsSectionContent: React.FC = () => {
-  const {
-    petriNetDefinition: { differentialEquations },
-    removeDifferentialEquation,
-  } = use(SDCPNContext);
-
-  const { isSelected, selectItem, toggleItem } = use(EditorContext);
-
-  const isReadOnly = useIsReadOnly();
-
-  return (
-    <div className={listContainerStyle}>
-      {differentialEquations.map((eq) => {
-        const eqSelected = isSelected(eq.id);
-        const item: SelectionItem = {
-          type: "differentialEquation",
-          id: eq.id,
-        };
-
-        return (
-          <div
-            key={eq.id}
-            onClick={(event) => {
-              // Don't trigger selection if clicking the delete button
-              if (
-                event.target instanceof HTMLElement &&
-                event.target.closest("button[aria-label^='Delete']")
-              ) {
-                return;
-              }
-              if (event.metaKey || event.ctrlKey) {
-                toggleItem(item);
-              } else {
-                selectItem(item);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                selectItem(item);
-              }
-            }}
-            className={equationRowStyle({ isSelected: eqSelected })}
-          >
-            <div className={equationNameContainerStyle}>
-              <span>{eq.name}</span>
-            </div>
-            <IconButton
-              size="xxs"
-              variant="ghost"
-              colorScheme="red"
-              disabled={isReadOnly}
-              onClick={() => removeDifferentialEquation(eq.id)}
-              aria-label={`Delete equation ${eq.name}`}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              <TbX />
-            </IconButton>
-          </div>
-        );
-      })}
-      {differentialEquations.length === 0 && (
-        <div className={emptyMessageStyle}>No differential equations yet</div>
-      )}
-    </div>
-  );
-};
 
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
@@ -168,16 +57,47 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 /**
  * SubView definition for Differential Equations list.
  */
-export const differentialEquationsListSubView: SubView = {
-  id: "differential-equations-list",
-  title: "Differential Equations",
-  tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
-  component: DifferentialEquationsSectionContent,
-  renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
-  defaultCollapsed: true,
-  resizable: {
-    defaultHeight: 100,
-    minHeight: 60,
-    maxHeight: 250,
-  },
-};
+export const differentialEquationsListSubView: SubView =
+  createFilterableListSubView({
+    id: "differential-equations-list",
+    title: "Differential Equations",
+    tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
+    defaultCollapsed: true,
+    resizable: {
+      defaultHeight: 100,
+      minHeight: 60,
+      maxHeight: 250,
+    },
+    useItems: () => {
+      const {
+        petriNetDefinition: { differentialEquations },
+      } = use(SDCPNContext);
+      return differentialEquations;
+    },
+    getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
+    renderItem: (eq, _isSelected) => {
+      const { removeDifferentialEquation } = use(SDCPNContext);
+      const isReadOnly = useIsReadOnly();
+
+      return (
+        <>
+          <div className={equationNameContainerStyle}>
+            <span>{eq.name}</span>
+          </div>
+          <IconButton
+            size="xxs"
+            variant="ghost"
+            colorScheme="red"
+            disabled={isReadOnly}
+            onClick={() => removeDifferentialEquation(eq.id)}
+            aria-label={`Delete equation ${eq.name}`}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            <TbX />
+          </IconButton>
+        </>
+      );
+    },
+    emptyMessage: "No differential equations yet",
+    renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
+  });

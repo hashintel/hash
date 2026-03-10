@@ -10,43 +10,8 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-
-const listContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-});
-
-const parameterRowStyle = cva({
-  base: {
-    width: "[100%]",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "[4px 2px 4px 8px]",
-    fontSize: "[13px]",
-    borderRadius: "sm",
-    cursor: "pointer",
-  },
-  variants: {
-    isSelected: {
-      true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
-        _hover: {
-          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
-        },
-      },
-      false: {
-        backgroundColor: "neutral.s10",
-        _hover: {
-          backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-        },
-      },
-    },
-  },
-});
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 const parameterVarNameStyle = css({
   margin: "[0]",
@@ -63,11 +28,6 @@ const actionsContainerStyle = css({
 const parameterValueInputStyle = css({
   width: "[80px]",
   textAlign: "right",
-});
-
-const emptyMessageStyle = css({
-  fontSize: "[13px]",
-  color: "neutral.s85",
 });
 
 /**
@@ -109,124 +69,89 @@ const ParametersHeaderAction: React.FC = () => {
   );
 };
 
-/**
- * ParametersList displays global parameters list as a SubView.
- */
-const ParametersList: React.FC = () => {
-  const {
-    petriNetDefinition: { parameters },
-    removeParameter,
-  } = use(SDCPNContext);
-  const { globalMode, isSelected, selectItem, toggleItem } = use(EditorContext);
-  const {
-    state: simulationState,
-    parameterValues,
-    setParameterValue,
-  } = use(SimulationContext);
-
-  const isReadOnly = useIsReadOnly();
-  const isSimulationNotRun =
-    globalMode === "simulate" && simulationState === "NotRun";
-  const isSimulationMode = globalMode === "simulate";
-
-  return (
-    <div>
-      <div className={listContainerStyle}>
-        {parameters.map((param) => {
-          const paramSelected = isSelected(param.id);
-          const item: SelectionItem = { type: "parameter", id: param.id };
-
-          return (
-            <div
-              key={param.id}
-              onClick={(event) => {
-                // Don't trigger selection if clicking the delete button or input
-                if (
-                  event.target instanceof HTMLElement &&
-                  (event.target.closest("button[aria-label^='Delete']") ||
-                    event.target.closest("input"))
-                ) {
-                  return;
-                }
-                if (event.metaKey || event.ctrlKey) {
-                  toggleItem(item);
-                } else {
-                  selectItem(item);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  selectItem(item);
-                }
-              }}
-              className={parameterRowStyle({ isSelected: paramSelected })}
-            >
-              <div>
-                <div>{param.name}</div>
-                <pre className={parameterVarNameStyle}>
-                  {param.variableName}
-                </pre>
-              </div>
-              <div className={actionsContainerStyle}>
-                {isSimulationMode ? (
-                  <NumberInput
-                    size="xs"
-                    value={
-                      parameterValues[param.variableName] ?? param.defaultValue
-                    }
-                    onChange={(event) =>
-                      setParameterValue(
-                        param.variableName,
-                        (event.target as HTMLInputElement).value,
-                      )
-                    }
-                    placeholder={param.defaultValue}
-                    readOnly={!isSimulationNotRun}
-                    className={parameterValueInputStyle}
-                  />
-                ) : (
-                  <IconButton
-                    size="xxs"
-                    variant="ghost"
-                    colorScheme="red"
-                    disabled={isReadOnly}
-                    onClick={() => removeParameter(param.id)}
-                    aria-label={`Delete ${param.name}`}
-                    tooltip={
-                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
-                    }
-                  >
-                    <TbX />
-                  </IconButton>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {parameters.length === 0 && (
-          <div className={emptyMessageStyle}>No global parameters yet</div>
-        )}
-      </div>
-    </div>
-  );
-};
+// Custom row style for parameters - overrides the default to add space-between layout
+const parameterRowContentStyle = cva({
+  base: {
+    width: "[100%]",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+});
 
 /**
  * SubView definition for Global Parameters List.
  */
-export const parametersListSubView: SubView = {
+export const parametersListSubView: SubView = createFilterableListSubView({
   id: "parameters-list",
   title: "Global Parameters",
   tooltip:
     "Parameters are injected into dynamics, lambda, and kernel functions.",
-  component: ParametersList,
-  renderHeaderAction: () => <ParametersHeaderAction />,
   defaultCollapsed: true,
   resizable: {
     defaultHeight: 100,
     minHeight: 60,
     maxHeight: 250,
   },
-};
+  useItems: () => {
+    const {
+      petriNetDefinition: { parameters },
+    } = use(SDCPNContext);
+    return parameters;
+  },
+  getSelectionItem: (param) => ({ type: "parameter", id: param.id }),
+  renderItem: (param, _isSelected) => {
+    const { removeParameter } = use(SDCPNContext);
+    const { globalMode } = use(EditorContext);
+    const {
+      state: simulationState,
+      parameterValues,
+      setParameterValue,
+    } = use(SimulationContext);
+
+    const isReadOnly = useIsReadOnly();
+    const isSimulationNotRun =
+      globalMode === "simulate" && simulationState === "NotRun";
+    const isSimulationMode = globalMode === "simulate";
+
+    return (
+      <div className={parameterRowContentStyle()}>
+        <div>
+          <div>{param.name}</div>
+          <pre className={parameterVarNameStyle}>{param.variableName}</pre>
+        </div>
+        <div className={actionsContainerStyle}>
+          {isSimulationMode ? (
+            <NumberInput
+              size="xs"
+              value={parameterValues[param.variableName] ?? param.defaultValue}
+              onChange={(event) =>
+                setParameterValue(
+                  param.variableName,
+                  (event.target as HTMLInputElement).value,
+                )
+              }
+              placeholder={param.defaultValue}
+              readOnly={!isSimulationNotRun}
+              className={parameterValueInputStyle}
+            />
+          ) : (
+            <IconButton
+              size="xxs"
+              variant="ghost"
+              colorScheme="red"
+              disabled={isReadOnly}
+              onClick={() => removeParameter(param.id)}
+              aria-label={`Delete ${param.name}`}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            >
+              <TbX />
+            </IconButton>
+          )}
+        </div>
+      </div>
+    );
+  },
+  emptyMessage: "No global parameters yet",
+  renderHeaderAction: () => <ParametersHeaderAction />,
+});

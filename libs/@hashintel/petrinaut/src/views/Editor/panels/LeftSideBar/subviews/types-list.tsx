@@ -1,4 +1,4 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbPlus, TbX } from "react-icons/tb";
 
@@ -7,61 +7,17 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-
-const listContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[2px]",
-});
-
-const typeRowStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    gap: "[8px]",
-    padding: "[4px 2px 4px 8px]",
-    borderRadius: "sm",
-    cursor: "pointer",
-  },
-  variants: {
-    isSelected: {
-      true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
-        _hover: {
-          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
-        },
-      },
-      false: {
-        backgroundColor: "[transparent]",
-        _hover: {
-          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        },
-      },
-    },
-  },
-});
+import {
+  createFilterableListSubView,
+  listItemNameStyle,
+} from "./filterable-list-sub-view";
 
 const colorDotStyle = css({
   width: "[12px]",
   height: "[12px]",
   borderRadius: "[50%]",
   flexShrink: 0,
-});
-
-const typeNameStyle = css({
-  flex: "[1]",
-  fontSize: "[13px]",
-  color: "[#374151]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const emptyMessageStyle = css({
-  fontSize: "[13px]",
-  color: "[#9ca3af]",
 });
 
 // Pool of 10 well-differentiated colors for types
@@ -107,78 +63,6 @@ function getNextTypeNumber(existingNames: string[]): number {
   }
   return maxNumber + 1;
 }
-
-/**
- * TypesSectionContent displays the list of token types.
- * This is the content portion without the collapsible header.
- */
-const TypesSectionContent: React.FC = () => {
-  const {
-    petriNetDefinition: { types },
-    removeType,
-  } = use(SDCPNContext);
-
-  const { isSelected, selectItem, toggleItem } = use(EditorContext);
-
-  const isReadOnly = useIsReadOnly();
-
-  return (
-    <div className={listContainerStyle}>
-      {types.map((type) => {
-        const typeSelected = isSelected(type.id);
-        const item: SelectionItem = { type: "type", id: type.id };
-
-        return (
-          <div
-            key={type.id}
-            onClick={(event) => {
-              // Don't trigger selection if clicking the delete button
-              if (
-                event.target instanceof HTMLElement &&
-                event.target.closest("button[aria-label^='Delete']")
-              ) {
-                return;
-              }
-              if (event.metaKey || event.ctrlKey) {
-                toggleItem(item);
-              } else {
-                selectItem(item);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                selectItem(item);
-              }
-            }}
-            className={typeRowStyle({ isSelected: typeSelected })}
-          >
-            <div
-              className={colorDotStyle}
-              style={{ backgroundColor: type.displayColor }}
-            />
-            <span className={typeNameStyle}>{type.name}</span>
-            <IconButton
-              size="xxs"
-              variant="ghost"
-              colorScheme="red"
-              disabled={isReadOnly}
-              onClick={() => removeType(type.id)}
-              aria-label={`Delete token type ${type.name}`}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              <TbX />
-            </IconButton>
-          </div>
-        );
-      })}
-      {types.length === 0 && (
-        <div className={emptyMessageStyle}>No token types yet</div>
-      )}
-    </div>
-  );
-};
 
 /**
  * TypesSectionHeaderAction renders the add button for the types section header.
@@ -230,16 +114,48 @@ const TypesSectionHeaderAction: React.FC = () => {
 /**
  * SubView definition for Token Types list.
  */
-export const typesListSubView: SubView = {
+export const typesListSubView: SubView = createFilterableListSubView({
   id: "token-types-list",
   title: "Token Types",
   tooltip: "Manage data types which can be assigned to tokens in a place.",
-  component: TypesSectionContent,
-  renderHeaderAction: () => <TypesSectionHeaderAction />,
   defaultCollapsed: true,
   resizable: {
     defaultHeight: 120,
     minHeight: 60,
     maxHeight: 300,
   },
-};
+  useItems: () => {
+    const {
+      petriNetDefinition: { types },
+    } = use(SDCPNContext);
+    return types;
+  },
+  getSelectionItem: (type) => ({ type: "type", id: type.id }),
+  renderItem: (type, _isSelected) => {
+    const { removeType } = use(SDCPNContext);
+    const isReadOnly = useIsReadOnly();
+
+    return (
+      <>
+        <div
+          className={colorDotStyle}
+          style={{ backgroundColor: type.displayColor }}
+        />
+        <span className={listItemNameStyle}>{type.name}</span>
+        <IconButton
+          size="xxs"
+          variant="ghost"
+          colorScheme="red"
+          disabled={isReadOnly}
+          onClick={() => removeType(type.id)}
+          aria-label={`Delete token type ${type.name}`}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        >
+          <TbX />
+        </IconButton>
+      </>
+    );
+  },
+  emptyMessage: "No token types yet",
+  renderHeaderAction: () => <TypesSectionHeaderAction />,
+});
