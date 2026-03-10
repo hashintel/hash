@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src", ".storybook"]
+  "include": ["src"]
 }

@@ -1,10 +1,6 @@
+import type { OldFormat, SDCPN } from "@hashintel/petrinaut";
+import { isOldFormat } from "@hashintel/petrinaut";
 import { useLocalStorage } from "@mantine/hooks";
-
-import type { SDCPN } from "../../../src/core/types/sdcpn";
-import {
-  isOldFormat,
-  type OldFormat,
-} from "../../../src/old-formats/convert-old-format";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
