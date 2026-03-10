@@ -111,7 +111,8 @@ const resizeHandleStyle = css({
 
 const headerRowStyle = css({
   height: "[44px]",
-  px: "0.5",
+  pl: "0.5",
+  pr: "2",
 
   display: "flex",
   justifyContent: "space-between",
@@ -132,7 +133,6 @@ const headerActionStyle = css({
   maxHeight: "[44px]",
   display: "flex",
   alignItems: "center",
-  gap: "1",
 });
 
 const sectionToggleStyle = css({

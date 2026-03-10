@@ -117,7 +117,7 @@ const itemStyle = cva({
     },
     destructive: {
       true: {
-        color: "red.s60",
+        color: "red.s100",
       },
     },
   },
