@@ -11,7 +11,6 @@ export default [
             "postcss.config.cjs",
             "vite.config.ts",
             "vite.site.config.ts",
-            "vitest.browser.config.ts",
             ".storybook/main.ts",
             ".storybook/manager.tsx",
             ".storybook/preview.tsx",
