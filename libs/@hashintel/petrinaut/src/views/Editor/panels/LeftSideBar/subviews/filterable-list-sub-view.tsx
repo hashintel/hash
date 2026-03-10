@@ -59,10 +59,16 @@ export const listItemRowStyle = cva({
         _hover: {
           backgroundColor: "neutral.bg.subtle.hover",
         },
+        "&:has([data-row-action][data-state=open])": {
+          backgroundColor: "neutral.bg.subtle.hover",
+        },
       },
       false: {
         backgroundColor: "[transparent]",
         _hover: {
+          backgroundColor: "neutral.bg.surface.hover",
+        },
+        "&:has([data-row-action][data-state=open])": {
           backgroundColor: "neutral.bg.surface.hover",
         },
       },
@@ -149,7 +155,12 @@ const RowMenu = <T extends FilterableListItem>({
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xxs" data-row-action>
+        <IconButton
+          aria-label="More options"
+          size="xxs"
+          data-row-action
+          onClick={(event) => event.stopPropagation()}
+        >
           <TbDots />
         </IconButton>
       }
@@ -188,13 +199,6 @@ const FilterableListContent = <T extends FilterableListItem>({
           <div
             key={item.id}
             onClick={(event) => {
-              if (
-                event.target instanceof HTMLElement &&
-                (event.target.closest("button[aria-label='More options']") ||
-                  event.target.closest("input"))
-              ) {
-                return;
-              }
               if (event.metaKey || event.ctrlKey) {
                 toggleItem(selectionItem);
               } else {
