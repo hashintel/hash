@@ -1,7 +1,10 @@
 import type { SDCPN } from "../core/types/sdcpn";
 
-export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
-  title: "Satellites in Orbit",
+export const probabilisticSatellitesSDCPN: {
+  title: string;
+  petriNetDefinition: SDCPN;
+} = {
+  title: "Probabilistic Satellites Launcher",
   petriNetDefinition: {
     places: [
       {
@@ -95,7 +98,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
   );
 });`,
         x: 30,
-        y: 83.33333333333333,
+        y: 90,
       },
       {
         id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
@@ -206,6 +209,38 @@ export default TransitionKernel((tokens) => {
 })`,
         x: 255,
         y: 30,
+      },
+      {
+        id: "transition__c7008acb-b0e7-468e-a5d3-d56eaa1fe806",
+        name: "LaunchSatellite",
+        inputArcs: [],
+        outputArcs: [
+          {
+            placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+            weight: 1,
+          },
+        ],
+        lambdaType: "stochastic",
+        lambdaCode: `export default Lambda((tokensByPlace, parameters) => {
+  return 1;
+});`,
+        transitionKernelCode: `export default TransitionKernel((tokensByPlace, parameters) => {
+  const distance = 80;
+  const angle = Distribution.Uniform(0, Math.PI * 2);
+
+  return {
+    Space: [
+      {
+        x: angle.map(a => Math.cos(a) * distance),
+        y: angle.map(a => Math.sin(a) * distance),
+        direction: Distribution.Uniform(0, Math.PI * 2),
+        velocity: Distribution.Gaussian(60, 20)
+      }
+    ],
+  };
+});`,
+        x: -225,
+        y: 75,
       },
     ],
     types: [

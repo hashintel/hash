@@ -219,16 +219,7 @@ const DeleteTransitionAction: React.FC = () => {
       aria-label="Delete"
       size="xs"
       colorScheme="red"
-      onClick={() => {
-        if (
-          // eslint-disable-next-line no-alert
-          window.confirm(
-            `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
-          )
-        ) {
-          removeTransition(transition.id);
-        }
-      }}
+      onClick={() => removeTransition(transition.id)}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >
