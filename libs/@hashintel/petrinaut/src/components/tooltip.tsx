@@ -10,7 +10,7 @@ import { usePortalContainerRef } from "../state/portal-container-context";
 const tooltipContentStyle = css({
   backgroundColor: "neutral.s120",
   color: "neutral.s10",
-  borderRadius: "xl",
+  borderRadius: "lg",
   fontSize: "[13px]",
   zIndex: "tooltip",
   boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
