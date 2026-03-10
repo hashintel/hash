@@ -8,7 +8,7 @@ use hashql_mir::{
     body::{Body, location::Location, terminator::GraphRead},
     def::{DefId, DefIdSlice},
     interpret::{
-        Locals, RuntimeError,
+        Locals, RuntimeError, TypeName,
         value::{Int, Value},
     },
 };
@@ -63,13 +63,19 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         value: &Value<'heap, L>,
     ) -> Result<Int, RuntimeError<'heap, L>> {
         let Value::Opaque(opaque) = value else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: value.type_name().into(),
+            });
         };
         debug_assert_eq!(opaque.name(), sym::path::Timestamp);
 
         // The underlying value is a timestamp
         let &Value::Integer(timestamp) = opaque.value() else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Integer"),
+                actual: opaque.value().type_name().into(),
+            });
         };
 
         Ok(timestamp)
@@ -80,14 +86,19 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         value: &Value<'heap, L>,
     ) -> Result<Bound<Int>, RuntimeError<'heap, L>> {
         let Value::Opaque(bound) = value else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: value.type_name().into(),
+            });
         };
 
         let make_bound = match bound.name().as_constant() {
             Some(sym::path::UnboundedTemporalBound::CONST) => return Ok(Bound::Unbounded),
             Some(sym::path::InclusiveTemporalBound::CONST) => Bound::Included,
             Some(sym::path::ExclusiveTemporalBound::CONST) => Bound::Excluded,
-            _ => todo!("report error; ICE"),
+            _ => {
+                return Err(RuntimeError::InvalidConstructor { name: bound.name() });
+            }
         };
 
         let value = self.extract_timestamp(bound.value())?;
@@ -99,20 +110,31 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         value: &Value<'heap, L>,
     ) -> Result<(Bound<Int>, Bound<Int>), RuntimeError<'heap, L>> {
         let Value::Opaque(opaque) = value else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: value.type_name().into(),
+            });
         };
         debug_assert_eq!(opaque.name(), sym::path::Interval);
 
         // The underlying value is an interval
         let Value::Struct(r#struct) = opaque.value() else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::InvalidProjectionByNameType {
+                base: opaque.value().type_name().into(),
+            });
         };
 
         let Some(start) = r#struct.get_by_name(sym::start) else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnknownFieldByName {
+                base: value.type_name().into(),
+                field: sym::start,
+            });
         };
         let Some(end) = r#struct.get_by_name(sym::end) else {
-            todo!("report error; ICE")
+            return Err(RuntimeError::UnknownFieldByName {
+                base: value.type_name().into(),
+                field: sym::end,
+            });
         };
 
         let start = self.extract_bound(start)?;
@@ -128,7 +150,10 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         // The resulting value must be a `QueryTemporalAxes`, this means it's either a
         // `PinnedTransactionTimeTemporalAxes` or `PinnedDecisionTimeTemporalAxes`.
         let Value::Opaque(opaque) = value else {
-            todo!("report error; ICE");
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: value.type_name().into(),
+            });
         };
 
         let (pinned, variable) = match opaque.name().as_constant() {
@@ -138,28 +163,44 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             ) => {
                 // Must be a struct of two fields: `pinned` and `variable`
                 let Value::Struct(r#struct) = opaque.value() else {
-                    todo!("report error; ICE");
+                    return Err(RuntimeError::InvalidProjectionByNameType {
+                        base: opaque.value().type_name().into(),
+                    });
                 };
 
                 let Some(pinned) = r#struct.get_by_name(sym::pinned) else {
-                    todo!("report error; ICE");
+                    return Err(RuntimeError::UnknownFieldByName {
+                        base: value.type_name().into(),
+                        field: sym::pinned,
+                    });
                 };
                 let Some(variable) = r#struct.get_by_name(sym::variable) else {
-                    todo!("report error; ICE");
+                    return Err(RuntimeError::UnknownFieldByName {
+                        base: value.type_name().into(),
+                        field: sym::variable,
+                    });
                 };
 
                 (pinned, variable)
             }
             _ => {
-                todo!("report error; ICE");
+                return Err(RuntimeError::InvalidConstructor {
+                    name: opaque.name(),
+                });
             }
         };
 
         let Value::Opaque(pinned) = pinned else {
-            todo!("report error; ICE");
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: pinned.type_name().into(),
+            });
         };
         let Value::Opaque(variable) = variable else {
-            todo!("report error; ICE");
+            return Err(RuntimeError::UnexpectedValueType {
+                expected: TypeName::terse("Opaque"),
+                actual: variable.type_name().into(),
+            });
         };
 
         let timestamp = self.extract_timestamp(pinned.value())?;
@@ -174,7 +215,11 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
                 transaction_time: TemporalInterval::interval(interval),
                 decision_time: TemporalInterval::point(timestamp),
             }),
-            _ => todo!("report error; ICE"),
+            _ => {
+                return Err(RuntimeError::InvalidConstructor {
+                    name: pinned.name(),
+                });
+            }
         }
     }
 

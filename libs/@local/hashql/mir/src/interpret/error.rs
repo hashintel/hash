@@ -130,6 +130,7 @@ impl TypeName {
     /// Creates a type name from a static string.
     ///
     /// Used for simple type names like "Integer", "String", etc.
+    #[must_use]
     pub const fn terse(str: &'static str) -> Self {
         Self::Static(Cow::Borrowed(str))
     }
@@ -302,6 +303,21 @@ pub enum RuntimeError<'heap, A: Allocator> {
     /// too deeply, likely due to infinite recursion or deeply nested
     /// data structures.
     RecursionLimitExceeded { limit: usize },
+
+    /// Value has the wrong runtime type.
+    ///
+    /// This is an ICE: type checking should ensure values have the
+    /// correct types at all usage sites.
+    UnexpectedValueType {
+        expected: TypeName,
+        actual: TypeName,
+    },
+
+    /// Opaque constructor name does not match any expected constructor.
+    ///
+    /// This is an ICE: type checking should ensure opaque values carry
+    /// a constructor name from the expected set for the encoded sum type.
+    InvalidConstructor { name: Symbol<'heap> },
 }
 
 impl<A: Allocator> RuntimeError<'_, A> {
@@ -351,6 +367,10 @@ impl<A: Allocator> RuntimeError<'_, A> {
             Self::OutOfRange { length, index } => out_of_range(span, length, index),
             Self::InputNotFound { name } => input_not_found(span, name),
             Self::RecursionLimitExceeded { limit } => recursion_limit_exceeded(span, limit),
+            Self::UnexpectedValueType { expected, actual } => {
+                unexpected_value_type(span, &expected, &actual)
+            }
+            Self::InvalidConstructor { name } => invalid_constructor(span, name),
         }
     }
 }
@@ -536,6 +556,36 @@ fn apply_non_pointer(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
 
     diagnostic.add_message(Message::help(
         "type checking should have ensured only function pointers are called",
+    ));
+
+    diagnostic
+}
+
+fn unexpected_value_type(
+    span: SpanId,
+    expected: &TypeName,
+    actual: &TypeName,
+) -> InterpretDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+            Label::new(span, format!("expected `{expected}`, found `{actual}`")),
+        );
+
+    diagnostic.add_message(Message::help(
+        "type checking should have ensured the value has the correct type",
+    ));
+
+    diagnostic
+}
+
+fn invalid_constructor(span: SpanId, name: Symbol) -> InterpretDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
+            Label::new(span, format!("unrecognized opaque constructor `{name}`")),
+        );
+
+    diagnostic.add_message(Message::help(
+        "type checking should have ensured the opaque constructor is from the expected set",
     ));
 
     diagnostic

@@ -23,7 +23,7 @@ mod tests;
 pub mod value;
 
 pub use self::{
-    error::RuntimeError,
+    error::{RuntimeError, TypeName},
     locals::Locals,
     runtime::{CallStack, Runtime, RuntimeConfig},
 };

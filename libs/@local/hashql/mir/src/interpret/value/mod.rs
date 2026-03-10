@@ -125,7 +125,7 @@ pub enum Value<'heap, A: Allocator = Global> {
 impl<'heap, A: Allocator> Value<'heap, A> {
     const UNIT: Self = Self::Unit;
 
-    pub(crate) fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
+    pub fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
         ValueTypeName::from(self)
     }
 
