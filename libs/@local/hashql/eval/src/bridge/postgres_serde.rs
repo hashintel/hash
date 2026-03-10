@@ -16,6 +16,7 @@ use serde::{
     ser::{SerializeMap as _, SerializeSeq as _},
 };
 
+#[derive(Debug)]
 pub(crate) struct SerializeValue<'value, 'heap, A: Allocator>(&'value Value<'heap, A>);
 
 impl<'value, 'heap, A: Allocator> SerializeValue<'value, 'heap, A> {

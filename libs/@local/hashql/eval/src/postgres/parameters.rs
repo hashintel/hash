@@ -43,7 +43,7 @@ impl From<ParameterIndex> for Expression {
 /// Parameters are deduplicated by this key so multiple occurrences of the same logical value
 /// (e.g. the same input symbol) share one `$N` placeholder.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum Parameter<'heap> {
+pub enum Parameter<'heap> {
     /// A user-provided input binding.
     Input(Symbol<'heap>),
     /// An integer constant that does not fit in a `u32`.
@@ -155,6 +155,21 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
     /// Returns `true` if no parameters have been allocated.
     pub fn is_empty(&self) -> bool {
         self.reverse.is_empty()
+    }
+
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &Parameter<'heap>> + DoubleEndedIterator {
+        self.reverse.iter()
+    }
+}
+
+impl<'this, 'heap> IntoIterator for &'this Parameters<'heap> {
+    type Item = &'this Parameter<'heap>;
+
+    type IntoIter = impl ExactSizeIterator<Item = &'this Parameter<'heap>> + DoubleEndedIterator;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

@@ -13,8 +13,9 @@ use hashql_mir::{
     },
 };
 
-use crate::postgres::PreparedQuery;
+use crate::postgres::{Parameter, PreparedQuery};
 
+mod codec;
 mod postgres_serde;
 
 struct PreparedQueries<'heap, A: Allocator> {
@@ -23,25 +24,29 @@ struct PreparedQueries<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
-    fn find(&self, body: DefId, location: Location) -> Option<&PreparedQuery<'heap, A>> {
+    fn find(&self, body: DefId, location: Location) -> &PreparedQuery<'heap, A> {
         todo!()
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct Timestamp(Int);
+
+#[derive(Debug)]
 struct TemporalInterval {
-    start: Bound<Int>,
-    end: Bound<Int>,
+    pub start: Bound<Timestamp>,
+    pub end: Bound<Timestamp>,
 }
 
 impl TemporalInterval {
-    fn point(value: Int) -> Self {
+    const fn point(value: Timestamp) -> Self {
         Self {
             start: Bound::Included(value),
             end: Bound::Included(value),
         }
     }
 
-    fn interval((start, end): (Bound<Int>, Bound<Int>)) -> Self {
+    const fn interval((start, end): (Bound<Timestamp>, Bound<Timestamp>)) -> Self {
         Self { start, end }
     }
 }
@@ -51,17 +56,15 @@ struct TemporalAxesInterval {
     transaction_time: TemporalInterval,
 }
 
-// TODO: location to query map
 struct Bridge<'env, 'heap, A: Allocator> {
     bodies: &'env DefIdSlice<Body<'heap>>,
-    queries: &'env DefIdSlice<Option<PreparedQuery<'heap, A>>>,
+    queries: &'env PreparedQueries<'heap, A>,
 }
 
 impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
     fn extract_timestamp<L: Allocator>(
-        &self,
         value: &Value<'heap, L>,
-    ) -> Result<Int, RuntimeError<'heap, L>> {
+    ) -> Result<Timestamp, RuntimeError<'heap, L>> {
         let Value::Opaque(opaque) = value else {
             return Err(RuntimeError::UnexpectedValueType {
                 expected: TypeName::terse("Opaque"),
@@ -70,7 +73,6 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         };
         debug_assert_eq!(opaque.name(), sym::path::Timestamp);
 
-        // The underlying value is a timestamp
         let &Value::Integer(timestamp) = opaque.value() else {
             return Err(RuntimeError::UnexpectedValueType {
                 expected: TypeName::terse("Integer"),
@@ -78,13 +80,12 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             });
         };
 
-        Ok(timestamp)
+        Ok(Timestamp(timestamp))
     }
 
     fn extract_bound<L: Allocator>(
-        &self,
         value: &Value<'heap, L>,
-    ) -> Result<Bound<Int>, RuntimeError<'heap, L>> {
+    ) -> Result<Bound<Timestamp>, RuntimeError<'heap, L>> {
         let Value::Opaque(bound) = value else {
             return Err(RuntimeError::UnexpectedValueType {
                 expected: TypeName::terse("Opaque"),
@@ -101,14 +102,13 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             }
         };
 
-        let value = self.extract_timestamp(bound.value())?;
+        let value = Self::extract_timestamp(bound.value())?;
         Ok(make_bound(value))
     }
 
     fn extract_interval<L: Allocator>(
-        &self,
         value: &Value<'heap, L>,
-    ) -> Result<(Bound<Int>, Bound<Int>), RuntimeError<'heap, L>> {
+    ) -> Result<(Bound<Timestamp>, Bound<Timestamp>), RuntimeError<'heap, L>> {
         let Value::Opaque(opaque) = value else {
             return Err(RuntimeError::UnexpectedValueType {
                 expected: TypeName::terse("Opaque"),
@@ -117,7 +117,6 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         };
         debug_assert_eq!(opaque.name(), sym::path::Interval);
 
-        // The underlying value is an interval
         let Value::Struct(r#struct) = opaque.value() else {
             return Err(RuntimeError::InvalidProjectionByNameType {
                 base: opaque.value().type_name().into(),
@@ -137,8 +136,8 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             });
         };
 
-        let start = self.extract_bound(start)?;
-        let end = self.extract_bound(end)?;
+        let start = Self::extract_bound(start)?;
+        let end = Self::extract_bound(end)?;
 
         Ok((start, end))
     }
@@ -147,8 +146,6 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         &self,
         value: &Value<'heap, L>,
     ) -> Result<TemporalAxesInterval, RuntimeError<'heap, L>> {
-        // The resulting value must be a `QueryTemporalAxes`, this means it's either a
-        // `PinnedTransactionTimeTemporalAxes` or `PinnedDecisionTimeTemporalAxes`.
         let Value::Opaque(opaque) = value else {
             return Err(RuntimeError::UnexpectedValueType {
                 expected: TypeName::terse("Opaque"),
@@ -156,12 +153,13 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             });
         };
 
+        // The resulting value must be a `QueryTemporalAxes`, this means it's either a
+        // `PinnedTransactionTimeTemporalAxes` or `PinnedDecisionTimeTemporalAxes`.
         let (pinned, variable) = match opaque.name().as_constant() {
             Some(
                 sym::path::PinnedTransactionTimeTemporalAxes::CONST
                 | sym::path::PinnedDecisionTimeTemporalAxes::CONST,
             ) => {
-                // Must be a struct of two fields: `pinned` and `variable`
                 let Value::Struct(r#struct) = opaque.value() else {
                     return Err(RuntimeError::InvalidProjectionByNameType {
                         base: opaque.value().type_name().into(),
@@ -203,8 +201,8 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             });
         };
 
-        let timestamp = self.extract_timestamp(pinned.value())?;
-        let interval = self.extract_interval(variable.value())?;
+        let timestamp = Self::extract_timestamp(pinned.value())?;
+        let interval = Self::extract_interval(variable.value())?;
 
         match pinned.name().as_constant() {
             Some(sym::path::TransactionTime::CONST) => Ok(TemporalAxesInterval {
@@ -215,17 +213,17 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
                 transaction_time: TemporalInterval::interval(interval),
                 decision_time: TemporalInterval::point(timestamp),
             }),
-            _ => {
-                return Err(RuntimeError::InvalidConstructor {
-                    name: pinned.name(),
-                });
-            }
+            _ => Err(RuntimeError::InvalidConstructor {
+                name: pinned.name(),
+            }),
         }
     }
 
     fn run<L: Allocator + Clone>(
         &self,
         locals: &Locals<'_, 'heap, L>,
+        def: DefId,
+        location: Location,
         GraphRead {
             head,
             body,
@@ -239,11 +237,15 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
 
         let axis = self.extract_axis(&axis)?;
 
-        match tail {
-            hashql_mir::body::terminator::GraphReadTail::Collect => {
-                // currently the only one supported is getting all the data
-            }
-        }
+        let query = self.queries.find(def, location);
+
+        // TODO: We must ensure that there's *always* a query, in case nothing is given we fallback
+        // to a prepared one, that just fetches the data required.
+        // We should either do this inside of the bridge computation, or when running the postgres
+        // compiler. I am thinking the postgres compiler, where we just have a "nonsensical" output.
+        let mut transpiled = query.transpile();
+
+        // TODO: entity hydration + interpolation
 
         // TODO: execute the bodies in parallel
         todo!()

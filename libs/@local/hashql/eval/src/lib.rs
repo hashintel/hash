@@ -15,7 +15,8 @@
     assert_matches,
     allocator_api,
     iter_array_chunks,
-    maybe_uninit_fill
+    maybe_uninit_fill,
+    impl_trait_in_assoc_type
 )]
 
 extern crate alloc;

@@ -52,7 +52,7 @@ use hashql_mir::{
     },
 };
 
-pub use self::parameters::{ParameterIndex, Parameters, TemporalAxis};
+pub use self::parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis};
 use self::{
     continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
 };
