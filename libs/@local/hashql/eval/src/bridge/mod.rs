@@ -1,20 +1,19 @@
 // The bridge has the goal of bridging the two worlds, and coordinates the different sources and
 // implementations.
 
-use core::ops::{Bound, Index};
-use std::alloc::Allocator;
+use core::{alloc::Allocator, ops::Bound};
 
 use hashql_core::symbol::sym;
 use hashql_mir::{
-    body::{Body, basic_block::BasicBlockSlice, location::Location, terminator::GraphRead},
-    def::{DefId, DefIdSet, DefIdSlice},
+    body::{Body, location::Location, terminator::GraphRead},
+    def::{DefId, DefIdSlice},
     interpret::{
         Locals, RuntimeError,
         value::{Int, Value},
     },
 };
 
-use crate::postgres::{PostgresCompiler, PreparedQuery};
+use crate::postgres::PreparedQuery;
 
 mod postgres_serde;
 
