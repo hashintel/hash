@@ -111,11 +111,20 @@ const resizeHandleStyle = css({
 
 const headerRowStyle = css({
   height: "[44px]",
-  px: "2",
+  px: "0.5",
 
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+
+  /* Reveal the chevron icon on hover */
+  "& [data-toggle-icon]": {
+    width: "3.5",
+    opacity: "[0]",
+  },
+  "&:hover [data-toggle-icon]": {
+    opacity: "[1]",
+  },
 });
 
 const headerActionStyle = css({
@@ -136,10 +145,12 @@ const sectionToggleStyle = css({
 });
 
 const sectionToggleIconStyle = css({
-  w: "4",
   display: "flex",
   justifyContent: "center",
-  transition: "[transform 150ms ease-out]",
+  alignItems: "center",
+  overflow: "hidden",
+  transition:
+    "[width 150ms ease-out, opacity 150ms ease-out, transform 150ms ease-out]",
 });
 
 const sectionToggleIconExpandedStyle = css({
@@ -271,6 +282,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         aria-controls={`subview-content-${id}`}
       >
         <div
+          data-toggle-icon
           className={cx(
             sectionToggleIconStyle,
             isExpanded && sectionToggleIconExpandedStyle,
