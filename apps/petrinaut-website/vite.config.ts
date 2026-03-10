@@ -7,8 +7,6 @@ export default defineConfig(() => {
   const sentryDsn: string | undefined = process.env.SENTRY_DSN;
 
   return {
-    root: "src",
-
     define: {
       __ENVIRONMENT__: JSON.stringify(environment),
       __SENTRY_DSN__: JSON.stringify(sentryDsn),
