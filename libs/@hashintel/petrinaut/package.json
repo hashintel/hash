@@ -24,9 +24,7 @@
   "types": "dist/main.d.ts",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch",
-    "storybook:dev": "storybook dev",
-    "storybook:build": "storybook build --output-dir build/storybook",
+    "dev": "storybook dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsgo --noEmit",
