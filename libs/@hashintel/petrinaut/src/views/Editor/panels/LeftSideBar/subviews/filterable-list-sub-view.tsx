@@ -1,9 +1,12 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { use } from "react";
-import { TbFilter } from "react-icons/tb";
+import { LuArrowDownWideNarrow, LuListFilter, LuSearch } from "react-icons/lu";
+import { TbDots } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
+import type { MenuItem } from "../../../../../components/menu";
+import { Menu } from "../../../../../components/menu";
 import type {
   SubView,
   SubViewResizeConfig,
@@ -29,7 +32,9 @@ export const listItemRowStyle = cva({
     cursor: "pointer",
     fontSize: "sm",
     fontWeight: "medium",
-    color: "neutral.s105",
+    color: "neutral.s115",
+
+    transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
 
     /* Reveal the action button on hover or when its menu is open */
     "& [data-row-action]": {
@@ -37,7 +42,7 @@ export const listItemRowStyle = cva({
       transition: "[opacity 150ms ease-out]",
     },
     "& [data-row-action] svg": {
-      transform: "[translateX(4px)]",
+      transform: "[translateX(2px)]",
       transition: "[transform 150ms ease-out]",
     },
     "&:hover [data-row-action], & [data-row-action][data-state=open]": {
@@ -58,7 +63,7 @@ export const listItemRowStyle = cva({
       false: {
         backgroundColor: "[transparent]",
         _hover: {
-          backgroundColor: "neutral.bg.subtle.hover",
+          backgroundColor: "neutral.bg.surface.hover",
         },
       },
     },
@@ -101,6 +106,8 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
+  /** Return menu items for the row's ellipsis menu. When omitted, no menu is shown. */
+  getMenuItems?: (item: T) => MenuItem[];
   emptyMessage: string;
   renderHeaderAction?: () => ReactNode;
 }
@@ -109,22 +116,59 @@ const FilterHeaderAction: React.FC<{
   renderExtraAction?: () => ReactNode;
 }> = ({ renderExtraAction }) => (
   <>
-    {renderExtraAction?.()}
     <IconButton aria-label="Filter list" size="xs">
-      <TbFilter />
+      <LuListFilter />
     </IconButton>
+    <IconButton aria-label="Sort list" size="xs">
+      <LuArrowDownWideNarrow />
+    </IconButton>
+    <IconButton aria-label="Search list" size="xs">
+      <LuSearch />
+    </IconButton>
+    {renderExtraAction?.()}
   </>
 );
+
+/**
+ * Renders the row ellipsis menu. Separated into its own component so that
+ * `getMenuItems` (which may call hooks) is invoked as part of a component render.
+ */
+const RowMenu = <T extends FilterableListItem>({
+  getMenuItems,
+  item,
+}: {
+  getMenuItems: (item: T) => MenuItem[];
+  item: T;
+}) => {
+  const menuItems = getMenuItems(item);
+  if (menuItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <Menu
+      animated
+      trigger={
+        <IconButton aria-label="More options" size="xxs" data-row-action>
+          <TbDots />
+        </IconButton>
+      }
+      items={menuItems}
+    />
+  );
+};
 
 const FilterableListContent = <T extends FilterableListItem>({
   useItems,
   getSelectionItem,
   renderItem,
+  getMenuItems,
   emptyMessage,
 }: {
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
+  getMenuItems?: (item: T) => MenuItem[];
   emptyMessage: string;
 }) => {
   const items = useItems();
@@ -167,6 +211,9 @@ const FilterableListContent = <T extends FilterableListItem>({
             className={listItemRowStyle({ isSelected })}
           >
             {renderItem(item, isSelected)}
+            {getMenuItems && (
+              <RowMenu getMenuItems={getMenuItems} item={item} />
+            )}
           </div>
         );
       })}
@@ -196,6 +243,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     useItems,
     getSelectionItem,
     renderItem,
+    getMenuItems,
     emptyMessage,
     renderHeaderAction: renderExtraAction,
   } = config;
@@ -205,6 +253,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
       useItems={useItems}
       getSelectionItem={getSelectionItem}
       renderItem={renderItem}
+      getMenuItems={getMenuItems}
       emptyMessage={emptyMessage}
     />
   );

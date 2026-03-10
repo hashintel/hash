@@ -1,10 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
+import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
-import { Menu } from "../../../../../components/menu";
 import { NumberInput } from "../../../../../components/number-input";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -114,8 +113,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
     return parameters;
   },
   getSelectionItem: (param) => ({ type: "parameter", id: param.id }),
-  renderItem: (param, _isSelected) => {
-    const { removeParameter } = use(SDCPNContext);
+  renderItem: (param) => {
     const { globalMode } = use(EditorContext);
     const {
       state: simulationState,
@@ -123,7 +121,6 @@ export const parametersListSubView: SubView = createFilterableListSubView({
       setParameterValue,
     } = use(SimulationContext);
 
-    const isReadOnly = useIsReadOnly();
     const isSimulationNotRun =
       globalMode === "simulate" && simulationState === "NotRun";
     const isSimulationMode = globalMode === "simulate";
@@ -134,8 +131,8 @@ export const parametersListSubView: SubView = createFilterableListSubView({
           <div>{param.name}</div>
           <pre className={parameterVarNameStyle}>{param.variableName}</pre>
         </div>
-        <div className={actionsContainerStyle}>
-          {isSimulationMode ? (
+        {isSimulationMode && (
+          <div className={actionsContainerStyle}>
             <NumberInput
               size="xs"
               value={parameterValues[param.variableName] ?? param.defaultValue}
@@ -149,33 +146,30 @@ export const parametersListSubView: SubView = createFilterableListSubView({
               readOnly={!isSimulationNotRun}
               className={parameterValueInputStyle}
             />
-          ) : (
-            <Menu
-              animated
-              trigger={
-                <IconButton
-                  aria-label="More options"
-                  size="xxs"
-                  data-row-action
-                >
-                  <TbDots />
-                </IconButton>
-              }
-              items={[
-                {
-                  id: "delete",
-                  label: "Delete",
-                  icon: <TbTrash />,
-                  destructive: true,
-                  disabled: isReadOnly,
-                  onClick: () => removeParameter(param.id),
-                },
-              ]}
-            />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
+  },
+  getMenuItems: (param) => {
+    const { removeParameter } = use(SDCPNContext);
+    const { globalMode } = use(EditorContext);
+    const isReadOnly = useIsReadOnly();
+
+    if (globalMode === "simulate") {
+      return [];
+    }
+
+    return [
+      {
+        id: "delete",
+        label: "Delete",
+        icon: <TbTrash />,
+        destructive: true,
+        disabled: isReadOnly,
+        onClick: () => removeParameter(param.id),
+      },
+    ];
   },
   emptyMessage: "No global parameters yet",
   renderHeaderAction: () => <ParametersHeaderAction />,

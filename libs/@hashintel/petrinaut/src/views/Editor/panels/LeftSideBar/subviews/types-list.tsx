@@ -1,18 +1,14 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
+import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
-import { Menu } from "../../../../../components/menu";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import {
-  createFilterableListSubView,
-  listItemNameStyle,
-} from "./filterable-list-sub-view";
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 const colorDotStyle = css({
   width: "[12px]",
@@ -132,37 +128,29 @@ export const typesListSubView: SubView = createFilterableListSubView({
     return types;
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
-  renderItem: (type, _isSelected) => {
+  renderItem: (type) => (
+    <>
+      <div
+        className={colorDotStyle}
+        style={{ backgroundColor: type.displayColor }}
+      />
+      <span>{type.name}</span>
+    </>
+  ),
+  getMenuItems: (type) => {
     const { removeType } = use(SDCPNContext);
     const isReadOnly = useIsReadOnly();
 
-    return (
-      <>
-        <div
-          className={colorDotStyle}
-          style={{ backgroundColor: type.displayColor }}
-        />
-        <span className={listItemNameStyle}>{type.name}</span>
-        <Menu
-          animated
-          trigger={
-            <IconButton aria-label="More options" size="xxs" data-row-action>
-              <TbDots />
-            </IconButton>
-          }
-          items={[
-            {
-              id: "delete",
-              label: "Delete",
-              icon: <TbTrash />,
-              destructive: true,
-              disabled: isReadOnly,
-              onClick: () => removeType(type.id),
-            },
-          ]}
-        />
-      </>
-    );
+    return [
+      {
+        id: "delete",
+        label: "Delete",
+        icon: <TbTrash />,
+        destructive: true,
+        disabled: isReadOnly,
+        onClick: () => removeType(type.id),
+      },
+    ];
   },
   emptyMessage: "No token types yet",
   renderHeaderAction: () => <TypesSectionHeaderAction />,

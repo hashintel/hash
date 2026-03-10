@@ -1,10 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbDots, TbPlus, TbTrash } from "react-icons/tb";
+import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
-import { Menu } from "../../../../../components/menu";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
@@ -80,35 +79,25 @@ export const differentialEquationsListSubView: SubView =
       return differentialEquations;
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
-    renderItem: (eq, _isSelected) => {
+    renderItem: (eq) => (
+      <div className={equationNameContainerStyle}>
+        <span>{eq.name}</span>
+      </div>
+    ),
+    getMenuItems: (eq) => {
       const { removeDifferentialEquation } = use(SDCPNContext);
       const isReadOnly = useIsReadOnly();
 
-      return (
-        <>
-          <div className={equationNameContainerStyle}>
-            <span>{eq.name}</span>
-          </div>
-          <Menu
-            animated
-            trigger={
-              <IconButton aria-label="More options" size="xxs" data-row-action>
-                <TbDots />
-              </IconButton>
-            }
-            items={[
-              {
-                id: "delete",
-                label: "Delete",
-                icon: <TbTrash />,
-                destructive: true,
-                disabled: isReadOnly,
-                onClick: () => removeDifferentialEquation(eq.id),
-              },
-            ]}
-          />
-        </>
-      );
+      return [
+        {
+          id: "delete",
+          label: "Delete",
+          icon: <TbTrash />,
+          destructive: true,
+          disabled: isReadOnly,
+          onClick: () => removeDifferentialEquation(eq.id),
+        },
+      ];
     },
     emptyMessage: "No differential equations yet",
     renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
