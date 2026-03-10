@@ -24,9 +24,10 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { StatusCode } from "@local/status";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../admin-server";
+import { deleteUser, resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -321,12 +322,49 @@ describe("User model class", () => {
     ).toBe("administrator");
   });
 
+  describe("deletion via admin API", () => {
+    it("can delete a user by ID", async () => {
+      const status = await deleteUser({
+        userId: createdUser.accountId,
+      });
+      expect(status.code).toBe(StatusCode.Ok);
+    });
+
+    it("deleted user is no longer in the graph", async () => {
+      const fetchedUser = await getUser(
+        graphContext,
+        { actorId: systemAccountId },
+        { kratosIdentityId: createdUser.kratosIdentityId },
+      );
+
+      expect(fetchedUser).toBeNull();
+    });
+
+    it("Kratos identity is deleted after user deletion by ID", async () => {
+      await expect(
+        kratosIdentityApi.getIdentity({
+          id: createdUser.kratosIdentityId,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("can delete a user by email", async () => {
+      const status = await deleteUser({
+        email: allowListedEmail,
+      });
+      expect(status.code).toBe(StatusCode.Ok);
+    });
+
+    it("Kratos identity is deleted after user deletion by email", async () => {
+      await expect(
+        kratosIdentityApi.getIdentity({
+          id: incompleteUser.kratosIdentityId,
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
   afterAll(async () => {
-    await kratosIdentityApi.deleteIdentity({
-      id: createdUser.kratosIdentityId,
-    });
-    await kratosIdentityApi.deleteIdentity({
-      id: incompleteUser.kratosIdentityId,
-    });
+    await resetGraph();
   });
 });

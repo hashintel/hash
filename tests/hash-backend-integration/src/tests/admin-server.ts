@@ -95,6 +95,30 @@ export const restoreSnapshot = async (snapshotPath: string) => {
 };
 
 /**
+ * Delete a user and all associated data (entities, Kratos identity, Hydra sessions, email subscriptions).
+ *
+ * Accepts either a user ID or an email address.
+ */
+export const deleteUser = async (
+  params: { userId: string } | { email: string },
+) => {
+  const response = await fetch(`http://127.0.0.1:${port}/users/delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+    },
+    body: JSON.stringify(params),
+  });
+
+  const status = (await response.json()) as GraphStatus;
+  if (status.code !== StatusCode.Ok) {
+    throw new Error(`Could not delete user: ${JSON.stringify(status)}`);
+  }
+  return status;
+};
+
+/**
  * Reset the Graph.
  *
  * This is a convenience function for deleting all entities, entity types, property types, data types, and accounts.

@@ -137,6 +137,34 @@ pub struct JwtConfig {
     pub allowed_algorithms: Vec<Algorithm>,
 }
 
+/// Configuration for external identity services (Kratos, Hydra, Mailchimp).
+///
+/// Kratos and Hydra URLs are required — the admin server cannot function correctly without access
+/// to both identity and OAuth2 services. Mailchimp settings are optional and only needed when
+/// email subscription cleanup is desired during user deletion.
+#[derive(Debug, Clone, Parser)]
+pub struct ExternalServicesConfig {
+    /// Kratos admin API URL for identity management.
+    #[clap(long, env = "HASH_KRATOS_ADMIN_URL")]
+    pub kratos_admin_url: Url,
+
+    /// Hydra admin API URL for OAuth2 session management.
+    #[clap(long, env = "HASH_HYDRA_ADMIN_URL")]
+    pub hydra_admin_url: Url,
+
+    /// Mailchimp API key for email subscription management.
+    #[clap(long, env = "MAILCHIMP_API_KEY", requires = "mailchimp_list_id")]
+    pub mailchimp_api_key: Option<String>,
+
+    /// Mailchimp audience list ID.
+    #[clap(long, env = "MAILCHIMP_LIST_ID", requires = "mailchimp_api_key")]
+    pub mailchimp_list_id: Option<String>,
+
+    /// Mailchimp server prefix (e.g. `us15`).
+    #[clap(long, env = "MAILCHIMP_SERVER", default_value = "us15")]
+    pub mailchimp_server: Option<String>,
+}
+
 /// Configuration for the admin server.
 ///
 /// Shared between the standalone `admin-server` subcommand and the `server` subcommand (via
@@ -148,6 +176,9 @@ pub struct AdminConfig {
 
     #[clap(flatten)]
     pub jwt: JwtConfig,
+
+    #[clap(flatten)]
+    pub external_services: ExternalServicesConfig,
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
@@ -199,7 +230,17 @@ pub(crate) async fn run_admin_server(
         }
     };
 
-    let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
+    let router = hash_graph_api::rest::admin::routes(
+        pool,
+        jwt_validator,
+        hash_graph_api::rest::admin::ExternalServicesConfig {
+            kratos_admin_url: config.external_services.kratos_admin_url,
+            hydra_admin_url: config.external_services.hydra_admin_url,
+            mailchimp_api_key: config.external_services.mailchimp_api_key,
+            mailchimp_list_id: config.external_services.mailchimp_list_id,
+            mailchimp_server: config.external_services.mailchimp_server,
+        },
+    );
 
     let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
         .await

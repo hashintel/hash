@@ -3280,6 +3280,7 @@ dependencies = [
  "hyper",
  "include_dir",
  "jsonwebtoken",
+ "md5",
  "mime",
  "opentelemetry",
  "opentelemetry-semantic-conventions",
@@ -5346,6 +5347,12 @@ dependencies = [
  "cfg-if",
  "digest",
 ]
+
+[[package]]
+name = "md5"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae960838283323069879657ca3de837e9f7bbb4c7bf6ea7f1b290d5e9476d2e0"
 
 [[package]]
 name = "memchr"

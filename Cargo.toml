@@ -4,6 +4,7 @@ default-members = [
 ]
 exclude = [
     ".github/scripts/rust",
+    "_scratch/claude-memory",
 ]
 members = [
     "apps/hash-graph",
@@ -185,6 +186,7 @@ libp2p-yamux                       = { version = "0.47.0", default-features = fa
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
 logos                              = { version = "0.16.0", default-features = false }
+md5                                = { version = "0.8.0", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
@@ -399,5 +401,5 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
-specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
+specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
