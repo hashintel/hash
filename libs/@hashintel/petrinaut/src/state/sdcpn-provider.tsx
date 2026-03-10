@@ -1,4 +1,10 @@
+import { use } from "react";
+
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "../views/SDCPN/styles/styling";
 import {
   ARC_ID_PREFIX,
   generateArcId,
@@ -6,11 +12,14 @@ import {
   type SDCPNContextValue,
   type SDCPNProviderProps,
 } from "./sdcpn-context";
+import { UserSettingsContext } from "./user-settings-context";
 
 export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
   children,
   ...rest
 }: React.PropsWithChildren<SDCPNProviderProps>) => {
+  const { compactNodes } = use(UserSettingsContext);
+  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
   const value: SDCPNContextValue = {
     ...rest,
     addPlace(place) {
@@ -380,7 +389,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
         return;
       }
 
-      const positions = await calculateGraphLayout(sdcpn);
+      const positions = await calculateGraphLayout(sdcpn, dims);
 
       rest.mutatePetriNetDefinition((sdcpnToMutate) => {
         for (const place of sdcpnToMutate.places) {

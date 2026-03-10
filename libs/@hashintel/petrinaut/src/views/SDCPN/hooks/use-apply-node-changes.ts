@@ -86,14 +86,14 @@ export function useApplyNodeChanges() {
 
         for (const change of changes) {
           if (change.type === "select") {
-            if (change.selected && !prevSelection.has(change.id)) {
+            if (change.selected && !base.has(change.id)) {
               const itemType = getItemType(change.id);
               // Skip arcs — they are only selectable via direct click
               // (onEdgeClick), not via drag-to-select box selection.
               if (itemType && itemType !== "arc") {
                 base.set(change.id, { type: itemType, id: change.id });
               }
-            } else if (!change.selected && prevSelection.has(change.id)) {
+            } else if (!change.selected && base.has(change.id)) {
               base.delete(change.id);
             }
           }

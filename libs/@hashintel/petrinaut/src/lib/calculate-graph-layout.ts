@@ -2,7 +2,6 @@ import type { ElkNode } from "elkjs";
 import ELK from "elkjs";
 
 import type { SDCPN } from "../core/types/sdcpn";
-import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers
@@ -38,6 +37,10 @@ export type NodePosition = {
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
+  dims: {
+    place: { width: number; height: number };
+    transition: { width: number; height: number };
+  },
 ): Promise<Record<string, NodePosition>> => {
   if (sdcpn.places.length === 0) {
     return {};
@@ -47,13 +50,13 @@ export const calculateGraphLayout = async (
   const elkNodes: ElkNode["children"] = [
     ...sdcpn.places.map((place) => ({
       id: place.id,
-      width: nodeDimensions.place.width,
-      height: nodeDimensions.place.height,
+      width: dims.place.width,
+      height: dims.place.height,
     })),
     ...sdcpn.transitions.map((transition) => ({
       id: transition.id,
-      width: nodeDimensions.transition.width,
-      height: nodeDimensions.transition.height,
+      width: dims.transition.width,
+      height: dims.transition.height,
     })),
   ];
 
@@ -87,15 +90,19 @@ export const calculateGraphLayout = async (
 
   const updatedElements = await elk.layout(graph);
 
+  const placeIds = new Set(sdcpn.places.map((place) => place.id));
+
   /**
-   * ELK inserts the calculated position as a root 'x' and 'y'.
+   * ELK returns top-left positions, but the SDCPN store uses center
+   * coordinates, so we offset by half the node dimensions.
    */
   const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
+      const nodeDims = placeIds.has(child.id) ? dims.place : dims.transition;
       positionsByNodeId[child.id] = {
-        x: child.x,
-        y: child.y,
+        x: child.x + nodeDims.width / 2,
+        y: child.y + nodeDims.height / 2,
       };
     }
   }
