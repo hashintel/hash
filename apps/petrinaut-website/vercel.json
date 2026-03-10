@@ -5,5 +5,5 @@
   },
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
-  "outputDirectory": "./demo-site/dist"
+  "outputDirectory": "./src/dist"
 }

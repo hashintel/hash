@@ -5,7 +5,7 @@ set -euo pipefail
 eval "$(mise activate bash --shims)"
 
 echo "Changing dir to root"
-cd ../../..
+cd ../..
 
 # TODO: Mise is picking up `.env` files. We need to overhaul our approach for
 #   environment variables. To avoid this in the meantime, we'll remove the
@@ -15,5 +15,5 @@ cd ../../..
 # See: https://linear.app/hash/issue/H-3212/clean-up-env-files
 rm .env
 
-echo "Building Petrinaut"
-turbo build:site --filter='@hashintel/petrinaut' --env-mode=loose
+echo "Building Petrinaut website"
+turbo build --filter='@apps/petrinaut-website' --env-mode=loose
