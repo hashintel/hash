@@ -19,6 +19,8 @@ const listContainerStyle = css({
   flexDirection: "column",
   gap: "[1px]",
   flex: "[1]",
+  /** Reduce horizontal padding from the parent */
+  mx: "-1",
 });
 
 const listItemRowStyle = cva({

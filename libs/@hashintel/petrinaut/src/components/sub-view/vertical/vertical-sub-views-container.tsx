@@ -74,7 +74,7 @@ const panelContentStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
-  p: "3",
+  p: "4",
   pt: "2",
 });
 
