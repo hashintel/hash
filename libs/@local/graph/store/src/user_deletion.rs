@@ -49,6 +49,8 @@ pub enum UserDeletionError {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDeletionReport {
+    pub kratos_identity_id: String,
+    pub emails: Vec<String>,
     pub entities_deleted: usize,
     pub drafts_deleted: usize,
     pub links_archived: u64,
@@ -238,6 +240,8 @@ where
 
     Ok(UserDeletionOutcome {
         report: UserDeletionReport {
+            kratos_identity_id,
+            emails,
             entities_deleted: deletion_summary.full_entities,
             drafts_deleted: deletion_summary.draft_deletions,
             links_archived: deletion_summary.links_archived,
