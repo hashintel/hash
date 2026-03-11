@@ -97,7 +97,7 @@ impl<A: Allocator> From<Rc<str, A>> for Str<'_, A> {
     }
 }
 
-impl<'heap, A: Allocator> core::fmt::Debug for Str<'heap, A> {
+impl<A: Allocator> core::fmt::Debug for Str<'_, A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Str").field(&self.as_str()).finish()
     }

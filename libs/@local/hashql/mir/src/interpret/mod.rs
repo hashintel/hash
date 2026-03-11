@@ -18,6 +18,7 @@ mod error;
 mod locals;
 mod runtime;
 mod scratch;
+pub mod suspension;
 #[cfg(test)]
 mod tests;
 pub mod value;

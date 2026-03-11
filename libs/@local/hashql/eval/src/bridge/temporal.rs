@@ -5,15 +5,6 @@ use hashql_mir::interpret::value::Int;
 use postgres_protocol::types::RangeBound;
 use postgres_types::{ToSql, accepts, to_sql_checked};
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct Timestamp(Int);
-
-impl From<Int> for Timestamp {
-    fn from(value: Int) -> Self {
-        Self(value)
-    }
-}
-
 // timestamp is in ms
 impl ToSql for Timestamp {
     accepts!(TIMESTAMPTZ);
@@ -38,31 +29,6 @@ impl ToSql for Timestamp {
         postgres_protocol::types::timestamp_to_sql(value, out);
         Ok(postgres_types::IsNull::No)
     }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TemporalInterval {
-    pub start: Bound<Timestamp>,
-    pub end: Bound<Timestamp>,
-}
-
-impl TemporalInterval {
-    pub(crate) const fn point(value: Timestamp) -> Self {
-        Self {
-            start: Bound::Included(value),
-            end: Bound::Included(value),
-        }
-    }
-
-    pub(crate) const fn interval((start, end): (Bound<Timestamp>, Bound<Timestamp>)) -> Self {
-        Self { start, end }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TemporalAxesInterval {
-    pub decision_time: TemporalInterval,
-    pub transaction_time: TemporalInterval,
 }
 
 impl ToSql for TemporalInterval {
