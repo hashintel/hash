@@ -8,10 +8,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import {
-  createFilterableListSubView,
-  listItemNameStyle,
-} from "./filterable-list-sub-view";
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -128,7 +125,7 @@ export const typesListSubView: SubView = createFilterableListSubView({
     }));
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
-  renderItem: (type) => <span className={listItemNameStyle}>{type.name}</span>,
+  renderItem: (type) => type.name,
   getMenuItems: (type) => {
     const { removeType } = use(SDCPNContext);
     const isReadOnly = useIsReadOnly();

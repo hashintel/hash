@@ -10,10 +10,7 @@ import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import {
-  createFilterableListSubView,
-  listItemNameStyle,
-} from "./filterable-list-sub-view";
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
@@ -74,7 +71,7 @@ export const differentialEquationsListSubView: SubView =
       }));
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
-    renderItem: (eq) => <span className={listItemNameStyle}>{eq.name}</span>,
+    renderItem: (eq) => eq.name,
     getMenuItems: (eq) => {
       const { removeDifferentialEquation } = use(SDCPNContext);
       const isReadOnly = useIsReadOnly();

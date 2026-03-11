@@ -6,10 +6,7 @@ import {
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import {
-  createFilterableListSubView,
-  listItemNameStyle,
-} from "./filterable-list-sub-view";
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 interface NodeItem {
   id: string;
@@ -51,6 +48,6 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
     ];
   },
   getSelectionItem: (node) => ({ type: node.kind, id: node.id }),
-  renderItem: (node) => <span className={listItemNameStyle}>{node.name}</span>,
+  renderItem: (node) => node.name,
   emptyMessage: "No nodes yet",
 });

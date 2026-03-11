@@ -10,10 +10,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import {
-  createFilterableListSubView,
-  listItemNameStyle,
-} from "./filterable-list-sub-view";
+import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -86,7 +83,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
   getSelectionItem: (param) => ({ type: "parameter", id: param.id }),
   renderItem: (param) => {
     return (
-      <div className={listItemNameStyle}>
+      <div>
         <div>{param.name}</div>
         <pre className={parameterVarNameStyle}>{param.variableName}</pre>
       </div>

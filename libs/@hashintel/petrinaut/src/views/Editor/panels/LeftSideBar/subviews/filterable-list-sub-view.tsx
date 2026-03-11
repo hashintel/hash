@@ -14,13 +14,13 @@ import type {
 import { EditorContext } from "../../../../../state/editor-context";
 import type { SelectionItem } from "../../../../../state/selection";
 
-export const listContainerStyle = css({
+const listContainerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[1px]",
 });
 
-export const listItemRowStyle = cva({
+const listItemRowStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
@@ -75,7 +75,7 @@ export const listItemRowStyle = cva({
   },
 });
 
-export const listItemContentStyle = css({
+const listItemContentStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
@@ -83,11 +83,12 @@ export const listItemContentStyle = css({
   minWidth: "[0]",
 });
 
-export const listItemNameStyle = css({
+const listItemNameStyle = css({
   flex: "[1]",
   fontSize: "sm",
   fontWeight: "medium",
-  color: "neutral.s105",
+  lineHeight: "snug",
+  color: "neutral.s115",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -237,7 +238,9 @@ const FilterableListContent = <T extends FilterableListItem>({
                   <item.icon size={LIST_ITEM_ICON_SIZE} />
                 </span>
               )}
-              {renderItem(item, isSelected)}
+              <span className={listItemNameStyle}>
+                {renderItem(item, isSelected)}
+              </span>
             </div>
             {getMenuItems && (
               <RowMenu getMenuItems={getMenuItems} item={item} />
