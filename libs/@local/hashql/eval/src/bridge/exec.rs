@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 use core::pin::pin;
 
-use crossfire::{AsyncRx, MAsyncRx, MAsyncTx, MTx, Rx, mpsc};
+use crossfire::{MAsyncRx, MAsyncTx, MTx, Rx, mpsc};
 use futures_lite::StreamExt as _;
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
 use postgres_types::ToSql;

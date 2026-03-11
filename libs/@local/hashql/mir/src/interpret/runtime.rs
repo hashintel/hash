@@ -45,6 +45,12 @@ use crate::{
     interpret::suspension::{self, GraphReadContinuation, GraphReadSuspension},
 };
 
+#[derive(Debug, Copy, Clone)]
+struct CurrentBlock<'ctx, 'heap> {
+    id: BasicBlockId,
+    block: &'ctx BasicBlock<'heap>,
+}
+
 /// A single call frame in the interpreter's call stack.
 ///
 /// Each frame represents an active function call and tracks:
@@ -57,7 +63,7 @@ struct Frame<'ctx, 'heap, A: Allocator> {
     /// The MIR body being executed.
     body: &'ctx Body<'heap>,
     /// The current basic block.
-    current_block: &'ctx BasicBlock<'heap>,
+    current_block: CurrentBlock<'ctx, 'heap>,
     /// Index of the next statement to execute in the current block.
     current_statement: usize,
 }
@@ -104,14 +110,21 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     pub fn unwind(&self) -> impl Iterator<Item = (DefId, SpanId)> {
         self.frames.iter().rev().map(|frame| {
             let body = frame.body.id;
-            let span = if frame.current_statement >= frame.current_block.statements.len() {
-                frame.current_block.terminator.span
+            let span = if frame.current_statement >= frame.current_block.block.statements.len() {
+                frame.current_block.block.terminator.span
             } else {
-                frame.current_block.statements[frame.current_statement].span
+                frame.current_block.block.statements[frame.current_statement].span
             };
 
             (body, span)
         })
+    }
+
+    pub fn locals<R: Allocator>(&self) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, R>> {
+        self.frames
+            .last()
+            .ok_or(RuntimeError::CallstackEmpty)
+            .map(|frame| &frame.locals)
     }
 }
 
@@ -235,7 +248,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         Ok(Frame {
             locals,
             body,
-            current_block: &body.basic_blocks[BasicBlockId::START],
+            current_block: CurrentBlock {
+                id: BasicBlockId::START,
+                block: &body.basic_blocks[BasicBlockId::START],
+            },
             current_statement: 0,
         })
     }
@@ -247,7 +263,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         Target { block, args }: Target<'heap>,
     ) -> Result<(), RuntimeError<'heap, A>> {
         if args.is_empty() {
-            frame.current_block = &frame.body.basic_blocks[block];
+            frame.current_block = CurrentBlock {
+                id: block,
+                block: &frame.body.basic_blocks[block],
+            };
             frame.current_statement = 0;
             return Ok(());
         }
@@ -277,7 +296,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             frame.locals.insert(param, value);
         }
 
-        frame.current_block = &frame.body.basic_blocks[block];
+        frame.current_block = CurrentBlock {
+            id: block,
+            block: &frame.body.basic_blocks[block],
+        };
         frame.current_statement = 0;
         Ok(())
     }
@@ -287,7 +309,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         stack: &mut [Frame<'ctx, 'heap, A>],
         frame: &mut Frame<'ctx, 'heap, A>,
     ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, A>> {
-        let terminator = &frame.current_block.terminator.kind;
+        let terminator = &frame.current_block.block.terminator.kind;
 
         match terminator {
             &TerminatorKind::Goto(Goto { target }) => {
@@ -331,7 +353,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
                 // The caller is suspended at an `Assign` statement with an `Apply` rvalue.
                 // We write the return value to the LHS of that assignment and resume.
-                let statement = &caller.current_block.statements[caller.current_statement];
+                let statement = &caller.current_block.block.statements[caller.current_statement];
                 let StatementKind::Assign(Assign { lhs, rhs }) = &statement.kind else {
                     unreachable!("we can only be called from an apply");
                 };
@@ -352,7 +374,12 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 let axis = suspension::extract_axis(&axis)?;
 
                 Ok(ControlFlow::Break(Yield::Suspension(
-                    Suspension::GraphRead(GraphReadSuspension { read, axis }),
+                    Suspension::GraphRead(GraphReadSuspension {
+                        body: frame.body.id,
+                        block: frame.current_block.id,
+                        read,
+                        axis,
+                    }),
                 )))
             }
             TerminatorKind::Unreachable => Err(RuntimeError::UnreachableReached),
@@ -615,7 +642,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             return Err(RuntimeError::CallstackEmpty);
         };
 
-        if frame.current_statement >= frame.current_block.statements.len() {
+        if frame.current_statement >= frame.current_block.block.statements.len() {
             let next = self.step_terminator(stack, frame)?;
 
             return match next {
@@ -629,7 +656,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             };
         }
 
-        let statement = &frame.current_block.statements[frame.current_statement];
+        let statement = &frame.current_block.block.statements[frame.current_statement];
         let next_frame = match &statement.kind {
             StatementKind::Assign(assign) => self.step_statement_assign(frame, assign)?,
             StatementKind::Nop | StatementKind::StorageLive(_) | StatementKind::StorageDead(_) => {
@@ -779,10 +806,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 {
                     let current_block = frame.current_block;
                     let current_statement = frame.current_statement;
-                    debug_assert_eq!(current_block.statements.len(), current_statement);
+                    debug_assert_eq!(current_block.block.statements.len(), current_statement);
 
                     debug_assert_matches!(
-                        current_block.terminator.kind,
+                        current_block.block.terminator.kind,
                         TerminatorKind::GraphRead(_)
                     );
                 }
@@ -793,7 +820,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
                 frame.locals.insert(params[0], value);
 
-                frame.current_block = next_block;
+                frame.current_block = CurrentBlock {
+                    id: read.target,
+                    block: next_block,
+                };
                 frame.current_statement = 0;
 
                 Ok(())

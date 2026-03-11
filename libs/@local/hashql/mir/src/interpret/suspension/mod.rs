@@ -13,9 +13,6 @@
 //!    [`Continuation`]
 //! 4. The caller passes the [`Continuation`] to [`Runtime::resume`]
 //!
-//! Each [`Suspension`] must be resolved exactly once. The [`resolve`] method
-//! consumes the suspension, enforcing this at the type level.
-//!
 //! [`Runtime::start`]: super::runtime::Runtime::start
 //! [`Runtime::resume`]: super::runtime::Runtime::resume
 //! [`Yield::Suspension`]: super::runtime::Yield::Suspension
@@ -28,7 +25,10 @@ use core::alloc::Allocator;
 pub(crate) use self::graph_read::extract_axis;
 pub use self::temporal::{TemporalAxesInterval, TemporalInterval, Timestamp};
 use super::value::Value;
-use crate::body::terminator::GraphRead;
+use crate::{
+    body::{basic_block::BasicBlockId, terminator::GraphRead},
+    def::DefId,
+};
 
 /// A request for external data that the interpreter cannot produce on its own.
 ///
@@ -47,6 +47,9 @@ pub enum Suspension<'ctx, 'heap> {
 /// Call [`resolve`](Self::resolve) with the query result to produce a
 /// [`Continuation`] for resuming the interpreter.
 pub struct GraphReadSuspension<'ctx, 'heap> {
+    pub body: DefId,
+    pub block: BasicBlockId,
+
     /// The graph read terminator that caused the suspension.
     pub read: &'ctx GraphRead<'heap>,
     /// The evaluated temporal axis for the query.
@@ -55,8 +58,6 @@ pub struct GraphReadSuspension<'ctx, 'heap> {
 
 impl<'ctx, 'heap> GraphReadSuspension<'ctx, 'heap> {
     /// Resolves this suspension with the query result, producing a [`Continuation`].
-    ///
-    /// Consumes the suspension to enforce the one-shot protocol.
     pub const fn resolve<A: Allocator>(
         self,
         value: Value<'heap, A>,

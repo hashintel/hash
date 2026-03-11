@@ -1,12 +1,18 @@
 use core::{error, ops::Bound};
 
 use bytes::BytesMut;
-use hashql_mir::interpret::value::Int;
+use hashql_mir::interpret::{
+    suspension::{TemporalInterval, Timestamp},
+    value::Int,
+};
 use postgres_protocol::types::RangeBound;
 use postgres_types::{ToSql, accepts, to_sql_checked};
 
+#[derive(Debug)]
+struct TemporalCodec<T>(T);
+
 // timestamp is in ms
-impl ToSql for Timestamp {
+impl ToSql for TemporalCodec<Timestamp> {
     accepts!(TIMESTAMPTZ);
 
     to_sql_checked!();
@@ -24,14 +30,14 @@ impl ToSql for Timestamp {
 
         // Our timestamp is milliseconds since Unix epoch (1970-01-01).
         // Postgres stores microseconds since 2000-01-01.
-        let value = ((self.0.as_int() - BASE) * 1000) as i64;
+        let value = ((Int::from(self.0).as_int() - BASE) * 1000) as i64;
 
         postgres_protocol::types::timestamp_to_sql(value, out);
         Ok(postgres_types::IsNull::No)
     }
 }
 
-impl ToSql for TemporalInterval {
+impl ToSql for TemporalCodec<TemporalInterval> {
     accepts!(TSTZ_RANGE);
 
     to_sql_checked!();
@@ -52,19 +58,19 @@ impl ToSql for TemporalInterval {
             Ok(match bound {
                 Bound::Unbounded => RangeBound::Unbounded,
                 Bound::Included(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    TemporalCodec(timestamp).to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
                     RangeBound::Inclusive(postgres_protocol::IsNull::No)
                 }
                 Bound::Excluded(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    TemporalCodec(timestamp).to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
                     RangeBound::Exclusive(postgres_protocol::IsNull::No)
                 }
             })
         }
 
         postgres_protocol::types::range_to_sql(
-            |buf| bound_to_sql(self.start, buf),
-            |buf| bound_to_sql(self.end, buf),
+            |buf| bound_to_sql(self.0.start, buf),
+            |buf| bound_to_sql(self.0.end, buf),
             out,
         )?;
 
