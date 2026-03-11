@@ -103,22 +103,25 @@ const scrollShadowStyle = cva({
       },
     },
     visible: {
-      true: { opacity: "[0.2]" },
+      true: { opacity: "[0.15]" },
     },
   },
 });
 
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
-  borderTopColor: "neutral.a30",
+  borderTopColor: "neutral.a20",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
   "&[data-separator=hover]": {
-    backgroundColor: "[rgba(0, 0, 0, 0.1)]",
+    backgroundColor: "neutral.a40",
   },
   "&[data-separator=active]": {
-    backgroundColor: "[rgba(59, 130, 246, 0.4)]",
+    backgroundColor: "blue.s60",
+    outlineWidth: "[2px]",
+    outlineStyle: "solid",
+    outlineColor: "blue.s20",
   },
 });
 

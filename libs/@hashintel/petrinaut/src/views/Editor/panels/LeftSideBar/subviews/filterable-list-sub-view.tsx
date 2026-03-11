@@ -1,6 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
-import { use } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { LuArrowDownWideNarrow, LuListFilter, LuSearch } from "react-icons/lu";
 import { TbDots } from "react-icons/tb";
 
@@ -12,7 +12,10 @@ import type {
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
 import { EditorContext } from "../../../../../state/editor-context";
-import type { SelectionItem } from "../../../../../state/selection";
+import type {
+  SelectionItem,
+  SelectionMap,
+} from "../../../../../state/selection";
 
 const listContainerStyle = css({
   display: "flex",
@@ -21,6 +24,8 @@ const listContainerStyle = css({
   flex: "[1]",
   /** Reduce horizontal padding from the parent */
   mx: "-1",
+  /** Suppress browser default focus ring — focus is shown per-row via isFocused variant */
+  outline: "none",
 });
 
 const listItemRowStyle = cva({
@@ -73,6 +78,11 @@ const listItemRowStyle = cva({
         "&:has([data-row-action][data-state=open])": {
           backgroundColor: "neutral.bg.surface.hover",
         },
+      },
+    },
+    isFocused: {
+      true: {
+        backgroundColor: "neutral.bg.subtle.hover",
       },
     },
   },
@@ -206,34 +216,176 @@ const FilterableListContent = <T extends FilterableListItem>({
     selectItem,
     toggleItem,
     clearSelection,
+    setSelection,
   } = use(EditorContext);
 
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Clamp focus/anchor when items shrink
+  useEffect(() => {
+    if (items.length === 0) {
+      setFocusedIndex(null);
+      setAnchorIndex(null);
+    } else {
+      setFocusedIndex((prev) =>
+        prev !== null ? Math.min(prev, items.length - 1) : prev,
+      );
+      setAnchorIndex((prev) =>
+        prev !== null ? Math.min(prev, items.length - 1) : prev,
+      );
+    }
+  }, [items.length]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex !== null) {
+      rowRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIndex]);
+
+  const selectRange = useCallback(
+    (fromIndex: number | null, toIndex: number) => {
+      const start = Math.min(fromIndex ?? toIndex, toIndex);
+      const end = Math.max(fromIndex ?? toIndex, toIndex);
+      const newSelection: SelectionMap = new Map();
+      for (let i = start; i <= end; i++) {
+        const item = items[i];
+        if (item) {
+          const selItem = getSelectionItem(item);
+          newSelection.set(selItem.id, selItem);
+        }
+      }
+      setSelection(newSelection);
+    },
+    [items, getSelectionItem, setSelection],
+  );
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (items.length === 0) {
+        return;
+      }
+
+      switch (event.key) {
+        case "ArrowDown": {
+          event.preventDefault();
+          const nextIndex =
+            focusedIndex === null
+              ? 0
+              : Math.min(focusedIndex + 1, items.length - 1);
+          setFocusedIndex(nextIndex);
+          if (event.shiftKey) {
+            selectRange(anchorIndex ?? nextIndex, nextIndex);
+          } else {
+            const item = items[nextIndex];
+            if (item) {
+              selectItem(getSelectionItem(item));
+            }
+            setAnchorIndex(nextIndex);
+          }
+          break;
+        }
+        case "ArrowUp": {
+          event.preventDefault();
+          const nextIndex =
+            focusedIndex === null
+              ? items.length - 1
+              : Math.max(focusedIndex - 1, 0);
+          setFocusedIndex(nextIndex);
+          if (event.shiftKey) {
+            selectRange(anchorIndex ?? nextIndex, nextIndex);
+          } else {
+            const item = items[nextIndex];
+            if (item) {
+              selectItem(getSelectionItem(item));
+            }
+            setAnchorIndex(nextIndex);
+          }
+          break;
+        }
+        case "Enter":
+        case " ": {
+          event.preventDefault();
+          if (focusedIndex !== null) {
+            const item = items[focusedIndex];
+            if (item) {
+              selectItem(getSelectionItem(item));
+              setAnchorIndex(focusedIndex);
+            }
+          }
+          break;
+        }
+        case "Escape": {
+          clearSelection();
+          setFocusedIndex(null);
+          setAnchorIndex(null);
+          break;
+        }
+      }
+    },
+    [
+      items,
+      focusedIndex,
+      anchorIndex,
+      selectItem,
+      getSelectionItem,
+      clearSelection,
+      selectRange,
+    ],
+  );
+
+  const handleContainerClick = useCallback(() => {
+    clearSelection();
+    setFocusedIndex(null);
+    setAnchorIndex(null);
+  }, [clearSelection]);
+
+  const handleRowClick = useCallback(
+    (event: React.MouseEvent, index: number, selectionItem: SelectionItem) => {
+      event.stopPropagation();
+      setFocusedIndex(index);
+
+      if (event.shiftKey && anchorIndex !== null) {
+        selectRange(anchorIndex, index);
+      } else if (event.metaKey || event.ctrlKey) {
+        toggleItem(selectionItem);
+        setAnchorIndex(index);
+      } else {
+        selectItem(selectionItem);
+        setAnchorIndex(index);
+      }
+    },
+    [anchorIndex, selectRange, toggleItem, selectItem],
+  );
+
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div className={listContainerStyle} onClick={clearSelection}>
-      {items.map((item) => {
+    <div
+      ref={containerRef}
+      className={listContainerStyle}
+      role="listbox"
+      aria-multiselectable="true"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onClick={handleContainerClick}
+    >
+      {items.map((item, index) => {
         const isSelected = checkIsSelected(item.id);
         const selectionItem = getSelectionItem(item);
+        const isFocused = focusedIndex === index;
 
         return (
           <div
             key={item.id}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (event.metaKey || event.ctrlKey) {
-                toggleItem(selectionItem);
-              } else {
-                selectItem(selectionItem);
-              }
+            ref={(el) => {
+              rowRefs.current[index] = el;
             }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                selectItem(selectionItem);
-              }
-            }}
-            className={listItemRowStyle({ isSelected })}
+            onClick={(event) => handleRowClick(event, index, selectionItem)}
+            role="option"
+            aria-selected={isSelected}
+            className={listItemRowStyle({ isSelected, isFocused })}
           >
             <div className={listItemContentStyle}>
               {item.icon && (

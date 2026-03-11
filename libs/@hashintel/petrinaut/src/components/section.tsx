@@ -15,7 +15,9 @@ const sectionListStyle = css({
   flex: "[1]",
   minHeight: "[0]",
   "& > *:not(:last-child)": {
-    borderBottom: "[1px solid rgba(0, 0, 0, 0.06)]",
+    borderBottomWidth: "[1px]",
+    borderBottomStyle: "solid",
+    borderBottomColor: "neutral.a20",
   },
 });
 

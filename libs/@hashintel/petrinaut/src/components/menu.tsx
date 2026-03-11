@@ -97,10 +97,16 @@ const itemStyle = cva({
     _hover: {
       backgroundColor: "neutral.s10",
     },
+    _highlighted: {
+      backgroundColor: "neutral.bg.subtle.hover",
+    },
     _disabled: {
       opacity: "[0.4]",
       cursor: "not-allowed",
       _hover: {
+        backgroundColor: "[transparent]",
+      },
+      _highlighted: {
         backgroundColor: "[transparent]",
       },
     },
@@ -173,6 +179,9 @@ const triggerItemStyle = css({
   justifyContent: "space-between",
   _hover: {
     backgroundColor: "neutral.s10",
+  },
+  _highlighted: {
+    backgroundColor: "neutral.bg.subtle.hover",
   },
 });
 
