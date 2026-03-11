@@ -115,9 +115,20 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     }
 }
 
+/// Result of running the interpreter until it can no longer make progress.
+///
+/// The interpreter either completes with a final value or suspends at a point
+/// where it needs external data (such as a database query result) before it
+/// can continue.
 pub enum Yield<'ctx, 'heap, A: Allocator> {
+    /// The entry function returned a value. Interpretation is complete.
     Return(Value<'heap, A>),
-    Suspend(Suspension<'ctx, 'heap>),
+    /// The interpreter suspended and needs external data to continue.
+    ///
+    /// The caller should inspect the [`Suspension`] to determine what is needed,
+    /// fulfill the request, and call [`Runtime::resume`] with the resulting
+    /// [`Continuation`].
+    Suspension(Suspension<'ctx, 'heap>),
 }
 
 /// Internal signal indicating whether to pop the current frame after a terminator.
@@ -340,9 +351,9 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
                 let axis = suspension::extract_axis(&axis)?;
 
-                Ok(ControlFlow::Break(Yield::Suspend(Suspension::GraphRead(
-                    GraphReadSuspension { read, axis },
-                ))))
+                Ok(ControlFlow::Break(Yield::Suspension(
+                    Suspension::GraphRead(GraphReadSuspension { read, axis }),
+                )))
             }
             TerminatorKind::Unreachable => Err(RuntimeError::UnreachableReached),
         }
@@ -655,7 +666,17 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     ///
     /// Returns a diagnostic if any runtime error occurs. The diagnostic includes
     /// the error message and a call stack trace for error localization.
-    pub fn run_until_suspense(
+    /// Steps the interpreter until it either returns a value or suspends.
+    ///
+    /// This is the low-level driver loop. It does **not** clear scratch state,
+    /// so callers must ensure scratch is in the expected state before calling.
+    /// Prefer [`start`](Self::start) for the initial invocation and
+    /// [`resume`](Self::resume) after fulfilling a suspension.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if any runtime error occurs during interpretation.
+    fn run_until_suspension(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
@@ -676,6 +697,19 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
+    /// Runs the interpreter to completion, handling suspensions inline.
+    ///
+    /// This is a convenience method for callers that can handle all suspensions
+    /// synchronously via a closure. The `on_suspension` callback receives each
+    /// [`Suspension`], fulfills it, and returns the corresponding [`Continuation`].
+    ///
+    /// For async or more complex orchestration, use [`start`](Self::start) and
+    /// [`resume`](Self::resume) instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if interpretation fails or if `on_suspension` returns
+    /// an error.
     pub fn run(
         &mut self,
         mut callstack: CallStack<'ctx, 'heap, A>,
@@ -687,9 +721,9 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         self.scratch.clear();
 
         loop {
-            match self.run_until_suspense(&mut callstack)? {
+            match self.run_until_suspension(&mut callstack)? {
                 Yield::Return(value) => return Ok(value),
-                Yield::Suspend(suspension) => {
+                Yield::Suspension(suspension) => {
                     let continuation = on_suspension(suspension).map_err(|error| {
                         let spans = callstack.unwind();
 
@@ -706,14 +740,31 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
+    /// Begins interpretation from the given call stack.
+    ///
+    /// Clears scratch state and runs until the interpreter either returns
+    /// or suspends. This should be used for the initial invocation; use
+    /// [`resume`](Self::resume) to continue after a suspension.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if any runtime error occurs during interpretation.
     pub fn start(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
         self.scratch.clear();
-        self.run_until_suspense(callstack)
+        self.run_until_suspension(callstack)
     }
 
+    /// Applies a [`Continuation`] to the suspended call stack.
+    ///
+    /// Writes the continuation's result value into the target block's parameter
+    /// and advances the frame to that block.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::CallstackEmpty`] if the call stack has no frames.
     fn resolve_continuation(
         callstack: &mut CallStack<'ctx, 'heap, A>,
         continuation: Continuation<'ctx, 'heap, A>,
@@ -750,6 +801,15 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
+    /// Continues interpretation after a suspension has been fulfilled.
+    ///
+    /// Resolves the [`Continuation`] into the call stack and resumes stepping
+    /// until the interpreter returns or suspends again.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if the continuation is invalid or if a runtime
+    /// error occurs during interpretation.
     pub fn resume(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
@@ -761,6 +821,6 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             error.into_diagnostic(spans.map(|(_, span)| span))
         })?;
 
-        self.run_until_suspense(callstack)
+        self.run_until_suspension(callstack)
     }
 }
