@@ -75,7 +75,7 @@ const panelContentStyle = css({
   display: "flex",
   flexDirection: "column",
   p: "3",
-  pt: "0",
+  pt: "2",
 });
 
 const SHADOW_HEIGHT = 7;
@@ -130,16 +130,20 @@ const headerRowStyle = css({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a20",
 });
 
 const mainHeaderRowStyle = css({
   p: "3",
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a30",
 
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a20",
 });
 
 const headerActionVisibleStyle = css({
