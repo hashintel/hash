@@ -355,7 +355,7 @@ async fn delete_user(
         _ => None,
     };
 
-    let report = user_deletion::delete_user(
+    let outcome = user_deletion::delete_user(
         &mut store,
         &kratos,
         &hydra,
@@ -366,9 +366,15 @@ async fn delete_user(
     .await
     .map_err(report_to_response)?;
 
+    let message = if outcome.errors.is_ok() {
+        "User deleted successfully"
+    } else {
+        "User deleted with external service errors, check report"
+    };
+
     Ok(status_to_response(Status::new(
         StatusCode::Ok,
-        Some("User deleted successfully".to_owned()),
-        vec![report],
+        Some(message.to_owned()),
+        vec![outcome.report],
     )))
 }

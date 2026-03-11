@@ -153,15 +153,20 @@ pub struct ExternalServicesConfig {
     pub hydra_admin_url: Url,
 
     /// Mailchimp API key for email subscription management.
-    #[clap(long, env = "MAILCHIMP_API_KEY", requires = "mailchimp_list_id")]
+    #[clap(
+        long,
+        env = "MAILCHIMP_API_KEY",
+        requires = "mailchimp_list_id",
+        requires = "mailchimp_server"
+    )]
     pub mailchimp_api_key: Option<String>,
 
     /// Mailchimp audience list ID.
     #[clap(long, env = "MAILCHIMP_LIST_ID", requires = "mailchimp_api_key")]
     pub mailchimp_list_id: Option<String>,
 
-    /// Mailchimp server prefix (e.g. `us15`).
-    #[clap(long, env = "MAILCHIMP_SERVER", default_value = "us15")]
+    /// Mailchimp server prefix (e.g. `us15`). Required when `mailchimp_api_key` is set.
+    #[clap(long, env = "MAILCHIMP_SERVER", requires = "mailchimp_api_key")]
     pub mailchimp_server: Option<String>,
 }
 

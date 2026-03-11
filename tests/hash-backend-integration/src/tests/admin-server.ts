@@ -68,6 +68,19 @@ export const deleteEntities = async () => {
     },
     body: JSON.stringify({
       filter: { all: [] },
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
+        },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: { kind: "unbounded" },
+            end: null,
+          },
+        },
+      },
       includeDrafts: true,
       scope: "erase",
     }),

@@ -1,5 +1,6 @@
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+use hash_graph_temporal_versioning::TemporalBound;
 use serde::Serialize;
 use type_system::principal::{actor::UserId, actor_group::WebId};
 
@@ -12,20 +13,37 @@ use crate::{
     filter::{Filter, FilterExpression, Parameter},
     identity_provider::IdentityProvider,
     oauth_provider::OAuthProvider,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 
+/// Errors that can occur during user deletion.
+///
+/// Fatal variants (`UserLookup`, `MissingKratosIdentityId`, `EntityDeletion`) prevent the
+/// operation from completing and cause an `Err` return from [`delete_user`].
+///
+/// Non-fatal variants (`KratosDeletion`, `HydraLoginRevocation`, `HydraConsentRevocation`,
+/// `EmailSubscription`) are collected into [`UserDeletionOutcome::errors`] but do not prevent
+/// the entity deletion from succeeding.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum UserDeletionError {
-    #[display("user not found")]
-    UserNotFound,
+    // Fatal
+    #[display("failed to look up user data")]
+    UserLookup,
     #[display("user entity is missing a Kratos identity ID")]
     MissingKratosIdentityId,
     #[display("failed to delete user entities")]
     EntityDeletion,
-    #[display("failed to delete external identity")]
-    IdentityDeletion,
-    #[display("failed to revoke external OAuth sessions")]
-    OAuthRevocation,
+    // Non-fatal (collected via ReportSink)
+    #[display("failed to delete Kratos identity")]
+    KratosDeletion,
+    #[display("failed to revoke Hydra login sessions")]
+    HydraLoginRevocation,
+    #[display("failed to revoke Hydra consent sessions")]
+    HydraConsentRevocation,
+    #[display("failed to delete email subscription")]
+    EmailSubscription,
 }
 
 #[expect(clippy::struct_excessive_bools, reason = "status report, not config")]
@@ -40,6 +58,16 @@ pub struct UserDeletionReport {
     pub email_subscriptions_deleted: bool,
 }
 
+/// Result of a user deletion operation.
+///
+/// The `report` is always present and describes what happened. The `errors` field contains
+/// collected errors from non-fatal steps (Kratos, Hydra, Mailchimp). When `errors` is `Err`,
+/// the entity deletion still succeeded but external service cleanup was incomplete.
+pub struct UserDeletionOutcome {
+    pub report: UserDeletionReport,
+    pub errors: Result<(), Report<[UserDeletionError]>>,
+}
+
 /// Deletes a user's data from the system while preserving structural references.
 ///
 /// Principals (user, web, roles, system machine) and policies are intentionally kept intact because
@@ -48,15 +76,27 @@ pub struct UserDeletionReport {
 ///
 /// Orchestrates the following operations in order:
 /// 1. Look up the user's Kratos identity ID and email addresses
-/// 2. Erase all entities owned by the user's personal web
+/// 2. Purge all entities owned by the user's personal web
 /// 3. Delete the Kratos identity (removes PII such as email)
-/// 4. Revoke Hydra login and consent sessions (best-effort)
-/// 5. Delete email subscription entries (best-effort)
+/// 4. Revoke Hydra login and consent sessions
+/// 5. Delete email subscription entries
+///
+/// Steps 1–2 are fatal: failure causes an `Err` return and no entities are deleted.
+/// Steps 3–5 are non-fatal: failures are collected into [`UserDeletionOutcome::errors`]
+/// with full error-stack context, but entity deletion is not rolled back.
 ///
 /// # Errors
 ///
-/// Returns [`UserDeletionError`] if any step fails. Partial deletion may occur — the caller should
-/// log which steps completed for manual recovery.
+/// Returns [`UserDeletionError`] if steps 1 or 2 fail. Non-fatal errors from steps 3–5 are
+/// returned in [`UserDeletionOutcome::errors`].
+#[expect(
+    clippy::too_many_lines,
+    reason = "linear orchestration flow, splitting would reduce readability"
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store, identity_provider, oauth_provider, email_subscription_provider)
+)]
 pub async fn delete_user<S, I, O, E>(
     store: &mut S,
     identity_provider: &I,
@@ -64,7 +104,7 @@ pub async fn delete_user<S, I, O, E>(
     email_subscription_provider: Option<&E>,
     actor: AuthenticatedActor,
     user_id: UserId,
-) -> Result<UserDeletionReport, Report<UserDeletionError>>
+) -> Result<UserDeletionOutcome, Report<UserDeletionError>>
 where
     S: AccountStore + EntityStore,
     I: IdentityProvider,
@@ -75,17 +115,17 @@ where
     let kratos_identity_id = store
         .get_user_kratos_identity_id(user_id)
         .await
-        .change_context(UserDeletionError::UserNotFound)?
+        .change_context(UserDeletionError::UserLookup)?
         .ok_or(UserDeletionError::MissingKratosIdentityId)?;
     tracing::info!(%user_id, %kratos_identity_id, "resolved Kratos identity");
 
     let emails = store
         .get_user_emails(user_id)
         .await
-        .change_context(UserDeletionError::UserNotFound)?;
+        .change_context(UserDeletionError::UserLookup)?;
     tracing::info!(%user_id, email_count = emails.len(), "resolved user emails");
 
-    // Step 2: Erase all entities owned by the user's personal web
+    // Step 2: Purge all entities owned by the user's personal web
     // User ID == Web ID for personal webs
     let web_id = WebId::from(user_id);
     let web_filter = Filter::Equal(
@@ -103,9 +143,16 @@ where
             actor,
             DeleteEntitiesParams {
                 filter: web_filter,
+                temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
                 include_drafts: true,
                 scope: DeletionScope::Purge {
-                    link_behavior: LinkDeletionBehavior::Ignore,
+                    link_behavior: LinkDeletionBehavior::Archive,
                 },
                 decision_time: None,
             },
@@ -115,48 +162,66 @@ where
     tracing::info!(
         full = deletion_summary.full_entities,
         drafts = deletion_summary.draft_deletions,
-        "erased entities from user web"
+        "purged entities from user web"
     );
 
+    // Steps 3–5: Non-fatal, errors collected via ReportSink
+    let mut sink = ReportSink::<UserDeletionError>::new();
+
     // Step 3: Delete Kratos identity (removes PII: email, name, recovery addresses)
-    identity_provider
-        .delete_identity(&kratos_identity_id)
-        .await
-        .change_context(UserDeletionError::IdentityDeletion)?;
-    tracing::info!(%kratos_identity_id, "deleted Kratos identity");
+    let kratos_deleted = sink
+        .attempt(
+            identity_provider
+                .delete_identity(&kratos_identity_id)
+                .await
+                .change_context(UserDeletionError::KratosDeletion),
+        )
+        .is_some();
+    if kratos_deleted {
+        tracing::info!(%kratos_identity_id, "deleted Kratos identity");
+    }
 
-    // Step 4: Revoke all Hydra sessions (best-effort)
-    let login_revoked = if let Err(report) = oauth_provider
-        .revoke_login_sessions(&kratos_identity_id)
-        .await
-    {
-        tracing::warn!(?report, "failed to revoke Hydra login sessions");
-        false
-    } else {
+    // Step 4: Revoke all Hydra sessions
+    let login_revoked = sink
+        .attempt(
+            oauth_provider
+                .revoke_login_sessions(&kratos_identity_id)
+                .await
+                .change_context(UserDeletionError::HydraLoginRevocation),
+        )
+        .is_some();
+    if login_revoked {
         tracing::info!(%kratos_identity_id, "revoked Hydra login sessions");
-        true
-    };
+    }
 
-    let consent_revoked = if let Err(report) = oauth_provider
-        .revoke_consent_sessions(&kratos_identity_id)
-        .await
-    {
-        tracing::warn!(?report, "failed to revoke Hydra consent sessions");
-        false
-    } else {
+    let consent_revoked = sink
+        .attempt(
+            oauth_provider
+                .revoke_consent_sessions(&kratos_identity_id)
+                .await
+                .change_context(UserDeletionError::HydraConsentRevocation),
+        )
+        .is_some();
+    if consent_revoked {
         tracing::info!(%kratos_identity_id, "revoked Hydra consent sessions");
-        true
-    };
+    }
 
-    // Step 5: Delete email subscriptions (best-effort)
+    // Step 5: Delete email subscriptions
     let subscriptions_deleted = if let Some(provider) = email_subscription_provider {
         let mut all_ok = true;
         for email in &emails {
-            if let Err(report) = provider.delete_subscriber(email).await {
-                tracing::warn!(?report, %email, "failed to delete email subscription");
-                all_ok = false;
-            } else {
+            if sink
+                .attempt(
+                    provider
+                        .delete_subscriber(email)
+                        .await
+                        .change_context(UserDeletionError::EmailSubscription),
+                )
+                .is_some()
+            {
                 tracing::info!(%email, "deleted email subscription");
+            } else {
+                all_ok = false;
             }
         }
         all_ok
@@ -165,12 +230,20 @@ where
         true
     };
 
-    Ok(UserDeletionReport {
-        entities_deleted: deletion_summary.full_entities,
-        drafts_deleted: deletion_summary.draft_deletions,
-        kratos_identity_deleted: true,
-        hydra_login_sessions_revoked: login_revoked,
-        hydra_consent_sessions_revoked: consent_revoked,
-        email_subscriptions_deleted: subscriptions_deleted,
+    let errors = sink.finish();
+    if let Err(report) = &errors {
+        tracing::error!(?report, "user deletion completed with errors");
+    }
+
+    Ok(UserDeletionOutcome {
+        report: UserDeletionReport {
+            entities_deleted: deletion_summary.full_entities,
+            drafts_deleted: deletion_summary.draft_deletions,
+            kratos_identity_deleted: kratos_deleted,
+            hydra_login_sessions_revoked: login_revoked,
+            hydra_consent_sessions_revoked: consent_revoked,
+            email_subscriptions_deleted: subscriptions_deleted,
+        },
+        errors,
     })
 }

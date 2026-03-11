@@ -39,6 +39,7 @@ async fn removes_entity_ids_row() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -81,6 +82,7 @@ async fn satellite_tables_cleaned() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -168,6 +170,7 @@ async fn entity_with_history() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -213,6 +216,7 @@ async fn double_deletion_is_noop() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -235,6 +239,7 @@ async fn double_deletion_is_noop() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -274,6 +279,7 @@ async fn entity_reuse_after_erase() {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -355,6 +361,7 @@ async fn promoted_draft_only_entity() {
                 filter: Filter::for_entity_by_entity_id(base_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -424,6 +431,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )

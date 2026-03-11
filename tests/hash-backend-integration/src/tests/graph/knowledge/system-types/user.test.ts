@@ -11,14 +11,24 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import {
   createUser,
   getUser,
+  getUserOrgMemberships,
   isUserMemberOfOrg,
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
+import {
+  currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
   blockProtocolPropertyTypes,
@@ -64,6 +74,8 @@ describe("User model class", () => {
   });
 
   let createdUser: User;
+  let orgEntityId: EntityId;
+  let membershipLinkEntityId: EntityId;
 
   it("can create a user", async () => {
     const authentication = { actorId: systemAccountId };
@@ -173,6 +185,19 @@ describe("User model class", () => {
         orgEntityUuid,
       }),
     ).toBe(true);
+
+    // Save for deletion tests: the is-member-of link lives in the org's web
+    orgEntityId = testOrg.entity.metadata.recordId.entityId;
+    const memberships = await getUserOrgMemberships(
+      graphContext,
+      authentication,
+      {
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
+      },
+    );
+    expect(memberships).toHaveLength(1);
+    membershipLinkEntityId =
+      memberships[0]!.linkEntity.metadata.recordId.entityId;
   });
 
   it("can read the user-web roles", async () => {
@@ -346,6 +371,116 @@ describe("User model class", () => {
           id: createdUser.kratosIdentityId,
         }),
       ).rejects.toThrow();
+    });
+
+    it("org entity is still live after user deletion", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(orgEntityId),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(orgEntityId),
+                  },
+                ],
+              },
+              { equal: [{ path: ["archived"] }, { parameter: false }] },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+      expect(entities).toHaveLength(1);
+    });
+
+    it("org membership link is no longer live after user deletion", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(
+                      membershipLinkEntityId,
+                    ),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(membershipLinkEntityId),
+                  },
+                ],
+              },
+              { equal: [{ path: ["archived"] }, { parameter: false }] },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+      expect(entities).toHaveLength(0);
+    });
+
+    it("org membership link has archived provenance", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(
+                      membershipLinkEntityId,
+                    ),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(membershipLinkEntityId),
+                  },
+                ],
+              },
+            ],
+          },
+          temporalAxes: fullDecisionTimeAxis,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+
+      expect(entities.length).toBe(1);
+      const archivedLink = entities[entities.length - 1]!;
+      expect(
+        archivedLink.metadata.provenance.edition.archivedById,
+      ).toBeDefined();
     });
 
     it("can delete a user by email", async () => {

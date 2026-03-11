@@ -550,7 +550,7 @@ pub enum DeletionScope {
 pub enum LinkDeletionBehavior {
     Ignore,
     Error,
-    // Cascade,
+    Archive,
 }
 
 #[derive(Debug, Deserialize)]
@@ -559,9 +559,14 @@ pub enum LinkDeletionBehavior {
 pub struct DeleteEntitiesParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(flatten)]
     pub scope: DeletionScope,
+    /// Decision time at which the deletion is recorded in provenance.
+    ///
+    /// Defaults to the current time when `None`. Must not exceed the current transaction time.
+    /// This is independent of `temporal_axes`, which controls entity *finding*.
     #[serde(default)]
     pub decision_time: Option<Timestamp<DecisionTime>>,
 }

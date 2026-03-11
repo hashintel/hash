@@ -4,7 +4,6 @@ default-members = [
 ]
 exclude = [
     ".github/scripts/rust",
-    "_scratch/claude-memory",
 ]
 members = [
     "apps/hash-graph",
@@ -401,5 +400,5 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
-oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
+oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
