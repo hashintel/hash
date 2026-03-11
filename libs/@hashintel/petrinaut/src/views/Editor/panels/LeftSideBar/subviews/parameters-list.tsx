@@ -4,10 +4,9 @@ import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
-import { NumberInput } from "../../../../../components/number-input";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
@@ -17,20 +16,9 @@ import {
 } from "./filterable-list-sub-view";
 
 const parameterVarNameStyle = css({
-  margin: "[0]",
-  fontSize: "[11px]",
-  color: "neutral.s100",
-});
-
-const actionsContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-});
-
-const parameterValueInputStyle = css({
-  width: "[80px]",
-  textAlign: "right",
+  margin: "0",
+  fontSize: "xs",
+  color: "neutral.s90",
 });
 
 /**
@@ -90,45 +78,18 @@ export const parametersListSubView: SubView = createFilterableListSubView({
     const {
       petriNetDefinition: { parameters },
     } = use(SDCPNContext);
-    return parameters;
+    return parameters.map((param) => ({
+      ...param,
+      icon: ParameterIcon,
+    }));
   },
   getSelectionItem: (param) => ({ type: "parameter", id: param.id }),
   renderItem: (param) => {
-    const { globalMode } = use(EditorContext);
-    const {
-      state: simulationState,
-      parameterValues,
-      setParameterValue,
-    } = use(SimulationContext);
-
-    const isSimulationNotRun =
-      globalMode === "simulate" && simulationState === "NotRun";
-    const isSimulationMode = globalMode === "simulate";
-
     return (
-      <>
-        <div className={listItemNameStyle}>
-          <div>{param.name}</div>
-          <pre className={parameterVarNameStyle}>{param.variableName}</pre>
-        </div>
-        {isSimulationMode && (
-          <div className={actionsContainerStyle}>
-            <NumberInput
-              size="xs"
-              value={parameterValues[param.variableName] ?? param.defaultValue}
-              onChange={(event) =>
-                setParameterValue(
-                  param.variableName,
-                  (event.target as HTMLInputElement).value,
-                )
-              }
-              placeholder={param.defaultValue}
-              readOnly={!isSimulationNotRun}
-              className={parameterValueInputStyle}
-            />
-          </div>
-        )}
-      </>
+      <div className={listItemNameStyle}>
+        <div>{param.name}</div>
+        <pre className={parameterVarNameStyle}>{param.variableName}</pre>
+      </div>
     );
   },
   getMenuItems: (param) => {

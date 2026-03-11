@@ -1,18 +1,15 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { FaCircle, FaSquare } from "react-icons/fa6";
 
 import type { SubView } from "../../../../../components/sub-view/types";
+import {
+  PlaceFilledIcon,
+  TransitionFilledIcon,
+} from "../../../../../constants/entity-icons";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import {
   createFilterableListSubView,
   listItemNameStyle,
 } from "./filterable-list-sub-view";
-
-const nodeIconStyle = css({
-  flexShrink: 0,
-  color: "[#9ca3af]",
-});
 
 interface NodeItem {
   id: string;
@@ -43,13 +40,13 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
         id: place.id,
         name: place.name || `Place ${place.id}`,
         kind: "place" as const,
-        icon: <FaCircle size={12} className={nodeIconStyle} />,
+        icon: PlaceFilledIcon,
       })),
       ...transitions.map((transition) => ({
         id: transition.id,
         name: transition.name || `Transition ${transition.id}`,
         kind: "transition" as const,
-        icon: <FaSquare size={12} className={nodeIconStyle} />,
+        icon: TransitionFilledIcon,
       })),
     ];
   },

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
 import { EditorContext } from "../../../../../state/editor-context";
@@ -67,7 +68,10 @@ export const differentialEquationsListSubView: SubView =
       const {
         petriNetDefinition: { differentialEquations },
       } = use(SDCPNContext);
-      return differentialEquations;
+      return differentialEquations.map((eq) => ({
+        ...eq,
+        icon: DifferentialEquationIcon,
+      }));
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
     renderItem: (eq) => <span className={listItemNameStyle}>{eq.name}</span>,

@@ -1,8 +1,7 @@
-import { LuVariable } from "react-icons/lu";
-
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
+import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { useParameterPropertiesContext } from "../context";
@@ -98,7 +97,7 @@ const ParameterMainContent: React.FC = () => {
 export const parameterMainContentSubView: SubView = {
   id: "parameter-main-content",
   title: "Parameter",
-  icon: <LuVariable size={16} />,
+  icon: <ParameterIcon size={16} />,
   main: true,
   component: ParameterMainContent,
 };

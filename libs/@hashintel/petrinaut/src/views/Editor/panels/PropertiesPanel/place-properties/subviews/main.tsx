@@ -1,6 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
-import { LuCircle } from "react-icons/lu";
 import { TbArrowRight, TbTrash } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -10,6 +9,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { Select, type SelectOption } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
+import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
@@ -353,7 +353,7 @@ const DeletePlaceAction: React.FC = () => {
 export const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
-  icon: <LuCircle size={16} />,
+  icon: <PlaceIcon size={16} />,
   main: true,
   component: PlaceMainContent,
   renderHeaderAction: () => <DeletePlaceAction />,

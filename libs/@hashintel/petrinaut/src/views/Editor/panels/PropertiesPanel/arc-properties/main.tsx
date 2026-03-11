@@ -1,6 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { LuMinus } from "react-icons/lu";
 import { TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -8,6 +7,7 @@ import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { ArcIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import type { SDCPN } from "../../../../../core/types/sdcpn";
 import { EditorContext } from "../../../../../state/editor-context";
@@ -128,7 +128,7 @@ const DeleteArcAction: React.FC = () => {
 const arcMainContentSubView: SubView = {
   id: "arc-main-content",
   title: "Arc",
-  icon: <LuMinus size={16} />,
+  icon: <ArcIcon size={16} />,
   main: true,
   component: ArcMainContent,
   renderHeaderAction: () => <DeleteArcAction />,

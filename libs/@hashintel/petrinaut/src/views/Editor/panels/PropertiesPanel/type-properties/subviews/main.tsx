@@ -1,6 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { LuTag } from "react-icons/lu";
 import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
@@ -9,6 +8,7 @@ import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
+import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { ColorSelect } from "../color-select";
@@ -367,7 +367,7 @@ const TypeMainContent: React.FC = () => {
 export const typeMainContentSubView: SubView = {
   id: "type-main-content",
   title: "Type",
-  icon: <LuTag size={16} />,
+  icon: <TokenTypeIcon size={16} />,
   main: true,
   component: TypeMainContent,
 };

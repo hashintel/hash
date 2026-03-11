@@ -1,6 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { LuSquare } from "react-icons/lu";
 import { TbTrash } from "react-icons/tb";
 
 import {
@@ -12,6 +11,7 @@ import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
+import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../context";
@@ -232,7 +232,7 @@ const DeleteTransitionAction: React.FC = () => {
 export const transitionMainContentSubView: SubView = {
   id: "transition-main-content",
   title: "Transition",
-  icon: <LuSquare size={16} />,
+  icon: <TransitionIcon size={16} />,
   main: true,
   component: TransitionMainContent,
   renderHeaderAction: () => <DeleteTransitionAction />,

@@ -1,5 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { use } from "react";
 import { LuArrowDownWideNarrow, LuListFilter, LuSearch } from "react-icons/lu";
 import { TbDots } from "react-icons/tb";
@@ -93,6 +93,9 @@ export const listItemNameStyle = css({
   whiteSpace: "nowrap",
 });
 
+const LIST_ITEM_ICON_SIZE = 12;
+const LIST_ITEM_ICON_COLOR = "#9ca3af";
+
 const listItemIconStyle = css({
   flexShrink: 0,
   display: "flex",
@@ -101,13 +104,16 @@ const listItemIconStyle = css({
 });
 
 export const emptyMessageStyle = css({
+  pt: "1",
+  px: "1",
   fontSize: "sm",
-  color: "neutral.s85",
+  color: "neutral.s65",
 });
 
 interface FilterableListItem {
   id: string;
-  icon?: ReactNode;
+  icon?: ComponentType<{ size: number }>;
+  iconColor?: string;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -224,7 +230,12 @@ const FilterableListContent = <T extends FilterableListItem>({
           >
             <div className={listItemContentStyle}>
               {item.icon && (
-                <span className={listItemIconStyle}>{item.icon}</span>
+                <span
+                  className={listItemIconStyle}
+                  style={{ color: item.iconColor ?? LIST_ITEM_ICON_COLOR }}
+                >
+                  <item.icon size={LIST_ITEM_ICON_SIZE} />
+                </span>
               )}
               {renderItem(item, isSelected)}
             </div>

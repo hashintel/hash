@@ -1,6 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { LuSigma } from "react-icons/lu";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -11,6 +10,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { Select } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
+import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
@@ -344,7 +344,7 @@ const DiffEqCodeAction: React.FC = () => {
 export const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
   title: "Differential Equation",
-  icon: <LuSigma size={16} />,
+  icon: <DifferentialEquationIcon size={16} />,
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,

@@ -1,9 +1,9 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
@@ -12,13 +12,6 @@ import {
   createFilterableListSubView,
   listItemNameStyle,
 } from "./filterable-list-sub-view";
-
-const colorDotStyle = css({
-  width: "[12px]",
-  height: "[12px]",
-  borderRadius: "[50%]",
-  flexShrink: 0,
-});
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -130,12 +123,8 @@ export const typesListSubView: SubView = createFilterableListSubView({
     } = use(SDCPNContext);
     return types.map((type) => ({
       ...type,
-      icon: (
-        <div
-          className={colorDotStyle}
-          style={{ backgroundColor: type.displayColor }}
-        />
-      ),
+      icon: TokenTypeIcon,
+      iconColor: type.displayColor,
     }));
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
