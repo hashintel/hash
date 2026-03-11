@@ -61,6 +61,11 @@ export interface SubView {
    */
   defaultCollapsed?: boolean;
   /**
+   * When true, the header action is always visible instead of only on hover/focus.
+   * Defaults to false.
+   */
+  alwaysShowHeaderAction?: boolean;
+  /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */

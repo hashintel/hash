@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
@@ -10,18 +9,10 @@ import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
-
-const equationNameContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flex: "[1]",
-  minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
+import {
+  createFilterableListSubView,
+  listItemNameStyle,
+} from "./filterable-list-sub-view";
 
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
@@ -79,11 +70,7 @@ export const differentialEquationsListSubView: SubView =
       return differentialEquations;
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
-    renderItem: (eq) => (
-      <div className={equationNameContainerStyle}>
-        <span>{eq.name}</span>
-      </div>
-    ),
+    renderItem: (eq) => <span className={listItemNameStyle}>{eq.name}</span>,
     getMenuItems: (eq) => {
       const { removeDifferentialEquation } = use(SDCPNContext);
       const isReadOnly = useIsReadOnly();

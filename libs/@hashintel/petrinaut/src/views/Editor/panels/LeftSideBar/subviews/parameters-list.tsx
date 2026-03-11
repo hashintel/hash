@@ -1,4 +1,4 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
@@ -11,7 +11,10 @@ import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import {
+  createFilterableListSubView,
+  listItemNameStyle,
+} from "./filterable-list-sub-view";
 
 const parameterVarNameStyle = css({
   margin: "[0]",
@@ -69,29 +72,6 @@ const ParametersHeaderAction: React.FC = () => {
   );
 };
 
-// Custom row style for parameters - overrides the default to add space-between layout
-const parameterRowContentStyle = cva({
-  base: {
-    width: "[100%]",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minWidth: "[0]",
-    gap: "1",
-  },
-});
-
-const parameterNameStyle = css({
-  flex: "[1]",
-  minWidth: "[0]",
-  overflow: "hidden",
-  "& > div": {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-});
-
 /**
  * SubView definition for Global Parameters List.
  */
@@ -126,8 +106,8 @@ export const parametersListSubView: SubView = createFilterableListSubView({
     const isSimulationMode = globalMode === "simulate";
 
     return (
-      <div className={parameterRowContentStyle()}>
-        <div className={parameterNameStyle}>
+      <>
+        <div className={listItemNameStyle}>
           <div>{param.name}</div>
           <pre className={parameterVarNameStyle}>{param.variableName}</pre>
         </div>
@@ -148,7 +128,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
             />
           </div>
         )}
-      </div>
+      </>
     );
   },
   getMenuItems: (param) => {

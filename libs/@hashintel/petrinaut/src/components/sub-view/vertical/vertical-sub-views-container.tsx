@@ -37,6 +37,17 @@ const sectionWrapperStyle = css({
   flexDirection: "column",
   height: "[100%]",
   overflow: "hidden",
+
+  /* Reveal header actions and info tooltip on hover or focus-within */
+  "&:hover [data-header-action], &:focus-within [data-header-action]": {
+    opacity: "[1]",
+    width: "auto",
+    overflow: "visible",
+    transition: "[opacity 150ms ease-out]",
+  },
+  "&:hover [data-info-tooltip], &:focus-within [data-info-tooltip]": {
+    opacity: "[1]",
+  },
 });
 
 const sectionContentStyle = css({
@@ -117,22 +128,25 @@ const headerRowStyle = css({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-
-  /* Reveal the chevron icon on hover */
-  "& [data-toggle-icon]": {
-    width: "3.5",
-    opacity: "[0]",
-  },
-  "&:hover [data-toggle-icon]": {
-    opacity: "[1]",
-  },
 });
 
-const headerActionStyle = css({
+const headerActionVisibleStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
   display: "flex",
   alignItems: "center",
+  flexShrink: 0,
+});
+
+const headerActionStyle = css({
+  maxHeight: "[44px]",
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
+  opacity: "[0]",
+  width: "[0]",
+  overflow: "hidden",
+  transition: "[opacity 150ms ease-out, width 0s 150ms]",
 });
 
 const sectionToggleStyle = css({
@@ -142,9 +156,28 @@ const sectionToggleStyle = css({
   fontSize: "sm",
   color: "neutral.s100",
   cursor: "pointer",
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+
+  /* Reveal the chevron icon on toggle section hover */
+  "& [data-toggle-icon]": {
+    width: "3.5",
+    opacity: "[0]",
+  },
+  "&:hover [data-toggle-icon]": {
+    opacity: "[1]",
+  },
+});
+
+const sectionToggleLabelStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const sectionToggleIconStyle = css({
+  flexShrink: 0,
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -157,10 +190,19 @@ const sectionToggleIconExpandedStyle = css({
   transform: "[rotate(90deg)]",
 });
 
+const infoTooltipWrapperStyle = css({
+  opacity: "[0]",
+  transition: "[opacity 150ms ease-out]",
+});
+
 const mainTitleStyle = css({
   fontWeight: "semibold",
   fontSize: "base",
   px: "1",
+  flex: "[1]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 /**
@@ -252,6 +294,7 @@ interface SubViewHeaderProps {
   isExpanded: boolean;
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
+  alwaysShowHeaderAction?: boolean;
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
@@ -262,6 +305,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   isExpanded,
   onToggle,
   renderHeaderAction,
+  alwaysShowHeaderAction,
 }) => (
   <div className={headerRowStyle}>
     {main ? (
@@ -290,14 +334,25 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         >
           <FaChevronRight size={9} />
         </div>
-        <span>
+        <span className={sectionToggleLabelStyle}>
           {title}
-          {tooltip && <InfoIconTooltip tooltip={tooltip} />}
+          {tooltip && (
+            <span data-info-tooltip className={infoTooltipWrapperStyle}>
+              <InfoIconTooltip tooltip={tooltip} outlined />
+            </span>
+          )}
         </span>
       </div>
     )}
     {isExpanded && renderHeaderAction && (
-      <div className={headerActionStyle}>{renderHeaderAction()}</div>
+      <div
+        {...(!alwaysShowHeaderAction && { "data-header-action": true })}
+        className={
+          alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle
+        }
+      >
+        {renderHeaderAction()}
+      </div>
     )}
   </div>
 );
@@ -395,6 +450,7 @@ export const VerticalSubViewsContainer: React.FC<
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={subView.renderHeaderAction}
+                  alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                 />
 
                 {isExpanded && (

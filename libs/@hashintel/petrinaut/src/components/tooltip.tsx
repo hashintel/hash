@@ -4,6 +4,7 @@ import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { FaInfoCircle } from "react-icons/fa";
+import { LuInfo } from "react-icons/lu";
 
 import { usePortalContainerRef } from "../state/portal-container-context";
 
@@ -116,13 +117,21 @@ const circleInfoIconStyle = css({
   marginBottom: "[2px]",
   color: "neutral.s85",
   verticalAlign: "middle",
-  fill: "[currentColor]",
+  // fill: "[currentColor]",
 });
 
-export const InfoIconTooltip = ({ tooltip }: { tooltip: string }) => {
+export const InfoIconTooltip = ({
+  tooltip,
+  outlined,
+}: {
+  tooltip: string;
+  outlined?: boolean;
+}) => {
+  const Icon = outlined ? LuInfo : FaInfoCircle;
+
   return (
     <Tooltip content={tooltip} display="inline">
-      <FaInfoCircle size={10} className={circleInfoIconStyle} />
+      <Icon size={10} className={circleInfoIconStyle} />
     </Tooltip>
   );
 };

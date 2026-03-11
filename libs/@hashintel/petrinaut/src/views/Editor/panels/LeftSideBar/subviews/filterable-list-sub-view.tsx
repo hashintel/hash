@@ -17,6 +17,7 @@ import type { SelectionItem } from "../../../../../state/selection";
 export const listContainerStyle = css({
   display: "flex",
   flexDirection: "column",
+  gap: "[1px]",
 });
 
 export const listItemRowStyle = cva({
@@ -25,9 +26,7 @@ export const listItemRowStyle = cva({
     alignItems: "center",
     gap: "1",
     minHeight: "8",
-    pl: "2",
-    pr: "1",
-    py: "1",
+    p: "1",
     borderRadius: "lg",
     cursor: "pointer",
     fontSize: "sm",
@@ -94,6 +93,13 @@ export const listItemNameStyle = css({
   whiteSpace: "nowrap",
 });
 
+const listItemIconStyle = css({
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
 export const emptyMessageStyle = css({
   fontSize: "sm",
   color: "neutral.s85",
@@ -101,6 +107,7 @@ export const emptyMessageStyle = css({
 
 interface FilterableListItem {
   id: string;
+  icon?: ReactNode;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -165,6 +172,7 @@ const RowMenu = <T extends FilterableListItem>({
         </IconButton>
       }
       items={menuItems}
+      placement="bottom-end"
     />
   );
 };
@@ -214,7 +222,12 @@ const FilterableListContent = <T extends FilterableListItem>({
             }}
             className={listItemRowStyle({ isSelected })}
           >
-            {renderItem(item, isSelected)}
+            <div className={listItemContentStyle}>
+              {item.icon && (
+                <span className={listItemIconStyle}>{item.icon}</span>
+              )}
+              {renderItem(item, isSelected)}
+            </div>
             {getMenuItems && (
               <RowMenu getMenuItems={getMenuItems} item={item} />
             )}

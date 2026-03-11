@@ -8,7 +8,10 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import {
+  createFilterableListSubView,
+  listItemNameStyle,
+} from "./filterable-list-sub-view";
 
 const colorDotStyle = css({
   width: "[12px]",
@@ -125,18 +128,18 @@ export const typesListSubView: SubView = createFilterableListSubView({
     const {
       petriNetDefinition: { types },
     } = use(SDCPNContext);
-    return types;
+    return types.map((type) => ({
+      ...type,
+      icon: (
+        <div
+          className={colorDotStyle}
+          style={{ backgroundColor: type.displayColor }}
+        />
+      ),
+    }));
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
-  renderItem: (type) => (
-    <>
-      <div
-        className={colorDotStyle}
-        style={{ backgroundColor: type.displayColor }}
-      />
-      <span>{type.name}</span>
-    </>
-  ),
+  renderItem: (type) => <span className={listItemNameStyle}>{type.name}</span>,
   getMenuItems: (type) => {
     const { removeType } = use(SDCPNContext);
     const isReadOnly = useIsReadOnly();
