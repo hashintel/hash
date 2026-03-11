@@ -14,7 +14,7 @@
 //! [`Severity::Bug`]: hashql_diagnostics::severity::Severity::Bug
 //! [`Severity::Error`]: hashql_diagnostics::severity::Severity::Error
 
-mod error;
+pub mod error;
 mod locals;
 mod runtime;
 mod scratch;

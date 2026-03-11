@@ -20,6 +20,7 @@ use self::{
 use crate::postgres::{Parameter, PreparedQuery};
 
 mod codec;
+pub(crate) mod error;
 mod exec;
 mod postgres_serde;
 mod temporal;

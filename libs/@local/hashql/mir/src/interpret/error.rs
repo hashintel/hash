@@ -28,8 +28,25 @@ use crate::body::{
 /// Type alias for interpreter diagnostics.
 ///
 /// The default severity kind is [`Severity`], which allows any severity level.
-pub(crate) type InterpretDiagnostic<K = Severity> =
-    Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
+pub type InterpretDiagnostic<K = Severity> = Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
+
+/// Diagnostic subcategory for errors that occur while fulfilling a suspension.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct SuspensionDiagnosticCategory(pub &'static TerminalDiagnosticCategory);
+
+impl DiagnosticCategory for SuspensionDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("suspension")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Suspension")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        Some(self.0)
+    }
+}
 
 // Terminal categories for ICEs
 const LOCAL_ACCESS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -89,6 +106,8 @@ pub enum InterpretDiagnosticCategory {
     RuntimeLimit,
     /// Required input not provided.
     InputResolution,
+    /// Error from fulfilling a suspension (e.g. database query failure).
+    Suspension(SuspensionDiagnosticCategory),
 }
 
 impl DiagnosticCategory for InterpretDiagnosticCategory {
@@ -109,6 +128,7 @@ impl DiagnosticCategory for InterpretDiagnosticCategory {
             Self::BoundsCheck => Some(&BOUNDS_CHECK),
             Self::RuntimeLimit => Some(&RUNTIME_LIMIT),
             Self::InputResolution => Some(&INPUT_RESOLUTION),
+            Self::Suspension(category) => Some(category),
         }
     }
 }

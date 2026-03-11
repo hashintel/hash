@@ -157,7 +157,7 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
         let island = &residual.islands[island_id];
 
         let mut db = DatabaseContext::new_in(heap);
-        let mut compiler = GraphReadFilterCompiler::new(&context, body, Global);
+        let mut compiler = GraphReadFilterCompiler::new(&context, body, Local::ENV, Global);
 
         let expression = compiler.compile_body(&mut db, island);
         let diagnostics = compiler.into_diagnostics();
