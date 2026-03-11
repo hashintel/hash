@@ -48,7 +48,6 @@ pub struct ExternalServicesConfig {
     pub hydra_admin_url: reqwest::Url,
     pub mailchimp_api_key: Option<String>,
     pub mailchimp_list_id: Option<String>,
-    pub mailchimp_server: Option<String>,
 }
 
 /// Creates the admin API router.
@@ -344,14 +343,15 @@ async fn delete_user(
     let mailchimp = match (
         &external_services.mailchimp_api_key,
         &external_services.mailchimp_list_id,
-        &external_services.mailchimp_server,
     ) {
-        (Some(api_key), Some(list_id), Some(server)) => Some(MailchimpSubscriptionProvider::new(
-            Arc::clone(&http_client),
-            api_key.clone(),
-            list_id.clone(),
-            server.clone(),
-        )),
+        (Some(api_key), Some(list_id)) => Some(
+            MailchimpSubscriptionProvider::new(
+                Arc::clone(&http_client),
+                api_key.clone(),
+                list_id.clone(),
+            )
+            .map_err(report_to_response)?,
+        ),
         _ => None,
     };
 

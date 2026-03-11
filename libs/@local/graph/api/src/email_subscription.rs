@@ -5,6 +5,10 @@ use hash_graph_store::email_subscription::{EmailSubscriptionError, EmailSubscrip
 use md5::{Digest as _, Md5};
 use reqwest::Client;
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Mailchimp API key does not contain a server suffix (expected format: `<key>-<server>`)")]
+pub(crate) struct InvalidMailchimpApiKey;
+
 /// Mailchimp implementation of [`EmailSubscriptionProvider`].
 ///
 /// Uses the Mailchimp Marketing API to permanently delete subscribers.
@@ -19,20 +23,25 @@ pub(crate) struct MailchimpSubscriptionProvider {
 impl MailchimpSubscriptionProvider {
     /// Creates a new provider.
     ///
-    /// The `server` prefix is typically the suffix of the API key (e.g. `us15`).
-    #[must_use]
-    pub(crate) const fn new(
+    /// The server prefix is extracted from the API key (format: `<key>-<server>`, e.g.
+    /// `abc123-us15`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidMailchimpApiKey`] if the key does not contain a `-<server>` suffix.
+    pub(crate) fn new(
         client: Arc<Client>,
         api_key: String,
         list_id: String,
-        server: String,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, Report<InvalidMailchimpApiKey>> {
+        let (_, server) = api_key.rsplit_once('-').ok_or(InvalidMailchimpApiKey)?;
+        let server = server.to_owned();
+        Ok(Self {
             client,
             api_key,
             list_id,
             server,
-        }
+        })
     }
 }
 
