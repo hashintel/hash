@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { LuSquare } from "react-icons/lu";
 import { TbTrash } from "react-icons/tb";
 
 import {
@@ -231,7 +232,9 @@ const DeleteTransitionAction: React.FC = () => {
 export const transitionMainContentSubView: SubView = {
   id: "transition-main-content",
   title: "Transition",
+  icon: <LuSquare size={16} />,
   main: true,
   component: TransitionMainContent,
   renderHeaderAction: () => <DeleteTransitionAction />,
+  alwaysShowHeaderAction: true,
 };

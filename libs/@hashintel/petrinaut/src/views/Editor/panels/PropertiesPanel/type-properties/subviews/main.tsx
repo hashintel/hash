@@ -1,5 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
+import { LuTag } from "react-icons/lu";
 import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
@@ -366,6 +367,7 @@ const TypeMainContent: React.FC = () => {
 export const typeMainContentSubView: SubView = {
   id: "type-main-content",
   title: "Type",
+  icon: <LuTag size={16} />,
   main: true,
   component: TypeMainContent,
 };

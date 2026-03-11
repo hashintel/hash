@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
+import { LuMinus } from "react-icons/lu";
 import { TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -127,9 +128,11 @@ const DeleteArcAction: React.FC = () => {
 const arcMainContentSubView: SubView = {
   id: "arc-main-content",
   title: "Arc",
+  icon: <LuMinus size={16} />,
   main: true,
   component: ArcMainContent,
   renderHeaderAction: () => <DeleteArcAction />,
+  alwaysShowHeaderAction: true,
 };
 
 const subViews: SubView[] = [arcMainContentSubView];

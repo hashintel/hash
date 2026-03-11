@@ -1,3 +1,5 @@
+import { LuVariable } from "react-icons/lu";
+
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -96,6 +98,7 @@ const ParameterMainContent: React.FC = () => {
 export const parameterMainContentSubView: SubView = {
   id: "parameter-main-content",
   title: "Parameter",
+  icon: <LuVariable size={16} />,
   main: true,
   component: ParameterMainContent,
 };

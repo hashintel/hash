@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
+import { LuSigma } from "react-icons/lu";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -343,7 +344,9 @@ const DiffEqCodeAction: React.FC = () => {
 export const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
   title: "Differential Equation",
+  icon: <LuSigma size={16} />,
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,
+  alwaysShowHeaderAction: true,
 };

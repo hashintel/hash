@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
+import { LuCircle } from "react-icons/lu";
 import { TbArrowRight, TbTrash } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -352,7 +353,9 @@ const DeletePlaceAction: React.FC = () => {
 export const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
+  icon: <LuCircle size={16} />,
   main: true,
   component: PlaceMainContent,
   renderHeaderAction: () => <DeletePlaceAction />,
+  alwaysShowHeaderAction: true,
 };

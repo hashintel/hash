@@ -130,6 +130,16 @@ const headerRowStyle = css({
   alignItems: "center",
 });
 
+const mainHeaderRowStyle = css({
+  p: "3",
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a30",
+
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+});
+
 const headerActionVisibleStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
@@ -195,11 +205,28 @@ const infoTooltipWrapperStyle = css({
   transition: "[opacity 150ms ease-out]",
 });
 
-const mainTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "base",
-  px: "1",
+const mainHeaderContentStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
   flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+});
+
+const headerIconStyle = css({
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "5",
+  color: "neutral.s85",
+});
+
+const mainTitleStyle = css({
+  fontWeight: "medium",
+  fontSize: "sm",
+  color: "neutral.s85",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -290,6 +317,7 @@ interface SubViewHeaderProps {
   id: string;
   title: string;
   tooltip?: string;
+  icon?: React.ReactNode;
   main?: boolean;
   isExpanded: boolean;
   onToggle: () => void;
@@ -301,15 +329,19 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   id,
   title,
   tooltip,
+  icon,
   main = false,
   isExpanded,
   onToggle,
   renderHeaderAction,
   alwaysShowHeaderAction,
 }) => (
-  <div className={headerRowStyle}>
+  <div className={main ? mainHeaderRowStyle : headerRowStyle}>
     {main ? (
-      <div className={mainTitleStyle}>{title}</div>
+      <div className={mainHeaderContentStyle}>
+        {icon && <span className={headerIconStyle}>{icon}</span>}
+        <span className={mainTitleStyle}>{title}</span>
+      </div>
     ) : (
       <div
         onClick={onToggle}
@@ -446,6 +478,7 @@ export const VerticalSubViewsContainer: React.FC<
                   id={subView.id}
                   title={subView.title}
                   tooltip={subView.tooltip}
+                  icon={subView.icon}
                   main={isMain}
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
