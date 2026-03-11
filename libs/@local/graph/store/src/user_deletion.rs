@@ -51,6 +51,7 @@ pub enum UserDeletionError {
 pub struct UserDeletionReport {
     pub entities_deleted: usize,
     pub drafts_deleted: usize,
+    pub links_archived: u64,
     pub kratos_identity_deleted: bool,
     pub hydra_login_sessions_revoked: bool,
     pub hydra_consent_sessions_revoked: bool,
@@ -239,6 +240,7 @@ where
         report: UserDeletionReport {
             entities_deleted: deletion_summary.full_entities,
             drafts_deleted: deletion_summary.draft_deletions,
+            links_archived: deletion_summary.links_archived,
             kratos_identity_deleted: kratos_deleted,
             hydra_login_sessions_revoked: login_revoked,
             hydra_consent_sessions_revoked: consent_revoked,

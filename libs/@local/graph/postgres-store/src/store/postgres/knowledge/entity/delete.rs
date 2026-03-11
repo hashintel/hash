@@ -654,13 +654,14 @@ impl PostgresStore<Transaction<'_>> {
         target: &FullEntityDeletionTarget,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(), Report<DeletionError>> {
+    ) -> Result<u64, Report<DeletionError>> {
         match scope {
             DeletionScope::Erase => {
                 let count = self.count_incoming_link_edges(target, None).await?;
                 if count > 0 {
                     return Err(Report::new(DeletionError::IncomingLinksExist { count }));
                 }
+                Ok(0)
             }
             DeletionScope::Purge {
                 link_behavior: LinkDeletionBehavior::Error,
@@ -671,18 +672,18 @@ impl PostgresStore<Transaction<'_>> {
                 if count > 0 {
                     return Err(Report::new(DeletionError::IncomingLinksExist { count }));
                 }
+                Ok(0)
             }
             DeletionScope::Purge {
                 link_behavior: LinkDeletionBehavior::Archive,
             } => {
                 self.archive_incoming_link_edges(actor_id, target, transaction_time, decision_time)
-                    .await?;
+                    .await
             }
             DeletionScope::Purge {
                 link_behavior: LinkDeletionBehavior::Ignore,
-            } => {}
+            } => Ok(0),
         }
-        Ok(())
     }
 
     /// Counts incoming links from entities outside the deletion batch.
@@ -912,37 +913,41 @@ impl PostgresStore<Transaction<'_>> {
             .select_entities_for_deletion(&params.filter, params.include_drafts, &temporal_axes)
             .await?;
 
-        let summary = DeletionSummary {
-            full_entities: full_target.web_ids.len(),
-            draft_deletions: draft_target.draft_ids.len(),
-        };
+        let full_entities = full_target.web_ids.len();
+        let draft_deletions = draft_target.draft_ids.len();
 
-        if summary.full_entities == 0 && summary.draft_deletions == 0 {
-            return Ok(summary);
+        if full_entities == 0 && draft_deletions == 0 {
+            return Ok(DeletionSummary {
+                full_entities: 0,
+                draft_deletions: 0,
+                links_archived: 0,
+            });
         }
 
-        if summary.full_entities > 0 {
+        let mut links_archived = 0;
+        if full_entities > 0 {
             if matches!(params.scope, DeletionScope::Erase) {
                 self.lock_entity_ids_for_erase(&full_target).await?;
             }
 
-            self.handle_incoming_link_edges(
-                actor_id,
-                &params.scope,
-                &full_target,
-                transaction_time,
-                decision_time,
-            )
-            .await?;
+            links_archived = self
+                .handle_incoming_link_edges(
+                    actor_id,
+                    &params.scope,
+                    &full_target,
+                    transaction_time,
+                    decision_time,
+                )
+                .await?;
         }
 
         let mut satellite_counts = SatelliteDeletionCounts::default();
-        if summary.full_entities > 0 {
+        if full_entities > 0 {
             satellite_counts += self
                 .delete_target_data(DeletionTarget::Full(&full_target))
                 .await?;
         }
-        if summary.draft_deletions > 0 {
+        if draft_deletions > 0 {
             satellite_counts += self
                 .delete_target_data(DeletionTarget::Drafts(&draft_target))
                 .await?;
@@ -950,7 +955,7 @@ impl PostgresStore<Transaction<'_>> {
 
         let mut entity_edge = 0_u64;
         let mut entity_ids_affected = 0_u64;
-        if summary.full_entities > 0 {
+        if full_entities > 0 {
             entity_edge = self.delete_entity_edge(&full_target).await?;
 
             let expected = full_target.web_ids.len() as u64;
@@ -984,8 +989,8 @@ impl PostgresStore<Transaction<'_>> {
         }
 
         tracing::trace!(
-            full_entities = summary.full_entities,
-            draft_deletions = summary.draft_deletions,
+            full_entities = full_entities,
+            draft_deletions = draft_deletions,
             is_of_type = satellite_counts.is_of_type,
             embeddings = satellite_counts.embeddings,
             temporal_metadata = satellite_counts.temporal_metadata,
@@ -993,9 +998,14 @@ impl PostgresStore<Transaction<'_>> {
             drafts = satellite_counts.drafts,
             entity_edge,
             entity_ids_affected,
+            links_archived,
             "entity deletion complete"
         );
 
-        Ok(summary)
+        Ok(DeletionSummary {
+            full_entities,
+            draft_deletions,
+            links_archived,
+        })
     }
 }

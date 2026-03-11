@@ -100,6 +100,7 @@ async fn published_entity() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
     assert_eq!(count_entity(&api, entity_id, false).await, 0);
@@ -192,6 +193,7 @@ async fn published_entity_with_history() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
     // All history gone — both via read path and raw table count
@@ -241,6 +243,7 @@ async fn no_match_is_noop() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 }
@@ -298,6 +301,7 @@ async fn include_drafts_irrelevant_for_published() {
     let expected = DeletionSummary {
         full_entities: 1,
         draft_deletions: 0,
+        links_archived: 0,
     };
     assert_eq!(summary_a, expected);
     assert_eq!(summary_b, expected);
@@ -341,6 +345,7 @@ async fn purge_error_succeeds_without_incoming_links() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
     assert_eq!(count_entity(&api, entity_id, false).await, 0);
@@ -375,6 +380,7 @@ async fn tombstone_has_deletion_provenance() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -417,6 +423,7 @@ async fn satellite_tables_cleaned() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -471,6 +478,7 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -492,6 +500,7 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -535,6 +544,7 @@ async fn multiple_entities_in_batch() {
         DeletionSummary {
             full_entities: 2,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
     assert_eq!(count_entity(&api, id_a, false).await, 0);
@@ -573,6 +583,7 @@ async fn other_entity_unaffected() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -639,6 +650,7 @@ async fn batch_with_mixed_entity_states() {
         DeletionSummary {
             full_entities: 4,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -711,6 +723,7 @@ async fn cross_web_batch() {
         DeletionSummary {
             full_entities: 2,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -805,6 +818,7 @@ async fn different_actor_deleting() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -870,6 +884,7 @@ async fn entity_with_embeddings() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -912,6 +927,7 @@ async fn large_batch() {
         DeletionSummary {
             full_entities: 50,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -964,6 +980,7 @@ async fn filter_by_entity_type() {
         DeletionSummary {
             full_entities: 2,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -1021,6 +1038,7 @@ async fn archived_entity() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -1106,6 +1124,7 @@ async fn erase_after_purge_is_noop() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 

@@ -51,6 +51,7 @@ async fn removes_entity_ids_row() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -94,6 +95,7 @@ async fn satellite_tables_cleaned() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -182,6 +184,7 @@ async fn entity_with_history() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -228,6 +231,7 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -251,6 +255,7 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -373,6 +378,7 @@ async fn promoted_draft_only_entity() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -443,6 +449,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 

@@ -126,6 +126,7 @@ async fn decision_time_in_past_succeeds() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -173,6 +174,7 @@ async fn decision_time_defaults_to_transaction_time() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -229,6 +231,7 @@ async fn decision_time_before_creation_finds_nothing() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -333,6 +336,7 @@ async fn past_decision_time_deletes_all_editions() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 

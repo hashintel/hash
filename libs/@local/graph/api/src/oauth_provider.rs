@@ -29,13 +29,19 @@ impl HydraOAuthProvider {
             .extend(["admin", "oauth2", "auth", "sessions", kind]);
         url.query_pairs_mut().append_pair("subject", subject);
 
-        self.client
-            .delete(url)
-            .send()
-            .await
-            .change_context(OAuthProviderError::RevocationFailed {
+        let response = self.client.delete(url).send().await.change_context(
+            OAuthProviderError::RevocationFailed {
                 subject: subject.to_owned(),
-            })?
+            },
+        )?;
+
+        // 400 means no sessions exist for this subject — treat as success
+        if response.status() == reqwest::StatusCode::BAD_REQUEST {
+            tracing::info!(%subject, %kind, "no Hydra sessions to revoke");
+            return Ok(());
+        }
+
+        response
             .error_for_status()
             .change_context(OAuthProviderError::RevocationFailed {
                 subject: subject.to_owned(),

@@ -76,6 +76,13 @@ pub fn routes(
 
     public
         .merge(protected)
+        .fallback(|| async {
+            status_to_response(Status::<()>::new(
+                StatusCode::NotFound,
+                Some("endpoint not found".to_owned()),
+                vec![],
+            ))
+        })
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(Arc::new(store_pool)))
         .layer(Extension(Arc::new(external_services)))

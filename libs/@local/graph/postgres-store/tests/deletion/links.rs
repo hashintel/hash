@@ -107,6 +107,7 @@ async fn purge_ignore_succeeds_with_incoming_links() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -226,6 +227,7 @@ async fn purge_link_entity_removes_all_edges() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -299,6 +301,7 @@ async fn self_referential_batch_not_counted() {
         DeletionSummary {
             full_entities: 3,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 }
@@ -373,6 +376,7 @@ async fn draft_deletion_skips_link_check() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -500,6 +504,7 @@ async fn self_loop_link() {
         DeletionSummary {
             full_entities: 2,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 }
@@ -572,6 +577,7 @@ async fn chain_deletion() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -651,6 +657,7 @@ async fn bidirectional_links() {
         DeletionSummary {
             full_entities: 4,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 }
@@ -699,6 +706,7 @@ async fn erase_batch_excludes_in_batch_links() {
         DeletionSummary {
             full_entities: 3,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -760,6 +768,7 @@ async fn erase_link_entity_alone_succeeds() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -826,6 +835,7 @@ async fn purge_archive_archives_incoming_link() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 1,
         }
     );
 
@@ -1167,6 +1177,7 @@ async fn purge_archive_includes_draft_link_versions() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 1,
         }
     );
 
@@ -1305,6 +1316,7 @@ async fn purge_error_ignores_archived_links() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
