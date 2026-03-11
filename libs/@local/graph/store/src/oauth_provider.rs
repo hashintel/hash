@@ -2,7 +2,7 @@ use error_stack::Report;
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum OAuthProviderError {
-    #[display("failed to revoke consent sessions for subject `{subject}`")]
+    #[display("failed to revoke sessions for subject `{subject}`")]
     RevocationFailed { subject: String },
 }
 
