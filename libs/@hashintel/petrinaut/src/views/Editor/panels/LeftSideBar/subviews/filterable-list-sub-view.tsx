@@ -18,6 +18,7 @@ const listContainerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[1px]",
+  flex: "[1]",
 });
 
 const listItemRowStyle = cva({
@@ -202,10 +203,12 @@ const FilterableListContent = <T extends FilterableListItem>({
     isSelected: checkIsSelected,
     selectItem,
     toggleItem,
+    clearSelection,
   } = use(EditorContext);
 
   return (
-    <div className={listContainerStyle}>
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div className={listContainerStyle} onClick={clearSelection}>
       {items.map((item) => {
         const isSelected = checkIsSelected(item.id);
         const selectionItem = getSelectionItem(item);
@@ -214,6 +217,7 @@ const FilterableListContent = <T extends FilterableListItem>({
           <div
             key={item.id}
             onClick={(event) => {
+              event.stopPropagation();
               if (event.metaKey || event.ctrlKey) {
                 toggleItem(selectionItem);
               } else {

@@ -5,15 +5,14 @@
  * and optionally a filled icon (used in list item rows).
  */
 import { FaCircle, FaSquare } from "react-icons/fa6";
-import { GrVolumeControl } from "react-icons/gr";
-import { LuCircle, LuMinus, LuSquare } from "react-icons/lu";
+import { LuCircle, LuMinus, LuSettings2, LuSquare } from "react-icons/lu";
 import { RiColorFilterFill, RiFormula } from "react-icons/ri";
 
 /** Outline icons — used in PropertiesPanel headers */
 export const PlaceIcon = LuCircle;
 export const TransitionIcon = LuSquare;
 export const ArcIcon = LuMinus;
-export const ParameterIcon = GrVolumeControl;
+export const ParameterIcon = LuSettings2;
 export const TokenTypeIcon = RiColorFilterFill;
 export const DifferentialEquationIcon = RiFormula;
 
