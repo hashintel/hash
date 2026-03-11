@@ -46,7 +46,6 @@ pub enum UserDeletionError {
     EmailSubscription,
 }
 
-#[expect(clippy::struct_excessive_bools, reason = "status report, not config")]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDeletionReport {
@@ -55,7 +54,8 @@ pub struct UserDeletionReport {
     pub kratos_identity_deleted: bool,
     pub hydra_login_sessions_revoked: bool,
     pub hydra_consent_sessions_revoked: bool,
-    pub email_subscriptions_deleted: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email_subscriptions_deleted: Option<bool>,
 }
 
 /// Result of a user deletion operation.
@@ -143,7 +143,7 @@ where
             actor,
             DeleteEntitiesParams {
                 filter: web_filter,
-                temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
                         Some(TemporalBound::Unbounded),
@@ -224,10 +224,10 @@ where
                 all_ok = false;
             }
         }
-        all_ok
+        Some(all_ok)
     } else {
         tracing::info!("no email subscription provider configured, skipping");
-        true
+        None
     };
 
     let errors = sink.finish();

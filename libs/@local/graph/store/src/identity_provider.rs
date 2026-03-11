@@ -2,8 +2,6 @@ use error_stack::Report;
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum IdentityProviderError {
-    #[display("identity `{identity_id}` not found")]
-    NotFound { identity_id: String },
     #[display("failed to delete identity")]
     DeletionFailed,
 }

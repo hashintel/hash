@@ -35,10 +35,10 @@ impl IdentityProvider for KratosIdentityProvider {
             .await
             .change_context(IdentityProviderError::DeletionFailed)?;
 
+        // 404 means the identity was already deleted — treat as success for idempotency
         if response.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(Report::new(IdentityProviderError::NotFound {
-                identity_id: identity_id.to_owned(),
-            }));
+            tracing::info!(%identity_id, "Kratos identity already deleted");
+            return Ok(());
         }
 
         response
