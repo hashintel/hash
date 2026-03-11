@@ -12,6 +12,15 @@ import type {
   SignatureHelp,
 } from "./protocol";
 
+/** Dynamically import and instantiate the language server worker (inlined as blob URL). */
+async function createLanguageServerWorker() {
+  const LanguageServerWorker = await import(
+    "./language-server.worker.ts?worker&inline"
+  );
+  // eslint-disable-next-line new-cap
+  return new LanguageServerWorker.default();
+}
+
 type Pending = {
   resolve: (result: never) => void;
   reject: (error: Error) => void;
@@ -56,40 +65,38 @@ export function useLanguageClient(): LanguageClientApi {
   >(null);
 
   useEffect(() => {
-    const worker = new Worker(
-      new URL("./language-server.worker.ts", import.meta.url),
-      {
-        type: "module",
-      },
-    );
+    void (async () => {
+      const worker = await createLanguageServerWorker();
 
-    worker.onmessage = (event: MessageEvent<ServerMessage>) => {
-      const msg = event.data;
+      worker.onmessage = (event: MessageEvent<ServerMessage>) => {
+        const msg = event.data;
 
-      if ("id" in msg) {
-        // Response to a request
-        const pending = pendingRef.current.get(msg.id);
-        if (!pending) {
-          return;
+        if ("id" in msg) {
+          // Response to a request
+          const pending = pendingRef.current.get(msg.id);
+          if (!pending) {
+            return;
+          }
+          pendingRef.current.delete(msg.id);
+
+          if ("error" in msg) {
+            pending.reject(new Error(msg.error.message));
+          } else {
+            pending.resolve(msg.result as never);
+          }
+        } else if ("method" in msg) {
+          // Server-pushed notification
+          diagnosticsCallbackRef.current?.(msg.params);
         }
-        pendingRef.current.delete(msg.id);
+      };
 
-        if ("error" in msg) {
-          pending.reject(new Error(msg.error.message));
-        } else {
-          pending.resolve(msg.result as never);
-        }
-      } else if ("method" in msg) {
-        // Server-pushed notification
-        diagnosticsCallbackRef.current?.(msg.params);
-      }
-    };
+      workerRef.current = worker;
+    })();
 
-    workerRef.current = worker;
     const pending = pendingRef.current;
 
     return () => {
-      worker.terminate();
+      workerRef.current?.terminate();
       workerRef.current = null;
       for (const entry of pending.values()) {
         entry.reject(new Error("Worker terminated"));
