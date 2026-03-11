@@ -95,15 +95,15 @@ const scrollShadowStyle = cva({
     position: {
       top: {
         top: "[0]",
-        background: "[linear-gradient(to bottom, #F0F0F0, transparent)]",
+        background: "[linear-gradient(to bottom, #C0C0C0, #FFFFFF10)]",
       },
       bottom: {
         bottom: "[0]",
-        background: "[linear-gradient(to top, #F0F0F0, transparent)]",
+        background: "[linear-gradient(to top, #C0C0C0, #FFFFFF10)]",
       },
     },
     visible: {
-      true: { opacity: "[0.7]" },
+      true: { opacity: "[0.2]" },
     },
   },
 });
