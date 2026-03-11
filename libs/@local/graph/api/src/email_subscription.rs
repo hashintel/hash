@@ -2,6 +2,7 @@ use alloc::sync::Arc;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::email_subscription::{EmailSubscriptionError, EmailSubscriptionProvider};
+use md5::{Digest as _, Md5};
 use reqwest::Client;
 
 /// Mailchimp implementation of [`EmailSubscriptionProvider`].
@@ -38,7 +39,7 @@ impl MailchimpSubscriptionProvider {
 impl EmailSubscriptionProvider for MailchimpSubscriptionProvider {
     #[tracing::instrument(level = "debug", skip(self))]
     async fn delete_subscriber(&self, email: &str) -> Result<(), Report<EmailSubscriptionError>> {
-        let subscriber_hash = format!("{:x}", md5::compute(email.to_lowercase().as_bytes()));
+        let subscriber_hash = format!("{:x}", Md5::digest(email.to_lowercase().as_bytes()));
         let url = format!(
             "https://{server}.api.mailchimp.com/3.0/lists/{list_id}/members/{subscriber_hash}/actions/delete-permanent",
             server = self.server,

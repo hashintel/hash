@@ -58,7 +58,7 @@ frunk                              = { workspace = true }
 futures                            = { workspace = true }
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
-md5                                = { workspace = true }
+md-5                               = { workspace = true }
 mime                               = { workspace = true }
 opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
