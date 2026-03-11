@@ -1758,6 +1758,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
+name = "crossfire"
+version = "3.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf877d485f079160883c76912869ac04132035f7ea787712264d422793f808df"
+dependencies = [
+ "crossbeam-utils",
+ "futures-core",
+ "parking_lot",
+ "smallvec 1.15.1",
+]
+
+[[package]]
 name = "crossterm"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2750,7 +2762,10 @@ version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f78e10609fe0e0b3f4157ffab1876319b5b0db102a2c60dc4626306dc46b44ad"
 dependencies = [
+ "fastrand",
  "futures-core",
+ "futures-io",
+ "parking",
  "pin-project-lite",
 ]
 
@@ -3870,7 +3885,9 @@ name = "hashql-eval"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "crossfire",
  "derive_more",
+ "futures-lite",
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hashql-compiletest",
@@ -3884,6 +3901,8 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
+ "tokio-postgres",
+ "tokio-util",
  "type-system",
  "url",
 ]

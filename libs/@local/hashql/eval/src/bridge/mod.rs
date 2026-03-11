@@ -2,21 +2,30 @@
 // implementations.
 
 use core::{alloc::Allocator, ops::Bound};
+use std::alloc::Global;
 
 use hashql_core::symbol::sym;
 use hashql_mir::{
-    body::{Body, location::Location, terminator::GraphRead},
-    def::{DefId, DefIdSlice},
-    interpret::{
-        Locals, RuntimeError, TypeName,
-        value::{Int, Value},
+    body::{
+        Body,
+        location::Location,
+        terminator::{GraphRead, GraphReadBody},
     },
+    def::{DefId, DefIdSlice},
+    interpret::{Locals, RuntimeError, TypeName, value::Value},
 };
 
+use self::{
+    codec::{Inputs, encode_parameter},
+    exec::Ipc,
+    temporal::{TemporalAxesInterval, TemporalInterval, Timestamp},
+};
 use crate::postgres::{Parameter, PreparedQuery};
 
 mod codec;
+mod exec;
 mod postgres_serde;
+mod temporal;
 
 struct PreparedQueries<'heap, A: Allocator> {
     offsets: Box<DefIdSlice<usize>, A>,
@@ -29,36 +38,11 @@ impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct Timestamp(Int);
-
-#[derive(Debug)]
-struct TemporalInterval {
-    pub start: Bound<Timestamp>,
-    pub end: Bound<Timestamp>,
-}
-
-impl TemporalInterval {
-    const fn point(value: Timestamp) -> Self {
-        Self {
-            start: Bound::Included(value),
-            end: Bound::Included(value),
-        }
-    }
-
-    const fn interval((start, end): (Bound<Timestamp>, Bound<Timestamp>)) -> Self {
-        Self { start, end }
-    }
-}
-
-struct TemporalAxesInterval {
-    decision_time: TemporalInterval,
-    transaction_time: TemporalInterval,
-}
-
 struct Bridge<'env, 'heap, A: Allocator> {
     bodies: &'env DefIdSlice<Body<'heap>>,
     queries: &'env PreparedQueries<'heap, A>,
+    inputs: &'env Inputs<'heap, A>,
+    ipc: Ipc,
 }
 
 impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
@@ -80,7 +64,7 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
             });
         };
 
-        Ok(Timestamp(timestamp))
+        Ok(Timestamp::from(timestamp))
     }
 
     fn extract_bound<L: Allocator>(
@@ -236,14 +220,37 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         };
 
         let axis = self.extract_axis(&axis)?;
-
         let query = self.queries.find(def, location);
 
         // TODO: We must ensure that there's *always* a query, in case nothing is given we fallback
         // to a prepared one, that just fetches the data required.
         // We should either do this inside of the bridge computation, or when running the postgres
         // compiler. I am thinking the postgres compiler, where we just have a "nonsensical" output.
-        let mut transpiled = query.transpile();
+        let transpiled = query.transpile();
+        let params = query
+            .parameters
+            .iter()
+            .map(|parameter| {
+                encode_parameter(parameter, self.inputs, &axis, |def, field| {
+                    let local = body
+                        .iter()
+                        .find_map(|body| match body {
+                            &GraphReadBody::Filter(filter_def, filter_local)
+                                if filter_def == def =>
+                            {
+                                Some(filter_local)
+                            }
+                            GraphReadBody::Filter(..) => None,
+                        })
+                        .unwrap_or_else(|| unreachable!());
+
+                    let value = locals.local(local)?;
+                    value.project(field)
+                })
+            })
+            .try_collect()?;
+
+        self.ipc.execute_query(transpiled.to_string(), params);
 
         // TODO: entity hydration + interpolation
 

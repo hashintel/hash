@@ -1,15 +1,19 @@
-use core::{alloc::Allocator, fmt::Debug, ops::Bound};
+use core::{alloc::Allocator, error, fmt::Debug};
 
 use bytes::BytesMut;
 use hashql_core::{collections::FastHashMap, symbol::Symbol, value::Primitive};
-use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Value};
-use postgres_protocol::types::RangeBound;
-use postgres_types::{Json, ToSql, accepts, to_sql_checked};
+use hashql_mir::{
+    body::place::FieldIndex,
+    def::DefId,
+    interpret::{RuntimeError, value::Value},
+};
+use postgres_types::{Json, ToSql, to_sql_checked};
+use serde_json::value::RawValue;
 
-use super::{Parameter, TemporalAxesInterval, TemporalInterval, Timestamp};
+use super::{Parameter, temporal::TemporalAxesInterval};
 use crate::{bridge::postgres_serde::SerializeValue, postgres::TemporalAxis};
 
-struct Inputs<'heap, A: Allocator> {
+pub(crate) struct Inputs<'heap, A: Allocator> {
     inner: FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
 }
 
@@ -29,7 +33,7 @@ impl ToSql for PostgresSymbol<'_> {
         &self,
         ty: &postgres_types::Type,
         out: &mut BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
+    ) -> Result<postgres_types::IsNull, Box<dyn error::Error + Sync + Send>>
     where
         Self: Sized,
     {
@@ -44,122 +48,61 @@ impl ToSql for PostgresSymbol<'_> {
     }
 }
 
-// timestamp is in ms
-impl ToSql for Timestamp {
-    accepts!(TIMESTAMPTZ);
+fn serialize_value<'heap, V: Allocator, R: Allocator>(
+    value: &Value<'heap, V>,
+) -> Result<Json<Box<RawValue>>, RuntimeError<'heap, R>> {
+    let string =
+        serde_json::to_string(&SerializeValue::new(value)).expect("TODO: into runtimeerror");
 
-    to_sql_checked!();
-
-    fn to_sql(
-        &self,
-        _: &postgres_types::Type,
-        out: &mut BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        // The value has been determined via `Date.UTC(2000, 0, 1)` in JS, and is the same as the one that jdbc uses: https://jdbc.postgresql.org/documentation/publicapi/constant-values.html
-        const BASE: i128 = 946_684_800_000;
-
-        // Our timestamp is milliseconds since Unix epoch (1970-01-01).
-        // Postgres stores microseconds since 2000-01-01.
-        let value = ((self.0.as_int() - BASE) * 1000) as i64;
-
-        postgres_protocol::types::timestamp_to_sql(value, out);
-        Ok(postgres_types::IsNull::No)
-    }
+    RawValue::from_string(string)
+        .map_err(|_err| todo!())
+        .map(Json)
 }
 
-impl ToSql for TemporalInterval {
-    accepts!(TSTZ_RANGE);
-
-    to_sql_checked!();
-
-    fn to_sql(
-        &self,
-        _: &postgres_types::Type,
-        out: &mut BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        fn bound_to_sql(
-            bound: Bound<Timestamp>,
-            buf: &mut BytesMut,
-        ) -> Result<RangeBound<postgres_protocol::IsNull>, Box<dyn std::error::Error + Sync + Send>>
-        {
-            Ok(match bound {
-                Bound::Unbounded => RangeBound::Unbounded,
-                Bound::Included(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
-                    RangeBound::Inclusive(postgres_protocol::IsNull::No)
-                }
-                Bound::Excluded(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
-                    RangeBound::Exclusive(postgres_protocol::IsNull::No)
-                }
-            })
-        }
-
-        postgres_protocol::types::range_to_sql(
-            |buf| bound_to_sql(self.start, buf),
-            |buf| bound_to_sql(self.end, buf),
-            out,
-        )?;
-
-        Ok(postgres_types::IsNull::No)
-    }
-}
-
-// TODO: get rid of the `Debug` bound for the allocator
-fn encode_parameter_in<'ctx, 'heap: 'ctx, V: Allocator + Debug + 'ctx, A: Allocator>(
+pub(crate) fn encode_parameter<'ctx, 'heap, A: Allocator + 'ctx>(
     parameter: &Parameter<'heap>,
-    inputs: &'ctx Inputs<'heap, V>,
-    temporal_axes: TemporalAxesInterval,
-    env: impl FnOnce(DefId, FieldIndex) -> &'ctx Value<'heap, V>,
-    alloc: A,
-) -> Box<dyn ToSql + 'ctx, A> {
+    inputs: &'ctx Inputs<'heap, impl Allocator>,
+    temporal_axes: &TemporalAxesInterval,
+    env: impl FnOnce(DefId, FieldIndex) -> Result<&'ctx Value<'heap, A>, RuntimeError<'heap, A>>,
+) -> Result<Box<dyn ToSql + Send + Sync>, RuntimeError<'heap, A>> {
     match parameter {
         &Parameter::Input(symbol) => {
-            let value = inputs
-                .get(symbol)
-                .map(|value| Json(SerializeValue::new(value)));
-
-            Box::new_in(value, alloc)
+            let value = inputs.get(symbol).map(serialize_value).transpose()?;
+            Ok(Box::new(value))
         }
         Parameter::Int(int) => {
             let int = int.as_int();
             if let Ok(int) = i64::try_from(int) {
-                Box::new_in(int, alloc)
+                Ok(Box::new(int))
             } else {
                 // Too large to be represented as an i64, instead use JSONB
-                Box::new_in(Json(int), alloc)
+                Ok(Box::new(Json(int)))
             }
         }
         Parameter::Primitive(primitive) => match primitive {
-            Primitive::Null => Box::new_in(None::<Json<()>>, alloc),
-            &Primitive::Boolean(value) => Box::new_in(value, alloc),
-            Primitive::Float(float) => Box::new_in(float.as_f64(), alloc),
+            Primitive::Null => Ok(Box::new(None::<Json<()>>)),
+            &Primitive::Boolean(value) => Ok(Box::new(value)),
+            Primitive::Float(float) => Ok(Box::new(float.as_f64())),
             Primitive::Integer(integer) => {
                 if let Some(int) = integer.as_i64() {
-                    Box::new_in(int, alloc)
+                    Ok(Box::new(int))
                 } else {
                     // Too large to be represented as an i64, because that means we also **cannot**
                     // serialize it via serde, we fallback to using floats.
-                    Box::new_in(integer.as_f64(), alloc)
+                    Ok(Box::new(integer.as_f64()))
                 }
             }
-            Primitive::String(value) => Box::new_in(PostgresSymbol(value.as_symbol()), alloc),
+            Primitive::String(value) => Ok(Box::new(Box::<str>::from(value.as_str()))),
         },
-        &Parameter::Symbol(symbol) => Box::new_in(PostgresSymbol(symbol), alloc),
-        &Parameter::Env(def_id, field_index) => {
-            Box::new_in(Json(SerializeValue::new(env(def_id, field_index))), alloc)
-        }
+        &Parameter::Symbol(symbol) => Ok(Box::new(Box::<str>::from(symbol.as_str()))),
+        &Parameter::Env(def_id, field_index) => env(def_id, field_index)
+            .and_then(serialize_value)
+            .map(|value| Box::new(value) as Box<dyn ToSql + Send + Sync>),
         Parameter::TemporalAxis(TemporalAxis::Decision) => {
-            Box::new_in(temporal_axes.decision_time, alloc)
+            Ok(Box::new(temporal_axes.decision_time.clone()))
         }
         Parameter::TemporalAxis(TemporalAxis::Transaction) => {
-            Box::new_in(temporal_axes.transaction_time, alloc)
+            Ok(Box::new(temporal_axes.transaction_time.clone()))
         }
     }
 }
