@@ -40,6 +40,7 @@ use hashql_core::heap::BumpAllocator;
 use hashql_mir::{
     body::{
         Body,
+        local::Local,
         terminator::{GraphRead, GraphReadBody, GraphReadHead},
     },
     def::DefId,
@@ -205,6 +206,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         body: &Body<'heap>,
+        env: Local,
         island: &IslandNode,
         provides: &mut TraversalPathBitMap,
     ) -> Option<Expression> {
@@ -219,7 +221,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         // TODO: we might want a longer lived graph read filter compiler here
         let expression = self.scratch.scoped(|alloc| {
-            let mut compiler = GraphReadFilterCompiler::new(self.context, body, &alloc);
+            let mut compiler = GraphReadFilterCompiler::new(self.context, body, env, &alloc);
 
             let expression = compiler.compile_body(db, island);
             let mut diagnostics = compiler.into_diagnostics();
@@ -236,6 +238,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         def: DefId,
+        env: Local,
         provides: &mut TraversalPathBitMap,
     ) {
         let body = &self.context.bodies[def];
@@ -251,7 +254,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         for (island_id, island) in islands {
             let Some(expression) =
-                self.compile_graph_read_filter_island(db, body, island, provides)
+                self.compile_graph_read_filter_island(db, body, env, island, provides)
             else {
                 continue;
             };
@@ -301,8 +304,8 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         for body in &read.body {
             match body {
-                &GraphReadBody::Filter(def_id, _) => {
-                    self.compile_graph_read_filter(&mut db, def_id, &mut provides);
+                &GraphReadBody::Filter(def_id, env) => {
+                    self.compile_graph_read_filter(&mut db, def_id, env, &mut provides);
                 }
             }
         }

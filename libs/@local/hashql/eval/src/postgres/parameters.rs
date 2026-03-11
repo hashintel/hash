@@ -18,7 +18,10 @@ use hashql_core::{
     symbol::Symbol,
     value::Primitive,
 };
-use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
+use hashql_mir::{
+    body::{local::Local, place::FieldIndex},
+    interpret::value::Int,
+};
 
 id::newtype!(
     /// Index of a SQL parameter in the compiled query, rendered as `$N` by the SQL formatter.
@@ -53,7 +56,7 @@ pub enum Parameter<'heap> {
     /// A symbol used as a JSON object key in SQL expressions.
     Symbol(Symbol<'heap>),
     /// A captured-environment field access.
-    Env(DefId, FieldIndex),
+    Env(Local, FieldIndex),
     /// Temporal axis range provided by the interpreter at execution time.
     ///
     /// The interpreter binds these based on the user's temporal axes configuration:
@@ -69,7 +72,7 @@ impl fmt::Display for Parameter<'_> {
             Self::Int(int) => write!(fmt, "Int({int})"),
             Self::Primitive(primitive) => write!(fmt, "Primitive({primitive})"),
             Self::Symbol(symbol) => write!(fmt, "Symbol({symbol})"),
-            Self::Env(def, field) => write!(fmt, "Env({def}, #{})", field.as_u32()),
+            Self::Env(local, field) => write!(fmt, "Env({local}, #{})", field.as_u32()),
             Self::TemporalAxis(axis) => write!(fmt, "TemporalAxis({axis})"),
         }
     }
@@ -139,8 +142,8 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
         self.get_or_insert(Parameter::Primitive(primitive))
     }
 
-    pub(crate) fn env(&mut self, body: DefId, field: FieldIndex) -> ParameterIndex {
-        self.get_or_insert(Parameter::Env(body, field))
+    pub(crate) fn env(&mut self, local: Local, field: FieldIndex) -> ParameterIndex {
+        self.get_or_insert(Parameter::Env(local, field))
     }
 
     pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> ParameterIndex {
@@ -196,7 +199,11 @@ mod tests {
         id::Id as _,
         value::{Primitive, String},
     };
-    use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
+    use hashql_mir::{
+        body::{local::Local, place::FieldIndex},
+        def::DefId,
+        interpret::value::Int,
+    };
 
     use super::{Parameters, TemporalAxis};
 
@@ -262,8 +269,8 @@ mod tests {
     #[test]
     fn env_dedup() {
         let mut params = Parameters::new_in(Global);
-        let a = params.env(DefId::MIN, FieldIndex::new(0));
-        let b = params.env(DefId::MIN, FieldIndex::new(0));
+        let a = params.env(Local::MIN, FieldIndex::new(0));
+        let b = params.env(Local::MIN, FieldIndex::new(0));
 
         assert_eq!(a, b);
         assert_eq!(params.len(), 1);

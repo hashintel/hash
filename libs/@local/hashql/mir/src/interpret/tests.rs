@@ -55,7 +55,7 @@ fn run_body_with_inputs<'heap>(
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, inputs);
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
 
-    runtime.run(callstack)
+    runtime.run(callstack, |_| unreachable!())
 }
 
 fn run_bodies<'heap>(
@@ -66,7 +66,7 @@ fn run_bodies<'heap>(
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
     let callstack = CallStack::new(&runtime, entry, args);
 
-    runtime.run(callstack)
+    runtime.run(callstack, |_| unreachable!())
 }
 
 // =============================================================================
@@ -171,7 +171,9 @@ fn entry_function_with_args() {
     ];
     let callstack = CallStack::new(&runtime, DefId::new(0), args);
 
-    let result = runtime.run(callstack).expect("should succeed");
+    let result = runtime
+        .run(callstack, |_| unreachable!())
+        .expect("should succeed");
     assert_eq!(result, Value::Integer(Int::from(true)));
 }
 
@@ -1100,7 +1102,7 @@ fn recursion_limit_exceeded() {
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
 
     let result = runtime
-        .run(callstack)
+        .run(callstack, |_| unreachable!())
         .expect_err("should fail with recursion limit");
     assert_eq!(result.category, InterpretDiagnosticCategory::RuntimeLimit);
 }

@@ -219,6 +219,8 @@ pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S:
     context: &'ctx EvalContext<'ctx, 'heap, A>,
 
     body: &'ctx Body<'heap>,
+    env: Local,
+
     /// MIR local → SQL expression mapping, with snapshot/rollback for branching.
     locals: LocalSnapshotVec<Option<Expression>, AppendOnly, S>,
     diagnostics: EvalDiagnosticIssues,
@@ -230,6 +232,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
     pub(crate) fn new(
         context: &'ctx EvalContext<'ctx, 'heap, A>,
         body: &'ctx Body<'heap>,
+        env: Local,
         scratch: S,
     ) -> Self
     where
@@ -238,6 +241,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         Self {
             context,
             body,
+            env,
             locals: IdSnapshotVec::new_in(scratch.clone()),
             diagnostics: DiagnosticIssues::new(),
             scratch,
@@ -295,7 +299,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 },
                 rest @ ..,
             ] => {
-                let param = db.parameters.env(self.body.id, *field);
+                let param = db.parameters.env(self.env, *field);
                 (param.into(), rest)
             }
             [..] => {

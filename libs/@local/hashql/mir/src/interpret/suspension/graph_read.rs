@@ -7,7 +7,7 @@ use crate::interpret::{RuntimeError, TypeName, value::Value};
 
 fn extract_timestamp<'heap, A: Allocator>(
     value: &Value<'heap, A>,
-) -> Result<Timestamp, RuntimeError<'heap, A>> {
+) -> Result<Timestamp, RuntimeError<'heap, !, A>> {
     let Value::Opaque(opaque) = value else {
         return Err(RuntimeError::UnexpectedValueType {
             expected: TypeName::terse("Opaque"),
@@ -28,7 +28,7 @@ fn extract_timestamp<'heap, A: Allocator>(
 
 fn extract_bound<'heap, A: Allocator>(
     value: &Value<'heap, A>,
-) -> Result<Bound<Timestamp>, RuntimeError<'heap, A>> {
+) -> Result<Bound<Timestamp>, RuntimeError<'heap, !, A>> {
     let Value::Opaque(bound) = value else {
         return Err(RuntimeError::UnexpectedValueType {
             expected: TypeName::terse("Opaque"),
@@ -51,7 +51,7 @@ fn extract_bound<'heap, A: Allocator>(
 
 fn extract_interval<'heap, A: Allocator>(
     value: &Value<'heap, A>,
-) -> Result<(Bound<Timestamp>, Bound<Timestamp>), RuntimeError<'heap, A>> {
+) -> Result<(Bound<Timestamp>, Bound<Timestamp>), RuntimeError<'heap, !, A>> {
     let Value::Opaque(opaque) = value else {
         return Err(RuntimeError::UnexpectedValueType {
             expected: TypeName::terse("Opaque"),
@@ -73,7 +73,7 @@ fn extract_interval<'heap, A: Allocator>(
 
 pub(crate) fn extract_axis<'heap, A: Allocator>(
     value: &Value<'heap, A>,
-) -> Result<TemporalAxesInterval, RuntimeError<'heap, A>> {
+) -> Result<TemporalAxesInterval, RuntimeError<'heap, !, A>> {
     let Value::Opaque(opaque) = value else {
         return Err(RuntimeError::UnexpectedValueType {
             expected: TypeName::terse("Opaque"),

@@ -120,7 +120,9 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
         })
     }
 
-    pub fn locals<R: Allocator>(&self) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, R>> {
+    pub fn locals<R: Allocator>(
+        &self,
+    ) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, !, R>> {
         self.frames
             .last()
             .ok_or(RuntimeError::CallstackEmpty)
@@ -261,7 +263,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         frame: &mut Frame<'ctx, 'heap, A>,
         Target { block, args }: Target<'heap>,
-    ) -> Result<(), RuntimeError<'heap, A>> {
+    ) -> Result<(), RuntimeError<'heap, !, A>> {
         if args.is_empty() {
             frame.current_block = CurrentBlock {
                 id: block,
@@ -308,7 +310,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         stack: &mut [Frame<'ctx, 'heap, A>],
         frame: &mut Frame<'ctx, 'heap, A>,
-    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, A>> {
+    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, !, A>> {
         let terminator = &frame.current_block.block.terminator.kind;
 
         match terminator {
@@ -389,7 +391,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn eval_rvalue_binary(
         frame: &Frame<'ctx, 'heap, A>,
         Binary { op, left, right }: &Binary<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
         let lhs = frame.locals.operand(left)?;
         let rhs = frame.locals.operand(right)?;
 
@@ -478,7 +480,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn eval_rvalue_unary(
         frame: &Frame<'ctx, 'heap, A>,
         Unary { op, operand }: &Unary<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
         let operand = frame.locals.operand(operand)?;
 
         match op {
@@ -557,7 +559,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn eval_rvalue_input(
         &self,
         Input { op, name }: &Input<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
         match op {
             // `required` is used only by static control-flow analysis; at runtime we always
             // error if the input is missing.
@@ -576,7 +578,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             function,
             arguments,
         }: &Apply<'heap>,
-    ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, A>> {
+    ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, !, A>> {
         let function = frame.locals.operand(function)?;
         let Value::Pointer(pointer) = function.as_ref() else {
             return Err(RuntimeError::ApplyNonPointer {
@@ -596,7 +598,8 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &self,
         frame: &Frame<'ctx, 'heap, A>,
         rvalue: &RValue<'heap>,
-    ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, A>> {
+    ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, !, A>>
+    {
         match rvalue {
             RValue::Load(operand) => frame
                 .locals
@@ -621,7 +624,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         frame: &mut Frame<'ctx, 'heap, A>,
         Assign { lhs, rhs }: &Assign<'heap>,
-    ) -> Result<Option<Frame<'ctx, 'heap, A>>, RuntimeError<'heap, A>> {
+    ) -> Result<Option<Frame<'ctx, 'heap, A>>, RuntimeError<'heap, !, A>> {
         let value = self.eval_rvalue(frame, rhs)?;
         let value = match value {
             ControlFlow::Continue(value) => value,
@@ -637,7 +640,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn step(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
-    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>>, RuntimeError<'heap, A>> {
+    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>>, RuntimeError<'heap, !, A>> {
         let Some((frame, stack)) = callstack.frames.split_last_mut() else {
             return Err(RuntimeError::CallstackEmpty);
         };
@@ -714,7 +717,9 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 Err(error) => {
                     let spans = callstack.unwind();
 
-                    return Err(error.into_diagnostic(spans.map(|(_, span)| span)));
+                    return Err(
+                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
+                    );
                 }
             };
 
@@ -743,7 +748,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         mut on_suspension: impl FnMut(
             Suspension<'ctx, 'heap>,
         )
-            -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, A>>,
+            -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, !, A>>,
     ) -> Result<Value<'heap, A>, InterpretDiagnostic> {
         self.scratch.clear();
 
@@ -754,13 +759,13 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                     let continuation = on_suspension(suspension).map_err(|error| {
                         let spans = callstack.unwind();
 
-                        error.into_diagnostic(spans.map(|(_, span)| span))
+                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
                     })?;
 
                     Self::resolve_continuation(&mut callstack, continuation).map_err(|error| {
                         let spans = callstack.unwind();
 
-                        error.into_diagnostic(spans.map(|(_, span)| span))
+                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
                     })?;
                 }
             }
@@ -795,7 +800,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn resolve_continuation(
         callstack: &mut CallStack<'ctx, 'heap, A>,
         continuation: Continuation<'ctx, 'heap, A>,
-    ) -> Result<(), RuntimeError<'heap, A>> {
+    ) -> Result<(), RuntimeError<'heap, !, A>> {
         match continuation {
             Continuation::GraphRead(GraphReadContinuation { read, value }) => {
                 let Some(frame) = callstack.frames.last_mut() else {
@@ -848,7 +853,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         Self::resolve_continuation(callstack, continuation).map_err(|error| {
             let spans = callstack.unwind();
 
-            error.into_diagnostic(spans.map(|(_, span)| span))
+            error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
         })?;
 
         self.run_until_suspension(callstack)

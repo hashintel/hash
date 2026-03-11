@@ -192,7 +192,7 @@ pub struct UnaryTypeMismatch<'heap, A: Allocator> {
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
 #[derive(Debug, Clone)]
-pub enum RuntimeError<'heap, A: Allocator> {
+pub enum RuntimeError<'heap, S, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///
     /// This is an ICE: MIR construction should ensure locals are initialized
@@ -205,30 +205,42 @@ pub enum RuntimeError<'heap, A: Allocator> {
     /// Index operation used an invalid type for the index.
     ///
     /// This is an ICE: type checking should ensure index types are valid.
-    InvalidIndexType { base: TypeName, index: TypeName },
+    InvalidIndexType {
+        base: TypeName,
+        index: TypeName,
+    },
 
     /// Subscript operation applied to a non-subscriptable type.
     ///
     /// This is an ICE: type checking should ensure subscript targets are
     /// lists or dicts.
-    InvalidSubscriptType { base: TypeName },
+    InvalidSubscriptType {
+        base: TypeName,
+    },
 
     /// Field projection applied to a non-projectable type.
     ///
     /// This is an ICE: type checking should ensure projection targets are
     /// structs or tuples.
-    InvalidProjectionType { base: TypeName },
+    InvalidProjectionType {
+        base: TypeName,
+    },
 
     /// Named field projection applied to a non-struct type.
     ///
     /// This is an ICE: type checking should ensure named field access is
     /// only used on structs.
-    InvalidProjectionByNameType { base: TypeName },
+    InvalidProjectionByNameType {
+        base: TypeName,
+    },
 
     /// Field index does not exist on the aggregate type.
     ///
     /// This is an ICE: type checking should validate field indices.
-    UnknownField { base: TypeName, field: FieldIndex },
+    UnknownField {
+        base: TypeName,
+        field: FieldIndex,
+    },
 
     /// Field name does not exist on the struct type.
     ///
@@ -242,19 +254,26 @@ pub enum RuntimeError<'heap, A: Allocator> {
     ///
     /// This is an ICE: MIR construction should ensure aggregates have the
     /// correct number of values for their fields.
-    StructFieldLengthMismatch { values: usize, fields: usize },
+    StructFieldLengthMismatch {
+        values: usize,
+        fields: usize,
+    },
 
     /// Switch discriminant has a non-integer type.
     ///
     /// This is an ICE: type checking should ensure switch discriminants
     /// are integers.
-    InvalidDiscriminantType { r#type: TypeName },
+    InvalidDiscriminantType {
+        r#type: TypeName,
+    },
 
     /// Switch discriminant value has no matching branch.
     ///
     /// This is an ICE: MIR construction should ensure all possible
     /// discriminant values have corresponding branches.
-    InvalidDiscriminant { value: Int },
+    InvalidDiscriminant {
+        value: Int,
+    },
 
     /// Execution reached unreachable code.
     ///
@@ -278,7 +297,9 @@ pub enum RuntimeError<'heap, A: Allocator> {
     ///
     /// This is an ICE: type checking should ensure only function pointers
     /// are called.
-    ApplyNonPointer { r#type: TypeName },
+    ApplyNonPointer {
+        r#type: TypeName,
+    },
 
     /// Attempted to step execution with an empty callstack.
     ///
@@ -289,20 +310,27 @@ pub enum RuntimeError<'heap, A: Allocator> {
     ///
     /// This is currently a user-facing error but may become an ICE once
     /// bounds checking is implemented in program analysis.
-    OutOfRange { length: usize, index: Int },
+    OutOfRange {
+        length: usize,
+        index: Int,
+    },
 
     /// Required input was not provided to the runtime.
     ///
     /// This is currently a user-facing error but may become an ICE once
     /// input validation is implemented in program analysis.
-    InputNotFound { name: Symbol<'heap> },
+    InputNotFound {
+        name: Symbol<'heap>,
+    },
 
     /// Recursion depth exceeded the configured limit.
     ///
     /// This is a user-facing error that occurs when a program recurses
     /// too deeply, likely due to infinite recursion or deeply nested
     /// data structures.
-    RecursionLimitExceeded { limit: usize },
+    RecursionLimitExceeded {
+        limit: usize,
+    },
 
     /// Value has the wrong runtime type.
     ///
@@ -317,10 +345,14 @@ pub enum RuntimeError<'heap, A: Allocator> {
     ///
     /// This is an ICE: type checking should ensure opaque values carry
     /// a constructor name from the expected set for the encoded sum type.
-    InvalidConstructor { name: Symbol<'heap> },
+    InvalidConstructor {
+        name: Symbol<'heap>,
+    },
+
+    Suspension(S),
 }
 
-impl<A: Allocator> RuntimeError<'_, A> {
+impl<S, A: Allocator> RuntimeError<'_, S, A> {
     /// Converts this runtime error into a diagnostic using the provided callstack.
     ///
     /// The callstack provides span information for error localization. The first
@@ -329,11 +361,12 @@ impl<A: Allocator> RuntimeError<'_, A> {
     pub fn into_diagnostic(
         self,
         callstack: impl IntoIterator<Item = SpanId>,
+        on_suspension: impl FnOnce(S) -> InterpretDiagnostic,
     ) -> InterpretDiagnostic {
         let mut spans = callstack.into_iter();
         let primary_span = spans.next().unwrap_or(SpanId::SYNTHETIC);
 
-        let mut diagnostic = self.make_diagnostic(primary_span);
+        let mut diagnostic = self.make_diagnostic(primary_span, on_suspension);
 
         // Add callstack frames as secondary labels
         for span in spans {
@@ -343,7 +376,11 @@ impl<A: Allocator> RuntimeError<'_, A> {
         diagnostic
     }
 
-    fn make_diagnostic(self, span: SpanId) -> InterpretDiagnostic {
+    fn make_diagnostic(
+        self,
+        span: SpanId,
+        on_suspension: impl FnOnce(S) -> InterpretDiagnostic,
+    ) -> InterpretDiagnostic {
         match self {
             Self::UninitializedLocal { local, decl } => uninitialized_local(span, local, decl),
             Self::InvalidIndexType { base, index } => invalid_index_type(span, &base, &index),
@@ -371,6 +408,7 @@ impl<A: Allocator> RuntimeError<'_, A> {
                 unexpected_value_type(span, &expected, &actual)
             }
             Self::InvalidConstructor { name } => invalid_constructor(span, name),
+            Self::Suspension(suspension) => on_suspension(suspension),
         }
     }
 }

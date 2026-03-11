@@ -157,7 +157,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, !, A>> {
         match self {
             Self::List(list) if let &Self::Integer(value) = index => {
                 Ok(list.get(value).unwrap_or(&Self::UNIT))
@@ -192,7 +192,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn subscript_mut<'this>(
         &'this mut self,
         index: &Self,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -235,7 +235,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project<'this>(
         &'this self,
         index: FieldIndex,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, !, A>> {
         match self {
             Self::Struct(r#struct) => {
                 r#struct
@@ -272,7 +272,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_mut<'this>(
         &'this mut self,
         index: FieldIndex,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -316,7 +316,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_by_name<'this>(
         &'this self,
         index: Symbol<'heap>,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, !, A>> {
         let Self::Struct(r#struct) = self else {
             return Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
@@ -341,7 +341,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_by_name_mut<'this>(
         &'this mut self,
         index: Symbol<'heap>,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {

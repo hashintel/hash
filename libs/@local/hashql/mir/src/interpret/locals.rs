@@ -89,7 +89,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
     /// initialized.
     #[inline]
-    pub fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
+    pub fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, !, A>> {
         self.inner.get(local).ok_or_else(|| {
             let decl = self.decl[local];
             RuntimeError::UninitializedLocal { local, decl }
@@ -110,7 +110,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn place(
         &self,
         Place { local, projections }: &Place<'heap>,
-    ) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
+    ) -> Result<&Value<'heap, A>, RuntimeError<'heap, !, A>> {
         let mut value = self.local(*local)?;
 
         for projection in projections {
@@ -141,7 +141,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         &mut self,
         place: Place<'heap>,
         scratch: &mut Scratch<'heap, A>,
-    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, A>>
+    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -192,7 +192,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub fn operand(
         &self,
         operand: &Operand<'heap>,
-    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, A>>
+    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -212,7 +212,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         &self,
         slice: &mut [MaybeUninit<Value<'heap, A>>],
         operands: &[Operand<'heap>],
-    ) -> Result<(), RuntimeError<'heap, A>>
+    ) -> Result<(), RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -264,7 +264,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     fn aggregate_tuple(
         &self,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -299,7 +299,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         &self,
         fields: Interned<'heap, [Symbol<'heap>]>,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {
@@ -334,7 +334,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn aggregate(
         &self,
         Aggregate { kind, operands }: &Aggregate<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
     where
         A: Clone,
     {

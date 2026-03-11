@@ -9,7 +9,7 @@ use postgres_protocol::types::RangeBound;
 use postgres_types::{ToSql, accepts, to_sql_checked};
 
 #[derive(Debug)]
-struct TemporalCodec<T>(T);
+pub(crate) struct TemporalCodec<T>(pub T);
 
 // timestamp is in ms
 impl ToSql for TemporalCodec<Timestamp> {

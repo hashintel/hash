@@ -1,16 +1,20 @@
 // The bridge has the goal of bridging the two worlds, and coordinates the different sources and
 // implementations.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, marker::PhantomData};
 
+use hash_graph_postgres_store::store::{AsClient, PostgresStore};
+use hashql_core::heap::{ResetAllocator as _, Scratch};
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, terminator::GraphReadBody},
     def::{DefId, DefIdSlice},
     interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension},
 };
+use postgres_types::ToSql;
+use tokio_postgres::{Client, GenericClient};
 
 use self::{
-    codec::{Inputs, encode_parameter},
+    codec::{Inputs, encode_parameter_in},
     exec::Ipc,
 };
 use crate::postgres::{Parameter, PreparedQuery};
@@ -31,19 +35,24 @@ impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
     }
 }
 
-struct Bridge<'env, 'heap, A: Allocator> {
+struct Bridge<'env, 'heap, C, A: Allocator> {
+    client: Client,
     bodies: &'env DefIdSlice<Body<'heap>>,
     queries: &'env PreparedQueries<'heap, A>,
     inputs: &'env Inputs<'heap, A>,
-    ipc: Ipc,
+
+    scratch: Scratch,
+    _marker: PhantomData<C>,
 }
 
-impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
-    fn graph_read<L: Allocator + Clone>(
-        &self,
+impl<'env, 'heap, C, A: Allocator> Bridge<'env, 'heap, C, A> {
+    async fn graph_read<L: Allocator + Clone>(
+        &mut self,
         callstack: &CallStack<'_, 'heap, L>,
-        suspension: GraphReadSuspension<'_, 'heap>,
-    ) -> Result<(), RuntimeError<'heap, L>> {
+        suspension: &GraphReadSuspension<'_, 'heap>,
+    ) -> Result<(), RuntimeError<'heap, !, L>> {
+        self.scratch.reset();
+
         let axis = &suspension.axis;
         let locals = callstack.locals()?;
         let query = self.queries.find(suspension.body, suspension.block);
@@ -52,33 +61,34 @@ impl<'env, 'heap, A: Allocator> Bridge<'env, 'heap, A> {
         // to a prepared one, that just fetches the data required.
         // We should either do this inside of the bridge computation, or when running the postgres
         // compiler. I am thinking the postgres compiler, where we just have a "nonsensical" output.
-        let transpiled = query.transpile();
-        let params = query
-            .parameters
-            .iter()
-            .map(|parameter| {
-                encode_parameter(parameter, self.inputs, axis, |def, field| {
-                    let local = suspension
-                        .read
-                        .body
-                        .iter()
-                        .find_map(|body| match body {
-                            &GraphReadBody::Filter(filter_def, filter_local)
-                                if filter_def == def =>
-                            {
-                                Some(filter_local)
-                            }
-                            GraphReadBody::Filter(..) => None,
-                        })
-                        .unwrap_or_else(|| unreachable!());
+        let transpiled = query.transpile().to_string();
+        let mut params = Vec::with_capacity_in(query.parameters.len(), &self.scratch);
 
+        let encoded = query.parameters.iter().map(|parameter| {
+            encode_parameter_in(
+                parameter,
+                self.inputs,
+                axis,
+                |local, field| {
                     let value = locals.local(local)?;
                     value.project(field)
-                })
-            })
-            .try_collect()?;
+                },
+                &self.scratch,
+            )
+        });
+        for param in encoded {
+            params.push(param?);
+        }
 
-        self.ipc.execute_query(transpiled.to_string(), params);
+        let response = self
+            .client
+            .query_raw(
+                &transpiled,
+                params
+                    .iter()
+                    .map(|param| -> &(dyn ToSql + Sync) { &**param }),
+            )
+            .await;
 
         // TODO: entity hydration + interpolation
 
