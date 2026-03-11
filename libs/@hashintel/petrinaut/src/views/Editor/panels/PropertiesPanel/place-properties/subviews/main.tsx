@@ -353,7 +353,7 @@ const DeletePlaceAction: React.FC = () => {
 export const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
-  icon: <PlaceIcon size={16} />,
+  icon: PlaceIcon,
   main: true,
   component: PlaceMainContent,
   renderHeaderAction: () => <DeletePlaceAction />,

@@ -344,7 +344,7 @@ const DiffEqCodeAction: React.FC = () => {
 export const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
   title: "Differential Equation",
-  icon: <DifferentialEquationIcon size={16} />,
+  icon: DifferentialEquationIcon,
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,

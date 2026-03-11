@@ -367,7 +367,7 @@ const TypeMainContent: React.FC = () => {
 export const typeMainContentSubView: SubView = {
   id: "type-main-content",
   title: "Type",
-  icon: <TokenTypeIcon size={16} />,
+  icon: TokenTypeIcon,
   main: true,
   component: TypeMainContent,
 };

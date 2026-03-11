@@ -9,6 +9,8 @@ import type { SubView } from "../types";
 
 /** Height of the header row in pixels */
 const HEADER_HEIGHT = 44;
+/** Size of the icon in the main header */
+const HEADER_ICON_SIZE = 16;
 /** Default minimum panel height when no per-subview minHeight is set */
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
@@ -317,7 +319,7 @@ interface SubViewHeaderProps {
   id: string;
   title: string;
   tooltip?: string;
-  icon?: React.ReactNode;
+  icon?: React.ComponentType<{ size: number }>;
   main?: boolean;
   isExpanded: boolean;
   onToggle: () => void;
@@ -329,7 +331,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   id,
   title,
   tooltip,
-  icon,
+  icon: Icon,
   main = false,
   isExpanded,
   onToggle,
@@ -339,7 +341,11 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   <div className={main ? mainHeaderRowStyle : headerRowStyle}>
     {main ? (
       <div className={mainHeaderContentStyle}>
-        {icon && <span className={headerIconStyle}>{icon}</span>}
+        {Icon && (
+          <span className={headerIconStyle}>
+            <Icon size={HEADER_ICON_SIZE} />
+          </span>
+        )}
         <span className={mainTitleStyle}>{title}</span>
       </div>
     ) : (

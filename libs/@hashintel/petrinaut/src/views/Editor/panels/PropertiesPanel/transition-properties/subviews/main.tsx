@@ -232,7 +232,7 @@ const DeleteTransitionAction: React.FC = () => {
 export const transitionMainContentSubView: SubView = {
   id: "transition-main-content",
   title: "Transition",
-  icon: <TransitionIcon size={16} />,
+  icon: TransitionIcon,
   main: true,
   component: TransitionMainContent,
   renderHeaderAction: () => <DeleteTransitionAction />,

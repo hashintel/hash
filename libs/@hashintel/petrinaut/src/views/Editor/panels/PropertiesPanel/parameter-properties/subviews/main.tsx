@@ -97,7 +97,7 @@ const ParameterMainContent: React.FC = () => {
 export const parameterMainContentSubView: SubView = {
   id: "parameter-main-content",
   title: "Parameter",
-  icon: <ParameterIcon size={16} />,
+  icon: ParameterIcon,
   main: true,
   component: ParameterMainContent,
 };

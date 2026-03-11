@@ -26,8 +26,8 @@ export interface SubView {
   title: string;
   /** Optional tooltip shown when hovering over the title/tab */
   tooltip?: string;
-  /** Optional icon displayed before the title in the header */
-  icon?: ReactNode;
+  /** Optional icon component displayed before the title in the header. Size is controlled by the container. */
+  icon?: ComponentType<{ size: number }>;
   /** The component to render for this subview */
   component: ComponentType;
   /**
