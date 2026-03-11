@@ -924,22 +924,22 @@ impl PostgresStore<Transaction<'_>> {
             });
         }
 
-        let mut links_archived = 0;
-        if full_entities > 0 {
+        let links_archived = if full_entities > 0 {
             if matches!(params.scope, DeletionScope::Erase) {
                 self.lock_entity_ids_for_erase(&full_target).await?;
             }
 
-            links_archived = self
-                .handle_incoming_link_edges(
-                    actor_id,
-                    &params.scope,
-                    &full_target,
-                    transaction_time,
-                    decision_time,
-                )
-                .await?;
-        }
+            self.handle_incoming_link_edges(
+                actor_id,
+                &params.scope,
+                &full_target,
+                transaction_time,
+                decision_time,
+            )
+            .await?
+        } else {
+            0
+        };
 
         let mut satellite_counts = SatelliteDeletionCounts::default();
         if full_entities > 0 {
