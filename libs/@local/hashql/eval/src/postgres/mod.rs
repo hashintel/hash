@@ -37,8 +37,9 @@ use hash_graph_postgres_store::store::postgres::query::{
     WhereExpression, table::EntityTemporalMetadata,
 };
 use hashql_core::{
+    debug_panic,
     heap::BumpAllocator,
-    r#type::{TypeId, environment::LatticeEnvironment},
+    r#type::{TypeBuilder, TypeId, environment::LatticeEnvironment},
 };
 use hashql_mir::{
     body::{
@@ -61,6 +62,7 @@ use self::{
     continuation::{ContinuationColumn, ContinuationField},
     filter::GraphReadFilterCompiler,
     projections::Projections,
+    types::traverse_struct,
 };
 use crate::context::EvalContext;
 
@@ -70,6 +72,7 @@ mod filter;
 mod parameters;
 mod projections;
 mod traverse;
+mod types;
 
 /// Mutable compilation state accumulated while building a single SQL query.
 ///
@@ -172,12 +175,6 @@ pub struct PreparedQuery<'heap, A: Allocator> {
     pub parameters: Parameters<'heap, A>,
     pub statement: SelectStatement,
     pub columns: Vec<ColumnDescriptor, A>,
-    /// The vertex type after joining across all body operations.
-    ///
-    /// For entity queries this is `Entity<T>` where `T` is the join of all filter bodies'
-    /// property types. Used by the bridge together with [`TraversalPath::resolve_type`] to
-    /// obtain per-field [`TypeId`]s for type-directed deserialization.
-    pub vertex_type: TypeId,
 }
 
 impl<A: Allocator> PreparedQuery<'_, A> {
@@ -234,6 +231,36 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     pub fn with_property_mask(mut self, property_mask: Option<Expression>) -> Self {
         self.property_mask = property_mask;
         self
+    }
+
+    /// Joins the property types across all filter bodies into a single type.
+    ///
+    /// Each filter body may operate on a different `Entity<T>`. This computes the
+    /// least upper bound of all the `T` parameters, producing the unified property type
+    /// for the query's SELECT list. Returns `unknown` if there are no filter bodies.
+    fn resolve_property_type(&self, read: &GraphRead<'heap>) -> TypeId {
+        let mut lattice = LatticeEnvironment::new(self.context.env).without_warnings();
+
+        read.body
+            .iter()
+            .map(|body| match body {
+                &GraphReadBody::Filter(def_id, _) => {
+                    let vertex = self.context.bodies[def_id].local_decls[Local::VERTEX].r#type;
+
+                    let path = EntityPath::Properties.field_path();
+
+                    traverse_struct(self.context.env, vertex, path).unwrap_or_else(|| {
+                        debug_panic!(
+                            "failed to extract property type from vertex type {vertex:?}; the \
+                             vertex type should contain a resolvable properties field"
+                        );
+
+                        TypeBuilder::synthetic(self.context.env).unknown()
+                    })
+                }
+            })
+            .reduce(|lhs, rhs| lattice.join(lhs, rhs))
+            .unwrap_or_else(|| TypeBuilder::synthetic(self.context.env).unknown())
     }
 
     /// Returns `None` for data-only islands that produce no SQL.
@@ -331,30 +358,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     {
         let mut db = DatabaseContext::new_in(self.alloc.clone());
 
-        // The entity structure is identical across all filter bodies; only the property
-        // type `T` in `Entity<T>` may vary due to type narrowing. Use any body's vertex
-        // type as the base (for resolving non-property fields), and join just the property
-        // types across bodies for the `Properties` field.
-        let vertex_type = {
-            let &GraphReadBody::Filter(def_id, _) = &read.body[0];
-            self.context.bodies[def_id].local_decls[Local::VERTEX].r#type
-        };
-
-        let property_type = {
-            let mut lattice = LatticeEnvironment::new(self.context.env);
-            let mut iter = read.body.iter().map(|body| {
-                let &GraphReadBody::Filter(def_id, _) = body;
-                let vt = self.context.bodies[def_id].local_decls[Local::VERTEX].r#type;
-
-                EntityPath::Properties.resolve_type(self.context.env, vt)
-            });
-
-            let first = iter
-                .next()
-                .expect("GraphRead must have at least one body operation");
-
-            iter.fold(first, |acc, ty| lattice.join(acc, ty))
-        };
+        let mut property_type = None;
 
         // Temporal conditions go first - they're always present on the base table
         // and don't depend on anything the filter body produces.
@@ -389,14 +393,11 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
             let alias = Identifier::from(traversal_path.as_symbol().unwrap());
 
-            let field_type = if matches!(
-                traversal_path,
-                TraversalPath::Entity(EntityPath::Properties)
-            ) {
-                property_type
-            } else {
-                traversal_path.resolve_type(self.context.env, vertex_type)
-            };
+            let field_type = traversal_path
+                .resolve_type(self.context.env)
+                .unwrap_or_else(|| {
+                    *property_type.get_or_insert_with(|| self.resolve_property_type(read))
+                });
 
             select_expressions.push(SelectExpression::Expression {
                 expression,
@@ -453,7 +454,6 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             parameters: db.parameters,
             statement: query,
             columns,
-            vertex_type,
         }
     }
 

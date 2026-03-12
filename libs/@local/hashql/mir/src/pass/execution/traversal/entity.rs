@@ -1,12 +1,10 @@
 use core::{debug_assert_matches, num::NonZero, ops::Bound};
 
 use hashql_core::{
-    debug_panic,
     id::{
         Id,
         bit_vec::{BitRelations as _, FiniteBitSet},
     },
-    module::std_lib,
     symbol::{ConstantSymbol, Symbol, sym},
     r#type::{TypeBuilder, TypeId, environment::Environment},
 };
@@ -242,133 +240,97 @@ impl EntityPath {
     ///
     /// Used by [`Self::resolve_type`] to navigate the entity type structure.
     #[must_use]
-    pub const fn field_path(self) -> &'static [ConstantSymbol] {
+    pub const fn field_path(self) -> &'static [Symbol<'static>] {
         match self {
-            Self::Properties => &[sym!(properties)],
-            Self::Vectors => &[sym!(encodings), sym!(vectors)],
-            Self::RecordId => &[sym!(metadata), sym!(record_id)],
-            Self::EntityId => &[sym!(metadata), sym!(record_id), sym!(entity_id)],
-            Self::WebId => &[
-                sym!(metadata),
-                sym!(record_id),
-                sym!(entity_id),
-                sym!(web_id),
-            ],
+            Self::Properties => &[sym::properties],
+            Self::Vectors => &[sym::encodings, sym::vectors],
+            Self::RecordId => &[sym::metadata, sym::record_id],
+            Self::EntityId => &[sym::metadata, sym::record_id, sym::entity_id],
+            Self::WebId => &[sym::metadata, sym::record_id, sym::entity_id, sym::web_id],
             Self::EntityUuid => &[
-                sym!(metadata),
-                sym!(record_id),
-                sym!(entity_id),
-                sym!(entity_uuid),
+                sym::metadata,
+                sym::record_id,
+                sym::entity_id,
+                sym::entity_uuid,
             ],
-            Self::DraftId => &[
-                sym!(metadata),
-                sym!(record_id),
-                sym!(entity_id),
-                sym!(draft_id),
-            ],
-            Self::EditionId => &[sym!(metadata), sym!(record_id), sym!(edition_id)],
-            Self::TemporalVersioning => &[sym!(metadata), sym!(temporal_versioning)],
-            Self::DecisionTime => &[
-                sym!(metadata),
-                sym!(temporal_versioning),
-                sym!(decision_time),
-            ],
+            Self::DraftId => &[sym::metadata, sym::record_id, sym::entity_id, sym::draft_id],
+            Self::EditionId => &[sym::metadata, sym::record_id, sym::edition_id],
+            Self::TemporalVersioning => &[sym::metadata, sym::temporal_versioning],
+            Self::DecisionTime => &[sym::metadata, sym::temporal_versioning, sym::decision_time],
             Self::TransactionTime => &[
-                sym!(metadata),
-                sym!(temporal_versioning),
-                sym!(transaction_time),
+                sym::metadata,
+                sym::temporal_versioning,
+                sym::transaction_time,
             ],
-            Self::EntityTypeIds => &[sym!(metadata), sym!(entity_type_ids)],
-            Self::Archived => &[sym!(metadata), sym!(archived)],
-            Self::Confidence => &[sym!(metadata), sym!(confidence)],
-            Self::ProvenanceInferred => &[sym!(metadata), sym!(provenance), sym!(inferred)],
-            Self::ProvenanceEdition => &[sym!(metadata), sym!(provenance), sym!(edition)],
-            Self::PropertyMetadata => &[sym!(metadata), sym!(properties)],
-            Self::LeftEntityWebId => &[sym!(link_data), sym!(left_entity_id), sym!(web_id)],
-            Self::LeftEntityUuid => &[sym!(link_data), sym!(left_entity_id), sym!(entity_uuid)],
-            Self::RightEntityWebId => &[sym!(link_data), sym!(right_entity_id), sym!(web_id)],
-            Self::RightEntityUuid => &[sym!(link_data), sym!(right_entity_id), sym!(entity_uuid)],
-            Self::LeftEntityConfidence => &[sym!(link_data), sym!(left_entity_confidence)],
-            Self::RightEntityConfidence => &[sym!(link_data), sym!(right_entity_confidence)],
-            Self::LeftEntityProvenance => &[sym!(link_data), sym!(left_entity_provenance)],
-            Self::RightEntityProvenance => &[sym!(link_data), sym!(right_entity_provenance)],
+            Self::EntityTypeIds => &[sym::metadata, sym::entity_type_ids],
+            Self::Archived => &[sym::metadata, sym::archived],
+            Self::Confidence => &[sym::metadata, sym::confidence],
+            Self::ProvenanceInferred => &[sym::metadata, sym::provenance, sym::inferred],
+            Self::ProvenanceEdition => &[sym::metadata, sym::provenance, sym::edition],
+            Self::PropertyMetadata => &[sym::metadata, sym::properties],
+            Self::LeftEntityWebId => &[sym::link_data, sym::left_entity_id, sym::web_id],
+            Self::LeftEntityUuid => &[sym::link_data, sym::left_entity_id, sym::entity_uuid],
+            Self::RightEntityWebId => &[sym::link_data, sym::right_entity_id, sym::web_id],
+            Self::RightEntityUuid => &[sym::link_data, sym::right_entity_id, sym::entity_uuid],
+            Self::LeftEntityConfidence => &[sym::link_data, sym::left_entity_confidence],
+            Self::RightEntityConfidence => &[sym::link_data, sym::right_entity_confidence],
+            Self::LeftEntityProvenance => &[sym::link_data, sym::left_entity_provenance],
+            Self::RightEntityProvenance => &[sym::link_data, sym::right_entity_provenance],
         }
     }
 
-    /// Resolves this path to its [`TypeId`] within the given entity type.
+    /// Returns the type of this path, or `None` for [`Properties`](Self::Properties).
     ///
-    /// Navigates the entity type structure using [`Self::field_path`] and
-    /// [`traverse_struct`](super::traverse_struct), which handles opaque wrappers, generics,
-    /// and unions at each level.
+    /// Every path except `Properties` has a fixed type determined by the entity schema —
+    /// it doesn't depend on which `Entity<T>` is being queried. `Properties` returns `None`
+    /// because its type is the generic `T` parameter, which varies per entity type.
     ///
-    /// # Panics (debug only)
-    ///
-    /// Panics if the type structure does not match the expected entity schema. This indicates
-    /// a compiler bug — for well-typed programs the path always resolves.
-    #[must_use]
-    pub fn resolve_type(self, env: &Environment<'_>, entity_type: TypeId) -> TypeId {
-        if let Some(resolved) = super::traverse_struct(env, entity_type, self.field_path()) {
-            return resolved;
-        }
+    /// Types are constructed from the canonical factory functions in the standard library,
+    /// ensuring they match the definitions registered by the module system.
+    pub fn resolve_type(self, env: &Environment<'_>) -> Option<TypeId> {
+        use hashql_core::module::std_lib::{
+            core::option::types as option,
+            graph::{
+                temporal::types as temporal,
+                types::{
+                    knowledge::entity::types as entity, ontology::types as ontology,
+                    principal::actor_group::web::types as web,
+                },
+            },
+        };
 
-        debug_panic!(
-            "failed to resolve entity path {self:?} within type {entity_type:?}; this indicates a \
-             bug in the type system or an invalid entity schema"
-        );
-
-        TypeBuilder::synthetic(env).unknown()
-    }
-
-    pub fn resolve_type2(self, env: &Environment<'_>) -> Option<TypeId> {
         let ty = TypeBuilder::synthetic(env);
 
         let r#type = match self {
             Self::Properties => return None,
             Self::Vectors => ty.unknown(),
-            Self::RecordId => std_lib::graph::types::knowledge::entity::types::record_id(&ty, None),
-            Self::EntityId => std_lib::graph::types::knowledge::entity::types::entity_id(&ty, None),
-            Self::WebId | Self::LeftEntityWebId | Self::RightEntityWebId => {
-                std_lib::graph::types::principal::actor_group::web::types::web_id(&ty, None)
-            }
+            Self::RecordId => entity::record_id(&ty, None),
+            Self::EntityId => entity::entity_id(&ty, None),
+            Self::WebId | Self::LeftEntityWebId | Self::RightEntityWebId => web::web_id(&ty, None),
             Self::EntityUuid | Self::LeftEntityUuid | Self::RightEntityUuid => {
-                std_lib::graph::types::knowledge::entity::types::entity_uuid(&ty, None)
+                entity::entity_uuid(&ty, None)
             }
-            Self::DraftId => std_lib::graph::types::knowledge::entity::types::draft_id(&ty, None),
-            Self::EditionId => {
-                std_lib::graph::types::knowledge::entity::types::entity_edition_id(&ty, None)
-            }
-            Self::TemporalVersioning => {
-                std_lib::graph::types::knowledge::entity::types::temporal_metadata(&ty, None)
-            }
+            Self::DraftId => entity::draft_id(&ty, None),
+            Self::EditionId => entity::entity_edition_id(&ty, None),
+            Self::TemporalVersioning => entity::temporal_metadata(&ty, None),
             Self::DecisionTime => {
-                let interval = std_lib::graph::temporal::types::interval(&ty, None);
-                std_lib::graph::temporal::types::decision_time(&ty, interval)
+                let interval = temporal::interval(&ty, None);
+                temporal::decision_time(&ty, interval)
             }
             Self::TransactionTime => {
-                let interval = std_lib::graph::temporal::types::interval(&ty, None);
-                std_lib::graph::temporal::types::transaction_time(&ty, interval)
+                let interval = temporal::interval(&ty, None);
+                temporal::transaction_time(&ty, interval)
             }
-            Self::EntityTypeIds => ty.list(std_lib::graph::types::ontology::types::versioned_url(
-                &ty, None,
-            )),
+            Self::EntityTypeIds => ty.list(ontology::versioned_url(&ty, None)),
             Self::Archived => ty.boolean(),
             Self::Confidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
-                std_lib::core::option::types::option(
-                    &ty,
-                    std_lib::graph::types::knowledge::entity::types::confidence(&ty),
-                )
+                option::option(&ty, entity::confidence(&ty))
             }
-            Self::ProvenanceInferred => {
-                std_lib::graph::types::knowledge::entity::types::inferred_entity_provenance(&ty)
-            }
-            Self::ProvenanceEdition => {
-                std_lib::graph::types::knowledge::entity::types::entity_edition_provenance(&ty)
-            }
-            Self::PropertyMetadata => {
-                std_lib::graph::types::knowledge::entity::types::property_object_metadata(&ty)
-            }
+            Self::ProvenanceInferred => entity::inferred_entity_provenance(&ty),
+            Self::ProvenanceEdition => entity::entity_edition_provenance(&ty),
+            Self::PropertyMetadata => entity::property_object_metadata(&ty),
             Self::LeftEntityProvenance | Self::RightEntityProvenance => {
-                std_lib::graph::types::knowledge::entity::types::property_provenance(&ty)
+                entity::property_provenance(&ty)
             }
         };
 

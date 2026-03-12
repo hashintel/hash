@@ -2,7 +2,7 @@ use core::ops::ControlFlow;
 
 use hashql_core::{
     debug_panic,
-    symbol::ConstantSymbol,
+    symbol::Symbol,
     r#type::{
         TypeId,
         environment::Environment,
@@ -17,11 +17,11 @@ use hashql_core::{
 /// without the field), or `Break(())` when union variants disagree on the resolved type.
 fn traverse_struct_impl(
     env: &Environment<'_>,
-    id: TypeId,
-    fields: &[ConstantSymbol],
+    vertex: TypeId,
+    fields: &[Symbol<'_>],
     depth: usize,
 ) -> ControlFlow<(), Option<TypeId>> {
-    let r#type = env.r#type(id);
+    let r#type = env.r#type(vertex);
 
     // We don't need a sophisticated cycle detection algorithm here, the only reason a cycle could
     // occur here is if apply and generic substitutions are the only members in a cycle, haven't
@@ -66,17 +66,14 @@ fn traverse_struct_impl(
 
         TypeKind::Struct(r#struct) => {
             if let [name, rest @ ..] = fields {
-                let field = r#struct
-                    .fields
-                    .iter()
-                    .find(|field| field.name.as_constant() == Some(*name));
+                let field = r#struct.fields.iter().find(|field| field.name == *name);
 
                 field.map_or(ControlFlow::Continue(None), |field| {
                     traverse_struct_impl(env, field.value, rest, depth + 1)
                 })
             } else {
                 // field is empty
-                ControlFlow::Continue(Some(id))
+                ControlFlow::Continue(Some(vertex))
             }
         }
 
@@ -96,7 +93,7 @@ fn traverse_struct_impl(
         | TypeKind::Param(_)
         | TypeKind::Infer(_)
         | TypeKind::Never
-        | TypeKind::Unknown => ControlFlow::Continue(fields.is_empty().then_some(id)),
+        | TypeKind::Unknown => ControlFlow::Continue(fields.is_empty().then_some(vertex)),
     }
 }
 
@@ -107,10 +104,10 @@ fn traverse_struct_impl(
 /// disagree. When `fields` is empty, returns the type as-is (preserving opaque wrappers).
 pub(crate) fn traverse_struct(
     env: &Environment<'_>,
-    id: TypeId,
-    fields: &[ConstantSymbol],
+    vertex: TypeId,
+    fields: &[Symbol<'_>],
 ) -> Option<TypeId> {
-    match traverse_struct_impl(env, id, fields, 0) {
+    match traverse_struct_impl(env, vertex, fields, 0) {
         ControlFlow::Continue(value) => value,
         ControlFlow::Break(()) => {
             debug_panic!("traverse_struct_impl broke without a value");

@@ -17,7 +17,6 @@ mod entity;
 mod analysis;
 #[cfg(test)]
 mod tests;
-mod r#type;
 
 pub(crate) use analysis::{TraversalAnalysisVisitor, TraversalResult};
 use hashql_core::{
@@ -27,7 +26,7 @@ use hashql_core::{
 };
 
 pub use self::entity::{EntityPath, EntityPathBitSet};
-pub(crate) use self::{access::Access, entity::TransferCostConfig, r#type::traverse_struct};
+pub(crate) use self::{access::Access, entity::TransferCostConfig};
 use super::{VertexType, target::TargetBitSet};
 use crate::pass::analysis::{
     dataflow::lattice::{HasBottom, HasTop, JoinSemiLattice},
@@ -246,16 +245,16 @@ impl TraversalPath {
         }
     }
 
-    /// Resolves this path to its [`TypeId`] within the given vertex type.
+    /// Returns the type of this path.
     ///
-    /// Navigates the vertex type structure to find the type corresponding to this
-    /// storage location. See [`EntityPath::resolve_type`] for details on the resolution
-    /// process.
+    /// Most paths have a fixed type determined by the graph schema. Paths whose type
+    /// depends on the specific vertex being queried (e.g. entity properties) return
+    /// [`None`].
     #[inline]
     #[must_use]
-    pub fn resolve_type(self, env: &Environment<'_>, r#type: TypeId) -> TypeId {
+    pub fn resolve_type(self, env: &Environment<'_>) -> Option<TypeId> {
         match self {
-            Self::Entity(path) => path.resolve_type(env, r#type),
+            Self::Entity(path) => path.resolve_type(env),
         }
     }
 
