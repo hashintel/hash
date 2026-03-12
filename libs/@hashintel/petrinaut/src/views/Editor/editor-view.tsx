@@ -1,5 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { use, useRef } from "react";
+import { use, useCallback, useRef, useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -9,18 +9,25 @@ import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher
 import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
-import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
+import { exportSDCPN } from "../../file-format/export-sdcpn";
+import { importSDCPN } from "../../file-format/import-sdcpn";
+import { convertOldFormatToSDCPN } from "../../file-format/old-formats/convert-old-format";
+import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useSelectionCleanup } from "../../state/use-selection-cleanup";
 import type { ViewportAction } from "../../types/viewport-action";
+import { UserSettingsContext } from "../../state/user-settings-context";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "../SDCPN/styles/styling";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
+import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
-import { exportSDCPN } from "./lib/export-sdcpn";
 import { exportTikZ } from "./lib/export-tikz";
-import { importSDCPN } from "./lib/import-sdcpn";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
@@ -85,10 +92,15 @@ export const EditorView = ({
     clearSelection,
   } = use(EditorContext);
 
+  const { compactNodes } = use(UserSettingsContext);
+  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  const [importError, setImportError] = useState<string | null>(null);
+
   // Clean up stale selections when items are deleted
   useSelectionCleanup();
 
-  function handleNew() {
+  const handleCreateEmpty = useCallback(() => {
     createNewNet({
       title: "Untitled",
       petriNetDefinition: {
@@ -100,6 +112,10 @@ export const EditorView = ({
       },
     });
     clearSelection();
+  }, [createNewNet, clearSelection]);
+
+  function handleNew() {
+    handleCreateEmpty();
   }
 
   function handleExport() {
@@ -114,16 +130,53 @@ export const EditorView = ({
     exportTikZ({ petriNetDefinition, title });
   }
 
-  function handleImport() {
-    importSDCPN((loadedSDCPN) => {
-      const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
+  async function handleImport() {
+    const result = await importSDCPN();
+    if (!result) {
+      return; // User cancelled file picker
+    }
 
-      createNewNet({
-        title: loadedSDCPN.title,
-        petriNetDefinition: convertedSdcpn ?? loadedSDCPN,
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
+    }
+
+    const { sdcpn: loadedSDCPN, hadMissingPositions } = result;
+    const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
+    let sdcpnToLoad = convertedSdcpn ?? loadedSDCPN;
+
+    // If any nodes were missing positions, run ELK layout BEFORE creating the net.
+    // We must do this before createNewNet because after createNewNet triggers a
+    // re-render, the mutatePetriNetDefinition closure would be stale.
+    if (hadMissingPositions) {
+      const positions = await calculateGraphLayout(sdcpnToLoad, dims, {
+        onlyMissingPositions: true,
       });
-      clearSelection();
+
+      if (Object.keys(positions).length > 0) {
+        sdcpnToLoad = {
+          ...sdcpnToLoad,
+          places: sdcpnToLoad.places.map((place) => {
+            const position = positions[place.id];
+            return position
+              ? { ...place, x: position.x, y: position.y }
+              : place;
+          }),
+          transitions: sdcpnToLoad.transitions.map((transition) => {
+            const position = positions[transition.id];
+            return position
+              ? { ...transition, x: position.x, y: position.y }
+              : transition;
+          }),
+        };
+      }
+    }
+
+    createNewNet({
+      title: loadedSDCPN.title,
+      petriNetDefinition: sdcpnToLoad,
     });
+    clearSelection();
   }
 
   const menuItems = [
@@ -241,6 +294,17 @@ export const EditorView = ({
     <PortalContainerContext value={portalContainerRef}>
       <Stack className={cx(editorRootStyle, "petrinaut-root")}>
         <div ref={portalContainerRef} className={portalContainerStyle} />
+
+        <ImportErrorDialog
+          open={importError !== null}
+          onOpenChange={({ open }) => {
+            if (!open) {
+              setImportError(null);
+            }
+          }}
+          errorMessage={importError ?? ""}
+          onCreateEmpty={handleCreateEmpty}
+        />
 
         {/* Top Bar - always visible */}
         <TopBar

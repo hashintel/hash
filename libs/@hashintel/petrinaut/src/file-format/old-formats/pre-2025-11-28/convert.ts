@@ -1,4 +1,4 @@
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../../../core/types/sdcpn";
 import type { Pre20251128SDCPN } from "./type";
 
 export const isPre20251128SDCPN = (

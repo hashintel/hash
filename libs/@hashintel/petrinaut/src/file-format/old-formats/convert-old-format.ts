@@ -1,4 +1,4 @@
-import type { SDCPN } from "../core/types/sdcpn";
+import type { SDCPN } from "../../core/types/sdcpn";
 import {
   convertPre20251128ToSDCPN,
   isPre20251128SDCPN,

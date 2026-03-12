@@ -1,9 +1,4 @@
-import type {
-  Color,
-  Place,
-  SDCPN,
-  Transition,
-} from "../../../core/types/sdcpn";
+import type { Color, Place, SDCPN, Transition } from "../core/types/sdcpn";
 
 type SDCPNWithoutVisualInfo = Omit<
   SDCPN,

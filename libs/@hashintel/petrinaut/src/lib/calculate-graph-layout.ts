@@ -33,7 +33,11 @@ export type NodePosition = {
  * It does not mutate any state or trigger side effects.
  *
  * @param sdcpn - The SDCPN to layout
- * @returns A promise that resolves to an array of node positions
+ * @param dims - Node dimensions for places and transitions
+ * @param options.onlyMissingPositions - When true, only nodes with x=0 and y=0 will receive new positions.
+ *   Nodes that already have non-zero positions are included in the layout graph (so ELK can route around them)
+ *   but their returned positions are excluded from the result.
+ * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
@@ -41,9 +45,29 @@ export const calculateGraphLayout = async (
     place: { width: number; height: number };
     transition: { width: number; height: number };
   },
+  options?: { onlyMissingPositions?: boolean },
 ): Promise<Record<string, NodePosition>> => {
   if (sdcpn.places.length === 0) {
     return {};
+  }
+
+  // Track which nodes need positions (have x=0 and y=0)
+  const needsPosition = new Set<string>();
+  if (options?.onlyMissingPositions) {
+    for (const place of sdcpn.places) {
+      if (place.x === 0 && place.y === 0) {
+        needsPosition.add(place.id);
+      }
+    }
+    for (const transition of sdcpn.transitions) {
+      if (transition.x === 0 && transition.y === 0) {
+        needsPosition.add(transition.id);
+      }
+    }
+
+    if (needsPosition.size === 0) {
+      return {};
+    }
   }
 
   // Build ELK nodes from places and transitions
@@ -99,9 +123,15 @@ export const calculateGraphLayout = async (
   const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
+      // When onlyMissingPositions is set, skip nodes that already have positions
+      if (options?.onlyMissingPositions && !needsPosition.has(child.id)) {
+        continue;
+      }
+
       const nodeDimensions = placeIds.has(child.id)
         ? dimensions.place
         : dimensions.transition;
+
       positionsByNodeId[child.id] = {
         x: child.x + nodeDimensions.width / 2,
         y: child.y + nodeDimensions.height / 2,
