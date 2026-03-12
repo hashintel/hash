@@ -44,7 +44,7 @@ const defaultCorsOrigins: corsMiddleware.CorsOptions["origin"] = [
  */
 const corsOrigins: corsMiddleware.CorsOptions["origin"] = process.env
   .HASH_CORS_ORIGIN_OVERRIDE
-  ? [frontendUrl, ...parseCorsOrigins(process.env.HASH_CORS_ORIGIN_OVERRIDE)]
+  ? parseCorsOrigins(process.env.HASH_CORS_ORIGIN_OVERRIDE)
   : [
       ...defaultCorsOrigins,
       ...parseCorsOrigins(process.env.HASH_CORS_ADDITIONAL_ORIGINS ?? ""),
