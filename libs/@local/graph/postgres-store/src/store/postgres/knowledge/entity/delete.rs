@@ -613,7 +613,7 @@ impl PostgresStore<Transaction<'_>> {
                         SELECT entity_edition_id FROM closed
                     )
                 )
-                SELECT count(*) FROM closed",
+                SELECT count(DISTINCT (web_id, entity_uuid)) FROM closed",
                 &[
                     &target.web_ids as &(dyn ToSql + Sync),
                     &target.entity_uuids,
