@@ -1,7 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import fuzzysort from "fuzzysort";
 import type { ComponentType, ReactNode } from "react";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuSearch } from "react-icons/lu";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -47,6 +47,7 @@ const resultListStyle = css({
   gap: "[1px]",
   py: "1",
   mx: "-1",
+  outline: "none",
 });
 
 const resultRowStyle = cva({
@@ -72,6 +73,11 @@ const resultRowStyle = cva({
       false: {
         backgroundColor: "[transparent]",
         _hover: { backgroundColor: "neutral.bg.surface.hover" },
+      },
+    },
+    isFocused: {
+      true: {
+        backgroundColor: "neutral.bg.subtle.hover",
       },
     },
   },
@@ -202,6 +208,9 @@ const SearchContent: React.FC = () => {
   const { isSelected: checkIsSelected, selectItem } = use(EditorContext);
   const allItems = useSearchableItems();
   const [query, setQuery] = useState("");
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const { searchInputRef } = use(EditorContext);
 
@@ -212,7 +221,11 @@ const SearchContent: React.FC = () => {
       return;
     }
 
-    const handleInput = () => setQuery(input.value);
+    const handleInput = () => {
+      setQuery(input.value);
+      // Reset focus when query changes
+      setFocusedIndex(null);
+    };
     input.addEventListener("input", handleInput);
     setQuery(input.value);
     return () => input.removeEventListener("input", handleInput);
@@ -231,14 +244,81 @@ const SearchContent: React.FC = () => {
 
     return fuzzyResults.map((result) => ({
       item: result.obj,
-      highlighted:
-        fuzzysort.highlight(result[0], (match, i: number) => (
-          <span key={i} className={highlightStyle}>
-            {match}
-          </span>
-        )) ?? result.obj.name,
+      highlighted: result.highlight((match, i) => (
+        <span key={i} className={highlightStyle}>
+          {match}
+        </span>
+      )),
     }));
   }, [query, allItems]);
+
+  // Clamp focusedIndex when results shrink
+  useEffect(() => {
+    if (results.length === 0) {
+      setFocusedIndex(null);
+    } else {
+      setFocusedIndex((prev) =>
+        prev !== null ? Math.min(prev, results.length - 1) : prev,
+      );
+    }
+  }, [results.length]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex !== null) {
+      rowRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIndex]);
+
+  const handleListKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      switch (event.key) {
+        case "ArrowDown": {
+          event.preventDefault();
+          if (results.length === 0) {
+            return;
+          }
+          const nextIndex =
+            focusedIndex === null
+              ? 0
+              : Math.min(focusedIndex + 1, results.length - 1);
+          setFocusedIndex(nextIndex);
+          const item = results[nextIndex];
+          if (item) {
+            selectItem(item.item.selectionItem);
+          }
+          break;
+        }
+        case "ArrowUp": {
+          event.preventDefault();
+          if (focusedIndex === null || focusedIndex === 0) {
+            // Move focus back to the search input
+            setFocusedIndex(null);
+            searchInputRef.current?.focus();
+          } else {
+            const nextIndex = focusedIndex - 1;
+            setFocusedIndex(nextIndex);
+            const item = results[nextIndex];
+            if (item) {
+              selectItem(item.item.selectionItem);
+            }
+          }
+          break;
+        }
+        case "Enter": {
+          event.preventDefault();
+          if (focusedIndex !== null) {
+            const item = results[focusedIndex];
+            if (item) {
+              selectItem(item.item.selectionItem);
+            }
+          }
+          break;
+        }
+      }
+    },
+    [results, focusedIndex, selectItem, searchInputRef],
+  );
 
   const matchLabel =
     query.trim() === ""
@@ -249,14 +329,42 @@ const SearchContent: React.FC = () => {
     <>
       <div className={matchCountStyle}>{matchLabel}</div>
       {results.length > 0 ? (
-        <div className={resultListStyle}>
-          {results.map(({ item, highlighted }) => {
+        <div
+          ref={listRef}
+          className={resultListStyle}
+          role="listbox"
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          onFocus={() => {
+            // When the list receives focus (e.g. from ArrowDown in input),
+            // highlight and select the first item
+            if (focusedIndex === null && results.length > 0) {
+              setFocusedIndex(0);
+              const first = results[0];
+              if (first) {
+                selectItem(first.item.selectionItem);
+              }
+            }
+          }}
+        >
+          {results.map(({ item, highlighted }, index) => {
             const isSelected = checkIsSelected(item.id);
+            const isFocused = focusedIndex === index;
             return (
               <div
                 key={item.id}
-                className={resultRowStyle({ isSelected })}
-                onClick={() => selectItem(item.selectionItem)}
+                ref={(el) => {
+                  rowRefs.current[index] = el;
+                }}
+                role="option"
+                tabIndex={-1}
+                aria-selected={isSelected}
+                className={resultRowStyle({ isSelected, isFocused })}
+                onClick={() => {
+                  selectItem(item.selectionItem);
+                  setFocusedIndex(index);
+                }}
+                onKeyDown={handleListKeyDown}
               >
                 <div className={resultContentStyle}>
                   <span
@@ -299,6 +407,15 @@ const SearchTitle: React.FC = () => {
       type="text"
       placeholder="Find…"
       className={searchInputStyle}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          // Find the result list within the same sub-view section and focus it
+          const section = searchInputRef.current?.closest("[data-panel]");
+          const list = section?.querySelector<HTMLElement>("[role=listbox]");
+          list?.focus();
+        }
+      }}
     />
   );
 };
