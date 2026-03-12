@@ -4,13 +4,15 @@ const floatingTitleInputStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
-  minWidth: "[200px]",
+  flex: "1",
+  minWidth: "0",
   borderRadius: "sm",
-  padding: "[4px 8px]",
+  px: "2",
+  py: "1",
   _focus: {
     outline: "2px solid",
     outlineColor: "blue.s60",
-    outlineOffset: "[0px]",
+    outlineOffset: "0",
   },
   _placeholder: {
     color: "neutral.s100",
