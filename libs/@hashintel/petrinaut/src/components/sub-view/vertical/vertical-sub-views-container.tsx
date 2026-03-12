@@ -95,15 +95,15 @@ const scrollShadowStyle = cva({
     position: {
       top: {
         top: "[0]",
-        background: "[linear-gradient(to bottom, #C0C0C0, #FFFFFF10)]",
+        background: "[linear-gradient(to bottom, #D0D0D0, #FFFFFF10)]",
       },
       bottom: {
         bottom: "[0]",
-        background: "[linear-gradient(to top, #C0C0C0, #FFFFFF10)]",
+        background: "[linear-gradient(to top, #D0D0D0, #FFFFFF10)]",
       },
     },
     visible: {
-      true: { opacity: "[0.15]" },
+      true: { opacity: "[0.2]" },
     },
   },
 });
@@ -125,17 +125,26 @@ const resizeHandleStyle = css({
   },
 });
 
-const headerRowStyle = css({
-  height: "[44px]",
-  pl: "0.5",
-  pr: "2",
+const headerRowStyle = cva({
+  base: {
+    height: "[44px]",
+    pl: "0.5",
+    pr: "2",
 
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
 
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a20",
+    borderBottomWidth: "thin",
+    borderBottomColor: "neutral.a20",
+  },
+  variants: {
+    isCollapsed: {
+      true: {
+        borderBottomColor: "[transparent]",
+      },
+    },
+  },
 });
 
 const mainHeaderRowStyle = css({
@@ -345,7 +354,11 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   renderHeaderAction,
   alwaysShowHeaderAction,
 }) => (
-  <div className={main ? mainHeaderRowStyle : headerRowStyle}>
+  <div
+    className={
+      main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
+    }
+  >
     {main ? (
       <div className={mainHeaderContentStyle}>
         {Icon && (
