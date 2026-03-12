@@ -1,13 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
+import type { NodeProps } from "@xyflow/react";
 import { use } from "react";
 import { TbCircleFilled, TbMathFunction } from "react-icons/tb";
-import type { NodeProps } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
-import type { PlaceNodeData } from "../reactflow-types";
+import type { PlaceNodeType } from "../reactflow-types";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -46,13 +46,13 @@ const tokenCountBadgeStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
+export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   id,
   data,
   isConnectable,
   selected,
-}: NodeProps<PlaceNodeData>) => {
-  const { globalMode, selectedResourceId } = use(EditorContext);
+}: NodeProps<PlaceNodeType>) => {
+  const { globalMode, isSelected } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -68,8 +68,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   }
 
   // Determine selection state
-  const isSelectedByResource = selectedResourceId === id;
-  const selectionVariant: SelectionVariant = isSelectedByResource
+  const isInSelection = isSelected(id);
+  const selectionVariant: SelectionVariant = isInSelection
     ? "resource"
     : selected
       ? "reactflow"

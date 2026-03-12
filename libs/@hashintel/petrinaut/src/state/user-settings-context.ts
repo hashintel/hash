@@ -38,6 +38,7 @@ export type UserSettings = {
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
+  partialSelection: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -54,6 +55,7 @@ export type UserSettingsActions = {
   setActiveBottomPanelTab: (value: BottomPanelTab) => void;
   setCursorMode: (value: CursorMode) => void;
   setTimelineChartType: (value: TimelineChartType) => void;
+  setPartialSelection: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -76,6 +78,7 @@ export const defaultUserSettings: UserSettings = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
+  partialSelection: true,
   subViewPanels: {},
 };
 
@@ -93,6 +96,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setActiveBottomPanelTab: () => {},
   setCursorMode: () => {},
   setTimelineChartType: () => {},
+  setPartialSelection: () => {},
   updateSubViewSection: () => {},
 };
 

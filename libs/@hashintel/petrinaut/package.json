@@ -50,13 +50,13 @@
     "@hashintel/refractive": "workspace:^",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
+    "@xyflow/react": "12.10.1",
     "d3-array": "3.2.4",
     "d3-scale": "4.0.2",
     "elkjs": "0.11.0",
     "monaco-editor": "0.55.1",
     "react-icons": "5.5.0",
     "react-resizable-panels": "4.6.5",
-    "reactflow": "11.11.4",
     "typescript": "5.9.3",
     "uuid": "13.0.0",
     "vscode-languageserver-types": "3.17.5",
@@ -87,6 +87,7 @@
     "rolldown-plugin-dts": "0.22.4",
     "storybook": "10.2.13",
     "vite": "8.0.0-beta.18",
+    "vite-plugin-dts": "4.5.4",
     "vitest": "4.0.18"
   },
   "peerDependencies": {

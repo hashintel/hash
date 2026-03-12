@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
+import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
+import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 import { use } from "react";
-import type { MiniMapNodeProps, MiniMapProps } from "reactflow";
-import { MiniMap as ReactFlowMiniMap, useStore } from "reactflow";
 
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { hexToHsl } from "../../../lib/hsl-color";
@@ -21,6 +21,8 @@ const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_PLACE_FILL = "#0F0F0F";
 const DEFAULT_TRANSITION_FILL = "#6b7280";
+const SELECTED_COLOR = "#3bb9f6";
+const SELECTED_STROKE_WIDTH = 12;
 
 /**
  * Custom node renderer for the MiniMap.
@@ -29,7 +31,7 @@ const DEFAULT_TRANSITION_FILL = "#6b7280";
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
-    (state) => state.nodeInternals.get(id) as NodeType | undefined,
+    (state) => state.nodeLookup.get(id) as NodeType | undefined,
   );
 
   if (!node) {
@@ -44,13 +46,18 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         : DEFAULT_PLACE_FILL
       : DEFAULT_TRANSITION_FILL;
 
+  const isSelected = node.selected;
+
   if (node.data.type === "place") {
     return (
       <circle
         cx={x + SHAPE_SIZE / 2}
         cy={y + SHAPE_SIZE / 2}
         r={SHAPE_SIZE / 2}
-        fill={fill}
+        fill={isSelected ? SELECTED_COLOR : fill}
+        stroke={isSelected ? SELECTED_COLOR : "none"}
+        strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
+        strokeOpacity={0.4}
       />
     );
   }
@@ -61,7 +68,10 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
       width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
       height={SHAPE_SIZE}
-      fill={fill}
+      fill={isSelected ? SELECTED_COLOR : fill}
+      stroke={isSelected ? SELECTED_COLOR : "none"}
+      strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
+      strokeOpacity={0.4}
     />
   );
 };
@@ -72,10 +82,10 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { selectedResourceId, propertiesPanelWidth, isPanelAnimating } =
+  const { hasSelection, propertiesPanelWidth, isPanelAnimating } =
     use(EditorContext);
 
-  const isPropertiesPanelVisible = selectedResourceId !== null;
+  const isPropertiesPanelVisible = hasSelection;
   const minimapOffset = 12;
   const panelOffset = isPropertiesPanelVisible
     ? propertiesPanelWidth + PANEL_MARGIN

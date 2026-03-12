@@ -8,6 +8,7 @@ import { LanguageClientContext } from "../../../../../lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import type { SelectionItemType } from "../../../../../state/selection";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
@@ -116,7 +117,7 @@ const DiagnosticsContent: React.FC = () => {
     LanguageClientContext,
   );
   const { petriNetDefinition } = use(SDCPNContext);
-  const { setSelectedResourceId } = use(EditorContext);
+  const { selectItem } = use(EditorContext);
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set(),
@@ -124,10 +125,14 @@ const DiagnosticsContent: React.FC = () => {
 
   // Handler to select an entity when clicking on a diagnostic
   const handleSelectEntity = useCallback(
-    (entityId: string) => {
-      setSelectedResourceId(entityId);
+    (entityId: string, entityType: EntityType) => {
+      const selectionType: SelectionItemType =
+        entityType === "differential-equation"
+          ? "differentialEquation"
+          : "transition";
+      selectItem({ type: selectionType, id: entityId });
     },
-    [setSelectedResourceId],
+    [selectItem],
   );
 
   // Group diagnostics by entity (transition or differential equation)
@@ -255,7 +260,12 @@ const DiagnosticsContent: React.FC = () => {
                         >
                           <button
                             type="button"
-                            onClick={() => handleSelectEntity(group.entityId)}
+                            onClick={() =>
+                              handleSelectEntity(
+                                group.entityId,
+                                group.entityType,
+                              )
+                            }
                             className={diagnosticButtonStyle}
                           >
                             <span className={bulletStyle}>•</span>

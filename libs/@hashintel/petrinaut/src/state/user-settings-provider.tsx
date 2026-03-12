@@ -69,6 +69,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, activeBottomPanelTab: value })),
     setTimelineChartType: (value: TimelineChartType) =>
       setState((prev) => ({ ...prev, timelineChartType: value })),
+    setPartialSelection: (value: boolean) =>
+      setState((prev) => ({ ...prev, partialSelection: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

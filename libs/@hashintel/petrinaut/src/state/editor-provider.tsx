@@ -8,6 +8,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
@@ -44,7 +45,22 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }, 500);
   };
 
-  const actions: EditorActions = {
+  const setSelection = (
+    selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+  ) =>
+    setState((prev) => {
+      const selection =
+        typeof selectionOrUpdater === "function"
+          ? selectionOrUpdater(prev.selection)
+          : selectionOrUpdater;
+      const hasSelection = selection.size > 0;
+      if (prev.hasSelection !== hasSelection) {
+        triggerPanelAnimation();
+      }
+      return { ...prev, selection, hasSelection };
+    });
+
+  const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
@@ -74,26 +90,39 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelectedResourceId: (id) => {
-      triggerPanelAnimation();
-      setState((prev) => ({ ...prev, selectedResourceId: id }));
+    setSelection,
+    selectItem: (item: SelectionItem) => {
+      setState((prev) => {
+        const newSelection: SelectionMap = new Map([[item.id, item]]);
+        if (!prev.hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection, hasSelection: true };
+      });
     },
-    setSelectedItemIds: (ids) =>
-      setState((prev) => ({ ...prev, selectedItemIds: ids })),
-    addSelectedItemId: (id) =>
+    toggleItem: (item: SelectionItem) => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.add(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    removeSelectedItemId: (id) =>
+        const newSelection = new Map(prev.selection);
+        if (newSelection.has(item.id)) {
+          newSelection.delete(item.id);
+        } else {
+          newSelection.set(item.id, item);
+        }
+        const hasSelection = newSelection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection, hasSelection };
+      });
+    },
+    clearSelection: () => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.delete(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    clearSelection: () =>
-      setState((prev) => ({ ...prev, selectedItemIds: new Set() })),
+        if (prev.hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: new Map(), hasSelection: false };
+      });
+    },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -109,7 +138,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...prev,
         isLeftSidebarOpen: false,
         isBottomPanelOpen: false,
-        selectedResourceId: null,
+        selection: new Map(),
+        hasSelection: false,
       }));
     },
     setTimelineChartType: (chartType) =>
@@ -129,9 +159,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: state.timelineChartType,
   });
 
+  const { selection } = state;
+  const isSelected = (id: string) => selection.has(id);
+
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
+    isSelected,
   };
 
   return (

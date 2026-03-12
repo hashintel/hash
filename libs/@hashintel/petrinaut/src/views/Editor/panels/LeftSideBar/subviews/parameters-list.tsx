@@ -10,6 +10,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 
 const listContainerStyle = css({
@@ -78,7 +79,7 @@ const ParametersHeaderAction: React.FC = () => {
     petriNetDefinition: { parameters },
     addParameter,
   } = use(SDCPNContext);
-  const { setSelectedResourceId } = use(EditorContext);
+  const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
 
@@ -92,7 +93,7 @@ const ParametersHeaderAction: React.FC = () => {
       type: "real",
       defaultValue: "0",
     });
-    setSelectedResourceId(id);
+    selectItem({ type: "parameter", id });
   };
 
   return (
@@ -116,8 +117,7 @@ const ParametersList: React.FC = () => {
     petriNetDefinition: { parameters },
     removeParameter,
   } = use(SDCPNContext);
-  const { globalMode, selectedResourceId, setSelectedResourceId } =
-    use(EditorContext);
+  const { globalMode, isSelected, selectItem, toggleItem } = use(EditorContext);
   const {
     state: simulationState,
     parameterValues,
@@ -133,7 +133,8 @@ const ParametersList: React.FC = () => {
     <div>
       <div className={listContainerStyle}>
         {parameters.map((param) => {
-          const isSelected = selectedResourceId === param.id;
+          const paramSelected = isSelected(param.id);
+          const item: SelectionItem = { type: "parameter", id: param.id };
 
           return (
             <div
@@ -147,16 +148,20 @@ const ParametersList: React.FC = () => {
                 ) {
                   return;
                 }
-                setSelectedResourceId(param.id);
+                if (event.metaKey || event.ctrlKey) {
+                  toggleItem(item);
+                } else {
+                  selectItem(item);
+                }
               }}
               role="button"
               tabIndex={0}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
-                  setSelectedResourceId(param.id);
+                  selectItem(item);
                 }
               }}
-              className={parameterRowStyle({ isSelected })}
+              className={parameterRowStyle({ isSelected: paramSelected })}
             >
               <div>
                 <div>{param.name}</div>
