@@ -2,7 +2,7 @@ use crate::{
     heap::Heap,
     module::{
         StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::option},
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::types::option},
     },
     symbol::Symbol,
 };

@@ -2,15 +2,22 @@ use crate::{
     heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
     symbol::{Symbol, sym},
-    r#type::{TypeBuilder, TypeId},
 };
 
-// create a concrete monomorphized instance of `Option`
-pub(in crate::module::std_lib) fn option(ty: &TypeBuilder<'_, '_>, value: TypeId) -> TypeId {
-    let none = ty.opaque(sym::path::None, ty.null());
-    let some = ty.opaque(sym::path::Some, value);
+pub mod types {
+    use crate::{
+        symbol::sym,
+        r#type::{TypeBuilder, TypeId},
+    };
 
-    ty.union([none, some])
+    // create a concrete monomorphized instance of `Option`
+    #[must_use]
+    pub fn option(ty: &TypeBuilder<'_, '_>, value: TypeId) -> TypeId {
+        let none = ty.opaque(sym::path::None, ty.null());
+        let some = ty.opaque(sym::path::Some, value);
+
+        ty.union([none, some])
+    }
 }
 
 pub(in crate::module::std_lib) struct Option {

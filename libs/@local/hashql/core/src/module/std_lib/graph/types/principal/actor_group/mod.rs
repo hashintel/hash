@@ -1,17 +1,18 @@
-pub(in crate::module::std_lib) mod web;
+pub mod web;
 
-pub(crate) mod types {
+pub mod types {
     use crate::{
         module::std_lib,
         symbol::sym,
         r#type::{TypeBuilder, TypeId},
     };
 
-    pub(crate) struct ActorGroupEntityUuidDependencies {
+    pub struct ActorGroupEntityUuidDependencies {
         pub uuid: TypeId,
     }
 
-    pub(crate) fn actor_group_entity_uuid(
+    #[must_use]
+    pub fn actor_group_entity_uuid(
         ty: &TypeBuilder<'_, '_>,
         deps: Option<ActorGroupEntityUuidDependencies>,
     ) -> TypeId {

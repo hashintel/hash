@@ -1,21 +1,23 @@
 pub(in crate::module::std_lib) mod entity_type;
 
-pub(crate) mod types {
+pub mod types {
     use crate::{
         module::std_lib,
         symbol::sym,
         r#type::{TypeBuilder, TypeId},
     };
 
-    pub(crate) fn ontology_type_version(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn ontology_type_version(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::OntologyTypeVersion, ty.string())
     }
 
-    pub(crate) struct BaseUrlDependencies {
+    pub struct BaseUrlDependencies {
         pub url: TypeId,
     }
 
-    pub(crate) fn base_url(ty: &TypeBuilder<'_, '_>, deps: Option<BaseUrlDependencies>) -> TypeId {
+    #[must_use]
+    pub fn base_url(ty: &TypeBuilder<'_, '_>, deps: Option<BaseUrlDependencies>) -> TypeId {
         let BaseUrlDependencies { url } = deps.unwrap_or_else(|| BaseUrlDependencies {
             url: std_lib::core::url::types::url(ty),
         });
@@ -23,12 +25,13 @@ pub(crate) mod types {
         ty.opaque(sym::path::BaseUrl, url)
     }
 
-    pub(crate) struct VersionedUrlDependencies {
+    pub struct VersionedUrlDependencies {
         pub base_url: TypeId,
         pub ontology_type_version: TypeId,
     }
 
-    pub(crate) fn versioned_url(
+    #[must_use]
+    pub fn versioned_url(
         ty: &TypeBuilder<'_, '_>,
         deps: Option<VersionedUrlDependencies>,
     ) -> TypeId {

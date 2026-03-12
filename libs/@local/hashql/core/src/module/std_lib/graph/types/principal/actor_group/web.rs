@@ -7,18 +7,19 @@ use crate::{
     symbol::{Symbol, sym},
 };
 
-pub(crate) mod types {
+pub mod types {
     use crate::{
         module::std_lib,
         symbol::sym,
         r#type::{TypeBuilder, TypeId},
     };
 
-    pub(crate) struct WebIdDependencies {
+    pub struct WebIdDependencies {
         pub actor_group_entity_uuid: TypeId,
     }
 
-    pub(crate) fn web_id(ty: &TypeBuilder<'_, '_>, deps: Option<WebIdDependencies>) -> TypeId {
+    #[must_use]
+    pub fn web_id(ty: &TypeBuilder<'_, '_>, deps: Option<WebIdDependencies>) -> TypeId {
         let WebIdDependencies {
             actor_group_entity_uuid,
         } = deps.unwrap_or_else(|| WebIdDependencies {

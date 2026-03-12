@@ -7,22 +7,20 @@ use crate::{
     symbol::{Symbol, sym},
 };
 
-pub(crate) mod types {
+pub mod types {
     use crate::{
-        module::std_lib::{self, core::option::option},
+        module::std_lib::{self, core::option::types::option},
         symbol::sym,
         r#type::{TypeBuilder, TypeId},
     };
 
     // newtype EntityUuid = Uuid;
-    pub(crate) struct EntityUuidDependencies {
+    pub struct EntityUuidDependencies {
         pub uuid: TypeId,
     }
 
-    pub(crate) fn entity_uuid(
-        ty: &TypeBuilder<'_, '_>,
-        deps: Option<EntityUuidDependencies>,
-    ) -> TypeId {
+    #[must_use]
+    pub fn entity_uuid(ty: &TypeBuilder<'_, '_>, deps: Option<EntityUuidDependencies>) -> TypeId {
         let EntityUuidDependencies { uuid } = deps.unwrap_or_else(|| EntityUuidDependencies {
             uuid: std_lib::core::uuid::types::uuid(ty),
         });
@@ -31,11 +29,12 @@ pub(crate) mod types {
     }
 
     // newtype DraftId = Uuid;
-    pub(crate) struct DraftIdDependencies {
+    pub struct DraftIdDependencies {
         pub uuid: TypeId,
     }
 
-    pub(crate) fn draft_id(ty: &TypeBuilder<'_, '_>, deps: Option<DraftIdDependencies>) -> TypeId {
+    #[must_use]
+    pub fn draft_id(ty: &TypeBuilder<'_, '_>, deps: Option<DraftIdDependencies>) -> TypeId {
         let DraftIdDependencies { uuid } = deps.unwrap_or_else(|| DraftIdDependencies {
             uuid: std_lib::core::uuid::types::uuid(ty),
         });
@@ -44,11 +43,12 @@ pub(crate) mod types {
     }
 
     // newtype EntityEditionId = Uuid;
-    pub(crate) struct EntityEditionIdDependencies {
+    pub struct EntityEditionIdDependencies {
         pub uuid: TypeId,
     }
 
-    pub(crate) fn entity_edition_id(
+    #[must_use]
+    pub fn entity_edition_id(
         ty: &TypeBuilder<'_, '_>,
         deps: Option<EntityEditionIdDependencies>,
     ) -> TypeId {
@@ -61,16 +61,14 @@ pub(crate) mod types {
     }
 
     // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
-    pub(crate) struct EntityIdDependencies {
+    pub struct EntityIdDependencies {
         pub web_id: TypeId,
         pub entity_uuid: TypeId,
         pub draft_id: TypeId,
     }
 
-    pub(crate) fn entity_id(
-        ty: &TypeBuilder<'_, '_>,
-        deps: Option<EntityIdDependencies>,
-    ) -> TypeId {
+    #[must_use]
+    pub fn entity_id(ty: &TypeBuilder<'_, '_>, deps: Option<EntityIdDependencies>) -> TypeId {
         let EntityIdDependencies {
             web_id,
             entity_uuid,
@@ -91,53 +89,48 @@ pub(crate) mod types {
         )
     }
 
-    // newtype EntityRecordId = (entity_id: EntityId, edition_id: EntityEditionId)
-    pub(crate) struct EntityRecordIdDependencies {
+    // newtype RecordId = (entity_id: EntityId, edition_id: EntityEditionId)
+    pub struct RecordIdDependencies {
         pub entity_id: TypeId,
         pub edition_id: TypeId,
     }
 
-    pub(crate) fn entity_record_id(
-        ty: &TypeBuilder<'_, '_>,
-        deps: Option<EntityRecordIdDependencies>,
-    ) -> TypeId {
-        let EntityRecordIdDependencies {
+    #[must_use]
+    pub fn record_id(ty: &TypeBuilder<'_, '_>, deps: Option<RecordIdDependencies>) -> TypeId {
+        let RecordIdDependencies {
             entity_id,
             edition_id,
-        } = deps.unwrap_or_else(|| EntityRecordIdDependencies {
+        } = deps.unwrap_or_else(|| RecordIdDependencies {
             entity_id: self::entity_id(ty, None),
             edition_id: self::entity_edition_id(ty, None),
         });
 
         ty.opaque(
-            sym::path::EntityRecordId,
+            sym::path::RecordId,
             ty.r#struct([(sym::entity_id, entity_id), (sym::edition_id, edition_id)]),
         )
     }
 
-    pub(crate) fn temporal_interval(ty: &TypeBuilder<'_, '_>) -> TypeId {
-        std_lib::graph::temporal::types::interval(ty, None)
-    }
-
-    // newtype EntityTemporalMetadata = (
+    // newtype TemporalMetadata = (
     //     decision_time: DecisionTime<Interval>,
     //     transaction_time: TransactionTime<Interval>,
     // )
-    pub(crate) struct EntityTemporalMetadataDependencies {
+    pub struct TemporalMetadataDependencies {
         pub interval: TypeId,
     }
 
-    pub(crate) fn entity_temporal_metadata(
+    #[must_use]
+    pub fn temporal_metadata(
         ty: &TypeBuilder<'_, '_>,
-        deps: Option<EntityTemporalMetadataDependencies>,
+        deps: Option<TemporalMetadataDependencies>,
     ) -> TypeId {
-        let EntityTemporalMetadataDependencies { interval } =
-            deps.unwrap_or_else(|| EntityTemporalMetadataDependencies {
-                interval: self::temporal_interval(ty),
+        let TemporalMetadataDependencies { interval } =
+            deps.unwrap_or_else(|| TemporalMetadataDependencies {
+                interval: std_lib::graph::temporal::types::interval(ty, None),
             });
 
         ty.opaque(
-            sym::path::EntityTemporalMetadata,
+            sym::path::TemporalMetadata,
             ty.r#struct([
                 (
                     sym::decision_time,
@@ -152,7 +145,8 @@ pub(crate) mod types {
     }
 
     // newtype Confidence = Number
-    pub(crate) fn confidence(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn confidence(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::Confidence, ty.number())
     }
 
@@ -161,7 +155,8 @@ pub(crate) mod types {
     // JSONB blob in `entity_ids.provenance`. Contains `created_by_id`,
     // `created_at_transaction_time`, `created_at_decision_time`, and optional
     // `first_non_draft_created_at_*` timestamps.
-    pub(crate) fn inferred_entity_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn inferred_entity_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::InferredEntityProvenance, ty.unknown())
     }
 
@@ -170,7 +165,8 @@ pub(crate) mod types {
     // JSONB blob in `entity_editions.provenance`. Contains `created_by_id`,
     // optional `archived_by_id`, `actor_type`, `OriginProvenance`, and
     // `Vec<SourceProvenance>`.
-    pub(crate) fn entity_edition_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn entity_edition_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::EntityEditionProvenance, ty.unknown())
     }
 
@@ -178,12 +174,13 @@ pub(crate) mod types {
     //     inferred: InferredEntityProvenance,
     //     edition: EntityEditionProvenance,
     // )
-    pub(crate) struct EntityProvenanceDependencies {
+    pub struct EntityProvenanceDependencies {
         pub inferred: TypeId,
         pub edition: TypeId,
     }
 
-    pub(crate) fn entity_provenance(
+    #[must_use]
+    pub fn entity_provenance(
         ty: &TypeBuilder<'_, '_>,
         deps: Option<EntityProvenanceDependencies>,
     ) -> TypeId {
@@ -203,7 +200,8 @@ pub(crate) mod types {
     //
     // JSONB blob on entity edges (`entity_edge.provenance`). Just
     // `Vec<SourceProvenance>`.
-    pub(crate) fn property_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn property_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::PropertyProvenance, ty.unknown())
     }
 
@@ -211,7 +209,8 @@ pub(crate) mod types {
     //
     // JSONB blob in `entity_editions.property_metadata`. Contains per-property-key
     // metadata (confidence, provenance) rather than property values.
-    pub(crate) fn property_object_metadata(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn property_object_metadata(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::PropertyObjectMetadata, ty.unknown())
     }
 
@@ -224,7 +223,7 @@ pub(crate) mod types {
     //     confidence: Option<Confidence>,
     //     properties: PropertyObjectMetadata,
     // )
-    pub(crate) struct EntityMetadataDependencies {
+    pub struct EntityMetadataDependencies {
         pub record_id: TypeId,
         pub temporal_versioning: TypeId,
         pub entity_type_ids: TypeId,
@@ -233,7 +232,8 @@ pub(crate) mod types {
         pub properties: TypeId,
     }
 
-    pub(crate) fn entity_metadata(
+    #[must_use]
+    pub fn entity_metadata(
         ty: &TypeBuilder<'_, '_>,
         deps: Option<EntityMetadataDependencies>,
     ) -> TypeId {
@@ -245,8 +245,8 @@ pub(crate) mod types {
             confidence,
             properties,
         } = deps.unwrap_or_else(|| EntityMetadataDependencies {
-            record_id: self::entity_record_id(ty, None),
-            temporal_versioning: self::entity_temporal_metadata(ty, None),
+            record_id: self::record_id(ty, None),
+            temporal_versioning: self::temporal_metadata(ty, None),
             entity_type_ids: ty.list(std_lib::graph::types::ontology::types::versioned_url(
                 ty, None,
             )),
@@ -277,16 +277,14 @@ pub(crate) mod types {
     //     right_entity_confidence: Option<Confidence>,
     //     right_entity_provenance: PropertyProvenance,
     // )
-    pub(crate) struct LinkDataDependencies {
+    pub struct LinkDataDependencies {
         pub entity_id: TypeId,
         pub confidence: TypeId,
         pub property_provenance: TypeId,
     }
 
-    pub(crate) fn link_data(
-        ty: &TypeBuilder<'_, '_>,
-        deps: Option<LinkDataDependencies>,
-    ) -> TypeId {
+    #[must_use]
+    pub fn link_data(ty: &TypeBuilder<'_, '_>, deps: Option<LinkDataDependencies>) -> TypeId {
         let LinkDataDependencies {
             entity_id,
             confidence,
@@ -315,7 +313,8 @@ pub(crate) mod types {
     // The graph API doesn't expose encodings yet, but the storage layer already has
     // them. The `?` inner type is correct; the encoding format is opaque to the
     // type system.
-    pub(crate) fn entity_encodings(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn entity_encodings(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(
             sym::path::EntityEncodings,
             ty.r#struct([(sym::vectors, ty.unknown())]),
@@ -328,13 +327,14 @@ pub(crate) mod types {
     //     metadata: EntityMetadata,
     //     encodings: EntityEncodings,
     // )
-    pub(crate) struct EntityDependencies {
+    pub struct EntityDependencies {
         pub link_data: TypeId,
         pub metadata: TypeId,
         pub encodings: TypeId,
     }
 
-    pub(crate) fn entity(
+    #[must_use]
+    pub fn entity(
         ty: &TypeBuilder<'_, '_>,
         properties: TypeId,
         deps: Option<EntityDependencies>,
@@ -373,8 +373,8 @@ pub(in crate::module::std_lib) struct Entity {
 impl<'heap> StandardLibraryModule<'heap> for Entity {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("entity")
+    fn name(_: &'heap Heap) -> Symbol<'heap> {
+        sym::entity
     }
 
     #[expect(clippy::too_many_lines)]
@@ -429,26 +429,23 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         );
         def.push(sym::EntityId, ItemDef::newtype(ty.env, entity_id_ty, &[]));
 
-        let entity_record_id_ty = types::entity_record_id(
+        let record_id_ty = types::record_id(
             ty,
-            Some(types::EntityRecordIdDependencies {
+            Some(types::RecordIdDependencies {
                 entity_id: entity_id_ty,
                 edition_id: entity_edition_id_ty,
             }),
         );
-        def.push(
-            sym::EntityRecordId,
-            ItemDef::newtype(ty.env, entity_record_id_ty, &[]),
-        );
+        def.push(sym::RecordId, ItemDef::newtype(ty.env, record_id_ty, &[]));
 
-        let temporal_metadata_ty = types::entity_temporal_metadata(
+        let temporal_metadata_ty = types::temporal_metadata(
             ty,
-            Some(types::EntityTemporalMetadataDependencies {
+            Some(types::TemporalMetadataDependencies {
                 interval: interval_ty,
             }),
         );
         def.push(
-            sym::EntityTemporalMetadata,
+            sym::TemporalMetadata,
             ItemDef::newtype(ty.env, temporal_metadata_ty, &[]),
         );
 
@@ -497,7 +494,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let entity_metadata_ty = types::entity_metadata(
             ty,
             Some(types::EntityMetadataDependencies {
-                record_id: entity_record_id_ty,
+                record_id: record_id_ty,
                 temporal_versioning: temporal_metadata_ty,
                 entity_type_ids: ty.list(versioned_url_ty),
                 provenance: entity_provenance_ty,

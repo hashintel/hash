@@ -2,9 +2,9 @@ pub(in crate::module::std_lib) mod body;
 pub(in crate::module::std_lib) mod entity;
 pub(in crate::module::std_lib) mod head;
 pub(in crate::module::std_lib) mod tail;
-pub(in crate::module::std_lib) mod temporal;
+pub mod temporal;
 pub(in crate::module::std_lib) mod tmp;
-pub(in crate::module::std_lib) mod types;
+pub mod types;
 
 use crate::{
     heap::Heap,

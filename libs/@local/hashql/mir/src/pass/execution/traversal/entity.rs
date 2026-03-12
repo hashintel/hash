@@ -6,6 +6,7 @@ use hashql_core::{
         Id,
         bit_vec::{BitRelations as _, FiniteBitSet},
     },
+    module::std_lib,
     symbol::{ConstantSymbol, Symbol, sym},
     r#type::{TypeBuilder, TypeId, environment::Environment},
 };
@@ -316,6 +317,62 @@ impl EntityPath {
         );
 
         TypeBuilder::synthetic(env).unknown()
+    }
+
+    pub fn resolve_type2(self, env: &Environment<'_>) -> Option<TypeId> {
+        let ty = TypeBuilder::synthetic(env);
+
+        let r#type = match self {
+            Self::Properties => return None,
+            Self::Vectors => ty.unknown(),
+            Self::RecordId => std_lib::graph::types::knowledge::entity::types::record_id(&ty, None),
+            Self::EntityId => std_lib::graph::types::knowledge::entity::types::entity_id(&ty, None),
+            Self::WebId | Self::LeftEntityWebId | Self::RightEntityWebId => {
+                std_lib::graph::types::principal::actor_group::web::types::web_id(&ty, None)
+            }
+            Self::EntityUuid | Self::LeftEntityUuid | Self::RightEntityUuid => {
+                std_lib::graph::types::knowledge::entity::types::entity_uuid(&ty, None)
+            }
+            Self::DraftId => std_lib::graph::types::knowledge::entity::types::draft_id(&ty, None),
+            Self::EditionId => {
+                std_lib::graph::types::knowledge::entity::types::entity_edition_id(&ty, None)
+            }
+            Self::TemporalVersioning => {
+                std_lib::graph::types::knowledge::entity::types::temporal_metadata(&ty, None)
+            }
+            Self::DecisionTime => {
+                let interval = std_lib::graph::temporal::types::interval(&ty, None);
+                std_lib::graph::temporal::types::decision_time(&ty, interval)
+            }
+            Self::TransactionTime => {
+                let interval = std_lib::graph::temporal::types::interval(&ty, None);
+                std_lib::graph::temporal::types::transaction_time(&ty, interval)
+            }
+            Self::EntityTypeIds => ty.list(std_lib::graph::types::ontology::types::versioned_url(
+                &ty, None,
+            )),
+            Self::Archived => ty.boolean(),
+            Self::Confidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
+                std_lib::core::option::types::option(
+                    &ty,
+                    std_lib::graph::types::knowledge::entity::types::confidence(&ty),
+                )
+            }
+            Self::ProvenanceInferred => {
+                std_lib::graph::types::knowledge::entity::types::inferred_entity_provenance(&ty)
+            }
+            Self::ProvenanceEdition => {
+                std_lib::graph::types::knowledge::entity::types::entity_edition_provenance(&ty)
+            }
+            Self::PropertyMetadata => {
+                std_lib::graph::types::knowledge::entity::types::property_object_metadata(&ty)
+            }
+            Self::LeftEntityProvenance | Self::RightEntityProvenance => {
+                std_lib::graph::types::knowledge::entity::types::property_provenance(&ty)
+            }
+        };
+
+        Some(r#type)
     }
 
     /// Returns the set of execution targets that natively serve this path.

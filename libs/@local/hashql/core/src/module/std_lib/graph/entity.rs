@@ -5,7 +5,7 @@ use crate::{
         locals::TypeDef,
         std_lib::{
             self, ModuleDef, StandardLibraryModule,
-            core::{func, option::option},
+            core::{func, option::types::option},
             decl,
         },
     },

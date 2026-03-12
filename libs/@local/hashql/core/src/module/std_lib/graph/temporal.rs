@@ -4,29 +4,34 @@ use crate::{
     symbol::{Symbol, sym},
 };
 
-pub(crate) mod types {
+pub mod types {
     use crate::{
         symbol::sym,
         r#type::{TypeBuilder, TypeId},
     };
 
-    pub(crate) fn timestamp(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn timestamp(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::Timestamp, ty.integer())
     }
 
-    pub(crate) fn unbounded_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn unbounded_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::UnboundedTemporalBound, ty.null())
     }
 
-    pub(crate) fn inclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn inclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::InclusiveTemporalBound, self::timestamp(ty))
     }
 
-    pub(crate) fn exclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn exclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::ExclusiveTemporalBound, self::timestamp(ty))
     }
 
-    pub(crate) fn temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.union([
             self::unbounded_temporal_bound(ty),
             self::inclusive_temporal_bound(ty),
@@ -34,7 +39,8 @@ pub(crate) mod types {
         ])
     }
 
-    pub(crate) fn finite_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+    #[must_use]
+    pub fn finite_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.union([
             self::inclusive_temporal_bound(ty),
             self::exclusive_temporal_bound(ty),
@@ -42,22 +48,25 @@ pub(crate) mod types {
     }
 
     // newtype DecisionTime<T> = T
-    pub(crate) fn decision_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
+    #[must_use]
+    pub fn decision_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
         ty.opaque(sym::path::DecisionTime, inner)
     }
 
     // newtype TransactionTime<T> = T
-    pub(crate) fn transaction_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
+    #[must_use]
+    pub fn transaction_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
         ty.opaque(sym::path::TransactionTime, inner)
     }
 
     // newtype Interval = (start: TemporalBound, end: FiniteTemporalBound)
-    pub(crate) struct IntervalDependencies {
+    pub struct IntervalDependencies {
         pub temporal_bound: TypeId,
         pub finite_temporal_bound: TypeId,
     }
 
-    pub(crate) fn interval(ty: &TypeBuilder<'_, '_>, deps: Option<IntervalDependencies>) -> TypeId {
+    #[must_use]
+    pub fn interval(ty: &TypeBuilder<'_, '_>, deps: Option<IntervalDependencies>) -> TypeId {
         let IntervalDependencies {
             temporal_bound,
             finite_temporal_bound,
