@@ -150,6 +150,7 @@ export default withSentryConfig(
       typescript: { ignoreBuildErrors: true },
 
       experimental: {
+        esmExternals: "loose",
         webpackBuildWorker: true,
         webpackMemoryOptimizations: true,
       },

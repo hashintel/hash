@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
 import type { CursorMode, EditorState } from "../../../../state/editor-context";
+import { UndoRedoContext } from "../../../../state/undo-redo-context";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
@@ -10,17 +11,34 @@ export function useKeyboardShortcuts(
   onEditionModeChange: (mode: EditorEditionMode) => void,
   onCursorModeChange: (mode: CursorMode) => void,
 ) {
+  const undoRedo = use(UndoRedoContext);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      // Don't trigger if focus is in an input, textarea, contentEditable, or Monaco editor
       const target = event.target as HTMLElement;
+
       const isInputFocused =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable ||
-        // Check if we're inside a Monaco editor
         target.closest(".monaco-editor") !== null ||
         target.closest("#sentry-feedback") !== null;
+
+      // Handle undo/redo shortcuts, but let inputs handle their own undo/redo.
+      if (
+        undoRedo &&
+        !isInputFocused &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "z"
+      ) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          undoRedo.redo();
+        } else {
+          undoRedo.undo();
+        }
+        return;
+      }
 
       if (isInputFocused) {
         return;
@@ -67,5 +85,5 @@ export function useKeyboardShortcuts(
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mode, onEditionModeChange, onCursorModeChange]);
+  }, [mode, onEditionModeChange, onCursorModeChange, undoRedo]);
 }
