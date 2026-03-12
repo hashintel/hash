@@ -22,13 +22,12 @@ type-system = { workspace = true, optional = true }
 
 # Private third-party dependencies
 bytes.workspace             = true
-crossfire                   = "3.1.5"
 derive_more                 = { workspace = true, features = ["display"] }
 futures-lite                = "2.6.1"
 postgres-protocol.workspace = true
 postgres-types.workspace    = true
 serde                       = { workspace = true }
-serde_json.workspace        = true
+serde_json                  = { workspace = true, features = ["raw_value"] }
 simple-mermaid              = { workspace = true }
 tokio-postgres.workspace    = true
 tokio-util                  = { workspace = true, features = ["rt"] }

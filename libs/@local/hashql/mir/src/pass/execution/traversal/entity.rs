@@ -1,11 +1,13 @@
 use core::{debug_assert_matches, num::NonZero, ops::Bound};
 
 use hashql_core::{
+    debug_panic,
     id::{
         Id,
         bit_vec::{BitRelations as _, FiniteBitSet},
     },
     symbol::{ConstantSymbol, Symbol, sym},
+    r#type::{TypeBuilder, TypeId, environment::Environment},
 };
 
 use super::{
@@ -227,6 +229,93 @@ impl EntityPath {
             Self::LeftEntityProvenance => sym::left_entity_provenance,
             Self::RightEntityProvenance => sym::right_entity_provenance,
         }
+    }
+
+    /// The sequence of struct field names from the entity root to this path's position
+    /// in the type hierarchy.
+    ///
+    /// Each element corresponds to a field name in a nested struct. For example,
+    /// [`WebId`](Self::WebId) returns `[metadata, record_id, entity_id, web_id]`,
+    /// meaning the resolution walks: `Entity` → `metadata` field → `EntityMetadata` →
+    /// `record_id` field → `EntityRecordId` → `entity_id` field → `EntityId` → `web_id` field.
+    ///
+    /// Used by [`Self::resolve_type`] to navigate the entity type structure.
+    #[must_use]
+    pub const fn field_path(self) -> &'static [ConstantSymbol] {
+        match self {
+            Self::Properties => &[sym!(properties)],
+            Self::Vectors => &[sym!(encodings), sym!(vectors)],
+            Self::RecordId => &[sym!(metadata), sym!(record_id)],
+            Self::EntityId => &[sym!(metadata), sym!(record_id), sym!(entity_id)],
+            Self::WebId => &[
+                sym!(metadata),
+                sym!(record_id),
+                sym!(entity_id),
+                sym!(web_id),
+            ],
+            Self::EntityUuid => &[
+                sym!(metadata),
+                sym!(record_id),
+                sym!(entity_id),
+                sym!(entity_uuid),
+            ],
+            Self::DraftId => &[
+                sym!(metadata),
+                sym!(record_id),
+                sym!(entity_id),
+                sym!(draft_id),
+            ],
+            Self::EditionId => &[sym!(metadata), sym!(record_id), sym!(edition_id)],
+            Self::TemporalVersioning => &[sym!(metadata), sym!(temporal_versioning)],
+            Self::DecisionTime => &[
+                sym!(metadata),
+                sym!(temporal_versioning),
+                sym!(decision_time),
+            ],
+            Self::TransactionTime => &[
+                sym!(metadata),
+                sym!(temporal_versioning),
+                sym!(transaction_time),
+            ],
+            Self::EntityTypeIds => &[sym!(metadata), sym!(entity_type_ids)],
+            Self::Archived => &[sym!(metadata), sym!(archived)],
+            Self::Confidence => &[sym!(metadata), sym!(confidence)],
+            Self::ProvenanceInferred => &[sym!(metadata), sym!(provenance), sym!(inferred)],
+            Self::ProvenanceEdition => &[sym!(metadata), sym!(provenance), sym!(edition)],
+            Self::PropertyMetadata => &[sym!(metadata), sym!(properties)],
+            Self::LeftEntityWebId => &[sym!(link_data), sym!(left_entity_id), sym!(web_id)],
+            Self::LeftEntityUuid => &[sym!(link_data), sym!(left_entity_id), sym!(entity_uuid)],
+            Self::RightEntityWebId => &[sym!(link_data), sym!(right_entity_id), sym!(web_id)],
+            Self::RightEntityUuid => &[sym!(link_data), sym!(right_entity_id), sym!(entity_uuid)],
+            Self::LeftEntityConfidence => &[sym!(link_data), sym!(left_entity_confidence)],
+            Self::RightEntityConfidence => &[sym!(link_data), sym!(right_entity_confidence)],
+            Self::LeftEntityProvenance => &[sym!(link_data), sym!(left_entity_provenance)],
+            Self::RightEntityProvenance => &[sym!(link_data), sym!(right_entity_provenance)],
+        }
+    }
+
+    /// Resolves this path to its [`TypeId`] within the given entity type.
+    ///
+    /// Navigates the entity type structure using [`Self::field_path`] and
+    /// [`traverse_struct`](super::traverse_struct), which handles opaque wrappers, generics,
+    /// and unions at each level.
+    ///
+    /// # Panics (debug only)
+    ///
+    /// Panics if the type structure does not match the expected entity schema. This indicates
+    /// a compiler bug — for well-typed programs the path always resolves.
+    #[must_use]
+    pub fn resolve_type(self, env: &Environment<'_>, entity_type: TypeId) -> TypeId {
+        if let Some(resolved) = super::traverse_struct(env, entity_type, self.field_path()) {
+            return resolved;
+        }
+
+        debug_panic!(
+            "failed to resolve entity path {self:?} within type {entity_type:?}; this indicates a \
+             bug in the type system or an invalid entity schema"
+        );
+
+        TypeBuilder::synthetic(env).unknown()
     }
 
     /// Returns the set of execution targets that natively serve this path.

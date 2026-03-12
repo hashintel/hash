@@ -36,7 +36,10 @@ use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
     WhereExpression, table::EntityTemporalMetadata,
 };
-use hashql_core::{heap::BumpAllocator, id::Id as _, r#type::TypeId};
+use hashql_core::{
+    heap::BumpAllocator,
+    r#type::{TypeId, environment::LatticeEnvironment},
+};
 use hashql_mir::{
     body::{
         Body,
@@ -55,7 +58,7 @@ use hashql_mir::{
 
 pub use self::parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis};
 use self::{
-    continuation::{ContinuationColumn, ReturnedContinuationColumn},
+    continuation::{ContinuationColumn, ContinuationField},
     filter::GraphReadFilterCompiler,
     projections::Projections,
 };
@@ -138,27 +141,43 @@ impl<A: Allocator> DatabaseContext<'_, A> {
     }
 }
 
+/// Describes a single column in the `SELECT` list of a compiled query.
+///
+/// The bridge uses this manifest to decode each column in a result row without
+/// parsing column names. Entity field columns carry a [`TraversalPath`] for
+/// hydration; continuation columns carry the body/island identity for routing
+/// control flow back to the interpreter.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ColumnDescriptor {
-    Path {
-        path: TraversalPath,
-        r#type: TypeId,
-    },
+    /// An entity field produced by the provides set.
+    ///
+    /// The [`TraversalPath`] identifies the storage location; the [`TypeId`] is the
+    /// field's type within the instantiated vertex type, used for type-directed
+    /// deserialization.
+    Path { path: TraversalPath, r#type: TypeId },
+    /// A decomposed continuation field from an island's `CROSS JOIN LATERAL`.
     Continuation {
         body: DefId,
         island: IslandId,
-        field: ReturnedContinuationColumn,
+        field: ContinuationField,
     },
 }
 
 /// A fully-compiled SQL query ready for execution.
 ///
-/// Contains the typed query AST ([`SelectStatement`]) and the parameter catalog ([`Parameters`])
-/// that the interpreter uses to bind runtime values in the correct order.
+/// Contains the typed query AST ([`SelectStatement`]), the parameter catalog ([`Parameters`])
+/// for binding runtime values, and a column manifest ([`ColumnDescriptor`]s) that tells the
+/// bridge how to decode each result column.
 pub struct PreparedQuery<'heap, A: Allocator> {
     pub parameters: Parameters<'heap, A>,
     pub statement: SelectStatement,
     pub columns: Vec<ColumnDescriptor, A>,
+    /// The vertex type after joining across all body operations.
+    ///
+    /// For entity queries this is `Entity<T>` where `T` is the join of all filter bodies'
+    /// property types. Used by the bridge together with [`TraversalPath::resolve_type`] to
+    /// obtain per-field [`TypeId`]s for type-directed deserialization.
+    pub vertex_type: TypeId,
 }
 
 impl<A: Allocator> PreparedQuery<'_, A> {
@@ -312,6 +331,31 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     {
         let mut db = DatabaseContext::new_in(self.alloc.clone());
 
+        // The entity structure is identical across all filter bodies; only the property
+        // type `T` in `Entity<T>` may vary due to type narrowing. Use any body's vertex
+        // type as the base (for resolving non-property fields), and join just the property
+        // types across bodies for the `Properties` field.
+        let vertex_type = {
+            let &GraphReadBody::Filter(def_id, _) = &read.body[0];
+            self.context.bodies[def_id].local_decls[Local::VERTEX].r#type
+        };
+
+        let property_type = {
+            let mut lattice = LatticeEnvironment::new(self.context.env);
+            let mut iter = read.body.iter().map(|body| {
+                let &GraphReadBody::Filter(def_id, _) = body;
+                let vt = self.context.bodies[def_id].local_decls[Local::VERTEX].r#type;
+
+                EntityPath::Properties.resolve_type(self.context.env, vt)
+            });
+
+            let first = iter
+                .next()
+                .expect("GraphRead must have at least one body operation");
+
+            iter.fold(first, |acc, ty| lattice.join(acc, ty))
+        };
+
         // Temporal conditions go first - they're always present on the base table
         // and don't depend on anything the filter body produces.
         db.add_temporal_conditions();
@@ -345,13 +389,22 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
             let alias = Identifier::from(traversal_path.as_symbol().unwrap());
 
+            let field_type = if matches!(
+                traversal_path,
+                TraversalPath::Entity(EntityPath::Properties)
+            ) {
+                property_type
+            } else {
+                traversal_path.resolve_type(self.context.env, vertex_type)
+            };
+
             select_expressions.push(SelectExpression::Expression {
                 expression,
                 alias: Some(alias),
             });
             columns.push(ColumnDescriptor::Path {
                 path: traversal_path,
-                r#type: TypeId::MIN,
+                r#type: field_type,
             });
         }
 
@@ -362,9 +415,9 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             let table_ref = cont_alias.table_ref();
 
             for field in [
-                ReturnedContinuationColumn::Block,
-                ReturnedContinuationColumn::Locals,
-                ReturnedContinuationColumn::Values,
+                ContinuationField::Block,
+                ContinuationField::Locals,
+                ContinuationField::Values,
             ] {
                 select_expressions.push(SelectExpression::Expression {
                     expression: continuation::field_access(&table_ref, field.into()),
@@ -400,6 +453,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             parameters: db.parameters,
             statement: query,
             columns,
+            vertex_type,
         }
     }
 

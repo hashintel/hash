@@ -120,6 +120,11 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
         })
     }
 
+    /// Returns the local variable storage for the innermost active call.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::CallstackEmpty`] if there are no active calls.
     pub fn locals<R: Allocator>(
         &self,
     ) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, !, R>> {

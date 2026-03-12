@@ -103,7 +103,7 @@ fn fibonacci_recursive(criterion: &mut Criterion) {
                 let callstack =
                     CallStack::new(&runtime, DefId::new(0), [Value::Integer(Int::from(*n))]);
 
-                let Ok(Value::Integer(int)) = runtime.run(callstack) else {
+                let Ok(Value::Integer(int)) = runtime.run(callstack, |_| unreachable!()) else {
                     unreachable!()
                 };
 

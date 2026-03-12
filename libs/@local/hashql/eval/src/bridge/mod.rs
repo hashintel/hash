@@ -3,27 +3,24 @@
 
 use core::{alloc::Allocator, marker::PhantomData, pin::pin};
 
-use futures_lite::StreamExt;
-use hash_graph_postgres_store::store::{AsClient, PostgresStore};
+use futures_lite::StreamExt as _;
 use hashql_core::heap::{ResetAllocator as _, Scratch};
 use hashql_mir::{
-    body::{Body, basic_block::BasicBlockId, terminator::GraphReadBody},
+    body::{Body, basic_block::BasicBlockId},
     def::{DefId, DefIdSlice},
     interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension},
 };
 use postgres_types::ToSql;
-use tokio_postgres::{Client, GenericClient};
+use tokio_postgres::Client;
 
 use self::{
     codec::{Inputs, encode_parameter_in},
     error::BridgeError,
-    exec::Ipc,
 };
 use crate::postgres::{Parameter, PreparedQuery};
 
 mod codec;
 pub(crate) mod error;
-mod exec;
 mod postgres_serde;
 mod temporal;
 

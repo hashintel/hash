@@ -45,19 +45,28 @@ impl ContinuationAlias {
     }
 }
 
+/// Continuation fields returned to the bridge in the `SELECT` list.
+///
+/// A subset of [`ContinuationColumn`] that excludes internal-only columns
+/// ([`Entry`](ContinuationColumn::Entry) and [`Filter`](ContinuationColumn::Filter)).
+/// Each variant corresponds to a column the bridge must decode to reconstruct
+/// island exit control flow and live-out locals.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReturnedContinuationColumn {
+pub enum ContinuationField {
+    /// The target basic block id for island exits.
     Block,
+    /// Array of local ids being transferred on island exit.
     Locals,
+    /// Array of jsonb values corresponding to [`Self::Locals`].
     Values,
 }
 
-impl From<ReturnedContinuationColumn> for ContinuationColumn {
-    fn from(value: ReturnedContinuationColumn) -> Self {
+impl From<ContinuationField> for ContinuationColumn {
+    fn from(value: ContinuationField) -> Self {
         match value {
-            ReturnedContinuationColumn::Block => ContinuationColumn::Block,
-            ReturnedContinuationColumn::Locals => ContinuationColumn::Locals,
-            ReturnedContinuationColumn::Values => ContinuationColumn::Values,
+            ContinuationField::Block => Self::Block,
+            ContinuationField::Locals => Self::Locals,
+            ContinuationField::Values => Self::Values,
         }
     }
 }
