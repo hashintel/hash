@@ -1,8 +1,9 @@
 // The bridge has the goal of bridging the two worlds, and coordinates the different sources and
 // implementations.
 
-use core::{alloc::Allocator, marker::PhantomData};
+use core::{alloc::Allocator, marker::PhantomData, pin::pin};
 
+use futures_lite::StreamExt;
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
 use hashql_core::heap::{ResetAllocator as _, Scratch};
 use hashql_mir::{
@@ -15,6 +16,7 @@ use tokio_postgres::{Client, GenericClient};
 
 use self::{
     codec::{Inputs, encode_parameter_in},
+    error::BridgeError,
     exec::Ipc,
 };
 use crate::postgres::{Parameter, PreparedQuery};
@@ -42,7 +44,7 @@ struct Bridge<'env, 'heap, C, A: Allocator> {
     queries: &'env PreparedQueries<'heap, A>,
     inputs: &'env Inputs<'heap, A>,
 
-    scratch: Scratch,
+    scratch: Scratch, // <- TODO: must be a pool
     _marker: PhantomData<C>,
 }
 
@@ -51,11 +53,11 @@ impl<'env, 'heap, C, A: Allocator> Bridge<'env, 'heap, C, A> {
         &mut self,
         callstack: &CallStack<'_, 'heap, L>,
         suspension: &GraphReadSuspension<'_, 'heap>,
-    ) -> Result<(), RuntimeError<'heap, !, L>> {
+    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
         self.scratch.reset();
 
         let axis = &suspension.axis;
-        let locals = callstack.locals()?;
+        let locals = callstack.locals().map_err(RuntimeError::widen)?;
         let query = self.queries.find(suspension.body, suspension.block);
 
         // TODO: We must ensure that there's *always* a query, in case nothing is given we fallback
@@ -78,7 +80,7 @@ impl<'env, 'heap, C, A: Allocator> Bridge<'env, 'heap, C, A> {
             )
         });
         for param in encoded {
-            params.push(param?);
+            params.push(param.map_err(RuntimeError::widen)?);
         }
 
         let response = self
@@ -89,9 +91,32 @@ impl<'env, 'heap, C, A: Allocator> Bridge<'env, 'heap, C, A> {
                     .iter()
                     .map(|param| -> &(dyn ToSql + Sync) { &**param }),
             )
-            .await;
+            .await
+            .map_err(|source| BridgeError::QueryExecution {
+                sql: transpiled.clone(),
+                source,
+            })
+            .map_err(RuntimeError::Suspension)?;
 
-        // TODO: entity hydration + interpolation
+        let mut response = pin!(response);
+
+        while let Some(row) = response.next().await {
+            let row = row
+                .map_err(|source| BridgeError::QueryExecution {
+                    sql: transpiled.clone(),
+                    source,
+                })
+                .map_err(RuntimeError::Suspension)?;
+
+            // TODO: we must:
+            // - spawn a local task to process the row
+            //  - hydrate the entities (type driven deserialization)
+            //  - for each filter (that has an exit):
+            //    - resolve the items.
+            //    - spawn a local task to process the filter.
+            //    - only return the entity to the final set if all filters are true
+            // - we can do this through a local set
+        }
 
         // TODO: execute the bodies in parallel
         todo!()

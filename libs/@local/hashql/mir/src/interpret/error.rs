@@ -433,6 +433,56 @@ impl<S, A: Allocator> RuntimeError<'_, S, A> {
     }
 }
 
+impl<'heap, A: Allocator> RuntimeError<'heap, !, A> {
+    /// Widens the suspension type from `!` to any `S`.
+    ///
+    /// Useful when composing interpreter operations (which cannot suspend) with
+    /// bridge operations (which can). The `Suspension` variant is uninhabited,
+    /// so this is a no-op at runtime.
+    #[must_use]
+    #[inline]
+    pub fn widen<S>(self) -> RuntimeError<'heap, S, A> {
+        match self {
+            Self::UninitializedLocal { local, decl } => {
+                RuntimeError::UninitializedLocal { local, decl }
+            }
+            Self::InvalidIndexType { base, index } => {
+                RuntimeError::InvalidIndexType { base, index }
+            }
+            Self::InvalidSubscriptType { base } => RuntimeError::InvalidSubscriptType { base },
+            Self::InvalidProjectionType { base } => RuntimeError::InvalidProjectionType { base },
+            Self::InvalidProjectionByNameType { base } => {
+                RuntimeError::InvalidProjectionByNameType { base }
+            }
+            Self::UnknownField { base, field } => RuntimeError::UnknownField { base, field },
+            Self::UnknownFieldByName { base, field } => {
+                RuntimeError::UnknownFieldByName { base, field }
+            }
+            Self::StructFieldLengthMismatch { values, fields } => {
+                RuntimeError::StructFieldLengthMismatch { values, fields }
+            }
+            Self::InvalidDiscriminantType { r#type } => {
+                RuntimeError::InvalidDiscriminantType { r#type }
+            }
+            Self::InvalidDiscriminant { value } => RuntimeError::InvalidDiscriminant { value },
+            Self::UnreachableReached => RuntimeError::UnreachableReached,
+            Self::BinaryTypeMismatch(mismatch) => RuntimeError::BinaryTypeMismatch(mismatch),
+            Self::UnaryTypeMismatch(mismatch) => RuntimeError::UnaryTypeMismatch(mismatch),
+            Self::ApplyNonPointer { r#type } => RuntimeError::ApplyNonPointer { r#type },
+            Self::CallstackEmpty => RuntimeError::CallstackEmpty,
+            Self::OutOfRange { length, index } => RuntimeError::OutOfRange { length, index },
+            Self::InputNotFound { name } => RuntimeError::InputNotFound { name },
+            Self::RecursionLimitExceeded { limit } => {
+                RuntimeError::RecursionLimitExceeded { limit }
+            }
+            Self::UnexpectedValueType { expected, actual } => {
+                RuntimeError::UnexpectedValueType { expected, actual }
+            }
+            Self::InvalidConstructor { name } => RuntimeError::InvalidConstructor { name },
+        }
+    }
+}
+
 fn uninitialized_local(span: SpanId, local: Local, decl: LocalDecl) -> InterpretDiagnostic {
     let name = core::fmt::from_fn(|fmt| {
         if let Some(symbol) = decl.name {
