@@ -1,4 +1,4 @@
-import { use, useCallback, useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import {
   type DraggingStateByNodeId,
@@ -45,23 +45,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }, 500);
   };
 
-  const setSelection = useCallback(
-    (
-      selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
-    ) =>
-      setState((prev) => {
-        const selection =
-          typeof selectionOrUpdater === "function"
-            ? selectionOrUpdater(prev.selection)
-            : selectionOrUpdater;
-        const hasSelection = selection.size > 0;
-        if (prev.hasSelection !== hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection, hasSelection };
-      }),
-    [],
-  );
+  const setSelection = (
+    selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+  ) =>
+    setState((prev) => {
+      const selection =
+        typeof selectionOrUpdater === "function"
+          ? selectionOrUpdater(prev.selection)
+          : selectionOrUpdater;
+      const hasSelection = selection.size > 0;
+      if (prev.hasSelection !== hasSelection) {
+        triggerPanelAnimation();
+      }
+      return { ...prev, selection, hasSelection };
+    });
 
   const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
@@ -163,10 +160,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   });
 
   const { selection } = state;
-  const isSelected = useCallback(
-    (id: string) => selection.has(id),
-    [selection],
-  );
+  const isSelected = (id: string) => selection.has(id);
 
   const contextValue: EditorContextValue = {
     ...state,
