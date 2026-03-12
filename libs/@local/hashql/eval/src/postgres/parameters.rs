@@ -201,7 +201,6 @@ mod tests {
     };
     use hashql_mir::{
         body::{local::Local, place::FieldIndex},
-        def::DefId,
         interpret::value::Int,
     };
 

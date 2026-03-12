@@ -45,6 +45,23 @@ impl ContinuationAlias {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ReturnedContinuationColumn {
+    Block,
+    Locals,
+    Values,
+}
+
+impl From<ReturnedContinuationColumn> for ContinuationColumn {
+    fn from(value: ReturnedContinuationColumn) -> Self {
+        match value {
+            ReturnedContinuationColumn::Block => ContinuationColumn::Block,
+            ReturnedContinuationColumn::Locals => ContinuationColumn::Locals,
+            ReturnedContinuationColumn::Values => ContinuationColumn::Values,
+        }
+    }
+}
+
 /// All column names used within the continuation LATERAL subquery and the
 /// `continuation` composite type.
 ///

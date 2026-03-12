@@ -36,7 +36,7 @@ use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
     WhereExpression, table::EntityTemporalMetadata,
 };
-use hashql_core::heap::BumpAllocator;
+use hashql_core::{heap::BumpAllocator, id::Id as _, r#type::TypeId};
 use hashql_mir::{
     body::{
         Body,
@@ -47,7 +47,7 @@ use hashql_mir::{
     pass::{
         analysis::dataflow::lattice::HasBottom as _,
         execution::{
-            IslandKind, IslandNode, TargetId, VertexType,
+            IslandId, IslandKind, IslandNode, TargetId, VertexType,
             traversal::{EntityPath, TraversalMapLattice, TraversalPath, TraversalPathBitMap},
         },
     },
@@ -55,7 +55,9 @@ use hashql_mir::{
 
 pub use self::parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis};
 use self::{
-    continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
+    continuation::{ContinuationColumn, ReturnedContinuationColumn},
+    filter::GraphReadFilterCompiler,
+    projections::Projections,
 };
 use crate::context::EvalContext;
 
@@ -136,6 +138,19 @@ impl<A: Allocator> DatabaseContext<'_, A> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ColumnDescriptor {
+    Path {
+        path: TraversalPath,
+        r#type: TypeId,
+    },
+    Continuation {
+        body: DefId,
+        island: IslandId,
+        field: ReturnedContinuationColumn,
+    },
+}
+
 /// A fully-compiled SQL query ready for execution.
 ///
 /// Contains the typed query AST ([`SelectStatement`]) and the parameter catalog ([`Parameters`])
@@ -143,6 +158,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
 pub struct PreparedQuery<'heap, A: Allocator> {
     pub parameters: Parameters<'heap, A>,
     pub statement: SelectStatement,
+    pub columns: Vec<ColumnDescriptor, A>,
 }
 
 impl<A: Allocator> PreparedQuery<'_, A> {
@@ -314,6 +330,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         // Each EntityPath in `provides` becomes a SELECT expression via eval_entity_path,
         // which also registers the necessary projection joins in DatabaseContext.
         let mut select_expressions = vec![];
+        let mut columns = Vec::new_in(self.alloc.clone());
 
         for traversal_path in provides[VertexType::Entity].iter() {
             let TraversalPath::Entity(path) = traversal_path;
@@ -332,6 +349,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
                 expression,
                 alias: Some(alias),
             });
+            columns.push(ColumnDescriptor::Path {
+                path: traversal_path,
+                r#type: TypeId::MIN,
+            });
         }
 
         // Decompose each continuation LATERAL into individual columns so the
@@ -341,13 +362,18 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             let table_ref = cont_alias.table_ref();
 
             for field in [
-                ContinuationColumn::Block,
-                ContinuationColumn::Locals,
-                ContinuationColumn::Values,
+                ReturnedContinuationColumn::Block,
+                ReturnedContinuationColumn::Locals,
+                ReturnedContinuationColumn::Values,
             ] {
                 select_expressions.push(SelectExpression::Expression {
-                    expression: continuation::field_access(&table_ref, field),
-                    alias: Some(cont_alias.field_identifier(field)),
+                    expression: continuation::field_access(&table_ref, field.into()),
+                    alias: Some(cont_alias.field_identifier(field.into())),
+                });
+                columns.push(ColumnDescriptor::Continuation {
+                    body: cont_alias.body,
+                    island: cont_alias.island,
+                    field,
                 });
             }
         }
@@ -373,6 +399,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         PreparedQuery {
             parameters: db.parameters,
             statement: query,
+            columns,
         }
     }
 

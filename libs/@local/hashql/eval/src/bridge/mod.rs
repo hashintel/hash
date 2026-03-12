@@ -48,7 +48,7 @@ struct Bridge<'env, 'heap, C, A: Allocator> {
     _marker: PhantomData<C>,
 }
 
-impl<'env, 'heap, C, A: Allocator> Bridge<'env, 'heap, C, A> {
+impl<'heap, C, A: Allocator> Bridge<'_, 'heap, C, A> {
     async fn graph_read<L: Allocator + Clone>(
         &mut self,
         callstack: &CallStack<'_, 'heap, L>,
