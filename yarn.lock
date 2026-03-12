@@ -8095,7 +8095,6 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@vitejs/plugin-react": "npm:5.0.4"
     babel-plugin-react-compiler: "npm:1.0.0"
-    canvas: "npm:3.2.0"
     eslint: "npm:9.39.3"
     typescript: "npm:5.9.3"
     vite: "npm:7.1.11"
