@@ -1,5 +1,3 @@
-import { createImageData } from "canvas";
-
 import type { ProcessPixelFunction } from "./process-pixel.type";
 
 /**
@@ -19,7 +17,7 @@ export function calculateCircleMap(props: {
 
   const width = Math.round(props.width);
   const height = Math.round(props.height);
-  const imageData = createImageData(width, height);
+  const imageData = new ImageData(width, height);
 
   // Fill buffer with base color
   new Uint32Array(imageData.data.buffer).fill(fillColor);
