@@ -15,7 +15,14 @@ export function useKeyboardShortcuts(
   onCursorModeChange: (mode: CursorMode) => void,
 ) {
   const undoRedo = use(UndoRedoContext);
-  const { selection, hasSelection, clearSelection } = use(EditorContext);
+  const {
+    selection,
+    hasSelection,
+    clearSelection,
+    isSearchOpen,
+    setSearchOpen,
+    searchInputRef,
+  } = use(EditorContext);
   const { deleteItemsByIds, readonly } = use(SDCPNContext);
   const isSimulationReadOnly = useIsReadOnly();
   const isReadonly = isSimulationReadOnly || readonly;
@@ -43,6 +50,25 @@ export function useKeyboardShortcuts(
       } else {
         undoRedo.undo();
       }
+      return;
+    }
+
+    // Open search with Ctrl/Cmd+F, or focus input if already open
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      if (isSearchOpen) {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else {
+        setSearchOpen(true);
+      }
+      return;
+    }
+
+    // Escape closes search when it's open
+    if (event.key === "Escape" && isSearchOpen) {
+      event.preventDefault();
+      setSearchOpen(false);
       return;
     }
 

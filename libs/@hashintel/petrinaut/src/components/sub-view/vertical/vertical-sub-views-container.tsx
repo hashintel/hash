@@ -338,6 +338,7 @@ interface SubViewHeaderProps {
   tooltip?: string;
   icon?: React.ComponentType<{ size: number }>;
   main?: boolean;
+  renderTitle?: () => React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
@@ -350,6 +351,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   tooltip,
   icon: Icon,
   main = false,
+  renderTitle,
   isExpanded,
   onToggle,
   renderHeaderAction,
@@ -367,7 +369,11 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             <Icon size={HEADER_ICON_SIZE} />
           </span>
         )}
-        <span className={mainTitleStyle}>{title}</span>
+        {renderTitle ? (
+          renderTitle()
+        ) : (
+          <span className={mainTitleStyle}>{title}</span>
+        )}
       </div>
     ) : (
       <div
@@ -507,6 +513,7 @@ export const VerticalSubViewsContainer: React.FC<
                   tooltip={subView.tooltip}
                   icon={subView.icon}
                   main={isMain}
+                  renderTitle={subView.renderTitle}
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={subView.renderHeaderAction}

@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, createRef } from "react";
 
 import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
@@ -41,6 +41,7 @@ export type EditorState = {
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   isPanelAnimating: boolean;
+  isSearchOpen: boolean;
 };
 
 /**
@@ -72,11 +73,16 @@ export type EditorActions = {
   resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
+  setSearchOpen: (isOpen: boolean) => void;
   triggerPanelAnimation: () => void;
   __reinitialize: () => void;
 };
 
-export type EditorContextValue = EditorState & EditorActions;
+export type EditorContextValue = EditorState &
+  EditorActions & {
+    /** Ref to the search input element, used for focus management. */
+    searchInputRef: React.RefObject<HTMLInputElement | null>;
+  };
 
 export const initialEditorState: EditorState = {
   globalMode: "edit",
@@ -93,6 +99,7 @@ export const initialEditorState: EditorState = {
   draggingStateByNodeId: {},
   timelineChartType: "run",
   isPanelAnimating: false,
+  isSearchOpen: false,
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
@@ -117,6 +124,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
+  setSearchOpen: () => {},
+  searchInputRef: createRef<HTMLInputElement | null>(),
   triggerPanelAnimation: () => {},
   __reinitialize: () => {},
 };

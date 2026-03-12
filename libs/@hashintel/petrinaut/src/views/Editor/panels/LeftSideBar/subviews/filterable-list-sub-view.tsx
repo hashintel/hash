@@ -147,20 +147,28 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
 
 const FilterHeaderAction: React.FC<{
   renderExtraAction?: () => ReactNode;
-}> = ({ renderExtraAction }) => (
-  <>
-    <IconButton aria-label="Filter list" size="xs">
-      <LuListFilter />
-    </IconButton>
-    <IconButton aria-label="Sort list" size="xs">
-      <LuArrowDownWideNarrow />
-    </IconButton>
-    <IconButton aria-label="Search list" size="xs">
-      <LuSearch />
-    </IconButton>
-    {renderExtraAction?.()}
-  </>
-);
+}> = ({ renderExtraAction }) => {
+  const { setSearchOpen } = use(EditorContext);
+
+  return (
+    <>
+      <IconButton aria-label="Filter list" size="xs">
+        <LuListFilter />
+      </IconButton>
+      <IconButton aria-label="Sort list" size="xs">
+        <LuArrowDownWideNarrow />
+      </IconButton>
+      <IconButton
+        aria-label="Search list"
+        size="xs"
+        onClick={() => setSearchOpen(true)}
+      >
+        <LuSearch />
+      </IconButton>
+      {renderExtraAction?.()}
+    </>
+  );
+};
 
 /**
  * Renders the row ellipsis menu. Separated into its own component so that

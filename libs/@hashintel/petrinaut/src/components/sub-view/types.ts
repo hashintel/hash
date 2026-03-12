@@ -53,6 +53,11 @@ export interface SubView {
    */
   main?: boolean;
   /**
+   * Optional custom render for the title area of a main subview header.
+   * When provided, replaces the static title text. Only used when `main` is true.
+   */
+  renderTitle?: () => ReactNode;
+  /**
    * Whether the section can be collapsed by clicking the header.
    * Defaults to true. Forced to false when `main` is true.
    */

@@ -144,6 +144,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     },
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
+    setSearchOpen: (isOpen) => {
+      setState((prev) => ({ ...prev, isSearchOpen: isOpen }));
+    },
     triggerPanelAnimation,
     __reinitialize: () => setState(initialEditorState),
   };
@@ -162,10 +165,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const { selection } = state;
   const isSelected = (id: string) => selection.has(id);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
     isSelected,
+    searchInputRef,
   };
 
   return (
