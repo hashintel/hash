@@ -112,8 +112,8 @@ pub mod types {
     }
 
     // newtype TemporalMetadata = (
-    //     decision_time: DecisionTime<Interval>,
-    //     transaction_time: TransactionTime<Interval>,
+    //     decision_time: DecisionTime<LeftClosedTemporalInterval>,
+    //     transaction_time: TransactionTime<LeftClosedTemporalInterval>,
     // )
     pub struct TemporalMetadataDependencies {
         pub interval: TypeId,
@@ -126,7 +126,7 @@ pub mod types {
     ) -> TypeId {
         let TemporalMetadataDependencies { interval } =
             deps.unwrap_or_else(|| TemporalMetadataDependencies {
-                interval: std_lib::graph::temporal::types::interval(ty, None),
+                interval: std_lib::graph::temporal::types::left_closed_temporal_interval(ty),
             });
 
         ty.opaque(
@@ -393,9 +393,9 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             .manifest::<std_lib::graph::types::ontology::Ontology>()
             .expect_newtype(sym::VersionedUrl)
             .id;
-        let interval_ty = lib
+        let left_closed_interval_ty = lib
             .manifest::<std_lib::graph::temporal::Temporal>()
-            .expect_newtype(sym::Interval)
+            .expect_type(sym::LeftClosedTemporalInterval)
             .id;
 
         let ty = &lib.ty;
@@ -441,7 +441,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let temporal_metadata_ty = types::temporal_metadata(
             ty,
             Some(types::TemporalMetadataDependencies {
-                interval: interval_ty,
+                interval: left_closed_interval_ty,
             }),
         );
         def.push(

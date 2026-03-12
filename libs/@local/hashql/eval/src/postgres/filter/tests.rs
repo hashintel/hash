@@ -979,6 +979,43 @@ fn unary_bitnot() {
     assert_snapshot!("unary_bitnot", report.to_string());
 }
 
+/// Temporal leaf path: `vertex.metadata.temporal_versioning.decision_time` decomposes
+/// the `tstzrange` column into a structured interval with `lower`/`upper`/`lower_inc`/
+/// `upper_inc`/`lower_inf` and epoch-millisecond extraction.
+#[test]
+fn temporal_decision_time_interval() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee_id = DefId::new(99);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             decision: ?, func: [fn() -> ?], result: ?;
+        @proj v_meta = vertex.metadata: ?,
+              v_temporal = v_meta.temporal_versioning: ?,
+              v_decision = v_temporal.decision_time: ?;
+
+        bb0() {
+            decision = load v_decision;
+            goto bb1();
+        },
+        bb1() {
+            func = load callee_id;
+            result = apply func;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_full_query(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("temporal_decision_time_interval", report.to_string());
+}
+
 /// `BinOp::BitAnd` → `BinaryOperator::BitwiseAnd` with `::bigint` casts on both operands.
 #[test]
 fn binary_bitand_bigint_cast() {

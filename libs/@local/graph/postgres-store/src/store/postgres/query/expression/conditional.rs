@@ -34,6 +34,14 @@ pub enum Function {
     },
     Lower(Box<Expression>),
     Upper(Box<Expression>),
+    LowerInc(Box<Expression>),
+    UpperInc(Box<Expression>),
+    LowerInf(Box<Expression>),
+    UpperInf(Box<Expression>),
+    /// Extracts the epoch as milliseconds since Unix epoch from a timestamp expression.
+    ///
+    /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
+    ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
     Now,
 }
@@ -121,6 +129,31 @@ impl Transpile for Function {
                 fmt.write_str("upper(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            Self::LowerInc(expression) => {
+                fmt.write_str("lower_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInc(expression) => {
+                fmt.write_str("upper_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::LowerInf(expression) => {
+                fmt.write_str("lower_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInf(expression) => {
+                fmt.write_str("upper_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::ExtractEpochMs(expression) => {
+                fmt.write_str("(extract(epoch from ")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(") * 1000)::int8")
             }
             Self::Unnest(expression) => {
                 fmt.write_str("UNNEST(")?;

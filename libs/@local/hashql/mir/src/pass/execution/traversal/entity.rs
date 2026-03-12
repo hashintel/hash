@@ -314,11 +314,11 @@ impl EntityPath {
             Self::EditionId => entity::entity_edition_id(&ty, None),
             Self::TemporalVersioning => entity::temporal_metadata(&ty, None),
             Self::DecisionTime => {
-                let interval = temporal::interval(&ty, None);
+                let interval = temporal::left_closed_temporal_interval(&ty);
                 temporal::decision_time(&ty, interval)
             }
             Self::TransactionTime => {
-                let interval = temporal::interval(&ty, None);
+                let interval = temporal::left_closed_temporal_interval(&ty);
                 temporal::transaction_time(&ty, interval)
             }
             Self::EntityTypeIds => ty.list(ontology::versioned_url(&ty, None)),

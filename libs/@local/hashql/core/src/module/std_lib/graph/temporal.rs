@@ -59,28 +59,45 @@ pub mod types {
         ty.opaque(sym::path::TransactionTime, inner)
     }
 
-    // newtype Interval = (start: TemporalBound, end: FiniteTemporalBound)
-    pub struct IntervalDependencies {
-        pub temporal_bound: TypeId,
-        pub finite_temporal_bound: TypeId,
-    }
-
+    /// `newtype Interval<S, E> = (start: S, end: E)`
+    ///
+    /// Generic over the start and end bound types. Callers pass concrete types
+    /// to monomorphize (e.g. `InclusiveTemporalBound` for start,
+    /// `OpenTemporalBound` for end).
     #[must_use]
-    pub fn interval(ty: &TypeBuilder<'_, '_>, deps: Option<IntervalDependencies>) -> TypeId {
-        let IntervalDependencies {
-            temporal_bound,
-            finite_temporal_bound,
-        } = deps.unwrap_or_else(|| IntervalDependencies {
-            temporal_bound: self::temporal_bound(ty),
-            finite_temporal_bound: self::finite_temporal_bound(ty),
-        });
-
+    pub fn interval(ty: &TypeBuilder<'_, '_>, start: TypeId, end: TypeId) -> TypeId {
         ty.opaque(
             sym::path::Interval,
-            ty.r#struct([
-                (sym::start, temporal_bound),
-                (sym::end, finite_temporal_bound),
-            ]),
+            ty.r#struct([(sym::start, start), (sym::end, end)]),
+        )
+    }
+
+    /// `type OpenTemporalBound = ExclusiveTemporalBound | UnboundedTemporalBound`
+    #[must_use]
+    pub fn open_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.union([
+            self::exclusive_temporal_bound(ty),
+            self::unbounded_temporal_bound(ty),
+        ])
+    }
+
+    /// `type LeftClosedTemporalInterval = Interval<InclusiveTemporalBound, OpenTemporalBound>`
+    #[must_use]
+    pub fn left_closed_temporal_interval(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        self::interval(
+            ty,
+            self::inclusive_temporal_bound(ty),
+            self::open_temporal_bound(ty),
+        )
+    }
+
+    /// `type RightBoundedTemporalInterval = Interval<TemporalBound, FiniteTemporalBound>`
+    #[must_use]
+    pub fn right_bounded_temporal_interval(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        self::interval(
+            ty,
+            self::temporal_bound(ty),
+            self::finite_temporal_bound(ty),
         )
     }
 }
@@ -174,28 +191,60 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
             ItemDef::r#type(lib.ty.env, finite_bound_ty, &[]),
         );
 
-        // newtype Interval = (start: TemporalBound, end: FiniteTemporalBound)
-        let interval_ty = types::interval(
-            &lib.ty,
-            Some(types::IntervalDependencies {
-                temporal_bound: temporal_bound_ty,
-                finite_temporal_bound: finite_bound_ty,
-            }),
+        // type OpenTemporalBound = ExclusiveTemporalBound | UnboundedTemporalBound
+        let open_bound_ty = lib.ty.union([exclusive_bound_ty, unbounded_bound_ty]);
+        def.push(
+            sym::OpenTemporalBound,
+            ItemDef::r#type(lib.ty.env, open_bound_ty, &[]),
+        );
+
+        // newtype Interval<S, E> = (start: S, end: E)
+        let interval_s_arg = lib.ty.fresh_argument(sym::S);
+        let interval_s_ref = lib.ty.hydrate_argument(interval_s_arg);
+        let interval_s_param = lib.ty.param(interval_s_arg);
+
+        let interval_e_arg = lib.ty.fresh_argument(sym::E);
+        let interval_e_ref = lib.ty.hydrate_argument(interval_e_arg);
+        let interval_e_param = lib.ty.param(interval_e_arg);
+
+        let interval_ty = lib.ty.generic(
+            [(interval_s_arg, None), (interval_e_arg, None)],
+            types::interval(&lib.ty, interval_s_param, interval_e_param),
         );
         def.push(
             sym::Interval,
-            ItemDef::newtype(lib.ty.env, interval_ty, &[]),
+            ItemDef::newtype(lib.ty.env, interval_ty, &[interval_s_ref, interval_e_ref]),
+        );
+
+        // type LeftClosedTemporalInterval =
+        //     Interval<InclusiveTemporalBound, OpenTemporalBound>
+        let left_closed_interval_ty = types::interval(&lib.ty, inclusive_bound_ty, open_bound_ty);
+        def.push(
+            sym::LeftClosedTemporalInterval,
+            ItemDef::r#type(lib.ty.env, left_closed_interval_ty, &[]),
+        );
+
+        // type RightBoundedTemporalInterval =
+        //     Interval<TemporalBound, FiniteTemporalBound>
+        let right_bounded_interval_ty =
+            types::interval(&lib.ty, temporal_bound_ty, finite_bound_ty);
+        def.push(
+            sym::RightBoundedTemporalInterval,
+            ItemDef::r#type(lib.ty.env, right_bounded_interval_ty, &[]),
         );
 
         // newtype PinnedTransactionTimeTemporalAxes = (
         //   pinned: TransactionTime<Timestamp>,
-        //   variable: DecisionTime<Interval>,
+        //   variable: DecisionTime<RightBoundedTemporalInterval>,
         // )
         let pinned_tx_ty = lib.ty.opaque(
             sym::path::PinnedTransactionTimeTemporalAxes,
             lib.ty.r#struct([
                 (sym::pinned, types::transaction_time(&lib.ty, timestamp_ty)),
-                (sym::variable, types::decision_time(&lib.ty, interval_ty)),
+                (
+                    sym::variable,
+                    types::decision_time(&lib.ty, right_bounded_interval_ty),
+                ),
             ]),
         );
         def.push(
@@ -205,13 +254,16 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
 
         // newtype PinnedDecisionTimeTemporalAxes = (
         //   pinned: DecisionTime<Timestamp>,
-        //   variable: TransactionTime<Interval>,
+        //   variable: TransactionTime<RightBoundedTemporalInterval>,
         // )
         let pinned_dt_ty = lib.ty.opaque(
             sym::path::PinnedDecisionTimeTemporalAxes,
             lib.ty.r#struct([
                 (sym::pinned, types::decision_time(&lib.ty, timestamp_ty)),
-                (sym::variable, types::transaction_time(&lib.ty, interval_ty)),
+                (
+                    sym::variable,
+                    types::transaction_time(&lib.ty, right_bounded_interval_ty),
+                ),
             ]),
         );
         def.push(
