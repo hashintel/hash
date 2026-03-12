@@ -4,6 +4,78 @@ use crate::{
     symbol::{Symbol, sym},
 };
 
+pub(crate) mod types {
+    use crate::{
+        symbol::sym,
+        r#type::{TypeBuilder, TypeId},
+    };
+
+    pub(crate) fn timestamp(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::Timestamp, ty.integer())
+    }
+
+    pub(crate) fn unbounded_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::UnboundedTemporalBound, ty.null())
+    }
+
+    pub(crate) fn inclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::InclusiveTemporalBound, self::timestamp(ty))
+    }
+
+    pub(crate) fn exclusive_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::ExclusiveTemporalBound, self::timestamp(ty))
+    }
+
+    pub(crate) fn temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.union([
+            self::unbounded_temporal_bound(ty),
+            self::inclusive_temporal_bound(ty),
+            self::exclusive_temporal_bound(ty),
+        ])
+    }
+
+    pub(crate) fn finite_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.union([
+            self::inclusive_temporal_bound(ty),
+            self::exclusive_temporal_bound(ty),
+        ])
+    }
+
+    // newtype DecisionTime<T> = T
+    pub(crate) fn decision_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
+        ty.opaque(sym::path::DecisionTime, inner)
+    }
+
+    // newtype TransactionTime<T> = T
+    pub(crate) fn transaction_time(ty: &TypeBuilder<'_, '_>, inner: TypeId) -> TypeId {
+        ty.opaque(sym::path::TransactionTime, inner)
+    }
+
+    // newtype Interval = (start: TemporalBound, end: FiniteTemporalBound)
+    pub(crate) struct IntervalDependencies {
+        pub temporal_bound: TypeId,
+        pub finite_temporal_bound: TypeId,
+    }
+
+    pub(crate) fn interval(ty: &TypeBuilder<'_, '_>, deps: Option<IntervalDependencies>) -> TypeId {
+        let IntervalDependencies {
+            temporal_bound,
+            finite_temporal_bound,
+        } = deps.unwrap_or_else(|| IntervalDependencies {
+            temporal_bound: self::temporal_bound(ty),
+            finite_temporal_bound: self::finite_temporal_bound(ty),
+        });
+
+        ty.opaque(
+            sym::path::Interval,
+            ty.r#struct([
+                (sym::start, temporal_bound),
+                (sym::end, finite_temporal_bound),
+            ]),
+        )
+    }
+}
+
 pub(in crate::module::std_lib) struct Temporal {
     _dependencies: (),
 }
@@ -15,14 +87,13 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         sym::temporal
     }
 
-    #[expect(clippy::too_many_lines, reason = "cohesive block of type definitions")]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 
         // newtype Timestamp = Integer
         //
         // TODO: replace with a dedicated primitive type in the future.
-        let timestamp_ty = lib.ty.opaque(sym::path::Timestamp, lib.ty.integer());
+        let timestamp_ty = types::timestamp(&lib.ty);
         def.push(
             sym::Timestamp,
             ItemDef::newtype(lib.ty.env, timestamp_ty, &[]),
@@ -35,7 +106,7 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
 
         let decision_time_ty = lib.ty.generic(
             [(dt_t_arg, None)],
-            lib.ty.opaque(sym::path::DecisionTime, dt_t_param),
+            types::decision_time(&lib.ty, dt_t_param),
         );
         def.push(
             sym::DecisionTime,
@@ -49,7 +120,7 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
 
         let transaction_time_ty = lib.ty.generic(
             [(tt_t_arg, None)],
-            lib.ty.opaque(sym::path::TransactionTime, tt_t_param),
+            types::transaction_time(&lib.ty, tt_t_param),
         );
         def.push(
             sym::TransactionTime,
@@ -57,27 +128,21 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         );
 
         // newtype UnboundedTemporalBound = Null
-        let unbounded_bound_ty = lib
-            .ty
-            .opaque(sym::path::UnboundedTemporalBound, lib.ty.null());
+        let unbounded_bound_ty = types::unbounded_temporal_bound(&lib.ty);
         def.push(
             sym::UnboundedTemporalBound,
             ItemDef::newtype(lib.ty.env, unbounded_bound_ty, &[]),
         );
 
         // newtype InclusiveTemporalBound = Timestamp
-        let inclusive_bound_ty = lib
-            .ty
-            .opaque(sym::path::InclusiveTemporalBound, timestamp_ty);
+        let inclusive_bound_ty = types::inclusive_temporal_bound(&lib.ty);
         def.push(
             sym::InclusiveTemporalBound,
             ItemDef::newtype(lib.ty.env, inclusive_bound_ty, &[]),
         );
 
         // newtype ExclusiveTemporalBound = Timestamp
-        let exclusive_bound_ty = lib
-            .ty
-            .opaque(sym::path::ExclusiveTemporalBound, timestamp_ty);
+        let exclusive_bound_ty = types::exclusive_temporal_bound(&lib.ty);
         def.push(
             sym::ExclusiveTemporalBound,
             ItemDef::newtype(lib.ty.env, exclusive_bound_ty, &[]),
@@ -101,10 +166,12 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         );
 
         // newtype Interval = (start: TemporalBound, end: FiniteTemporalBound)
-        let interval_ty = lib.ty.opaque(
-            sym::path::Interval,
-            lib.ty
-                .r#struct([(sym::start, temporal_bound_ty), (sym::end, finite_bound_ty)]),
+        let interval_ty = types::interval(
+            &lib.ty,
+            Some(types::IntervalDependencies {
+                temporal_bound: temporal_bound_ty,
+                finite_temporal_bound: finite_bound_ty,
+            }),
         );
         def.push(
             sym::Interval,
@@ -118,15 +185,8 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         let pinned_tx_ty = lib.ty.opaque(
             sym::path::PinnedTransactionTimeTemporalAxes,
             lib.ty.r#struct([
-                (
-                    sym::pinned,
-                    lib.ty
-                        .apply([(tt_t_arg, timestamp_ty)], transaction_time_ty),
-                ),
-                (
-                    sym::variable,
-                    lib.ty.apply([(dt_t_arg, interval_ty)], decision_time_ty),
-                ),
+                (sym::pinned, types::transaction_time(&lib.ty, timestamp_ty)),
+                (sym::variable, types::decision_time(&lib.ty, interval_ty)),
             ]),
         );
         def.push(
@@ -141,14 +201,8 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         let pinned_dt_ty = lib.ty.opaque(
             sym::path::PinnedDecisionTimeTemporalAxes,
             lib.ty.r#struct([
-                (
-                    sym::pinned,
-                    lib.ty.apply([(dt_t_arg, timestamp_ty)], decision_time_ty),
-                ),
-                (
-                    sym::variable,
-                    lib.ty.apply([(tt_t_arg, interval_ty)], transaction_time_ty),
-                ),
+                (sym::pinned, types::decision_time(&lib.ty, timestamp_ty)),
+                (sym::variable, types::transaction_time(&lib.ty, interval_ty)),
             ]),
         );
         def.push(

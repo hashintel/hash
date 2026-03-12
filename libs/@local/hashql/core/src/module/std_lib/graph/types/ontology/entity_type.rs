@@ -31,7 +31,7 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_type_metadata_ty = lib.ty.opaque(
             "::graph::types::ontology::entity_type::EntityTypeMetadata",
-            lib.ty.r#struct([("web_id", option(lib, web_id.id))]),
+            lib.ty.r#struct([("web_id", option(&lib.ty, web_id.id))]),
         );
         def.push(
             heap.intern_symbol("EntityTypeMetadata"),

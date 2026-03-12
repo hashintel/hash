@@ -59,7 +59,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let decl = decl!(lib;
             <T>(entity: lib.ty.apply([(entity_ty.arguments[0].id, T)], entity_ty.id),
                 path: json_path_ty.id
-            ) -> option(lib, lib.ty.unknown())
+            ) -> option(&lib.ty, lib.ty.unknown())
         );
 
         func(lib, &mut def, "::graph::entity::property", &[], decl);
