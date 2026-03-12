@@ -7983,6 +7983,7 @@ __metadata:
     vitest: "npm:4.1.0"
     vscode-languageserver-types: "npm:3.17.5"
     web-worker: "npm:1.4.1"
+    zod: "npm:4.1.12"
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:^"
