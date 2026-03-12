@@ -171,9 +171,15 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 /// Only available with `--unsafe-allow-dev-authentication`. See [`SnapshotStore::restore_snapshot`]
 /// for details.
 async fn restore_snapshot(
+    jwt: OptionalJwtAuthentication,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "restoring snapshot"
+    );
     let store = store_pool.acquire(None).await.map_err(report_to_response)?;
 
     SnapshotStore::new(store)
@@ -201,8 +207,14 @@ async fn restore_snapshot(
 ///
 /// [`PostgresStore::delete_principals`]: hash_graph_postgres_store::store::PostgresStore::delete_principals
 async fn delete_accounts(
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "deleting all accounts"
+    );
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -223,8 +235,14 @@ async fn delete_accounts(
 ///
 /// [`PostgresStore::delete_data_types`]: hash_graph_postgres_store::store::PostgresStore::delete_data_types
 async fn delete_data_types(
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "deleting all data types"
+    );
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -245,8 +263,14 @@ async fn delete_data_types(
 ///
 /// [`PostgresStore::delete_property_types`]: hash_graph_postgres_store::store::PostgresStore::delete_property_types
 async fn delete_property_types(
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "deleting all property types"
+    );
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -267,8 +291,14 @@ async fn delete_property_types(
 ///
 /// [`PostgresStore::delete_entity_types`]: hash_graph_postgres_store::store::PostgresStore::delete_entity_types
 async fn delete_entity_types(
+    jwt: OptionalJwtAuthentication,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
+    tracing::info!(
+        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
+        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
+        "deleting all entity types"
+    );
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
