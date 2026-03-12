@@ -88,10 +88,6 @@ pub fn routes(
 
     let mut protected = Router::new().route("/entities/delete", post(delete_entities));
 
-    if let Some(validator) = &jwt_validator {
-        protected = protected.layer(Extension(Arc::clone(validator)));
-    }
-
     if dev_endpoints {
         protected = protected
             .route("/snapshot", post(restore_snapshot))
@@ -99,6 +95,11 @@ pub fn routes(
             .route("/data-types", delete(delete_data_types))
             .route("/property-types", delete(delete_property_types))
             .route("/entity-types", delete(delete_entity_types));
+    }
+
+    // Apply JWT layer after all routes so it covers dev endpoints too
+    if let Some(validator) = jwt_validator {
+        protected = protected.layer(Extension(validator));
     }
 
     public

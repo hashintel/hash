@@ -190,8 +190,8 @@ pub(crate) async fn run_admin_server(
         (Some(jwks_url), Some(audience), Some(issuer)) => {
             if config.unsafe_allow_dev_authentication {
                 tracing::warn!(
-                    "--unsafe-allow-dev-authentication is set but JWT is configured -- the flag \
-                     has no effect. Remove it to silence this warning."
+                    "--unsafe-allow-dev-authentication is set -- dev endpoints are registered \
+                     alongside JWT. Remove the flag in production to disable them."
                 );
             }
             tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
