@@ -700,9 +700,7 @@ where
                 (None, None, None, None, None, None)
             };
 
-        if let Some(limit) = params.limit {
-            compiler.set_limit(limit);
-        }
+        compiler.set_limit(params.limit);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params
@@ -742,7 +740,7 @@ where
                 .enumerate()
                 .map(|(idx, row)| {
                     let row = TypedRow::<Entity, EntityQueryCursor>::from(row);
-                    if idx == num_rows - 1 && params.limit == Some(num_rows) {
+                    if idx == num_rows - 1 && params.limit == num_rows {
                         cursor = Some(row.decode_cursor(&artifacts));
                     }
                     row.decode_record(&artifacts)

@@ -195,7 +195,7 @@ pub struct QueryEntitiesParams<'a> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
     pub conversions: Vec<QueryConversion<'a>>,
-    pub limit: Option<usize>,
+    pub limit: usize,
     pub include_drafts: bool,
     pub include_count: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
