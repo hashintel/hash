@@ -30,7 +30,7 @@ use hashql_mir::{
 };
 use tokio_postgres::{Error, Row};
 
-use super::{error::BridgeError, postgres_serde::Deserializer};
+use super::{Indexed, error::BridgeError, postgres_serde::Deserializer};
 use crate::{bridge::postgres_serde::ValueRef, postgres::ColumnDescriptor};
 
 /// Per-field hydration state for partial entity assembly.
@@ -324,17 +324,19 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         deserializer: &Deserializer<'_, 'heap, A>,
         path: EntityPath,
         r#type: TypeId,
-        index: usize,
-        column: &ColumnDescriptor,
+        column: Indexed<ColumnDescriptor>,
         row: &Row,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
+        let row_hydration_error = |source| BridgeError::RowHydration { column, source };
+
         match path {
             EntityPath::Properties => {
-                let value: serde_json::Value = row.try_get(index)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into())?;
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
                 self.properties.set(value);
 
                 Ok(())
@@ -347,8 +349,9 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::EntityId => todo!(),
             EntityPath::WebId => todo!(),
             EntityPath::EntityUuid => {
-                let value: String = row.try_get(index)?;
-                let value = deserializer.try_deserialize(r#type, ValueRef::String(&value))?;
+                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
 
                 self.metadata
                     .ensure()
@@ -365,8 +368,9 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 todo!()
             }
             EntityPath::EditionId => {
-                let value: String = row.try_get(index)?;
-                let value = deserializer.try_deserialize(r#type, ValueRef::String(&value))?;
+                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
 
                 self.metadata
                     .ensure()
@@ -381,15 +385,16 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::DecisionTime => todo!(),
             EntityPath::TransactionTime => todo!(),
             EntityPath::EntityTypeIds => {
-                let value: serde_json::Value = row.try_get(index)?;
-                let value = deserializer.try_deserialize(r#type, ValueRef::Json(&value))?;
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
 
                 self.metadata.ensure().entity_type_ids.set(value);
 
                 Ok(())
             }
             EntityPath::Archived => {
-                let value: bool = row.try_get(index)?;
+                let value: bool = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 self.metadata
                     .ensure()
@@ -399,7 +404,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 Ok(())
             }
             EntityPath::Confidence => {
-                let value: Option<f64> = row.try_get(index)?;
+                let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 self.metadata
                     .ensure()

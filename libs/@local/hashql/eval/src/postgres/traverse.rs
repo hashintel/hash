@@ -7,7 +7,7 @@
 use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, Column, ColumnReference, Expression, expression::conditional::Constant, table,
+    self, Column, ColumnReference, Constant, Expression, table,
 };
 use hashql_core::symbol::sym;
 use hashql_mir::pass::execution::traversal::EntityPath;
@@ -52,8 +52,8 @@ fn eval_tstzrange_as_left_closed_interval<A: Allocator>(
         else_result: Some(Box::new(upper_ms)),
     };
 
-    let start_key: Expression = db.parameters.symbol(sym::start).into();
-    let end_key: Expression = db.parameters.symbol(sym::end).into();
+    let start_key = db.parameters.symbol(sym::start).into();
+    let end_key = db.parameters.symbol(sym::end).into();
 
     Expression::Function(query::Function::JsonBuildObject(vec![
         (start_key, start_ms),

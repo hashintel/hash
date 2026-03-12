@@ -166,6 +166,21 @@ pub enum ColumnDescriptor {
     },
 }
 
+impl Display for ColumnDescriptor {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Path { path, .. } => write!(fmt, "entity path `{}`", path.as_symbol()),
+            Self::Continuation {
+                body,
+                island,
+                field,
+            } => {
+                write!(fmt, "continuation {field:?} (body {body}, island {island})")
+            }
+        }
+    }
+}
+
 /// A fully-compiled SQL query ready for execution.
 ///
 /// Contains the typed query AST ([`SelectStatement`]), the parameter catalog ([`Parameters`])

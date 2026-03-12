@@ -6,7 +6,7 @@
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 
-use hashql_core::{span::SpanId, r#type::TypeId};
+use hashql_core::span::SpanId;
 use hashql_diagnostics::{
     Diagnostic, Label, category::TerminalDiagnosticCategory, diagnostic::Message,
     severity::Severity,
@@ -17,8 +17,10 @@ use hashql_mir::{
     interpret::error::{
         InterpretDiagnostic, InterpretDiagnosticCategory, SuspensionDiagnosticCategory,
     },
-    pass::execution::traversal::EntityPath,
 };
+
+use super::Indexed;
+use crate::postgres::ColumnDescriptor;
 
 const QUERY_EXECUTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "query-execution",
@@ -74,10 +76,8 @@ pub enum BridgeError {
     /// type the runtime does not expect, indicating a mismatch between what
     /// the SQL lowering pass promised and what the database actually returned.
     RowHydration {
-        /// The zero-based column index that failed to decode.
-        column: usize,
-        /// The entity storage location this column corresponds to.
-        path: EntityPath,
+        /// The column descriptor identifying what this column represents.
+        column: Indexed<ColumnDescriptor>,
         /// The database error describing the type mismatch.
         source: tokio_postgres::Error,
     },
@@ -90,12 +90,8 @@ pub enum BridgeError {
     /// lowering pass produced a query whose result shape does not match the
     /// entity schema.
     ValueDeserialization {
-        /// The zero-based column index.
-        column: usize,
-        /// The entity storage location that failed.
-        path: EntityPath,
-        /// The type the runtime expected to deserialize into.
-        expected: TypeId,
+        /// The column descriptor identifying what this column represents.
+        column: Indexed<ColumnDescriptor>,
     },
 
     /// A query parameter could not be serialized for PostgreSQL.
@@ -127,16 +123,8 @@ impl BridgeError {
     pub fn into_diagnostic(self, span: SpanId) -> InterpretDiagnostic {
         match self {
             Self::QueryExecution { sql, source } => query_execution(span, &sql, &source),
-            Self::RowHydration {
-                column,
-                path,
-                source,
-            } => row_hydration(span, column, path, &source),
-            Self::ValueDeserialization {
-                column,
-                path,
-                expected,
-            } => value_deserialization(span, column, path, expected),
+            Self::RowHydration { column, source } => row_hydration(span, column, &source),
+            Self::ValueDeserialization { column } => value_deserialization(span, column),
             Self::ParameterEncoding { parameter, source } => {
                 parameter_encoding(span, parameter, &*source)
             }
@@ -163,16 +151,16 @@ fn query_execution(span: SpanId, sql: &str, error: &tokio_postgres::Error) -> In
 
 fn row_hydration(
     span: SpanId,
-    column: usize,
-    path: EntityPath,
+    Indexed {
+        index,
+        value: column,
+    }: Indexed<ColumnDescriptor>,
     source: &tokio_postgres::Error,
 ) -> InterpretDiagnostic {
-    let symbol = path.as_symbol();
-
     let mut diagnostic =
         Diagnostic::new(category(&ROW_HYDRATION), Severity::Bug).primary(Label::new(
             span,
-            format!("cannot decode column {column} for `{symbol}`"),
+            format!("cannot decode result column {index} ({column})"),
         ));
 
     diagnostic.add_message(Message::note(format!("the database reported: {source}")));
@@ -186,19 +174,22 @@ fn row_hydration(
 
 fn value_deserialization(
     span: SpanId,
-    column: usize,
-    path: EntityPath,
-    expected: TypeId,
+    Indexed {
+        index,
+        value: column,
+    }: Indexed<ColumnDescriptor>,
 ) -> InterpretDiagnostic {
-    let symbol = path.as_symbol();
+    let mut diagnostic =
+        Diagnostic::new(category(&VALUE_DESERIALIZATION), Severity::Bug).primary(Label::new(
+            span,
+            format!("cannot deserialize result column {index} ({column})"),
+        ));
 
-    let mut diagnostic = Diagnostic::new(category(&VALUE_DESERIALIZATION), Severity::Bug).primary(
-        Label::new(span, format!("cannot deserialize value for `{symbol}`")),
-    );
-
-    diagnostic.add_message(Message::note(format!(
-        "result column {column} decoded successfully but does not match expected type {expected}"
-    )));
+    if let ColumnDescriptor::Path { r#type, .. } = column {
+        diagnostic.add_message(Message::note(format!(
+            "the column decoded successfully but does not match expected type {type}",
+        )));
+    }
 
     diagnostic.add_message(Message::help(
         "the SQL lowering pass should produce queries whose result types match the entity schema",

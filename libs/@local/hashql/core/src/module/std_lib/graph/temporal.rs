@@ -59,7 +59,7 @@ pub mod types {
         ty.opaque(sym::path::TransactionTime, inner)
     }
 
-    /// `newtype Interval<S, E> = (start: S, end: E)`
+    /// `newtype Interval<S, E> = (start: S, end: E)`.
     ///
     /// Generic over the start and end bound types. Callers pass concrete types
     /// to monomorphize (e.g. `InclusiveTemporalBound` for start,
@@ -72,7 +72,7 @@ pub mod types {
         )
     }
 
-    /// `type OpenTemporalBound = ExclusiveTemporalBound | UnboundedTemporalBound`
+    /// `type OpenTemporalBound = ExclusiveTemporalBound | UnboundedTemporalBound`.
     #[must_use]
     pub fn open_temporal_bound(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.union([
@@ -81,7 +81,7 @@ pub mod types {
         ])
     }
 
-    /// `type LeftClosedTemporalInterval = Interval<InclusiveTemporalBound, OpenTemporalBound>`
+    /// `type LeftClosedTemporalInterval = Interval<InclusiveTemporalBound, OpenTemporalBound>`.
     #[must_use]
     pub fn left_closed_temporal_interval(ty: &TypeBuilder<'_, '_>) -> TypeId {
         self::interval(
@@ -91,7 +91,7 @@ pub mod types {
         )
     }
 
-    /// `type RightBoundedTemporalInterval = Interval<TemporalBound, FiniteTemporalBound>`
+    /// `type RightBoundedTemporalInterval = Interval<TemporalBound, FiniteTemporalBound>`.
     #[must_use]
     pub fn right_bounded_temporal_interval(ty: &TypeBuilder<'_, '_>) -> TypeId {
         self::interval(
@@ -113,6 +113,7 @@ impl<'heap> StandardLibraryModule<'heap> for Temporal {
         sym::temporal
     }
 
+    #[expect(clippy::too_many_lines, clippy::similar_names)]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 

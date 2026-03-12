@@ -10,16 +10,14 @@ use hashql_core::{
         kind::{Apply, Generic, OpaqueType, PrimitiveType, StructType, TupleType, TypeKind},
     },
 };
-use hashql_mir::{
-    interpret::value::{self, Value},
-    pass::execution::traversal::EntityPath,
-};
+use hashql_mir::interpret::value::{self, Value};
 use serde::{
     Serialize,
     ser::{SerializeMap as _, SerializeSeq as _},
 };
 
-use super::error::BridgeError;
+use super::{Indexed, error::BridgeError};
+use crate::postgres::ColumnDescriptor;
 
 #[derive(Debug)]
 pub(crate) struct SerializeValue<'value, 'heap, A: Allocator>(&'value Value<'heap, A>);
@@ -395,24 +393,18 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
     /// Deserializes a column value into the expected type, or returns an error.
     ///
-    /// The `column` and `path` parameters are only used for error reporting;
-    /// they identify which result column failed and which entity storage
-    /// location it corresponds to.
+    /// The `index` and `column` parameters are only used for error reporting;
+    /// they identify which result column failed to deserialize.
     pub(crate) fn try_deserialize(
         &self,
         r#type: TypeId,
         value: ValueRef<'_>,
-        column: usize,
-        path: EntityPath,
+        column: Indexed<ColumnDescriptor>,
     ) -> Result<Value<'heap, A>, BridgeError>
     where
         A: Clone,
     {
         self.deserialize(r#type, value)
-            .ok_or(BridgeError::ValueDeserialization {
-                column,
-                path,
-                expected: r#type,
-            })
+            .ok_or(BridgeError::ValueDeserialization { column })
     }
 }

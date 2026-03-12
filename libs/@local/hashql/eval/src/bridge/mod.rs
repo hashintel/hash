@@ -1,7 +1,7 @@
 // The bridge has the goal of bridging the two worlds, and coordinates the different sources and
 // implementations.
 
-use core::{alloc::Allocator, marker::PhantomData, pin::pin};
+use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
 
 use futures_lite::StreamExt as _;
 use hashql_core::heap::{ResetAllocator as _, Scratch};
@@ -33,6 +33,20 @@ struct PreparedQueries<'heap, A: Allocator> {
 impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
     fn find(&self, body: DefId, block: BasicBlockId) -> &PreparedQuery<'heap, A> {
         todo!()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Indexed<T> {
+    pub index: usize,
+    value: T,
+}
+
+impl<T> Deref for Indexed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }
 
