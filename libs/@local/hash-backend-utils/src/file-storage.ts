@@ -174,8 +174,8 @@ export const formatFileUrl = (key: string) => {
 
 /**
  * MIME types that can execute scripts when rendered inline by a browser.
- * Files with these types must be served with a safe Content-Type and
- * a Content-Disposition of "attachment" to prevent stored XSS.
+ * Files with these types are served with `Content-Type: text/plain`
+ * so the browser displays raw text instead of executing anything.
  */
 const dangerousMimeTypes = new Set([
   "text/html",
@@ -184,10 +184,18 @@ const dangerousMimeTypes = new Set([
   "text/xml",
   "application/xml",
   "text/xsl",
+  "application/xslt+xml",
+  "text/javascript",
+  "application/javascript",
+  "text/ecmascript",
+  "application/ecmascript",
+  "application/rss+xml",
+  "application/atom+xml",
+  "application/mathml+xml",
 ]);
 
 export const isScriptableMimeType = (mimeType: string): boolean =>
-  dangerousMimeTypes.has(mimeType);
+  dangerousMimeTypes.has(mimeType.split(";")[0]!.trim());
 
 /**
  * For file types that can execute scripts in the browser, returns
