@@ -159,7 +159,12 @@ pub struct AdminConfig {
     /// can reach the admin port can execute destructive operations without authentication.
     ///
     /// If neither JWT nor this flag is configured, the server refuses to start.
-    #[clap(long, env = "HASH_GRAPH_UNSAFE_DEV_AUTH", default_value_t = false)]
+    #[clap(
+        long,
+        env = "HASH_GRAPH_UNSAFE_DEV_AUTH",
+        default_value_t = false,
+        conflicts_with = "jwks_url"
+    )]
     pub unsafe_allow_dev_authentication: bool,
 }
 
@@ -189,10 +194,11 @@ pub(crate) async fn run_admin_server(
     let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
         (Some(jwks_url), Some(audience), Some(issuer)) => {
             if config.unsafe_allow_dev_authentication {
-                tracing::warn!(
-                    "--unsafe-allow-dev-authentication is set -- dev endpoints are registered \
-                     alongside JWT. Remove the flag in production to disable them."
-                );
+                // Clap `conflicts_with` should prevent this, but guard against it anyway.
+                return Err(Report::new(GraphError).attach(
+                    "--unsafe-allow-dev-authentication cannot be used with JWT authentication. \
+                     Remove the flag or the JWT configuration.",
+                ));
             }
             tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
             Some(Arc::new(JwtValidator::new(JwtValidatorConfig {
@@ -228,11 +234,7 @@ pub(crate) async fn run_admin_server(
         }
     };
 
-    let router = hash_graph_api::rest::admin::routes(
-        pool,
-        jwt_validator,
-        config.unsafe_allow_dev_authentication,
-    );
+    let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
 
     let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
         .await

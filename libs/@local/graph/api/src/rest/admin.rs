@@ -71,37 +71,28 @@ use crate::rest::status::report_to_response;
 
 /// Creates the admin API router.
 ///
-/// `jwt_validator` enables JWT authentication for protected endpoints. When `Some`, the token's
-/// `email` claim is resolved to a HASH user actor. When `None` (requires
-/// `--unsafe-allow-dev-authentication`), the `X-Authenticated-User-Actor-Id` header is used.
+/// JWT and dev mode are mutually exclusive (enforced by the caller).
 ///
-/// `dev_endpoints` enables bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`,
-/// `/property-types`, `/entity-types`). These require `--unsafe-allow-dev-authentication` and are
-/// intended for local development and testing only.
-pub fn routes(
-    store_pool: PostgresStorePool,
-    jwt_validator: Option<Arc<JwtValidator>>,
-    dev_endpoints: bool,
-) -> Router {
-    // Health endpoint is always public (used by load balancers and healthchecks)
+/// - **JWT mode** (`Some`): Only `/health` and `/entities/delete` are available. The token's
+///   `email` claim is resolved to a HASH user actor for provenance tracking.
+/// - **Dev mode** (`None`, requires `--unsafe-allow-dev-authentication`): All endpoints are
+///   available. The `X-Authenticated-User-Actor-Id` header is used for authentication. Bulk
+///   destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
+///   `/entity-types`) are registered in this mode only.
+pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
     let public = Router::new().route("/health", get(async || "Healthy"));
 
     let mut protected = Router::new().route("/entities/delete", post(delete_entities));
 
-    if dev_endpoints {
+    if let Some(validator) = jwt_validator {
+        protected = protected.layer(Extension(validator));
+    } else {
         protected = protected
             .route("/snapshot", post(restore_snapshot))
             .route("/accounts", delete(delete_accounts))
             .route("/data-types", delete(delete_data_types))
             .route("/property-types", delete(delete_property_types))
             .route("/entity-types", delete(delete_entity_types));
-    }
-
-    // Makes JwtValidator available to handlers that extract OptionalJwtAuthentication
-    // (currently only /entities/delete). Dev endpoints are intentionally unauthenticated
-    // -- they require --unsafe-allow-dev-authentication which is an explicit opt-in.
-    if let Some(validator) = jwt_validator {
-        protected = protected.layer(Extension(validator));
     }
 
     public
