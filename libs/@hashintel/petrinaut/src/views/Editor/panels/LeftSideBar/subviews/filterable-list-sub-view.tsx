@@ -370,6 +370,12 @@ const FilterableListContent = <T extends FilterableListItem>({
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onClick={handleContainerClick}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocusedIndex(null);
+          setAnchorIndex(null);
+        }
+      }}
     >
       {items.map((item, index) => {
         const isSelected = checkIsSelected(item.id);
