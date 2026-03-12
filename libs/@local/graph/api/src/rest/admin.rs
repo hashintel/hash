@@ -97,7 +97,9 @@ pub fn routes(
             .route("/entity-types", delete(delete_entity_types));
     }
 
-    // Apply JWT layer after all routes so it covers dev endpoints too
+    // Makes JwtValidator available to handlers that extract OptionalJwtAuthentication
+    // (currently only /entities/delete). Dev endpoints are intentionally unauthenticated
+    // -- they require --unsafe-allow-dev-authentication which is an explicit opt-in.
     if let Some(validator) = jwt_validator {
         protected = protected.layer(Extension(validator));
     }
