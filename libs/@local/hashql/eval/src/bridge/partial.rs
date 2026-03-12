@@ -22,13 +22,12 @@
 
 use core::alloc::Allocator;
 
-use hash_graph_postgres_store::store::postgres::query::ColumnReference;
-use hashql_core::r#type::TypeId;
+use hashql_core::r#type::{TypeId, environment::Environment};
 use hashql_mir::{
     interpret::value::{Int, Num, Value},
     pass::execution::traversal::EntityPath,
 };
-use tokio_postgres::{Error, Row};
+use tokio_postgres::Row;
 
 use super::{Indexed, error::BridgeError, postgres_serde::Deserializer};
 use crate::{bridge::postgres_serde::ValueRef, postgres::ColumnDescriptor};
@@ -101,6 +100,15 @@ impl<T> Hydrated<T, ()> {
             Some(value) => *self = Self::Value(value),
             None => *self = Self::Null(()),
         }
+    }
+
+    pub fn null(&mut self) {
+        debug_assert!(
+            matches!(self, Self::Skipped),
+            "field already populated: duplicate column in row hydration"
+        );
+
+        *self = Self::Null(());
     }
 }
 
@@ -321,6 +329,7 @@ pub struct PartialEntity<'heap, A: Allocator> {
 impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn populate_postgres(
         &mut self,
+        env: &Environment<'heap>,
         deserializer: &Deserializer<'_, 'heap, A>,
         path: EntityPath,
         r#type: TypeId,
@@ -338,60 +347,74 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     row.try_get(column.index).map_err(row_hydration_error)?;
                 let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
                 self.properties.set(value);
-
-                Ok(())
             }
             EntityPath::Vectors => unreachable!(
                 "entity vectors should never reach postgres compilation; the placement pass \
                  should have rejected this"
             ),
-            EntityPath::RecordId => todo!(),
-            EntityPath::EntityId => todo!(),
-            EntityPath::WebId => todo!(),
+            EntityPath::RecordId => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let entity_id = &value["entity_id"];
+                let edition_id = &value["edition_id"];
+
+                self.hydrate_entity_id(env, deserializer, column, entity_id)?;
+                self.hydrate_edition_id(env, deserializer, column, edition_id)?;
+            }
+            EntityPath::EntityId => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                self.hydrate_entity_id(env, deserializer, column, &value)?;
+            }
+            EntityPath::WebId => {
+                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_web_id(env, deserializer, column, ValueRef::String(&value))?;
+            }
             EntityPath::EntityUuid => {
                 let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
-
-                self.metadata
-                    .ensure()
-                    .record_id
-                    .ensure()
-                    .entity_id
-                    .ensure()
-                    .entity_uuid
-                    .set(value);
-
-                Ok(())
+                self.hydrate_entity_uuid(env, deserializer, column, ValueRef::String(&value))?;
             }
             EntityPath::DraftId => {
-                todo!()
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_draft_id(
+                    env,
+                    deserializer,
+                    column,
+                    value.as_deref().map(ValueRef::String),
+                )?;
             }
             EntityPath::EditionId => {
                 let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
-
-                self.metadata
-                    .ensure()
-                    .record_id
-                    .ensure()
-                    .edition_id
-                    .set(value);
-
-                Ok(())
+                self.hydrate_edition_id(env, deserializer, column, ValueRef::String(&value))?;
             }
-            EntityPath::TemporalVersioning => todo!(),
-            EntityPath::DecisionTime => todo!(),
-            EntityPath::TransactionTime => todo!(),
+            EntityPath::TemporalVersioning => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let transaction_time = &value["transaction_time"];
+                let decision_time = &value["decision_time"];
+
+                self.hydrate_decision_time(env, deserializer, column, decision_time)?;
+                self.hydrate_transaction_time(env, deserializer, column, transaction_time)?;
+            }
+            EntityPath::DecisionTime => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_decision_time(env, deserializer, column, &value)?;
+            }
+            EntityPath::TransactionTime => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_transaction_time(env, deserializer, column, &value)?;
+            }
             EntityPath::EntityTypeIds => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
                 let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
 
                 self.metadata.ensure().entity_type_ids.set(value);
-
-                Ok(())
             }
             EntityPath::Archived => {
                 let value: bool = row.try_get(column.index).map_err(row_hydration_error)?;
@@ -400,8 +423,6 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     .ensure()
                     .archived
                     .set(Value::Integer(Int::from(value)));
-
-                Ok(())
             }
             EntityPath::Confidence => {
                 let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
@@ -410,21 +431,338 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     .ensure()
                     .confidence
                     .set(value.map(Num::from).map(Value::Number));
-
-                Ok(())
             }
-            EntityPath::ProvenanceInferred => todo!(),
-            EntityPath::ProvenanceEdition => todo!(),
-            EntityPath::PropertyMetadata => todo!(),
-            EntityPath::LeftEntityWebId => todo!(),
-            EntityPath::LeftEntityUuid => todo!(),
-            EntityPath::RightEntityWebId => todo!(),
-            EntityPath::RightEntityUuid => todo!(),
-            EntityPath::LeftEntityConfidence => todo!(),
-            EntityPath::RightEntityConfidence => todo!(),
-            EntityPath::LeftEntityProvenance => todo!(),
-            EntityPath::RightEntityProvenance => todo!(),
+            EntityPath::ProvenanceInferred => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+
+                self.metadata
+                    .ensure()
+                    .provenance
+                    .ensure()
+                    .inferred
+                    .set(value);
+            }
+            EntityPath::ProvenanceEdition => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+
+                self.metadata
+                    .ensure()
+                    .provenance
+                    .ensure()
+                    .edition
+                    .set(value);
+            }
+            EntityPath::PropertyMetadata => {
+                let value: serde_json::Value =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+
+                self.metadata.ensure().property_metadata.set(value);
+            }
+            EntityPath::LeftEntityWebId => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data
+                    .ensure()
+                    .left_entity_id
+                    .ensure()
+                    .web_id
+                    .set(value);
+            }
+            EntityPath::LeftEntityUuid => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data
+                    .ensure()
+                    .left_entity_id
+                    .ensure()
+                    .entity_uuid
+                    .set(value);
+            }
+            EntityPath::RightEntityWebId => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data
+                    .ensure()
+                    .right_entity_id
+                    .ensure()
+                    .web_id
+                    .set(value);
+            }
+            EntityPath::RightEntityUuid => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data
+                    .ensure()
+                    .right_entity_id
+                    .ensure()
+                    .entity_uuid
+                    .set(value);
+            }
+            EntityPath::LeftEntityConfidence => {
+                let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
+
+                self.link_data
+                    .ensure()
+                    .left_entity_confidence
+                    .set(value.map(Num::from).map(Value::Number));
+            }
+            EntityPath::RightEntityConfidence => {
+                let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
+
+                self.link_data
+                    .ensure()
+                    .right_entity_confidence
+                    .set(value.map(Num::from).map(Value::Number));
+            }
+            EntityPath::LeftEntityProvenance => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data.ensure().left_entity_provenance.set(value);
+            }
+            EntityPath::RightEntityProvenance => {
+                let value: Option<String> =
+                    row.try_get(column.index).map_err(row_hydration_error)?;
+
+                let Some(value) = value else {
+                    self.link_data.null();
+                    return Ok(());
+                };
+
+                let value =
+                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+
+                self.link_data.ensure().right_entity_provenance.set(value);
+            }
         }
+
+        Ok(())
+    }
+
+    fn hydrate_entity_id(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: &serde_json::Value,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let web_id = &value["web_id"];
+        let entity_uuid = &value["entity_uuid"];
+
+        self.hydrate_web_id(env, deserializer, column, web_id)?;
+        self.hydrate_entity_uuid(env, deserializer, column, entity_uuid)?;
+        self.hydrate_draft_id(env, deserializer, column, value.get("draft_id"))?;
+
+        Ok(())
+    }
+
+    fn hydrate_decision_time<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<ValueRef<'value>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value = deserializer.try_deserialize(
+            EntityPath::DecisionTime.r#type(env),
+            value.into(),
+            column,
+        )?;
+        self.metadata
+            .ensure()
+            .temporal_versioning
+            .ensure()
+            .decision_time
+            .set(value);
+
+        Ok(())
+    }
+
+    fn hydrate_transaction_time<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<ValueRef<'value>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value = deserializer.try_deserialize(
+            EntityPath::TransactionTime.r#type(env),
+            value.into(),
+            column,
+        )?;
+        self.metadata
+            .ensure()
+            .temporal_versioning
+            .ensure()
+            .transaction_time
+            .set(value);
+
+        Ok(())
+    }
+
+    fn hydrate_web_id<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<ValueRef<'value>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value =
+            deserializer.try_deserialize(EntityPath::WebId.r#type(env), value.into(), column)?;
+
+        self.metadata
+            .ensure()
+            .record_id
+            .ensure()
+            .entity_id
+            .ensure()
+            .web_id
+            .set(value);
+
+        Ok(())
+    }
+
+    fn hydrate_entity_uuid<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<ValueRef<'value>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value = deserializer.try_deserialize(
+            EntityPath::EntityUuid.r#type(env),
+            value.into(),
+            column,
+        )?;
+
+        self.metadata
+            .ensure()
+            .record_id
+            .ensure()
+            .entity_id
+            .ensure()
+            .entity_uuid
+            .set(value);
+
+        Ok(())
+    }
+
+    fn hydrate_draft_id<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: Option<impl Into<ValueRef<'value>>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value = value
+            .map(Into::into)
+            .filter(|value| !matches!(value, ValueRef::Null))
+            .map(|value| {
+                deserializer.try_deserialize(EntityPath::DraftId.r#type(env), value, column)
+            })
+            .transpose()?;
+
+        self.metadata
+            .ensure()
+            .record_id
+            .ensure()
+            .entity_id
+            .ensure()
+            .draft_id
+            .set(value);
+        Ok(())
+    }
+
+    fn hydrate_edition_id<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        deserializer: &Deserializer<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<ValueRef<'value>>,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        let value = deserializer.try_deserialize(
+            EntityPath::EditionId.r#type(env),
+            value.into(),
+            column,
+        )?;
+
+        self.metadata
+            .ensure()
+            .record_id
+            .ensure()
+            .edition_id
+            .set(value);
+        Ok(())
     }
 }
 

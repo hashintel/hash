@@ -279,6 +279,12 @@ impl EntityPath {
         }
     }
 
+    // TODO: pre-calculate the type in an array so that we can use it(?) or as a cache(?) we can use
+    // an `EntityPathArray<Option<TypeId>>` for this.
+    pub fn r#type(self, env: &Environment<'_>) -> TypeId {
+        self.resolve_type(env).expect("type must be specified") // TODO: better message and method name
+    }
+
     /// Returns the type of this path, or `None` for [`Properties`](Self::Properties).
     ///
     /// Every path except `Properties` has a fixed type determined by the entity schema —

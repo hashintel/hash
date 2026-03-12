@@ -86,8 +86,8 @@ pub(crate) fn eval_entity_path<A: Allocator>(
                 eval_entity_path(db, EntityPath::EntityId),
             ),
             (
-                db.parameters.symbol(sym::draft_id).into(),
-                eval_entity_path(db, EntityPath::DraftId),
+                db.parameters.symbol(sym::edition_id).into(),
+                eval_entity_path(db, EntityPath::EditionId),
             ),
         ])),
         EntityPath::EntityId => Expression::Function(query::Function::JsonBuildObject(vec![
