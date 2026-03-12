@@ -10,7 +10,10 @@ use hashql_core::{
         kind::{Apply, Generic, OpaqueType, PrimitiveType, StructType, TupleType, TypeKind},
     },
 };
-use hashql_mir::interpret::value::{self, Value};
+use hashql_mir::{
+    interpret::value::{self, Value},
+    pass::execution::traversal::EntityPath,
+};
 use serde::{
     Serialize,
     ser::{SerializeMap as _, SerializeSeq as _},
@@ -390,14 +393,26 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
         }
     }
 
+    /// Deserializes a column value into the expected type, or returns an error.
+    ///
+    /// The `column` and `path` parameters are only used for error reporting;
+    /// they identify which result column failed and which entity storage
+    /// location it corresponds to.
     pub(crate) fn try_deserialize(
         &self,
         r#type: TypeId,
         value: ValueRef<'_>,
+        column: usize,
+        path: EntityPath,
     ) -> Result<Value<'heap, A>, BridgeError>
     where
         A: Clone,
     {
-        self.deserialize(r#type, value).ok_or_else(|| todo!())
+        self.deserialize(r#type, value)
+            .ok_or(BridgeError::ValueDeserialization {
+                column,
+                path,
+                expected: r#type,
+            })
     }
 }

@@ -6,7 +6,7 @@
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 
-use hashql_core::span::SpanId;
+use hashql_core::{span::SpanId, r#type::TypeId};
 use hashql_diagnostics::{
     Diagnostic, Label, category::TerminalDiagnosticCategory, diagnostic::Message,
     severity::Severity,
@@ -17,6 +17,7 @@ use hashql_mir::{
     interpret::error::{
         InterpretDiagnostic, InterpretDiagnosticCategory, SuspensionDiagnosticCategory,
     },
+    pass::execution::traversal::EntityPath,
 };
 
 const QUERY_EXECUTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -32,6 +33,11 @@ const ROW_HYDRATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 const PARAMETER_ENCODING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "parameter-encoding",
     name: "Parameter Encoding",
+};
+
+const VALUE_DESERIALIZATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "value-deserialization",
+    name: "Value Deserialization",
 };
 
 const QUERY_LOOKUP: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -64,14 +70,32 @@ pub enum BridgeError {
 
     /// A row returned by PostgreSQL could not be decoded into a value.
     ///
-    /// The query executed successfully, but a value in the result set has a
-    /// type the runtime does not expect — indicating a mismatch between what
+    /// The query executed successfully, but a column in the result set has a
+    /// type the runtime does not expect, indicating a mismatch between what
     /// the SQL lowering pass promised and what the database actually returned.
     RowHydration {
         /// The zero-based column index that failed to decode.
         column: usize,
+        /// The entity storage location this column corresponds to.
+        path: EntityPath,
         /// The database error describing the type mismatch.
         source: tokio_postgres::Error,
+    },
+
+    /// A decoded column value does not match the expected type for its entity path.
+    ///
+    /// The column decoded successfully at the PostgreSQL wire level, but the
+    /// resulting value could not be deserialized into the HashQL type the
+    /// runtime expects for this storage location. This indicates the SQL
+    /// lowering pass produced a query whose result shape does not match the
+    /// entity schema.
+    ValueDeserialization {
+        /// The zero-based column index.
+        column: usize,
+        /// The entity storage location that failed.
+        path: EntityPath,
+        /// The type the runtime expected to deserialize into.
+        expected: TypeId,
     },
 
     /// A query parameter could not be serialized for PostgreSQL.
@@ -103,7 +127,16 @@ impl BridgeError {
     pub fn into_diagnostic(self, span: SpanId) -> InterpretDiagnostic {
         match self {
             Self::QueryExecution { sql, source } => query_execution(span, &sql, &source),
-            Self::RowHydration { column, source } => row_hydration(span, column, &source),
+            Self::RowHydration {
+                column,
+                path,
+                source,
+            } => row_hydration(span, column, path, &source),
+            Self::ValueDeserialization {
+                column,
+                path,
+                expected,
+            } => value_deserialization(span, column, path, expected),
             Self::ParameterEncoding { parameter, source } => {
                 parameter_encoding(span, parameter, &*source)
             }
@@ -131,18 +164,44 @@ fn query_execution(span: SpanId, sql: &str, error: &tokio_postgres::Error) -> In
 fn row_hydration(
     span: SpanId,
     column: usize,
+    path: EntityPath,
     source: &tokio_postgres::Error,
 ) -> InterpretDiagnostic {
+    let symbol = path.as_symbol();
+
     let mut diagnostic =
         Diagnostic::new(category(&ROW_HYDRATION), Severity::Bug).primary(Label::new(
             span,
-            format!("cannot decode value in result column {column}"),
+            format!("cannot decode column {column} for `{symbol}`"),
         ));
 
     diagnostic.add_message(Message::note(format!("the database reported: {source}")));
 
     diagnostic.add_message(Message::help(
         "the SQL lowering pass should produce queries whose result types the runtime can decode",
+    ));
+
+    diagnostic
+}
+
+fn value_deserialization(
+    span: SpanId,
+    column: usize,
+    path: EntityPath,
+    expected: TypeId,
+) -> InterpretDiagnostic {
+    let symbol = path.as_symbol();
+
+    let mut diagnostic = Diagnostic::new(category(&VALUE_DESERIALIZATION), Severity::Bug).primary(
+        Label::new(span, format!("cannot deserialize value for `{symbol}`")),
+    );
+
+    diagnostic.add_message(Message::note(format!(
+        "result column {column} decoded successfully but does not match expected type {expected}"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the SQL lowering pass should produce queries whose result types match the entity schema",
     ));
 
     diagnostic
