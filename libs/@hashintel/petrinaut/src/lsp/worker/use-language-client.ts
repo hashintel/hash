@@ -60,42 +60,58 @@ export function useLanguageClient(): LanguageClientApi {
   const workerRef = useRef<Worker | null>(null);
   const pendingRef = useRef(new Map<number, Pending>());
   const nextId = useRef(0);
+  const queueRef = useRef<object[]>([]);
   const diagnosticsCallbackRef = useRef<
     ((params: PublishDiagnosticsParams[]) => void) | null
   >(null);
 
   useEffect(() => {
-    void (async () => {
-      const worker = await createLanguageServerWorker();
+    let terminated = false;
 
-      worker.onmessage = (event: MessageEvent<ServerMessage>) => {
-        const msg = event.data;
+    void createLanguageServerWorker().then((worker) => {
+      if (terminated) {
+        worker.terminate();
+        return;
+      }
 
-        if ("id" in msg) {
-          // Response to a request
-          const pending = pendingRef.current.get(msg.id);
-          if (!pending) {
-            return;
+      worker.addEventListener(
+        "message",
+        (event: MessageEvent<ServerMessage>) => {
+          const msg = event.data;
+
+          if ("id" in msg) {
+            // Response to a request
+            const pending = pendingRef.current.get(msg.id);
+            if (!pending) {
+              return;
+            }
+            pendingRef.current.delete(msg.id);
+
+            if ("error" in msg) {
+              pending.reject(new Error(msg.error.message));
+            } else {
+              pending.resolve(msg.result as never);
+            }
+          } else if ("method" in msg) {
+            // Server-pushed notification
+            diagnosticsCallbackRef.current?.(msg.params);
           }
-          pendingRef.current.delete(msg.id);
-
-          if ("error" in msg) {
-            pending.reject(new Error(msg.error.message));
-          } else {
-            pending.resolve(msg.result as never);
-          }
-        } else if ("method" in msg) {
-          // Server-pushed notification
-          diagnosticsCallbackRef.current?.(msg.params);
-        }
-      };
+        },
+      );
 
       workerRef.current = worker;
-    })();
+
+      // Drain any messages queued before the worker was ready
+      for (const message of queueRef.current) {
+        worker.postMessage(message);
+      }
+      queueRef.current = [];
+    });
 
     const pending = pendingRef.current;
 
     return () => {
+      terminated = true;
       workerRef.current?.terminate();
       workerRef.current = null;
       for (const entry of pending.values()) {
@@ -108,7 +124,12 @@ export function useLanguageClient(): LanguageClientApi {
   // --- Notifications (fire-and-forget) ---
 
   const sendNotification = useCallback((message: Omit<ClientMessage, "id">) => {
-    workerRef.current?.postMessage(message);
+    const worker = workerRef.current;
+    if (worker) {
+      worker.postMessage(message);
+    } else {
+      queueRef.current.push(message);
+    }
   }, []);
 
   const initialize = useCallback(
@@ -147,17 +168,17 @@ export function useLanguageClient(): LanguageClientApi {
   // --- Requests (return Promise) ---
 
   const sendRequest = useCallback(<T>(message: ClientMessage): Promise<T> => {
-    const worker = workerRef.current;
-    if (!worker) {
-      return Promise.reject(new Error("Worker not initialized"));
-    }
-
     return new Promise<T>((resolve, reject) => {
       pendingRef.current.set((message as { id: number }).id, {
         resolve: resolve as (result: never) => void,
         reject,
       });
-      worker.postMessage(message);
+      const worker = workerRef.current;
+      if (worker) {
+        worker.postMessage(message);
+      } else {
+        queueRef.current.push(message);
+      }
     });
   }, []);
 

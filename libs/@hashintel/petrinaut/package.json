@@ -19,7 +19,9 @@
     "package.json"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
   "scripts": {
