@@ -21,6 +21,7 @@ use crate::postgres::{Parameter, PreparedQuery};
 
 mod codec;
 pub(crate) mod error;
+mod partial;
 mod postgres_serde;
 mod temporal;
 
@@ -104,6 +105,12 @@ impl<'heap, C, A: Allocator> Bridge<'_, 'heap, C, A> {
                     source,
                 })
                 .map_err(RuntimeError::Suspension)?;
+
+            // for now we do this synchronously because it's easier
+            for (index, column) in query.columns.iter().enumerate() {
+                // let value = &row.get(index);
+                todo!()
+            }
 
             // TODO: we must:
             // - spawn a local task to process the row

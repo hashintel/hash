@@ -5,7 +5,7 @@ use hashql_core::{
     algorithms::co_sort,
     heap::{CollectIn as _, FromIn as _},
     r#type::{
-        Type,
+        Type, TypeId,
         environment::Environment,
         kind::{Apply, Generic, OpaqueType, PrimitiveType, StructType, TupleType, TypeKind},
     },
@@ -15,6 +15,8 @@ use serde::{
     Serialize,
     ser::{SerializeMap as _, SerializeSeq as _},
 };
+
+use super::error::BridgeError;
 
 #[derive(Debug)]
 pub(crate) struct SerializeValue<'value, 'heap, A: Allocator>(&'value Value<'heap, A>);
@@ -126,7 +128,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
         }
     }
 
-    fn try_deserialize_unknown(&self, value: ValueRef<'_>) -> Option<Value<'heap, A>>
+    fn deserialize_unknown(&self, value: ValueRef<'_>) -> Option<Value<'heap, A>>
     where
         A: Clone,
     {
@@ -149,7 +151,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                 let mut output = value::List::new();
 
                 for element in values {
-                    output.push_back(self.try_deserialize_unknown(element.into())?);
+                    output.push_back(self.deserialize_unknown(element.into())?);
                 }
 
                 Some(Value::List(output))
@@ -171,8 +173,8 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                     let mut dict = value::Dict::new();
 
                     for (key, value) in map {
-                        let key = self.try_deserialize_unknown(ValueRef::String(key))?;
-                        let value = self.try_deserialize_unknown(value.into())?;
+                        let key = self.deserialize_unknown(ValueRef::String(key))?;
+                        let value = self.deserialize_unknown(value.into())?;
 
                         dict.insert(key, value);
                     }
@@ -185,7 +187,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 for (key, value) in map {
                     let key = self.env.heap.intern_symbol(key);
-                    let value = self.try_deserialize_unknown(value.into())?;
+                    let value = self.deserialize_unknown(value.into())?;
 
                     fields.push(key);
                     values.push(value);
@@ -199,18 +201,15 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
         }
     }
 
-    pub(crate) fn try_deserialize(
-        &self,
-        r#type: Type<'heap>,
-        value: ValueRef<'_>,
-    ) -> Option<Value<'heap, A>>
+    pub(crate) fn deserialize(&self, r#type: TypeId, value: ValueRef<'_>) -> Option<Value<'heap, A>>
     where
         A: Clone,
     {
+        let r#type = self.env.r#type(r#type);
+
         match r#type.kind {
             &TypeKind::Opaque(OpaqueType { name, repr }) => {
-                let inner = self.env.r#type(repr);
-                let value = self.try_deserialize(inner, value)?;
+                let value = self.deserialize(repr, value)?;
 
                 Some(Value::Opaque(value::Opaque::new(
                     name,
@@ -303,8 +302,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                         .iter()
                         .position(|field| field.name.as_str() == name)?;
 
-                    values[field] =
-                        self.try_deserialize(self.env.r#type(fields[field].value), value.into())?;
+                    values[field] = self.deserialize(fields[field].value, value.into())?;
                 }
 
                 value::Struct::new(names, values).map(Value::Struct)
@@ -320,7 +318,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 let mut values: Vec<_, A> = Vec::with_capacity_in(array.len(), self.alloc.clone());
                 for (element, &field) in array.iter().zip(fields) {
-                    values.push(self.try_deserialize(self.env.r#type(field), element.into())?);
+                    values.push(self.deserialize(field, element.into())?);
                 }
 
                 value::Tuple::new(values).map(Value::Tuple)
@@ -329,7 +327,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             TypeKind::Union(union_type) => {
                 // Go through *each variant* and try to find the first one that matches
                 for &variant in &union_type.variants {
-                    if let Some(value) = self.try_deserialize(self.env.r#type(variant), value) {
+                    if let Some(value) = self.deserialize(variant, value) {
                         return Some(value);
                     }
                 }
@@ -345,9 +343,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                 let mut output = value::List::new();
 
                 for element in array {
-                    output.push_back(
-                        self.try_deserialize(self.env.r#type(list.element), element.into())?,
-                    );
+                    output.push_back(self.deserialize(list.element, element.into())?);
                 }
 
                 Some(Value::List(output))
@@ -361,8 +357,8 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 for (key, value) in object {
                     output.insert(
-                        self.try_deserialize(self.env.r#type(dict.key), ValueRef::String(key))?,
-                        self.try_deserialize(self.env.r#type(dict.value), value.into())?,
+                        self.deserialize(dict.key, ValueRef::String(key))?,
+                        self.deserialize(dict.value, value.into())?,
                     );
                 }
 
@@ -378,10 +374,8 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             &TypeKind::Apply(Apply {
                 base,
                 substitutions: _,
-            }) => self.try_deserialize(self.env.r#type(base), value),
-            &TypeKind::Generic(Generic { base, arguments: _ }) => {
-                self.try_deserialize(self.env.r#type(base), value)
-            }
+            }) => self.deserialize(base, value),
+            &TypeKind::Generic(Generic { base, arguments: _ }) => self.deserialize(base, value),
 
             TypeKind::Closure(_) => todo!("issue ICE; should be rejected by MIR"),
             TypeKind::Never => {
@@ -391,8 +385,19 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             // we're flying free here, issue a warning, and just try to deserialize using the old
             // tactics
             TypeKind::Param(_) | TypeKind::Infer(_) | TypeKind::Unknown => {
-                self.try_deserialize_unknown(value)
+                self.deserialize_unknown(value)
             }
         }
+    }
+
+    pub(crate) fn try_deserialize(
+        &self,
+        r#type: TypeId,
+        value: ValueRef<'_>,
+    ) -> Result<Value<'heap, A>, BridgeError>
+    where
+        A: Clone,
+    {
+        self.deserialize(r#type, value).ok_or_else(|| todo!())
     }
 }
