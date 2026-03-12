@@ -3560,16 +3560,24 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         match rows.as_slice() {
             [] => Ok(Vec::new()),
             [row] => {
-                let emails: Option<serde_json::Value> = row.get(0);
-                Ok(emails
-                    .and_then(|value| {
-                        value.as_array().map(|arr| {
-                            arr.iter()
-                                .filter_map(|entry| entry.as_str().map(String::from))
-                                .collect()
+                let Some(emails) = row.get::<_, Option<serde_json::Value>>(0) else {
+                    return Ok(Vec::new());
+                };
+                let serde_json::Value::Array(arr) = emails else {
+                    return Err(Report::new(GetActorError).attach(format!(
+                        "expected email property to be an array for {user_id}"
+                    )));
+                };
+                arr.iter()
+                    .map(|entry| {
+                        entry.as_str().map(String::from).ok_or_else(|| {
+                            Report::new(GetActorError).attach(format!(
+                                "expected email array entry to be a string for {user_id}, got \
+                                 {entry}"
+                            ))
                         })
                     })
-                    .unwrap_or_default())
+                    .collect()
             }
             rows => Err(Report::new(GetActorError).attach(format!(
                 "expected at most one user entity for {user_id}, found {}",
