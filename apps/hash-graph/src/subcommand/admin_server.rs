@@ -186,15 +186,14 @@ pub(crate) async fn run_admin_server(
     config: AdminConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    if config.unsafe_allow_dev_authentication {
-        tracing::warn!(
-            "--unsafe-allow-dev-authentication is set — header-based authentication is enabled \
-             without verification. DO NOT use this in production."
-        );
-    }
-
     let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
         (Some(jwks_url), Some(audience), Some(issuer)) => {
+            if config.unsafe_allow_dev_authentication {
+                tracing::warn!(
+                    "--unsafe-allow-dev-authentication is set but JWT is configured -- the flag \
+                     has no effect. Remove it to silence this warning."
+                );
+            }
             tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
             Some(Arc::new(JwtValidator::new(JwtValidatorConfig {
                 jwks_url,
@@ -206,7 +205,13 @@ pub(crate) async fn run_admin_server(
                 allowed_algorithms: config.jwt.allowed_algorithms,
             })))
         }
-        (None, None, None) if config.unsafe_allow_dev_authentication => None,
+        (None, None, None) if config.unsafe_allow_dev_authentication => {
+            tracing::warn!(
+                "--unsafe-allow-dev-authentication is set -- header-based authentication is \
+                 enabled without verification. DO NOT use this in production."
+            );
+            None
+        }
         (None, None, None) => {
             return Err(Report::new(GraphError).attach(
                 "no JWT authentication configured and --unsafe-allow-dev-authentication is not \
@@ -223,7 +228,11 @@ pub(crate) async fn run_admin_server(
         }
     };
 
-    let router = hash_graph_api::rest::admin::routes(pool, jwt_validator);
+    let router = hash_graph_api::rest::admin::routes(
+        pool,
+        jwt_validator,
+        config.unsafe_allow_dev_authentication,
+    );
 
     let listener = TcpListener::bind((&*config.address.admin_host, config.address.admin_port))
         .await

@@ -5,15 +5,15 @@
 //!
 //! # Endpoints
 //!
-//! | Method   | Path               | Auth   | Availability                        |
-//! |----------|--------------------|--------|-------------------------------------|
-//! | `GET`    | `/health`          | —      | Always                              |
-//! | `POST`   | `/entities/delete` | JWT    | Always                              |
-//! | `POST`   | `/snapshot`        | Header | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/accounts`        | Header | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/data-types`      | Header | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/property-types`  | Header | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/entity-types`    | Header | `--unsafe-allow-dev-authentication` |
+//! | Method   | Path               | Auth | Availability                        |
+//! |----------|--------------------|------|-------------------------------------|
+//! | `GET`    | `/health`          | --   | Always                              |
+//! | `POST`   | `/entities/delete` | JWT  | Always                              |
+//! | `POST`   | `/snapshot`        | --   | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/accounts`        | --   | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/data-types`      | --   | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/property-types`  | --   | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/entity-types`    | --   | `--unsafe-allow-dev-authentication` |
 //!
 //! # Authentication
 //!
@@ -71,24 +71,28 @@ use crate::rest::status::report_to_response;
 
 /// Creates the admin API router.
 ///
-/// When `jwt_validator` is `Some`, only `/health` and `/entities/delete` are available.
-/// Bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
-/// `/entity-types`) are only registered when JWT is **not** configured, which requires the
-/// `--unsafe-allow-dev-authentication` CLI flag — the server refuses to start without JWT
-/// unless that flag is explicitly set. This prevents accidental exposure of destructive
-/// endpoints when authentication is misconfigured in production.
-pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
+/// `jwt_validator` enables JWT authentication for protected endpoints. When `Some`, the token's
+/// `email` claim is resolved to a HASH user actor. When `None` (requires
+/// `--unsafe-allow-dev-authentication`), the `X-Authenticated-User-Actor-Id` header is used.
+///
+/// `dev_endpoints` enables bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`,
+/// `/property-types`, `/entity-types`). These require `--unsafe-allow-dev-authentication` and are
+/// intended for local development and testing only.
+pub fn routes(
+    store_pool: PostgresStorePool,
+    jwt_validator: Option<Arc<JwtValidator>>,
+    dev_endpoints: bool,
+) -> Router {
     // Health endpoint is always public (used by load balancers and healthchecks)
     let public = Router::new().route("/health", get(async || "Healthy"));
 
     let mut protected = Router::new().route("/entities/delete", post(delete_entities));
 
-    if let Some(validator) = jwt_validator {
-        protected = protected.layer(Extension(validator));
-    } else {
-        // Bulk destructive endpoints are only available when JWT is not configured.
-        // In production/staging (JWT enabled), these are disabled to prevent accidental
-        // data loss — use snapshots or targeted entity deletion instead.
+    if let Some(validator) = &jwt_validator {
+        protected = protected.layer(Extension(Arc::clone(validator)));
+    }
+
+    if dev_endpoints {
         protected = protected
             .route("/snapshot", post(restore_snapshot))
             .route("/accounts", delete(delete_accounts))
