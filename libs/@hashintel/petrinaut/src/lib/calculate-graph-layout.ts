@@ -37,7 +37,7 @@ export type NodePosition = {
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
-  dims: {
+  dimensions: {
     place: { width: number; height: number };
     transition: { width: number; height: number };
   },
@@ -50,13 +50,13 @@ export const calculateGraphLayout = async (
   const elkNodes: ElkNode["children"] = [
     ...sdcpn.places.map((place) => ({
       id: place.id,
-      width: dims.place.width,
-      height: dims.place.height,
+      width: dimensions.place.width,
+      height: dimensions.place.height,
     })),
     ...sdcpn.transitions.map((transition) => ({
       id: transition.id,
-      width: dims.transition.width,
-      height: dims.transition.height,
+      width: dimensions.transition.width,
+      height: dimensions.transition.height,
     })),
   ];
 
@@ -99,10 +99,12 @@ export const calculateGraphLayout = async (
   const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
-      const nodeDims = placeIds.has(child.id) ? dims.place : dims.transition;
+      const nodeDimensions = placeIds.has(child.id)
+        ? dimensions.place
+        : dimensions.transition;
       positionsByNodeId[child.id] = {
-        x: child.x + nodeDims.width / 2,
-        y: child.y + nodeDims.height / 2,
+        x: child.x + nodeDimensions.width / 2,
+        y: child.y + nodeDimensions.height / 2,
       };
     }
   }

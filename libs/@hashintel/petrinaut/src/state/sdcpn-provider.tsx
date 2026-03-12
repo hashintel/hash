@@ -19,7 +19,9 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
   ...rest
 }: React.PropsWithChildren<SDCPNProviderProps>) => {
   const { compactNodes } = use(UserSettingsContext);
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+  const dimensions = compactNodes
+    ? compactNodeDimensions
+    : classicNodeDimensions;
   const value: SDCPNContextValue = {
     ...rest,
     addPlace(place) {
@@ -318,34 +320,34 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             }
 
             for (
-              let arcIdx = transition.inputArcs.length - 1;
-              arcIdx >= 0;
-              arcIdx--
+              let inputArcIndex = transition.inputArcs.length - 1;
+              inputArcIndex >= 0;
+              inputArcIndex--
             ) {
-              const inputArc = transition.inputArcs[arcIdx]!;
+              const inputArc = transition.inputArcs[inputArcIndex]!;
               const arcId = generateArcId({
                 inputId: inputArc.placeId,
                 outputId: transition.id,
               });
 
               if (arcIds.has(arcId) || placeIds.has(inputArc.placeId)) {
-                transition.inputArcs.splice(arcIdx, 1);
+                transition.inputArcs.splice(inputArcIndex, 1);
               }
             }
 
             for (
-              let arcIdx = transition.outputArcs.length - 1;
-              arcIdx >= 0;
-              arcIdx--
+              let outputArcIndex = transition.outputArcs.length - 1;
+              outputArcIndex >= 0;
+              outputArcIndex--
             ) {
-              const outputArc = transition.outputArcs[arcIdx]!;
+              const outputArc = transition.outputArcs[outputArcIndex]!;
               const arcId = generateArcId({
                 inputId: transition.id,
                 outputId: outputArc.placeId,
               });
 
               if (arcIds.has(arcId) || placeIds.has(outputArc.placeId)) {
-                transition.outputArcs.splice(arcIdx, 1);
+                transition.outputArcs.splice(outputArcIndex, 1);
               }
             }
           }
@@ -389,7 +391,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
         return;
       }
 
-      const positions = await calculateGraphLayout(sdcpn, dims);
+      const positions = await calculateGraphLayout(sdcpn, dimensions);
 
       rest.mutatePetriNetDefinition((sdcpnToMutate) => {
         for (const place of sdcpnToMutate.places) {

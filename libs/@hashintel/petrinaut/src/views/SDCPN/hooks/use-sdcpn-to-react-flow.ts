@@ -31,7 +31,9 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
 
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+  const dimensions = compactNodes
+    ? compactNodeDimensions
+    : classicNodeDimensions;
 
   const nodes: NodeType[] = [];
 
@@ -51,12 +53,15 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : {
-            x: place.x - dims.place.width / 2,
-            y: place.y - dims.place.height / 2,
+            x: place.x - dimensions.place.width / 2,
+            y: place.y - dimensions.place.height / 2,
           },
-      width: dims.place.width,
-      height: dims.place.height,
-      measured: { width: dims.place.width, height: dims.place.height },
+      width: dimensions.place.width,
+      height: dimensions.place.height,
+      measured: {
+        width: dimensions.place.width,
+        height: dimensions.place.height,
+      },
       dragging: draggingState?.dragging ?? false,
       selected: isSelected(place.id),
       data: {
@@ -79,14 +84,14 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : {
-            x: transition.x - dims.transition.width / 2,
-            y: transition.y - dims.transition.height / 2,
+            x: transition.x - dimensions.transition.width / 2,
+            y: transition.y - dimensions.transition.height / 2,
           },
-      width: dims.transition.width,
-      height: dims.transition.height,
+      width: dimensions.transition.width,
+      height: dimensions.transition.height,
       measured: {
-        width: dims.transition.width,
-        height: dims.transition.height,
+        width: dimensions.transition.width,
+        height: dimensions.transition.height,
       },
       dragging: draggingState?.dragging ?? false,
       selected: isSelected(transition.id),

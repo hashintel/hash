@@ -20,7 +20,9 @@ export function useApplyNodeChanges() {
   const { getItemType, mutatePetriNetDefinition } = use(SDCPNContext);
   const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
   const { compactNodes } = use(UserSettingsContext);
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+  const dimensions = compactNodes
+    ? compactNodeDimensions
+    : classicNodeDimensions;
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionCommits: Array<{
@@ -117,16 +119,16 @@ export function useApplyNodeChanges() {
           if (itemType === "place") {
             for (const place of sdcpn.places) {
               if (place.id === id) {
-                place.x = position.x + dims.place.width / 2;
-                place.y = position.y + dims.place.height / 2;
+                place.x = position.x + dimensions.place.width / 2;
+                place.y = position.y + dimensions.place.height / 2;
                 break;
               }
             }
           } else if (itemType === "transition") {
             for (const transition of sdcpn.transitions) {
               if (transition.id === id) {
-                transition.x = position.x + dims.transition.width / 2;
-                transition.y = position.y + dims.transition.height / 2;
+                transition.x = position.x + dimensions.transition.width / 2;
+                transition.y = position.y + dimensions.transition.height / 2;
                 break;
               }
             }
