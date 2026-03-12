@@ -14,6 +14,7 @@ import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
+import type { ViewportAction } from "../../types/viewport-action";
 import { Arc } from "./components/arc";
 import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";
@@ -54,7 +55,9 @@ const canvasContainerStyle = css({
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from SDCPNContext and EditorContext, and handles all ReactFlow interactions.
  */
-export const SDCPNView: React.FC = () => {
+export const SDCPNView: React.FC<{
+  viewportActions?: ViewportAction[];
+}> = ({ viewportActions }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
@@ -335,7 +338,7 @@ export const SDCPNView: React.FC = () => {
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
-        <ViewportControls />
+        <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>
     </div>
   );

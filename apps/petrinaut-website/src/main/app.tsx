@@ -3,6 +3,7 @@ import { convertOldFormatToSDCPN, Petrinaut } from "@hashintel/petrinaut";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
 import {
   isOldFormatInLocalStorage,
   type SDCPNInLocalStorage,
@@ -11,6 +12,7 @@ import {
 import { useUndoRedo } from "./app/use-undo-redo";
 
 export const DevApp = () => {
+  const sentryFeedbackAction = useSentryFeedbackAction();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
 
   const [currentNetId, setCurrentNetId] = useState<string | null>(null);
@@ -253,6 +255,7 @@ export const DevApp = () => {
         setTitle={setTitle}
         title={currentNet.title}
         undoRedo={undoRedo}
+        viewportActions={[sentryFeedbackAction]}
       />
     </div>
   );

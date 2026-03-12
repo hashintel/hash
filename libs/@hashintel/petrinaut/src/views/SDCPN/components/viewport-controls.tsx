@@ -12,6 +12,7 @@ import {
 import { IconButton } from "../../../components/icon-button";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { EditorContext } from "../../../state/editor-context";
+import type { ViewportAction } from "../../../types/viewport-action";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 const BASE_OFFSET = 12;
@@ -35,7 +36,9 @@ const animatingStyle = cva({
   },
 });
 
-export const ViewportControls: React.FC = () => {
+export const ViewportControls: React.FC<{
+  viewportActions?: ViewportAction[];
+}> = ({ viewportActions }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { zoomIn, zoomOut } = useReactFlow();
   const {
@@ -112,6 +115,21 @@ export const ViewportControls: React.FC = () => {
         open={isSettingsOpen}
         onOpenChange={(details) => setIsSettingsOpen(details.open)}
       />
+      {viewportActions?.map((action) => (
+        <IconButton
+          key={action.key}
+          ref={action.ref}
+          size="xs"
+          variant="outline"
+          aria-label={action.label}
+          tooltip={action.tooltip}
+          onClick={action.onClick}
+          style={action.style}
+          className={action.className}
+        >
+          {action.icon}
+        </IconButton>
+      ))}
     </div>
   );
 };
