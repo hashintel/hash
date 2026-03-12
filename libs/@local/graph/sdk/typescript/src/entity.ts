@@ -88,7 +88,7 @@ import type {
 import {
   organizationEntityTypeBaseUrl,
   organizationNamePropertyBaseUrl,
-  orgNameIsInvalid,
+  validateOrgName,
 } from "./org-entity-restrictions.js";
 import {
   deserializeGraphVertices,
@@ -96,11 +96,11 @@ import {
   serializeGraphVertices,
 } from "./subgraph.js";
 import {
-  displayNameIsInvalid,
   displayNamePropertyBaseUrl,
   shortnamePropertyBaseUrl,
   userEntityTypeBaseUrl,
   userSelfUpdatablePropertyBaseUrls,
+  validateDisplayName,
 } from "./user-entity-restrictions.js";
 import type { EntityValidationReport } from "./validation.js";
 
@@ -1219,7 +1219,7 @@ export class HashEntity<
             const rawName = patch.property.value;
             if (typeof rawName === "string") {
               const trimmedName = rawName.trim();
-              const validation = displayNameIsInvalid(trimmedName);
+              const validation = validateDisplayName(trimmedName);
               if (validation !== true) {
                 throw new Error(validation);
               }
@@ -1264,7 +1264,7 @@ export class HashEntity<
             const rawName = patch.property.value;
             if (typeof rawName === "string") {
               const trimmedName = rawName.trim();
-              const validation = orgNameIsInvalid(trimmedName);
+              const validation = validateOrgName(trimmedName);
               if (validation !== true) {
                 throw new Error(validation);
               }

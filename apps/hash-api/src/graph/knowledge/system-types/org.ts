@@ -26,7 +26,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { orgNameIsInvalid } from "@local/hash-isomorphic-utils/organization";
+import { validateOrgName } from "@local/hash-isomorphic-utils/organization";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Organization,
@@ -140,7 +140,7 @@ export const createOrg: ImpureGraphFunction<
   }
 
   const trimmedName = name.trim();
-  const nameValidation = orgNameIsInvalid(trimmedName);
+  const nameValidation = validateOrgName(trimmedName);
   if (nameValidation !== true) {
     throw new Error(nameValidation);
   }
@@ -361,6 +361,12 @@ export const updateOrgName: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { org, updatedOrgName } = params;
 
+  const trimmedName = updatedOrgName.trim();
+  const nameValidation = validateOrgName(trimmedName);
+  if (nameValidation !== true) {
+    throw new Error(nameValidation);
+  }
+
   const updatedEntity = await updateEntity(ctx, authentication, {
     entity: org.entity,
     propertyPatches: [
@@ -368,7 +374,7 @@ export const updateOrgName: ImpureGraphFunction<
         op: "replace",
         path: [systemPropertyTypes.organizationName.propertyTypeBaseUrl],
         property: {
-          value: updatedOrgName,
+          value: trimmedName,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

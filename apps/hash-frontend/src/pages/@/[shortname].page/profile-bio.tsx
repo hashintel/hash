@@ -1,5 +1,8 @@
 import { useQuery } from "@apollo/client";
-import { splitEntityId } from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -34,10 +37,14 @@ export const ProfileBio: FunctionComponent<{
   refetchProfile: () => Promise<void>;
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => {
-  const [webId, entityUuid, draftId] = splitEntityId(
-    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- potential crash otherwise
-    profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
+  const [_, entityUuid, draftId] = !profile.hasBio
+    ? []
+    : splitEntityId(profile.hasBio.profileBioEntity.metadata.recordId.entityId);
+
+  const webId = extractWebIdFromEntityId(
+    profile.entity.metadata.recordId.entityId,
   );
+
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables

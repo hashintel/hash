@@ -6,7 +6,7 @@ import type {
   InvitationViaShortname,
 } from "./system-types/shared.js";
 
-export { orgNameIsInvalid } from "@local/hash-graph-sdk/org-entity-restrictions";
+export { validateOrgName } from "@local/hash-graph-sdk/org-entity-restrictions";
 
 export const isInvitationByEmail = (
   invitation: HashEntity,

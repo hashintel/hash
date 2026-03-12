@@ -3,7 +3,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { orgNameIsInvalid } from "@local/hash-isomorphic-utils/organization";
+import { validateOrgName } from "@local/hash-isomorphic-utils/organization";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
@@ -215,10 +215,7 @@ export const OrgForm = ({
           placeholder="e.g. Acme Corp"
           {...register("name", {
             required: "Display name is required",
-            validate: (value) => {
-              const result = orgNameIsInvalid(value);
-              return result === true || result;
-            },
+            validate: validateOrgName,
             onBlur: (event) => {
               const trimmed = (event.target.value as string).trim();
               if (trimmed !== event.target.value) {

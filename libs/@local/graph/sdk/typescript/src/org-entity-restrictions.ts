@@ -1,6 +1,6 @@
 import type { BaseUrl } from "@blockprotocol/type-system";
 
-import { nameIsInvalid } from "./validate-name.js";
+import { validateName } from "./validate-name.js";
 
 /**
  * The base URL of the Organization entity type, used to detect org entities
@@ -19,5 +19,5 @@ export const organizationNamePropertyBaseUrl =
  * Validates an organization name. Returns `true` if the name is valid,
  * or an error message string if it is invalid.
  */
-export const orgNameIsInvalid = (orgName: string): string | true =>
-  nameIsInvalid(orgName, "Organization name");
+export const validateOrgName = (orgName: string): string | true =>
+  validateName(orgName, "Organization name");
