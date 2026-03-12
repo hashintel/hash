@@ -58,13 +58,15 @@ export function useSelectionCleanup() {
     }
 
     if (hasStale) {
-      const cleaned: SelectionMap = new Map();
-      for (const [id, item] of selection) {
-        if (validIds.has(id)) {
-          cleaned.set(id, item);
+      setSelection((prev) => {
+        const cleaned: SelectionMap = new Map();
+        for (const [id, item] of prev) {
+          if (validIds.has(id)) {
+            cleaned.set(id, item);
+          }
         }
-      }
-      setSelection(cleaned);
+        return cleaned;
+      });
     }
   }, [petriNetDefinition, selection, setSelection]);
 }
