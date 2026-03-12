@@ -64,8 +64,6 @@ export type EditorActions = {
   ) => void;
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
-  addToSelection: (items: SelectionItem[]) => void;
-  removeFromSelection: (ids: string[]) => void;
   clearSelection: () => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
@@ -113,8 +111,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setSelection: () => {},
   selectItem: () => {},
   toggleItem: () => {},
-  addToSelection: () => {},
-  removeFromSelection: () => {},
   clearSelection: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},

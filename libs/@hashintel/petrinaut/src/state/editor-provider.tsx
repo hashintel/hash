@@ -45,6 +45,24 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }, 500);
   };
 
+  const setSelection = useCallback(
+    (
+      selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+    ) =>
+      setState((prev) => {
+        const selection =
+          typeof selectionOrUpdater === "function"
+            ? selectionOrUpdater(prev.selection)
+            : selectionOrUpdater;
+        const hasSelection = selection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection, hasSelection };
+      }),
+    [],
+  );
+
   const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
@@ -75,20 +93,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelection: (
-      selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
-    ) =>
-      setState((prev) => {
-        const selection =
-          typeof selectionOrUpdater === "function"
-            ? selectionOrUpdater(prev.selection)
-            : selectionOrUpdater;
-        const hasSelection = selection.size > 0;
-        if (prev.hasSelection !== hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection, hasSelection };
-      }),
+    setSelection,
     selectItem: (item: SelectionItem) => {
       setState((prev) => {
         const newSelection: SelectionMap = new Map([[item.id, item]]);
@@ -105,32 +110,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           newSelection.delete(item.id);
         } else {
           newSelection.set(item.id, item);
-        }
-        const hasSelection = newSelection.size > 0;
-        if (prev.hasSelection !== hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection: newSelection, hasSelection };
-      });
-    },
-    addToSelection: (items: SelectionItem[]) => {
-      setState((prev) => {
-        const newSelection = new Map(prev.selection);
-        for (const item of items) {
-          newSelection.set(item.id, item);
-        }
-        const hasSelection = newSelection.size > 0;
-        if (prev.hasSelection !== hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection: newSelection, hasSelection };
-      });
-    },
-    removeFromSelection: (ids: string[]) => {
-      setState((prev) => {
-        const newSelection = new Map(prev.selection);
-        for (const id of ids) {
-          newSelection.delete(id);
         }
         const hasSelection = newSelection.size > 0;
         if (prev.hasSelection !== hasSelection) {

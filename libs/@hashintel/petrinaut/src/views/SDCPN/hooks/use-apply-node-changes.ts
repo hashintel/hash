@@ -56,14 +56,25 @@ export function useApplyNodeChanges() {
               position: change.position ?? { x: 0, y: 0 },
             },
           }));
-        } else if (change.position) {
-          // Drag ended for this node. Use `change.position` directly rather than
-          // reading from `draggingStateByNodeId`, because the closure may be stale:
-          // ReactFlow syncs `onNodesChange` to its store via useEffect, so between
-          // rapid mouse events the callback may reference an older render's state.
-          positionCommits.push({
-            id: change.id,
-            position: change.position,
+        } else {
+          if (change.position) {
+            // Drag ended for this node. Use `change.position` directly rather than
+            // reading from `draggingStateByNodeId`, because the closure may be stale:
+            // ReactFlow syncs `onNodesChange` to its store via useEffect, so between
+            // rapid mouse events the callback may reference an older render's state.
+            positionCommits.push({
+              id: change.id,
+              position: change.position,
+            });
+          }
+          // Always clear dragging state on drag-end, even if position is absent,
+          // to avoid leaving nodes stuck in a visual dragging state.
+          updateDraggingStateByNodeId((existing) => {
+            if (!(change.id in existing)) {
+              return existing;
+            }
+            const { [change.id]: _, ...rest } = existing;
+            return rest;
           });
         }
       }
@@ -86,6 +97,8 @@ export function useApplyNodeChanges() {
           hasNonCanvasItems ? [] : prevSelection,
         );
 
+        let changed = hasNonCanvasItems && prevSelection.size > 0;
+
         for (const change of changes) {
           if (change.type === "select") {
             if (change.selected && !base.has(change.id)) {
@@ -94,14 +107,17 @@ export function useApplyNodeChanges() {
               // (onEdgeClick), not via drag-to-select box selection.
               if (itemType && itemType !== "arc") {
                 base.set(change.id, { type: itemType, id: change.id });
+                changed = true;
               }
             } else if (!change.selected && base.has(change.id)) {
               base.delete(change.id);
+              changed = true;
             }
           }
         }
 
-        return base;
+        // Avoid unnecessary re-renders when nothing actually changed
+        return changed ? base : prevSelection;
       });
     }
 
@@ -135,7 +151,6 @@ export function useApplyNodeChanges() {
           }
         }
       });
-      updateDraggingStateByNodeId(() => ({}));
     }
   };
 }
