@@ -5,15 +5,15 @@
 //!
 //! # Endpoints
 //!
-//! | Method   | Path               | Auth | Availability             |
-//! |----------|--------------------|------|--------------------------|
-//! | `GET`    | `/health`          | —    | Always                   |
-//! | `POST`   | `/entities/delete` | JWT  | Always                   |
-//! | `POST`   | `/snapshot`        | —    | Only without JWT         |
-//! | `DELETE` | `/accounts`        | —    | Only without JWT         |
-//! | `DELETE` | `/data-types`      | —    | Only without JWT         |
-//! | `DELETE` | `/property-types`  | —    | Only without JWT         |
-//! | `DELETE` | `/entity-types`    | —    | Only without JWT         |
+//! | Method   | Path               | Auth   | Availability                        |
+//! |----------|--------------------|--------|-------------------------------------|
+//! | `GET`    | `/health`          | —      | Always                              |
+//! | `POST`   | `/entities/delete` | JWT    | Always                              |
+//! | `POST`   | `/snapshot`        | Header | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/accounts`        | Header | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/data-types`      | Header | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/property-types`  | Header | `--unsafe-allow-dev-authentication` |
+//! | `DELETE` | `/entity-types`    | Header | `--unsafe-allow-dev-authentication` |
 //!
 //! # Authentication
 //!
@@ -22,8 +22,9 @@
 //! 2. `Authorization: Bearer <token>`
 //!
 //! When JWT is configured (`--jwt-jwks-url`), the token's `email` claim is resolved to a HASH
-//! user actor for provenance tracking on `/entities/delete`. When JWT is not configured, the
-//! `X-Authenticated-User-Actor-Id` header is used instead.
+//! user actor for provenance tracking on `/entities/delete`. When JWT is not configured (requires
+//! `--unsafe-allow-dev-authentication`), the `X-Authenticated-User-Actor-Id` header is used
+//! instead. Without JWT and without the flag, the server refuses to start.
 //!
 //! See [`super::jwt`] for validation details.
 //!
@@ -72,7 +73,10 @@ use crate::rest::status::report_to_response;
 ///
 /// When `jwt_validator` is `Some`, only `/health` and `/entities/delete` are available.
 /// Bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
-/// `/entity-types`) are only registered when JWT is **not** configured.
+/// `/entity-types`) are only registered when JWT is **not** configured, which requires the
+/// `--unsafe-allow-dev-authentication` CLI flag — the server refuses to start without JWT
+/// unless that flag is explicitly set. This prevents accidental exposure of destructive
+/// endpoints when authentication is misconfigured in production.
 pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
     // Health endpoint is always public (used by load balancers and healthchecks)
     let public = Router::new().route("/health", get(async || "Healthy"));
@@ -112,8 +116,8 @@ enum AdminActorError {
 /// Resolves the authenticated admin actor from JWT claims.
 ///
 /// When JWT authentication is configured, resolves the actor ID by looking up the email from the
-/// token claims. When JWT is not configured, falls back to the `X-Authenticated-User-Actor-Id`
-/// header.
+/// token claims. When JWT is not configured (requires `--unsafe-allow-dev-authentication`), falls
+/// back to the `X-Authenticated-User-Actor-Id` header.
 struct AdminActorId(AuthenticatedActor);
 
 impl<S: Sync> FromRequestParts<S> for AdminActorId {
@@ -166,7 +170,8 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 
 /// Restores a snapshot from a JSON Lines stream, replacing all existing data.
 ///
-/// Only available when JWT is not configured. See [`SnapshotStore::restore_snapshot`] for details.
+/// Only available with `--unsafe-allow-dev-authentication`. See [`SnapshotStore::restore_snapshot`]
+/// for details.
 async fn restore_snapshot(
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
@@ -192,7 +197,7 @@ async fn restore_snapshot(
     )))
 }
 
-/// Deletes **all** accounts. Only available when JWT is not configured.
+/// Deletes **all** accounts. Only available with `--unsafe-allow-dev-authentication`.
 ///
 /// See [`PostgresStore::delete_principals`] for details.
 ///
@@ -214,7 +219,7 @@ async fn delete_accounts(
     )))
 }
 
-/// Deletes **all** data types. Only available when JWT is not configured.
+/// Deletes **all** data types. Only available with `--unsafe-allow-dev-authentication`.
 ///
 /// See [`PostgresStore::delete_data_types`] for details.
 ///
@@ -236,7 +241,7 @@ async fn delete_data_types(
     )))
 }
 
-/// Deletes **all** property types. Only available when JWT is not configured.
+/// Deletes **all** property types. Only available with `--unsafe-allow-dev-authentication`.
 ///
 /// See [`PostgresStore::delete_property_types`] for details.
 ///
@@ -258,7 +263,7 @@ async fn delete_property_types(
     )))
 }
 
-/// Deletes **all** entity types. Only available when JWT is not configured.
+/// Deletes **all** entity types. Only available with `--unsafe-allow-dev-authentication`.
 ///
 /// See [`PostgresStore::delete_entity_types`] for details.
 ///
