@@ -190,6 +190,17 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             break;
           }
         }
+        // Clear dangling colorId references
+        for (const place of sdcpn.places) {
+          if (place.colorId === typeId) {
+            place.colorId = null;
+          }
+        }
+        for (const equation of sdcpn.differentialEquations) {
+          if (equation.colorId === typeId) {
+            equation.colorId = "";
+          }
+        }
       });
     },
     addDifferentialEquation(equation) {
@@ -213,6 +224,12 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
           if (equation.id === equationId) {
             sdcpn.differentialEquations.splice(index, 1);
             break;
+          }
+        }
+        // Clear dangling differentialEquationId references
+        for (const place of sdcpn.places) {
+          if (place.differentialEquationId === equationId) {
+            place.differentialEquationId = null;
           }
         }
       });
@@ -365,12 +382,32 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
               sdcpn.types.splice(i, 1);
             }
           }
+          // Clear dangling colorId references on places and equations
+          for (const place of sdcpn.places) {
+            if (place.colorId && typeIds.has(place.colorId)) {
+              place.colorId = null;
+            }
+          }
+          for (const equation of sdcpn.differentialEquations) {
+            if (typeIds.has(equation.colorId)) {
+              equation.colorId = "";
+            }
+          }
         }
 
         if (equationIds.size > 0) {
           for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
             if (equationIds.has(sdcpn.differentialEquations[i]!.id)) {
               sdcpn.differentialEquations.splice(i, 1);
+            }
+          }
+          // Clear dangling differentialEquationId references on places
+          for (const place of sdcpn.places) {
+            if (
+              place.differentialEquationId &&
+              equationIds.has(place.differentialEquationId)
+            ) {
+              place.differentialEquationId = null;
             }
           }
         }
