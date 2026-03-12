@@ -127,7 +127,7 @@ const resizeHandleStyle = css({
 
 const headerRowStyle = cva({
   base: {
-    height: "[44px]",
+    height: "11",
     pl: "0.5",
     pr: "2",
 
@@ -149,6 +149,7 @@ const headerRowStyle = cva({
 
 const mainHeaderRowStyle = css({
   p: "3",
+  h: "11",
 
   display: "flex",
   justifyContent: "space-between",
