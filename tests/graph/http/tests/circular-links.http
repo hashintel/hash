@@ -28,7 +28,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
-  "shortname": "test-user",
+  "shortname": "snapshot",
   "registrationComplete": true
 }
 
@@ -76,7 +76,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -109,7 +108,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",

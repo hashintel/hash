@@ -137,6 +137,9 @@ feed.rss
 # Application data
 **/var
 seed-users.json
+**/mastra.db
+**/mastra.db-shm
+**/mastra.db-wal
 
 # Block Protocol
 .blockprotocolrc

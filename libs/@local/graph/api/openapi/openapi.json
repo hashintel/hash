@@ -3803,7 +3803,6 @@
         "type": "object",
         "required": [
           "schema",
-          "webId",
           "provenance",
           "conversions"
         ],
@@ -3829,9 +3828,6 @@
                 }
               }
             ]
-          },
-          "webId": {
-            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -3905,7 +3901,6 @@
         "type": "object",
         "required": [
           "schema",
-          "webId",
           "provenance"
         ],
         "properties": {
@@ -3924,9 +3919,6 @@
                 }
               }
             ]
-          },
-          "webId": {
-            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -3955,7 +3947,6 @@
         "type": "object",
         "required": [
           "schema",
-          "webId",
           "provenance"
         ],
         "properties": {
@@ -3974,9 +3965,6 @@
                 }
               }
             ]
-          },
-          "webId": {
-            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
