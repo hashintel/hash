@@ -277,6 +277,68 @@ function compileBlock(
   return { ok: true, sympyCode: lines[lines.length - 1]! };
 }
 
+/**
+ * Compiles `collection.map(callback)` to a Python list comprehension.
+ *
+ * Handles two callback parameter styles:
+ * - Destructured: `({ x, y }) => ...` → binds each field as `_iter_x`, `_iter_y`
+ * - Simple identifier: `(token) => ...` → binds as-is
+ *
+ * Emits: `[<body> for _iter in <collection>]`
+ */
+function compileMapCall(
+  collection: ts.Expression,
+  callback: ts.ArrowFunction | ts.FunctionExpression,
+  context: SymPyCompilationContext,
+  outerBindings: Map<string, string>,
+  innerParams: string[],
+  sourceFile: ts.SourceFile,
+): SymPyResult {
+  const iterVar = "_iter";
+  const mapBindings = new Map(outerBindings);
+
+  const param = callback.parameters[0];
+  if (param) {
+    const paramName = param.name;
+    if (ts.isObjectBindingPattern(paramName)) {
+      // Destructured: ({ x, y, ... }) => ...
+      // Each field becomes a symbol like _iter_x, _iter_y
+      for (const element of paramName.elements) {
+        const fieldName = element.name.getText(sourceFile);
+        mapBindings.set(fieldName, `${iterVar}_${fieldName}`);
+      }
+    } else {
+      // Simple identifier: (token) => ...
+      mapBindings.set(paramName.getText(sourceFile), iterVar);
+    }
+  }
+
+  // Compile the body
+  const body = callback.body;
+  let bodyResult: SymPyResult;
+  if (ts.isBlock(body)) {
+    bodyResult = compileBlock(body, context, mapBindings, sourceFile);
+  } else {
+    bodyResult = emitSymPy(body, context, mapBindings, innerParams, sourceFile);
+  }
+  if (!bodyResult.ok) return bodyResult;
+
+  // Compile the collection expression
+  const collectionResult = emitSymPy(
+    collection,
+    context,
+    outerBindings,
+    innerParams,
+    sourceFile,
+  );
+  if (!collectionResult.ok) return collectionResult;
+
+  return {
+    ok: true,
+    sympyCode: `[${bodyResult.sympyCode} for ${iterVar} in ${collectionResult.sympyCode}]`,
+  };
+}
+
 const MATH_FUNCTION_MAP: Record<string, string> = {
   cos: "sp.cos",
   sin: "sp.sin",
@@ -722,6 +784,25 @@ function emitSymPy(
       if (callee.text === "Number" && node.arguments.length === 1) {
         return emitSymPy(
           node.arguments[0]!,
+          context,
+          localBindings,
+          innerParams,
+          sourceFile,
+        );
+      }
+    }
+
+    // .map(callback) on arrays/tokens — emit as Python list comprehension
+    if (
+      ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === "map" &&
+      node.arguments.length === 1
+    ) {
+      const callback = node.arguments[0]!;
+      if (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) {
+        return compileMapCall(
+          callee.expression,
+          callback,
           context,
           localBindings,
           innerParams,
