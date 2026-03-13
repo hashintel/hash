@@ -6,7 +6,7 @@ use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
 use futures_lite::StreamExt as _;
 use hashql_core::{
     collections::FastHashMap,
-    heap::{ResetAllocator as _, Scratch},
+    heap::{BumpAllocator, ResetAllocator as _, Scratch},
     symbol::Symbol,
 };
 use hashql_mir::{
@@ -88,24 +88,27 @@ struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
     // TODO: the context and the input allocator must be different!
     client: Client,
     queries: &'env PreparedQueries<'heap, A>,
-    inputs: &'env Inputs<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
 
-    scratch: Scratch, // <- TODO: must be a pool
     _marker: PhantomData<C>,
 }
 
 impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
-    async fn graph_read_row<L: Allocator + Clone>(
+    async fn graph_read_row_in<L: BumpAllocator + Clone>(
         &self,
+        inputs: &Inputs<'heap, L>,
+        parent: &CallStack<'ctx, 'heap, L>,
+
         read: &GraphRead<'heap>,
-        parent: &CallStack<'ctx, 'heap, &Scratch>,
-        row: Row,
         query: &PreparedQuery<'_, impl Allocator>,
+
+        row: Row,
+
+        alloc: L,
     ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
         let mut partial = Partial::new(query.vertex_type);
-        let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
-        let mut states = Vec::new_in(&self.scratch);
+        let decoder = Decoder::new(self.context.env, self.context.interner, alloc.clone());
+        let mut states = Vec::new_in(alloc.clone());
 
         for (index, &column) in query.columns.iter().enumerate() {
             match column {
@@ -141,18 +144,18 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                         };
 
                     state
-                        .hydrate(Indexed::new(index, column), field, &row, &self.scratch)
+                        .hydrate(Indexed::new(index, column), field, &row, alloc.clone())
                         .map_err(RuntimeError::Suspension)?;
                 }
             }
         }
 
-        let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
-        let mut completed = Vec::with_capacity_in(states.len(), &self.scratch);
+        let decoder = Decoder::new(self.context.env, self.context.interner, alloc.clone());
+        let mut completed = Vec::with_capacity_in(states.len(), alloc.clone());
         for state in states {
             let body = &self.context.bodies[state.body];
             let state = state
-                .finish_in(&decoder, body, &self.scratch)
+                .finish_in(&decoder, body, alloc.clone())
                 .map_err(RuntimeError::Suspension)?;
 
             if let Some(state) = state {
@@ -163,10 +166,10 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
             self.context.bodies,
-            &self.inputs.inner,
-            &self.scratch,
+            &inputs.inner,
+            alloc.clone(),
         );
-        let entity = partial.finish_in(self.context.interner, &self.scratch);
+        let entity = partial.finish_in(self.context.interner, alloc.clone());
 
         // Now that we have the completed states, it's time to fulfill the graph read, by running
         // everything through the filter chain.
@@ -178,6 +181,9 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
         for body in &read.body {
             match body {
                 &GraphReadBody::Filter(def_id, env) => {
+                    // TODO: we should probably *scope* here / reset / checkpoint
+                    let checkpoint = alloc.checkpoint();
+
                     let residual = self
                         .context
                         .execution
@@ -189,7 +195,7 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                     let Ok(mut callstack) = CallStack::new_in(
                         &self.context.bodies[def_id],
                         [Ok::<_, !>(env.clone()), Ok(entity.clone())],
-                        &self.scratch,
+                        alloc.clone(),
                     );
 
                     loop {
@@ -208,6 +214,9 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                                 // pick it up by the parent runner.
                                 // That way we can also just recycle memory easily, and have no
                                 // nested BS.
+                                // Nah we can just call ourselves, because of &self.
+
+                                // TODO: if return value, then we need to filter depending on it.
                             }
                             TargetId::Postgres => {
                                 // We must check if the postgres state exists, if it doesn't then we
@@ -221,6 +230,8 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                                 }) else {
                                     // This means that the block has already been evaluated before,
                                     // which in turns means that we can just skip this filter body.
+                                    // TODO: this must BREAK and set it to TRUE to be skipped. It
+                                    // cannot continue the filter loop, because of the checkpoint.
                                     continue;
                                 };
 
@@ -228,8 +239,26 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                                 // been captured, and advance the pointer.
                                 state.flush(&mut callstack);
                             }
-                            TargetId::Embedding => unimplemented!(),
+                            TargetId::Embedding => {
+                                // TODO: in the future this may benefit from a dispatch barrier, the
+                                // idea that we wait for sufficient embedding calls to the same
+                                // island to dispatch. Must be smaller than the buffer size.
+                                unimplemented!()
+                            }
                         }
+                    }
+
+                    // TODO: DROP MUST BE CALLED BEFORE THIS
+                    // TODO: we must re-create the runtime if we want to rollback here, because we
+                    // might have allocated memory that needs to be freed.
+                    drop(callstack);
+
+                    #[expect(unsafe_code)]
+                    // SAFETY: None of the allocations made in this loop are shared with the
+                    // caller, and none of the state is shared, so rolling back
+                    // is safe.
+                    unsafe {
+                        alloc.rollback(checkpoint);
                     }
 
                     // The issue that we're running into is that here there are multiple ways we can
@@ -309,7 +338,7 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                 })
                 .map_err(RuntimeError::Suspension)?;
 
-            self.graph_read_row(read, callstack, row, query).await;
+            self.graph_read_row_in(read, callstack, row, query).await;
         }
 
         todo!()

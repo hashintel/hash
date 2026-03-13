@@ -271,7 +271,7 @@ pub struct Runtime<'ctx, 'heap, A: Allocator = Global> {
     /// All available function bodies, indexed by [`DefId`].
     bodies: &'ctx DefIdSlice<Body<'heap>>,
     /// Input values available for [`InputOp::Load`] operations.
-    inputs: FastHashMap<Symbol<'heap>, Value<'heap, A>>,
+    inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
 
     scratch: Scratch<'heap, A>,
 }
@@ -286,7 +286,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     pub fn new(
         config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
-        inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
+        inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap>>,
     ) -> Self {
         Self::new_in(config, bodies, inputs, Global)
     }
@@ -297,7 +297,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     pub fn new_in(
         config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
-        inputs: FastHashMap<Symbol<'heap>, Value<'heap, A>>,
+        inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
         alloc: A,
     ) -> Self {
         Self {
