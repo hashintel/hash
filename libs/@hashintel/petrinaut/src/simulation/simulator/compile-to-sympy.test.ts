@@ -726,6 +726,19 @@ describe("compileToSymPy", () => {
       }
     });
 
+    it("should reject var declarations", () => {
+      const code = `export default Lambda(() => {
+          var x = 1;
+          return x;
+        })`;
+      const result = compileToSymPy(code, defaultContext);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain("var");
+        expect(result.error).toContain("use 'const'");
+      }
+    });
+
     it("should reject string literals with position", () => {
       const code = `export default Lambda(() => "hello")`;
       const result = compileToSymPy(code, defaultContext);
@@ -745,6 +758,23 @@ describe("compileToSymPy", () => {
         expect(result.error).toContain("Unsupported function call");
         expect(result.start).toBe(code.indexOf("console.log(1)"));
         expect(result.length).toBe("console.log(1)".length);
+      }
+    });
+
+    it("should reject standalone expression statements", () => {
+      const code = `export default Lambda((tokensByPlace, parameters) => {
+          const a = Boolean(1 + 2);
+          Boolean(1 + 2);
+          return Boolean(1 + 2);
+        })`;
+      const result = compileToSymPy(code, defaultContext);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain("Standalone expression has no effect");
+        // The standalone expression is the second line in the block
+        const standalonePos = code.indexOf("\n          Boolean(1 + 2);") + 11;
+        expect(result.start).toBe(standalonePos);
+        expect(result.length).toBe("Boolean(1 + 2);".length);
       }
     });
 
