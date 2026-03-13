@@ -1,7 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
-import { use, useCallback, useEffect, useRef, useState } from "react";
-import { LuArrowDownWideNarrow, LuListFilter, LuSearch } from "react-icons/lu";
+import { use, useEffect, useRef, useState } from "react";
+import { LuSearch } from "react-icons/lu";
 import { TbDots } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -152,12 +152,6 @@ const FilterHeaderAction: React.FC<{
 
   return (
     <>
-      <IconButton aria-label="Filter list" size="xs">
-        <LuListFilter />
-      </IconButton>
-      <IconButton aria-label="Sort list" size="xs">
-        <LuArrowDownWideNarrow />
-      </IconButton>
       <IconButton
         aria-label="Search list"
         size="xs"
@@ -254,120 +248,107 @@ const FilterableListContent = <T extends FilterableListItem>({
     }
   }, [focusedIndex]);
 
-  const selectRange = useCallback(
-    (fromIndex: number | null, toIndex: number) => {
-      const start = Math.min(fromIndex ?? toIndex, toIndex);
-      const end = Math.max(fromIndex ?? toIndex, toIndex);
-      const newSelection: SelectionMap = new Map();
-      for (let i = start; i <= end; i++) {
-        const item = items[i];
-        if (item) {
-          const selItem = getSelectionItem(item);
-          newSelection.set(selItem.id, selItem);
-        }
+  const selectRange = (fromIndex: number | null, toIndex: number) => {
+    const start = Math.min(fromIndex ?? toIndex, toIndex);
+    const end = Math.max(fromIndex ?? toIndex, toIndex);
+    const newSelection: SelectionMap = new Map();
+    for (let i = start; i <= end; i++) {
+      const item = items[i];
+      if (item) {
+        const selItem = getSelectionItem(item);
+        newSelection.set(selItem.id, selItem);
       }
-      setSelection(newSelection);
-    },
-    [items, getSelectionItem, setSelection],
-  );
+    }
+    setSelection(newSelection);
+  };
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (items.length === 0) {
-        return;
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (items.length === 0) {
+      return;
+    }
+
+    switch (event.key) {
+      case "ArrowDown": {
+        event.preventDefault();
+        const nextIndex =
+          focusedIndex === null
+            ? 0
+            : Math.min(focusedIndex + 1, items.length - 1);
+        setFocusedIndex(nextIndex);
+        if (event.shiftKey) {
+          selectRange(anchorIndex ?? nextIndex, nextIndex);
+        } else {
+          const item = items[nextIndex];
+          if (item) {
+            selectItem(getSelectionItem(item));
+          }
+          setAnchorIndex(nextIndex);
+        }
+        break;
       }
-
-      switch (event.key) {
-        case "ArrowDown": {
-          event.preventDefault();
-          const nextIndex =
-            focusedIndex === null
-              ? 0
-              : Math.min(focusedIndex + 1, items.length - 1);
-          setFocusedIndex(nextIndex);
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            const item = items[nextIndex];
-            if (item) {
-              selectItem(getSelectionItem(item));
-            }
-            setAnchorIndex(nextIndex);
+      case "ArrowUp": {
+        event.preventDefault();
+        const nextIndex =
+          focusedIndex === null
+            ? items.length - 1
+            : Math.max(focusedIndex - 1, 0);
+        setFocusedIndex(nextIndex);
+        if (event.shiftKey) {
+          selectRange(anchorIndex ?? nextIndex, nextIndex);
+        } else {
+          const item = items[nextIndex];
+          if (item) {
+            selectItem(getSelectionItem(item));
           }
-          break;
+          setAnchorIndex(nextIndex);
         }
-        case "ArrowUp": {
-          event.preventDefault();
-          const nextIndex =
-            focusedIndex === null
-              ? items.length - 1
-              : Math.max(focusedIndex - 1, 0);
-          setFocusedIndex(nextIndex);
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            const item = items[nextIndex];
-            if (item) {
-              selectItem(getSelectionItem(item));
-            }
-            setAnchorIndex(nextIndex);
-          }
-          break;
-        }
-        case "Enter":
-        case " ": {
-          event.preventDefault();
-          if (focusedIndex !== null) {
-            const item = items[focusedIndex];
-            if (item) {
-              selectItem(getSelectionItem(item));
-              setAnchorIndex(focusedIndex);
-            }
-          }
-          break;
-        }
-        case "Escape": {
-          clearSelection();
-          setFocusedIndex(null);
-          setAnchorIndex(null);
-          break;
-        }
+        break;
       }
-    },
-    [
-      items,
-      focusedIndex,
-      anchorIndex,
-      selectItem,
-      getSelectionItem,
-      clearSelection,
-      selectRange,
-    ],
-  );
+      case "Enter":
+      case " ": {
+        event.preventDefault();
+        if (focusedIndex !== null) {
+          const item = items[focusedIndex];
+          if (item) {
+            selectItem(getSelectionItem(item));
+            setAnchorIndex(focusedIndex);
+          }
+        }
+        break;
+      }
+      case "Escape": {
+        clearSelection();
+        setFocusedIndex(null);
+        setAnchorIndex(null);
+        break;
+      }
+    }
+  };
 
-  const handleContainerClick = useCallback(() => {
+  const handleContainerClick = () => {
     clearSelection();
     setFocusedIndex(null);
     setAnchorIndex(null);
-  }, [clearSelection]);
+  };
 
-  const handleRowClick = useCallback(
-    (event: React.MouseEvent, index: number, selectionItem: SelectionItem) => {
-      event.stopPropagation();
-      setFocusedIndex(index);
+  const handleRowClick = (
+    event: React.MouseEvent,
+    index: number,
+    selectionItem: SelectionItem,
+  ) => {
+    event.stopPropagation();
+    setFocusedIndex(index);
 
-      if (event.shiftKey && anchorIndex !== null) {
-        selectRange(anchorIndex, index);
-      } else if (event.metaKey || event.ctrlKey) {
-        toggleItem(selectionItem);
-        setAnchorIndex(index);
-      } else {
-        selectItem(selectionItem);
-        setAnchorIndex(index);
-      }
-    },
-    [anchorIndex, selectRange, toggleItem, selectItem],
-  );
+    if (event.shiftKey && anchorIndex !== null) {
+      selectRange(anchorIndex, index);
+    } else if (event.metaKey || event.ctrlKey) {
+      toggleItem(selectionItem);
+      setAnchorIndex(index);
+    } else {
+      selectItem(selectionItem);
+      setAnchorIndex(index);
+    }
+  };
 
   return (
     <div

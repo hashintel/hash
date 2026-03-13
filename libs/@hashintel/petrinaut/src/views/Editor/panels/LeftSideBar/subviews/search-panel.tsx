@@ -1,7 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import fuzzysort from "fuzzysort";
 import type { ComponentType, ReactNode } from "react";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { LuSearch } from "react-icons/lu";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -156,50 +156,47 @@ function useSearchableItems(): SearchableItem[] {
     },
   } = use(SDCPNContext);
 
-  return useMemo(
-    () => [
-      ...places.map((p) => ({
-        id: p.id,
-        name: p.name || `Place ${p.id}`,
-        category: "Node",
-        icon: PlaceFilledIcon,
-        selectionItem: { type: "place" as const, id: p.id },
-      })),
-      ...transitions.map((t) => ({
-        id: t.id,
-        name: t.name || `Transition ${t.id}`,
-        category: "Node",
-        icon: TransitionFilledIcon,
-        selectionItem: { type: "transition" as const, id: t.id },
-      })),
-      ...types.map((t) => ({
-        id: t.id,
-        name: t.name,
-        category: "Type",
-        icon: TokenTypeIcon,
-        iconColor: t.displayColor,
-        selectionItem: { type: "type" as const, id: t.id },
-      })),
-      ...differentialEquations.map((eq) => ({
+  return [
+    ...places.map((p) => ({
+      id: p.id,
+      name: p.name || `Place ${p.id}`,
+      category: "Node",
+      icon: PlaceFilledIcon,
+      selectionItem: { type: "place" as const, id: p.id },
+    })),
+    ...transitions.map((t) => ({
+      id: t.id,
+      name: t.name || `Transition ${t.id}`,
+      category: "Node",
+      icon: TransitionFilledIcon,
+      selectionItem: { type: "transition" as const, id: t.id },
+    })),
+    ...types.map((t) => ({
+      id: t.id,
+      name: t.name,
+      category: "Type",
+      icon: TokenTypeIcon,
+      iconColor: t.displayColor,
+      selectionItem: { type: "type" as const, id: t.id },
+    })),
+    ...differentialEquations.map((eq) => ({
+      id: eq.id,
+      name: eq.name,
+      category: "Equation",
+      icon: DifferentialEquationIcon,
+      selectionItem: {
+        type: "differentialEquation" as const,
         id: eq.id,
-        name: eq.name,
-        category: "Equation",
-        icon: DifferentialEquationIcon,
-        selectionItem: {
-          type: "differentialEquation" as const,
-          id: eq.id,
-        },
-      })),
-      ...parameters.map((p) => ({
-        id: p.id,
-        name: p.name,
-        category: "Parameter",
-        icon: ParameterIcon,
-        selectionItem: { type: "parameter" as const, id: p.id },
-      })),
-    ],
-    [places, transitions, types, differentialEquations, parameters],
-  );
+      },
+    })),
+    ...parameters.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: "Parameter",
+      icon: ParameterIcon,
+      selectionItem: { type: "parameter" as const, id: p.id },
+    })),
+  ];
 }
 
 // -- Components ---------------------------------------------------------------
@@ -231,26 +228,23 @@ const SearchContent: React.FC = () => {
     return () => input.removeEventListener("input", handleInput);
   }, [searchInputRef]);
 
-  const results: SearchResult[] = useMemo(() => {
-    const trimmed = query.trim();
-    if (trimmed === "") {
-      return allItems.map((item) => ({ item, highlighted: item.name }));
-    }
-
-    const fuzzyResults = fuzzysort.go(trimmed, allItems, {
-      key: "name",
-      threshold: -1000,
-    });
-
-    return fuzzyResults.map((result) => ({
-      item: result.obj,
-      highlighted: result.highlight((match, i) => (
-        <span key={i} className={highlightStyle}>
-          {match}
-        </span>
-      )),
-    }));
-  }, [query, allItems]);
+  const trimmed = query.trim();
+  const results: SearchResult[] =
+    trimmed === ""
+      ? []
+      : fuzzysort
+          .go(trimmed, allItems, {
+            key: "name",
+            threshold: -1000,
+          })
+          .map((result) => ({
+            item: result.obj,
+            highlighted: result.highlight((match, i) => (
+              <span key={i} className={highlightStyle}>
+                {match}
+              </span>
+            )),
+          }));
 
   // Clamp focusedIndex when results shrink
   useEffect(() => {
@@ -270,64 +264,61 @@ const SearchContent: React.FC = () => {
     }
   }, [focusedIndex]);
 
-  const handleListKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      switch (event.key) {
-        case "ArrowDown": {
-          event.preventDefault();
-          if (results.length === 0) {
-            return;
-          }
-          const nextIndex =
-            focusedIndex === null
-              ? 0
-              : Math.min(focusedIndex + 1, results.length - 1);
+  const handleListKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case "ArrowDown": {
+        event.preventDefault();
+        if (results.length === 0) {
+          return;
+        }
+        const nextIndex =
+          focusedIndex === null
+            ? 0
+            : Math.min(focusedIndex + 1, results.length - 1);
+        setFocusedIndex(nextIndex);
+        const item = results[nextIndex];
+        if (item) {
+          selectItem(item.item.selectionItem);
+        }
+        break;
+      }
+      case "ArrowUp": {
+        event.preventDefault();
+        if (focusedIndex === null || focusedIndex === 0) {
+          // Move focus back to the search input
+          setFocusedIndex(null);
+          searchInputRef.current?.focus();
+        } else {
+          const nextIndex = focusedIndex - 1;
           setFocusedIndex(nextIndex);
           const item = results[nextIndex];
           if (item) {
             selectItem(item.item.selectionItem);
           }
-          break;
         }
-        case "ArrowUp": {
-          event.preventDefault();
-          if (focusedIndex === null || focusedIndex === 0) {
-            // Move focus back to the search input
-            setFocusedIndex(null);
-            searchInputRef.current?.focus();
-          } else {
-            const nextIndex = focusedIndex - 1;
-            setFocusedIndex(nextIndex);
-            const item = results[nextIndex];
-            if (item) {
-              selectItem(item.item.selectionItem);
-            }
-          }
-          break;
-        }
-        case "Enter": {
-          event.preventDefault();
-          if (focusedIndex !== null) {
-            const item = results[focusedIndex];
-            if (item) {
-              selectItem(item.item.selectionItem);
-            }
-          }
-          break;
-        }
+        break;
       }
-    },
-    [results, focusedIndex, selectItem, searchInputRef],
-  );
+      case "Enter": {
+        event.preventDefault();
+        if (focusedIndex !== null) {
+          const item = results[focusedIndex];
+          if (item) {
+            selectItem(item.item.selectionItem);
+          }
+        }
+        break;
+      }
+    }
+  };
 
-  const matchLabel =
-    query.trim() === ""
-      ? `${results.length} items`
-      : `${results.length} match${results.length === 1 ? "" : "es"}`;
+  const hasQuery = trimmed !== "";
+  const matchLabel = hasQuery
+    ? `${results.length} match${results.length === 1 ? "" : "es"}`
+    : null;
 
   return (
     <>
-      <div className={matchCountStyle}>{matchLabel}</div>
+      {matchLabel && <div className={matchCountStyle}>{matchLabel}</div>}
       {results.length > 0 ? (
         <div
           ref={listRef}
@@ -337,13 +328,9 @@ const SearchContent: React.FC = () => {
           onKeyDown={handleListKeyDown}
           onFocus={() => {
             // When the list receives focus (e.g. from ArrowDown in input),
-            // highlight and select the first item
+            // highlight the first item. Selection happens on Enter or ArrowDown.
             if (focusedIndex === null && results.length > 0) {
               setFocusedIndex(0);
-              const first = results[0];
-              if (first) {
-                selectItem(first.item.selectionItem);
-              }
             }
           }}
         >
@@ -382,9 +369,9 @@ const SearchContent: React.FC = () => {
             );
           })}
         </div>
-      ) : (
+      ) : hasQuery ? (
         <div className={emptyResultsStyle}>No matches</div>
-      )}
+      ) : null}
     </>
   );
 };
