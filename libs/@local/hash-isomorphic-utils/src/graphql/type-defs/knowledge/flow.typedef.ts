@@ -215,7 +215,7 @@ export const flowTypedef = gql`
       offset: Int
       """
       Maximum number of flow runs to return (for offset-based pagination).
-      Defaults to 50 and is capped at that value.
+      Defaults to 100 and is capped at that value.
       Negative values are clamped to 0.
       """
       limit: Int
