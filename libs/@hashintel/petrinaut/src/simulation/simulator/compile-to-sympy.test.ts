@@ -607,6 +607,57 @@ describe("compileToSymPy", () => {
     });
   });
 
+  describe(".map() list comprehension", () => {
+    it("should compile tokens.map with destructured params", () => {
+      const result = compileToSymPy(
+        `export default Dynamics((tokens, parameters) => {
+          const mu = parameters.gravitational_constant;
+          return tokens.map(({ x, y, direction, velocity }) => {
+            const r = Math.hypot(x, y);
+            const ax = (-mu * x) / (r * r * r);
+            const ay = (-mu * y) / (r * r * r);
+            return {
+              x: velocity * Math.cos(direction),
+              y: velocity * Math.sin(direction),
+              direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
+              velocity: ax * Math.cos(direction) + ay * Math.sin(direction),
+            };
+          });
+        })`,
+        dynamicsContext(),
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.sympyCode).toContain("for _iter in tokens");
+        expect(result.sympyCode).toContain("_iter_x");
+        expect(result.sympyCode).toContain("_iter_velocity");
+        expect(result.sympyCode).toContain("sp.cos(_iter_direction)");
+      }
+    });
+
+    it("should compile simple .map with identifier param", () => {
+      const result = compileToSymPy(
+        `export default Lambda((tokens) => tokens.map((token) => token + 1))`,
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "[_iter + 1 for _iter in tokens]",
+      });
+    });
+
+    it("should compile .map with expression body", () => {
+      const result = compileToSymPy(
+        `export default Lambda((tokens, parameters) => tokens.map(({ x }) => x * parameters.infection_rate))`,
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "[_iter_x * infection_rate for _iter in tokens]",
+      });
+    });
+  });
+
   describe("error handling", () => {
     it("should reject code without default export", () => {
       const result = compileToSymPy(
