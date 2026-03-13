@@ -15,10 +15,10 @@ import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subvie
 import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
 
 export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
+  nodesListSubView,
   typesListSubView,
   differentialEquationsListSubView,
   parametersListSubView,
-  nodesListSubView,
 ];
 
 // Base subviews always visible in the bottom panel
