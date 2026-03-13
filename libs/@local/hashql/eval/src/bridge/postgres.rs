@@ -164,19 +164,10 @@ pub(crate) struct PostgresState<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PostgresState<'heap, A> {
-    pub fn callstack<'ctx>(
-        &self,
-        body: &'ctx Body<'heap>,
-        env: Value<'heap, A>,
-        entity: Value<'heap, A>,
-        alloc: A,
-    ) -> CallStack<'ctx, 'heap, A>
+    pub fn flush<'ctx>(&self, callstack: &mut CallStack<'ctx, 'heap, A>)
     where
         A: Clone,
     {
-        let Ok(mut callstack) =
-            CallStack::new_in(body, [Ok::<_, !>(env), Ok(entity)], alloc.clone());
-
         callstack.set_current_block_unchecked(self.target);
 
         // We must now advance the *last frame* (the current frame), with the current block
@@ -189,7 +180,5 @@ impl<'heap, A: Allocator> PostgresState<'heap, A> {
         for (local, value) in &self.locals {
             *frame_locals.local_mut(*local) = value.clone();
         }
-
-        callstack
     }
 }

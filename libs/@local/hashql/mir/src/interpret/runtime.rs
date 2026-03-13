@@ -176,6 +176,13 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
             .map(|frame| &mut frame.locals)
     }
 
+    pub fn current_block(&self) -> Result<BasicBlockId, RuntimeError<'heap, !, A>> {
+        self.frames
+            .last()
+            .map(|frame| frame.current_block.id)
+            .ok_or(RuntimeError::CallstackEmpty)
+    }
+
     pub fn set_current_block_unchecked(
         &mut self,
         block_id: BasicBlockId,

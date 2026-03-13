@@ -44,7 +44,7 @@ use super::{Island, IslandId, IslandVec};
 use crate::{
     body::{
         Body,
-        basic_block::{BasicBlockId, BasicBlockVec},
+        basic_block::{BasicBlock, BasicBlockId, BasicBlockVec},
     },
     pass::execution::{
         TargetId, VertexType,
@@ -278,6 +278,12 @@ impl<A: Allocator> IslandGraph<A> {
             .iter_nodes()
             .filter(move |node| node.data.target == target)
             .map(|node| (IslandId::new(node.id().as_u32()), &node.data))
+    }
+
+    pub fn lookup(&self, block: BasicBlockId) -> (IslandId, &IslandNode) {
+        let id = self.lookup[block];
+
+        (id, &self[id])
     }
 }
 

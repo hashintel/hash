@@ -10,9 +10,17 @@ use hashql_core::{
     symbol::Symbol,
 };
 use hashql_mir::{
-    body::{Body, basic_block::BasicBlockId},
+    body::{
+        Body,
+        basic_block::BasicBlockId,
+        terminator::{GraphRead, GraphReadBody},
+    },
     def::{DefId, DefIdSlice},
-    interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension, value::Value},
+    interpret::{
+        CallStack, Runtime, RuntimeConfig, RuntimeError, suspension::GraphReadSuspension,
+        value::Value,
+    },
+    pass::execution::TargetId,
 };
 use postgres_types::ToSql;
 use tokio_postgres::{Client, Row};
@@ -77,6 +85,7 @@ impl<T> Deref for Indexed<T> {
 }
 
 struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
+    // TODO: the context and the input allocator must be different!
     client: Client,
     queries: &'env PreparedQueries<'heap, A>,
     inputs: &'env Inputs<'heap, A>,
@@ -87,8 +96,10 @@ struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
 }
 
 impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
-    async fn graph_read_postgres<L: Allocator + Clone>(
+    async fn graph_read_row<L: Allocator + Clone>(
         &self,
+        read: &GraphRead<'heap>,
+        parent: &CallStack<'ctx, 'heap, &Scratch>,
         row: Row,
         query: &PreparedQuery<'_, impl Allocator>,
     ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
@@ -149,6 +160,95 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
             }
         }
 
+        let mut runtime = Runtime::new_in(
+            RuntimeConfig::default(),
+            self.context.bodies,
+            &self.inputs.inner,
+            &self.scratch,
+        );
+        let entity = partial.finish_in(self.context.interner, &self.scratch);
+
+        // Now that we have the completed states, it's time to fulfill the graph read, by running
+        // everything through the filter chain.
+        // This is sequential in nature, because in the future filters may depend on the mapped
+        // value. The parallelisation opportunity of sequential filters isn't applicable here,
+        // instead that should be done inside either the HIR or MIR.
+        // TODO: implement consecutive filter fusing
+        // TODO: we must find all the data islands and fulfill them
+        for body in &read.body {
+            match body {
+                &GraphReadBody::Filter(def_id, env) => {
+                    let residual = self
+                        .context
+                        .execution
+                        .lookup(def_id)
+                        .unwrap_or_else(|| unreachable!("this should probably be an ICE"));
+
+                    let env = parent.locals()?.local(env)?;
+
+                    let Ok(mut callstack) = CallStack::new_in(
+                        &self.context.bodies[def_id],
+                        [Ok::<_, !>(env.clone()), Ok(entity.clone())],
+                        &self.scratch,
+                    );
+
+                    loop {
+                        let (island_id, island_node) =
+                            residual.islands.lookup(callstack.current_block()?);
+
+                        match island_node.target() {
+                            TargetId::Interpreter => {
+                                // TODO: this must actually be implemented AND must only do it on
+                                // the last frame, no mid-way suspension here amigo.
+                                runtime.run_until(|target| {
+                                    residual.islands.lookup(target).0 != island_id
+                                });
+
+                                // TODO: if we have a continuation here? just put it in a task, and
+                                // pick it up by the parent runner.
+                                // That way we can also just recycle memory easily, and have no
+                                // nested BS.
+                            }
+                            TargetId::Postgres => {
+                                // We must check if the postgres state exists, if it doesn't then we
+                                // have a problem, why?
+                                // Well... wouldn't you like to know weather boy.
+                                // The issue pertains to the fact that it should've already been
+                                // evaluated, which means that we should've never reached this
+                                // specific state.
+                                let Some(state) = completed.iter().find(|state| {
+                                    state.body == def_id && state.island == island_id
+                                }) else {
+                                    unreachable!(
+                                        "should be evaluated directly inside of the postgres query"
+                                    )
+                                };
+
+                                // We must not flush the locals of the body to the values that have
+                                // been captured, and advance the pointer.
+                                state.flush(&mut callstack);
+                            }
+                            TargetId::Embedding => unimplemented!(),
+                        }
+                    }
+
+                    // The issue that we're running into is that here there are multiple ways we can
+                    // continue. What do I mean by that? We **know** we must start at the
+                    // `BasicBlock::START`, but there may be some data that we're relying on that
+                    // isn't loaded yet. The fundamental tension is between data
+                    // islands, that add new information and actual control flow.
+                    // For control flow it's linear, but(!) data islands can be loaded in parallel
+                    // at the beginning of execution, which we should do here.
+                    // What does that mean? Good question! Before we run any filter we check all
+                    // data nodes, aggregate them, and then dispatch them. Data nodes cannot have
+                    // *any* dependencies (I mean how they just load data), but we need the entity
+                    // directly to be able to fulfill them.
+                    // We THEN merge them into the total entity, which we then materialize. YES YES
+                    // YES YES.
+                }
+            }
+        }
+
         todo!()
     }
 
@@ -198,8 +298,19 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
             })
             .map_err(RuntimeError::Suspension)?;
 
-        // Now that we have the row stream of information, we must assemble the crew, and actually
-        // do all the operations that are required.
+        let mut response = pin!(response);
+
+        // TODO: parallelisation opportunity
+        while let Some(row) = response.next().await {
+            let row = row
+                .map_err(|error| BridgeError::QueryExecution {
+                    sql: statement.clone(),
+                    source: error,
+                })
+                .map_err(RuntimeError::Suspension)?;
+
+            self.graph_read_row(read, callstack, row, query).await;
+        }
 
         todo!()
     }
