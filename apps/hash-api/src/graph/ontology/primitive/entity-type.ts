@@ -115,7 +115,6 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType(
     authentication.actorId,
     {
-      webId,
       schema,
       provenance: {
         ...ctx.provenance,
