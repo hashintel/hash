@@ -4,26 +4,35 @@
 use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
 
 use futures_lite::StreamExt as _;
-use hashql_core::heap::{ResetAllocator as _, Scratch};
+use hashql_core::{
+    collections::FastHashMap,
+    heap::{ResetAllocator as _, Scratch},
+    symbol::Symbol,
+};
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId},
     def::{DefId, DefIdSlice},
-    interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension},
+    interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension, value::Value},
 };
 use postgres_types::ToSql;
 use tokio_postgres::Client;
 
-use self::{
-    codec::{Inputs, encode_parameter_in},
-    error::BridgeError,
-};
-use crate::postgres::{Parameter, PreparedQuery};
+use self::{codec::encode::encode_parameter_in, error::BridgeError};
+use crate::postgres::PreparedQuery;
 
 mod codec;
 pub(crate) mod error;
 mod partial;
-mod postgres_serde;
-mod temporal;
+
+pub(crate) struct Inputs<'heap, A: Allocator> {
+    pub(crate) inner: FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
+}
+
+impl<'heap, A: Allocator> Inputs<'heap, A> {
+    pub(crate) fn get(&self, symbol: Symbol<'heap>) -> Option<&Value<'heap, A>> {
+        self.inner.get(&symbol)
+    }
+}
 
 struct PreparedQueries<'heap, A: Allocator> {
     offsets: Box<DefIdSlice<usize>, A>,

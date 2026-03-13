@@ -175,7 +175,11 @@ impl Display for ColumnDescriptor {
                 island,
                 field,
             } => {
-                write!(fmt, "continuation {field:?} (body {body}, island {island})")
+                write!(
+                    fmt,
+                    "continuation {} (body {body}, island {island})",
+                    ContinuationColumn::from(*field).as_str()
+                )
             }
         }
     }

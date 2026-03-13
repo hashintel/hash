@@ -5,118 +5,27 @@ use hashql_core::{
     algorithms::co_sort,
     heap::{CollectIn as _, FromIn as _},
     r#type::{
-        Type, TypeId,
+        TypeId,
         environment::Environment,
         kind::{Apply, Generic, OpaqueType, PrimitiveType, StructType, TupleType, TypeKind},
     },
 };
 use hashql_mir::interpret::value::{self, Value};
-use serde::{
-    Serialize,
-    ser::{SerializeMap as _, SerializeSeq as _},
+
+use super::JsonValueRef;
+use crate::{
+    bridge::{Indexed, error::BridgeError},
+    postgres::ColumnDescriptor,
 };
 
-use super::{Indexed, error::BridgeError};
-use crate::postgres::ColumnDescriptor;
-
-#[derive(Debug)]
-pub(crate) struct SerializeValue<'value, 'heap, A: Allocator>(&'value Value<'heap, A>);
-
-impl<'value, 'heap, A: Allocator> SerializeValue<'value, 'heap, A> {
-    pub(crate) const fn new(value: &'value Value<'heap, A>) -> Self {
-        Self(value)
-    }
-}
-
-impl<A: Allocator> Serialize for SerializeValue<'_, '_, A> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self.0 {
-            Value::Unit => serializer.serialize_unit(),
-            Value::Integer(int) => {
-                if let Some(bool) = int.as_bool() {
-                    serializer.serialize_bool(bool)
-                } else {
-                    serializer.serialize_i128(int.as_int())
-                }
-            }
-            Value::Number(num) => serializer.serialize_f64(num.as_f64()),
-            Value::String(str) => serializer.serialize_str(str.as_str()),
-            Value::Pointer(_) => Err(serde::ser::Error::custom("pointer value not supported")),
-            Value::Opaque(opaque) => Self(opaque.value()).serialize(serializer),
-            Value::Struct(r#struct) => {
-                let mut inner = serializer.serialize_map(Some(r#struct.len()))?;
-
-                for (field, value) in r#struct.fields().iter().zip(r#struct.values()) {
-                    inner.serialize_entry(&field.as_str(), &Self(value))?;
-                }
-
-                inner.end()
-            }
-            Value::Tuple(tuple) => {
-                let mut inner = serializer.serialize_seq(Some(tuple.len().get()))?;
-
-                for value in tuple.values() {
-                    inner.serialize_element(&Self(value))?;
-                }
-
-                inner.end()
-            }
-            Value::List(list) => {
-                let mut inner = serializer.serialize_seq(Some(list.len()))?;
-
-                for value in list.iter() {
-                    inner.serialize_element(&Self(value))?;
-                }
-
-                inner.end()
-            }
-            Value::Dict(dict) => {
-                let mut inner = serializer.serialize_map(Some(dict.len()))?;
-
-                for (key, value) in dict.iter() {
-                    inner.serialize_entry(&Self(key), &Self(value))?;
-                }
-
-                inner.end()
-            }
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum ValueRef<'value> {
-    Null,
-    Bool(bool),
-    Number(&'value serde_json::Number),
-    String(&'value str),
-    Array(&'value [serde_json::Value]),
-    Object(&'value serde_json::Map<String, serde_json::Value>),
-}
-
-impl<'value> From<&'value serde_json::Value> for ValueRef<'value> {
-    fn from(value: &'value serde_json::Value) -> Self {
-        match value {
-            serde_json::Value::Null => ValueRef::Null,
-            &serde_json::Value::Bool(value) => ValueRef::Bool(value),
-            serde_json::Value::Number(number) => ValueRef::Number(number),
-            serde_json::Value::String(string) => ValueRef::String(string.as_str()),
-            serde_json::Value::Array(array) => ValueRef::Array(array),
-            serde_json::Value::Object(object) => ValueRef::Object(object),
-        }
-    }
-}
-
-pub(crate) struct Deserializer<'env, 'heap, A> {
+pub(crate) struct Decoder<'env, 'heap, A> {
     env: &'env Environment<'heap>,
     interner: &'env hashql_mir::intern::Interner<'heap>,
 
     alloc: A,
 }
 
-impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
+impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
     pub(super) const fn new(
         env: &'env Environment<'heap>,
         interner: &'env hashql_mir::intern::Interner<'heap>,
@@ -129,35 +38,35 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
         }
     }
 
-    fn deserialize_unknown(&self, value: ValueRef<'_>) -> Option<Value<'heap, A>>
+    fn decode_unknown(&self, value: JsonValueRef<'_>) -> Option<Value<'heap, A>>
     where
         A: Clone,
     {
         match value {
-            ValueRef::Null => Some(Value::Unit),
-            ValueRef::Bool(value) => Some(Value::Integer(value::Int::from(value))),
-            ValueRef::Number(number) => {
+            JsonValueRef::Null => Some(Value::Unit),
+            JsonValueRef::Bool(value) => Some(Value::Integer(value::Int::from(value))),
+            JsonValueRef::Number(number) => {
                 if let Some(value) = number.as_i128() {
                     Some(Value::Integer(value::Int::from(value)))
                 } else {
                     Some(Value::Number(value::Num::from(number.as_f64()?)))
                 }
             }
-            ValueRef::String(string) => {
+            JsonValueRef::String(string) => {
                 let value = value::Str::from(Rc::from_in(string, self.alloc.clone()));
                 Some(Value::String(value))
             }
-            ValueRef::Array(values) => {
+            JsonValueRef::Array(values) => {
                 // We default in the output to **lists** not tuples. Very important distinction
                 let mut output = value::List::new();
 
                 for element in values {
-                    output.push_back(self.deserialize_unknown(element.into())?);
+                    output.push_back(self.decode_unknown(element.into())?);
                 }
 
                 Some(Value::List(output))
             }
-            ValueRef::Object(map) => {
+            JsonValueRef::Object(map) => {
                 if !map.keys().all(|key| {
                     // Mirrors the implementation of `BaseUrl` parse validation.
                     if key.len() < 2048
@@ -174,8 +83,8 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                     let mut dict = value::Dict::new();
 
                     for (key, value) in map {
-                        let key = self.deserialize_unknown(ValueRef::String(key))?;
-                        let value = self.deserialize_unknown(value.into())?;
+                        let key = self.decode_unknown(JsonValueRef::String(key))?;
+                        let value = self.decode_unknown(value.into())?;
 
                         dict.insert(key, value);
                     }
@@ -188,7 +97,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 for (key, value) in map {
                     let key = self.env.heap.intern_symbol(key);
-                    let value = self.deserialize_unknown(value.into())?;
+                    let value = self.decode_unknown(value.into())?;
 
                     fields.push(key);
                     values.push(value);
@@ -202,7 +111,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
         }
     }
 
-    pub(crate) fn deserialize(&self, r#type: TypeId, value: ValueRef<'_>) -> Option<Value<'heap, A>>
+    pub(crate) fn decode(&self, r#type: TypeId, value: JsonValueRef<'_>) -> Option<Value<'heap, A>>
     where
         A: Clone,
     {
@@ -210,7 +119,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
         match r#type.kind {
             &TypeKind::Opaque(OpaqueType { name, repr }) => {
-                let value = self.deserialize(repr, value)?;
+                let value = self.decode(repr, value)?;
 
                 Some(Value::Opaque(value::Opaque::new(
                     name,
@@ -218,66 +127,66 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                 )))
             }
             TypeKind::Primitive(primitive_type) => match (primitive_type, value) {
-                (PrimitiveType::Number, ValueRef::Number(number)) => {
+                (PrimitiveType::Number, JsonValueRef::Number(number)) => {
                     number.as_f64().map(From::from).map(Value::Number)
                 }
-                (PrimitiveType::Integer, ValueRef::Number(number))
+                (PrimitiveType::Integer, JsonValueRef::Number(number))
                     if let Some(value) = number.as_i128() =>
                 {
                     Some(Value::Integer(value::Int::from(value)))
                 }
-                (PrimitiveType::String, ValueRef::String(string)) => {
+                (PrimitiveType::String, JsonValueRef::String(string)) => {
                     let value = value::Str::from(Rc::from_in(string, self.alloc.clone()));
                     Some(Value::String(value))
                 }
-                (PrimitiveType::Null, ValueRef::Null) => Some(Value::Unit),
-                (PrimitiveType::Boolean, ValueRef::Bool(value)) => {
+                (PrimitiveType::Null, JsonValueRef::Null) => Some(Value::Unit),
+                (PrimitiveType::Boolean, JsonValueRef::Bool(value)) => {
                     Some(Value::Integer(value::Int::from(value)))
                 }
                 (
                     PrimitiveType::Number,
-                    ValueRef::Null
-                    | ValueRef::Bool(_)
-                    | ValueRef::String(_)
-                    | ValueRef::Array(_)
-                    | ValueRef::Object(_),
+                    JsonValueRef::Null
+                    | JsonValueRef::Bool(_)
+                    | JsonValueRef::String(_)
+                    | JsonValueRef::Array(_)
+                    | JsonValueRef::Object(_),
                 )
                 | (
                     PrimitiveType::Integer,
-                    ValueRef::Null
-                    | ValueRef::Bool(_)
-                    | ValueRef::Number(_)
-                    | ValueRef::String(_)
-                    | ValueRef::Array(_)
-                    | ValueRef::Object(_),
+                    JsonValueRef::Null
+                    | JsonValueRef::Bool(_)
+                    | JsonValueRef::Number(_)
+                    | JsonValueRef::String(_)
+                    | JsonValueRef::Array(_)
+                    | JsonValueRef::Object(_),
                 )
                 | (
                     PrimitiveType::String,
-                    ValueRef::Null
-                    | ValueRef::Bool(_)
-                    | ValueRef::Number(_)
-                    | ValueRef::Array(_)
-                    | ValueRef::Object(_),
+                    JsonValueRef::Null
+                    | JsonValueRef::Bool(_)
+                    | JsonValueRef::Number(_)
+                    | JsonValueRef::Array(_)
+                    | JsonValueRef::Object(_),
                 )
                 | (
                     PrimitiveType::Null,
-                    ValueRef::Bool(_)
-                    | ValueRef::Number(_)
-                    | ValueRef::String(_)
-                    | ValueRef::Array(_)
-                    | ValueRef::Object(_),
+                    JsonValueRef::Bool(_)
+                    | JsonValueRef::Number(_)
+                    | JsonValueRef::String(_)
+                    | JsonValueRef::Array(_)
+                    | JsonValueRef::Object(_),
                 )
                 | (
                     PrimitiveType::Boolean,
-                    ValueRef::Null
-                    | ValueRef::Number(_)
-                    | ValueRef::String(_)
-                    | ValueRef::Array(_)
-                    | ValueRef::Object(_),
+                    JsonValueRef::Null
+                    | JsonValueRef::Number(_)
+                    | JsonValueRef::String(_)
+                    | JsonValueRef::Array(_)
+                    | JsonValueRef::Object(_),
                 ) => None,
             },
             TypeKind::Struct(StructType { fields }) => {
-                let ValueRef::Object(object) = value else {
+                let JsonValueRef::Object(object) = value else {
                     return None;
                 };
 
@@ -303,13 +212,13 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
                         .iter()
                         .position(|field| field.name.as_str() == name)?;
 
-                    values[field] = self.deserialize(fields[field].value, value.into())?;
+                    values[field] = self.decode(fields[field].value, value.into())?;
                 }
 
                 value::Struct::new(names, values).map(Value::Struct)
             }
             TypeKind::Tuple(TupleType { fields }) => {
-                let ValueRef::Array(array) = value else {
+                let JsonValueRef::Array(array) = value else {
                     return None;
                 };
 
@@ -319,7 +228,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 let mut values: Vec<_, A> = Vec::with_capacity_in(array.len(), self.alloc.clone());
                 for (element, &field) in array.iter().zip(fields) {
-                    values.push(self.deserialize(field, element.into())?);
+                    values.push(self.decode(field, element.into())?);
                 }
 
                 value::Tuple::new(values).map(Value::Tuple)
@@ -328,7 +237,7 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             TypeKind::Union(union_type) => {
                 // Go through *each variant* and try to find the first one that matches
                 for &variant in &union_type.variants {
-                    if let Some(value) = self.deserialize(variant, value) {
+                    if let Some(value) = self.decode(variant, value) {
                         return Some(value);
                     }
                 }
@@ -337,20 +246,20 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             }
 
             TypeKind::Intrinsic(hashql_core::r#type::kind::IntrinsicType::List(list)) => {
-                let ValueRef::Array(array) = value else {
+                let JsonValueRef::Array(array) = value else {
                     return None;
                 };
 
                 let mut output = value::List::new();
 
                 for element in array {
-                    output.push_back(self.deserialize(list.element, element.into())?);
+                    output.push_back(self.decode(list.element, element.into())?);
                 }
 
                 Some(Value::List(output))
             }
             TypeKind::Intrinsic(hashql_core::r#type::kind::IntrinsicType::Dict(dict)) => {
-                let ValueRef::Object(object) = value else {
+                let JsonValueRef::Object(object) = value else {
                     return None;
                 };
 
@@ -358,8 +267,8 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
 
                 for (key, value) in object {
                     output.insert(
-                        self.deserialize(dict.key, ValueRef::String(key))?,
-                        self.deserialize(dict.value, value.into())?,
+                        self.decode(dict.key, JsonValueRef::String(key))?,
+                        self.decode(dict.value, value.into())?,
                     );
                 }
 
@@ -375,18 +284,18 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
             &TypeKind::Apply(Apply {
                 base,
                 substitutions: _,
-            }) => self.deserialize(base, value),
-            &TypeKind::Generic(Generic { base, arguments: _ }) => self.deserialize(base, value),
+            }) => self.decode(base, value),
+            &TypeKind::Generic(Generic { base, arguments: _ }) => self.decode(base, value),
 
             TypeKind::Closure(_) => todo!("issue ICE; should be rejected by MIR"),
             TypeKind::Never => {
                 todo!("issue ICE; tried to deserialize a never type; should be rejected by MIR")
             }
 
-            // we're flying free here, issue a warning, and just try to deserialize using the old
+            // We're flying free here, issue a warning, and just try to deserialize using the old
             // tactics
             TypeKind::Param(_) | TypeKind::Infer(_) | TypeKind::Unknown => {
-                self.deserialize_unknown(value)
+                self.decode_unknown(value)
             }
         }
     }
@@ -395,16 +304,16 @@ impl<'env, 'heap, A: Allocator> Deserializer<'env, 'heap, A> {
     ///
     /// The `index` and `column` parameters are only used for error reporting;
     /// they identify which result column failed to deserialize.
-    pub(crate) fn try_deserialize(
+    pub(crate) fn try_decode(
         &self,
         r#type: TypeId,
-        value: ValueRef<'_>,
+        value: JsonValueRef<'_>,
         column: Indexed<ColumnDescriptor>,
     ) -> Result<Value<'heap, A>, BridgeError>
     where
         A: Clone,
     {
-        self.deserialize(r#type, value)
+        self.decode(r#type, value)
             .ok_or(BridgeError::ValueDeserialization { column })
     }
 }
