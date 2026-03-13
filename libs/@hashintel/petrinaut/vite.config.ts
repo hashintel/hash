@@ -75,7 +75,16 @@ export default defineConfig(({ command }) => ({
 
     react({
       babel: {
-        plugins: ["babel-plugin-react-compiler"],
+        plugins: [
+          [
+            "babel-plugin-react-compiler",
+            {
+              // Fail the build if the compiler encounters critical errors
+              // that aren't opted out via "use no memo" directives
+              panicThreshold: "CRITICAL_ERRORS",
+            },
+          ],
+        ],
       },
     }),
 

@@ -10,12 +10,14 @@ import {
   HorizontalTabsHeaderAction,
 } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
-  BOTTOM_PANEL_SUBVIEWS,
   MAX_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
-  SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
+import {
+  BOTTOM_PANEL_SUBVIEWS,
+  SIMULATION_ONLY_SUBVIEWS,
+} from "../../../../constants/ui-subviews";
 import { SimulationContext } from "../../../../simulation/context";
 import {
   type BottomPanelTab,

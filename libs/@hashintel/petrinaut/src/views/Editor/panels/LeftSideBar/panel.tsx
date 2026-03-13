@@ -4,10 +4,10 @@ import { use } from "react";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import {
-  LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
+import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
 import { EditorContext } from "../../../../state/editor-context";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
 

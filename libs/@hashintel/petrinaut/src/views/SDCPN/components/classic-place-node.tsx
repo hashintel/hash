@@ -128,6 +128,18 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
+  // Split label into segments with unique keys (handles duplicate segments)
+  const labelSegments = splitPascalCase(data.label).reduce<
+    { key: string; text: string }[]
+  >((acc, segment) => {
+    const count = acc.filter((entry) => entry.text === segment).length;
+    acc.push({
+      key: count > 0 ? `${segment}-${String(count)}` : segment,
+      text: segment,
+    });
+    return acc;
+  }, []);
+
   // Determine selection state
   const isInSelection = isSelected(id);
   const selectionVariant = isInSelection
@@ -162,12 +174,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         )}
         <div className={contentWrapperStyle}>
           <div className={labelContainerStyle}>
-            {splitPascalCase(data.label).map((segment, index) => (
-              <span
-                key={segment + index.toString()}
-                className={labelSegmentStyle}
-              >
-                {segment}
+            {labelSegments.map(({ key, text }) => (
+              <span key={key} className={labelSegmentStyle}>
+                {text}
               </span>
             ))}
           </div>

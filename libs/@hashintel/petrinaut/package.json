@@ -27,8 +27,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "storybook dev",
-    "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:eslint": "oxlint .",
     "lint:tsc": "tsgo --noEmit",
     "prepublishOnly": "turbo run build",
     "test:unit": "vitest"
@@ -61,7 +60,6 @@
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
-    "@local/eslint": "workspace:*",
     "@pandacss/dev": "1.4.3",
     "@storybook/react-vite": "10.2.13",
     "@testing-library/dom": "10.4.1",
@@ -74,8 +72,9 @@
     "@typescript/native-preview": "7.0.0-dev.20260309.1",
     "@vitejs/plugin-react": "5.1.4",
     "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "9.39.3",
+    "immer": "10.1.3",
     "jsdom": "24.1.3",
+    "oxlint": "1.55.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "rolldown": "1.0.0-rc.8",

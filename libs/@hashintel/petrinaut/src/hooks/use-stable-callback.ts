@@ -23,6 +23,7 @@ import { useCallback, useEffect, useRef } from "react";
 export function useStableCallback<T extends (...args: never[]) => unknown>(
   callback: T,
 ): T {
+  "use no memo"; // Intentionally writes ref during render — incompatible with React Compiler
   const ref = useRef(callback);
 
   useEffect(() => {

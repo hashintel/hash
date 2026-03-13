@@ -41,6 +41,7 @@ export const useResizeDrag = ({
   onDragEnd,
   direction,
 }: UseResizeDragOptions) => {
+  "use no memo"; // Intentionally writes refs during render — incompatible with React Compiler
   const [isResizing, setIsResizing] = useState(false);
   const startPosRef = useRef(0);
   const overlayRef = useRef<HTMLDivElement | null>(null);
