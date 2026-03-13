@@ -112,6 +112,7 @@ impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
 
         Self {
             env,
+            interner,
             bodies,
             execution,
             live_out: LiveOut(live_out),

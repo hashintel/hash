@@ -15,12 +15,14 @@ use hashql_mir::{
     interpret::{CallStack, RuntimeError, suspension::GraphReadSuspension, value::Value},
 };
 use postgres_types::ToSql;
-use tokio_postgres::Client;
+use tokio_postgres::{Client, Row};
 
 use self::{
     codec::{decode::Decoder, encode::encode_parameter_in},
     error::BridgeError,
     partial::Partial,
+    postgres::PartialPostgresState,
+    subinterpreter::PartialSubinterpreter,
 };
 use crate::{
     context::EvalContext,
@@ -30,6 +32,7 @@ use crate::{
 mod codec;
 pub(crate) mod error;
 mod partial;
+mod postgres;
 mod subinterpreter;
 
 pub(crate) struct Inputs<'heap, A: Allocator> {
@@ -75,7 +78,6 @@ impl<T> Deref for Indexed<T> {
 
 struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
     client: Client,
-    bodies: &'env DefIdSlice<Body<'heap>>,
     queries: &'env PreparedQueries<'heap, A>,
     inputs: &'env Inputs<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
@@ -84,7 +86,124 @@ struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
     _marker: PhantomData<C>,
 }
 
-impl<'heap, C, A: Allocator> Bridge<'_, '_, 'heap, C, A> {
+impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
+    async fn graph_read_postgres<L: Allocator + Clone>(
+        &self,
+        row: Row,
+        query: &PreparedQuery<'_, impl Allocator>,
+    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
+        let mut partial = Partial::new(query.vertex_type);
+        let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
+        let mut states = Vec::new_in(&self.scratch);
+
+        for (index, &column) in query.columns.iter().enumerate() {
+            match column {
+                ColumnDescriptor::Path { path, r#type } => {
+                    partial
+                        .hydrate_from_postgres(
+                            self.context.env,
+                            &decoder,
+                            path,
+                            r#type,
+                            Indexed::new(index, column),
+                            &row,
+                        )
+                        .map_err(RuntimeError::Suspension)?;
+                }
+                ColumnDescriptor::Continuation {
+                    body,
+                    island,
+                    field,
+                } => {
+                    // Find if we already have a subinterpreter for this island
+                    let state =
+                        {
+                            if let Some(interpreter) = states.iter_mut().find(
+                                |interpreter: &&mut PartialPostgresState<_>| {
+                                    interpreter.body == body && interpreter.island == island
+                                },
+                            ) {
+                                interpreter
+                            } else {
+                                states.push_mut(PartialPostgresState::new(body, island))
+                            }
+                        };
+
+                    state
+                        .hydrate(Indexed::new(index, column), field, &row, &self.scratch)
+                        .map_err(RuntimeError::Suspension)?;
+                }
+            }
+        }
+
+        let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
+        let mut completed = Vec::with_capacity_in(states.len(), &self.scratch);
+        for state in states {
+            let body = &self.context.bodies[state.body];
+            let state = state
+                .finish_in(&decoder, body, &self.scratch)
+                .map_err(RuntimeError::Suspension)?;
+
+            if let Some(state) = state {
+                completed.push(state);
+            }
+        }
+
+        todo!()
+    }
+
+    // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
+    // the primary data store.
+    async fn graph_read_entry<L: Allocator + Clone>(
+        &self,
+        callstack: &CallStack<'ctx, 'heap, L>,
+        GraphReadSuspension {
+            body,
+            block,
+            read,
+            axis,
+        }: &GraphReadSuspension<'ctx, 'heap>,
+    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
+        // Each graph read has a corresponding query, this query is *always* located in postgres, if
+        // only to try to get the entities that have been affected.
+        // TODO: we must actually ensure that
+        let query = self.queries.find(*body, *block);
+        let statement = query.transpile().to_string();
+
+        let locals = callstack.locals().map_err(RuntimeError::widen)?;
+        let mut params = Vec::with_capacity_in(query.parameters.len(), &self.scratch);
+        for param in query.parameters.iter().map(|parameter| {
+            encode_parameter_in(
+                parameter,
+                self.inputs,
+                axis,
+                |local, field| {
+                    let value = locals.local(local)?;
+                    value.project(field)
+                },
+                &self.scratch,
+            )
+        }) {
+            params.push(param.map_err(RuntimeError::widen)?);
+        }
+
+        // The actual data and entities that we need to take a look at.
+        let response = self
+            .client
+            .query_raw(&statement, params.iter().map(|param| &**param))
+            .await
+            .map_err(|source| BridgeError::QueryExecution {
+                sql: statement.clone(),
+                source,
+            })
+            .map_err(RuntimeError::Suspension)?;
+
+        // Now that we have the row stream of information, we must assemble the crew, and actually
+        // do all the operations that are required.
+
+        todo!()
+    }
+
     async fn graph_read<L: Allocator + Clone>(
         &mut self,
         callstack: &CallStack<'_, 'heap, L>,
@@ -148,28 +267,64 @@ impl<'heap, C, A: Allocator> Bridge<'_, '_, 'heap, C, A> {
                 .map_err(RuntimeError::Suspension)?;
             let mut sub_interpreters = Vec::new_in(&self.scratch);
 
-            // for now we do this synchronously because it's easier
+            // For now we do this synchronously because it's easier
+            // TODO: how do we transition from `Interpreter -> Embedding`, do we even do that? How
+            // does that work? We'd need to monitor if we're TODO: we need to redesign
+            // this. We're conflating two things here (fundamentally)
+            // 1. During stepping we do not consider if we need to transition again, and then what
+            //    (from the interpreter that is)
+            // 2. We have no way to determine where we need to go back to
+            // 3. There is no real way we can have more than one postgres island per query. It just
+            //    doesn't make any sense.
+            // TODO: the fundamental tension is that we **must** start from postgres, and then after
+            // that it's a "free for all". We must design for that.
+            // This design has been conflating the ordering with only working with interpreter and
+            // postgres. This is wrong by design.
+            // The issue is that the postgres island is always first, and there's only ever one.
+            // This is why an implicit contract, and our entrypoint. So I think that we're partially
+            // there!
+            // There are some other things we need to do tho:
+            // 1) patching hydrated entities at transitions
+            // 2) (or keeping the actual partial entity around)
+            // In theory multiple islands are only possible in the case of data islands, which do
+            // not generate something. Mhhh
             for (index, &column) in query.columns.iter().enumerate() {
                 match column {
                     ColumnDescriptor::Path { path, r#type } => {
-                        partial.hydrate_from_postgres(
-                            self.context.env,
-                            &decoder,
-                            path,
-                            r#type,
-                            Indexed::new(index, column),
-                            &row,
-                        );
+                        partial
+                            .hydrate_from_postgres(
+                                self.context.env,
+                                &decoder,
+                                path,
+                                r#type,
+                                Indexed::new(index, column),
+                                &row,
+                            )
+                            .map_err(RuntimeError::Suspension)?;
                     }
                     ColumnDescriptor::Continuation {
                         body,
                         island,
                         field,
-                    } => todo!(),
-                }
+                    } => {
+                        // Find if we already have a subinterpreter for this island
+                        let sub_interpreter = {
+                            if let Some(interpreter) = sub_interpreters.iter_mut().find(
+                                |interpreter: &&mut PartialSubinterpreter<_>| {
+                                    interpreter.body == body
+                                },
+                            ) {
+                                interpreter
+                            } else {
+                                sub_interpreters.push_mut(PartialSubinterpreter::new(body, island))
+                            }
+                        };
 
-                // let value = &row.get(index);
-                todo!()
+                        sub_interpreter
+                            .hydrate(Indexed::new(index, column), field, &row, &self.scratch)
+                            .map_err(RuntimeError::Suspension)?;
+                    }
+                }
             }
 
             // TODO: we must:

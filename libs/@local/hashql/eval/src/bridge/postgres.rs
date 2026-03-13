@@ -1,6 +1,6 @@
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
-use hashql_core::heap::CollectIn;
+use hashql_core::heap::CollectIn as _;
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, local::Local},
     def::DefId,
@@ -9,15 +9,13 @@ use hashql_mir::{
 };
 use tokio_postgres::Row;
 
-use super::{
-    Indexed,
-    codec::decode::Decoder,
-    error::BridgeError,
-    partial::{Hydrated, Optional},
+use super::{Indexed, codec::decode::Decoder, error::BridgeError, partial::Optional};
+use crate::{
+    bridge::partial::Hydrated,
+    postgres::{ColumnDescriptor, ContinuationField},
 };
-use crate::postgres::{ColumnDescriptor, ContinuationField};
 
-pub(crate) struct PartialSubinterpreter<A: Allocator> {
+pub(crate) struct PartialPostgresState<A: Allocator> {
     pub body: DefId,
     pub island: IslandId,
 
@@ -26,7 +24,7 @@ pub(crate) struct PartialSubinterpreter<A: Allocator> {
     values: Optional<Vec<serde_json::Value>>,
 }
 
-impl<A: Allocator> PartialSubinterpreter<A> {
+impl<A: Allocator> PartialPostgresState<A> {
     pub(crate) fn new(body: DefId, island: IslandId) -> Self {
         Self {
             body,
@@ -111,19 +109,19 @@ impl<A: Allocator> PartialSubinterpreter<A> {
         Ok(())
     }
 
-    pub fn finish_in<'ctx, 'heap>(
+    pub(crate) fn finish_in<'ctx, 'heap>(
         self,
         decoder: &Decoder<'_, 'heap, A>,
         body: &'ctx Body<'heap>,
-        env: Value<'heap, A>,
-        entity: Value<'heap, A>,
         alloc: A,
-    ) -> Option<CallStack<'ctx, 'heap, A>>
+    ) -> Result<Option<PostgresState<'heap, A>>, BridgeError>
     where
         A: Clone,
     {
+        debug_assert_eq!(body.id, self.body);
+
         let target = match self.target {
-            Hydrated::Null(()) => return None,
+            Hydrated::Null(()) => return Ok(None),
             Hydrated::Skipped => todo!("ICE; should never happen"),
             Hydrated::Value(target) => target,
         };
@@ -138,10 +136,48 @@ impl<A: Allocator> PartialSubinterpreter<A> {
         };
         debug_assert_eq!(locals.len(), values.len());
 
+        let mut evaluated_locals = Vec::with_capacity_in(locals.len(), alloc);
+
+        for (local, value) in locals.into_iter().zip(values) {
+            let r#type = body.local_decls[local].r#type;
+
+            let value = decoder.decode(r#type, (&value).into())?; // TODO: correct error handling
+            evaluated_locals.push((local, value));
+        }
+
+        Ok(Some(PostgresState {
+            body: self.body,
+            island: self.island,
+
+            target,
+            locals: evaluated_locals,
+        }))
+    }
+}
+
+pub(crate) struct PostgresState<'heap, A: Allocator> {
+    pub body: DefId,
+    pub island: IslandId,
+
+    target: BasicBlockId,
+    locals: Vec<(Local, Value<'heap, A>), A>,
+}
+
+impl<'heap, A: Allocator> PostgresState<'heap, A> {
+    pub fn callstack<'ctx>(
+        &self,
+        body: &'ctx Body<'heap>,
+        env: Value<'heap, A>,
+        entity: Value<'heap, A>,
+        alloc: A,
+    ) -> CallStack<'ctx, 'heap, A>
+    where
+        A: Clone,
+    {
         let Ok(mut callstack) =
             CallStack::new_in(body, [Ok::<_, !>(env), Ok(entity)], alloc.clone());
 
-        callstack.set_current_block_unchecked(target);
+        callstack.set_current_block_unchecked(self.target);
 
         // We must now advance the *last frame* (the current frame), with the current block
         // (unsafely)
@@ -150,11 +186,10 @@ impl<A: Allocator> PartialSubinterpreter<A> {
             .locals_mut()
             .unwrap_or_else(|_err: RuntimeError<'heap, !, A>| unreachable!());
 
-        for (local, value) in locals.into_iter().zip(values) {
-            let r#type = body.local_decls[local].r#type;
-            *frame_locals.local_mut(local) = decoder.decode(r#type, (&value).into())?;
+        for (local, value) in &self.locals {
+            *frame_locals.local_mut(*local) = value.clone();
         }
 
-        Some(callstack)
+        callstack
     }
 }
