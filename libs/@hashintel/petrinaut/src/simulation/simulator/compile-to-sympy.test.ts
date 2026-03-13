@@ -567,6 +567,44 @@ describe("compileToSymPy", () => {
         expect(result.sympyCode).toContain("'velocity': 0");
       }
     });
+
+    it("should compile transition kernel with array of objects", () => {
+      const result = compileToSymPy(
+        `export default TransitionKernel((tokens) => {
+          return {
+            Debris: [
+              {
+                x: tokens.Space[0].x,
+                y: tokens.Space[0].y,
+                velocity: 0,
+                direction: 0
+              },
+              {
+                x: tokens.Space[1].x,
+                y: tokens.Space[1].y,
+                velocity: 0,
+                direction: 0
+              },
+            ]
+          };
+        })`,
+        kernelContext(),
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.sympyCode).toContain("'Debris': [");
+        expect(result.sympyCode).toContain("'x': Space_0_x");
+        expect(result.sympyCode).toContain("'x': Space_1_x");
+      }
+    });
+
+    it("should compile simple array literal", () => {
+      const result = compileToSymPy(
+        "export default Lambda(() => [1, 2, 3])",
+        defaultContext,
+      );
+      expect(result).toEqual({ ok: true, sympyCode: "[1, 2, 3]" });
+    });
   });
 
   describe("error handling", () => {

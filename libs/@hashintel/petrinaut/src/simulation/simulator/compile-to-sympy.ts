@@ -737,6 +737,23 @@ function emitSymPy(
     );
   }
 
+  // Array literal expression [a, b, c]
+  if (ts.isArrayLiteralExpression(node)) {
+    const elements: string[] = [];
+    for (const elem of node.elements) {
+      const result = emitSymPy(
+        elem,
+        context,
+        localBindings,
+        innerParams,
+        sourceFile,
+      );
+      if (!result.ok) return result;
+      elements.push(result.sympyCode);
+    }
+    return { ok: true, sympyCode: `[${elements.join(", ")}]` };
+  }
+
   // Object literal expression { field: expr, ... }
   if (ts.isObjectLiteralExpression(node)) {
     const entries: string[] = [];
