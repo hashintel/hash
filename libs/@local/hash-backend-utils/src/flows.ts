@@ -298,9 +298,9 @@ export async function getFlowRuns({
 
   const totalCount = deduplicatedWorkflowIds.length;
 
-  const offset = filters.offset ?? 0;
+  const offset = Math.max(filters.offset ?? 0, 0);
   const limit = Math.min(
-    filters.limit ?? flowRunsQueryMaxLimit,
+    Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
     flowRunsQueryMaxLimit,
   );
   const paginatedIds = deduplicatedWorkflowIds.slice(offset, offset + limit);
