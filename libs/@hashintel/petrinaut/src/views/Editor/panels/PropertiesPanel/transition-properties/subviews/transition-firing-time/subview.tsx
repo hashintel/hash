@@ -9,9 +9,11 @@ import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { generateDefaultLambdaCode } from "../../../../../../../core/default-codes";
+import { getSDCPNLanguage } from "../../../../../../../core/types/sdcpn";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../../context";
 
 const contentStyle = css({
@@ -99,6 +101,8 @@ const FiringTimeHeaderAction: React.FC = () => {
 const TransitionFiringTimeContent: React.FC = () => {
   const { transition, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const sdcpnLanguage = getSDCPNLanguage(petriNetDefinition);
 
   return (
     <div className={contentStyle}>
@@ -128,8 +132,8 @@ const TransitionFiringTimeContent: React.FC = () => {
       </div>
 
       <CodeEditor
-        path={getDocumentUri("transition-lambda", transition.id)}
-        language="typescript"
+        path={getDocumentUri("transition-lambda", transition.id, sdcpnLanguage)}
+        language={sdcpnLanguage === "python" ? "python" : "typescript"}
         value={transition.lambdaCode || ""}
         height="100%"
         onChange={(value) => {

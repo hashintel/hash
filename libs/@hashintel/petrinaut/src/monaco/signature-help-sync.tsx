@@ -49,36 +49,39 @@ const SignatureHelpSyncInner = () => {
   );
 
   useEffect(() => {
-    const disposable = monaco.languages.registerSignatureHelpProvider(
-      "typescript",
-      {
-        signatureHelpTriggerCharacters: ["(", ","],
-        signatureHelpRetriggerCharacters: [","],
+    const sigProvider: Monaco.languages.SignatureHelpProvider = {
+      signatureHelpTriggerCharacters: ["(", ","],
+      signatureHelpRetriggerCharacters: [","],
 
-        async provideSignatureHelp(model, monacoPosition) {
-          const uri = model.uri.toString();
-          // TODO(FE-497): Sync current content to ensure the worker has the latest text.
-          notifyDocumentChanged(uri, model.getValue());
-          // Convert Monaco 1-based position to LSP 0-based Position
-          const position = Position.create(
-            monacoPosition.lineNumber - 1,
-            monacoPosition.column - 1,
-          );
-          const result = await requestSignatureHelp(uri, position);
+      async provideSignatureHelp(model, monacoPosition) {
+        const uri = model.uri.toString();
+        // TODO(FE-497): Sync current content to ensure the worker has the latest text.
+        notifyDocumentChanged(uri, model.getValue());
+        // Convert Monaco 1-based position to LSP 0-based Position
+        const position = Position.create(
+          monacoPosition.lineNumber - 1,
+          monacoPosition.column - 1,
+        );
+        const result = await requestSignatureHelp(uri, position);
 
-          if (!result) {
-            return null;
-          }
+        if (!result) {
+          return null;
+        }
 
-          return {
-            value: toMonacoSignatureHelp(result),
-            dispose() {},
-          };
-        },
+        return {
+          value: toMonacoSignatureHelp(result),
+          dispose() {},
+        };
       },
-    );
+    };
 
-    return () => disposable.dispose();
+    // Register for both TypeScript and Python
+    const disposables = [
+      monaco.languages.registerSignatureHelpProvider("typescript", sigProvider),
+      monaco.languages.registerSignatureHelpProvider("python", sigProvider),
+    ];
+
+    return () => disposables.forEach((d) => d.dispose());
   }, [monaco, notifyDocumentChanged, requestSignatureHelp]);
 
   return null;

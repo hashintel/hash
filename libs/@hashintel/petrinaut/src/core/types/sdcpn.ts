@@ -52,7 +52,11 @@ export type DifferentialEquation = {
   code: string;
 };
 
+export type SDCPNLanguage = "typescript" | "python";
+
 export type SDCPN = {
+  /** Expression language for all code in this file. Defaults to "typescript" if absent. */
+  language?: SDCPNLanguage;
   places: Place[];
   transitions: Transition[];
   types: Color[];
@@ -66,3 +70,8 @@ export type MinimalNetMetadata = {
 };
 
 export type MutateSDCPN = (mutateFn: (sdcpn: SDCPN) => void) => void;
+
+/** Resolve the effective language of an SDCPN (defaults to "typescript"). */
+export function getSDCPNLanguage(sdcpn: SDCPN): SDCPNLanguage {
+  return sdcpn.language ?? "typescript";
+}

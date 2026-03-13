@@ -9,9 +9,11 @@ import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { generateDefaultTransitionKernelCode } from "../../../../../../../core/default-codes";
+import { getSDCPNLanguage } from "../../../../../../../core/types/sdcpn";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../../../state/editor-context";
+import { SDCPNContext } from "../../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../../context";
 
 const aiMenuItemStyle = css({
@@ -137,6 +139,8 @@ const ResultsHeaderAction: React.FC = () => {
 const TransitionResultsContent: React.FC = () => {
   const { transition, places, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const sdcpnLanguage = getSDCPNLanguage(petriNetDefinition);
 
   const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
     const place = places.find((p) => p.id === arc.placeId);
@@ -156,8 +160,8 @@ const TransitionResultsContent: React.FC = () => {
   return (
     <div className={contentStyle}>
       <CodeEditor
-        path={getDocumentUri("transition-kernel", transition.id)}
-        language="typescript"
+        path={getDocumentUri("transition-kernel", transition.id, sdcpnLanguage)}
+        language={sdcpnLanguage === "python" ? "python" : "typescript"}
         value={transition.transitionKernelCode || ""}
         height="100%"
         onChange={(value) => {

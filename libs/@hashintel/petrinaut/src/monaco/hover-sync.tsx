@@ -52,7 +52,7 @@ const HoverSyncInner = () => {
   const { notifyDocumentChanged, requestHover } = use(LanguageClientContext);
 
   useEffect(() => {
-    const disposable = monaco.languages.registerHoverProvider("typescript", {
+    const hoverProvider: Monaco.languages.HoverProvider = {
       async provideHover(model, monacoPosition) {
         const uri = model.uri.toString();
         // TODO(FE-497): Sync current content to ensure the worker has the latest text.
@@ -82,9 +82,15 @@ const HoverSyncInner = () => {
 
         return { range, contents };
       },
-    });
+    };
 
-    return () => disposable.dispose();
+    // Register for both TypeScript and Python
+    const disposables = [
+      monaco.languages.registerHoverProvider("typescript", hoverProvider),
+      monaco.languages.registerHoverProvider("python", hoverProvider),
+    ];
+
+    return () => disposables.forEach((d) => d.dispose());
   }, [monaco, notifyDocumentChanged, requestHover]);
 
   return null;

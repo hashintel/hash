@@ -1,11 +1,13 @@
 import ts from "typescript";
 
 import type { SDCPN } from "../../core/types/sdcpn";
+import { getSDCPNLanguage } from "../../core/types/sdcpn";
 import {
   createLanguageServiceHost,
   type LanguageServiceHostController,
   type VirtualFile,
 } from "./create-language-service-host";
+import { generatePythonVirtualFiles } from "./generate-python-virtual-files";
 import { generateVirtualFiles } from "./generate-virtual-files";
 
 /**
@@ -44,7 +46,11 @@ export class SDCPNLanguageServer {
    * removes files that no longer exist.
    */
   syncFiles(sdcpn: SDCPN): void {
-    const newFiles = generateVirtualFiles(sdcpn);
+    const language = getSDCPNLanguage(sdcpn);
+    const newFiles =
+      language === "python"
+        ? generatePythonVirtualFiles(sdcpn)
+        : generateVirtualFiles(sdcpn);
 
     // Remove files that no longer exist
     for (const existingName of this.controller.getFileNames()) {

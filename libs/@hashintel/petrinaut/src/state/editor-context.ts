@@ -15,6 +15,7 @@ type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "cursor" | "add-place" | "add-transition";
 export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
+  | "net-settings"
   | "diagnostics"
   | "simulation-settings"
   | "simulation-timeline";
