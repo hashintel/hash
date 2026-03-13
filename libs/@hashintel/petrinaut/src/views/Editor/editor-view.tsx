@@ -18,6 +18,7 @@ import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
 import { exportSDCPN } from "./lib/export-sdcpn";
+import { exportWithSymPy } from "./lib/export-sympy";
 import { exportTikZ } from "./lib/export-tikz";
 import { importSDCPN } from "./lib/import-sdcpn";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -110,6 +111,10 @@ export const EditorView = ({
     exportTikZ({ petriNetDefinition, title });
   }
 
+  function handleExportWithSymPy() {
+    exportWithSymPy({ petriNetDefinition, title });
+  }
+
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
       const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
@@ -162,6 +167,11 @@ export const EditorView = ({
           id: "export-tikz",
           label: "TikZ",
           onClick: handleExportTikZ,
+        },
+        {
+          id: "export-sympy",
+          label: "JSON with SymPy expressions",
+          onClick: handleExportWithSymPy,
         },
       ],
     },
