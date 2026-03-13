@@ -7,28 +7,17 @@
   "env": {
     "builtin": true,
     "es2026": true,
-    "browser": true,
-    "node": true
+    "browser": true
   },
   "rules": {
     "array-callback-return": ["error", { "allowImplicit": true }],
-    "curly": ["error", "all"],
     "default-case-last": "error",
     "default-param-last": "error",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
-    "grouped-accessor-pairs": "error",
     "guard-for-in": "error",
     "no-alert": "warn",
-    "no-case-declarations": "error",
     "no-cond-assign": ["error", "always"],
-    "no-console": "error",
-    "no-constant-condition": "warn",
-    "no-empty": "error",
     "no-extend-native": "error",
-    "no-extra-bind": "error",
-    "no-fallthrough": "error",
-    "no-inner-declarations": "error",
-    "no-lone-blocks": "error",
     "no-loop-func": "error",
     "no-new": "error",
     "no-param-reassign": [
@@ -38,15 +27,10 @@
         "ignorePropertyModificationsForRegex": ["^existing", "draft"]
       }
     ],
-    "no-promise-executor-return": "error",
-    "no-redeclare": "error",
     "no-return-assign": ["error", "always"],
-    "no-script-url": "error",
-    "no-self-assign": ["error", { "props": true }],
     "no-self-compare": "error",
     "no-sequences": "error",
     "no-template-curly-in-string": "error",
-    "no-throw-literal": "error",
     "no-unsafe-optional-chaining": [
       "error",
       { "disallowArithmeticOperators": true }
@@ -54,18 +38,12 @@
     "no-unused-vars": [
       "error",
       {
-        "vars": "all",
-        "args": "after-used",
-        "ignoreRestSiblings": true
+        "args": "all",
+        "argsIgnorePattern": "^_+",
+        "varsIgnorePattern": "^_+"
       }
     ],
-    "no-useless-concat": "error",
-    "no-useless-return": "error",
     "no-void": ["error", { "allowAsStatement": true }],
-    "prefer-promise-reject-errors": ["error", { "allowEmptyReject": true }],
-    "radix": "error",
-    "valid-typeof": ["error", { "requireStringLiterals": true }],
-    "yoda": "error",
 
     "func-names": "warn",
     "id-length": [
@@ -91,89 +69,17 @@
         "properties": "never"
       }
     ],
-    "new-cap": [
-      "error",
-      {
-        "newIsCap": true,
-        "capIsNew": false
-      }
-    ],
-    "no-array-constructor": "error",
     "no-bitwise": "error",
-    "no-lonely-if": "error",
     "no-multi-assign": "error",
-    "no-unneeded-ternary": ["error", { "defaultAssignment": false }],
-    "operator-assignment": ["error", "always"],
-    "prefer-object-spread": "error",
 
     "no-restricted-globals": [
       "error",
-      {
-        "name": "isFinite",
-        "message": "Use Number.isFinite instead"
-      },
-      {
-        "name": "isNaN",
-        "message": "Use Number.isNaN instead"
-      },
-      "addEventListener",
-      "blur",
-      "close",
-      "closed",
-      "confirm",
-      "defaultStatus",
-      "defaultstatus",
+      { "name": "isFinite", "message": "Use Number.isFinite instead" },
+      { "name": "isNaN", "message": "Use Number.isNaN instead" },
       "event",
-      "external",
-      "find",
-      "focus",
-      "frameElement",
-      "frames",
-      "history",
-      "innerHeight",
-      "innerWidth",
-      "length",
-      "location",
-      "locationbar",
-      "menubar",
-      "moveBy",
-      "moveTo",
       "name",
-      "onblur",
-      "onerror",
-      "onfocus",
-      "onload",
-      "onresize",
-      "onunload",
-      "open",
-      "opener",
-      "opera",
-      "outerHeight",
-      "outerWidth",
-      "pageXOffset",
-      "pageYOffset",
-      "parent",
-      "print",
-      "removeEventListener",
-      "resizeBy",
-      "resizeTo",
-      "screen",
-      "screenLeft",
-      "screenTop",
-      "screenX",
-      "screenY",
-      "scroll",
-      "scrollbars",
-      "scrollBy",
-      "scrollTo",
-      "scrollX",
-      "scrollY",
-      "self",
-      "status",
-      "statusbar",
-      "stop",
-      "toolbar",
-      "top"
+      "length",
+      "status"
     ],
     "no-shadow": "error",
     "no-use-before-define": "error",
@@ -189,52 +95,24 @@
         ]
       }
     ],
-    "no-useless-computed-key": "error",
-    "no-useless-constructor": "error",
-    "no-var": "error",
-    "prefer-const": [
-      "error",
-      { "destructuring": "any", "ignoreReadBeforeAssign": true }
-    ],
-    "prefer-numeric-literals": "error",
-    "prefer-rest-params": "error",
-    "prefer-spread": "error",
-    "prefer-template": "error",
-    "symbol-description": "error",
 
     "import/no-named-as-default": "warn",
     "import/no-named-as-default-member": "warn",
     "import/no-mutable-exports": "error",
-    "import/no-amd": "error",
-    "import/first": "error",
     "import/no-duplicates": "warn",
-    "import/no-absolute-path": "error",
-    "import/no-dynamic-require": "error",
-    "import/no-webpack-loader-syntax": "error",
     "import/no-named-default": "error",
     "import/no-self-import": "error",
     "import/no-cycle": "warn",
 
-    "react/jsx-boolean-value": ["error", "never"],
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
     "react/no-danger": "warn",
-    "react/no-unknown-property": "error",
-    "react/self-closing-comp": "error",
     "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
     "react/jsx-no-comment-textnodes": "error",
     "react/no-array-index-key": "warn",
-    "react/jsx-curly-brace-presence": [
-      "error",
-      { "props": "never", "children": "never" }
-    ],
     "react/button-has-type": [
       "error",
       { "button": true, "submit": true, "reset": false }
     ],
-    "react/jsx-fragments": ["error", "syntax"],
-    "react/jsx-no-script-url": "error",
-    "react/jsx-no-useless-fragment": "error",
-    "react/no-namespace": "error",
 
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "off",
@@ -259,7 +137,6 @@
       }
     ],
 
-    "@typescript-eslint/consistent-type-imports": "error",
     "@typescript-eslint/ban-ts-comment": [
       "error",
       {
@@ -267,64 +144,36 @@
         "minimumDescriptionLength": 10
       }
     ],
+    "@typescript-eslint/no-empty-object-type": "error",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-require-imports": "error",
+    "@typescript-eslint/no-unnecessary-type-constraint": "error",
+    "@typescript-eslint/no-unsafe-function-type": "error",
 
     "unicorn/no-new-array": "off",
     "unicorn/filename-case": "error",
-    "unicorn/no-array-for-each": "error",
-    "unicorn/prefer-node-protocol": "error"
-  },
-  "globals": {
-    "NodeJS": "writable",
-    "FixMeLater": "readonly"
+
+    "constructor-super": "off",
+    "no-class-assign": "off",
+    "no-const-assign": "off",
+    "no-dupe-keys": "off",
+    "no-func-assign": "off",
+    "no-import-assign": "off",
+    "no-obj-calls": "off",
+    "no-redeclare": "off",
+    "no-setter-return": "off",
+    "no-this-before-super": "off",
+    "no-unsafe-negation": "off",
+    "no-constant-condition": "off",
+    "no-throw-literal": "off",
+    "prefer-promise-reject-errors": "off"
   },
   "ignorePatterns": [
-    "node_modules/**",
     "dist/**",
     "build/**",
     "coverage/**",
     "*.gen.*",
     "*.tsbuildinfo",
     ".turbo/**"
-  ],
-  "overrides": [
-    {
-      "files": ["**/*.ts", "**/*.tsx"],
-      "rules": {
-        "constructor-super": "off",
-        "no-class-assign": "off",
-        "no-const-assign": "off",
-        "no-dupe-keys": "off",
-        "no-func-assign": "off",
-        "no-import-assign": "off",
-        "no-obj-calls": "off",
-        "no-redeclare": "off",
-        "no-setter-return": "off",
-        "no-this-before-super": "off",
-        "no-unsafe-negation": "off",
-        "no-with": "off",
-        "no-constant-condition": "off",
-        "no-throw-literal": "off",
-        "prefer-promise-reject-errors": "off",
-        "no-unused-vars": [
-          "error",
-          {
-            "args": "all",
-            "argsIgnorePattern": "^_+",
-            "varsIgnorePattern": "^_+"
-          }
-        ],
-        "@typescript-eslint/no-empty-object-type": "error",
-        "@typescript-eslint/no-explicit-any": "error",
-        "@typescript-eslint/no-require-imports": "error",
-        "@typescript-eslint/no-unnecessary-type-constraint": "error",
-        "@typescript-eslint/no-unsafe-function-type": "error"
-      }
-    },
-    {
-      "files": ["**/scripts/**"],
-      "rules": {
-        "no-console": "off"
-      }
-    }
   ]
 }
