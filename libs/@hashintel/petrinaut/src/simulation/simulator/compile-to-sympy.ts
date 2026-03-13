@@ -705,6 +705,31 @@ function emitSymPy(
       }
     }
 
+    // Global built-in functions: Boolean(expr), Number(expr)
+    if (ts.isIdentifier(callee)) {
+      if (callee.text === "Boolean" && node.arguments.length === 1) {
+        const arg = emitSymPy(
+          node.arguments[0]!,
+          context,
+          localBindings,
+          innerParams,
+          sourceFile,
+        );
+        if (!arg.ok) return arg;
+        return { ok: true, sympyCode: `sp.Ne(${arg.sympyCode}, 0)` };
+      }
+
+      if (callee.text === "Number" && node.arguments.length === 1) {
+        return emitSymPy(
+          node.arguments[0]!,
+          context,
+          localBindings,
+          innerParams,
+          sourceFile,
+        );
+      }
+    }
+
     return err(
       `Unsupported function call: ${callee.getText(sourceFile)}`,
       node,
