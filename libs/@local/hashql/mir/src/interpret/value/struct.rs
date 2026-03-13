@@ -5,12 +5,14 @@ use core::{
     alloc::Allocator,
     cmp,
     fmt::{self, Display},
+    mem::MaybeUninit,
+    ptr,
 };
 
-use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
+use hashql_core::{algorithms::co_sort, id::Id as _, intern::Interned, symbol::Symbol};
 
 use super::Value;
-use crate::body::place::FieldIndex;
+use crate::{body::place::FieldIndex, intern::Interner};
 
 /// A named-field struct value.
 ///
@@ -205,3 +207,95 @@ impl<A: Allocator> DoubleEndedIterator for StructIter<'_, '_, A> {
 }
 
 impl<A: Allocator> ExactSizeIterator for StructIter<'_, '_, A> {}
+
+pub struct StructBuilder<'heap, A: Allocator, const N: usize> {
+    initialized: usize,
+
+    fields: [MaybeUninit<Symbol<'heap>>; N],
+    values: [MaybeUninit<Value<'heap, A>>; N],
+}
+
+#[expect(unsafe_code)]
+impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
+    pub const fn new() -> Self {
+        Self {
+            initialized: 0,
+            fields: MaybeUninit::uninit().transpose(),
+            values: MaybeUninit::uninit().transpose(),
+        }
+    }
+
+    pub fn fields(&self) -> &[Symbol<'heap>] {
+        unsafe { self.fields[..self.initialized].assume_init_ref() }
+    }
+
+    fn fields_mut(&mut self) -> &mut [Symbol<'heap>] {
+        unsafe { self.fields[..self.initialized].assume_init_mut() }
+    }
+
+    pub fn values(&self) -> &[Value<'heap, A>] {
+        unsafe { self.values[..self.initialized].assume_init_ref() }
+    }
+
+    fn values_mut(&mut self) -> &mut [Value<'heap, A>] {
+        unsafe { self.values[..self.initialized].assume_init_mut() }
+    }
+
+    pub const unsafe fn push_unchecked(&mut self, field: Symbol<'heap>, value: Value<'heap, A>) {
+        let index = self.initialized;
+        self.initialized += 1;
+
+        self.fields[index].write(field);
+        self.values[index].write(value);
+    }
+
+    pub fn push(&mut self, field: Symbol<'heap>, value: Value<'heap, A>) {
+        assert_ne!(self.initialized, N, "struct is full");
+        assert!(!self.fields().contains(&field), "field already exists");
+
+        unsafe {
+            self.push_unchecked(field, value);
+        }
+    }
+
+    pub fn finish(mut self, interner: &Interner<'heap>, alloc: A) -> Struct<'heap, A> {
+        let fields_mut = unsafe { self.fields[..self.initialized].assume_init_mut() };
+        let values_mut = unsafe { self.values[..self.initialized].assume_init_mut() };
+
+        // The `struct` expects that fields are sorted by their symbol.
+        // TODO: should be enforced
+        co_sort(fields_mut, values_mut);
+
+        let fields = interner.symbols.intern_slice(self.fields());
+
+        // We don't need a drop-guard here, because the only thing that can panic is the
+        // `new_uninit_slice_in` call, in the case that it does `self.initialized` is still not set,
+        // which leads to the drop correctly firing.
+        let values = Rc::new_uninit_slice_in(self.initialized, alloc);
+
+        unsafe {
+            ptr::copy_nonoverlapping(
+                self.values.as_mut_ptr(),
+                Rc::as_ptr(&values) as *mut MaybeUninit<Value<'heap, A>>,
+                self.initialized,
+            );
+        };
+
+        // We must set the initialized count to 0, to avoid double-freeing
+        // when the builder is dropped.
+        self.initialized = 0;
+
+        let values = unsafe { values.assume_init() };
+        Struct { fields, values }
+    }
+}
+
+#[expect(unsafe_code)]
+impl<'heap, A: Allocator, const N: usize> Drop for StructBuilder<'heap, A, N> {
+    fn drop(&mut self) {
+        unsafe {
+            self.fields[..self.initialized].assume_init_drop();
+            self.values[..self.initialized].assume_init_drop();
+        }
+    }
+}

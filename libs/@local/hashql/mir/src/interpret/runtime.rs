@@ -45,6 +45,24 @@ use crate::{
     interpret::suspension::{self, GraphReadContinuation, GraphReadSuspension},
 };
 
+fn make_frame_in<'ctx, 'heap, E, A: Allocator + Clone>(
+    body: &'ctx Body<'heap>,
+    args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
+    alloc: A,
+) -> Result<Frame<'ctx, 'heap, A>, E> {
+    let locals = Locals::new_in(body, args, alloc)?;
+
+    Ok(Frame {
+        locals,
+        body,
+        current_block: CurrentBlock {
+            id: BasicBlockId::START,
+            block: &body.basic_blocks[BasicBlockId::START],
+        },
+        current_statement: 0,
+    })
+}
+
 #[derive(Debug, Copy, Clone)]
 struct CurrentBlock<'ctx, 'heap> {
     id: BasicBlockId,
@@ -99,6 +117,21 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
         Self { frames }
     }
 
+    pub fn new_in<E>(
+        body: &'ctx Body<'heap>,
+        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>, IntoIter: ExactSizeIterator>,
+        alloc: A,
+    ) -> Result<Self, E>
+    where
+        A: Allocator + Clone,
+    {
+        let frame = make_frame_in(body, args.into_iter(), alloc.clone())?;
+        let mut frames = Vec::new_in(alloc);
+        frames.push(frame);
+
+        Ok(Self { frames })
+    }
+
     /// Unwinds the call stack to produce a trace of definition IDs and spans.
     ///
     /// Returns an iterator over `(DefId, SpanId)` pairs, starting from the
@@ -132,6 +165,32 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
             .last()
             .ok_or(RuntimeError::CallstackEmpty)
             .map(|frame| &frame.locals)
+    }
+
+    pub fn locals_mut<R: Allocator>(
+        &mut self,
+    ) -> Result<&mut Locals<'ctx, 'heap, A>, RuntimeError<'heap, !, R>> {
+        self.frames
+            .last_mut()
+            .ok_or(RuntimeError::CallstackEmpty)
+            .map(|frame| &mut frame.locals)
+    }
+
+    pub fn set_current_block_unchecked(
+        &mut self,
+        block_id: BasicBlockId,
+    ) -> Result<(), RuntimeError<'heap, !, A>> {
+        let frame = self.frames.last_mut().ok_or(RuntimeError::CallstackEmpty)?;
+
+        let block = &frame.body.basic_blocks[block_id];
+
+        frame.current_block = CurrentBlock {
+            id: block_id,
+            block,
+        };
+        frame.current_statement = 0;
+
+        Ok(())
     }
 }
 
@@ -248,19 +307,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         func: DefId,
         args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
     ) -> Result<Frame<'ctx, 'heap, A>, E> {
-        let body = &self.bodies[func];
-
-        let locals = Locals::new_in(body, args, self.alloc.clone())?;
-
-        Ok(Frame {
-            locals,
-            body,
-            current_block: CurrentBlock {
-                id: BasicBlockId::START,
-                block: &body.basic_blocks[BasicBlockId::START],
-            },
-            current_statement: 0,
-        })
+        make_frame_in(&self.bodies[func], args, self.alloc.clone())
     }
 
     #[inline]

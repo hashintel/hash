@@ -55,7 +55,7 @@ pub use self::{
     opaque::Opaque,
     ptr::Ptr,
     str::Str,
-    r#struct::Struct,
+    r#struct::{Struct, StructBuilder},
     tuple::Tuple,
 };
 use super::error::{RuntimeError, TypeName};

@@ -26,7 +26,7 @@ pub(crate) struct Decoder<'env, 'heap, A> {
 }
 
 impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
-    pub(super) const fn new(
+    pub const fn new(
         env: &'env Environment<'heap>,
         interner: &'env hashql_mir::intern::Interner<'heap>,
         alloc: A,

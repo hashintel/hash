@@ -57,12 +57,13 @@ use hashql_mir::{
     },
 };
 
-pub use self::parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis};
 use self::{
-    continuation::{ContinuationColumn, ContinuationField},
-    filter::GraphReadFilterCompiler,
-    projections::Projections,
+    continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
     types::traverse_struct,
+};
+pub use self::{
+    continuation::ContinuationField,
+    parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis},
 };
 use crate::context::EvalContext;
 
@@ -191,6 +192,7 @@ impl Display for ColumnDescriptor {
 /// for binding runtime values, and a column manifest ([`ColumnDescriptor`]s) that tells the
 /// bridge how to decode each result column.
 pub struct PreparedQuery<'heap, A: Allocator> {
+    pub vertex_type: VertexType,
     pub parameters: Parameters<'heap, A>,
     pub statement: SelectStatement,
     pub columns: Vec<ColumnDescriptor, A>,
@@ -470,6 +472,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .build();
 
         PreparedQuery {
+            vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query,
             columns,

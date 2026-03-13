@@ -17,12 +17,20 @@ use hashql_mir::{
 use postgres_types::ToSql;
 use tokio_postgres::Client;
 
-use self::{codec::encode::encode_parameter_in, error::BridgeError};
-use crate::postgres::PreparedQuery;
+use self::{
+    codec::{decode::Decoder, encode::encode_parameter_in},
+    error::BridgeError,
+    partial::Partial,
+};
+use crate::{
+    context::EvalContext,
+    postgres::{ColumnDescriptor, PreparedQuery},
+};
 
 mod codec;
 pub(crate) mod error;
 mod partial;
+mod subinterpreter;
 
 pub(crate) struct Inputs<'heap, A: Allocator> {
     pub(crate) inner: FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
@@ -51,6 +59,12 @@ pub struct Indexed<T> {
     value: T,
 }
 
+impl<T> Indexed<T> {
+    pub fn new(index: usize, value: T) -> Self {
+        Self { index, value }
+    }
+}
+
 impl<T> Deref for Indexed<T> {
     type Target = T;
 
@@ -59,17 +73,18 @@ impl<T> Deref for Indexed<T> {
     }
 }
 
-struct Bridge<'env, 'heap, C, A: Allocator> {
+struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
     client: Client,
     bodies: &'env DefIdSlice<Body<'heap>>,
     queries: &'env PreparedQueries<'heap, A>,
     inputs: &'env Inputs<'heap, A>,
+    context: &'env EvalContext<'ctx, 'heap, A>,
 
     scratch: Scratch, // <- TODO: must be a pool
     _marker: PhantomData<C>,
 }
 
-impl<'heap, C, A: Allocator> Bridge<'_, 'heap, C, A> {
+impl<'heap, C, A: Allocator> Bridge<'_, '_, 'heap, C, A> {
     async fn graph_read<L: Allocator + Clone>(
         &mut self,
         callstack: &CallStack<'_, 'heap, L>,
@@ -122,15 +137,37 @@ impl<'heap, C, A: Allocator> Bridge<'_, 'heap, C, A> {
         let mut response = pin!(response);
 
         while let Some(row) = response.next().await {
+            let mut partial = Partial::new(query.vertex_type);
+            let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
+
             let row = row
                 .map_err(|source| BridgeError::QueryExecution {
                     sql: transpiled.clone(),
                     source,
                 })
                 .map_err(RuntimeError::Suspension)?;
+            let mut sub_interpreters = Vec::new_in(&self.scratch);
 
             // for now we do this synchronously because it's easier
-            for (index, column) in query.columns.iter().enumerate() {
+            for (index, &column) in query.columns.iter().enumerate() {
+                match column {
+                    ColumnDescriptor::Path { path, r#type } => {
+                        partial.hydrate_from_postgres(
+                            self.context.env,
+                            &decoder,
+                            path,
+                            r#type,
+                            Indexed::new(index, column),
+                            &row,
+                        );
+                    }
+                    ColumnDescriptor::Continuation {
+                        body,
+                        island,
+                        field,
+                    } => todo!(),
+                }
+
                 // let value = &row.get(index);
                 todo!()
             }

@@ -21,11 +21,19 @@
 //! [`Value`]: hashql_mir::interpret::value::Value
 
 use core::alloc::Allocator;
+use std::rc::Rc;
 
-use hashql_core::r#type::{TypeId, environment::Environment};
+use hashql_core::{
+    symbol::{Symbol, sym},
+    r#type::{TypeId, environment::Environment},
+};
 use hashql_mir::{
-    interpret::value::{Int, Num, Value},
-    pass::execution::traversal::EntityPath,
+    intern::Interner,
+    interpret::value::{Int, Num, Opaque, StructBuilder, Value},
+    pass::execution::{
+        VertexType,
+        traversal::{EntityPath, TraversalPath},
+    },
 };
 use tokio_postgres::Row;
 
@@ -51,14 +59,14 @@ use crate::postgres::ColumnDescriptor;
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Hydrated<T, A = !> {
+pub enum Hydrated<T, N = !> {
     /// Not in the provides set. The query did not request this field.
     Skipped,
     /// Requested, but the database returned `NULL`.
     ///
     /// Only constructible when `A = ()` ([`Optional`] fields). For [`Required`]
     /// fields (`A = !`), this variant is uninhabited.
-    Null(A),
+    Null(N),
     /// Requested and present.
     Value(T),
 }
@@ -66,6 +74,16 @@ pub enum Hydrated<T, A = !> {
 impl<T, A> Default for Hydrated<T, A> {
     fn default() -> Self {
         Self::Skipped
+    }
+}
+
+impl<T, N> Hydrated<T, N> {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Hydrated<U, N> {
+        match self {
+            Self::Skipped => Hydrated::Skipped,
+            Self::Null(marker) => Hydrated::Null(marker),
+            Self::Value(value) => Hydrated::Value(f(value)),
+        }
     }
 }
 
@@ -116,7 +134,7 @@ impl<T> Hydrated<T, ()> {
     }
 }
 
-impl<T: Default, A> Hydrated<T, A> {
+impl<T: Default, N> Hydrated<T, N> {
     /// Ensures this field contains a value, initializing it with [`Default::default`]
     /// if it was [`Skipped`](Self::Skipped) or [`Null`](Self::Null).
     ///
@@ -134,6 +152,42 @@ impl<T: Default, A> Hydrated<T, A> {
             Self::Value(value) => value,
             _ => unreachable!(),
         }
+    }
+}
+
+impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, !> {
+    pub fn finish_in<const N: usize>(
+        self,
+        builder: &mut StructBuilder<'heap, A, N>,
+        field: Symbol<'heap>,
+    ) {
+        let value = match self {
+            Self::Skipped => return,
+            Self::Value(value) => value,
+        };
+
+        builder.push(field, value);
+    }
+}
+
+impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, ()> {
+    pub fn finish_in<const N: usize>(
+        self,
+        builder: &mut StructBuilder<'heap, A, N>,
+        field: Symbol<'heap>,
+        alloc: A,
+    ) {
+        let value = match self {
+            Self::Skipped => return,
+            Self::Null(()) => {
+                Value::Opaque(Opaque::new(sym::path::None, Rc::new_in(Value::Unit, alloc)))
+            }
+            Self::Value(value) => {
+                Value::Opaque(Opaque::new(sym::path::Some, Rc::new_in(value, alloc)))
+            }
+        };
+
+        builder.push(field, value);
     }
 }
 
@@ -156,6 +210,22 @@ pub struct PartialEncodings<'heap, A: Allocator> {
     pub vectors: Required<Value<'heap, A>>,
 }
 
+impl<'heap, A: Allocator> PartialEncodings<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 1> = StructBuilder::new();
+        self.vectors.finish_in(&mut builder, sym::vectors);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(
+            sym::path::EntityEncodings,
+            Rc::new_in(value, alloc),
+        ))
+    }
+}
+
 impl<A: Allocator> Default for PartialEncodings<'_, A> {
     fn default() -> Self {
         Self {
@@ -174,6 +244,28 @@ pub struct PartialLinkEntityId<'heap, A: Allocator> {
     pub entity_uuid: Required<Value<'heap, A>>,
 }
 
+impl<'heap, A: Allocator> PartialLinkEntityId<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 3> = StructBuilder::new();
+        self.web_id.finish_in(&mut builder, sym::web_id);
+        self.entity_uuid.finish_in(&mut builder, sym::entity_uuid);
+
+        builder.push(
+            sym::draft_id,
+            Value::Opaque(Opaque::new(
+                sym::path::None,
+                Rc::new_in(Value::Unit, alloc.clone()),
+            )),
+        );
+
+        let inner = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(sym::path::EntityId, Rc::new_in(inner, alloc)))
+    }
+}
+
 impl<A: Allocator> Default for PartialLinkEntityId<'_, A> {
     fn default() -> Self {
         Self {
@@ -189,6 +281,24 @@ pub struct PartialProvenance<'heap, A: Allocator> {
     pub edition: Required<Value<'heap, A>>,
 }
 
+impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 2> = StructBuilder::new();
+        self.inferred.finish_in(&mut builder, sym::inferred);
+        self.edition.finish_in(&mut builder, sym::edition);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+
+        Value::Opaque(Opaque::new(
+            sym::path::EntityProvenance,
+            Rc::new_in(value, alloc),
+        ))
+    }
+}
+
 impl<A: Allocator> Default for PartialProvenance<'_, A> {
     fn default() -> Self {
         Self {
@@ -202,6 +312,25 @@ impl<A: Allocator> Default for PartialProvenance<'_, A> {
 pub struct PartialTemporalVersioning<'heap, A: Allocator> {
     pub decision_time: Required<Value<'heap, A>>,
     pub transaction_time: Required<Value<'heap, A>>,
+}
+
+impl<'heap, A: Allocator> PartialTemporalVersioning<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 2> = StructBuilder::new();
+        self.decision_time
+            .finish_in(&mut builder, sym::decision_time);
+        self.transaction_time
+            .finish_in(&mut builder, sym::transaction_time);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(
+            sym::path::TemporalMetadata,
+            Rc::new_in(value, alloc),
+        ))
+    }
 }
 
 impl<A: Allocator> Default for PartialTemporalVersioning<'_, A> {
@@ -225,6 +354,22 @@ pub struct PartialEntityId<'heap, A: Allocator> {
     pub draft_id: Optional<Value<'heap, A>>,
 }
 
+impl<'heap, A: Allocator> PartialEntityId<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 3> = StructBuilder::new();
+        self.web_id.finish_in(&mut builder, sym::web_id);
+        self.entity_uuid.finish_in(&mut builder, sym::entity_uuid);
+        self.draft_id
+            .finish_in(&mut builder, sym::draft_id, alloc.clone());
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(sym::path::EntityId, Rc::new_in(value, alloc)))
+    }
+}
+
 impl<A: Allocator> Default for PartialEntityId<'_, A> {
     fn default() -> Self {
         Self {
@@ -241,6 +386,23 @@ impl<A: Allocator> Default for PartialEntityId<'_, A> {
 pub struct PartialRecordId<'heap, A: Allocator> {
     pub entity_id: Required<PartialEntityId<'heap, A>>,
     pub edition_id: Required<Value<'heap, A>>,
+}
+
+impl<'heap, A: Allocator> PartialRecordId<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 2> = StructBuilder::new();
+
+        self.entity_id
+            .map(|value| value.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::entity_id);
+        self.edition_id.finish_in(&mut builder, sym::edition_id);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(sym::path::RecordId, Rc::new_in(value, alloc)))
+    }
 }
 
 impl<A: Allocator> Default for PartialRecordId<'_, A> {
@@ -266,6 +428,39 @@ pub struct PartialLinkData<'heap, A: Allocator> {
     pub left_entity_provenance: Required<Value<'heap, A>>,
     pub right_entity_confidence: Optional<Value<'heap, A>>,
     pub right_entity_provenance: Required<Value<'heap, A>>,
+}
+
+impl<'heap, A: Allocator> PartialLinkData<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 6> = StructBuilder::new();
+
+        self.left_entity_id
+            .map(|value| value.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::left_entity_id);
+        self.right_entity_id
+            .map(|value| value.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::right_entity_id);
+        self.left_entity_confidence.finish_in(
+            &mut builder,
+            sym::left_entity_confidence,
+            alloc.clone(),
+        );
+        self.left_entity_provenance
+            .finish_in(&mut builder, sym::left_entity_provenance);
+        self.right_entity_confidence.finish_in(
+            &mut builder,
+            sym::right_entity_confidence,
+            alloc.clone(),
+        );
+        self.right_entity_provenance
+            .finish_in(&mut builder, sym::right_entity_provenance);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(sym::path::LinkData, Rc::new_in(value, alloc)))
+    }
 }
 
 impl<A: Allocator> Default for PartialLinkData<'_, A> {
@@ -297,6 +492,38 @@ pub struct PartialMetadata<'heap, A: Allocator> {
     pub provenance: Required<PartialProvenance<'heap, A>>,
     pub confidence: Optional<Value<'heap, A>>,
     pub property_metadata: Required<Value<'heap, A>>,
+}
+
+impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 7> = StructBuilder::new();
+
+        self.record_id
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::record_id);
+        self.temporal_versioning
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::temporal_versioning);
+        self.entity_type_ids
+            .finish_in(&mut builder, sym::entity_type_ids);
+        self.archived.finish_in(&mut builder, sym::archived);
+        self.provenance
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::provenance);
+        self.confidence
+            .finish_in(&mut builder, sym::confidence, alloc.clone());
+        self.property_metadata
+            .finish_in(&mut builder, sym::property_metadata);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(
+            sym::path::EntityMetadata,
+            Rc::new_in(value, alloc),
+        ))
+    }
 }
 
 impl<A: Allocator> Default for PartialMetadata<'_, A> {
@@ -331,7 +558,27 @@ pub struct PartialEntity<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PartialEntity<'heap, A> {
-    fn populate_postgres(
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut builder: StructBuilder<'heap, A, 4> = StructBuilder::new();
+        self.properties.finish_in(&mut builder, sym::properties);
+        self.metadata
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::metadata);
+        self.link_data
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::link_data, alloc.clone());
+        self.encodings
+            .map(|partial| partial.finish_in(interner, alloc.clone()))
+            .finish_in(&mut builder, sym::encodings);
+
+        let value = Value::Struct(builder.finish(interner, alloc.clone()));
+        Value::Opaque(Opaque::new(sym::path::Entity, Rc::new_in(value, alloc)))
+    }
+
+    fn hydrate_from_postgres(
         &mut self,
         env: &Environment<'heap>,
         decoder: &Decoder<'_, 'heap, A>,
@@ -757,6 +1004,46 @@ impl<A: Allocator> Default for PartialEntity<'_, A> {
             metadata: Required::Skipped,
             link_data: Optional::Skipped,
             encodings: Required::Skipped,
+        }
+    }
+}
+
+pub enum Partial<'heap, A: Allocator> {
+    Entity(PartialEntity<'heap, A>),
+}
+
+impl<'heap, A: Allocator> Partial<'heap, A> {
+    pub fn new(vertex_type: VertexType) -> Self {
+        match vertex_type {
+            VertexType::Entity => Self::Entity(PartialEntity::default()),
+        }
+    }
+
+    pub fn hydrate_from_postgres(
+        &mut self,
+        env: &Environment<'heap>,
+        decoder: &Decoder<'_, 'heap, A>,
+        path: TraversalPath,
+        r#type: TypeId,
+        column: Indexed<ColumnDescriptor>,
+        row: &Row,
+    ) -> Result<(), BridgeError>
+    where
+        A: Clone,
+    {
+        match (self, path) {
+            (Self::Entity(entity), TraversalPath::Entity(entity_path)) => {
+                entity.hydrate_from_postgres(env, decoder, entity_path, r#type, column, row)
+            }
+        }
+    }
+
+    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    where
+        A: Clone,
+    {
+        match self {
+            Self::Entity(entity) => entity.finish_in(interner, alloc),
         }
     }
 }
