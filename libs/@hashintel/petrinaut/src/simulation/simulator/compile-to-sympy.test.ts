@@ -423,6 +423,55 @@ describe("compileToSymPy", () => {
     });
   });
 
+  describe("global built-in functions", () => {
+    it("should compile Boolean(expr) to sp.Ne(expr, 0)", () => {
+      const result = compileToSymPy(
+        "export default Lambda((tokens, parameters) => Boolean(parameters.infection_rate))",
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "sp.Ne(infection_rate, 0)",
+      });
+    });
+
+    it("should compile Boolean with arithmetic expression", () => {
+      const result = compileToSymPy(
+        "export default Lambda(() => Boolean(1 + 2))",
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "sp.Ne(1 + 2, 0)",
+      });
+    });
+
+    it("should compile Number(expr) as identity", () => {
+      const result = compileToSymPy(
+        "export default Lambda(() => Number(true))",
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "True",
+      });
+    });
+
+    it("should compile Boolean in block body with return", () => {
+      const result = compileToSymPy(
+        `export default Lambda((tokens, parameters) => {
+          const sum = parameters.infection_rate + parameters.recovery_rate;
+          return Boolean(sum);
+        })`,
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.sympyCode).toContain("sp.Ne");
+      }
+    });
+  });
+
   describe("block body with const and return", () => {
     it("should compile block body with const bindings", () => {
       const result = compileToSymPy(
