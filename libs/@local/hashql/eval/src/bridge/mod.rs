@@ -219,9 +219,9 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                                 let Some(state) = completed.iter().find(|state| {
                                     state.body == def_id && state.island == island_id
                                 }) else {
-                                    unreachable!(
-                                        "should be evaluated directly inside of the postgres query"
-                                    )
+                                    // This means that the block has already been evaluated before,
+                                    // which in turns means that we can just skip this filter body.
+                                    continue;
                                 };
 
                                 // We must not flush the locals of the body to the values that have
