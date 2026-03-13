@@ -6,12 +6,11 @@ use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
 use futures_lite::StreamExt as _;
 use hashql_core::{
     collections::FastHashMap,
-    heap::{BumpAllocator, ResetAllocator as _, Scratch},
+    heap::{BumpAllocator, ScratchPool},
     symbol::Symbol,
 };
 use hashql_mir::{
     body::{
-        Body,
         basic_block::BasicBlockId,
         terminator::{GraphRead, GraphReadBody},
     },
@@ -22,7 +21,6 @@ use hashql_mir::{
     },
     pass::execution::TargetId,
 };
-use postgres_types::ToSql;
 use tokio_postgres::{Client, Row};
 
 use self::{
@@ -30,7 +28,6 @@ use self::{
     error::BridgeError,
     partial::Partial,
     postgres::PartialPostgresState,
-    subinterpreter::PartialSubinterpreter,
 };
 use crate::{
     context::EvalContext,
@@ -41,7 +38,6 @@ mod codec;
 pub(crate) mod error;
 mod partial;
 mod postgres;
-mod subinterpreter;
 
 pub(crate) struct Inputs<'heap, A: Allocator> {
     pub(crate) inner: FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
@@ -89,6 +85,8 @@ struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
     client: Client,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
+
+    pool: ScratchPool,
 
     _marker: PhantomData<C>,
 }
@@ -253,6 +251,9 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                     // might have allocated memory that needs to be freed.
                     drop(callstack);
 
+                    // We should put this in a separate function, so that rollback/checkpoint are
+                    // easier to manage. even better: &self checkpoints which are not yet possible.
+
                     #[expect(unsafe_code)]
                     // SAFETY: None of the allocations made in this loop are shared with the
                     // caller, and none of the state is shared, so rolling back
@@ -283,8 +284,9 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
 
     // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
     // the primary data store.
-    async fn graph_read_entry<L: Allocator + Clone>(
+    async fn graph_read_in<L: BumpAllocator + Clone>(
         &self,
+        inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
         GraphReadSuspension {
             body,
@@ -292,6 +294,7 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
             read,
             axis,
         }: &GraphReadSuspension<'ctx, 'heap>,
+        alloc: L,
     ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
         // Each graph read has a corresponding query, this query is *always* located in postgres, if
         // only to try to get the entities that have been affected.
@@ -300,17 +303,17 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
         let statement = query.transpile().to_string();
 
         let locals = callstack.locals().map_err(RuntimeError::widen)?;
-        let mut params = Vec::with_capacity_in(query.parameters.len(), &self.scratch);
+        let mut params = Vec::with_capacity_in(query.parameters.len(), alloc.clone());
         for param in query.parameters.iter().map(|parameter| {
             encode_parameter_in(
                 parameter,
-                self.inputs,
+                inputs,
                 axis,
                 |local, field| {
                     let value = locals.local(local)?;
                     value.project(field)
                 },
-                &self.scratch,
+                alloc.clone(),
             )
         }) {
             params.push(param.map_err(RuntimeError::widen)?);
@@ -338,146 +341,21 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
                 })
                 .map_err(RuntimeError::Suspension)?;
 
-            self.graph_read_row_in(read, callstack, row, query).await;
+            let checkpoint = alloc.checkpoint();
+
+            self.graph_read_row_in(inputs, callstack, read, query, row, alloc.clone())
+                .await;
+
+            #[expect(unsafe_code)]
+            // SAFETY: none of the data inside of `gread_read_row_in` modifies anything outside of
+            // here, anything taken is only be reference, and does not allow for allocation.
+            // `Value` is cloned, but in that case it's never an allocation, and
+            // instead just an `Rc` increment.
+            unsafe {
+                alloc.rollback(checkpoint)
+            };
         }
 
-        todo!()
-    }
-
-    async fn graph_read<L: Allocator + Clone>(
-        &mut self,
-        callstack: &CallStack<'_, 'heap, L>,
-        suspension: &GraphReadSuspension<'_, 'heap>,
-    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
-        self.scratch.reset();
-
-        let axis = &suspension.axis;
-        let locals = callstack.locals().map_err(RuntimeError::widen)?;
-        let query = self.queries.find(suspension.body, suspension.block);
-
-        // TODO: We must ensure that there's *always* a query, in case nothing is given we fallback
-        // to a prepared one, that just fetches the data required.
-        // We should either do this inside of the bridge computation, or when running the postgres
-        // compiler. I am thinking the postgres compiler, where we just have a "nonsensical" output.
-        let transpiled = query.transpile().to_string();
-        let mut params = Vec::with_capacity_in(query.parameters.len(), &self.scratch);
-
-        let encoded = query.parameters.iter().map(|parameter| {
-            encode_parameter_in(
-                parameter,
-                self.inputs,
-                axis,
-                |local, field| {
-                    let value = locals.local(local)?;
-                    value.project(field)
-                },
-                &self.scratch,
-            )
-        });
-        for param in encoded {
-            params.push(param.map_err(RuntimeError::widen)?);
-        }
-
-        let response = self
-            .client
-            .query_raw(
-                &transpiled,
-                params
-                    .iter()
-                    .map(|param| -> &(dyn ToSql + Sync) { &**param }),
-            )
-            .await
-            .map_err(|source| BridgeError::QueryExecution {
-                sql: transpiled.clone(),
-                source,
-            })
-            .map_err(RuntimeError::Suspension)?;
-
-        let mut response = pin!(response);
-
-        while let Some(row) = response.next().await {
-            let mut partial = Partial::new(query.vertex_type);
-            let decoder = Decoder::new(self.context.env, self.context.interner, &self.scratch);
-
-            let row = row
-                .map_err(|source| BridgeError::QueryExecution {
-                    sql: transpiled.clone(),
-                    source,
-                })
-                .map_err(RuntimeError::Suspension)?;
-            let mut sub_interpreters = Vec::new_in(&self.scratch);
-
-            // For now we do this synchronously because it's easier
-            // TODO: how do we transition from `Interpreter -> Embedding`, do we even do that? How
-            // does that work? We'd need to monitor if we're TODO: we need to redesign
-            // this. We're conflating two things here (fundamentally)
-            // 1. During stepping we do not consider if we need to transition again, and then what
-            //    (from the interpreter that is)
-            // 2. We have no way to determine where we need to go back to
-            // 3. There is no real way we can have more than one postgres island per query. It just
-            //    doesn't make any sense.
-            // TODO: the fundamental tension is that we **must** start from postgres, and then after
-            // that it's a "free for all". We must design for that.
-            // This design has been conflating the ordering with only working with interpreter and
-            // postgres. This is wrong by design.
-            // The issue is that the postgres island is always first, and there's only ever one.
-            // This is why an implicit contract, and our entrypoint. So I think that we're partially
-            // there!
-            // There are some other things we need to do tho:
-            // 1) patching hydrated entities at transitions
-            // 2) (or keeping the actual partial entity around)
-            // In theory multiple islands are only possible in the case of data islands, which do
-            // not generate something. Mhhh
-            for (index, &column) in query.columns.iter().enumerate() {
-                match column {
-                    ColumnDescriptor::Path { path, r#type } => {
-                        partial
-                            .hydrate_from_postgres(
-                                self.context.env,
-                                &decoder,
-                                path,
-                                r#type,
-                                Indexed::new(index, column),
-                                &row,
-                            )
-                            .map_err(RuntimeError::Suspension)?;
-                    }
-                    ColumnDescriptor::Continuation {
-                        body,
-                        island,
-                        field,
-                    } => {
-                        // Find if we already have a subinterpreter for this island
-                        let sub_interpreter = {
-                            if let Some(interpreter) = sub_interpreters.iter_mut().find(
-                                |interpreter: &&mut PartialSubinterpreter<_>| {
-                                    interpreter.body == body
-                                },
-                            ) {
-                                interpreter
-                            } else {
-                                sub_interpreters.push_mut(PartialSubinterpreter::new(body, island))
-                            }
-                        };
-
-                        sub_interpreter
-                            .hydrate(Indexed::new(index, column), field, &row, &self.scratch)
-                            .map_err(RuntimeError::Suspension)?;
-                    }
-                }
-            }
-
-            // TODO: we must:
-            // - spawn a local task to process the row
-            //  - hydrate the entities (type driven deserialization)
-            //  - for each filter (that has an exit):
-            //    - resolve the items.
-            //    - spawn a local task to process the filter.
-            //    - only return the entity to the final set if all filters are true
-            // - we can do this through a local set
-        }
-
-        // TODO: execute the bodies in parallel
         todo!()
     }
 
