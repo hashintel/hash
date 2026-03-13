@@ -29,8 +29,12 @@ use hashql_mir::{
 };
 use tokio_postgres::Row;
 
-use super::{Indexed, error::BridgeError, postgres_serde::Deserializer};
-use crate::{bridge::postgres_serde::ValueRef, postgres::ColumnDescriptor};
+use super::{
+    Indexed,
+    codec::{JsonValueRef, decode::Decoder},
+    error::BridgeError,
+};
+use crate::postgres::ColumnDescriptor;
 
 /// Per-field hydration state for partial entity assembly.
 ///
@@ -330,7 +334,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn populate_postgres(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         path: EntityPath,
         r#type: TypeId,
         column: Indexed<ColumnDescriptor>,
@@ -345,7 +349,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::Properties => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
                 self.properties.set(value);
             }
             EntityPath::Vectors => unreachable!(
@@ -359,36 +363,36 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 let entity_id = &value["entity_id"];
                 let edition_id = &value["edition_id"];
 
-                self.hydrate_entity_id(env, deserializer, column, entity_id)?;
-                self.hydrate_edition_id(env, deserializer, column, edition_id)?;
+                self.hydrate_entity_id(env, decoder, column, entity_id)?;
+                self.hydrate_edition_id(env, decoder, column, edition_id)?;
             }
             EntityPath::EntityId => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
 
-                self.hydrate_entity_id(env, deserializer, column, &value)?;
+                self.hydrate_entity_id(env, decoder, column, &value)?;
             }
             EntityPath::WebId => {
                 let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_web_id(env, deserializer, column, ValueRef::String(&value))?;
+                self.hydrate_web_id(env, decoder, column, JsonValueRef::String(&value))?;
             }
             EntityPath::EntityUuid => {
                 let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_entity_uuid(env, deserializer, column, ValueRef::String(&value))?;
+                self.hydrate_entity_uuid(env, decoder, column, JsonValueRef::String(&value))?;
             }
             EntityPath::DraftId => {
                 let value: Option<String> =
                     row.try_get(column.index).map_err(row_hydration_error)?;
                 self.hydrate_draft_id(
                     env,
-                    deserializer,
+                    decoder,
                     column,
-                    value.as_deref().map(ValueRef::String),
+                    value.as_deref().map(JsonValueRef::String),
                 )?;
             }
             EntityPath::EditionId => {
                 let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_edition_id(env, deserializer, column, ValueRef::String(&value))?;
+                self.hydrate_edition_id(env, decoder, column, JsonValueRef::String(&value))?;
             }
             EntityPath::TemporalVersioning => {
                 let value: serde_json::Value =
@@ -396,23 +400,23 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 let transaction_time = &value["transaction_time"];
                 let decision_time = &value["decision_time"];
 
-                self.hydrate_decision_time(env, deserializer, column, decision_time)?;
-                self.hydrate_transaction_time(env, deserializer, column, transaction_time)?;
+                self.hydrate_decision_time(env, decoder, column, decision_time)?;
+                self.hydrate_transaction_time(env, decoder, column, transaction_time)?;
             }
             EntityPath::DecisionTime => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_decision_time(env, deserializer, column, &value)?;
+                self.hydrate_decision_time(env, decoder, column, &value)?;
             }
             EntityPath::TransactionTime => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_transaction_time(env, deserializer, column, &value)?;
+                self.hydrate_transaction_time(env, decoder, column, &value)?;
             }
             EntityPath::EntityTypeIds => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
                 self.metadata.ensure().entity_type_ids.set(value);
             }
@@ -435,7 +439,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::ProvenanceInferred => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
                 self.metadata
                     .ensure()
@@ -447,7 +451,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::ProvenanceEdition => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
                 self.metadata
                     .ensure()
@@ -459,7 +463,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::PropertyMetadata => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = deserializer.try_deserialize(r#type, (&value).into(), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
                 self.metadata.ensure().property_metadata.set(value);
             }
@@ -472,8 +476,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data
                     .ensure()
@@ -491,8 +494,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data
                     .ensure()
@@ -510,8 +512,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data
                     .ensure()
@@ -529,8 +530,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data
                     .ensure()
@@ -564,8 +564,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data.ensure().left_entity_provenance.set(value);
             }
@@ -578,8 +577,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     return Ok(());
                 };
 
-                let value =
-                    deserializer.try_deserialize(r#type, ValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
 
                 self.link_data.ensure().right_entity_provenance.set(value);
             }
@@ -591,7 +589,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_entity_id(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: &serde_json::Value,
     ) -> Result<(), BridgeError>
@@ -601,9 +599,9 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         let web_id = &value["web_id"];
         let entity_uuid = &value["entity_uuid"];
 
-        self.hydrate_web_id(env, deserializer, column, web_id)?;
-        self.hydrate_entity_uuid(env, deserializer, column, entity_uuid)?;
-        self.hydrate_draft_id(env, deserializer, column, value.get("draft_id"))?;
+        self.hydrate_web_id(env, decoder, column, web_id)?;
+        self.hydrate_entity_uuid(env, decoder, column, entity_uuid)?;
+        self.hydrate_draft_id(env, decoder, column, value.get("draft_id"))?;
 
         Ok(())
     }
@@ -611,18 +609,15 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_decision_time<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: impl Into<ValueRef<'value>>,
+        value: impl Into<JsonValueRef<'value>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
-        let value = deserializer.try_deserialize(
-            EntityPath::DecisionTime.r#type(env),
-            value.into(),
-            column,
-        )?;
+        let value =
+            decoder.try_decode(EntityPath::DecisionTime.r#type(env), value.into(), column)?;
         self.metadata
             .ensure()
             .temporal_versioning
@@ -636,14 +631,14 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_transaction_time<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: impl Into<ValueRef<'value>>,
+        value: impl Into<JsonValueRef<'value>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
-        let value = deserializer.try_deserialize(
+        let value = decoder.try_decode(
             EntityPath::TransactionTime.r#type(env),
             value.into(),
             column,
@@ -661,15 +656,14 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_web_id<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: impl Into<ValueRef<'value>>,
+        value: impl Into<JsonValueRef<'value>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
-        let value =
-            deserializer.try_deserialize(EntityPath::WebId.r#type(env), value.into(), column)?;
+        let value = decoder.try_decode(EntityPath::WebId.r#type(env), value.into(), column)?;
 
         self.metadata
             .ensure()
@@ -686,18 +680,14 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_entity_uuid<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: impl Into<ValueRef<'value>>,
+        value: impl Into<JsonValueRef<'value>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
-        let value = deserializer.try_deserialize(
-            EntityPath::EntityUuid.r#type(env),
-            value.into(),
-            column,
-        )?;
+        let value = decoder.try_decode(EntityPath::EntityUuid.r#type(env), value.into(), column)?;
 
         self.metadata
             .ensure()
@@ -714,19 +704,17 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_draft_id<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: Option<impl Into<ValueRef<'value>>>,
+        value: Option<impl Into<JsonValueRef<'value>>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
         let value = value
             .map(Into::into)
-            .filter(|value| !matches!(value, ValueRef::Null))
-            .map(|value| {
-                deserializer.try_deserialize(EntityPath::DraftId.r#type(env), value, column)
-            })
+            .filter(|value| !matches!(value, JsonValueRef::Null))
+            .map(|value| decoder.try_decode(EntityPath::DraftId.r#type(env), value, column))
             .transpose()?;
 
         self.metadata
@@ -743,18 +731,14 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     fn hydrate_edition_id<'value>(
         &mut self,
         env: &Environment<'heap>,
-        deserializer: &Deserializer<'_, 'heap, A>,
+        decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
-        value: impl Into<ValueRef<'value>>,
+        value: impl Into<JsonValueRef<'value>>,
     ) -> Result<(), BridgeError>
     where
         A: Clone,
     {
-        let value = deserializer.try_deserialize(
-            EntityPath::EditionId.r#type(env),
-            value.into(),
-            column,
-        )?;
+        let value = decoder.try_decode(EntityPath::EditionId.r#type(env), value.into(), column)?;
 
         self.metadata
             .ensure()
