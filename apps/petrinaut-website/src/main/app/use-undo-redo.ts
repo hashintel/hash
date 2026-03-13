@@ -1,7 +1,6 @@
+import type { SDCPN } from "@hashintel/petrinaut";
+import { isSDCPNEqual } from "@hashintel/petrinaut";
 import { useRef, useState } from "react";
-
-import type { SDCPN } from "../../../src/core/types/sdcpn";
-import { isSDCPNEqual } from "../../../src/petrinaut";
 
 export type HistoryEntry = {
   sdcpn: SDCPN;

@@ -1,6 +1,5 @@
+import { ErrorTrackerContext } from "@hashintel/petrinaut";
 import * as Sentry from "@sentry/react";
-
-import { ErrorTrackerContext } from "../../src/error-tracker/error-tracker.context";
 
 /**
  * Provider that implements ErrorTrackerContext using Sentry

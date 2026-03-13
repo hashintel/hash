@@ -1,9 +1,8 @@
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut";
+import { convertOldFormatToSDCPN, Petrinaut } from "@hashintel/petrinaut";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { MinimalNetMetadata, SDCPN } from "../../src/core/types/sdcpn";
-import { convertOldFormatToSDCPN } from "../../src/old-formats/convert-old-format";
-import { Petrinaut } from "../../src/petrinaut";
 import {
   isOldFormatInLocalStorage,
   type SDCPNInLocalStorage,

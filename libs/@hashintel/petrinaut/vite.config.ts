@@ -20,7 +20,6 @@ export default defineConfig(({ command }) => ({
         "react",
         "react-dom",
         "@xyflow/react",
-        "monaco-editor",
         "@babel/standalone",
       ],
       output: {
@@ -37,6 +36,10 @@ export default defineConfig(({ command }) => ({
     // based on its browser-target heuristics.
     // https://github.com/parcel-bundler/lightningcss/issues/695
     cssMinify: false,
+  },
+
+  define: {
+    "process.versions": JSON.stringify({ pnp: undefined }),
   },
 
   worker: {
