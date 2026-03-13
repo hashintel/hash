@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "Changing dir to root"
-cd ../../..
+cd ../..
 
 echo "updating certificates"
 yum update ca-certificates -y
@@ -26,23 +26,6 @@ echo "Rust installation completed. Checking versions:"
 mise list rust
 rustc --version
 cargo --version
-
-
-# TODO: investigate why producing a pruned repo results in a broken Vercel build
-#   update: Probably due to missing `patches/` folder, needs investigation
-
-#echo "Producing pruned repo"
-#turbo prune --scope='@apps/hash-frontend'
-#
-#echo "Deleting contents of non-pruned dir to save space"
-#git ls-files -z | xargs -0 rm -f
-#git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
-#
-#echo "Moving pruned repo back to root"
-#mv out/* .
-#rm out -r
-
-# Install the pruned dependencies
 
 echo "Installing yarn dependencies"
 LEFTHOOK=0 yarn install --immutable

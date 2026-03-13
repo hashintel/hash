@@ -6,7 +6,6 @@ import dts from "vite-plugin-dts";
 
 // Dependencies that should not be bundled into the library
 const external = [
-  "canvas",
   "react",
   "react-dom",
   "react/jsx-runtime",
