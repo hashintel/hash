@@ -226,9 +226,9 @@ function compileBlock(
             sourceFile,
           );
         }
-        if (stmt.declarationList.flags & ts.NodeFlags.Let) {
+        if (!(stmt.declarationList.flags & ts.NodeFlags.Const)) {
           return err(
-            "'let' declarations are not supported, use 'const'",
+            "'let' and 'var' declarations are not supported, use 'const'",
             stmt,
             sourceFile,
           );
@@ -259,8 +259,11 @@ function compileBlock(
       if (!result.ok) return result;
       lines.push(result.sympyCode);
     } else if (ts.isExpressionStatement(stmt)) {
-      // Allow comments parsed as expression statements, skip them
-      continue;
+      return err(
+        "Standalone expression has no effect — assign to a const or return it",
+        stmt,
+        sourceFile,
+      );
     } else {
       return err(
         `Unsupported statement: ${ts.SyntaxKind[stmt.kind]}`,
