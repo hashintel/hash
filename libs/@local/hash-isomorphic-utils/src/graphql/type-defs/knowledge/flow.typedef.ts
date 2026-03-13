@@ -210,12 +210,13 @@ export const flowTypedef = gql`
       executionStatus: FlowRunStatus
       """
       Number of flow runs to skip (for offset-based pagination).
-      When omitted, all matching flow runs are returned.
+      Defaults to 0. Negative values are clamped to 0.
       """
       offset: Int
       """
       Maximum number of flow runs to return (for offset-based pagination).
-      When omitted, all matching flow runs are returned.
+      Defaults to 100 and is capped at that value.
+      Negative values are clamped to 0.
       """
       limit: Int
     ): PaginatedFlowRuns!
