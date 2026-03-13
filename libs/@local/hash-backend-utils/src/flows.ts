@@ -12,6 +12,7 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -297,11 +298,12 @@ export async function getFlowRuns({
 
   const totalCount = deduplicatedWorkflowIds.length;
 
-  const { offset, limit } = filters;
-  const paginatedIds =
-    offset != null && limit != null
-      ? deduplicatedWorkflowIds.slice(offset, offset + limit)
-      : deduplicatedWorkflowIds;
+  const offset = filters.offset ?? 0;
+  const limit = Math.min(
+    filters.limit ?? flowRunsQueryMaxLimit,
+    flowRunsQueryMaxLimit,
+  );
+  const paginatedIds = deduplicatedWorkflowIds.slice(offset, offset + limit);
 
   if (includeDetails) {
     const workflows: FlowRun[] = [];
