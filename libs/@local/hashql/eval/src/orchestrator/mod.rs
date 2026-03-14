@@ -206,7 +206,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                             TargetId::Interpreter => {
                                 // TODO: this must actually be implemented AND must only do it on
                                 // the last frame, no mid-way suspension here amigo.
-                                runtime.run_until_transition::<()>(&mut callstack, |target| {
+                                runtime.run_until_transition::<!>(&mut callstack, |target| {
                                     residual.islands.lookup(target).0 != island_id
                                 });
 

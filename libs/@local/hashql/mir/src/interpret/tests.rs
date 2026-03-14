@@ -1916,7 +1916,7 @@ fn transition_breaks_at_target_block() {
 
     let bb1 = crate::body::basic_block::BasicBlockId::new(1);
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
     runtime.reset();
 
@@ -1953,7 +1953,7 @@ fn transition_runs_to_completion_when_continue_always_true() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
     runtime.reset();
 
@@ -2157,7 +2157,7 @@ fn callstack_new_in_runs_to_completion() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
     let callstack =
         CallStack::new_in::<()>(&bodies[DefId::new(0)], [].into_iter(), alloc::alloc::Global)
             .expect("new_in should succeed");
