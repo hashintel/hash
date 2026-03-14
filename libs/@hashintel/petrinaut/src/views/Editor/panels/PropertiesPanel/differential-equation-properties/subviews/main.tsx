@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { use, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -15,8 +15,10 @@ import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
 } from "../../../../../../core/default-codes";
+import { getSDCPNLanguage } from "../../../../../../core/types/sdcpn";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
+import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
 
@@ -92,6 +94,8 @@ const aiIconStyle = css({
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const sdcpnLanguage = getSDCPNLanguage(petriNetDefinition);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
@@ -261,8 +265,9 @@ const DiffEqMainContent: React.FC = () => {
           path={getDocumentUri(
             "differential-equation",
             differentialEquation.id,
+            sdcpnLanguage,
           )}
-          language="typescript"
+          language={sdcpnLanguage === "python" ? "python" : "typescript"}
           value={differentialEquation.code}
           height="100%"
           onChange={(newCode) => {

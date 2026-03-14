@@ -1,5 +1,6 @@
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { getSDCPNLanguage } from "../core/types/sdcpn";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { LanguageClientContext } from "./context";
 import type {
@@ -8,6 +9,7 @@ import type {
   PublishDiagnosticsParams,
 } from "./worker/protocol";
 import { useLanguageClient } from "./worker/use-language-client";
+import { usePyrightClient } from "./worker/use-pyright-client";
 
 /** Build an immutable diagnostics map, excluding empty entries. */
 function buildDiagnosticsMap(
@@ -35,13 +37,21 @@ export const LanguageClientProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const client = useLanguageClient();
+  const language = getSDCPNLanguage(petriNetDefinition);
+  const isPython = language === "python";
+
+  // Both hooks are always called (React rules of hooks).
+  // Only the active one receives init / change notifications.
+  const tsClient = useLanguageClient();
+  const pyrightClient = usePyrightClient(isPython);
+
+  const client = isPython ? pyrightClient : tsClient;
 
   const [diagnosticsByUri, setDiagnosticsByUri] = useState<
     Map<DocumentUri, Diagnostic[]>
   >(new Map());
 
-  // Subscribe to diagnostics pushed from the server
+  // Subscribe to diagnostics pushed from the active server
   const handleDiagnostics = useCallback(
     (allParams: PublishDiagnosticsParams[]) => {
       setDiagnosticsByUri(buildDiagnosticsMap(allParams));
@@ -53,12 +63,22 @@ export const LanguageClientProvider: React.FC<{
     client.onDiagnostics(handleDiagnostics);
   }, [client, handleDiagnostics]);
 
-  // Initialize on first mount, then send incremental updates
-  const initializedRef = useRef(false);
+  // Clear diagnostics when switching language
+  const prevLanguageRef = useRef(language);
   useEffect(() => {
-    if (!initializedRef.current) {
+    if (prevLanguageRef.current !== language) {
+      prevLanguageRef.current = language;
+      setDiagnosticsByUri(new Map());
+    }
+  }, [language]);
+
+  // Initialize on first mount, then send incremental updates.
+  // Re-initialize when the active client changes (language switch).
+  const initializedClientRef = useRef<typeof client | null>(null);
+  useEffect(() => {
+    if (initializedClientRef.current !== client) {
       client.initialize(petriNetDefinition);
-      initializedRef.current = true;
+      initializedClientRef.current = client;
     } else {
       client.notifySDCPNChanged(petriNetDefinition);
     }
@@ -66,17 +86,27 @@ export const LanguageClientProvider: React.FC<{
 
   const totalDiagnosticsCount = countDiagnostics(diagnosticsByUri);
 
+  const contextValue = useMemo(
+    () => ({
+      diagnosticsByUri,
+      totalDiagnosticsCount,
+      notifyDocumentChanged: client.notifyDocumentChanged,
+      requestCompletion: client.requestCompletion,
+      requestHover: client.requestHover,
+      requestSignatureHelp: client.requestSignatureHelp,
+    }),
+    [
+      diagnosticsByUri,
+      totalDiagnosticsCount,
+      client.notifyDocumentChanged,
+      client.requestCompletion,
+      client.requestHover,
+      client.requestSignatureHelp,
+    ],
+  );
+
   return (
-    <LanguageClientContext
-      value={{
-        diagnosticsByUri,
-        totalDiagnosticsCount,
-        notifyDocumentChanged: client.notifyDocumentChanged,
-        requestCompletion: client.requestCompletion,
-        requestHover: client.requestHover,
-        requestSignatureHelp: client.requestSignatureHelp,
-      }}
-    >
+    <LanguageClientContext value={contextValue}>
       {children}
     </LanguageClientContext>
   );

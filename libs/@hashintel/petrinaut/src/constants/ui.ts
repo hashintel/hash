@@ -4,6 +4,7 @@
 
 import type { SubView } from "../components/sub-view/types";
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
+import { netSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/net-settings";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
 import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
@@ -46,6 +47,7 @@ export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
 
 // Base subviews always visible in the bottom panel
 export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
+  netSettingsSubView,
   diagnosticsSubView,
   simulationSettingsSubView,
 ];

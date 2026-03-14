@@ -25,25 +25,79 @@ describe("getDocumentUri", () => {
       "inmemory://sdcpn/differential-equations/de1.ts",
     );
   });
+
+  it("builds a Python transition-lambda URI", () => {
+    expect(getDocumentUri("transition-lambda", "t1", "python")).toBe(
+      "inmemory://sdcpn/transitions/t1/lambda.py",
+    );
+  });
+
+  it("builds a Python differential-equation URI", () => {
+    expect(getDocumentUri("differential-equation", "de1", "python")).toBe(
+      "inmemory://sdcpn/differential-equations/de1.py",
+    );
+  });
 });
 
 describe("parseDocumentUri", () => {
   it("parses a transition-lambda URI", () => {
     expect(
       parseDocumentUri("inmemory://sdcpn/transitions/t1/lambda.ts"),
-    ).toEqual({ itemType: "transition-lambda", itemId: "t1" });
+    ).toEqual({
+      itemType: "transition-lambda",
+      itemId: "t1",
+      language: "typescript",
+    });
   });
 
   it("parses a transition-kernel URI", () => {
     expect(
       parseDocumentUri("inmemory://sdcpn/transitions/t1/kernel.ts"),
-    ).toEqual({ itemType: "transition-kernel", itemId: "t1" });
+    ).toEqual({
+      itemType: "transition-kernel",
+      itemId: "t1",
+      language: "typescript",
+    });
   });
 
   it("parses a differential-equation URI", () => {
     expect(
       parseDocumentUri("inmemory://sdcpn/differential-equations/de1.ts"),
-    ).toEqual({ itemType: "differential-equation", itemId: "de1" });
+    ).toEqual({
+      itemType: "differential-equation",
+      itemId: "de1",
+      language: "typescript",
+    });
+  });
+
+  it("parses a Python transition-lambda URI", () => {
+    expect(
+      parseDocumentUri("inmemory://sdcpn/transitions/t1/lambda.py"),
+    ).toEqual({
+      itemType: "transition-lambda",
+      itemId: "t1",
+      language: "python",
+    });
+  });
+
+  it("parses a Python transition-kernel URI", () => {
+    expect(
+      parseDocumentUri("inmemory://sdcpn/transitions/t1/kernel.py"),
+    ).toEqual({
+      itemType: "transition-kernel",
+      itemId: "t1",
+      language: "python",
+    });
+  });
+
+  it("parses a Python differential-equation URI", () => {
+    expect(
+      parseDocumentUri("inmemory://sdcpn/differential-equations/de1.py"),
+    ).toEqual({
+      itemType: "differential-equation",
+      itemId: "de1",
+      language: "python",
+    });
   });
 
   it("returns null for an unknown URI", () => {

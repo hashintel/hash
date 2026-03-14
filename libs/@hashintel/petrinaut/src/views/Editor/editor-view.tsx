@@ -6,6 +6,7 @@ import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
+import { satellitesPythonSDCPN } from "../../examples/satellites-python";
 import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
@@ -208,6 +209,14 @@ export const EditorView = ({
           label: "Probabilistic Satellites Launcher",
           onClick: () => {
             createNewNet(probabilisticSatellitesSDCPN);
+            clearSelection();
+          },
+        },
+        {
+          id: "load-example-satellites-python",
+          label: "Satellites (Python)",
+          onClick: () => {
+            createNewNet(satellitesPythonSDCPN);
             clearSelection();
           },
         },

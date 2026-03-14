@@ -1,7 +1,11 @@
 /**
- * Centralized file path generation for SDCPN virtual TypeScript files.
+ * Centralized file path generation for SDCPN virtual files.
  * All paths are absolute (start with `/`) to work with TypeScript's baseUrl configuration.
+ *
+ * When `language` is "python", paths use `.py` / `.pyi` extensions instead of `.ts` / `.d.ts`.
  */
+
+import type { SDCPNLanguage } from "../../core/types/sdcpn";
 
 export type SDCPNFileType =
   | "sdcpn-lib-defs"
@@ -27,64 +31,70 @@ type FilePathParams = {
 };
 
 /**
- * Generates an absolute file path for SDCPN virtual TypeScript files.
+ * Generates an absolute file path for SDCPN virtual files.
  *
  * @param fileType - The type of file to generate a path for
  * @param params - Parameters required for the specific file type
+ * @param language - "typescript" (default) or "python" — determines file extensions
  * @returns Absolute path starting with `/`
  */
 export const getItemFilePath = <T extends SDCPNFileType>(
   fileType: T,
   ...args: FilePathParams[T] extends Record<string, never>
-    ? []
-    : [FilePathParams[T]]
+    ? [undefined?, SDCPNLanguage?]
+    : [FilePathParams[T], SDCPNLanguage?]
 ): string => {
-  const params = args[0];
+  const params = args[0] as FilePathParams[T] | undefined;
+  const language: SDCPNLanguage =
+    (args[1] as SDCPNLanguage | undefined) ?? "typescript";
+
+  const defsExt = language === "python" ? ".pyi" : ".d.ts";
+  const codeExt = language === "python" ? ".py" : ".ts";
 
   switch (fileType) {
     case "sdcpn-lib-defs":
-      return "/sdcpn-lib.d.ts";
+      return `/sdcpn-lib${defsExt}`;
 
     case "parameters-defs":
-      return "/parameters/defs.d.ts";
+      return `/parameters/defs${defsExt}`;
 
     case "color-defs": {
       const { colorId } = params as FilePathParams["color-defs"];
-      return `/colors/${colorId}/defs.d.ts`;
+      return `/colors/${colorId}/defs${defsExt}`;
     }
 
     case "differential-equation-defs": {
       const { id } = params as FilePathParams["differential-equation-defs"];
-      return `/differential_equations/${id}/defs.d.ts`;
+      return `/differential_equations/${id}/defs${defsExt}`;
     }
 
     case "differential-equation-code": {
       const { id } = params as FilePathParams["differential-equation-code"];
-      return `/differential_equations/${id}/code.ts`;
+      return `/differential_equations/${id}/code${codeExt}`;
     }
 
     case "transition-lambda-defs": {
       const { transitionId } =
         params as FilePathParams["transition-lambda-defs"];
-      return `/transitions/${transitionId}/lambda/defs.d.ts`;
+      return `/transitions/${transitionId}/lambda/defs${defsExt}`;
     }
 
     case "transition-lambda-code": {
       const { transitionId } =
         params as FilePathParams["transition-lambda-code"];
-      return `/transitions/${transitionId}/lambda/code.ts`;
+      return `/transitions/${transitionId}/lambda/code${codeExt}`;
     }
 
     case "transition-kernel-defs": {
       const { transitionId } =
         params as FilePathParams["transition-kernel-defs"];
-      return `/transitions/${transitionId}/kernel/defs.d.ts`;
+      return `/transitions/${transitionId}/kernel/defs${defsExt}`;
     }
 
     case "transition-kernel-code": {
       const { transitionId } =
         params as FilePathParams["transition-kernel-code"];
-      return `/transitions/${transitionId}/kernel/code.ts`;
+      return `/transitions/${transitionId}/kernel/code${codeExt}`;
     }
 
     default:

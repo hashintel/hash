@@ -66,45 +66,42 @@ const CompletionSyncInner = () => {
   );
 
   useEffect(() => {
-    const disposable = monaco.languages.registerCompletionItemProvider(
-      "typescript",
-      {
-        triggerCharacters: ["."],
+    const provider: Monaco.languages.CompletionItemProvider = {
+      triggerCharacters: ["."],
 
-        async provideCompletionItems(model, monacoPosition) {
-          const uri = model.uri.toString();
-          // TODO(FE-497): Sync current content to the worker before requesting
-          // completions. When a trigger character (e.g. ".") is typed, the
-          // Monaco model already has the new text but the worker may still have
-          // stale content (the SDCPN state sync goes through a React render
-          // cycle). Since the web worker processes messages in order, this
-          // ensures the content update is applied before the completion request.
-          notifyDocumentChanged(uri, model.getValue());
-          // Convert Monaco 1-based position to LSP 0-based Position
-          const position = Position.create(
-            monacoPosition.lineNumber - 1,
-            monacoPosition.column - 1,
-          );
-          const result = await requestCompletion(uri, position);
+      async provideCompletionItems(model, monacoPosition) {
+        const uri = model.uri.toString();
+        notifyDocumentChanged(uri, model.getValue());
+        const position = Position.create(
+          monacoPosition.lineNumber - 1,
+          monacoPosition.column - 1,
+        );
+        const result = await requestCompletion(uri, position);
 
-          const word = model.getWordUntilPosition(monacoPosition);
-          const range: Monaco.IRange = {
-            startLineNumber: monacoPosition.lineNumber,
-            endLineNumber: monacoPosition.lineNumber,
-            startColumn: word.startColumn,
-            endColumn: word.endColumn,
-          };
+        const word = model.getWordUntilPosition(monacoPosition);
+        const range: Monaco.IRange = {
+          startLineNumber: monacoPosition.lineNumber,
+          endLineNumber: monacoPosition.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
 
-          return {
-            suggestions: result.items.map((item) =>
-              toMonacoCompletion(item, range, monaco),
-            ),
-          };
-        },
+        return {
+          suggestions: result.items.map((item) =>
+            toMonacoCompletion(item, range, monaco),
+          ),
+        };
       },
-    );
+    };
 
-    return () => disposable.dispose();
+    // Register for both TypeScript and Python so the provider works
+    // regardless of the SDCPN language setting.
+    const disposables = [
+      monaco.languages.registerCompletionItemProvider("typescript", provider),
+      monaco.languages.registerCompletionItemProvider("python", provider),
+    ];
+
+    return () => disposables.forEach((d) => d.dispose());
   }, [monaco, notifyDocumentChanged, requestCompletion]);
 
   return null;
