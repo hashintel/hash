@@ -23,6 +23,7 @@ import type { ToMainMessage, ToWorkerMessage } from "./messages";
 export type WorkerStatus =
   | "idle"
   | "initializing"
+  | "compiling"
   | "ready"
   | "running"
   | "paused"
@@ -54,6 +55,8 @@ export type InitializeParams = {
   maxFramesAhead?: number;
   /** Number of frames to compute in each batch before checking for messages */
   batchSize?: number;
+  /** Optional URL where Pyodide WASM assets are served (for self-hosting) */
+  pyodideUrl?: string;
 };
 
 /**
@@ -182,6 +185,13 @@ export function useSimulationWorker(): {
               }));
               break;
 
+            case "compiling":
+              setState((prev) => ({
+                ...prev,
+                status: "compiling",
+              }));
+              break;
+
             case "error":
               setState((prev) => ({
                 ...prev,
@@ -237,6 +247,7 @@ export function useSimulationWorker(): {
     maxTime,
     maxFramesAhead,
     batchSize,
+    pyodideUrl,
   }) => {
     // Cancel any pending initialization
     if (pendingInitRef.current) {
@@ -269,6 +280,7 @@ export function useSimulationWorker(): {
       maxTime,
       maxFramesAhead,
       batchSize,
+      pyodideUrl,
     });
 
     return promise;

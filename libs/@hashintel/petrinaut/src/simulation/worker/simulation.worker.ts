@@ -12,6 +12,7 @@
 import { SDCPNItemError } from "../../core/errors";
 import { buildSimulation } from "../simulator/build-simulation";
 import { computeNextFrame } from "../simulator/compute-next-frame";
+import { loadPyodideAndSymPy } from "../simulator/pyodide-manager";
 import type { SimulationInstance } from "../simulator/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
@@ -143,50 +144,60 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
 
   switch (message.type) {
     case "init": {
-      try {
-        // Convert serialized initialMarking back to Map
-        const initialMarking = new Map(message.initialMarking);
+      void (async () => {
+        try {
+          // Load Pyodide + SymPy (cached after first load)
+          postTypedMessage({ type: "compiling", phase: "loading-sympy" });
+          const pyodide = await loadPyodideAndSymPy(message.pyodideUrl);
 
-        // Build simulation (compiles user code)
-        simulation = buildSimulation({
-          sdcpn: message.sdcpn,
-          initialMarking,
-          parameterValues: message.parameterValues,
-          seed: message.seed,
-          dt: message.dt,
-          maxTime: message.maxTime,
-        });
+          // Convert serialized initialMarking back to Map
+          const initialMarking = new Map(message.initialMarking);
 
-        // Configure backpressure from init message or use defaults
-        maxFramesAhead = message.maxFramesAhead ?? DEFAULT_MAX_FRAMES_AHEAD;
-        batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
+          // Build simulation (compiles user code via SymPy)
+          postTypedMessage({ type: "compiling", phase: "compiling" });
+          simulation = await buildSimulation(
+            {
+              sdcpn: message.sdcpn,
+              initialMarking,
+              parameterValues: message.parameterValues,
+              seed: message.seed,
+              dt: message.dt,
+              maxTime: message.maxTime,
+            },
+            pyodide,
+          );
 
-        // Reset to -1: blocks computation until first ack
-        lastAckedFrame = -1;
-        isRunning = false;
-        simulationStatus = "ready";
+          // Configure backpressure from init message or use defaults
+          maxFramesAhead = message.maxFramesAhead ?? DEFAULT_MAX_FRAMES_AHEAD;
+          batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
 
-        // Send initial frame
-        const initialFrame = simulation.frames[0];
-        if (initialFrame) {
-          postTypedMessage({ type: "frame", frame: initialFrame });
+          // Reset to -1: blocks computation until first ack
+          lastAckedFrame = -1;
+          isRunning = false;
+          simulationStatus = "ready";
+
+          // Send initial frame
+          const initialFrame = simulation.frames[0];
+          if (initialFrame) {
+            postTypedMessage({ type: "frame", frame: initialFrame });
+          }
+
+          postTypedMessage({
+            type: "ready",
+            initialFrameCount: simulation.frames.length,
+          });
+        } catch (error) {
+          simulationStatus = "error";
+          postTypedMessage({
+            type: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to initialize simulation",
+            itemId: error instanceof SDCPNItemError ? error.itemId : null,
+          });
         }
-
-        postTypedMessage({
-          type: "ready",
-          initialFrameCount: simulation.frames.length,
-        });
-      } catch (error) {
-        simulationStatus = "error";
-        postTypedMessage({
-          type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to initialize simulation",
-          itemId: error instanceof SDCPNItemError ? error.itemId : null,
-        });
-      }
+      })();
       break;
     }
 
