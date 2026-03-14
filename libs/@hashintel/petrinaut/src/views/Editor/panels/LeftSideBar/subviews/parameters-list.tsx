@@ -89,7 +89,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
       </div>
     );
   },
-  getMenuItems: (param) => {
+  useMenuItems: (param) => {
     const { removeParameter } = use(SDCPNContext);
     const { globalMode } = use(EditorContext);
     const isReadOnly = useIsReadOnly();

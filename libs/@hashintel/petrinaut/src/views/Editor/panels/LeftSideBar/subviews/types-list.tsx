@@ -126,7 +126,7 @@ export const typesListSubView: SubView = createFilterableListSubView({
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
   renderItem: (type) => type.name,
-  getMenuItems: (type) => {
+  useMenuItems: (type) => {
     const { removeType } = use(SDCPNContext);
     const isReadOnly = useIsReadOnly();
 

@@ -72,7 +72,7 @@ export const differentialEquationsListSubView: SubView =
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
     renderItem: (eq) => eq.name,
-    getMenuItems: (eq) => {
+    useMenuItems: (eq) => {
       const { removeDifferentialEquation } = use(SDCPNContext);
       const isReadOnly = useIsReadOnly();
 

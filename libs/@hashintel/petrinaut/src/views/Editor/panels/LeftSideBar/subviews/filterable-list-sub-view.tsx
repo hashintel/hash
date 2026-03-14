@@ -139,8 +139,9 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
-  /** Return menu items for the row's ellipsis menu. When omitted, no menu is shown. */
-  getMenuItems?: (item: T) => MenuItem[];
+  /** Return menu items for the row's ellipsis menu. When omitted, no menu is shown.
+   *  Named `useMenuItems` because implementations may call hooks. */
+  useMenuItems?: (item: T) => MenuItem[];
   emptyMessage: string;
   renderHeaderAction?: () => ReactNode;
 }
@@ -169,13 +170,13 @@ const FilterHeaderAction: React.FC<{
  * `getMenuItems` (which may call hooks) is invoked as part of a component render.
  */
 const RowMenu = <T extends FilterableListItem>({
-  getMenuItems,
+  useMenuItems,
   item,
 }: {
-  getMenuItems: (item: T) => MenuItem[];
+  useMenuItems: (item: T) => MenuItem[];
   item: T;
 }) => {
-  const menuItems = getMenuItems(item);
+  const menuItems = useMenuItems(item);
   if (menuItems.length === 0) {
     return null;
   }
@@ -203,13 +204,13 @@ const FilterableListContent = <T extends FilterableListItem>({
   useItems,
   getSelectionItem,
   renderItem,
-  getMenuItems,
+  useMenuItems,
   emptyMessage,
 }: {
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
-  getMenuItems?: (item: T) => MenuItem[];
+  useMenuItems?: (item: T) => MenuItem[];
   emptyMessage: string;
 }) => {
   const items = useItems();
@@ -378,6 +379,14 @@ const FilterableListContent = <T extends FilterableListItem>({
               rowRefs.current[index] = el;
             }}
             onClick={(event) => handleRowClick(event, index, selectionItem)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                selectItem(selectionItem);
+                setFocusedIndex(index);
+                setAnchorIndex(index);
+              }
+            }}
             role="option"
             aria-selected={isSelected}
             className={listItemRowStyle({ isSelected, isFocused })}
@@ -395,8 +404,8 @@ const FilterableListContent = <T extends FilterableListItem>({
                 {renderItem(item, isSelected)}
               </span>
             </div>
-            {getMenuItems && (
-              <RowMenu getMenuItems={getMenuItems} item={item} />
+            {useMenuItems && (
+              <RowMenu useMenuItems={useMenuItems} item={item} />
             )}
           </div>
         );
@@ -427,7 +436,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     useItems,
     getSelectionItem,
     renderItem,
-    getMenuItems,
+    useMenuItems,
     emptyMessage,
     renderHeaderAction: renderExtraAction,
   } = config;
@@ -437,7 +446,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
       useItems={useItems}
       getSelectionItem={getSelectionItem}
       renderItem={renderItem}
-      getMenuItems={getMenuItems}
+      useMenuItems={useMenuItems}
       emptyMessage={emptyMessage}
     />
   );
