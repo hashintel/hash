@@ -14,7 +14,7 @@ use hashql_mir::interpret::value::{self, Value};
 
 use super::JsonValueRef;
 use crate::{
-    bridge::{Indexed, error::BridgeError},
+    orchestrator::{Indexed, error::BridgeError},
     postgres::ColumnDescriptor,
 };
 

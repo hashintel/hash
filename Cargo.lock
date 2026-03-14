@@ -3888,6 +3888,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
+ "tokio",
  "tokio-postgres",
  "tokio-util",
  "type-system",

@@ -6,7 +6,7 @@ use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
 use futures_lite::StreamExt as _;
 use hashql_core::{
     collections::FastHashMap,
-    heap::{BumpAllocator, ScratchPool},
+    heap::{BumpAllocator, ScratchPool, ScratchPoolGuard},
     symbol::Symbol,
 };
 use hashql_mir::{
@@ -16,11 +16,13 @@ use hashql_mir::{
     },
     def::{DefId, DefIdSlice},
     interpret::{
-        CallStack, Runtime, RuntimeConfig, RuntimeError, suspension::GraphReadSuspension,
+        CallStack, Runtime, RuntimeConfig, RuntimeError,
+        suspension::{Continuation, GraphReadSuspension, Suspension},
         value::Value,
     },
     pass::execution::TargetId,
 };
+use tokio::task::LocalSet;
 use tokio_postgres::{Client, Row};
 
 use self::{
@@ -80,18 +82,18 @@ impl<T> Deref for Indexed<T> {
     }
 }
 
-struct Bridge<'env, 'ctx, 'heap, C, A: Allocator> {
-    // TODO: the context and the input allocator must be different!
+struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
     client: Client,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
+    tasks: LocalSet,
 
     pool: ScratchPool,
 
     _marker: PhantomData<C>,
 }
 
-impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
+impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
     async fn graph_read_row_in<L: BumpAllocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
@@ -351,6 +353,8 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
             // here, anything taken is only be reference, and does not allow for allocation.
             // `Value` is cloned, but in that case it's never an allocation, and
             // instead just an `Rc` increment.
+            // TODO: this is not completely true, we get a result back that we'd need to serialize
+            // here. It's probably just easier to get a new pool item.
             unsafe {
                 alloc.rollback(checkpoint)
             };
@@ -359,7 +363,13 @@ impl<'ctx, 'heap, C, A: Allocator> Bridge<'_, 'ctx, 'heap, C, A> {
         todo!()
     }
 
-    fn fulfill() {}
+    async fn fulfill(
+        &self,
+        callstack: &CallStack<'ctx, 'heap, ScratchPoolGuard<'_>>,
+        suspension: &Suspension<'ctx, 'heap>,
+    ) -> Continuation<'ctx, 'heap, ScratchPoolGuard<'_>> {
+        todo!()
+    }
 }
 
 // the goal of the bridge is it to coordinate the different sources and implementations, to allow

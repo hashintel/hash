@@ -20,11 +20,11 @@
 )]
 
 extern crate alloc;
-mod bridge;
 pub mod context;
 pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
+mod orchestrator;
 pub mod postgres;
 
 #[cfg(test)]

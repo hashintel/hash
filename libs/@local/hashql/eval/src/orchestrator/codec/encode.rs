@@ -20,7 +20,7 @@ use serde_json::value::RawValue;
 
 use super::{Postgres, Serde};
 use crate::{
-    bridge::Inputs,
+    orchestrator::Inputs,
     postgres::{Parameter, TemporalAxis},
 };
 

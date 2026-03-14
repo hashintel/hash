@@ -29,6 +29,7 @@ postgres-types.workspace    = true
 serde                       = { workspace = true }
 serde_json                  = { workspace = true, features = ["raw_value"] }
 simple-mermaid              = { workspace = true }
+tokio.workspace             = true
 tokio-postgres.workspace    = true
 tokio-util                  = { workspace = true, features = ["rt"] }
 url.workspace               = true

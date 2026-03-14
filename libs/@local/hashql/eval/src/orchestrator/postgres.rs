@@ -11,7 +11,7 @@ use tokio_postgres::Row;
 
 use super::{Indexed, codec::decode::Decoder, error::BridgeError, partial::Optional};
 use crate::{
-    bridge::partial::Hydrated,
+    orchestrator::partial::Hydrated,
     postgres::{ColumnDescriptor, ContinuationField},
 };
 
