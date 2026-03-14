@@ -46,29 +46,6 @@
     "no-void": ["error", { "allowAsStatement": true }],
 
     "func-names": "warn",
-    "id-length": [
-      "error",
-      {
-        "min": 2,
-        "exceptions": [
-          "_",
-          "x",
-          "y",
-          "z",
-          "a",
-          "b",
-          "i",
-          "p",
-          "t",
-          "e",
-          "d",
-          "v",
-          "T",
-          "P"
-        ],
-        "properties": "never"
-      }
-    ],
     "no-bitwise": "error",
     "no-multi-assign": "error",
 
