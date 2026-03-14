@@ -1,7 +1,7 @@
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut";
 import { convertOldFormatToSDCPN, Petrinaut } from "@hashintel/petrinaut";
 import { produce } from "immer";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
 import {
@@ -11,68 +11,63 @@ import {
 } from "./app/use-local-storage-sdcpns";
 import { useUndoRedo } from "./app/use-undo-redo";
 
+const EMPTY_SDCPN: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
 export const DevApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
 
   const [currentNetId, setCurrentNetId] = useState<string | null>(null);
 
-  const currentNet = useMemo(() => {
-    if (!currentNetId) {
-      return null;
-    }
-    return storedSDCPNs[currentNetId] ?? null;
-  }, [currentNetId, storedSDCPNs]);
+  const currentNet = currentNetId ? (storedSDCPNs[currentNetId] ?? null) : null;
 
-  const existingNets: MinimalNetMetadata[] = useMemo(() => {
-    return Object.values(storedSDCPNs)
-      .filter(
-        (net): net is SDCPNInLocalStorage => !isOldFormatInLocalStorage(net),
-      )
-      .map((net) => ({
-        netId: net.id,
-        title: net.title,
-      }));
-  }, [storedSDCPNs]);
+  const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
+    .filter(
+      (net): net is SDCPNInLocalStorage => !isOldFormatInLocalStorage(net),
+    )
+    .map((net) => ({
+      netId: net.id,
+      title: net.title,
+    }));
 
-  const createNewNet = useCallback(
-    (params: {
-      petriNetDefinition: SDCPN;
-      title: string;
-    }) => {
-      const newNet: SDCPNInLocalStorage = {
-        id: `net-${Date.now()}`,
-        title: params.title,
-        sdcpn: params.petriNetDefinition,
-        lastUpdated: new Date().toISOString(),
-      };
+  const createNewNet = (params: {
+    petriNetDefinition: SDCPN;
+    title: string;
+  }) => {
+    const newNet: SDCPNInLocalStorage = {
+      id: `net-${Date.now()}`,
+      title: params.title,
+      sdcpn: params.petriNetDefinition,
+      lastUpdated: new Date().toISOString(),
+    };
 
-      setStoredSDCPNs((prev) => ({ ...prev, [newNet.id]: newNet }));
-      setCurrentNetId(newNet.id);
-    },
-    [setStoredSDCPNs],
-  );
+    setStoredSDCPNs((prev) => ({ ...prev, [newNet.id]: newNet }));
+    setCurrentNetId(newNet.id);
+  };
 
-  const loadPetriNet = useCallback((petriNetId: string) => {
+  const loadPetriNet = (petriNetId: string) => {
     setCurrentNetId(petriNetId);
-  }, []);
+  };
 
-  const setTitle = useCallback(
-    (title: string) => {
-      if (!currentNetId) {
-        return;
-      }
+  const setTitle = (title: string) => {
+    if (!currentNetId) {
+      return;
+    }
 
-      setStoredSDCPNs((prev) =>
-        produce(prev, (draft) => {
-          if (draft[currentNetId] && "title" in draft[currentNetId]) {
-            draft[currentNetId].title = title;
-          }
-        }),
-      );
-    },
-    [currentNetId, setStoredSDCPNs],
-  );
+    setStoredSDCPNs((prev) =>
+      produce(prev, (draft) => {
+        if (draft[currentNetId] && "title" in draft[currentNetId]) {
+          draft[currentNetId].title = title;
+        }
+      }),
+    );
+  };
 
   const setSDCPNDirectly = (sdcpn: SDCPN) => {
     if (!currentNetId) {
@@ -85,14 +80,6 @@ export const DevApp = () => {
         }
       }),
     );
-  };
-
-  const emptySDCPN: SDCPN = {
-    places: [],
-    transitions: [],
-    types: [],
-    parameters: [],
-    differentialEquations: [],
   };
 
   const {
@@ -108,7 +95,7 @@ export const DevApp = () => {
   } = useUndoRedo(
     currentNet && !isOldFormatInLocalStorage(currentNet)
       ? currentNet.sdcpn
-      : emptySDCPN,
+      : EMPTY_SDCPN,
   );
 
   const mutatePetriNetDefinition = (
