@@ -781,24 +781,13 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    pub fn run_until_transition(
+    pub fn run_until_transition<E>(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
         mut r#continue: impl FnMut(BasicBlockId) -> bool,
-    ) -> Result<ControlFlow<(), Yield<'ctx, 'heap, A>>, InterpretDiagnostic> {
+    ) -> Result<ControlFlow<(), Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>> {
         loop {
-            let result = self.step(callstack);
-            let next = match result {
-                Ok(next) => next,
-                Err(error) => {
-                    let spans = callstack.unwind();
-
-                    return Err(
-                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
-                    );
-                }
-            };
-
+            let next = self.step(callstack)?;
             if let ControlFlow::Break(value) = next {
                 return Ok(ControlFlow::Continue(value));
             }
