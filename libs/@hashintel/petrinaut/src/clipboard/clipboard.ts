@@ -19,7 +19,11 @@ export async function copySelectionToClipboard(
 ): Promise<void> {
   const payload = serializeSelection(sdcpn, selection, documentId);
   const json = JSON.stringify(payload);
-  await navigator.clipboard.writeText(json);
+  try {
+    await navigator.clipboard.writeText(json);
+  } catch {
+    // Clipboard write can fail (permissions denied, non-secure context, etc.)
+  }
 }
 
 /**
@@ -30,7 +34,13 @@ export async function copySelectionToClipboard(
 export async function pasteFromClipboard(
   mutatePetriNetDefinition: (mutateFn: (sdcpn: SDCPN) => void) => void,
 ): Promise<Array<{ type: string; id: string }> | null> {
-  const text = await navigator.clipboard.readText();
+  let text: string;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch {
+    // Clipboard read can fail (permissions denied, non-secure context, etc.)
+    return null;
+  }
   const payload = parseClipboardPayload(text);
 
   if (!payload) {
