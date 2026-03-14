@@ -235,10 +235,10 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns [`RuntimeError::CallstackEmpty`] if there are no active calls.
-    pub fn set_current_block_unchecked(
+    pub fn set_current_block_unchecked<E>(
         &mut self,
         block_id: BasicBlockId,
-    ) -> Result<(), RuntimeError<'heap, !, A>> {
+    ) -> Result<(), RuntimeError<'heap, E, A>> {
         let frame = self.frames.last_mut().ok_or(RuntimeError::CallstackEmpty)?;
 
         let block = &frame.body.basic_blocks[block_id];

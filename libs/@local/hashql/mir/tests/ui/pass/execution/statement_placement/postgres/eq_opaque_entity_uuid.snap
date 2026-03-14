@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
-fn {graph::read::filter@4294967040}(%0: (), %1: Entity<T?17>) -> Boolean {
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity<T?19>) -> Boolean {
     let %2: Boolean
     let %3: Uuid
     let %4: EntityUuid

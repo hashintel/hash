@@ -212,7 +212,7 @@ pub struct UnaryTypeMismatch<'heap, A: Allocator> {
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
 #[derive(Debug, Clone)]
-pub enum RuntimeError<'heap, S, A: Allocator> {
+pub enum RuntimeError<'heap, E, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///
     /// This is an ICE: MIR construction should ensure locals are initialized
@@ -369,10 +369,10 @@ pub enum RuntimeError<'heap, S, A: Allocator> {
         name: Symbol<'heap>,
     },
 
-    Suspension(S),
+    Suspension(E),
 }
 
-impl<S, A: Allocator> RuntimeError<'_, S, A> {
+impl<E, A: Allocator> RuntimeError<'_, E, A> {
     /// Converts this runtime error into a diagnostic using the provided callstack.
     ///
     /// The callstack provides span information for error localization. The first
@@ -381,7 +381,7 @@ impl<S, A: Allocator> RuntimeError<'_, S, A> {
     pub fn into_diagnostic(
         self,
         callstack: impl IntoIterator<Item = SpanId>,
-        on_suspension: impl FnOnce(S) -> InterpretDiagnostic,
+        on_suspension: impl FnOnce(E) -> InterpretDiagnostic,
     ) -> InterpretDiagnostic {
         let mut spans = callstack.into_iter();
         let primary_span = spans.next().unwrap_or(SpanId::SYNTHETIC);
@@ -399,7 +399,7 @@ impl<S, A: Allocator> RuntimeError<'_, S, A> {
     fn make_diagnostic(
         self,
         span: SpanId,
-        on_suspension: impl FnOnce(S) -> InterpretDiagnostic,
+        on_suspension: impl FnOnce(E) -> InterpretDiagnostic,
     ) -> InterpretDiagnostic {
         match self {
             Self::UninitializedLocal { local, decl } => uninitialized_local(span, local, decl),

@@ -279,10 +279,18 @@ impl EntityPath {
         }
     }
 
-    // TODO: pre-calculate the type in an array so that we can use it(?) or as a cache(?) we can use
-    // an `EntityPathArray<Option<TypeId>>` for this.
-    pub fn r#type(self, env: &Environment<'_>) -> TypeId {
-        self.resolve_type(env).expect("type must be specified") // TODO: better message and method name
+    /// Returns the type of this path.
+    ///
+    /// Every path except [`Properties`](Self::Properties) has a fixed type that does not
+    /// depend on the entity being queried. This method is a convenience for callers that
+    /// know the path is not `Properties`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if called on [`Properties`](Self::Properties), which has no fixed type.
+    pub fn expect_type(self, env: &Environment<'_>) -> TypeId {
+        self.resolve_type(env)
+            .expect("called `expect_type` on `Properties`, which has no fixed type")
     }
 
     /// Returns the type of this path, or `None` for [`Properties`](Self::Properties).

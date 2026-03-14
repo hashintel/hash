@@ -255,10 +255,35 @@ impl<S> Labels<S> {
         }
     }
 
+    /// Returns the number of labels in the collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
+    ///
+    /// let mut labels = Labels::new(Label::new(0..5, "primary"));
+    /// labels.push(Label::new(10..15, "secondary"));
+    ///
+    /// assert_eq!(labels.len(), 2);
+    /// ```
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.labels.len()
     }
 
+    /// Returns `true` if the collection contains no labels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
+    ///
+    /// let labels = Labels::new(Label::new(0..5, "primary"));
+    ///
+    /// assert!(!labels.is_empty());
+    /// ```
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.labels.is_empty()
     }

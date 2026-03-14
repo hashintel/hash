@@ -51,6 +51,7 @@ fn run_body(body: Body<'_>) -> Result<Value<'_>, InterpretDiagnostic> {
     run_body_with_inputs(body, FastHashMap::default())
 }
 
+#[expect(clippy::needless_pass_by_value)]
 fn run_body_with_inputs<'heap>(
     body: Body<'heap>,
     inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
@@ -1625,7 +1626,6 @@ fn ice_struct_field_length_mismatch() {
 /// where `pinned` = `Opaque(TransactionTime, Opaque(Timestamp, Integer(pinned_ms)))` and
 /// `variable` wraps an interval with inclusive start and unbounded end.
 fn make_temporal_axes<'heap>(
-    heap: &'heap Heap,
     interner: &Interner<'heap>,
     pinned_ms: i128,
     variable_start_ms: i128,
@@ -1661,10 +1661,13 @@ fn make_temporal_axes<'heap>(
     // Interval(Struct { start, end })
     let interval_fields = interner.symbols.intern_slice(&[sym::end, sym::start]);
     let interval_struct = Struct::new_unchecked(interval_fields, Rc::new([end_bound, start_bound]));
-    let variable = Value::Opaque(Opaque::new(
+    let interval = Value::Opaque(Opaque::new(
         sym::path::Interval,
         Rc::new(Value::Struct(interval_struct)),
     ));
+
+    // DecisionTime(Interval(...))
+    let variable = Value::Opaque(Opaque::new(sym::path::DecisionTime, Rc::new(interval)));
 
     // PinnedTransactionTimeTemporalAxes(Struct { pinned, variable })
     let axes_fields = interner.symbols.intern_slice(&[sym::pinned, sym::variable]);
@@ -1722,10 +1725,10 @@ fn run_graph_read_body<'heap>(
     heap: &'heap Heap,
     interner: &Interner<'heap>,
     env: &Environment<'heap>,
-    result_value: Value<'heap>,
+    result_value: &Value<'heap>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
     let body = make_graph_read_body(heap, interner, env);
-    let axis_value = make_temporal_axes(heap, interner, 1000, 500);
+    let axis_value = make_temporal_axes(interner, 1000, 500);
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
@@ -1753,7 +1756,7 @@ fn start_suspend_resume_return() {
     let env = Environment::new(&heap);
 
     let body = make_graph_read_body(&heap, &interner, &env);
-    let axis_value = make_temporal_axes(&heap, &interner, 1000, 500);
+    let axis_value = make_temporal_axes(&interner, 1000, 500);
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
@@ -1788,7 +1791,7 @@ fn run_with_suspension_handler() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let result = run_graph_read_body(&heap, &interner, &env, Value::Integer(Int::from(99_i128)))
+    let result = run_graph_read_body(&heap, &interner, &env, &Value::Integer(Int::from(99_i128)))
         .expect("should succeed");
     assert_eq!(result, Value::Integer(Int::from(99_i128)));
 }
@@ -1857,7 +1860,7 @@ fn multi_suspension_round_trip() {
     let mut inputs = FastHashMap::default();
     inputs.insert(
         heap.intern_symbol("axis"),
-        make_temporal_axes(&heap, &interner, 1000, 500),
+        make_temporal_axes(&interner, 1000, 500),
     );
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
@@ -2012,7 +2015,7 @@ fn transition_fires_on_reentry_after_continuation_apply() {
     let mut inputs = FastHashMap::default();
     inputs.insert(
         heap.intern_symbol("axis"),
-        make_temporal_axes(&heap, &interner, 1000, 500),
+        make_temporal_axes(&interner, 1000, 500),
     );
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
@@ -2156,9 +2159,8 @@ fn callstack_new_in_runs_to_completion() {
     let inputs = FastHashMap::default();
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
-    let callstack =
-        CallStack::new_in::<()>(&bodies[DefId::new(0)], [].into_iter(), alloc::alloc::Global)
-            .expect("new_in should succeed");
+    let callstack = CallStack::new_in::<()>(&bodies[DefId::new(0)], [], alloc::alloc::Global)
+        .expect("new_in should succeed");
 
     let result = runtime
         .run(callstack, |_| unreachable!())

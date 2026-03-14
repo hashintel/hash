@@ -125,9 +125,11 @@ impl core::fmt::Display for FilterReport {
 fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
+    let interner = Interner::new(heap);
 
     let context = EvalContext::new_in(
         &fixture.env,
+        &interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -227,9 +229,11 @@ fn compile_full_query_with_mask<'heap>(
 ) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
+    let interner = Interner::new(heap);
 
     let mut context = EvalContext::new_in(
         &fixture.env,
+        &interner,
         &fixture.bodies,
         &fixture.execution,
         heap,

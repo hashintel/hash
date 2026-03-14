@@ -20,8 +20,8 @@
 //! [`EntityPath`]: hashql_mir::pass::execution::traversal::EntityPath
 //! [`Value`]: hashql_mir::interpret::value::Value
 
+use alloc::rc::Rc;
 use core::alloc::Allocator;
-use std::rc::Rc;
 
 use hashql_core::{
     symbol::{Symbol, sym},
@@ -816,8 +816,11 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     where
         A: Clone,
     {
-        let value =
-            decoder.try_decode(EntityPath::DecisionTime.r#type(env), value.into(), column)?;
+        let value = decoder.try_decode(
+            EntityPath::DecisionTime.expect_type(env),
+            value.into(),
+            column,
+        )?;
         hydrate!(self->metadata->temporal_versioning->decision_time = value);
 
         Ok(())
@@ -834,7 +837,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         A: Clone,
     {
         let value = decoder.try_decode(
-            EntityPath::TransactionTime.r#type(env),
+            EntityPath::TransactionTime.expect_type(env),
             value.into(),
             column,
         )?;
@@ -853,7 +856,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     where
         A: Clone,
     {
-        let value = decoder.try_decode(EntityPath::WebId.r#type(env), value.into(), column)?;
+        let value = decoder.try_decode(EntityPath::WebId.expect_type(env), value.into(), column)?;
         hydrate!(self->metadata->record_id->entity_id->web_id = value);
 
         Ok(())
@@ -869,7 +872,11 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     where
         A: Clone,
     {
-        let value = decoder.try_decode(EntityPath::EntityUuid.r#type(env), value.into(), column)?;
+        let value = decoder.try_decode(
+            EntityPath::EntityUuid.expect_type(env),
+            value.into(),
+            column,
+        )?;
         hydrate!(self->metadata->record_id->entity_id->entity_uuid = value);
 
         Ok(())
@@ -888,7 +895,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         let value = value
             .map(Into::into)
             .filter(|value| !matches!(value, JsonValueRef::Null))
-            .map(|value| decoder.try_decode(EntityPath::DraftId.r#type(env), value, column))
+            .map(|value| decoder.try_decode(EntityPath::DraftId.expect_type(env), value, column))
             .transpose()?;
         hydrate!(self->metadata->record_id->entity_id->draft_id = value);
 
@@ -905,7 +912,8 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     where
         A: Clone,
     {
-        let value = decoder.try_decode(EntityPath::EditionId.r#type(env), value.into(), column)?;
+        let value =
+            decoder.try_decode(EntityPath::EditionId.expect_type(env), value.into(), column)?;
         hydrate!(self->metadata->record_id->edition_id = value);
 
         Ok(())

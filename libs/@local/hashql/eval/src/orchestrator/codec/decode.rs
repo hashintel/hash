@@ -348,6 +348,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
 
             // We're flying free here, issue a warning, and just try to deserialize using the
             // old tactics
+            // TODO: issue a warning
             TypeKind::Param(_) | TypeKind::Infer(_) | TypeKind::Unknown => {
                 self.decode_unknown(value)
             }

@@ -364,12 +364,12 @@ mod tests {
     use super::*;
     use crate::interpret::value::{Int, Str, Value};
 
-    fn int(n: i128) -> Value<'static> {
-        Value::Integer(Int::from(n))
+    fn int(value: i128) -> Value<'static> {
+        Value::Integer(Int::from(value))
     }
 
-    fn string(s: &str) -> Value<'static> {
-        Value::String(Str::from(Rc::<str>::from(s)))
+    fn string(value: &str) -> Value<'static> {
+        Value::String(Str::from(Rc::<str>::from(value)))
     }
 
     #[test]
@@ -474,10 +474,11 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         // Verify values survived the move.
-        let Value::String(ref s) = *result.get_by_name(sym_a).unwrap() else {
+        let Value::String(ref value) = *result.get_by_name(sym_a).expect("field should exist")
+        else {
             panic!("expected String");
         };
-        assert_eq!(s.as_str(), "alpha");
+        assert_eq!(value.as_str(), "alpha");
     }
 
     #[test]
@@ -506,10 +507,10 @@ mod tests {
         assert_eq!(pairs[2].0, sym_c);
 
         // Values must follow their fields.
-        let Value::String(ref s) = *pairs[0].1 else {
+        let Value::String(ref value) = *pairs[0].1 else {
             panic!("expected String");
         };
-        assert_eq!(s.as_str(), "alpha");
+        assert_eq!(value.as_str(), "alpha");
     }
 
     #[test]
