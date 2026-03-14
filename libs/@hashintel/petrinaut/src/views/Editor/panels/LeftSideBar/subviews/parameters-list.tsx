@@ -10,7 +10,10 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import {
+  RowMenu,
+  createFilterableListSubView,
+} from "./filterable-list-sub-view";
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -57,6 +60,31 @@ const ParametersHeaderAction: React.FC = () => {
   );
 };
 
+const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
+  const { removeParameter } = use(SDCPNContext);
+  const { globalMode } = use(EditorContext);
+  const isReadOnly = useIsReadOnly();
+
+  if (globalMode === "simulate") {
+    return null;
+  }
+
+  return (
+    <RowMenu
+      items={[
+        {
+          id: "delete",
+          label: "Delete",
+          icon: <TbTrash />,
+          destructive: true,
+          disabled: isReadOnly,
+          onClick: () => removeParameter(item.id),
+        },
+      ]}
+    />
+  );
+};
+
 /**
  * SubView definition for Global Parameters List.
  */
@@ -89,26 +117,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
       </div>
     );
   },
-  useMenuItems: (param) => {
-    const { removeParameter } = use(SDCPNContext);
-    const { globalMode } = use(EditorContext);
-    const isReadOnly = useIsReadOnly();
-
-    if (globalMode === "simulate") {
-      return [];
-    }
-
-    return [
-      {
-        id: "delete",
-        label: "Delete",
-        icon: <TbTrash />,
-        destructive: true,
-        disabled: isReadOnly,
-        onClick: () => removeParameter(param.id),
-      },
-    ];
-  },
+  renderRowMenu: ParameterRowMenu,
   emptyMessage: "No global parameters yet",
   renderHeaderAction: () => <ParametersHeaderAction />,
 });

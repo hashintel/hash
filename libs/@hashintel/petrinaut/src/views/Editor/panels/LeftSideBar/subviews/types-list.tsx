@@ -8,7 +8,10 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import {
+  RowMenu,
+  createFilterableListSubView,
+} from "./filterable-list-sub-view";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -101,6 +104,26 @@ const TypesSectionHeaderAction: React.FC = () => {
   );
 };
 
+const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
+  const { removeType } = use(SDCPNContext);
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <RowMenu
+      items={[
+        {
+          id: "delete",
+          label: "Delete",
+          icon: <TbTrash />,
+          destructive: true,
+          disabled: isReadOnly,
+          onClick: () => removeType(item.id),
+        },
+      ]}
+    />
+  );
+};
+
 /**
  * SubView definition for Token Types list.
  */
@@ -126,21 +149,7 @@ export const typesListSubView: SubView = createFilterableListSubView({
   },
   getSelectionItem: (type) => ({ type: "type", id: type.id }),
   renderItem: (type) => type.name,
-  useMenuItems: (type) => {
-    const { removeType } = use(SDCPNContext);
-    const isReadOnly = useIsReadOnly();
-
-    return [
-      {
-        id: "delete",
-        label: "Delete",
-        icon: <TbTrash />,
-        destructive: true,
-        disabled: isReadOnly,
-        onClick: () => removeType(type.id),
-      },
-    ];
-  },
+  renderRowMenu: TypeRowMenu,
   emptyMessage: "No token types yet",
   renderHeaderAction: () => <TypesSectionHeaderAction />,
 });

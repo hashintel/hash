@@ -10,7 +10,10 @@ import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-import { createFilterableListSubView } from "./filterable-list-sub-view";
+import {
+  RowMenu,
+  createFilterableListSubView,
+} from "./filterable-list-sub-view";
 
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
@@ -47,6 +50,26 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   );
 };
 
+const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
+  const { removeDifferentialEquation } = use(SDCPNContext);
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <RowMenu
+      items={[
+        {
+          id: "delete",
+          label: "Delete",
+          icon: <TbTrash />,
+          destructive: true,
+          disabled: isReadOnly,
+          onClick: () => removeDifferentialEquation(item.id),
+        },
+      ]}
+    />
+  );
+};
+
 /**
  * SubView definition for Differential Equations list.
  */
@@ -72,21 +95,7 @@ export const differentialEquationsListSubView: SubView =
     },
     getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
     renderItem: (eq) => eq.name,
-    useMenuItems: (eq) => {
-      const { removeDifferentialEquation } = use(SDCPNContext);
-      const isReadOnly = useIsReadOnly();
-
-      return [
-        {
-          id: "delete",
-          label: "Delete",
-          icon: <TbTrash />,
-          destructive: true,
-          disabled: isReadOnly,
-          onClick: () => removeDifferentialEquation(eq.id),
-        },
-      ];
-    },
+    renderRowMenu: DiffEqRowMenu,
     emptyMessage: "No differential equations yet",
     renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
   });

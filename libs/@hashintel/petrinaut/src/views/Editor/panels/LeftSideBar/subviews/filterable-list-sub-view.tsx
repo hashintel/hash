@@ -139,9 +139,9 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
-  /** Return menu items for the row's ellipsis menu. When omitted, no menu is shown.
-   *  Named `useMenuItems` because implementations may call hooks. */
-  useMenuItems?: (item: T) => MenuItem[];
+  /** Component to render the row's ellipsis menu. Receives the item as a prop.
+   *  Use `RowMenu` helper to render the shared menu chrome. */
+  renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
   renderHeaderAction?: () => ReactNode;
 }
@@ -166,18 +166,11 @@ const FilterHeaderAction: React.FC<{
 };
 
 /**
- * Renders the row ellipsis menu. Separated into its own component so that
- * `useMenuItems` (which may call hooks) is invoked as part of a component render.
+ * Shared row menu chrome. Consumers call hooks in their own `renderRowMenu`
+ * component and pass the resulting items here.
  */
-const RowMenu = <T extends FilterableListItem>({
-  useMenuItems,
-  item,
-}: {
-  useMenuItems: (item: T) => MenuItem[];
-  item: T;
-}) => {
-  const menuItems = useMenuItems(item);
-  if (menuItems.length === 0) {
+export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
+  if (items.length === 0) {
     return null;
   }
 
@@ -194,26 +187,25 @@ const RowMenu = <T extends FilterableListItem>({
           <TbDots />
         </IconButton>
       }
-      items={menuItems}
+      items={items}
       placement="bottom-end"
     />
   );
 };
 
 const FilterableListContent = <T extends FilterableListItem>({
-  useItems,
+  items,
   getSelectionItem,
   renderItem,
-  useMenuItems,
+  renderRowMenu: RenderRowMenu,
   emptyMessage,
 }: {
-  useItems: () => T[];
+  items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
-  useMenuItems?: (item: T) => MenuItem[];
+  renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
 }) => {
-  const items = useItems();
   const {
     isSelected: checkIsSelected,
     selectItem,
@@ -408,9 +400,7 @@ const FilterableListContent = <T extends FilterableListItem>({
                 {renderItem(item, isSelected)}
               </div>
             </div>
-            {useMenuItems && (
-              <RowMenu useMenuItems={useMenuItems} item={item} />
-            )}
+            {RenderRowMenu && <RenderRowMenu item={item} />}
           </div>
         );
       })}
@@ -440,20 +430,23 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     useItems,
     getSelectionItem,
     renderItem,
-    useMenuItems,
+    renderRowMenu,
     emptyMessage,
     renderHeaderAction: renderExtraAction,
   } = config;
 
-  const Component: React.FC = () => (
-    <FilterableListContent
-      useItems={useItems}
-      getSelectionItem={getSelectionItem}
-      renderItem={renderItem}
-      useMenuItems={useMenuItems}
-      emptyMessage={emptyMessage}
-    />
-  );
+  const Component: React.FC = () => {
+    const items = useItems();
+    return (
+      <FilterableListContent
+        items={items}
+        getSelectionItem={getSelectionItem}
+        renderItem={renderItem}
+        renderRowMenu={renderRowMenu}
+        emptyMessage={emptyMessage}
+      />
+    );
+  };
 
   return {
     id,
