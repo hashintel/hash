@@ -198,6 +198,7 @@ export interface MenuItem {
 }
 
 export interface MenuGroup {
+  id: string;
   title?: string;
   items: MenuItem[];
 }
@@ -242,7 +243,7 @@ function normalizeToGroups(items: MenuItem[] | MenuGroup[]): MenuGroup[] {
   if (isMenuGroupArray(items)) {
     return items;
   }
-  return [{ items }];
+  return [{ id: "default", items }];
 }
 
 // -- Subcomponents ------------------------------------------------------------
@@ -294,7 +295,7 @@ export const Menu: React.FC<MenuProps> = ({
             style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
           >
             {groups.map((group, groupIndex) => (
-              <div key={group.title ?? `group-${groupIndex}`}>
+              <div key={group.id}>
                 {groupIndex > 0 && <div className={separatorStyle} />}
                 <div className={groupStyle}>
                   {group.title && (
