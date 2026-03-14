@@ -7,18 +7,24 @@ type SDCPNWithTitle = SDCPN & { title: string };
  * Result of attempting to import an SDCPN file.
  */
 export type ImportResult =
-  | { ok: true; sdcpn: SDCPNWithTitle; hadMissingPositions: boolean }
+  | { ok: true; sdcpn: SDCPNWithTitle; hadMissingVisualInfo: boolean }
   | { ok: false; error: string };
 
 /**
- * Checks whether any place or transition has a missing (undefined) x or y.
+ * Checks whether any visual information is missing (positions, color display info).
  */
-const hasMissingPositions = (sdcpn: {
+const hasMissingVisualInfo = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
+  types: { iconSlug?: string; displayColor?: string }[];
 }): boolean => {
   for (const node of [...sdcpn.places, ...sdcpn.transitions]) {
     if (node.x === undefined || node.y === undefined) {
+      return true;
+    }
+  }
+  for (const type of sdcpn.types) {
+    if (type.iconSlug === undefined || type.displayColor === undefined) {
       return true;
     }
   }
@@ -26,10 +32,11 @@ const hasMissingPositions = (sdcpn: {
 };
 
 /**
- * Fills missing x/y with 0 so the SDCPN satisfies the runtime type.
- * Nodes at (0, 0) will be laid out by ELK after import.
+ * Fills missing visual information so the SDCPN satisfies the runtime type.
+ * - Places/transitions at (0, 0) will be laid out by ELK after import.
+ * - Colors get default iconSlug and displayColor when missing (e.g. exported without visual info).
  */
-const fillMissingPositions = (
+const fillMissingVisualInfo = (
   parsed: ReturnType<typeof legacySdcpnFileSchema.parse>,
 ): SDCPNWithTitle => ({
   ...parsed,
@@ -43,6 +50,11 @@ const fillMissingPositions = (
     x: transition.x ?? 0,
     y: transition.y ?? 0,
   })),
+  types: parsed.types.map((type) => ({
+    ...type,
+    iconSlug: type.iconSlug ?? "circle",
+    displayColor: type.displayColor ?? "#808080",
+  })),
 });
 
 /**
@@ -53,22 +65,22 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
     const { version: _version, meta: _meta, ...sdcpnData } = versioned.data;
-    const hadMissing = hasMissingPositions(sdcpnData);
+    const hadMissing = hasMissingVisualInfo(sdcpnData);
     return {
       ok: true,
-      sdcpn: fillMissingPositions(sdcpnData),
-      hadMissingPositions: hadMissing,
+      sdcpn: fillMissingVisualInfo(sdcpnData),
+      hadMissingVisualInfo: hadMissing,
     };
   }
 
   // Fall back to legacy format
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
-    const hadMissing = hasMissingPositions(legacy.data);
+    const hadMissing = hasMissingVisualInfo(legacy.data);
     return {
       ok: true,
-      sdcpn: fillMissingPositions(legacy.data),
-      hadMissingPositions: hadMissing,
+      sdcpn: fillMissingVisualInfo(legacy.data),
+      hadMissingVisualInfo: hadMissing,
     };
   }
 

@@ -39,8 +39,8 @@ const colorElementSchema = z.object({
 const colorSchema = z.object({
   id: z.string(),
   name: z.string(),
-  iconSlug: z.string(),
-  displayColor: z.string(),
+  iconSlug: z.string().optional(),
+  displayColor: z.string().optional(),
   elements: z.array(colorElementSchema),
 });
 
