@@ -54,9 +54,12 @@ impl<A: Allocator> PartialPostgresState<A> {
 
                 match block_id {
                     Some(block_id) => {
-                        // TODO: we probably want a better error here?
-                        let block_id = u32::try_from(block_id)
-                            .map_err(|_| BridgeError::ValueDeserialization { column })?;
+                        let block_id = u32::try_from(block_id).map_err(|_| {
+                            BridgeError::InvalidContinuationBlockId {
+                                body: self.body,
+                                block_id,
+                            }
+                        })?;
 
                         self.target = Optional::Value(BasicBlockId::new(block_id));
                     }
@@ -141,7 +144,13 @@ impl<A: Allocator> PartialPostgresState<A> {
         for (local, value) in locals.into_iter().zip(values) {
             let r#type = body.local_decls[local].r#type;
 
-            let value = decoder.decode(r#type, (&value).into())?; // TODO: correct error handling
+            let value = decoder.decode(r#type, (&value).into()).map_err(|source| {
+                BridgeError::ContinuationDeserialization {
+                    body: self.body,
+                    local,
+                    source,
+                }
+            })?;
             evaluated_locals.push((local, value));
         }
 

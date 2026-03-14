@@ -44,6 +44,12 @@ use super::{
 };
 use crate::postgres::ColumnDescriptor;
 
+macro_rules! hydrate {
+    ($this:ident -> $entry:ident $(-> $field:ident)+ = $value:expr) => {
+        $this .$entry $(.ensure().$field)+ .set($value)
+    };
+}
+
 /// Per-field hydration state for partial entity assembly.
 ///
 /// Each field in the partial entity representation has one of three states:
@@ -664,55 +670,36 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
                 let value = decoder.try_decode(r#type, (&value).into(), column)?;
-
-                self.metadata.ensure().entity_type_ids.set(value);
+                hydrate!(self->metadata->entity_type_ids = value);
             }
             EntityPath::Archived => {
                 let value: bool = row.try_get(column.index).map_err(row_hydration_error)?;
-
-                self.metadata
-                    .ensure()
-                    .archived
-                    .set(Value::Integer(Int::from(value)));
+                hydrate!(self->metadata->archived = Value::Integer(Int::from(value)));
             }
             EntityPath::Confidence => {
                 let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
-
-                self.metadata
-                    .ensure()
-                    .confidence
-                    .set(value.map(Num::from).map(Value::Number));
+                hydrate!(self->metadata->confidence = value.map(Num::from).map(Value::Number));
             }
             EntityPath::ProvenanceInferred => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
-                self.metadata
-                    .ensure()
-                    .provenance
-                    .ensure()
-                    .inferred
-                    .set(value);
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
+                hydrate!(self->metadata->provenance->inferred = value);
             }
             EntityPath::ProvenanceEdition => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
-                self.metadata
-                    .ensure()
-                    .provenance
-                    .ensure()
-                    .edition
-                    .set(value);
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
+                hydrate!(self->metadata->provenance->edition = value);
             }
             EntityPath::PropertyMetadata => {
                 let value: serde_json::Value =
                     row.try_get(column.index).map_err(row_hydration_error)?;
-                let value = decoder.try_decode(r#type, (&value).into(), column)?;
 
-                self.metadata.ensure().property_metadata.set(value);
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
+                hydrate!(self->metadata->property_metadata = value);
             }
             EntityPath::LeftEntityWebId => {
                 let value: Option<String> =
@@ -724,13 +711,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data
-                    .ensure()
-                    .left_entity_id
-                    .ensure()
-                    .web_id
-                    .set(value);
+                hydrate!(self->link_data->left_entity_id->web_id = value);
             }
             EntityPath::LeftEntityUuid => {
                 let value: Option<String> =
@@ -742,13 +723,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data
-                    .ensure()
-                    .left_entity_id
-                    .ensure()
-                    .entity_uuid
-                    .set(value);
+                hydrate!(self->link_data->left_entity_id->entity_uuid = value);
             }
             EntityPath::RightEntityWebId => {
                 let value: Option<String> =
@@ -760,13 +735,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data
-                    .ensure()
-                    .right_entity_id
-                    .ensure()
-                    .web_id
-                    .set(value);
+                hydrate!(self->link_data->right_entity_id->web_id = value);
             }
             EntityPath::RightEntityUuid => {
                 let value: Option<String> =
@@ -778,29 +747,15 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data
-                    .ensure()
-                    .right_entity_id
-                    .ensure()
-                    .entity_uuid
-                    .set(value);
+                hydrate!(self->link_data->right_entity_id->entity_uuid = value);
             }
             EntityPath::LeftEntityConfidence => {
                 let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
-
-                self.link_data
-                    .ensure()
-                    .left_entity_confidence
-                    .set(value.map(Num::from).map(Value::Number));
+                hydrate!(self->link_data->left_entity_confidence = value.map(Num::from).map(Value::Number));
             }
             EntityPath::RightEntityConfidence => {
                 let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
-
-                self.link_data
-                    .ensure()
-                    .right_entity_confidence
-                    .set(value.map(Num::from).map(Value::Number));
+                hydrate!(self->link_data->right_entity_confidence = value.map(Num::from).map(Value::Number));
             }
             EntityPath::LeftEntityProvenance => {
                 let value: Option<String> =
@@ -812,8 +767,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data.ensure().left_entity_provenance.set(value);
+                hydrate!(self->link_data->left_entity_provenance = value);
             }
             EntityPath::RightEntityProvenance => {
                 let value: Option<String> =
@@ -825,8 +779,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 };
 
                 let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
-
-                self.link_data.ensure().right_entity_provenance.set(value);
+                hydrate!(self->link_data->right_entity_provenance = value);
             }
         }
 
@@ -865,12 +818,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     {
         let value =
             decoder.try_decode(EntityPath::DecisionTime.r#type(env), value.into(), column)?;
-        self.metadata
-            .ensure()
-            .temporal_versioning
-            .ensure()
-            .decision_time
-            .set(value);
+        hydrate!(self->metadata->temporal_versioning->decision_time = value);
 
         Ok(())
     }
@@ -890,12 +838,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             value.into(),
             column,
         )?;
-        self.metadata
-            .ensure()
-            .temporal_versioning
-            .ensure()
-            .transaction_time
-            .set(value);
+        hydrate!(self->metadata->temporal_versioning->transaction_time = value);
 
         Ok(())
     }
@@ -911,15 +854,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         A: Clone,
     {
         let value = decoder.try_decode(EntityPath::WebId.r#type(env), value.into(), column)?;
-
-        self.metadata
-            .ensure()
-            .record_id
-            .ensure()
-            .entity_id
-            .ensure()
-            .web_id
-            .set(value);
+        hydrate!(self->metadata->record_id->entity_id->web_id = value);
 
         Ok(())
     }
@@ -935,15 +870,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         A: Clone,
     {
         let value = decoder.try_decode(EntityPath::EntityUuid.r#type(env), value.into(), column)?;
-
-        self.metadata
-            .ensure()
-            .record_id
-            .ensure()
-            .entity_id
-            .ensure()
-            .entity_uuid
-            .set(value);
+        hydrate!(self->metadata->record_id->entity_id->entity_uuid = value);
 
         Ok(())
     }
@@ -963,15 +890,8 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             .filter(|value| !matches!(value, JsonValueRef::Null))
             .map(|value| decoder.try_decode(EntityPath::DraftId.r#type(env), value, column))
             .transpose()?;
+        hydrate!(self->metadata->record_id->entity_id->draft_id = value);
 
-        self.metadata
-            .ensure()
-            .record_id
-            .ensure()
-            .entity_id
-            .ensure()
-            .draft_id
-            .set(value);
         Ok(())
     }
 
@@ -986,13 +906,8 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         A: Clone,
     {
         let value = decoder.try_decode(EntityPath::EditionId.r#type(env), value.into(), column)?;
+        hydrate!(self->metadata->record_id->edition_id = value);
 
-        self.metadata
-            .ensure()
-            .record_id
-            .ensure()
-            .edition_id
-            .set(value);
         Ok(())
     }
 }

@@ -765,7 +765,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns a diagnostic if any runtime error occurs during interpretation.
-    fn run_until_suspension(
+    pub fn run_until_suspension(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
@@ -784,6 +784,41 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
             if let ControlFlow::Break(value) = next {
                 return Ok(value);
+            }
+        }
+    }
+
+    pub fn run_until_transition(
+        &mut self,
+        callstack: &mut CallStack<'ctx, 'heap, A>,
+        mut r#continue: impl FnMut(BasicBlockId) -> bool,
+    ) -> Result<ControlFlow<(), Yield<'ctx, 'heap, A>>, InterpretDiagnostic> {
+        loop {
+            let result = self.step(callstack);
+            let next = match result {
+                Ok(next) => next,
+                Err(error) => {
+                    let spans = callstack.unwind();
+
+                    return Err(
+                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
+                    );
+                }
+            };
+
+            if let ControlFlow::Break(value) = next {
+                return Ok(ControlFlow::Continue(value));
+            }
+
+            // TODO: does this work
+            // Check if we're current in the last frame, and iff we've entered a new block, if
+            // that's the case we must check if we're able to continue.
+            let [frame] = &mut *callstack.frames else {
+                continue;
+            };
+
+            if frame.current_statement == 0 && !r#continue(frame.current_block.id) {
+                return Ok(ControlFlow::Break(()));
             }
         }
     }
@@ -831,6 +866,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.scratch.clear();
+    }
+
     /// Begins interpretation from the given call stack.
     ///
     /// Clears scratch state and runs until the interpreter either returns
@@ -844,7 +883,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
-        self.scratch.clear();
+        self.reset();
         self.run_until_suspension(callstack)
     }
 

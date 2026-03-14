@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, vec};
+use alloc::{rc::Rc, string::ToString as _, vec};
 use core::alloc::Allocator;
 
 use hashql_core::{
@@ -12,9 +12,12 @@ use hashql_core::{
 };
 use hashql_mir::interpret::value::{self, Value};
 
-use super::JsonValueRef;
+use super::{JsonValueKind, JsonValueRef};
 use crate::{
-    orchestrator::{Indexed, error::BridgeError},
+    orchestrator::{
+        Indexed,
+        error::{BridgeError, DecodeError},
+    },
     postgres::ColumnDescriptor,
 };
 
@@ -38,23 +41,27 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         }
     }
 
-    fn decode_unknown(&self, value: JsonValueRef<'_>) -> Option<Value<'heap, A>>
+    fn decode_unknown(&self, value: JsonValueRef<'_>) -> Result<Value<'heap, A>, DecodeError>
     where
         A: Clone,
     {
         match value {
-            JsonValueRef::Null => Some(Value::Unit),
-            JsonValueRef::Bool(value) => Some(Value::Integer(value::Int::from(value))),
+            JsonValueRef::Null => Ok(Value::Unit),
+            JsonValueRef::Bool(value) => Ok(Value::Integer(value::Int::from(value))),
             JsonValueRef::Number(number) => {
                 if let Some(value) = number.as_i128() {
-                    Some(Value::Integer(value::Int::from(value)))
+                    Ok(Value::Integer(value::Int::from(value)))
                 } else {
-                    Some(Value::Number(value::Num::from(number.as_f64()?)))
+                    let value = number
+                        .as_f64()
+                        .ok_or(DecodeError::NumberOutOfRange { expected: None })?;
+
+                    Ok(Value::Number(value::Num::from(value)))
                 }
             }
             JsonValueRef::String(string) => {
                 let value = value::Str::from(Rc::from_in(string, self.alloc.clone()));
-                Some(Value::String(value))
+                Ok(Value::String(value))
             }
             JsonValueRef::Array(values) => {
                 // We default in the output to **lists** not tuples. Very important distinction
@@ -64,7 +71,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     output.push_back(self.decode_unknown(element.into())?);
                 }
 
-                Some(Value::List(output))
+                Ok(Value::List(output))
             }
             JsonValueRef::Object(map) => {
                 if !map.keys().all(|key| {
@@ -89,7 +96,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                         dict.insert(key, value);
                     }
 
-                    return Some(Value::Dict(dict));
+                    return Ok(Value::Dict(dict));
                 }
 
                 let mut fields = Vec::with_capacity_in(map.len(), self.alloc.clone());
@@ -106,42 +113,52 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 co_sort(&mut fields, &mut values);
                 let fields = self.interner.symbols.intern_slice(&fields);
 
-                value::Struct::new(fields, values).map(Value::Struct)
+                value::Struct::new(fields, values)
+                    .map(Value::Struct)
+                    .ok_or(DecodeError::MalformedConstruction { expected: None })
             }
         }
     }
 
-    pub(crate) fn decode(&self, r#type: TypeId, value: JsonValueRef<'_>) -> Option<Value<'heap, A>>
+    pub(crate) fn decode(
+        &self,
+        type_id: TypeId,
+        value: JsonValueRef<'_>,
+    ) -> Result<Value<'heap, A>, DecodeError>
     where
         A: Clone,
     {
-        let r#type = self.env.r#type(r#type);
+        let r#type = self.env.r#type(type_id);
 
         match r#type.kind {
             &TypeKind::Opaque(OpaqueType { name, repr }) => {
                 let value = self.decode(repr, value)?;
 
-                Some(Value::Opaque(value::Opaque::new(
+                Ok(Value::Opaque(value::Opaque::new(
                     name,
                     Rc::new_in(value, self.alloc.clone()),
                 )))
             }
             TypeKind::Primitive(primitive_type) => match (primitive_type, value) {
                 (PrimitiveType::Number, JsonValueRef::Number(number)) => {
-                    number.as_f64().map(From::from).map(Value::Number)
+                    number.as_f64().map(From::from).map(Value::Number).ok_or(
+                        DecodeError::NumberOutOfRange {
+                            expected: Some(type_id),
+                        },
+                    )
                 }
                 (PrimitiveType::Integer, JsonValueRef::Number(number))
                     if let Some(value) = number.as_i128() =>
                 {
-                    Some(Value::Integer(value::Int::from(value)))
+                    Ok(Value::Integer(value::Int::from(value)))
                 }
                 (PrimitiveType::String, JsonValueRef::String(string)) => {
                     let value = value::Str::from(Rc::from_in(string, self.alloc.clone()));
-                    Some(Value::String(value))
+                    Ok(Value::String(value))
                 }
-                (PrimitiveType::Null, JsonValueRef::Null) => Some(Value::Unit),
+                (PrimitiveType::Null, JsonValueRef::Null) => Ok(Value::Unit),
                 (PrimitiveType::Boolean, JsonValueRef::Bool(value)) => {
-                    Some(Value::Integer(value::Int::from(value)))
+                    Ok(Value::Integer(value::Int::from(value)))
                 }
                 (
                     PrimitiveType::Number,
@@ -183,18 +200,27 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     | JsonValueRef::String(_)
                     | JsonValueRef::Array(_)
                     | JsonValueRef::Object(_),
-                ) => None,
+                ) => Err(DecodeError::TypeMismatch {
+                    expected: type_id,
+                    received: JsonValueKind::from(value),
+                }),
             },
             TypeKind::Struct(StructType { fields }) => {
                 let JsonValueRef::Object(object) = value else {
-                    return None;
+                    return Err(DecodeError::TypeMismatch {
+                        expected: type_id,
+                        received: JsonValueKind::from(value),
+                    });
                 };
 
                 // To avoid allocations, check beforehand if the keys of the object constitute
                 // valid identifiers
                 for field in fields.iter() {
                     if !object.contains_key(field.name.as_str()) {
-                        return None;
+                        return Err(DecodeError::MissingField {
+                            expected: type_id,
+                            field: field.name.as_str().to_string(),
+                        });
                     }
                 }
 
@@ -210,20 +236,35 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 for (name, value) in object {
                     let field = fields
                         .iter()
-                        .position(|field| field.name.as_str() == name)?;
+                        .position(|field| field.name.as_str() == name)
+                        .ok_or_else(|| DecodeError::MissingField {
+                            expected: type_id,
+                            field: name.clone(),
+                        })?;
 
                     values[field] = self.decode(fields[field].value, value.into())?;
                 }
 
-                value::Struct::new(names, values).map(Value::Struct)
+                value::Struct::new(names, values).map(Value::Struct).ok_or(
+                    DecodeError::MalformedConstruction {
+                        expected: Some(type_id),
+                    },
+                )
             }
             TypeKind::Tuple(TupleType { fields }) => {
                 let JsonValueRef::Array(array) = value else {
-                    return None;
+                    return Err(DecodeError::TypeMismatch {
+                        expected: type_id,
+                        received: JsonValueKind::from(value),
+                    });
                 };
 
                 if array.len() != fields.len() {
-                    return None;
+                    return Err(DecodeError::TupleLengthMismatch {
+                        expected: type_id,
+                        expected_length: fields.len(),
+                        received_length: array.len(),
+                    });
                 }
 
                 let mut values: Vec<_, A> = Vec::with_capacity_in(array.len(), self.alloc.clone());
@@ -231,23 +272,33 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     values.push(self.decode(field, element.into())?);
                 }
 
-                value::Tuple::new(values).map(Value::Tuple)
+                value::Tuple::new(values).map(Value::Tuple).ok_or(
+                    DecodeError::MalformedConstruction {
+                        expected: Some(type_id),
+                    },
+                )
             }
 
             TypeKind::Union(union_type) => {
                 // Go through *each variant* and try to find the first one that matches
                 for &variant in &union_type.variants {
-                    if let Some(value) = self.decode(variant, value) {
-                        return Some(value);
+                    if let Ok(value) = self.decode(variant, value) {
+                        return Ok(value);
                     }
                 }
 
-                None
+                Err(DecodeError::NoMatchingVariant {
+                    expected: type_id,
+                    received: JsonValueKind::from(value),
+                })
             }
 
             TypeKind::Intrinsic(hashql_core::r#type::kind::IntrinsicType::List(list)) => {
                 let JsonValueRef::Array(array) = value else {
-                    return None;
+                    return Err(DecodeError::TypeMismatch {
+                        expected: type_id,
+                        received: JsonValueKind::from(value),
+                    });
                 };
 
                 let mut output = value::List::new();
@@ -256,11 +307,14 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     output.push_back(self.decode(list.element, element.into())?);
                 }
 
-                Some(Value::List(output))
+                Ok(Value::List(output))
             }
             TypeKind::Intrinsic(hashql_core::r#type::kind::IntrinsicType::Dict(dict)) => {
                 let JsonValueRef::Object(object) = value else {
-                    return None;
+                    return Err(DecodeError::TypeMismatch {
+                        expected: type_id,
+                        received: JsonValueKind::from(value),
+                    });
                 };
 
                 let mut output = value::Dict::new();
@@ -272,7 +326,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     );
                 }
 
-                Some(Value::Dict(output))
+                Ok(Value::Dict(output))
             }
 
             // How... does one even do that?
@@ -292,8 +346,8 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 todo!("issue ICE; tried to deserialize a never type; should be rejected by MIR")
             }
 
-            // We're flying free here, issue a warning, and just try to deserialize using the old
-            // tactics
+            // We're flying free here, issue a warning, and just try to deserialize using the
+            // old tactics
             TypeKind::Param(_) | TypeKind::Infer(_) | TypeKind::Unknown => {
                 self.decode_unknown(value)
             }
@@ -302,8 +356,8 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
 
     /// Deserializes a column value into the expected type, or returns an error.
     ///
-    /// The `index` and `column` parameters are only used for error reporting;
-    /// they identify which result column failed to deserialize.
+    /// The `column` parameter is only used for error reporting;
+    /// it identifies which result column failed to deserialize.
     pub(crate) fn try_decode(
         &self,
         r#type: TypeId,
@@ -314,6 +368,6 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         A: Clone,
     {
         self.decode(r#type, value)
-            .ok_or(BridgeError::ValueDeserialization { column })
+            .map_err(|source| BridgeError::ValueDeserialization { column, source })
     }
 }

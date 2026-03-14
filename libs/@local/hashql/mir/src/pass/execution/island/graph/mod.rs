@@ -44,7 +44,7 @@ use super::{Island, IslandId, IslandVec};
 use crate::{
     body::{
         Body,
-        basic_block::{BasicBlock, BasicBlockId, BasicBlockVec},
+        basic_block::{BasicBlockId, BasicBlockVec},
     },
     pass::execution::{
         TargetId, VertexType,

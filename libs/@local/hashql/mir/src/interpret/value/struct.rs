@@ -38,6 +38,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
         values: Rc<[Value<'heap, A>], A>,
     ) -> Self {
         debug_assert_eq!(fields.len(), values.len());
+        debug_assert!(fields.is_sorted());
 
         Self { fields, values }
     }
