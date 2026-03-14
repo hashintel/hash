@@ -364,14 +364,12 @@ mod tests {
     use super::*;
     use crate::interpret::value::{Int, Str, Value};
 
-    /// Helper: creates a `Value::Integer` from an i128.
     fn int(n: i128) -> Value<'static> {
         Value::Integer(Int::from(n))
     }
 
-    /// Helper: creates a `Value::String` wrapping an Rc'd string.
     fn string(s: &str) -> Value<'static> {
-        Value::String(Str::new(Rc::from(s.as_bytes())))
+        Value::String(Str::from(Rc::<str>::from(s)))
     }
 
     #[test]
@@ -479,7 +477,7 @@ mod tests {
         let Value::String(ref s) = *result.get_by_name(sym_a).unwrap() else {
             panic!("expected String");
         };
-        assert_eq!(s.as_bytes(), b"alpha");
+        assert_eq!(s.as_str(), "alpha");
     }
 
     #[test]
@@ -511,7 +509,7 @@ mod tests {
         let Value::String(ref s) = *pairs[0].1 else {
             panic!("expected String");
         };
-        assert_eq!(s.as_bytes(), b"alpha");
+        assert_eq!(s.as_str(), "alpha");
     }
 
     #[test]

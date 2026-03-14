@@ -258,6 +258,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
 /// The interpreter either completes with a final value or suspends at a point
 /// where it needs external data (such as a database query result) before it
 /// can continue.
+#[derive(Debug)]
 pub enum Yield<'ctx, 'heap, A: Allocator> {
     /// The entry function returned a value. Interpretation is complete.
     Return(Value<'heap, A>),

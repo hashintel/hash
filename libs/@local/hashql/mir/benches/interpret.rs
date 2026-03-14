@@ -10,7 +10,7 @@ use alloc::alloc::Global;
 
 use codspeed_criterion_compat::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use hashql_core::{
-    collections::FastHashMap,
+    collections::fast_hash_map_in,
     heap::{ResetAllocator as _, Scratch},
     r#type::environment::Environment,
 };
@@ -93,13 +93,10 @@ fn fibonacci_recursive(criterion: &mut Criterion) {
             run_bencher(bencher, create_fibonacci_body, |_, bodies, scratch| {
                 let scratch = &*scratch;
                 let bodies = DefIdSlice::from_raw(bodies);
+                let inputs = fast_hash_map_in(scratch);
 
-                let mut runtime = Runtime::new_in(
-                    RuntimeConfig::default(),
-                    bodies,
-                    FastHashMap::default(),
-                    scratch,
-                );
+                let mut runtime =
+                    Runtime::new_in(RuntimeConfig::default(), bodies, &inputs, scratch);
                 let callstack =
                     CallStack::new(&runtime, DefId::new(0), [Value::Integer(Int::from(*n))]);
 

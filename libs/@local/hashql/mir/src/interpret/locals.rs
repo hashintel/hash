@@ -481,7 +481,7 @@ mod tests {
         // SAFETY: The buffer has not been written to yet and operands == buf
         unsafe {
             locals
-                .write_operands(&mut buf, &operands)
+                .write_operands::<!>(&mut buf, &operands)
                 .expect("write_operands should not fail");
         }
 
@@ -524,7 +524,7 @@ mod tests {
         ];
 
         // SAFETY: The buffer has not been written to yet and operands == buf
-        let result = unsafe { locals.write_operands(&mut buf, &operands) };
+        let result = unsafe { locals.write_operands::<!>(&mut buf, &operands) };
         assert_matches!(result, Err(RuntimeError::UninitializedLocal{local, ..}) if local == Local::new(1));
 
         // IMPORTANT: Do not read from `buf` here. On error, the internal Guard has
@@ -550,12 +550,12 @@ mod tests {
         // SAFETY: The buffer is empty, so no writes are performed.
         unsafe {
             locals
-                .write_operands(&mut buf, &operands)
+                .write_operands::<!>(&mut buf, &operands)
                 .expect("should not fail");
         }
 
         let value = locals
-            .aggregate_tuple(IdSlice::from_raw(&[]))
+            .aggregate_tuple::<!>(IdSlice::from_raw(&[]))
             .expect("should not fail");
         assert_eq!(value, Value::Unit);
     }
@@ -585,7 +585,7 @@ mod tests {
         ];
 
         let value = locals
-            .aggregate_tuple(IdSlice::from_raw(&operands))
+            .aggregate_tuple::<!>(IdSlice::from_raw(&operands))
             .expect("aggregate_tuple should succeed");
 
         let Value::Tuple(tuple) = value else {
@@ -631,7 +631,7 @@ mod tests {
         ];
 
         let value = locals
-            .aggregate_struct(fields, IdSlice::from_raw(&operands))
+            .aggregate_struct::<!>(fields, IdSlice::from_raw(&operands))
             .expect("aggregate_struct should succeed");
 
         let Value::Struct(r#struct) = value else {

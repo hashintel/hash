@@ -35,6 +35,7 @@ use crate::{
 ///
 /// The caller must inspect the variant, fulfill the request, and pass
 /// the result back via [`Runtime::resume`](super::runtime::Runtime::resume).
+#[derive(Debug)]
 pub enum Suspension<'ctx, 'heap> {
     /// The interpreter needs the result of a graph read operation.
     GraphRead(GraphReadSuspension<'ctx, 'heap>),
@@ -47,6 +48,7 @@ pub enum Suspension<'ctx, 'heap> {
 ///
 /// Call [`resolve`](Self::resolve) with the query result to produce a
 /// [`Continuation`] for resuming the interpreter.
+#[derive(Debug)]
 pub struct GraphReadSuspension<'ctx, 'heap> {
     pub body: DefId,
     pub block: BasicBlockId,

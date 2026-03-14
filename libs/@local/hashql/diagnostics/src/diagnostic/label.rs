@@ -255,6 +255,14 @@ impl<S> Labels<S> {
         }
     }
 
+    pub const fn len(&self) -> usize {
+        self.labels.len()
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.labels.is_empty()
+    }
+
     /// Adds a secondary label to the collection.
     ///
     /// All labels added via this method become secondary labels, which have the purpose of

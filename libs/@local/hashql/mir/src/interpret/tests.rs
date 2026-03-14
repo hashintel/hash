@@ -15,7 +15,7 @@
 )]
 
 use alloc::rc::Rc;
-use core::ops::ControlFlow;
+use core::{assert_matches, ops::ControlFlow};
 
 use hashql_core::{
     collections::FastHashMap,
@@ -44,6 +44,7 @@ use crate::{
     def::{DefId, DefIdSlice},
     intern::Interner,
     interpret::error::InterpretDiagnosticCategory,
+    op,
 };
 
 fn run_body(body: Body<'_>) -> Result<Value<'_>, InterpretDiagnostic> {
@@ -69,7 +70,8 @@ fn run_bodies<'heap>(
     entry: DefId,
     args: impl IntoIterator<Item = Value<'heap>, IntoIter: ExactSizeIterator>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
+    let inputs = FastHashMap::default();
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let callstack = CallStack::new(&runtime, entry, args);
 
     runtime.run(callstack, |_| unreachable!())
@@ -170,7 +172,8 @@ fn entry_function_with_args() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
+    let inputs = FastHashMap::default();
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let args = [
         Value::Integer(Int::from(10_i128)),
         Value::Integer(Int::from(20_i128)),
@@ -1102,9 +1105,10 @@ fn recursion_limit_exceeded() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
+    let inputs = FastHashMap::default();
 
     let config = RuntimeConfig { recursion_limit: 5 };
-    let mut runtime = Runtime::new(config, bodies, &FastHashMap::default());
+    let mut runtime = Runtime::new(config, bodies, &inputs);
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
 
     let result = runtime
@@ -1913,18 +1917,16 @@ fn transition_breaks_at_target_block() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
+    let inputs = FastHashMap::default();
 
     let bb1 = crate::body::basic_block::BasicBlockId::new(1);
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
     runtime.reset();
 
-    let result = runtime.run_until_transition(&mut callstack, |block| block != bb1);
-
-    let Ok(ControlFlow::Break(())) = result else {
-        panic!("expected Break at transition point, got {result:?}");
-    };
+    let result = runtime.run_until_transition::<!>(&mut callstack, |block| block != bb1);
+    assert_matches!(result, Ok(ControlFlow::Break(())));
 
     // Callstack should be positioned at bb1
     let current = callstack
@@ -1952,19 +1954,14 @@ fn transition_runs_to_completion_when_continue_always_true() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
+    let inputs = FastHashMap::default();
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
     runtime.reset();
 
-    let result = runtime.run_until_transition(&mut callstack, |_| true);
-
-    match result {
-        Ok(ControlFlow::Continue(Yield::Return(value))) => {
-            assert_eq!(value, Value::Integer(Int::from(42_i128)));
-        }
-        other => panic!("expected Continue(Return(42)), got {other:?}"),
-    }
+    let result = runtime.run_until_transition::<!>(&mut callstack, |_| true);
+    assert_matches!(result, Ok(ControlFlow::Continue(Yield::Return(value))) if value == Value::Integer(Int::from(42_i128)));
 }
 
 #[test]
@@ -2023,7 +2020,7 @@ fn transition_fires_on_reentry_after_continuation_apply() {
     runtime.reset();
 
     // First call: should suspend at GraphRead (bb0 is allowed)
-    let result = runtime.run_until_transition(&mut callstack, |block| block != bb1_id);
+    let result = runtime.run_until_transition::<!>(&mut callstack, |block| block != bb1_id);
     let Ok(ControlFlow::Continue(Yield::Suspension(Suspension::GraphRead(suspension)))) = result
     else {
         panic!("expected suspension, got {result:?}");
@@ -2032,11 +2029,11 @@ fn transition_fires_on_reentry_after_continuation_apply() {
     // Apply continuation → sets current block to bb1
     let continuation = suspension.resolve(Value::Integer(Int::from(42_i128)));
     continuation
-        .apply(&mut callstack)
+        .apply::<!>(&mut callstack)
         .expect("apply should succeed");
 
     // Second call: transition should fire immediately on bb1 (before stepping)
-    let result = runtime.run_until_transition(&mut callstack, |block| block != bb1_id);
+    let result = runtime.run_until_transition::<!>(&mut callstack, |block| block != bb1_id);
     let Ok(ControlFlow::Break(())) = result else {
         panic!("expected Break at bb1 after continuation, got {result:?}");
     };
@@ -2156,8 +2153,9 @@ fn callstack_new_in_runs_to_completion() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
+    let inputs = FastHashMap::default();
 
-    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let callstack =
         CallStack::new_in::<()>(&bodies[DefId::new(0)], [].into_iter(), alloc::alloc::Global)
             .expect("new_in should succeed");
