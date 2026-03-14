@@ -79,6 +79,16 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
     };
   }
 
+  // If the data has a `version` field but failed the versioned schema, reject it
+  // rather than falling through to the legacy path (which would silently accept
+  // future-versioned files by stripping the unknown `version` key).
+  if (typeof data === "object" && data !== null && "version" in data) {
+    return {
+      ok: false,
+      error: "Unsupported SDCPN file format version",
+    };
+  }
+
   // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {

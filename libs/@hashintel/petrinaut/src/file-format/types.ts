@@ -84,14 +84,7 @@ export const sdcpnFileSchema = sdcpnSchema.extend({
 
 /**
  * Schema for the legacy file format (no version/meta, just title + SDCPN data).
- * Rejects objects that have a `version` field — those should match the versioned schema.
  */
-export const legacySdcpnFileSchema = sdcpnSchema
-  .extend({
-    title: z.string(),
-  })
-  .refine((data) => !("version" in data), {
-    message: "Unsupported file format version",
-  });
-
-export type SDCPNFileFormat = z.infer<typeof sdcpnFileSchema>;
+export const legacySdcpnFileSchema = sdcpnSchema.extend({
+  title: z.string(),
+});
