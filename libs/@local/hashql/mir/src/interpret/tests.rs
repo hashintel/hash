@@ -1928,7 +1928,7 @@ fn transition_breaks_at_target_block() {
     runtime.reset();
 
     let result = runtime.run_until_transition::<!>(&mut callstack, |block| block != bb1);
-    assert_matches!(result, Ok(ControlFlow::Break(())));
+    assert_matches!(result, Ok(ControlFlow::Break(_)));
 
     // Callstack should be positioned at bb1
     let current = callstack
@@ -2036,9 +2036,7 @@ fn transition_fires_on_reentry_after_continuation_apply() {
 
     // Second call: transition should fire immediately on bb1 (before stepping)
     let result = runtime.run_until_transition::<!>(&mut callstack, |block| block != bb1_id);
-    let Ok(ControlFlow::Break(())) = result else {
-        panic!("expected Break at bb1 after continuation, got {result:?}");
-    };
+    assert_matches!(result, Ok(ControlFlow::Break(_)));
 
     let current = callstack
         .current_block::<()>()
