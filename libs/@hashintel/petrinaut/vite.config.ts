@@ -21,6 +21,7 @@ export default defineConfig(({ command }) => ({
         "react-dom",
         "@xyflow/react",
         "@babel/standalone",
+        "pyodide",
       ],
       output: {
         globals: {

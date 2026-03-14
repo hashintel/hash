@@ -73,7 +73,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     },
     setLeftSidebarWidth: (width) =>
       setState((prev) => ({ ...prev, leftSidebarWidth: width })),
-    setPropertiesPanelWidth: (width) =>
+    setPropertiesPanelWidth: (width: number) =>
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setBottomPanelOpen: (isOpen) => {
       triggerPanelAnimation();

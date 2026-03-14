@@ -1,11 +1,49 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { SDCPN } from "../../core/types/sdcpn";
 import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 
+// Mock SymPy compilation with realistic functions for these tests
+vi.mock("./compile-via-sympy", () => ({
+  compileDifferentialEquationViaSymPy: vi
+    .fn()
+    .mockImplementation((code: string) => {
+      // Parse simple dynamics patterns from test code
+      if (code.includes("({ x: 1, y: 1 })")) {
+        return Promise.resolve((tokens: Record<string, number>[]) =>
+          tokens.map(() => ({ x: 1, y: 1 })),
+        );
+      }
+      if (code.includes("({ x: 1 })")) {
+        return Promise.resolve((tokens: Record<string, number>[]) =>
+          tokens.map(() => ({ x: 1 })),
+        );
+      }
+      return Promise.resolve(() => []);
+    }),
+  compileLambdaViaSymPy: vi.fn().mockImplementation((code: string) => {
+    if (code.includes("0.0001")) {
+      return Promise.resolve(() => 0.0001);
+    }
+    return Promise.resolve(() => 1.0);
+  }),
+  compileTransitionKernelViaSymPy: vi
+    .fn()
+    .mockImplementation((code: string) => {
+      if (code.includes("Place1")) {
+        return Promise.resolve(() => ({
+          Place1: [{ x: 100.0, y: 200.0 }],
+        }));
+      }
+      return Promise.resolve(() => ({}));
+    }),
+}));
+
+const mockPyodide = {} as Parameters<typeof buildSimulation>[1];
+
 describe("computeNextFrame", () => {
-  it("should compute next frame with dynamics and transitions", () => {
+  it("should compute next frame with dynamics and transitions", async () => {
     // GIVEN a simple SDCPN with one place and one transition
     const sdcpn: SDCPN = {
       types: [
@@ -62,14 +100,17 @@ describe("computeNextFrame", () => {
     ]);
 
     // Build the simulation
-    const simulation = buildSimulation({
-      sdcpn,
-      initialMarking,
-      parameterValues: {},
-      seed: 42,
-      dt: 0.1,
-      maxTime: null,
-    });
+    const simulation = await buildSimulation(
+      {
+        sdcpn,
+        initialMarking,
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      },
+      mockPyodide,
+    );
 
     // WHEN computing the next frame
     const result = computeNextFrame(simulation);
@@ -91,7 +132,7 @@ describe("computeNextFrame", () => {
     expect(nextFrame.buffer[1]).toBeCloseTo(20.1);
   });
 
-  it("should skip dynamics for places without type", () => {
+  it("should skip dynamics for places without type", async () => {
     // GIVEN a place without a type
     const sdcpn: SDCPN = {
       types: [],
@@ -115,14 +156,17 @@ describe("computeNextFrame", () => {
       ["p1", { values: new Float64Array([]), count: 0 }],
     ]);
 
-    const simulation = buildSimulation({
-      sdcpn,
-      initialMarking,
-      parameterValues: {},
-      seed: 42,
-      dt: 0.1,
-      maxTime: null,
-    });
+    const simulation = await buildSimulation(
+      {
+        sdcpn,
+        initialMarking,
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      },
+      mockPyodide,
+    );
 
     // WHEN computing the next frame
     const result = computeNextFrame(simulation);
@@ -132,7 +176,7 @@ describe("computeNextFrame", () => {
     expect(result.transitionFired).toBe(false);
   });
 
-  it("should skip dynamics for places with dynamics disabled", () => {
+  it("should skip dynamics for places with dynamics disabled", async () => {
     // GIVEN a place with dynamics disabled
     const sdcpn: SDCPN = {
       types: [
@@ -171,14 +215,17 @@ describe("computeNextFrame", () => {
       ["p1", { values: new Float64Array([10.0]), count: 1 }],
     ]);
 
-    const simulation = buildSimulation({
-      sdcpn,
-      initialMarking,
-      parameterValues: {},
-      seed: 42,
-      dt: 0.1,
-      maxTime: null,
-    });
+    const simulation = await buildSimulation(
+      {
+        sdcpn,
+        initialMarking,
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      },
+      mockPyodide,
+    );
 
     // WHEN computing the next frame
     const result = computeNextFrame(simulation);

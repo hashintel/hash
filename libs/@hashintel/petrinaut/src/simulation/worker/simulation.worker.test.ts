@@ -10,6 +10,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SDCPN } from "../../core/types/sdcpn";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
+// Mock pyodide-manager to avoid loading real Pyodide in tests
+vi.mock("../simulator/pyodide-manager", () => ({
+  loadPyodideAndSymPy: vi.fn().mockResolvedValue({}),
+}));
+
+// Mock SymPy compilation to return simple passthrough functions
+vi.mock("../simulator/compile-via-sympy", () => ({
+  compileDifferentialEquationViaSymPy: vi.fn().mockResolvedValue(() => []),
+  compileLambdaViaSymPy: vi.fn().mockResolvedValue(() => 1.0),
+  compileTransitionKernelViaSymPy: vi.fn().mockResolvedValue(() => ({})),
+}));
+
 // Store messages posted by worker
 let postedMessages: ToMainMessage[] = [];
 
@@ -108,7 +120,7 @@ describe("simulation.worker", () => {
       expect(readyMessages[0]?.initialFrameCount).toBe(0);
     });
 
-    it("initializes simulation with valid SDCPN", () => {
+    it("initializes simulation with valid SDCPN", async () => {
       clearMessages();
 
       const sdcpn = createMinimalSDCPN();
@@ -122,6 +134,11 @@ describe("simulation.worker", () => {
         maxTime: null,
       });
 
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("ready")).toHaveLength(1);
+      });
+
       // Should send initial frame and ready message
       const frameMessages = getMessages("frame");
       expect(frameMessages).toHaveLength(1);
@@ -132,7 +149,7 @@ describe("simulation.worker", () => {
       expect(readyMessages[0]?.initialFrameCount).toBe(1);
     });
 
-    it("posts error message for invalid SDCPN", () => {
+    it("posts error message for invalid SDCPN", async () => {
       clearMessages();
 
       // SDCPN with invalid initial marking (place doesn't exist)
@@ -147,6 +164,11 @@ describe("simulation.worker", () => {
         seed: 42,
         dt: 0.1,
         maxTime: null,
+      });
+
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("error")).toHaveLength(1);
       });
 
       const errorMessages = getMessages("error");
@@ -166,7 +188,7 @@ describe("simulation.worker", () => {
       expect(errorMessages[0]?.message).toContain("not initialized");
     });
 
-    it("posts paused message when pausing", () => {
+    it("posts paused message when pausing", async () => {
       clearMessages();
 
       // Initialize first
@@ -180,6 +202,11 @@ describe("simulation.worker", () => {
         dt: 0.1,
         maxTime: null,
       });
+
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("ready")).toHaveLength(1);
+      });
       clearMessages();
 
       // Pause
@@ -190,7 +217,7 @@ describe("simulation.worker", () => {
       expect(pausedMessages[0]?.frameNumber).toBe(0);
     });
 
-    it("clears state on stop", () => {
+    it("clears state on stop", async () => {
       clearMessages();
 
       // Initialize
@@ -203,6 +230,11 @@ describe("simulation.worker", () => {
         seed: 42,
         dt: 0.1,
         maxTime: null,
+      });
+
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("ready")).toHaveLength(1);
       });
       clearMessages();
 
@@ -219,7 +251,7 @@ describe("simulation.worker", () => {
   });
 
   describe("backpressure", () => {
-    it("accepts setBackpressure message", () => {
+    it("accepts setBackpressure message", async () => {
       clearMessages();
 
       // Initialize
@@ -232,6 +264,11 @@ describe("simulation.worker", () => {
         seed: 42,
         dt: 0.1,
         maxTime: null,
+      });
+
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("ready")).toHaveLength(1);
       });
       clearMessages();
 
@@ -248,7 +285,7 @@ describe("simulation.worker", () => {
   });
 
   describe("ack (backpressure)", () => {
-    it("accepts ack message", () => {
+    it("accepts ack message", async () => {
       clearMessages();
 
       // Initialize
@@ -261,6 +298,11 @@ describe("simulation.worker", () => {
         seed: 42,
         dt: 0.1,
         maxTime: null,
+      });
+
+      // Wait for async init to complete
+      await vi.waitFor(() => {
+        expect(getMessages("ready")).toHaveLength(1);
       });
       clearMessages();
 

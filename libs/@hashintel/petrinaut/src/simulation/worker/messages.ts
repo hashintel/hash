@@ -33,6 +33,8 @@ export type InitMessage = {
   maxFramesAhead?: number;
   /** Number of frames to compute in each batch before checking for messages */
   batchSize?: number;
+  /** Optional URL where Pyodide WASM assets are served (for self-hosting) */
+  pyodideUrl?: string;
 };
 
 /**
@@ -147,6 +149,15 @@ export type PausedMessage = {
 };
 
 /**
+ * Progress update during compilation phase (Pyodide + SymPy loading).
+ */
+export type CompilingMessage = {
+  type: "compiling";
+  /** Current phase of the compilation pipeline */
+  phase: "loading-sympy" | "compiling";
+};
+
+/**
  * Union of all messages that can be sent from worker to main thread.
  */
 export type ToMainMessage =
@@ -155,4 +166,5 @@ export type ToMainMessage =
   | FramesMessage
   | CompleteMessage
   | ErrorMessage
-  | PausedMessage;
+  | PausedMessage
+  | CompilingMessage;

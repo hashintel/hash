@@ -8033,6 +8033,7 @@ __metadata:
     jsdom: "npm:24.1.3"
     monaco-editor: "npm:0.55.1"
     oxlint: "npm:1.55.0"
+    pyodide: "npm:0.27.7"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-icons: "npm:5.5.0"
@@ -39210,6 +39211,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pyodide@npm:0.27.7":
+  version: 0.27.7
+  resolution: "pyodide@npm:0.27.7"
+  dependencies:
+    ws: "npm:^8.5.0"
+  checksum: 10c0/9ea914db3f75dd89e494d68e9809c64d96b29e0bdbc32dbb790889974f6379aac621b61712891508b4df0c0bfc6e7c370ff963f64c306c95e3fa1a190095dcec
+  languageName: node
+  linkType: hard
+
 "qs@npm:6.14.2":
   version: 6.14.2
   resolution: "qs@npm:6.14.2"
@@ -46553,7 +46563,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.18.2, ws@npm:^8.18.3":
+"ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.18.2, ws@npm:^8.18.3, ws@npm:^8.5.0":
   version: 8.19.0
   resolution: "ws@npm:8.19.0"
   peerDependencies:

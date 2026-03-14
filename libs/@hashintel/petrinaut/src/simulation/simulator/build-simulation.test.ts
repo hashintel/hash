@@ -1,10 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildSimulation } from "./build-simulation";
 import type { SimulationInput } from "./types";
 
+// Mock the SymPy compilation to return simple passthrough functions.
+// This lets us test buildSimulation's validation and buffer logic
+// without requiring a real Pyodide instance.
+vi.mock("./compile-via-sympy", () => ({
+  compileDifferentialEquationViaSymPy: vi.fn().mockResolvedValue(
+    // Returns a no-op dynamics function
+    () => [],
+  ),
+  compileLambdaViaSymPy: vi.fn().mockResolvedValue(
+    // Returns a constant rate
+    () => 1.0,
+  ),
+  compileTransitionKernelViaSymPy: vi.fn().mockResolvedValue(
+    // Returns empty kernel output
+    () => ({}),
+  ),
+}));
+
+// Create a mock PyodideInterface
+const mockPyodide = {} as Parameters<typeof buildSimulation>[1];
+
 describe("buildSimulation", () => {
-  it("builds a simulation with a single place and initial tokens", () => {
+  it("builds a simulation with a single place and initial tokens", async () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -56,7 +77,7 @@ describe("buildSimulation", () => {
       maxTime: null,
     };
 
-    const simulationInstance = buildSimulation(input);
+    const simulationInstance = await buildSimulation(input, mockPyodide);
     const frame = simulationInstance.frames[0]!;
 
     // Verify simulation instance properties
@@ -88,7 +109,7 @@ describe("buildSimulation", () => {
     expect(simulationInstance.differentialEquationFns.has("p1")).toBe(true);
   });
 
-  it("builds a simulation with multiple places, transitions, and proper buffer layout", () => {
+  it("builds a simulation with multiple places, transitions, and proper buffer layout", async () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -204,7 +225,7 @@ describe("buildSimulation", () => {
       maxTime: null,
     };
 
-    const simulationInstance = buildSimulation(input);
+    const simulationInstance = await buildSimulation(input, mockPyodide);
     const frame = simulationInstance.frames[0]!;
 
     // Verify simulation instance properties
@@ -266,7 +287,7 @@ describe("buildSimulation", () => {
     expect(typeof kernelFn).toBe("function");
   });
 
-  it("throws error when initialMarking references non-existent place", () => {
+  it("throws error when initialMarking references non-existent place", async () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -315,12 +336,12 @@ describe("buildSimulation", () => {
       maxTime: null,
     };
 
-    expect(() => buildSimulation(input)).toThrow(
+    await expect(buildSimulation(input, mockPyodide)).rejects.toThrow(
       "Place with ID p_nonexistent in initialMarking does not exist in SDCPN",
     );
   });
 
-  it("throws error when token dimensions don't match place dimensions", () => {
+  it("throws error when token dimensions don't match place dimensions", async () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -372,7 +393,7 @@ describe("buildSimulation", () => {
       maxTime: null,
     };
 
-    expect(() => buildSimulation(input)).toThrow(
+    await expect(buildSimulation(input, mockPyodide)).rejects.toThrow(
       "Token dimension mismatch for place p1. Expected 4 values (2 dimensions × 2 tokens), got 3",
     );
   });

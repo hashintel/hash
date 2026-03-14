@@ -72,6 +72,11 @@ export function buildContextForDifferentialEquation(
 }
 
 export type SymPyResult =
+  | { ok: true; sympyCode: string; symbols: string[] }
+  | { ok: false; error: string; start: number; length: number };
+
+/** Internal result type without symbols (used by emitSymPy and helpers). */
+type InternalResult =
   | { ok: true; sympyCode: string }
   | { ok: false; error: string; start: number; length: number };
 
@@ -181,12 +186,26 @@ export function compileToSymPy(
   // Extract parameter names for the inner function
   const localBindings = new Map<string, string>();
   const innerParams = extractFunctionParams(arg, sourceFile);
+  const symbols = new Set<string>();
 
   // Compile the body
   const body = arg.body;
 
   if (ts.isBlock(body)) {
-    return compileBlock(body, context, localBindings, sourceFile);
+    const blockResult = compileBlock(
+      body,
+      context,
+      localBindings,
+      symbols,
+      sourceFile,
+      innerParams,
+    );
+    if (!blockResult.ok) return blockResult;
+    return {
+      ok: true,
+      sympyCode: blockResult.sympyCode,
+      symbols: [...symbols],
+    };
   }
 
   // Expression body — emit directly
@@ -195,10 +214,11 @@ export function compileToSymPy(
     context,
     localBindings,
     innerParams,
+    symbols,
     sourceFile,
   );
   if (!result.ok) return result;
-  return { ok: true, sympyCode: result.sympyCode };
+  return { ok: true, sympyCode: result.sympyCode, symbols: [...symbols] };
 }
 
 function extractFunctionParams(
@@ -212,8 +232,10 @@ function compileBlock(
   block: ts.Block,
   context: SymPyCompilationContext,
   localBindings: Map<string, string>,
+  symbols: Set<string>,
   sourceFile: ts.SourceFile,
-): SymPyResult {
+  innerParams: string[] = [],
+): InternalResult {
   const lines: string[] = [];
 
   for (const stmt of block.statements) {
@@ -238,7 +260,8 @@ function compileBlock(
           decl.initializer,
           context,
           localBindings,
-          [],
+          innerParams,
+          symbols,
           sourceFile,
         );
         if (!valueResult.ok) return valueResult;
@@ -253,7 +276,8 @@ function compileBlock(
         stmt.expression,
         context,
         localBindings,
-        [],
+        innerParams,
+        symbols,
         sourceFile,
       );
       if (!result.ok) return result;
@@ -289,16 +313,102 @@ function compileBlock(
  *
  * Emits: `[<body> for _iter in <collection>]`
  */
+/**
+ * Check if an expression is a Distribution call (Distribution.Gaussian/Uniform/Lognormal).
+ */
+function isDistributionCall(node: ts.Expression): boolean {
+  if (!ts.isCallExpression(node)) return false;
+  const callee = node.expression;
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    ts.isIdentifier(callee.expression) &&
+    callee.expression.text === "Distribution"
+  );
+}
+
+/**
+ * Compiles `.map(callback)` calls.
+ *
+ * For Distribution calls: emits direct arithmetic on the random variable
+ *   e.g. Distribution.Gaussian(0, 1).map(x => x * 2) → sp.stats.Normal('X', 0, 1) * 2
+ *
+ * For array/token calls: emits Python list comprehension
+ *   e.g. tokens.map(t => t + 1) → [_iter + 1 for _iter in tokens]
+ */
 function compileMapCall(
   collection: ts.Expression,
   callback: ts.ArrowFunction | ts.FunctionExpression,
   context: SymPyCompilationContext,
   outerBindings: Map<string, string>,
   innerParams: string[],
+  symbols: Set<string>,
   sourceFile: ts.SourceFile,
-): SymPyResult {
+): InternalResult {
+  // Special case: Distribution.Type(...).map(fn) → direct arithmetic on random variable
+  if (isDistributionCall(collection)) {
+    // Compile the distribution expression (e.g., sp.stats.Normal('X', 0, 1))
+    const distResult = emitSymPy(
+      collection,
+      context,
+      outerBindings,
+      innerParams,
+      symbols,
+      sourceFile,
+    );
+    if (!distResult.ok) return distResult;
+
+    // The callback parameter becomes the distribution expression itself
+    const mapBindings = new Map(outerBindings);
+    const param = callback.parameters[0];
+    if (param) {
+      const paramName = param.name;
+      if (ts.isIdentifier(paramName)) {
+        // Simple identifier: (x) => x * 2
+        // Bind 'x' to the distribution expression so arithmetic applies directly
+        mapBindings.set(paramName.getText(sourceFile), distResult.sympyCode);
+      }
+    }
+
+    // Compile the body with the distribution substituted in
+    const body = callback.body;
+    let bodyResult: InternalResult;
+    if (ts.isBlock(body)) {
+      bodyResult = compileBlock(
+        body,
+        context,
+        mapBindings,
+        symbols,
+        sourceFile,
+      );
+    } else {
+      bodyResult = emitSymPy(
+        body,
+        context,
+        mapBindings,
+        innerParams,
+        symbols,
+        sourceFile,
+      );
+    }
+    if (!bodyResult.ok) return bodyResult;
+
+    return { ok: true, sympyCode: bodyResult.sympyCode };
+  }
+
+  // Standard case: array/token .map()
   const iterVar = "_iter";
   const mapBindings = new Map(outerBindings);
+
+  // Check if this is a Dynamics tokens.map() call.
+  // For Dynamics, tokens.map(...) should emit the per-token body only,
+  // not a list comprehension, because `tokens` is a runtime value that
+  // Python/SymPy cannot iterate over at compile time. The JS wrapper
+  // handles the .map() iteration at runtime.
+  const isTokensMap =
+    context.constructorFnName === "Dynamics" &&
+    ts.isIdentifier(collection) &&
+    innerParams.length > 0 &&
+    collection.text === innerParams[0];
 
   const param = callback.parameters[0];
   if (param) {
@@ -308,23 +418,44 @@ function compileMapCall(
       // Each field becomes a symbol like _iter_x, _iter_y
       for (const element of paramName.elements) {
         const fieldName = element.name.getText(sourceFile);
-        mapBindings.set(fieldName, `${iterVar}_${fieldName}`);
+        const symName = `${iterVar}_${fieldName}`;
+        mapBindings.set(fieldName, symName);
+        if (isTokensMap) {
+          symbols.add(symName);
+        }
       }
     } else {
       // Simple identifier: (token) => ...
-      mapBindings.set(paramName.getText(sourceFile), iterVar);
+      const symName = iterVar;
+      mapBindings.set(paramName.getText(sourceFile), symName);
+      if (isTokensMap) {
+        symbols.add(symName);
+      }
     }
   }
 
   // Compile the body
   const body = callback.body;
-  let bodyResult: SymPyResult;
+  let bodyResult: InternalResult;
   if (ts.isBlock(body)) {
-    bodyResult = compileBlock(body, context, mapBindings, sourceFile);
+    bodyResult = compileBlock(body, context, mapBindings, symbols, sourceFile);
   } else {
-    bodyResult = emitSymPy(body, context, mapBindings, innerParams, sourceFile);
+    bodyResult = emitSymPy(
+      body,
+      context,
+      mapBindings,
+      innerParams,
+      symbols,
+      sourceFile,
+    );
   }
   if (!bodyResult.ok) return bodyResult;
+
+  // For tokens.map(), emit only the per-token body expression.
+  // The JS wrapper will handle iterating over tokens at runtime.
+  if (isTokensMap) {
+    return { ok: true, sympyCode: bodyResult.sympyCode };
+  }
 
   // Compile the collection expression
   const collectionResult = emitSymPy(
@@ -332,6 +463,7 @@ function compileMapCall(
     context,
     outerBindings,
     innerParams,
+    symbols,
     sourceFile,
   );
   if (!collectionResult.ok) return collectionResult;
@@ -372,8 +504,9 @@ function emitSymPy(
   context: SymPyCompilationContext,
   localBindings: Map<string, string>,
   innerParams: string[],
+  symbols: Set<string>,
   sourceFile: ts.SourceFile,
-): SymPyResult {
+): InternalResult {
   // Numeric literal
   if (ts.isNumericLiteral(node)) {
     return { ok: true, sympyCode: node.text };
@@ -404,6 +537,7 @@ function emitSymPy(
       return { ok: true, sympyCode: localBindings.get(name)! };
     }
     if (context.parameterNames.has(name)) {
+      symbols.add(name);
       return { ok: true, sympyCode: name };
     }
     // Could be a destructured token field or function param
@@ -417,6 +551,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!inner.ok) return inner;
@@ -430,6 +565,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!operand.ok) return operand;
@@ -457,6 +593,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!left.ok) return left;
@@ -465,6 +602,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!right.ok) return right;
@@ -558,6 +696,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!condition.ok) return condition;
@@ -566,6 +705,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!whenTrue.ok) return whenTrue;
@@ -574,6 +714,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!whenFalse.ok) return whenFalse;
@@ -601,6 +742,7 @@ function emitSymPy(
       ts.isIdentifier(node.expression) &&
       node.expression.text === "parameters"
     ) {
+      symbols.add(propName);
       return { ok: true, sympyCode: propName };
     }
 
@@ -618,9 +760,11 @@ function emitSymPy(
           const placeName = placePropAccess.name.text;
           const indexExpr = elemAccess.argumentExpression;
           const indexText = indexExpr.getText(sourceFile);
+          const symbolName = `${placeName}_${indexText}_${propName}`;
+          symbols.add(symbolName);
           return {
             ok: true,
-            sympyCode: `${placeName}_${indexText}_${propName}`,
+            sympyCode: symbolName,
           };
         }
       }
@@ -632,6 +776,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!obj.ok) return obj;
@@ -645,6 +790,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!obj.ok) return obj;
@@ -653,6 +799,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
     if (!index.ok) return index;
@@ -680,6 +827,7 @@ function emitSymPy(
             context,
             localBindings,
             innerParams,
+            symbols,
             sourceFile,
           );
           if (!r.ok) return r;
@@ -696,6 +844,7 @@ function emitSymPy(
           context,
           localBindings,
           innerParams,
+          symbols,
           sourceFile,
         );
         if (!base.ok) return base;
@@ -704,6 +853,7 @@ function emitSymPy(
           context,
           localBindings,
           innerParams,
+          symbols,
           sourceFile,
         );
         if (!exp.ok) return exp;
@@ -724,7 +874,14 @@ function emitSymPy(
 
       const args: string[] = [];
       for (const a of node.arguments) {
-        const r = emitSymPy(a, context, localBindings, innerParams, sourceFile);
+        const r = emitSymPy(
+          a,
+          context,
+          localBindings,
+          innerParams,
+          symbols,
+          sourceFile,
+        );
         if (!r.ok) return r;
         args.push(r.sympyCode);
       }
@@ -740,7 +897,14 @@ function emitSymPy(
       const distName = callee.name.text;
       const args: string[] = [];
       for (const a of node.arguments) {
-        const r = emitSymPy(a, context, localBindings, innerParams, sourceFile);
+        const r = emitSymPy(
+          a,
+          context,
+          localBindings,
+          innerParams,
+          symbols,
+          sourceFile,
+        );
         if (!r.ok) return r;
         args.push(r.sympyCode);
       }
@@ -778,6 +942,7 @@ function emitSymPy(
           context,
           localBindings,
           innerParams,
+          symbols,
           sourceFile,
         );
         if (!arg.ok) return arg;
@@ -790,6 +955,7 @@ function emitSymPy(
           context,
           localBindings,
           innerParams,
+          symbols,
           sourceFile,
         );
       }
@@ -809,6 +975,7 @@ function emitSymPy(
           context,
           localBindings,
           innerParams,
+          symbols,
           sourceFile,
         );
       }
@@ -830,6 +997,7 @@ function emitSymPy(
         context,
         localBindings,
         innerParams,
+        symbols,
         sourceFile,
       );
       if (!result.ok) return result;
@@ -855,6 +1023,7 @@ function emitSymPy(
         context,
         localBindings,
         innerParams,
+        symbols,
         sourceFile,
       );
       if (!val.ok) return val;
@@ -870,6 +1039,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
   }
@@ -881,6 +1051,7 @@ function emitSymPy(
       context,
       localBindings,
       innerParams,
+      symbols,
       sourceFile,
     );
   }

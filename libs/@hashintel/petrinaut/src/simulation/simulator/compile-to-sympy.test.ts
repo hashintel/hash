@@ -37,7 +37,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 1)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "1" });
+      expect(result).toEqual({ ok: true, sympyCode: "1", symbols: [] });
     });
 
     it("should compile a decimal literal", () => {
@@ -45,7 +45,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 3.14)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "3.14" });
+      expect(result).toEqual({ ok: true, sympyCode: "3.14", symbols: [] });
     });
 
     it("should compile boolean true", () => {
@@ -53,7 +53,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => true)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "True" });
+      expect(result).toEqual({ ok: true, sympyCode: "True", symbols: [] });
     });
 
     it("should compile boolean false", () => {
@@ -61,7 +61,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => false)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "False" });
+      expect(result).toEqual({ ok: true, sympyCode: "False", symbols: [] });
     });
 
     it("should compile Infinity", () => {
@@ -69,7 +69,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => Infinity)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "sp.oo" });
+      expect(result).toEqual({ ok: true, sympyCode: "sp.oo", symbols: [] });
     });
   });
 
@@ -79,7 +79,11 @@ describe("compileToSymPy", () => {
         "export default Lambda((tokens, parameters) => parameters.infection_rate)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "infection_rate" });
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "infection_rate",
+        symbols: ["infection_rate"],
+      });
     });
 
     it("should compile parameters in arithmetic", () => {
@@ -90,6 +94,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "infection_rate * 2",
+        symbols: ["infection_rate"],
       });
     });
   });
@@ -100,7 +105,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 1 + 2)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "1 + 2" });
+      expect(result).toEqual({ ok: true, sympyCode: "1 + 2", symbols: [] });
     });
 
     it("should compile subtraction", () => {
@@ -108,7 +113,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 5 - 3)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "5 - 3" });
+      expect(result).toEqual({ ok: true, sympyCode: "5 - 3", symbols: [] });
     });
 
     it("should compile multiplication", () => {
@@ -116,7 +121,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 2 * 3)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "2 * 3" });
+      expect(result).toEqual({ ok: true, sympyCode: "2 * 3", symbols: [] });
     });
 
     it("should compile division", () => {
@@ -124,7 +129,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => 1 / 3)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "1 / 3" });
+      expect(result).toEqual({ ok: true, sympyCode: "1 / 3", symbols: [] });
     });
 
     it("should compile power operator", () => {
@@ -135,6 +140,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "satellite_radius**2",
+        symbols: ["satellite_radius"],
       });
     });
 
@@ -146,6 +152,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Mod(10, 3)",
+        symbols: [],
       });
     });
   });
@@ -159,6 +166,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "infection_rate < 5",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -170,6 +178,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "infection_rate >= 1",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -181,6 +190,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Eq(infection_rate, 3)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -192,6 +202,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Ne(infection_rate, 0)",
+        symbols: ["infection_rate"],
       });
     });
   });
@@ -205,6 +216,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.And(infection_rate > 0, recovery_rate > 0)",
+        symbols: expect.arrayContaining(["infection_rate", "recovery_rate"]),
       });
     });
 
@@ -216,6 +228,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Or(sp.Eq(infection_rate, 0), sp.Eq(recovery_rate, 0))",
+        symbols: expect.arrayContaining(["infection_rate", "recovery_rate"]),
       });
     });
   });
@@ -229,6 +242,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "-(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -240,6 +254,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Not(True)",
+        symbols: [],
       });
     });
   });
@@ -253,6 +268,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.cos(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -264,6 +280,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.sin(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -275,6 +292,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.sqrt(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -286,6 +304,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.log(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -297,6 +316,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.exp(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -308,6 +328,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Abs(infection_rate)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -319,6 +340,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "(infection_rate)**(2)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -330,6 +352,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.sqrt((infection_rate)**2 + (recovery_rate)**2)",
+        symbols: expect.arrayContaining(["infection_rate", "recovery_rate"]),
       });
     });
 
@@ -338,7 +361,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => Math.PI)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "sp.pi" });
+      expect(result).toEqual({ ok: true, sympyCode: "sp.pi", symbols: [] });
     });
 
     it("should compile Math.E", () => {
@@ -346,7 +369,7 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => Math.E)",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "sp.E" });
+      expect(result).toEqual({ ok: true, sympyCode: "sp.E", symbols: [] });
     });
   });
 
@@ -359,6 +382,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "Space_0_x",
+        symbols: ["Space_0_x"],
       });
     });
 
@@ -370,6 +394,10 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "Space_0_velocity < crash_threshold",
+        symbols: expect.arrayContaining([
+          "Space_0_velocity",
+          "crash_threshold",
+        ]),
       });
     });
   });
@@ -384,6 +412,7 @@ describe("compileToSymPy", () => {
         ok: true,
         sympyCode:
           "sp.Piecewise((infection_rate, infection_rate > 1), (0, True))",
+        symbols: ["infection_rate"],
       });
     });
   });
@@ -397,6 +426,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.stats.Normal('X', 0, 1)",
+        symbols: [],
       });
     });
 
@@ -408,6 +438,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.stats.Uniform('X', 0, 1)",
+        symbols: [],
       });
     });
 
@@ -419,7 +450,34 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.stats.LogNormal('X', 0, 1)",
+        symbols: [],
       });
+    });
+
+    it("should compile Distribution.Gaussian.map as direct arithmetic", () => {
+      const result = compileToSymPy(
+        "export default Lambda(() => Distribution.Gaussian(0, 1).map(x => x * 2))",
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // Should emit direct arithmetic: sp.stats.Normal('X', 0, 1) * 2
+        expect(result.sympyCode).toBe("sp.stats.Normal('X', 0, 1) * 2");
+      }
+    });
+
+    it("should compile Distribution.Gaussian.map with addition", () => {
+      const result = compileToSymPy(
+        "export default Lambda((tokens, parameters) => Distribution.Gaussian(0, parameters.infection_rate).map(x => x * 2 + 3))",
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.sympyCode).toBe(
+          "sp.stats.Normal('X', 0, infection_rate) * 2 + 3",
+        );
+        expect(result.symbols).toContain("infection_rate");
+      }
     });
   });
 
@@ -432,6 +490,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Ne(infection_rate, 0)",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -443,6 +502,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "sp.Ne(1 + 2, 0)",
+        symbols: [],
       });
     });
 
@@ -454,6 +514,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "True",
+        symbols: [],
       });
     });
 
@@ -484,6 +545,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "gravitational_constant * 2",
+        symbols: ["gravitational_constant"],
       });
     });
 
@@ -499,6 +561,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "infection_rate + recovery_rate",
+        symbols: expect.arrayContaining(["infection_rate", "recovery_rate"]),
       });
     });
   });
@@ -512,6 +575,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "infection_rate",
+        symbols: ["infection_rate"],
       });
     });
 
@@ -528,6 +592,9 @@ describe("compileToSymPy", () => {
         expect(result.sympyCode).toContain("sp.sqrt");
         expect(result.sympyCode).toContain("<");
         expect(result.sympyCode).toContain("earth_radius");
+        expect(result.symbols).toContain("Space_0_x");
+        expect(result.symbols).toContain("Space_0_y");
+        expect(result.symbols).toContain("earth_radius");
       }
     });
 
@@ -545,6 +612,8 @@ describe("compileToSymPy", () => {
       if (result.ok) {
         expect(result.sympyCode).toContain("gravitational_constant");
         expect(result.sympyCode).toContain("Space_0_x");
+        expect(result.symbols).toContain("gravitational_constant");
+        expect(result.symbols).toContain("Space_0_x");
       }
     });
 
@@ -603,7 +672,11 @@ describe("compileToSymPy", () => {
         "export default Lambda(() => [1, 2, 3])",
         defaultContext,
       );
-      expect(result).toEqual({ ok: true, sympyCode: "[1, 2, 3]" });
+      expect(result).toEqual({
+        ok: true,
+        sympyCode: "[1, 2, 3]",
+        symbols: [],
+      });
     });
   });
 
@@ -628,10 +701,15 @@ describe("compileToSymPy", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.sympyCode).toContain("for _iter in tokens");
+        // Dynamics tokens.map() emits per-token body only (no list comprehension)
+        expect(result.sympyCode).not.toContain("for _iter in tokens");
         expect(result.sympyCode).toContain("_iter_x");
         expect(result.sympyCode).toContain("_iter_velocity");
         expect(result.sympyCode).toContain("sp.cos(_iter_direction)");
+        // _iter_* symbols should be tracked
+        expect(result.symbols).toContain("_iter_x");
+        expect(result.symbols).toContain("_iter_velocity");
+        expect(result.symbols).toContain("gravitational_constant");
       }
     });
 
@@ -643,6 +721,7 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "[_iter + 1 for _iter in tokens]",
+        symbols: [],
       });
     });
 
@@ -654,7 +733,45 @@ describe("compileToSymPy", () => {
       expect(result).toEqual({
         ok: true,
         sympyCode: "[_iter_x * infection_rate for _iter in tokens]",
+        symbols: ["infection_rate"],
       });
+    });
+  });
+
+  describe("symbol tracking", () => {
+    it("should track parameter symbols used in expression", () => {
+      const result = compileToSymPy(
+        "export default Lambda((tokens, parameters) => parameters.infection_rate * parameters.recovery_rate)",
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.symbols).toContain("infection_rate");
+        expect(result.symbols).toContain("recovery_rate");
+      }
+    });
+
+    it("should track token field symbols", () => {
+      const result = compileToSymPy(
+        "export default Lambda((tokens) => tokens.Space[0].x + tokens.Space[0].y)",
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.symbols).toContain("Space_0_x");
+        expect(result.symbols).toContain("Space_0_y");
+      }
+    });
+
+    it("should return empty symbols for literal-only expressions", () => {
+      const result = compileToSymPy(
+        "export default Lambda(() => 42)",
+        defaultContext,
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.symbols).toEqual([]);
+      }
     });
   });
 

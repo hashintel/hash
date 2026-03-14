@@ -1,13 +1,18 @@
+import type { PyodideInterface } from "pyodide";
+
 import { SDCPNItemError } from "../../core/errors";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../hooks/use-default-parameter-values";
-import { compileUserCode } from "./compile-user-code";
+import {
+  compileDifferentialEquationViaSymPy,
+  compileLambdaViaSymPy,
+  compileTransitionKernelViaSymPy,
+} from "./compile-via-sympy";
 import type {
   DifferentialEquationFn,
   LambdaFn,
-  ParameterValues,
   SimulationFrame,
   SimulationInput,
   SimulationInstance,
@@ -49,12 +54,16 @@ function getPlaceDimensions(
  * - All places and transitions initialized with proper state
  *
  * @param input - The simulation input configuration
+ * @param pyodide - Initialized Pyodide instance with SymPy
  * @returns The initial simulation frame ready for execution
  * @throws {Error} if place IDs in initialMarking don't match places in SDCPN
  * @throws {Error} if token dimensions don't match place dimensions
  * @throws {Error} if user code fails to compile
  */
-export function buildSimulation(input: SimulationInput): SimulationInstance {
+export async function buildSimulation(
+  input: SimulationInput,
+  pyodide: PyodideInterface,
+): Promise<SimulationInstance> {
   const {
     sdcpn,
     initialMarking,
@@ -100,7 +109,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
-  // Compile all differential equation functions
+  // Compile all differential equation functions via SymPy
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
     // Skip places without dynamics enabled or without differential equation code
@@ -119,9 +128,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const { code } = differentialEquation;
 
     try {
-      const fn = compileUserCode<[Record<string, number>[], ParameterValues]>(
+      const fn = await compileDifferentialEquationViaSymPy(
         code,
-        "Dynamics",
+        sdcpn,
+        place.colorId!,
+        pyodide,
       );
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
@@ -134,13 +145,16 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
-  // Compile all lambda functions
+  // Compile all lambda functions via SymPy
   const lambdaFns = new Map<string, LambdaFn>();
   for (const transition of sdcpn.transitions) {
     try {
-      const fn = compileUserCode<
-        [Record<string, Record<string, number>[]>, ParameterValues]
-      >(transition.lambdaCode, "Lambda");
+      const fn = await compileLambdaViaSymPy(
+        transition.lambdaCode,
+        sdcpn,
+        transition,
+        pyodide,
+      );
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
       throw new SDCPNItemError(
@@ -173,9 +187,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
 
     try {
-      const fn = compileUserCode<
-        [Record<string, Record<string, number>[]>, ParameterValues]
-      >(transition.transitionKernelCode, "TransitionKernel");
+      const fn = await compileTransitionKernelViaSymPy(
+        transition.transitionKernelCode,
+        sdcpn,
+        transition,
+        pyodide,
+      );
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
       throw new SDCPNItemError(
