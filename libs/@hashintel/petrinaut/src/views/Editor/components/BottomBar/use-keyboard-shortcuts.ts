@@ -53,8 +53,13 @@ export function useKeyboardShortcuts(
       return;
     }
 
-    // Open search with Ctrl/Cmd+F, or focus input if already open
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+    // Open search with Ctrl/Cmd+F, or focus input if already open.
+    // Skip when focus is inside Monaco or another input so their native find works.
+    if (
+      !isInputFocused &&
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "f"
+    ) {
       event.preventDefault();
       if (isSearchOpen) {
         searchInputRef.current?.focus();
@@ -65,8 +70,12 @@ export function useKeyboardShortcuts(
       return;
     }
 
-    // Escape closes search when it's open
-    if (event.key === "Escape" && isSearchOpen) {
+    // Escape closes search only when the search input itself is focused
+    if (
+      event.key === "Escape" &&
+      isSearchOpen &&
+      document.activeElement === searchInputRef.current
+    ) {
       event.preventDefault();
       setSearchOpen(false);
       return;

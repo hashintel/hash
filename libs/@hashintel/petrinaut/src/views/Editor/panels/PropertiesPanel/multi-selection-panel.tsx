@@ -98,6 +98,7 @@ const multiSelectionMainSubView: SubView = {
   main: true,
   component: MultiSelectionContent,
   renderHeaderAction: () => <DeleteSelectionAction />,
+  alwaysShowHeaderAction: true,
 };
 
 const subViews: SubView[] = [multiSelectionMainSubView];

@@ -117,7 +117,6 @@ const circleInfoIconStyle = css({
   marginBottom: "[2px]",
   color: "neutral.s85",
   verticalAlign: "middle",
-  // fill: "[currentColor]",
 });
 
 export const InfoIconTooltip = ({

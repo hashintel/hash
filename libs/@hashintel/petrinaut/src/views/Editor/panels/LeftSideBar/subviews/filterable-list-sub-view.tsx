@@ -167,7 +167,7 @@ const FilterHeaderAction: React.FC<{
 
 /**
  * Renders the row ellipsis menu. Separated into its own component so that
- * `getMenuItems` (which may call hooks) is invoked as part of a component render.
+ * `useMenuItems` (which may call hooks) is invoked as part of a component render.
  */
 const RowMenu = <T extends FilterableListItem>({
   useMenuItems,
@@ -264,6 +264,10 @@ const FilterableListContent = <T extends FilterableListItem>({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
+    // Ignore key events bubbling from nested interactive controls (e.g. row menu buttons)
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     if (items.length === 0) {
       return;
     }
@@ -400,9 +404,9 @@ const FilterableListContent = <T extends FilterableListItem>({
                   <item.icon size={LIST_ITEM_ICON_SIZE} />
                 </span>
               )}
-              <span className={listItemNameStyle}>
+              <div className={listItemNameStyle}>
                 {renderItem(item, isSelected)}
-              </span>
+              </div>
             </div>
             {useMenuItems && (
               <RowMenu useMenuItems={useMenuItems} item={item} />

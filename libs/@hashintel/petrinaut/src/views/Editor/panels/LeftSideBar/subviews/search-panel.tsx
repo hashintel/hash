@@ -351,7 +351,13 @@ const SearchContent: React.FC = () => {
                   selectItem(item.selectionItem);
                   setFocusedIndex(index);
                 }}
-                onKeyDown={handleListKeyDown}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    selectItem(item.selectionItem);
+                    setFocusedIndex(index);
+                  }
+                }}
               >
                 <div className={resultContentStyle}>
                   <span
