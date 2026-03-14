@@ -64,9 +64,9 @@ fn make_frame_in<'ctx, 'heap, E, A: Allocator + Clone>(
 }
 
 #[derive(Debug, Copy, Clone)]
-struct CurrentBlock<'ctx, 'heap> {
-    id: BasicBlockId,
-    block: &'ctx BasicBlock<'heap>,
+pub(super) struct CurrentBlock<'ctx, 'heap> {
+    pub id: BasicBlockId,
+    pub block: &'ctx BasicBlock<'heap>,
 }
 
 /// A single call frame in the interpreter's call stack.
@@ -75,15 +75,15 @@ struct CurrentBlock<'ctx, 'heap> {
 /// - Local variable storage
 /// - The function body being executed
 /// - Current position (block and statement index)
-struct Frame<'ctx, 'heap, A: Allocator> {
+pub(super) struct Frame<'ctx, 'heap, A: Allocator> {
     /// Local variable storage for this function call.
-    locals: Locals<'ctx, 'heap, A>,
+    pub locals: Locals<'ctx, 'heap, A>,
     /// The MIR body being executed.
-    body: &'ctx Body<'heap>,
+    pub body: &'ctx Body<'heap>,
     /// The current basic block.
-    current_block: CurrentBlock<'ctx, 'heap>,
+    pub current_block: CurrentBlock<'ctx, 'heap>,
     /// Index of the next statement to execute in the current block.
-    current_statement: usize,
+    pub current_statement: usize,
 }
 
 /// The call stack for the MIR interpreter.
@@ -92,8 +92,12 @@ struct Frame<'ctx, 'heap, A: Allocator> {
 ///
 /// The call stack also provides [`unwind`](Self::unwind) for error reporting,
 /// which walks the stack to collect span information for diagnostics.
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "used when resolving the suspension"
+)]
 pub struct CallStack<'ctx, 'heap, A: Allocator = Global> {
-    frames: Vec<Frame<'ctx, 'heap, A>, A>,
+    pub(super) frames: Vec<Frame<'ctx, 'heap, A>, A>,
 }
 
 impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
@@ -158,9 +162,9 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns [`RuntimeError::CallstackEmpty`] if there are no active calls.
-    pub fn locals<R: Allocator>(
+    pub fn locals<E, R: Allocator>(
         &self,
-    ) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, !, R>> {
+    ) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, E, R>> {
         self.frames
             .last()
             .ok_or(RuntimeError::CallstackEmpty)
@@ -176,7 +180,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
             .map(|frame| &mut frame.locals)
     }
 
-    pub fn current_block(&self) -> Result<BasicBlockId, RuntimeError<'heap, !, A>> {
+    pub fn current_block<E>(&self) -> Result<BasicBlockId, RuntimeError<'heap, E, A>> {
         self.frames
             .last()
             .map(|frame| frame.current_block.id)
@@ -318,11 +322,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     }
 
     #[inline]
-    fn step_terminator_goto(
+    fn step_terminator_goto<E>(
         &mut self,
         frame: &mut Frame<'ctx, 'heap, A>,
         Target { block, args }: Target<'heap>,
-    ) -> Result<(), RuntimeError<'heap, !, A>> {
+    ) -> Result<(), RuntimeError<'heap, E, A>> {
         if args.is_empty() {
             frame.current_block = CurrentBlock {
                 id: block,
@@ -365,11 +369,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         Ok(())
     }
 
-    fn step_terminator(
+    fn step_terminator<E>(
         &mut self,
         stack: &mut [Frame<'ctx, 'heap, A>],
         frame: &mut Frame<'ctx, 'heap, A>,
-    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, !, A>> {
+    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, E, A>> {
         let terminator = &frame.current_block.block.terminator.kind;
 
         match terminator {
@@ -447,10 +451,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    fn eval_rvalue_binary(
+    fn eval_rvalue_binary<E>(
         frame: &Frame<'ctx, 'heap, A>,
         Binary { op, left, right }: &Binary<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>> {
         let lhs = frame.locals.operand(left)?;
         let rhs = frame.locals.operand(right)?;
 
@@ -536,10 +540,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    fn eval_rvalue_unary(
+    fn eval_rvalue_unary<E>(
         frame: &Frame<'ctx, 'heap, A>,
         Unary { op, operand }: &Unary<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>> {
         let operand = frame.locals.operand(operand)?;
 
         match op {
@@ -615,10 +619,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    fn eval_rvalue_input(
+    fn eval_rvalue_input<E>(
         &self,
         Input { op, name }: &Input<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>> {
         match op {
             // `required` is used only by static control-flow analysis; at runtime we always
             // error if the input is missing.
@@ -630,14 +634,14 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    fn eval_rvalue_apply(
+    fn eval_rvalue_apply<E>(
         &self,
         frame: &Frame<'ctx, 'heap, A>,
         Apply {
             function,
             arguments,
         }: &Apply<'heap>,
-    ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, !, A>> {
+    ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, E, A>> {
         let function = frame.locals.operand(function)?;
         let Value::Pointer(pointer) = function.as_ref() else {
             return Err(RuntimeError::ApplyNonPointer {
@@ -653,11 +657,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         )
     }
 
-    fn eval_rvalue(
+    fn eval_rvalue<E>(
         &self,
         frame: &Frame<'ctx, 'heap, A>,
         rvalue: &RValue<'heap>,
-    ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, !, A>>
+    ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, E, A>>
     {
         match rvalue {
             RValue::Load(operand) => frame
@@ -679,11 +683,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
-    fn step_statement_assign(
+    fn step_statement_assign<E>(
         &mut self,
         frame: &mut Frame<'ctx, 'heap, A>,
         Assign { lhs, rhs }: &Assign<'heap>,
-    ) -> Result<Option<Frame<'ctx, 'heap, A>>, RuntimeError<'heap, !, A>> {
+    ) -> Result<Option<Frame<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>> {
         let value = self.eval_rvalue(frame, rhs)?;
         let value = match value {
             ControlFlow::Continue(value) => value,
@@ -696,10 +700,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         Ok(None)
     }
 
-    fn step(
+    fn step<E>(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
-    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>>, RuntimeError<'heap, !, A>> {
+    ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>> {
         let Some((frame, stack)) = callstack.frames.split_last_mut() else {
             return Err(RuntimeError::CallstackEmpty);
         };
@@ -765,23 +769,12 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns a diagnostic if any runtime error occurs during interpretation.
-    pub fn run_until_suspension(
+    pub fn run_until_suspension<E>(
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
-    ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
+    ) -> Result<Yield<'ctx, 'heap, A>, RuntimeError<'heap, E, A>> {
         loop {
-            let result = self.step(callstack);
-            let next = match result {
-                Ok(next) => next,
-                Err(error) => {
-                    let spans = callstack.unwind();
-
-                    return Err(
-                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
-                    );
-                }
-            };
-
+            let next = self.step(callstack)?;
             if let ControlFlow::Break(value) = next {
                 return Ok(value);
             }
@@ -823,6 +816,27 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         }
     }
 
+    fn try_run(
+        &mut self,
+        callstack: &mut CallStack<'ctx, 'heap, A>,
+        mut on_suspension: impl FnMut(
+            Suspension<'ctx, 'heap>,
+        )
+            -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, !, A>>,
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>> {
+        self.scratch.clear();
+
+        loop {
+            match self.run_until_suspension(callstack)? {
+                Yield::Return(value) => return Ok(value),
+                Yield::Suspension(suspension) => {
+                    let continuation = on_suspension(suspension)?;
+                    continuation.apply(callstack)?;
+                }
+            }
+        }
+    }
+
     /// Runs the interpreter to completion, handling suspensions inline.
     ///
     /// This is a convenience method for callers that can handle all suspensions
@@ -839,31 +853,17 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     pub fn run(
         &mut self,
         mut callstack: CallStack<'ctx, 'heap, A>,
-        mut on_suspension: impl FnMut(
+        on_suspension: impl FnMut(
             Suspension<'ctx, 'heap>,
         )
             -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, !, A>>,
     ) -> Result<Value<'heap, A>, InterpretDiagnostic> {
-        self.scratch.clear();
+        self.try_run(&mut callstack, on_suspension)
+            .map_err(|error| {
+                let spans = callstack.unwind();
 
-        loop {
-            match self.run_until_suspension(&mut callstack)? {
-                Yield::Return(value) => return Ok(value),
-                Yield::Suspension(suspension) => {
-                    let continuation = on_suspension(suspension).map_err(|error| {
-                        let spans = callstack.unwind();
-
-                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
-                    })?;
-
-                    Self::resolve_continuation(&mut callstack, continuation).map_err(|error| {
-                        let spans = callstack.unwind();
-
-                        error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
-                    })?;
-                }
-            }
-        }
+                error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
+            })
     }
 
     pub fn reset(&mut self) {
@@ -884,54 +884,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
         self.reset();
-        self.run_until_suspension(callstack)
-    }
+        self.run_until_suspension(callstack).map_err(|error| {
+            let spans = callstack.unwind();
 
-    /// Applies a [`Continuation`] to the suspended call stack.
-    ///
-    /// Writes the continuation's result value into the target block's parameter
-    /// and advances the frame to that block.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RuntimeError::CallstackEmpty`] if the call stack has no frames.
-    fn resolve_continuation(
-        callstack: &mut CallStack<'ctx, 'heap, A>,
-        continuation: Continuation<'ctx, 'heap, A>,
-    ) -> Result<(), RuntimeError<'heap, !, A>> {
-        match continuation {
-            Continuation::GraphRead(GraphReadContinuation { read, value }) => {
-                let Some(frame) = callstack.frames.last_mut() else {
-                    return Err(RuntimeError::CallstackEmpty);
-                };
-
-                #[cfg(debug_assertions)]
-                {
-                    let current_block = frame.current_block;
-                    let current_statement = frame.current_statement;
-                    debug_assert_eq!(current_block.block.statements.len(), current_statement);
-
-                    debug_assert_matches!(
-                        current_block.block.terminator.kind,
-                        TerminatorKind::GraphRead(_)
-                    );
-                }
-
-                let next_block = &frame.body.basic_blocks[read.target];
-                let params = next_block.params;
-                debug_assert_eq!(params.len(), 1);
-
-                frame.locals.insert(params[0], value);
-
-                frame.current_block = CurrentBlock {
-                    id: read.target,
-                    block: next_block,
-                };
-                frame.current_statement = 0;
-
-                Ok(())
-            }
-        }
+            error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
+        })
     }
 
     /// Continues interpretation after a suspension has been fulfilled.
@@ -948,12 +905,16 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
         continuation: Continuation<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic> {
-        Self::resolve_continuation(callstack, continuation).map_err(|error| {
+        continuation.apply(callstack).map_err(|error| {
             let spans = callstack.unwind();
 
             error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
         })?;
 
-        self.run_until_suspension(callstack)
+        self.run_until_suspension(callstack).map_err(|error| {
+            let spans = callstack.unwind();
+
+            error.into_diagnostic(spans.map(|(_, span)| span), |suspension| suspension)
+        })
     }
 }

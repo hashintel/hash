@@ -89,7 +89,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
     /// initialized.
     #[inline]
-    pub fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, !, A>> {
+    pub fn local<E>(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, E, A>> {
         self.inner.get(local).ok_or_else(|| {
             let decl = self.decl[local];
             RuntimeError::UninitializedLocal { local, decl }
@@ -107,10 +107,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Follows the chain of projections (field access, indexing) to reach
     /// the final value.
     #[inline]
-    pub(crate) fn place(
+    pub(crate) fn place<E>(
         &self,
         Place { local, projections }: &Place<'heap>,
-    ) -> Result<&Value<'heap, A>, RuntimeError<'heap, !, A>> {
+    ) -> Result<&Value<'heap, A>, RuntimeError<'heap, E, A>> {
         let mut value = self.local(*local)?;
 
         for projection in projections {
@@ -137,11 +137,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// the final value. Index projections are evaluated before the mutable
     /// borrow to avoid borrowing conflicts.
     #[inline]
-    pub(crate) fn place_mut(
+    pub(crate) fn place_mut<E>(
         &mut self,
         place: Place<'heap>,
         scratch: &mut Scratch<'heap, A>,
-    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, !, A>>
+    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -189,10 +189,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// - [`RuntimeError`] if the local is unassigned, or does is malformed, such that indexing
     ///   operations failed.
-    pub fn operand(
+    pub fn operand<E>(
         &self,
         operand: &Operand<'heap>,
-    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, !, A>>
+    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -208,11 +208,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// The caller must ensure that `operands` and `slice` have the same length.
     #[expect(unsafe_code, clippy::mem_forget)]
-    unsafe fn write_operands(
+    unsafe fn write_operands<E>(
         &self,
         slice: &mut [MaybeUninit<Value<'heap, A>>],
         operands: &[Operand<'heap>],
-    ) -> Result<(), RuntimeError<'heap, !, A>>
+    ) -> Result<(), RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -261,10 +261,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// Returns [`Value::Unit`] for empty tuples.
     #[expect(unsafe_code, clippy::panic_in_result_fn)]
-    fn aggregate_tuple(
+    fn aggregate_tuple<E>(
         &self,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -295,11 +295,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Returns [`RuntimeError::StructFieldLengthMismatch`] if the number of
     /// fields does not match the number of operands.
     #[expect(unsafe_code, clippy::panic_in_result_fn)]
-    fn aggregate_struct(
+    fn aggregate_struct<E>(
         &self,
         fields: Interned<'heap, [Symbol<'heap>]>,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -331,10 +331,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Dispatches to the appropriate construction method based on the aggregate
     /// kind and evaluates all operands to build the result.
     #[expect(clippy::integer_division_remainder_used)]
-    pub(crate) fn aggregate(
+    pub(crate) fn aggregate<E>(
         &self,
         Aggregate { kind, operands }: &Aggregate<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {

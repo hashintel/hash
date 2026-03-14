@@ -20,14 +20,15 @@
 mod graph_read;
 mod temporal;
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, debug_assert_matches};
 
 pub(crate) use self::graph_read::extract_axis;
 pub use self::temporal::{TemporalAxesInterval, TemporalInterval, Timestamp};
-use super::value::Value;
+use super::{CallStack, RuntimeError, value::Value};
 use crate::{
     body::{basic_block::BasicBlockId, terminator::GraphRead},
     def::DefId,
+    interpret::runtime::CurrentBlock,
 };
 
 /// A request for external data that the interpreter cannot produce on its own.
@@ -74,6 +75,57 @@ impl<'ctx, 'heap> GraphReadSuspension<'ctx, 'heap> {
 pub enum Continuation<'ctx, 'heap, A: Allocator> {
     /// Fulfilled result of a [`GraphRead`] suspension.
     GraphRead(GraphReadContinuation<'ctx, 'heap, A>),
+}
+
+impl<'ctx, 'heap, A: Allocator> Continuation<'ctx, 'heap, A> {
+    /// Applies a [`Continuation`] to the suspended call stack.
+    ///
+    /// Writes the continuation's result value into the target block's parameter
+    /// and advances the frame to that block.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::CallstackEmpty`] if the call stack has no frames.
+    pub fn apply<E>(
+        self,
+        callstack: &mut CallStack<'ctx, 'heap, A>,
+    ) -> Result<(), RuntimeError<'heap, E, A>> {
+        match self {
+            Continuation::GraphRead(GraphReadContinuation { read, value }) => {
+                let Some(frame) = callstack.frames.last_mut() else {
+                    return Err(RuntimeError::CallstackEmpty);
+                };
+
+                #[cfg(debug_assertions)]
+                {
+                    use crate::body::terminator::TerminatorKind;
+
+                    let current_block = frame.current_block;
+                    let current_statement = frame.current_statement;
+                    debug_assert_eq!(current_block.block.statements.len(), current_statement);
+
+                    debug_assert_matches!(
+                        current_block.block.terminator.kind,
+                        TerminatorKind::GraphRead(_)
+                    );
+                }
+
+                let next_block = &frame.body.basic_blocks[read.target];
+                let params = next_block.params;
+                debug_assert_eq!(params.len(), 1);
+
+                frame.locals.insert(params[0], value);
+
+                frame.current_block = CurrentBlock {
+                    id: read.target,
+                    block: next_block,
+                };
+                frame.current_statement = 0;
+
+                Ok(())
+            }
+        }
+    }
 }
 
 /// Carries the result of a graph read query back to the interpreter.
