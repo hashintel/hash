@@ -5,7 +5,7 @@ use hashql_core::{symbol::Symbol, value::Primitive};
 use hashql_mir::{
     body::{local::Local, place::FieldIndex},
     interpret::{
-        RuntimeError,
+        Inputs, RuntimeError,
         suspension::{TemporalAxesInterval, TemporalInterval, Timestamp},
         value::{Int, Value},
     },
@@ -19,10 +19,7 @@ use serde::{
 use serde_json::value::RawValue;
 
 use super::{Postgres, Serde};
-use crate::{
-    orchestrator::Inputs,
-    postgres::{Parameter, TemporalAxis},
-};
+use crate::postgres::{Parameter, TemporalAxis};
 
 // timestamp is in ms
 impl ToSql for Postgres<Timestamp> {
@@ -172,9 +169,9 @@ impl<A: Allocator> Serialize for Serde<&Value<'_, A>> {
     }
 }
 
-pub(crate) fn serialize_value<'heap, V: Allocator, R: Allocator>(
+pub(crate) fn serialize_value<'heap, E, V: Allocator, R: Allocator>(
     value: &Value<'heap, V>,
-) -> Result<Json<Box<RawValue>>, RuntimeError<'heap, !, R>> {
+) -> Result<Json<Box<RawValue>>, RuntimeError<'heap, E, R>> {
     let string = serde_json::to_string(&Serde(value)).expect("TODO: into runtimeerror");
 
     RawValue::from_string(string)
@@ -182,13 +179,13 @@ pub(crate) fn serialize_value<'heap, V: Allocator, R: Allocator>(
         .map(Json)
 }
 
-pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator>(
+pub(crate) fn encode_parameter_in<'ctx, 'heap, E, V: Allocator + 'ctx, A: Allocator>(
     parameter: &Parameter<'heap>,
     inputs: &'ctx Inputs<'heap, impl Allocator>,
     temporal_axes: &TemporalAxesInterval,
-    env: impl FnOnce(Local, FieldIndex) -> Result<&'ctx Value<'heap, V>, RuntimeError<'heap, !, V>>,
+    env: impl FnOnce(Local, FieldIndex) -> Result<&'ctx Value<'heap, V>, RuntimeError<'heap, E, V>>,
     alloc: A,
-) -> Result<Box<dyn ToSql + Sync + 'heap, A>, RuntimeError<'heap, !, V>> {
+) -> Result<Box<dyn ToSql + Sync + 'heap, A>, RuntimeError<'heap, E, V>> {
     match parameter {
         &Parameter::Input(symbol) => {
             let value = inputs.get(symbol).map(serialize_value).transpose()?;

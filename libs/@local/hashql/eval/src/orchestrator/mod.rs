@@ -2,13 +2,10 @@
 // implementations.
 
 use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
+use std::alloc::Global;
 
 use futures_lite::StreamExt as _;
-use hashql_core::{
-    collections::FastHashMap,
-    heap::{BumpAllocator, ScratchPool, ScratchPoolGuard},
-    symbol::Symbol,
-};
+use hashql_core::heap::ScratchPool;
 use hashql_mir::{
     body::{
         basic_block::BasicBlockId,
@@ -16,9 +13,9 @@ use hashql_mir::{
     },
     def::{DefId, DefIdSlice},
     interpret::{
-        CallStack, Runtime, RuntimeConfig, RuntimeError,
+        CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError, Yield,
         suspension::{Continuation, GraphReadSuspension, Suspension},
-        value::Value,
+        value::{self, Value},
     },
     pass::execution::TargetId,
 };
@@ -30,6 +27,7 @@ use self::{
     error::BridgeError,
     partial::Partial,
     postgres::PartialPostgresState,
+    tail::Tail,
 };
 use crate::{
     context::EvalContext,
@@ -40,16 +38,7 @@ mod codec;
 pub(crate) mod error;
 mod partial;
 mod postgres;
-
-pub(crate) struct Inputs<'heap, A: Allocator> {
-    pub(crate) inner: FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
-}
-
-impl<'heap, A: Allocator> Inputs<'heap, A> {
-    pub(crate) fn get(&self, symbol: Symbol<'heap>) -> Option<&Value<'heap, A>> {
-        self.inner.get(&symbol)
-    }
-}
+mod tail;
 
 struct PreparedQueries<'heap, A: Allocator> {
     offsets: Box<DefIdSlice<usize>, A>,
@@ -93,8 +82,10 @@ struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
     _marker: PhantomData<C>,
 }
 
+#[expect(clippy::future_not_send)]
 impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
-    async fn graph_read_row_in<L: BumpAllocator + Clone>(
+    #[expect(clippy::too_many_lines)]
+    async fn graph_read_row_in<L: Allocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
@@ -105,7 +96,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         row: Row,
 
         alloc: L,
-    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
+    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError, L>> {
         let mut partial = Partial::new(query.vertex_type);
         let decoder = Decoder::new(self.context.env, self.context.interner, alloc.clone());
         let mut states = Vec::new_in(alloc.clone());
@@ -129,19 +120,21 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                     island,
                     field,
                 } => {
-                    // Find if we already have a subinterpreter for this island
-                    let state =
-                        {
-                            if let Some(interpreter) = states.iter_mut().find(
-                                |interpreter: &&mut PartialPostgresState<_>| {
-                                    interpreter.body == body && interpreter.island == island
-                                },
-                            ) {
-                                interpreter
-                            } else {
-                                states.push_mut(PartialPostgresState::new(body, island))
-                            }
-                        };
+                    #[expect(
+                        clippy::option_if_let_else,
+                        reason = "this is required for borrowing because we borrow and push to \
+                                  states"
+                    )]
+                    let state = if let Some(state) =
+                        states
+                            .iter_mut()
+                            .find(|interpreter: &&mut PartialPostgresState<_>| {
+                                interpreter.body == body && interpreter.island == island
+                            }) {
+                        state
+                    } else {
+                        states.push_mut(PartialPostgresState::new(body, island))
+                    };
 
                     state
                         .hydrate(Indexed::new(index, column), field, &row, alloc.clone())
@@ -166,9 +159,10 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
             self.context.bodies,
-            &inputs.inner,
+            inputs,
             alloc.clone(),
         );
+
         let entity = partial.finish_in(self.context.interner, alloc.clone());
 
         // Now that we have the completed states, it's time to fulfill the graph read, by running
@@ -176,14 +170,9 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         // This is sequential in nature, because in the future filters may depend on the mapped
         // value. The parallelisation opportunity of sequential filters isn't applicable here,
         // instead that should be done inside either the HIR or MIR.
-        // TODO: implement consecutive filter fusing
-        // TODO: we must find all the data islands and fulfill them
         for body in &read.body {
             match body {
                 &GraphReadBody::Filter(def_id, env) => {
-                    // TODO: we should probably *scope* here / reset / checkpoint
-                    let checkpoint = alloc.checkpoint();
-
                     let residual = self
                         .context
                         .execution
@@ -198,46 +187,72 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                         alloc.clone(),
                     );
 
-                    loop {
+                    let eval = 'eval: loop {
                         let (island_id, island_node) =
                             residual.islands.lookup(callstack.current_block()?);
 
                         match island_node.target() {
                             TargetId::Interpreter => {
-                                // TODO: this must actually be implemented AND must only do it on
-                                // the last frame, no mid-way suspension here amigo.
-                                runtime.run_until_transition::<!>(&mut callstack, |target| {
-                                    residual.islands.lookup(target).0 != island_id
-                                });
+                                loop {
+                                    let next = runtime
+                                        .run_until_transition(&mut callstack, |target| {
+                                            residual.islands.lookup(target).0 != island_id
+                                        })?;
 
-                                // TODO: if we have a continuation here? just put it in a task, and
-                                // pick it up by the parent runner.
-                                // That way we can also just recycle memory easily, and have no
-                                // nested BS.
-                                // Nah we can just call ourselves, because of &self.
+                                    match next {
+                                        core::ops::ControlFlow::Continue(Yield::Return(value)) => {
+                                            let Value::Integer(value) = value else {
+                                                unreachable!("TODO: issue ICE");
+                                            };
 
-                                // TODO: if return value, then we need to filter depending on it.
+                                            let Some(value) = value.as_bool() else {
+                                                unreachable!("TODO: issue ICE");
+                                            };
+
+                                            break 'eval value;
+                                        }
+                                        core::ops::ControlFlow::Continue(Yield::Suspension(
+                                            suspension,
+                                        )) => {
+                                            let continuation = Box::pin(self.fulfill_in(
+                                                inputs,
+                                                &callstack,
+                                                suspension,
+                                                alloc.clone(),
+                                            ))
+                                            .await?;
+
+                                            continuation.apply(&mut callstack)?;
+                                        }
+                                        core::ops::ControlFlow::Break(_) => {
+                                            // We're finished, this means, and the next island is
+                                            // up. To determine the next island we simply break.
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                             TargetId::Postgres => {
-                                // We must check if the postgres state exists, if it doesn't then we
-                                // have a problem, why?
-                                // Well... wouldn't you like to know weather boy.
-                                // The issue pertains to the fact that it should've already been
-                                // evaluated, which means that we should've never reached this
-                                // specific state.
+                                // Postgres is special, because we hoist any computation directly
+                                // into the initial query.
+                                // There can be two different cases here:
+                                // 1. The value is NULL, meaning that the filter has already been
+                                //    fully evaluated in the postgres query
+                                // 2. The value is not NULL, which means that we need to continue
+                                //    evaluation of the filter body.
                                 let Some(state) = completed.iter().find(|state| {
                                     state.body == def_id && state.island == island_id
                                 }) else {
-                                    // This means that the block has already been evaluated before,
-                                    // which in turns means that we can just skip this filter body.
-                                    // TODO: this must BREAK and set it to TRUE to be skipped. It
-                                    // cannot continue the filter loop, because of the checkpoint.
-                                    continue;
+                                    // This is the implicit value, in case that the where clause
+                                    // upstream has been evaluated. If the postgres query has
+                                    // produced a value, it must mean that the condition must've
+                                    // been true.
+                                    break 'eval true;
                                 };
 
                                 // We must not flush the locals of the body to the values that have
                                 // been captured, and advance the pointer.
-                                state.flush(&mut callstack);
+                                state.flush(&mut callstack)?;
                             }
                             TargetId::Embedding => {
                                 // TODO: in the future this may benefit from a dispatch barrier, the
@@ -246,47 +261,23 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                                 unimplemented!()
                             }
                         }
+                    };
+
+                    // Filters are short circuiting and act as `&&`, meaning if one is false, all
+                    // are.
+                    if !eval {
+                        return Ok(None);
                     }
-
-                    // TODO: DROP MUST BE CALLED BEFORE THIS
-                    // TODO: we must re-create the runtime if we want to rollback here, because we
-                    // might have allocated memory that needs to be freed.
-                    drop(callstack);
-
-                    // We should put this in a separate function, so that rollback/checkpoint are
-                    // easier to manage. even better: &self checkpoints which are not yet possible.
-
-                    #[expect(unsafe_code)]
-                    // SAFETY: None of the allocations made in this loop are shared with the
-                    // caller, and none of the state is shared, so rolling back
-                    // is safe.
-                    unsafe {
-                        alloc.rollback(checkpoint);
-                    }
-
-                    // The issue that we're running into is that here there are multiple ways we can
-                    // continue. What do I mean by that? We **know** we must start at the
-                    // `BasicBlock::START`, but there may be some data that we're relying on that
-                    // isn't loaded yet. The fundamental tension is between data
-                    // islands, that add new information and actual control flow.
-                    // For control flow it's linear, but(!) data islands can be loaded in parallel
-                    // at the beginning of execution, which we should do here.
-                    // What does that mean? Good question! Before we run any filter we check all
-                    // data nodes, aggregate them, and then dispatch them. Data nodes cannot have
-                    // *any* dependencies (I mean how they just load data), but we need the entity
-                    // directly to be able to fulfill them.
-                    // We THEN merge them into the total entity, which we then materialize. YES YES
-                    // YES YES.
                 }
             }
         }
 
-        todo!()
+        Ok(Some(entity))
     }
 
     // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
     // the primary data store.
-    async fn graph_read_in<L: BumpAllocator + Clone>(
+    async fn graph_read_in<L: Allocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
@@ -297,7 +288,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
             axis,
         }: &GraphReadSuspension<'ctx, 'heap>,
         alloc: L,
-    ) -> Result<(), RuntimeError<'heap, BridgeError, L>> {
+    ) -> Result<Value<'heap, L>, RuntimeError<'heap, BridgeError, L>> {
         // Each graph read has a corresponding query, this query is *always* located in postgres, if
         // only to try to get the entities that have been affected.
         // TODO: we must actually ensure that
@@ -318,7 +309,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                 alloc.clone(),
             )
         }) {
-            params.push(param.map_err(RuntimeError::widen)?);
+            params.push(param?);
         }
 
         // The actual data and entities that we need to take a look at.
@@ -335,6 +326,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         let mut response = pin!(response);
 
         // TODO: parallelisation opportunity
+        let mut output = Tail::new(read.tail);
         while let Some(row) = response.next().await {
             let row = row
                 .map_err(|error| BridgeError::QueryExecution {
@@ -343,35 +335,42 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
                 })
                 .map_err(RuntimeError::Suspension)?;
 
-            let checkpoint = alloc.checkpoint();
+            let item = self
+                .graph_read_row_in(inputs, callstack, read, query, row, alloc.clone())
+                .await?;
 
-            self.graph_read_row_in(inputs, callstack, read, query, row, alloc.clone())
-                .await;
-
-            #[expect(unsafe_code)]
-            // SAFETY: none of the data inside of `gread_read_row_in` modifies anything outside of
-            // here, anything taken is only be reference, and does not allow for allocation.
-            // `Value` is cloned, but in that case it's never an allocation, and
-            // instead just an `Rc` increment.
-            // TODO: this is not completely true, we get a result back that we'd need to serialize
-            // here. It's probably just easier to get a new pool item.
-            unsafe {
-                alloc.rollback(checkpoint)
-            };
+            if let Some(item) = item {
+                output.push(item);
+            }
         }
 
-        todo!()
+        Ok(output.finish())
+    }
+
+    async fn fulfill_in<L: Allocator + Clone>(
+        &self,
+        inputs: &Inputs<'heap, L>,
+        callstack: &CallStack<'ctx, 'heap, L>,
+        suspension: Suspension<'ctx, 'heap>,
+        alloc: L,
+    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError, L>> {
+        match suspension {
+            Suspension::GraphRead(graph_read_suspension) => {
+                let output = self
+                    .graph_read_in(inputs, callstack, &graph_read_suspension, alloc)
+                    .await?;
+
+                Ok(graph_read_suspension.resolve(output))
+            }
+        }
     }
 
     async fn fulfill(
         &self,
-        callstack: &CallStack<'ctx, 'heap, ScratchPoolGuard<'_>>,
-        suspension: &Suspension<'ctx, 'heap>,
-    ) -> Continuation<'ctx, 'heap, ScratchPoolGuard<'_>> {
-        todo!()
+        inputs: &Inputs<'heap, Global>,
+        callstack: &CallStack<'ctx, 'heap, Global>,
+        suspension: Suspension<'ctx, 'heap>,
+    ) -> Result<Continuation<'ctx, 'heap, Global>, RuntimeError<'heap, BridgeError, Global>> {
+        self.fulfill_in(inputs, callstack, suspension, Global).await
     }
 }
-
-// the goal of the bridge is it to coordinate the different sources and implementations, to allow
-// for this, we use a "multi-pronged" approach, we are given the compiled queries, and all the
-// bodies, and operate on them.

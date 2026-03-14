@@ -23,6 +23,7 @@
 //! [`Severity::Error`]: hashql_diagnostics::severity::Severity::Error
 
 pub mod error;
+mod inputs;
 mod locals;
 mod runtime;
 mod scratch;
@@ -33,6 +34,7 @@ pub mod value;
 
 pub use self::{
     error::{RuntimeError, TypeName},
+    inputs::Inputs,
     locals::Locals,
-    runtime::{CallStack, Runtime, RuntimeConfig},
+    runtime::{CallStack, Runtime, RuntimeConfig, Yield},
 };

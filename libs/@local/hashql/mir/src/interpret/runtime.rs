@@ -42,10 +42,11 @@
 use alloc::{alloc::Global, borrow::Cow};
 use core::{alloc::Allocator, debug_assert_matches, hint::cold_path, ops::ControlFlow};
 
-use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
+use hashql_core::span::SpanId;
 use hashql_hir::node::operation::{InputOp, UnOp};
 
 use super::{
+    Inputs,
     error::{BinaryTypeMismatch, InterpretDiagnostic, RuntimeError, TypeName, UnaryTypeMismatch},
     locals::Locals,
     scratch::Scratch,
@@ -324,7 +325,7 @@ pub struct Runtime<'ctx, 'heap, A: Allocator = Global> {
     /// All available function bodies, indexed by [`DefId`].
     bodies: &'ctx DefIdSlice<Body<'heap>>,
     /// Input values available for [`InputOp::Load`] operations.
-    inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
+    inputs: &'ctx Inputs<'heap, A>,
 
     scratch: Scratch<'heap, A>,
 }
@@ -339,7 +340,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     pub fn new(
         config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
-        inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap>>,
+        inputs: &'ctx Inputs<'heap>,
     ) -> Self {
         Self::new_in(config, bodies, inputs, Global)
     }
@@ -353,7 +354,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     pub fn new_in(
         config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
-        inputs: &'ctx FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
+        inputs: &'ctx Inputs<'heap, A>,
         alloc: A,
     ) -> Self {
         Self {
@@ -678,11 +679,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         match op {
             // `required` is used only by static control-flow analysis; at runtime we always
             // error if the input is missing.
-            InputOp::Load { required: _ } => self.inputs.get(name).map_or_else(
+            InputOp::Load { required: _ } => self.inputs.get(*name).map_or_else(
                 || Err(RuntimeError::InputNotFound { name: *name }),
                 |value| Ok(value.clone()),
             ),
-            InputOp::Exists => Ok(Value::Integer(self.inputs.contains_key(name).into())),
+            InputOp::Exists => Ok(Value::Integer(self.inputs.contains(*name).into())),
         }
     }
 
@@ -842,7 +843,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
         mut r#continue: impl FnMut(BasicBlockId) -> bool,
-    ) -> Result<ControlFlow<(), Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>> {
+    ) -> Result<ControlFlow<BasicBlockId, Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>> {
         loop {
             // Check if we've entered a new block in the outermost frame. This must happen
             // *before* stepping so that block transitions from `Continuation::apply` (which
@@ -853,7 +854,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 && frame.current_statement == 0
                 && !r#continue(frame.current_block.id)
             {
-                return Ok(ControlFlow::Break(()));
+                return Ok(ControlFlow::Break(frame.current_block.id));
             }
 
             let next = self.step(callstack)?;

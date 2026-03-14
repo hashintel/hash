@@ -18,15 +18,14 @@ use alloc::rc::Rc;
 use core::{assert_matches, ops::ControlFlow};
 
 use hashql_core::{
-    collections::FastHashMap,
     heap::{self, FromIteratorIn as _, Heap},
     id::{Id as _, IdVec},
-    symbol::{Symbol, sym},
+    symbol::sym,
     r#type::{TypeBuilder, TypeId, environment::Environment},
 };
 
 use super::{
-    CallStack, Runtime, RuntimeConfig,
+    CallStack, Inputs, Runtime, RuntimeConfig,
     error::InterpretDiagnostic,
     runtime::Yield,
     suspension::Suspension,
@@ -48,13 +47,13 @@ use crate::{
 };
 
 fn run_body(body: Body<'_>) -> Result<Value<'_>, InterpretDiagnostic> {
-    run_body_with_inputs(body, FastHashMap::default())
+    run_body_with_inputs(body, Inputs::new())
 }
 
 #[expect(clippy::needless_pass_by_value)]
 fn run_body_with_inputs<'heap>(
     body: Body<'heap>,
-    inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
+    inputs: Inputs<'heap>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
     assert_eq!(body.id, DefId::new(0));
     let bodies = [body];
@@ -71,7 +70,7 @@ fn run_bodies<'heap>(
     entry: DefId,
     args: impl IntoIterator<Item = Value<'heap>, IntoIter: ExactSizeIterator>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let callstack = CallStack::new(&runtime, entry, args);
 
@@ -173,7 +172,7 @@ fn entry_function_with_args() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let args = [
         Value::Integer(Int::from(10_i128)),
@@ -1007,7 +1006,7 @@ fn input_load_returns_value() {
         }
     });
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(
         heap.intern_symbol("my_input"),
         Value::Integer(Int::from(999_i128)),
@@ -1032,7 +1031,7 @@ fn input_exists_returns_true() {
         }
     });
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(
         heap.intern_symbol("my_input"),
         Value::Integer(Int::from(1_i128)),
@@ -1106,7 +1105,7 @@ fn recursion_limit_exceeded() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
 
     let config = RuntimeConfig { recursion_limit: 5 };
     let mut runtime = Runtime::new(config, bodies, &inputs);
@@ -1733,7 +1732,7 @@ fn run_graph_read_body<'heap>(
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(heap.intern_symbol("axis"), axis_value);
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
@@ -1761,7 +1760,7 @@ fn start_suspend_resume_return() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(heap.intern_symbol("axis"), axis_value);
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
@@ -1857,7 +1856,7 @@ fn multi_suspension_round_trip() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(
         heap.intern_symbol("axis"),
         make_temporal_axes(&interner, 1000, 500),
@@ -1920,7 +1919,7 @@ fn transition_breaks_at_target_block() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
 
     let bb1 = crate::body::basic_block::BasicBlockId::new(1);
 
@@ -1957,7 +1956,7 @@ fn transition_runs_to_completion_when_continue_always_true() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
@@ -2012,7 +2011,7 @@ fn transition_fires_on_reentry_after_continuation_apply() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let mut inputs = FastHashMap::default();
+    let mut inputs = Inputs::default();
     inputs.insert(
         heap.intern_symbol("axis"),
         make_temporal_axes(&interner, 1000, 500),
@@ -2156,7 +2155,7 @@ fn callstack_new_in_runs_to_completion() {
 
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
-    let inputs = FastHashMap::default();
+    let inputs = Inputs::default();
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let callstack = CallStack::new_in::<()>(&bodies[DefId::new(0)], [], alloc::alloc::Global)
