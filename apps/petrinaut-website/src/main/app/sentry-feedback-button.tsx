@@ -1,6 +1,5 @@
 import type { ViewportAction } from "@hashintel/petrinaut";
 import * as Sentry from "@sentry/react";
-import { useCallback, useMemo } from "react";
 import { MdBugReport } from "react-icons/md";
 
 const feedbackButtonStyle: React.CSSProperties = {
