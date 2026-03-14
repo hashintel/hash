@@ -19,7 +19,7 @@ export default defineConfig(() => {
             [
               "babel-plugin-react-compiler",
               {
-                panicThreshold: "CRITICAL_ERRORS",
+                panicThreshold: "critical_errors",
               },
             ],
           ],

@@ -294,7 +294,7 @@ export const Menu: React.FC<MenuProps> = ({
             style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
           >
             {groups.map((group, groupIndex) => (
-              <div key={group.title ?? group.items[0]?.id ?? "empty-group"}>
+              <div key={group.title ?? `group-${groupIndex}`}>
                 {groupIndex > 0 && <div className={separatorStyle} />}
                 <div className={groupStyle}>
                   {group.title && (

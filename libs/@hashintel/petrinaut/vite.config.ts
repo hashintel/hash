@@ -81,7 +81,7 @@ export default defineConfig(({ command }) => ({
             {
               // Fail the build if the compiler encounters critical errors
               // that aren't opted out via "use no memo" directives
-              panicThreshold: "CRITICAL_ERRORS",
+              panicThreshold: "critical_errors",
             },
           ],
         ],
