@@ -8,15 +8,13 @@ const feedbackButtonStyle: React.CSSProperties = {
   color: "#fff",
 };
 
-const icon = <MdBugReport size={14} />;
-
 export function useSentryFeedbackAction(): ViewportAction {
   // Wouldn't be optimized by React Compiler otherwise
   "use memo";
 
   return {
     key: "sentry-feedback",
-    icon,
+    icon: <MdBugReport size={14} />,
     label: "Give feedback",
     tooltip: "Give feedback",
     style: feedbackButtonStyle,
