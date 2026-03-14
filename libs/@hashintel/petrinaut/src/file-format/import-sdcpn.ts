@@ -1,4 +1,6 @@
 import type { SDCPN } from "../core/types/sdcpn";
+import { convertPre20251128ToSDCPN } from "./old-formats/pre-2025-11-28/convert";
+import { oldFormatFileSchema } from "./old-formats/pre-2025-11-28/schema";
 import { legacySdcpnFileSchema, sdcpnFileSchema } from "./types";
 
 type SDCPNWithTitle = SDCPN & { title: string };
@@ -36,29 +38,33 @@ const hasMissingVisualInfo = (sdcpn: {
  * - Places/transitions at (0, 0) will be laid out by ELK after import.
  * - Colors get default iconSlug and displayColor when missing (e.g. exported without visual info).
  */
-const fillMissingVisualInfo = (
-  parsed: ReturnType<typeof legacySdcpnFileSchema.parse>,
-): SDCPNWithTitle => ({
-  ...parsed,
-  places: parsed.places.map((place) => ({
-    ...place,
-    x: place.x ?? 0,
-    y: place.y ?? 0,
-  })),
-  transitions: parsed.transitions.map((transition) => ({
-    ...transition,
-    x: transition.x ?? 0,
-    y: transition.y ?? 0,
-  })),
-  types: parsed.types.map((type) => ({
-    ...type,
-    iconSlug: type.iconSlug ?? "circle",
-    displayColor: type.displayColor ?? "#808080",
-  })),
-});
+const fillMissingVisualInfo = (sdcpn: {
+  title: string;
+  places: Array<{ x?: number; y?: number }>;
+  transitions: Array<{ x?: number; y?: number }>;
+  types: Array<{ iconSlug?: string; displayColor?: string }>;
+}): SDCPNWithTitle =>
+  ({
+    ...sdcpn,
+    places: sdcpn.places.map((place) => ({
+      ...place,
+      x: place.x ?? 0,
+      y: place.y ?? 0,
+    })),
+    transitions: sdcpn.transitions.map((transition) => ({
+      ...transition,
+      x: transition.x ?? 0,
+      y: transition.y ?? 0,
+    })),
+    types: sdcpn.types.map((type) => ({
+      ...type,
+      iconSlug: type.iconSlug ?? "circle",
+      displayColor: type.displayColor ?? "#808080",
+    })),
+  }) as SDCPNWithTitle;
 
 /**
- * Parses raw JSON data into an SDCPN, handling both versioned and legacy formats.
+ * Parses raw JSON data into an SDCPN, handling versioned, legacy, and old pre-2025-11-28 formats.
  */
 export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Try the versioned format first
@@ -73,7 +79,7 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
     };
   }
 
-  // Fall back to legacy format
+  // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
     const hadMissing = hasMissingVisualInfo(legacy.data);
@@ -81,6 +87,17 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
       ok: true,
       sdcpn: fillMissingVisualInfo(legacy.data),
       hadMissingVisualInfo: hadMissing,
+    };
+  }
+
+  // Try the pre-2025-11-28 old format (different field names like `type`, `iconId`, etc.)
+  const oldFormat = oldFormatFileSchema.safeParse(data);
+  if (oldFormat.success) {
+    const converted = convertPre20251128ToSDCPN(oldFormat.data);
+    return {
+      ok: true,
+      sdcpn: { ...converted, title: oldFormat.data.title },
+      hadMissingVisualInfo: false, // old format has positions
     };
   }
 

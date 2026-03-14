@@ -1,5 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { use, useCallback, useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -11,7 +11,6 @@ import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
-import { convertOldFormatToSDCPN } from "../../file-format/old-formats/convert-old-format";
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
@@ -100,7 +99,7 @@ export const EditorView = ({
   // Clean up stale selections when items are deleted
   useSelectionCleanup();
 
-  const handleCreateEmpty = useCallback(() => {
+  function handleCreateEmpty() {
     createNewNet({
       title: "Untitled",
       petriNetDefinition: {
@@ -112,7 +111,7 @@ export const EditorView = ({
       },
     });
     clearSelection();
-  }, [createNewNet, clearSelection]);
+  }
 
   function handleNew() {
     handleCreateEmpty();
@@ -142,8 +141,7 @@ export const EditorView = ({
     }
 
     const { sdcpn: loadedSDCPN, hadMissingVisualInfo } = result;
-    const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
-    let sdcpnToLoad = convertedSdcpn ?? loadedSDCPN;
+    let sdcpnToLoad = loadedSDCPN;
 
     // If any nodes were missing positions, run ELK layout BEFORE creating the net.
     // We must do this before createNewNet because after createNewNet triggers a
