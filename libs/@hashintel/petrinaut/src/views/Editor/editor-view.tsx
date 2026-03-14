@@ -39,6 +39,7 @@ const canvasContainerStyle = css({
 const editorRootStyle = css({
   position: "relative",
   height: "full",
+  overflow: "hidden",
   backgroundColor: "neutral.s25",
 });
 
