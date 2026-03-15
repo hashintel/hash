@@ -1,0 +1,153 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "react", "jsx-a11y", "unicorn", "typescript"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "browser": true
+  },
+  "rules": {
+    "array-callback-return": ["error", { "allowImplicit": true }],
+    "default-case-last": "error",
+    "default-param-last": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "guard-for-in": "error",
+    "no-alert": "error",
+    "no-cond-assign": ["error", "always"],
+    "no-extend-native": "error",
+    "no-loop-func": "error",
+    "no-new": "error",
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        "ignorePropertyModificationsForRegex": ["^existing", "draft"]
+      }
+    ],
+    "no-return-assign": ["error", "always"],
+    "no-self-compare": "error",
+    "no-sequences": "error",
+    "no-template-curly-in-string": "error",
+    "no-unsafe-optional-chaining": [
+      "error",
+      { "disallowArithmeticOperators": true }
+    ],
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_+",
+        "varsIgnorePattern": "^_+"
+      }
+    ],
+    "no-void": ["error", { "allowAsStatement": true }],
+
+    "no-console": "error",
+    "new-cap": "error",
+    "no-new-func": "error",
+    "func-names": "error",
+    "no-bitwise": "error",
+    "no-multi-assign": "error",
+
+    "no-restricted-globals": [
+      "error",
+      { "name": "isFinite", "message": "Use Number.isFinite instead" },
+      { "name": "isNaN", "message": "Use Number.isNaN instead" },
+      "event",
+      "name",
+      "length",
+      "status"
+    ],
+    "no-shadow": "error",
+    "no-use-before-define": "error",
+
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
+    "import/no-mutable-exports": "error",
+    "import/no-duplicates": "error",
+    "import/no-named-default": "error",
+    "import/no-self-import": "error",
+    "import/no-cycle": "error",
+
+    "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
+    "react/no-danger": "error",
+    "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
+    "react/jsx-no-comment-textnodes": "error",
+    "react/no-array-index-key": "error",
+    "react/button-has-type": [
+      "error",
+      { "button": true, "submit": true, "reset": false }
+    ],
+
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "off",
+
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
+    "jsx-a11y/no-noninteractive-tabindex": [
+      "error",
+      { "tags": [], "roles": ["tabpanel"] }
+    ],
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/no-static-element-interactions": [
+      "error",
+      {
+        "handlers": [
+          "onClick",
+          "onMouseDown",
+          "onMouseUp",
+          "onKeyPress",
+          "onKeyDown",
+          "onKeyUp"
+        ]
+      }
+    ],
+
+    "@typescript-eslint/ban-ts-comment": [
+      "error",
+      {
+        "ts-expect-error": "allow-with-description",
+        "minimumDescriptionLength": 10
+      }
+    ],
+    "@typescript-eslint/no-empty-object-type": "error",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-require-imports": "error",
+    "@typescript-eslint/no-unnecessary-type-constraint": "error",
+    "@typescript-eslint/no-implied-eval": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/no-unnecessary-condition": "error",
+    "@typescript-eslint/no-unsafe-assignment": "error",
+    "@typescript-eslint/no-unsafe-call": "error",
+    "@typescript-eslint/no-unsafe-function-type": "error",
+
+    "unicorn/no-new-array": "off",
+    "unicorn/filename-case": "error",
+
+    "constructor-super": "off",
+    "no-class-assign": "off",
+    "no-const-assign": "off",
+    "no-dupe-keys": "off",
+    "no-func-assign": "off",
+    "no-import-assign": "off",
+    "no-obj-calls": "off",
+    "no-redeclare": "off",
+    "no-setter-return": "off",
+    "no-this-before-super": "off",
+    "no-unsafe-negation": "off",
+    "no-constant-condition": "off",
+    "no-throw-literal": "off",
+    "prefer-promise-reject-errors": "off"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.gen.*",
+    "*.tsbuildinfo",
+    ".turbo/**"
+  ]
+}

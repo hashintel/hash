@@ -640,6 +640,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
+  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
   const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
@@ -836,6 +837,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   );
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- interactive chart SVG
     <svg
       ref={chartRef}
       className={`${svgStyle} ${runChartHoveringStyle}`}
@@ -962,6 +964,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
+  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
   const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
@@ -1211,6 +1214,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- interactive chart SVG
     <svg
       ref={chartRef}
       className={`${svgStyle} ${stackedChartHoveringStyle}`}

@@ -1,4 +1,5 @@
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
@@ -73,10 +74,16 @@ export default defineConfig(({ command }) => ({
       ],
     }),
 
-    react({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    react(),
+    babel({
+      presets: [
+        reactCompilerPreset({
+          target: "19",
+          compilationMode: "infer",
+          // @ts-expect-error - panicThreshold is accepted at runtime
+          panicThreshold: "critical_errors",
+        }),
+      ],
     }),
 
     command === "build" &&

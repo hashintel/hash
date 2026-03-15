@@ -1,4 +1,5 @@
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 /** Petrinaut website dev server and production build config. */
@@ -13,10 +14,16 @@ export default defineConfig(() => {
     },
 
     plugins: [
-      react({
-        babel: {
-          plugins: ["babel-plugin-react-compiler"],
-        },
+      react(),
+      babel({
+        presets: [
+          reactCompilerPreset({
+            target: "19",
+            compilationMode: "infer",
+            // @ts-expect-error - panicThreshold is accepted at runtime
+            panicThreshold: "critical_errors",
+          }),
+        ],
       }),
     ],
   };

@@ -1,15 +1,8 @@
 /**
  * UI-related constants for the Petrinaut editor.
+ *
+ * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
-
-import type { SubView } from "../components/sub-view/types";
-import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
-import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
-import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
-import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
-import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
-import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
-import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
 
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;
@@ -32,23 +25,3 @@ export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 export const DEFAULT_BOTTOM_PANEL_HEIGHT = 180;
 export const MIN_BOTTOM_PANEL_HEIGHT = 100;
 export const MAX_BOTTOM_PANEL_HEIGHT = 600;
-
-//
-// SubViews
-//
-
-export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
-  typesListSubView,
-  differentialEquationsListSubView,
-  parametersListSubView,
-  nodesListSubView,
-];
-
-// Base subviews always visible in the bottom panel
-export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
-  diagnosticsSubView,
-  simulationSettingsSubView,
-];
-
-// Subviews only visible when simulation is running/paused
-export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];

@@ -211,7 +211,6 @@ const SimulationSettingsContent: React.FC = () => {
           <div className={settingsRowStyle}>
             {/* Time Step Input */}
             <div className={settingGroupStyle}>
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label htmlFor="time-step-input" className={labelStyle}>
                 Time Step <span className={smallLabelStyle}>(sec/frame)</span>
                 <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
@@ -236,7 +235,6 @@ const SimulationSettingsContent: React.FC = () => {
             </div>
             {/* ODE Solver Method Select */}
             <div className={settingGroupStyle}>
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label htmlFor="ode-solver-select" className={labelStyle}>
                 ODE Solver
               </label>

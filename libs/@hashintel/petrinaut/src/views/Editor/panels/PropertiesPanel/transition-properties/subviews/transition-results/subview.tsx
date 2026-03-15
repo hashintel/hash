@@ -1,4 +1,3 @@
-/* eslint-disable id-length */
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
