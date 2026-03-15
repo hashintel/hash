@@ -8,7 +8,7 @@
     "dev": "vite",
     "lint:tsc": "tsgo --noEmit",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
-    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error ."
+    "fix:eslint": "oxlint --fix ."
   },
   "dependencies": {
     "@hashintel/petrinaut": "workspace:*",

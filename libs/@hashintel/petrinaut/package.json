@@ -29,7 +29,7 @@
     "dev": "storybook dev",
     "lint:tsc": "tsgo --noEmit",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
-    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix .",
     "prepublishOnly": "turbo run build",
     "test:unit": "vitest"
   },
