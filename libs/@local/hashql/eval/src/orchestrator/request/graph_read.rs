@@ -355,11 +355,10 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
     ) -> Result<Continuation<'env, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
         // Because postgres is our source of truth, it means that any graph read suspension must be
         // resolved by querying postgres first.
-        let query = self
-            .inner
-            .queries
-            .find(body, block)
-            .map_err(RuntimeError::Suspension)?;
+        let query =
+            self.inner.queries.find(body, block).ok_or_else(|| {
+                RuntimeError::Suspension(BridgeError::QueryLookup { body, block })
+            })?;
         let statement = query.transpile().to_string();
 
         let locals = callstack.locals().map_err(RuntimeError::widen)?;

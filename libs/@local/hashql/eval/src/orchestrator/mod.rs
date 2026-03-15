@@ -39,8 +39,7 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, marker::PhantomData, ops::Deref};
 
 use hashql_mir::{
-    body::basic_block::BasicBlockId,
-    def::{DefId, DefIdSlice},
+    def::DefId,
     interpret::{
         CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError,
         suspension::{Continuation, Suspension},
@@ -50,7 +49,7 @@ use hashql_mir::{
 use tokio_postgres::Client;
 
 use self::{error::BridgeError, request::GraphReadOrchestrator};
-use crate::{context::EvalContext, postgres::PreparedQuery};
+use crate::{context::EvalContext, postgres::PreparedQueries};
 
 mod codec;
 pub(crate) mod error;
@@ -58,30 +57,6 @@ mod partial;
 mod postgres;
 mod request;
 mod tail;
-
-/// Registry of compiled SQL queries, indexed by definition and basic block.
-///
-/// The SQL lowering pass produces one [`PreparedQuery`] per [`GraphRead`]
-/// terminator in the MIR. This struct stores them contiguously in `queries`
-/// with `offsets` providing per-definition starting positions, so
-/// [`find`](Self::find) can locate the correct query for a given `(DefId,
-/// BasicBlockId)` pair.
-///
-/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-struct PreparedQueries<'heap, A: Allocator> {
-    offsets: Box<DefIdSlice<usize>, A>,
-    queries: Vec<PreparedQuery<'heap, A>, A>,
-}
-
-impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
-    fn find(
-        &self,
-        body: DefId,
-        block: BasicBlockId,
-    ) -> Result<&PreparedQuery<'heap, A>, BridgeError<'heap>> {
-        todo!("implement query lookup using offsets and queries")
-    }
-}
 
 /// A value paired with its positional index.
 ///

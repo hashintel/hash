@@ -257,7 +257,7 @@ fn compile_full_query_with_mask<'heap>(
     let prepared_query = {
         let mut compiler =
             PostgresCompiler::new_in(&mut context, &mut scratch).with_property_mask(property_mask);
-        compiler.compile(&read)
+        compiler.compile_graph_read(&read)
     };
 
     assert!(

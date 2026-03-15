@@ -39,15 +39,17 @@ use hash_graph_postgres_store::store::postgres::query::{
 use hashql_core::{
     debug_panic,
     heap::BumpAllocator,
+    id::Id as _,
     r#type::{TypeBuilder, TypeId, environment::LatticeEnvironment},
 };
 use hashql_mir::{
     body::{
         Body,
+        basic_block::BasicBlockId,
         local::Local,
-        terminator::{GraphRead, GraphReadBody, GraphReadHead},
+        terminator::{GraphRead, GraphReadBody, GraphReadHead, TerminatorKind},
     },
-    def::DefId,
+    def::{DefId, DefIdSlice},
     pass::{
         analysis::dataflow::lattice::HasBottom as _,
         execution::{
@@ -201,6 +203,32 @@ pub struct PreparedQuery<'heap, A: Allocator> {
 impl<A: Allocator> PreparedQuery<'_, A> {
     pub fn transpile(&self) -> impl Display {
         core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
+    }
+}
+
+/// Registry of compiled SQL queries, indexed by definition and basic block.
+///
+/// The SQL lowering pass produces one [`PreparedQuery`] per [`GraphRead`]
+/// terminator in the MIR. This struct stores them contiguously in `queries`
+/// with `offsets` providing per-definition starting positions, so
+/// [`find`](Self::find) can locate the correct query for a given `(DefId,
+/// BasicBlockId)` pair.
+///
+/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+pub struct PreparedQueries<'heap, A: Allocator> {
+    offsets: Box<DefIdSlice<usize>, A>,
+    queries: Vec<(BasicBlockId, PreparedQuery<'heap, A>), A>,
+}
+
+impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
+    pub fn find(&self, body: DefId, block: BasicBlockId) -> Option<&PreparedQuery<'heap, A>> {
+        let start = self.offsets[body];
+        let end = self.offsets[body.plus(1)];
+
+        self.queries[start..end]
+            .iter()
+            .find(|(id, _)| *id == block)
+            .map(|(_, query)| query)
     }
 }
 
@@ -373,7 +401,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
     }
 
-    fn compile_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    fn compile_graph_read_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -482,12 +510,47 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
     ///
     /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-    pub fn compile(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    pub fn compile_graph_read(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
     where
         A: Clone,
     {
         match read.head {
-            GraphReadHead::Entity { .. } => self.compile_entity(read),
+            GraphReadHead::Entity { .. } => self.compile_graph_read_entity(read),
         }
+    }
+
+    #[expect(unsafe_code)]
+    pub fn compile(&mut self) -> PreparedQueries<'heap, A>
+    where
+        A: Clone,
+    {
+        // SAFETY: 0 is a valid value for `usize`
+        let offsets = unsafe {
+            Box::new_zeroed_slice_in(self.context.bodies.len() + 1, self.alloc.clone())
+                .assume_init()
+        };
+        let mut offsets = DefIdSlice::from_boxed_slice(offsets);
+
+        let mut queries = Vec::with_capacity_in(self.context.bodies.len(), self.alloc.clone());
+
+        let bodies = self.context.bodies;
+        for (body_id, body) in bodies.iter_enumerated() {
+            for (block_id, block) in body.basic_blocks.iter_enumerated() {
+                match &block.terminator.kind {
+                    TerminatorKind::GraphRead(read) => {
+                        let query = self.compile_graph_read(read);
+                        queries.push((block_id, query));
+                    }
+                    TerminatorKind::Goto(_)
+                    | TerminatorKind::SwitchInt(_)
+                    | TerminatorKind::Return(_)
+                    | TerminatorKind::Unreachable => {}
+                }
+            }
+
+            offsets[body_id.plus(1)] = queries.len();
+        }
+
+        PreparedQueries { offsets, queries }
     }
 }

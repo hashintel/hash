@@ -134,7 +134,7 @@ impl Suite for EvalPostgres {
         for body in &bodies {
             for block in &*body.basic_blocks {
                 if let TerminatorKind::GraphRead(read) = &block.terminator.kind {
-                    let prepared_query = compiler.compile(read);
+                    let prepared_query = compiler.compile_graph_read(read);
                     prepared_queries.push(prepared_query);
                 }
             }
