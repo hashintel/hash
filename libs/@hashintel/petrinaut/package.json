@@ -27,8 +27,9 @@
   "scripts": {
     "build": "vite build",
     "dev": "storybook dev",
-    "lint:eslint": "oxlint .",
     "lint:tsc": "tsgo --noEmit",
+    "lint:eslint": "oxlint .",
+    "fix:eslint": "oxlint --fix .",
     "prepublishOnly": "turbo run build",
     "test:unit": "vitest"
   },

@@ -6,8 +6,9 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "lint:tsc": "tsgo --noEmit",
     "lint:eslint": "oxlint .",
-    "lint:tsc": "tsgo --noEmit"
+    "fix:eslint": "oxlint --fix ."
   },
   "dependencies": {
     "@hashintel/petrinaut": "workspace:*",
