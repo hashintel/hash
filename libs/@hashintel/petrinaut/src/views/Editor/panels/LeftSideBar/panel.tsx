@@ -65,6 +65,7 @@ const contentLayerStyle = cva({
       false: {
         opacity: "0",
         pointerEvents: "none",
+        visibility: "hidden",
       },
     },
     direction: {

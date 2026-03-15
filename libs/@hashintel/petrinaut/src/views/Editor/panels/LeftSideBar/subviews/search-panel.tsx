@@ -202,14 +202,16 @@ function useSearchableItems(): SearchableItem[] {
 // -- Components ---------------------------------------------------------------
 
 const SearchContent: React.FC = () => {
-  const { isSelected: checkIsSelected, selectItem } = use(EditorContext);
+  const {
+    isSelected: checkIsSelected,
+    selectItem,
+    searchInputRef,
+  } = use(EditorContext);
   const allItems = useSearchableItems();
   const [query, setQuery] = useState("");
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  const { searchInputRef } = use(EditorContext);
 
   // Sync query from the input (the input lives in SearchTitle, so we read its value)
   useEffect(() => {
