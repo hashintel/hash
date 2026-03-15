@@ -19,7 +19,10 @@ use serde::{
 use serde_json::value::RawValue;
 
 use super::{Postgres, Serde};
-use crate::postgres::{Parameter, TemporalAxis};
+use crate::{
+    orchestrator::error::BridgeError,
+    postgres::{Parameter, TemporalAxis},
+};
 
 // timestamp is in ms
 impl ToSql for Postgres<Timestamp> {
@@ -169,26 +172,33 @@ impl<A: Allocator> Serialize for Serde<&Value<'_, A>> {
     }
 }
 
-pub(crate) fn serialize_value<'heap, E, V: Allocator, R: Allocator>(
+pub(crate) fn serialize_value<'heap, V: Allocator>(
     value: &Value<'heap, V>,
-) -> Result<Json<Box<RawValue>>, RuntimeError<'heap, E, R>> {
-    let string = serde_json::to_string(&Serde(value)).expect("TODO: into runtimeerror");
+) -> Result<Json<Box<RawValue>>, BridgeError<'heap>> {
+    let string = serde_json::to_string(&Serde(value))
+        .map_err(|source| BridgeError::ValueSerialization { source })?;
 
     RawValue::from_string(string)
-        .map_err(|_err| todo!())
+        .map_err(|source| BridgeError::ValueSerialization { source })
         .map(Json)
 }
 
-pub(crate) fn encode_parameter_in<'ctx, 'heap, E, V: Allocator + 'ctx, A: Allocator>(
+pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator>(
     parameter: &Parameter<'heap>,
     inputs: &'ctx Inputs<'heap, impl Allocator>,
     temporal_axes: &TemporalAxesInterval,
-    env: impl FnOnce(Local, FieldIndex) -> Result<&'ctx Value<'heap, V>, RuntimeError<'heap, E, V>>,
+    env: impl FnOnce(
+        Local,
+        FieldIndex,
+    ) -> Result<&'ctx Value<'heap, V>, RuntimeError<'heap, BridgeError<'heap>, V>>,
     alloc: A,
-) -> Result<Box<dyn ToSql + Sync + 'heap, A>, RuntimeError<'heap, E, V>> {
+) -> Result<Box<dyn ToSql + Sync + 'heap, A>, RuntimeError<'heap, BridgeError<'heap>, V>> {
     match parameter {
         &Parameter::Input(symbol) => {
-            let value = inputs.get(symbol).map(serialize_value).transpose()?;
+            let value = inputs
+                .get(symbol)
+                .map(|v| serialize_value(v).map_err(RuntimeError::Suspension))
+                .transpose()?;
             Ok(Box::new_in(value, alloc))
         }
         Parameter::Int(int) => {
@@ -217,9 +227,11 @@ pub(crate) fn encode_parameter_in<'ctx, 'heap, E, V: Allocator + 'ctx, A: Alloca
             Primitive::String(value) => Ok(Box::new_in(Box::<str>::from(value.as_str()), alloc)),
         },
         &Parameter::Symbol(symbol) => Ok(Box::new_in(Postgres(symbol), alloc)),
-        &Parameter::Env(local, field_index) => env(local, field_index)
-            .and_then(serialize_value)
-            .map(|value| Box::new_in(value, alloc) as Box<dyn ToSql + Sync, A>),
+        &Parameter::Env(local, field_index) => {
+            let value = env(local, field_index)?;
+            let serialized = serialize_value(value).map_err(RuntimeError::Suspension)?;
+            Ok(Box::new_in(serialized, alloc) as Box<dyn ToSql + Sync, A>)
+        }
         Parameter::TemporalAxis(TemporalAxis::Decision) => Ok(Box::new_in(
             Postgres(temporal_axes.decision_time.clone()),
             alloc,

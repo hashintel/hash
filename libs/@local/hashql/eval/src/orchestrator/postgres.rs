@@ -35,13 +35,13 @@ impl<A: Allocator> PartialPostgresState<A> {
         }
     }
 
-    pub(crate) fn hydrate(
+    pub(crate) fn hydrate<'heap>(
         &mut self,
         column: Indexed<ColumnDescriptor>,
         field: ContinuationField,
         row: &Row,
         alloc: A,
-    ) -> Result<(), BridgeError> {
+    ) -> Result<(), BridgeError<'heap>> {
         match field {
             ContinuationField::Block => {
                 // row is a single (nullable) block id, encoded as an int
@@ -112,12 +112,12 @@ impl<A: Allocator> PartialPostgresState<A> {
         Ok(())
     }
 
-    pub(crate) fn finish_in<'ctx, 'heap>(
+    pub(crate) fn finish_in<'heap>(
         self,
         decoder: &Decoder<'_, 'heap, A>,
-        body: &'ctx Body<'heap>,
+        body: &Body<'heap>,
         alloc: A,
-    ) -> Result<Option<PostgresState<'heap, A>>, BridgeError>
+    ) -> Result<Option<PostgresState<'heap, A>>, BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -125,16 +125,31 @@ impl<A: Allocator> PartialPostgresState<A> {
 
         let target = match self.target {
             Hydrated::Null(()) => return Ok(None),
-            Hydrated::Skipped => todo!("ICE; should never happen"),
+            Hydrated::Skipped => {
+                return Err(BridgeError::IncompleteContinuation {
+                    body: self.body,
+                    field: "target",
+                });
+            }
             Hydrated::Value(target) => target,
         };
 
         let locals = match self.locals {
-            Optional::Null(()) | Optional::Skipped => todo!("ICE; should never happen"),
+            Optional::Null(()) | Optional::Skipped => {
+                return Err(BridgeError::IncompleteContinuation {
+                    body: self.body,
+                    field: "locals",
+                });
+            }
             Optional::Value(locals) => locals,
         };
         let values = match self.values {
-            Optional::Null(()) | Optional::Skipped => todo!("ICE; should never happen"),
+            Optional::Null(()) | Optional::Skipped => {
+                return Err(BridgeError::IncompleteContinuation {
+                    body: self.body,
+                    field: "values",
+                });
+            }
             Optional::Value(values) => values,
         };
         debug_assert_eq!(locals.len(), values.len());

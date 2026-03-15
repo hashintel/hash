@@ -592,7 +592,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         r#type: TypeId,
         column: Indexed<ColumnDescriptor>,
         row: &Row,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -792,7 +792,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: &serde_json::Value,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -812,7 +812,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: impl Into<JsonValueRef<'value>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -832,7 +832,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: impl Into<JsonValueRef<'value>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -852,7 +852,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: impl Into<JsonValueRef<'value>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -868,7 +868,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: impl Into<JsonValueRef<'value>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -888,7 +888,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: Option<impl Into<JsonValueRef<'value>>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -908,7 +908,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         decoder: &Decoder<'_, 'heap, A>,
         column: Indexed<ColumnDescriptor>,
         value: impl Into<JsonValueRef<'value>>,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {
@@ -950,7 +950,7 @@ impl<'heap, A: Allocator> Partial<'heap, A> {
         r#type: TypeId,
         column: Indexed<ColumnDescriptor>,
         row: &Row,
-    ) -> Result<(), BridgeError>
+    ) -> Result<(), BridgeError<'heap>>
     where
         A: Clone,
     {

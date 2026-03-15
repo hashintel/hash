@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, string::ToString as _, vec};
+use alloc::{rc::Rc, vec};
 use core::alloc::Allocator;
 
 use hashql_core::{
@@ -29,7 +29,7 @@ pub(crate) struct Decoder<'env, 'heap, A> {
 }
 
 impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
-    pub const fn new(
+    pub(crate) const fn new(
         env: &'env Environment<'heap>,
         interner: &'env hashql_mir::intern::Interner<'heap>,
         alloc: A,
@@ -41,7 +41,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         }
     }
 
-    fn decode_unknown(&self, value: JsonValueRef<'_>) -> Result<Value<'heap, A>, DecodeError>
+    fn decode_unknown(&self, value: JsonValueRef<'_>) -> Result<Value<'heap, A>, DecodeError<'heap>>
     where
         A: Clone,
     {
@@ -120,11 +120,12 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         }
     }
 
+    #[expect(clippy::too_many_lines)]
     pub(crate) fn decode(
         &self,
         type_id: TypeId,
         value: JsonValueRef<'_>,
-    ) -> Result<Value<'heap, A>, DecodeError>
+    ) -> Result<Value<'heap, A>, DecodeError<'heap>>
     where
         A: Clone,
     {
@@ -213,13 +214,19 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                     });
                 };
 
-                // To avoid allocations, check beforehand if the keys of the object constitute
-                // valid identifiers
+                if object.len() != fields.len() {
+                    return Err(DecodeError::StructLengthMismatch {
+                        expected: type_id,
+                        expected_length: fields.len(),
+                        received_length: object.len(),
+                    });
+                }
+
                 for field in fields.iter() {
                     if !object.contains_key(field.name.as_str()) {
                         return Err(DecodeError::MissingField {
                             expected: type_id,
-                            field: field.name.as_str().to_string(),
+                            field: field.name,
                         });
                     }
                 }
@@ -231,16 +238,14 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 let names = self.interner.symbols.intern_slice(&names);
                 let mut values = vec::from_elem_in(Value::Unit, object.len(), self.alloc.clone());
 
-                // Due to the fact that we currently do not differentiate between closed and open
-                // structs, we assume that the struct is closed.
+                // We assume the struct is closed. The length check and per-field
+                // check above guarantee a bijection between JSON keys and type
+                // fields, so the position lookup cannot fail.
                 for (name, value) in object {
                     let field = fields
                         .iter()
                         .position(|field| field.name.as_str() == name)
-                        .ok_or_else(|| DecodeError::MissingField {
-                            expected: type_id,
-                            field: name.clone(),
-                        })?;
+                        .unwrap_or_else(|| unreachable!());
 
                     values[field] = self.decode(fields[field].value, value.into())?;
                 }
@@ -329,22 +334,15 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 Ok(Value::Dict(output))
             }
 
-            // How... does one even do that?
-            TypeKind::Intersection(_) => todo!(
-                "issue ICE, there are no intersection types that should be surviving until now \
-                 (at least not in the current data model)"
-            ),
+            TypeKind::Intersection(_) => Err(DecodeError::IntersectionType { type_id }),
 
             &TypeKind::Apply(Apply {
                 base,
                 substitutions: _,
-            }) => self.decode(base, value),
-            &TypeKind::Generic(Generic { base, arguments: _ }) => self.decode(base, value),
-
-            TypeKind::Closure(_) => todo!("issue ICE; should be rejected by MIR"),
-            TypeKind::Never => {
-                todo!("issue ICE; tried to deserialize a never type; should be rejected by MIR")
-            }
+            })
+            | &TypeKind::Generic(Generic { base, arguments: _ }) => self.decode(base, value),
+            TypeKind::Closure(_) => Err(DecodeError::ClosureType { type_id }),
+            TypeKind::Never => Err(DecodeError::NeverType { type_id }),
 
             // We're flying free here, issue a warning, and just try to deserialize using the
             // old tactics
@@ -364,7 +362,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         r#type: TypeId,
         value: JsonValueRef<'_>,
         column: Indexed<ColumnDescriptor>,
-    ) -> Result<Value<'heap, A>, BridgeError>
+    ) -> Result<Value<'heap, A>, BridgeError<'heap>>
     where
         A: Clone,
     {

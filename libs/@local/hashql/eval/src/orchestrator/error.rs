@@ -11,6 +11,7 @@ use alloc::string::String;
 use hashql_core::{
     pretty::{Formatter, RenderOptions},
     span::SpanId,
+    symbol::Symbol,
     r#type::{TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
 };
 use hashql_diagnostics::{
@@ -18,7 +19,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 use hashql_mir::{
-    body::basic_block::BasicBlockId,
+    body::{basic_block::BasicBlockId, local::Local},
     def::DefId,
     interpret::error::{
         InterpretDiagnostic, InterpretDiagnosticCategory, SuspensionDiagnosticCategory,
@@ -63,6 +64,26 @@ const QUERY_LOOKUP: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Query Lookup",
 };
 
+const INCOMPLETE_CONTINUATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "incomplete-continuation",
+    name: "Incomplete Continuation",
+};
+
+const MISSING_EXECUTION_RESIDUAL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "missing-execution-residual",
+    name: "Missing Execution Residual",
+};
+
+const INVALID_FILTER_RETURN: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-filter-return",
+    name: "Invalid Filter Return",
+};
+
+const VALUE_SERIALIZATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "value-serialization",
+    name: "Value Serialization",
+};
+
 fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDiagnosticCategory {
     InterpretDiagnosticCategory::Suspension(SuspensionDiagnosticCategory(terminal))
 }
@@ -76,8 +97,8 @@ fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDiagnosti
 /// type tree it went wrong.
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
-#[derive(Debug)]
-pub enum DecodeError {
+#[derive(Debug, Copy, Clone)]
+pub enum DecodeError<'heap> {
     /// The JSON value kind does not match the expected type.
     ///
     /// For example, the decoder expected a JSON object (for a struct) but
@@ -94,7 +115,17 @@ pub enum DecodeError {
         /// The struct type being decoded.
         expected: TypeId,
         /// The name of the missing field.
-        field: String,
+        field: Symbol<'heap>,
+    },
+
+    /// The JSON object has a different number of keys than the struct expects.
+    StructLengthMismatch {
+        /// The struct type being decoded.
+        expected: TypeId,
+        /// The number of fields the struct type requires.
+        expected_length: usize,
+        /// The number of keys in the JSON object.
+        received_length: usize,
     },
 
     /// The JSON array length does not match the expected tuple arity.
@@ -136,6 +167,35 @@ pub enum DecodeError {
         /// The type being constructed when the invariant was violated, if known.
         expected: Option<TypeId>,
     },
+
+    /// An intersection type reached the decoder.
+    ///
+    /// Intersection types cannot be safely represented as JSON, so the
+    /// placement pass should have rejected any query that would require
+    /// deserializing one from a postgres result.
+    IntersectionType {
+        /// The intersection type that was encountered.
+        type_id: TypeId,
+    },
+
+    /// A closure type reached the decoder.
+    ///
+    /// Closures are opaque runtime values that cannot be serialized or
+    /// transported through postgres. The placement pass should have
+    /// rejected any query that would require deserializing a closure.
+    ClosureType {
+        /// The closure type that was encountered.
+        type_id: TypeId,
+    },
+
+    /// A never type (`!`) reached the decoder.
+    ///
+    /// The never type is uninhabited: no value of type `!` can exist, so
+    /// attempting to deserialize one is always a bug.
+    NeverType {
+        /// The never type that was encountered.
+        type_id: TypeId,
+    },
 }
 
 /// Errors from the bridge while fulfilling a [`GraphRead`] suspension.
@@ -145,7 +205,7 @@ pub enum DecodeError {
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 #[derive(Debug)]
-pub enum BridgeError {
+pub enum BridgeError<'heap> {
     /// The compiled SQL query was rejected by PostgreSQL.
     ///
     /// Carries the generated SQL so the diagnostic can show exactly what
@@ -180,7 +240,7 @@ pub enum BridgeError {
         /// The column descriptor identifying what this column represents.
         column: Indexed<ColumnDescriptor>,
         /// The specific decode failure.
-        source: DecodeError,
+        source: DecodeError<'heap>,
     },
 
     /// A continuation local could not be deserialized back into its expected type.
@@ -193,9 +253,9 @@ pub enum BridgeError {
         /// The definition containing the continuation.
         body: DefId,
         /// The local variable that failed to deserialize.
-        local: hashql_mir::body::local::Local,
+        local: Local,
         /// The specific decode failure.
-        source: DecodeError,
+        source: DecodeError<'heap>,
     },
 
     /// A query parameter could not be serialized for PostgreSQL.
@@ -233,10 +293,51 @@ pub enum BridgeError {
         /// The basic block containing the graph read terminator.
         block: BasicBlockId,
     },
+
+    /// A continuation state was not fully populated before finishing.
+    ///
+    /// When a row contains a non-null continuation target, the locals and values
+    /// columns must also be present. A missing or null field indicates the SQL
+    /// lowering pass produced a continuation with an incomplete column set.
+    IncompleteContinuation {
+        /// The definition containing the continuation.
+        body: DefId,
+        /// The name of the field that was missing or null.
+        field: &'static str,
+    },
+
+    /// No execution residual was found for a definition that requires one.
+    ///
+    /// The execution analysis pass should produce island mappings for every
+    /// definition that appears in a filter chain. A missing residual indicates
+    /// the execution pipeline did not analyze this definition.
+    MissingExecutionResidual {
+        /// The definition that has no execution residual.
+        body: DefId,
+    },
+
+    /// A filter body returned a non-boolean value.
+    ///
+    /// Filter bodies must evaluate to a boolean. If the interpreter produces
+    /// a value that is not representable as a boolean, the HIR type checking
+    /// or lowering pass has a bug.
+    InvalidFilterReturn {
+        /// The filter definition that returned a non-boolean.
+        body: DefId,
+    },
+
+    /// A runtime value could not be serialized to JSON.
+    ///
+    /// Serialization failures indicate a bug in the encoder or an unsupported
+    /// value shape (e.g. pointer values).
+    ValueSerialization {
+        /// The serialization error from serde_json.
+        source: serde_json::Error,
+    },
 }
 
-impl BridgeError {
-    pub fn into_diagnostic(self, span: SpanId, env: &Environment<'_>) -> InterpretDiagnostic {
+impl<'heap> BridgeError<'heap> {
+    pub fn into_diagnostic(self, span: SpanId, env: &Environment<'heap>) -> InterpretDiagnostic {
         match self {
             Self::QueryExecution { sql, source } => query_execution(span, &sql, &source),
             Self::RowHydration { column, source } => row_hydration(span, column, &source),
@@ -255,6 +356,12 @@ impl BridgeError {
                 parameter_encoding(span, parameter, &*source)
             }
             Self::QueryLookup { body, block } => query_lookup(span, body, block),
+            Self::IncompleteContinuation { body, field } => {
+                incomplete_continuation(span, body, field)
+            }
+            Self::MissingExecutionResidual { body } => missing_execution_residual(span, body),
+            Self::InvalidFilterReturn { body } => invalid_filter_return(span, body),
+            Self::ValueSerialization { source } => value_serialization(span, &source),
         }
     }
 }
@@ -301,7 +408,7 @@ fn row_hydration(
 /// Adds notes describing a [`DecodeError`] to a diagnostic.
 fn add_decode_error_notes(
     diagnostic: &mut InterpretDiagnostic,
-    source: &DecodeError,
+    source: &DecodeError<'_>,
     env: &Environment<'_>,
 ) {
     let fmt = Formatter::new(env.heap);
@@ -319,6 +426,16 @@ fn add_decode_error_notes(
         DecodeError::MissingField { expected, field } => {
             diagnostic.add_message(Message::note(format!(
                 "field `{field}` is missing from the JSON object when decoding `{}`",
+                type_fmt.render(*expected, render),
+            )));
+        }
+        DecodeError::StructLengthMismatch {
+            expected,
+            expected_length,
+            received_length,
+        } => {
+            diagnostic.add_message(Message::note(format!(
+                "expected {expected_length} fields for `{}` but received {received_length}",
                 type_fmt.render(*expected, render),
             )));
         }
@@ -364,6 +481,35 @@ fn add_decode_error_notes(
                 ));
             }
         }
+        DecodeError::IntersectionType { type_id } => {
+            diagnostic.add_message(Message::note(format!(
+                "intersection type `{}` cannot be safely represented as JSON",
+                type_fmt.render(*type_id, render),
+            )));
+            diagnostic.add_message(Message::help(
+                "the placement pass should reject queries that require deserializing intersection \
+                 types from postgres",
+            ));
+        }
+        DecodeError::ClosureType { type_id } => {
+            diagnostic.add_message(Message::note(format!(
+                "closure type `{}` cannot be transported through postgres",
+                type_fmt.render(*type_id, render),
+            )));
+            diagnostic.add_message(Message::help(
+                "the placement pass should reject queries that require deserializing closures \
+                 from postgres",
+            ));
+        }
+        DecodeError::NeverType { type_id } => {
+            diagnostic.add_message(Message::note(format!(
+                "the never type `{}` is uninhabited and cannot have a value",
+                type_fmt.render(*type_id, render),
+            )));
+            diagnostic.add_message(Message::help(
+                "the MIR pipeline should prevent never types from reaching evaluation",
+            ));
+        }
     }
 }
 
@@ -373,7 +519,7 @@ fn value_deserialization(
         index,
         value: column,
     }: Indexed<ColumnDescriptor>,
-    source: &DecodeError,
+    source: &DecodeError<'_>,
     env: &Environment<'_>,
 ) -> InterpretDiagnostic {
     let mut diagnostic =
@@ -394,8 +540,8 @@ fn value_deserialization(
 fn continuation_deserialization(
     span: SpanId,
     body: DefId,
-    local: hashql_mir::body::local::Local,
-    source: &DecodeError,
+    local: Local,
+    source: &DecodeError<'_>,
     env: &Environment<'_>,
 ) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(category(&CONTINUATION_DESERIALIZATION), Severity::Bug)
@@ -465,6 +611,70 @@ fn query_lookup(span: SpanId, body: DefId, block: BasicBlockId) -> InterpretDiag
 
     diagnostic.add_message(Message::help(
         "the SQL lowering pass should produce a compiled query for every data access",
+    ));
+
+    diagnostic
+}
+
+fn incomplete_continuation(span: SpanId, body: DefId, field: &str) -> InterpretDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INCOMPLETE_CONTINUATION), Severity::Bug)
+        .primary(Label::new(
+            span,
+            "continuation state is missing required columns",
+        ));
+
+    diagnostic.add_message(Message::note(format!(
+        "continuation for definition {body} has a non-null target but `{field}` was not populated"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the SQL lowering pass should produce all continuation columns together",
+    ));
+
+    diagnostic
+}
+
+fn missing_execution_residual(span: SpanId, body: DefId) -> InterpretDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&MISSING_EXECUTION_RESIDUAL), Severity::Bug)
+        .primary(Label::new(
+            span,
+            "no execution residual found for this definition",
+        ));
+
+    diagnostic.add_message(Message::note(format!(
+        "definition {body} appears in a filter chain but has no island mapping"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the execution analysis pass should produce island mappings for all filter definitions",
+    ));
+
+    diagnostic
+}
+
+fn invalid_filter_return(span: SpanId, body: DefId) -> InterpretDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INVALID_FILTER_RETURN), Severity::Bug)
+        .primary(Label::new(span, "filter body returned a non-boolean value"));
+
+    diagnostic.add_message(Message::note(format!(
+        "filter definition {body} must evaluate to a boolean"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the HIR type checking pass should ensure filter bodies return a boolean",
+    ));
+
+    diagnostic
+}
+
+fn value_serialization(span: SpanId, error: &serde_json::Error) -> InterpretDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&VALUE_SERIALIZATION), Severity::Bug)
+        .primary(Label::new(span, "cannot serialize runtime value to JSON"));
+
+    diagnostic.add_message(Message::note(format!("serialization failed: {error}")));
+
+    diagnostic.add_message(Message::help(
+        "all values passed to the database should be serializable",
     ));
 
     diagnostic
