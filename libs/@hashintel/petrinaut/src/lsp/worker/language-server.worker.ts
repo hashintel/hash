@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 /**
  * Language Server WebWorker — runs TypeScript validation off the main thread.
  *

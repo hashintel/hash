@@ -45,6 +45,9 @@
     ],
     "no-void": ["error", { "allowAsStatement": true }],
 
+    "no-console": "error",
+    "new-cap": "error",
+    "no-new-func": "error",
     "func-names": "error",
     "no-bitwise": "error",
     "no-multi-assign": "error",

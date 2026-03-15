@@ -199,7 +199,6 @@ export const SDCPNView: React.FC = () => {
     }
 
     // Only create nodes in add modes
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (editionMode !== "add-place" && editionMode !== "add-transition") {
       return;
     }
