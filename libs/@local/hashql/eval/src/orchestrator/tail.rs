@@ -1,11 +1,11 @@
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
 use hashql_mir::{
     body::terminator::GraphReadTail,
     interpret::value::{self, Value},
 };
 
-pub enum Tail<'heap, A: Allocator> {
+pub(crate) enum Tail<'heap, A: Allocator> {
     Collect(value::List<'heap, A>),
 }
 

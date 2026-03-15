@@ -84,7 +84,7 @@ const VALUE_SERIALIZATION: TerminalDiagnosticCategory = TerminalDiagnosticCatego
     name: "Value Serialization",
 };
 
-fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDiagnosticCategory {
+const fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDiagnosticCategory {
     InterpretDiagnosticCategory::Suspension(SuspensionDiagnosticCategory(terminal))
 }
 
@@ -331,7 +331,7 @@ pub enum BridgeError<'heap> {
     /// Serialization failures indicate a bug in the encoder or an unsupported
     /// value shape (e.g. pointer values).
     ValueSerialization {
-        /// The serialization error from serde_json.
+        /// The serialization error from `serde_json`.
         source: serde_json::Error,
     },
 }

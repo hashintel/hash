@@ -21,7 +21,7 @@ pub(crate) enum JsonValueRef<'value> {
 ///
 /// Used in error reporting to describe what was received when a decode fails.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum JsonValueKind {
+pub enum JsonValueKind {
     Null,
     Bool,
     Number,

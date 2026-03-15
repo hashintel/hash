@@ -61,7 +61,7 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
                             path,
                             r#type,
                             Indexed::new(index, column),
-                            &row,
+                            row,
                         )
                         .map_err(RuntimeError::Suspension)?;
                 }
@@ -86,7 +86,7 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
                     };
 
                     state
-                        .hydrate(Indexed::new(index, column), field, &row, alloc.clone())
+                        .hydrate(Indexed::new(index, column), field, row, alloc.clone())
                         .map_err(RuntimeError::Suspension)?;
                 }
             }

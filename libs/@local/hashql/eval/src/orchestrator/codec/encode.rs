@@ -197,7 +197,7 @@ pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator
         &Parameter::Input(symbol) => {
             let value = inputs
                 .get(symbol)
-                .map(|v| serialize_value(v).map_err(RuntimeError::Suspension))
+                .map(|value| serialize_value(value).map_err(RuntimeError::Suspension))
                 .transpose()?;
             Ok(Box::new_in(value, alloc))
         }

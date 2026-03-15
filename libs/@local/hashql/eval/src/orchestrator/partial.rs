@@ -64,9 +64,10 @@ macro_rules! hydrate {
 /// Use the [`Required`] and [`Optional`] aliases rather than specifying `A` directly.
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Hydrated<T, N = !> {
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) enum Hydrated<T, N = !> {
     /// Not in the provides set. The query did not request this field.
+    #[default]
     Skipped,
     /// Requested, but the database returned `NULL`.
     ///
@@ -77,18 +78,12 @@ pub enum Hydrated<T, N = !> {
     Value(T),
 }
 
-impl<T, A> Default for Hydrated<T, A> {
-    fn default() -> Self {
-        Self::Skipped
-    }
-}
-
 impl<T, N> Hydrated<T, N> {
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Hydrated<U, N> {
+    pub(crate) fn map<U>(self, func: impl FnOnce(T) -> U) -> Hydrated<U, N> {
         match self {
             Self::Skipped => Hydrated::Skipped,
             Self::Null(marker) => Hydrated::Null(marker),
-            Self::Value(value) => Hydrated::Value(f(value)),
+            Self::Value(value) => Hydrated::Value(func(value)),
         }
     }
 }
@@ -99,7 +94,7 @@ impl<T> Hydrated<T, !> {
     /// # Panics (debug only)
     ///
     /// Debug-panics if the field is already populated.
-    pub fn set(&mut self, value: T) {
+    pub(crate) fn set(&mut self, value: T) {
         debug_assert!(
             matches!(self, Self::Skipped),
             "field already populated: duplicate column in row hydration"
@@ -118,7 +113,7 @@ impl<T> Hydrated<T, ()> {
     /// # Panics (debug only)
     ///
     /// Debug-panics if the field is already populated.
-    pub fn set(&mut self, value: Option<T>) {
+    pub(crate) fn set(&mut self, value: Option<T>) {
         debug_assert!(
             matches!(self, Self::Skipped),
             "field already populated: duplicate column in row hydration"
@@ -130,7 +125,7 @@ impl<T> Hydrated<T, ()> {
         }
     }
 
-    pub fn null(&mut self) {
+    pub(crate) fn null(&mut self) {
         debug_assert!(
             matches!(self, Self::Skipped),
             "field already populated: duplicate column in row hydration"
@@ -149,20 +144,20 @@ impl<T: Default, N> Hydrated<T, N> {
     /// This is the primary mechanism for populating nested partial structs
     /// from flat column values: each intermediate level is initialized on
     /// first access, then the caller continues into the next level.
-    pub fn ensure(&mut self) -> &mut T {
+    pub(crate) fn ensure(&mut self) -> &mut T {
         if !matches!(self, Self::Value(_)) {
             *self = Self::Value(T::default());
         }
 
         match self {
             Self::Value(value) => value,
-            _ => unreachable!(),
+            Self::Skipped | Self::Null(_) => unreachable!(),
         }
     }
 }
 
 impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, !> {
-    pub fn finish_in<const N: usize>(
+    pub(crate) fn finish_in<const N: usize>(
         self,
         builder: &mut StructBuilder<'heap, A, N>,
         field: Symbol<'heap>,
@@ -177,7 +172,7 @@ impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, !> {
 }
 
 impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, ()> {
-    pub fn finish_in<const N: usize>(
+    pub(crate) fn finish_in<const N: usize>(
         self,
         builder: &mut StructBuilder<'heap, A, N>,
         field: Symbol<'heap>,
@@ -201,7 +196,7 @@ impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, ()> {
 ///
 /// The [`Null`](Hydrated::Null) variant is uninhabited: a required field is either
 /// [`Skipped`](Hydrated::Skipped) or has a [`Value`](Hydrated::Value).
-pub type Required<T> = Hydrated<T, !>;
+pub(crate) type Required<T> = Hydrated<T, !>;
 
 /// Hydration state for a nullable schema field.
 ///
@@ -209,15 +204,15 @@ pub type Required<T> = Hydrated<T, !>;
 /// [`Null`](Hydrated::Null), or [`Value`](Hydrated::Value).
 /// [`Null`](Hydrated::Null) represents a schema-level absence (e.g. `link_data`
 /// on a non-link entity), not a missing column.
-pub type Optional<T> = Hydrated<T, ()>;
+pub(crate) type Optional<T> = Hydrated<T, ()>;
 
 /// Partial representation of `EntityEncodings`.
-pub struct PartialEncodings<'heap, A: Allocator> {
+pub(crate) struct PartialEncodings<'heap, A: Allocator> {
     pub vectors: Required<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialEncodings<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -245,13 +240,13 @@ impl<A: Allocator> Default for PartialEncodings<'_, A> {
 /// Unlike [`PartialEntityId`], this only has `web_id` and `entity_uuid`:
 /// link targets are not addressable by `draft_id` through
 /// [`EntityPath`](hashql_mir::pass::execution::traversal::EntityPath).
-pub struct PartialLinkEntityId<'heap, A: Allocator> {
+pub(crate) struct PartialLinkEntityId<'heap, A: Allocator> {
     pub web_id: Required<Value<'heap, A>>,
     pub entity_uuid: Required<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialLinkEntityId<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -282,13 +277,13 @@ impl<A: Allocator> Default for PartialLinkEntityId<'_, A> {
 }
 
 /// Partial representation of `EntityProvenance`.
-pub struct PartialProvenance<'heap, A: Allocator> {
+pub(crate) struct PartialProvenance<'heap, A: Allocator> {
     pub inferred: Required<Value<'heap, A>>,
     pub edition: Required<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -315,13 +310,13 @@ impl<A: Allocator> Default for PartialProvenance<'_, A> {
 }
 
 /// Partial representation of `TemporalMetadata`.
-pub struct PartialTemporalVersioning<'heap, A: Allocator> {
+pub(crate) struct PartialTemporalVersioning<'heap, A: Allocator> {
     pub decision_time: Required<Value<'heap, A>>,
     pub transaction_time: Required<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialTemporalVersioning<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -354,14 +349,14 @@ impl<A: Allocator> Default for PartialTemporalVersioning<'_, A> {
 ///
 /// This is distinct from [`PartialLinkEntityId`], which represents the
 /// identity of a *linked* entity and does not include `draft_id`.
-pub struct PartialEntityId<'heap, A: Allocator> {
+pub(crate) struct PartialEntityId<'heap, A: Allocator> {
     pub web_id: Required<Value<'heap, A>>,
     pub entity_uuid: Required<Value<'heap, A>>,
     pub draft_id: Optional<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialEntityId<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -389,13 +384,13 @@ impl<A: Allocator> Default for PartialEntityId<'_, A> {
 /// Partial representation of `RecordId`.
 ///
 /// Contains `entity_id` (composite of web, uuid, draft) and `edition_id`.
-pub struct PartialRecordId<'heap, A: Allocator> {
+pub(crate) struct PartialRecordId<'heap, A: Allocator> {
     pub entity_id: Required<PartialEntityId<'heap, A>>,
     pub edition_id: Required<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> PartialRecordId<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -427,7 +422,7 @@ impl<A: Allocator> Default for PartialRecordId<'_, A> {
 ///
 /// The entity ID fields use [`PartialLinkEntityId`] (web + uuid only),
 /// not [`PartialEntityId`] (which includes `draft_id`).
-pub struct PartialLinkData<'heap, A: Allocator> {
+pub(crate) struct PartialLinkData<'heap, A: Allocator> {
     pub left_entity_id: Required<PartialLinkEntityId<'heap, A>>,
     pub right_entity_id: Required<PartialLinkEntityId<'heap, A>>,
     pub left_entity_confidence: Optional<Value<'heap, A>>,
@@ -437,7 +432,7 @@ pub struct PartialLinkData<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PartialLinkData<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -490,7 +485,7 @@ impl<A: Allocator> Default for PartialLinkData<'_, A> {
 /// confusion with the entity's top-level `properties`.
 ///
 /// [`EntityPath::PropertyMetadata`]: hashql_mir::pass::execution::traversal::EntityPath::PropertyMetadata
-pub struct PartialMetadata<'heap, A: Allocator> {
+pub(crate) struct PartialMetadata<'heap, A: Allocator> {
     pub record_id: Required<PartialRecordId<'heap, A>>,
     pub temporal_versioning: Required<PartialTemporalVersioning<'heap, A>>,
     pub entity_type_ids: Required<Value<'heap, A>>,
@@ -501,7 +496,7 @@ pub struct PartialMetadata<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -556,7 +551,7 @@ impl<A: Allocator> Default for PartialMetadata<'_, A> {
 ///
 /// [`EntityMetadata`]: hashql_core::module::std_lib::graph::types::knowledge::entity::types::entity_metadata
 /// [`EntityEncodings`]: hashql_core::module::std_lib::graph::types::knowledge::entity::types::entity_encodings
-pub struct PartialEntity<'heap, A: Allocator> {
+pub(crate) struct PartialEntity<'heap, A: Allocator> {
     pub properties: Required<Value<'heap, A>>,
     pub metadata: Required<PartialMetadata<'heap, A>>,
     pub link_data: Optional<PartialLinkData<'heap, A>>,
@@ -564,7 +559,7 @@ pub struct PartialEntity<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PartialEntity<'heap, A> {
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {
@@ -584,6 +579,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         Value::Opaque(Opaque::new(sym::path::Entity, Rc::new_in(value, alloc)))
     }
 
+    #[expect(clippy::too_many_lines)]
     fn hydrate_from_postgres(
         &mut self,
         env: &Environment<'heap>,
@@ -931,18 +927,18 @@ impl<A: Allocator> Default for PartialEntity<'_, A> {
     }
 }
 
-pub enum Partial<'heap, A: Allocator> {
+pub(crate) enum Partial<'heap, A: Allocator> {
     Entity(PartialEntity<'heap, A>),
 }
 
 impl<'heap, A: Allocator> Partial<'heap, A> {
-    pub fn new(vertex_type: VertexType) -> Self {
+    pub(crate) fn new(vertex_type: VertexType) -> Self {
         match vertex_type {
             VertexType::Entity => Self::Entity(PartialEntity::default()),
         }
     }
 
-    pub fn hydrate_from_postgres(
+    pub(crate) fn hydrate_from_postgres(
         &mut self,
         env: &Environment<'heap>,
         decoder: &Decoder<'_, 'heap, A>,
@@ -961,7 +957,7 @@ impl<'heap, A: Allocator> Partial<'heap, A> {
         }
     }
 
-    pub fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
+    pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
     {

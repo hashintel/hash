@@ -1,39 +1,21 @@
 // The bridge has the goal of bridging the two worlds, and coordinates the different sources and
 // implementations.
 
-use core::{alloc::Allocator, marker::PhantomData, ops::Deref, pin::pin};
-use std::alloc::Global;
+use alloc::alloc::Global;
+use core::{alloc::Allocator, marker::PhantomData, ops::Deref};
 
-use futures_lite::StreamExt as _;
-use hashql_core::heap::ScratchPool;
 use hashql_mir::{
-    body::{
-        basic_block::BasicBlockId,
-        terminator::{GraphRead, GraphReadBody},
-    },
+    body::basic_block::BasicBlockId,
     def::{DefId, DefIdSlice},
     interpret::{
-        CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError, Yield,
-        suspension::{Continuation, GraphReadSuspension, Suspension},
-        value::{self, Value},
+        CallStack, Inputs, RuntimeError,
+        suspension::{Continuation, Suspension},
     },
-    pass::execution::TargetId,
 };
-use tokio::task::LocalSet;
-use tokio_postgres::{Client, Row};
+use tokio_postgres::Client;
 
-use self::{
-    codec::{decode::Decoder, encode::encode_parameter_in},
-    error::BridgeError,
-    partial::Partial,
-    postgres::PartialPostgresState,
-    request::GraphReadOrchestrator,
-    tail::Tail,
-};
-use crate::{
-    context::EvalContext,
-    postgres::{ColumnDescriptor, PreparedQuery},
-};
+use self::{error::BridgeError, request::GraphReadOrchestrator};
+use crate::{context::EvalContext, postgres::PreparedQuery};
 
 mod codec;
 pub(crate) mod error;
@@ -64,7 +46,7 @@ pub struct Indexed<T> {
 }
 
 impl<T> Indexed<T> {
-    pub fn new(index: usize, value: T) -> Self {
+    pub(crate) const fn new(index: usize, value: T) -> Self {
         Self { index, value }
     }
 }
@@ -77,20 +59,17 @@ impl<T> Deref for Indexed<T> {
     }
 }
 
-struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
+pub struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
     client: Client,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
-    tasks: LocalSet,
-
-    pool: ScratchPool,
 
     _marker: PhantomData<C>,
 }
 
 #[expect(clippy::future_not_send)]
 impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
-    async fn fulfill_in<L: Allocator + Clone>(
+    pub async fn fulfill_in<L: Allocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
@@ -106,7 +85,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         }
     }
 
-    async fn fulfill(
+    pub async fn fulfill(
         &self,
         inputs: &Inputs<'heap, Global>,
         callstack: &CallStack<'ctx, 'heap, Global>,
