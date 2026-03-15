@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.1",
-    "@storybook/react-vite": "10.2.13",
+    "@storybook/react-vite": "10.2.19",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260315.1",
@@ -41,7 +41,7 @@
     "oxlint": "1.55.0",
     "oxlint-tsgolint": "0.17.0",
     "rolldown-plugin-dts": "0.22.5",
-    "storybook": "10.2.13",
+    "storybook": "10.2.19",
     "vite": "8.0.0"
   },
   "peerDependencies": {
