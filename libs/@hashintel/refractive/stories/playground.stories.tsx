@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { CONVEX } from "../src/helpers/surface-equations";
+import { convex } from "../src/helpers/surface-equations";
 import { refractive } from "../src/hoc/refractive";
 import { ExampleArticle } from "./example-article";
 
@@ -11,7 +11,7 @@ const refraction = {
   bezelWidth: 30,
   glassThickness: 70,
   refractiveIndex: 1.5,
-  bezelHeightFn: CONVEX,
+  bezelHeightFn: convex,
   specularAngle: 2,
 };
 

@@ -1,42 +1,45 @@
-import path from "node:path";
-
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { dts } from "rolldown-plugin-dts";
 import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
 
-// Dependencies that should not be bundled into the library
-const external = [
-  "react",
-  "react-dom",
-  "react/jsx-runtime",
-  "react/jsx-dev-runtime",
-  "react/compiler-runtime",
-];
-
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
-    react({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    react(),
+    babel({
+      presets: [
+        reactCompilerPreset({
+          target: "19",
+          compilationMode: "infer",
+          // @ts-expect-error - panicThreshold is accepted at runtime
+          panicThreshold: "critical_errors",
+        }),
+      ],
     }),
-    dts({
-      rollupTypes: true,
-      insertTypesEntry: true,
-      exclude: ["**/*.test.*", "**/*.spec.*", "stories/**"],
-      copyDtsFiles: false,
-      outDir: "dist",
-    }),
+
+    command === "build" &&
+      dts({ tsgo: true }).map((plugin) =>
+        // Ensure runs before Vite's native TypeScript transform
+        plugin.name.endsWith("fake-js")
+          ? { ...plugin, enforce: "pre" }
+          : plugin,
+      ),
   ],
 
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/main.ts"),
-      formats: ["es", "cjs"],
-      fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
+      entry: "src/main.ts",
+      fileName: "index",
+      formats: ["es"],
     },
-    rollupOptions: {
-      external,
+    rolldownOptions: {
+      external: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react/compiler-runtime",
+      ],
       output: {
         globals: {
           react: "React",
@@ -48,4 +51,4 @@ export default defineConfig({
     emptyOutDir: true,
     minify: true,
   },
-});
+}));
