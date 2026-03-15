@@ -1,3 +1,21 @@
+//! Orchestrator for [`GraphRead`] suspensions.
+//!
+//! A [`GraphRead`] suspension is the interpreter's request to load entities
+//! from the graph store. The [`GraphReadOrchestrator`] resolves it by:
+//!
+//! 1. Looking up the pre-compiled SQL query for the suspension's `(body, block)`.
+//! 2. Encoding the query parameters from the interpreter's current state.
+//! 3. Executing the query against PostgreSQL and streaming rows.
+//! 4. For each row: hydrating flat columns into a nested entity [`Value`], decoding any
+//!    continuation state, running client-side filter chains (which may themselves involve
+//!    interpreter/postgres interleaving), and accumulating accepted values via a [`Tail`] strategy.
+//! 5. Packaging the collected output into a [`Continuation`] for the interpreter to resume with.
+//!
+//! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+//! [`Value`]: hashql_mir::interpret::value::Value
+//! [`Continuation`]: hashql_mir::interpret::suspension::Continuation
+//! [`Tail`]: super::super::tail::Tail
+
 use core::{alloc::Allocator, pin::pin};
 
 use futures_lite::StreamExt as _;
@@ -28,6 +46,15 @@ use crate::{
 type PartialState<'heap, L> = (Partial<'heap, L>, Vec<PartialPostgresState<L>, L>);
 type State<'heap, L> = (Value<'heap, L>, Vec<PostgresState<'heap, L>, L>);
 
+/// Handler for [`GraphRead`] suspensions.
+///
+/// Borrows the parent [`Orchestrator`] for access to the database client,
+/// query registry, and evaluation context. All work happens through
+/// [`fulfill_in`](Self::fulfill_in), which drives the full pipeline from
+/// query execution through row hydration, filtering, and result collection.
+///
+/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+/// [`Orchestrator`]: super::super::Orchestrator
 pub(crate) struct GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A: Allocator> {
     inner: &'or Orchestrator<'ctx, 'env, 'heap, C, A>,
 }

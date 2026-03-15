@@ -172,6 +172,15 @@ impl<A: Allocator> Serialize for Serde<&Value<'_, A>> {
     }
 }
 
+/// Serializes a runtime [`Value`] to a JSON [`RawValue`] suitable for use as
+/// a PostgreSQL `JSONB` parameter.
+///
+/// # Errors
+///
+/// Returns [`BridgeError::ValueSerialization`] if the value contains
+/// unsupported shapes (e.g. pointer values).
+///
+/// [`Value`]: hashql_mir::interpret::value::Value
 pub(crate) fn serialize_value<'heap, V: Allocator>(
     value: &Value<'heap, V>,
 ) -> Result<Json<Box<RawValue>>, BridgeError<'heap>> {
@@ -183,6 +192,19 @@ pub(crate) fn serialize_value<'heap, V: Allocator>(
         .map(Json)
 }
 
+/// Encodes a single query [`Parameter`] into a boxed [`ToSql`] value ready
+/// for the PostgreSQL wire protocol.
+///
+/// Handles all parameter variants: user inputs (serialized to JSON), literal
+/// integers and primitives, interned symbols, captured environment values,
+/// and temporal axis intervals.
+///
+/// # Errors
+///
+/// Returns a [`RuntimeError`] if environment lookup fails or value
+/// serialization fails.
+///
+/// [`ToSql`]: postgres_types::ToSql
 pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator>(
     parameter: &Parameter<'heap>,
     inputs: &'ctx Inputs<'heap, impl Allocator>,

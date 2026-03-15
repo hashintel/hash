@@ -1,12 +1,37 @@
+//! JSON codec for converting between interpreter [`Value`]s and the PostgreSQL
+//! wire format.
+//!
+//! - [`decode`]: deserializes JSON column values (from `tokio_postgres` rows) into typed
+//!   [`Value`]s, guided by the HashQL type system.
+//! - [`encode`]: serializes runtime [`Value`]s and query parameters into forms that
+//!   `tokio_postgres` can send to the database (via [`ToSql`]).
+//!
+//! The [`JsonValueRef`] type provides a borrowed view over `serde_json::Value`
+//! that avoids cloning during decode, while [`JsonValueKind`] is a data-free
+//! tag used in error reporting.
+//!
+//! [`Value`]: hashql_mir::interpret::value::Value
+//! [`ToSql`]: postgres_types::ToSql
+
 pub(crate) mod decode;
 pub(crate) mod encode;
 
+/// Newtype wrapper that provides [`ToSql`](postgres_types::ToSql)
+/// implementations for types that need custom PostgreSQL wire encoding.
 #[derive(Debug)]
 pub(crate) struct Postgres<T>(pub T);
 
+/// Newtype wrapper that provides [`Serialize`](serde::Serialize)
+/// implementations for types that need custom JSON serialization.
 #[derive(Debug)]
 pub(crate) struct Serde<T>(pub T);
 
+/// Borrowed view over a JSON value, avoiding clones during decode.
+///
+/// Mirrors the variants of [`serde_json::Value`] but holds references
+/// instead of owned data. Constructed from `&serde_json::Value` via the
+/// [`From`] impl, or directly for single-typed columns (e.g.
+/// `JsonValueRef::String(&str)` for a `TEXT` column).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum JsonValueRef<'value> {
     Null,

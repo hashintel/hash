@@ -1,3 +1,15 @@
+//! Continuation state for resuming interpreter execution after a database
+//! round-trip.
+//!
+//! When a compiled query returns continuation columns (target block, locals,
+//! values), they arrive as flat nullable fields in the result row. This module
+//! provides [`PartialPostgresState`] for accumulating those fields during
+//! hydration, and [`PostgresState`] for the validated, decoded form that can
+//! be flushed into a [`CallStack`] to resume interpretation at the correct
+//! basic block with the correct local variable bindings.
+//!
+//! [`CallStack`]: hashql_mir::interpret::CallStack
+
 use core::alloc::Allocator;
 
 use hashql_mir::{
@@ -14,6 +26,17 @@ use crate::{
     postgres::{ColumnDescriptor, ContinuationField},
 };
 
+/// In-progress continuation state being assembled from result row columns.
+///
+/// Each continuation is identified by a `(body, island)` pair. As columns are
+/// encountered during hydration, [`hydrate`](Self::hydrate) populates the
+/// target block, locals, and values fields. Once all columns for a row have
+/// been processed, [`finish_in`](Self::finish_in) validates completeness and
+/// decodes the JSON values into typed [`Value`]s, producing a
+/// [`PostgresState`] (or `None` if the continuation target was `NULL`,
+/// indicating no resumption is needed).
+///
+/// [`Value`]: hashql_mir::interpret::value::Value
 pub(crate) struct PartialPostgresState<A: Allocator> {
     pub body: DefId,
     pub island: IslandId,
@@ -183,6 +206,13 @@ impl<A: Allocator> PartialPostgresState<A> {
     }
 }
 
+/// Validated continuation state ready to be applied to a [`CallStack`].
+///
+/// Contains the target [`BasicBlockId`] to jump to and the decoded local
+/// variable bindings. Call [`flush`](Self::flush) to write these into the
+/// callstack's current frame, advancing execution to the continuation point.
+///
+/// [`CallStack`]: hashql_mir::interpret::CallStack
 pub(crate) struct PostgresState<'heap, A: Allocator> {
     pub body: DefId,
     pub island: IslandId,
@@ -192,6 +222,8 @@ pub(crate) struct PostgresState<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PostgresState<'heap, A> {
+    /// Writes the continuation state into `callstack`, setting the current
+    /// block to the target and populating locals with the decoded values.
     pub(crate) fn flush<'ctx, E>(
         &self,
         callstack: &mut CallStack<'ctx, 'heap, A>,

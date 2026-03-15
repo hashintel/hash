@@ -21,6 +21,22 @@ use crate::{
     postgres::ColumnDescriptor,
 };
 
+/// Type-directed JSON deserializer that converts column values into interpreter
+/// [`Value`]s.
+///
+/// Walks the HashQL type tree to determine how each JSON node should be
+/// interpreted: primitives map directly, structs expect JSON objects with
+/// matching keys, tuples expect arrays of the correct length, unions try each
+/// variant in order, and opaque types wrap their inner representation.
+///
+/// When the type is unknown ([`Param`], [`Infer`], [`Unknown`]), falls back to
+/// [`decode_unknown`](Self::decode_unknown), which uses JSON structure alone
+/// (objects become structs or dicts, arrays become lists, etc.).
+///
+/// [`Value`]: hashql_mir::interpret::value::Value
+/// [`Param`]: hashql_core::type_::kind::TypeKind::Param
+/// [`Infer`]: hashql_core::type_::kind::TypeKind::Infer
+/// [`Unknown`]: hashql_core::type_::kind::TypeKind::Unknown
 pub(crate) struct Decoder<'env, 'heap, A> {
     env: &'env Environment<'heap>,
     interner: &'env hashql_mir::intern::Interner<'heap>,
@@ -120,6 +136,21 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
         }
     }
 
+    /// Deserializes a JSON value into a typed [`Value`] guided by `type_id`.
+    ///
+    /// Recursively walks the type tree: opaque types wrap their inner
+    /// representation, structs expect JSON objects with matching keys, tuples
+    /// expect arrays of the correct length, unions try each variant in
+    /// declaration order, and primitives require exact JSON kind matches.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`DecodeError`] when the JSON shape does not match the
+    /// expected type (wrong kind, missing fields, length mismatches, etc.)
+    /// or when an unrepresentable type (intersection, closure, never)
+    /// reaches the decoder.
+    ///
+    /// [`Value`]: hashql_mir::interpret::value::Value
     #[expect(clippy::too_many_lines)]
     pub(crate) fn decode(
         &self,
