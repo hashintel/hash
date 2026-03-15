@@ -3,6 +3,7 @@ use core::{alloc::Allocator, pin::pin};
 use futures_lite::StreamExt as _;
 use hashql_mir::{
     body::terminator::{GraphRead, GraphReadBody},
+    def::DefId,
     interpret::{
         CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError, Yield,
         suspension::{Continuation, GraphReadSuspension},
@@ -124,7 +125,162 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
         Ok((entity, states))
     }
 
-    async fn graph_read_row_in<L: Allocator + Clone>(
+    #[expect(clippy::too_many_arguments)]
+    async fn process_row_filter_in<L: Allocator + Clone>(
+        &self,
+        inputs: &Inputs<'heap, L>,
+
+        runtime: &mut Runtime<'ctx, 'heap, L>,
+        states: &[PostgresState<'heap, L>],
+
+        body: DefId,
+
+        entity: &Value<'heap, L>,
+        env: &Value<'heap, L>,
+
+        alloc: L,
+    ) -> Result<bool, RuntimeError<'heap, BridgeError<'heap>, L>> {
+        let residual = self.inner.context.execution.lookup(body).ok_or_else(|| {
+            RuntimeError::Suspension(BridgeError::MissingExecutionResidual { body })
+        })?;
+
+        let Ok(mut callstack) = CallStack::new_in(
+            &self.inner.context.bodies[body],
+            [Ok::<_, !>(env.clone()), Ok(entity.clone())],
+            alloc.clone(),
+        );
+
+        let eval = 'eval: loop {
+            let (island_id, island_node) = residual.islands.lookup(callstack.current_block()?);
+
+            match island_node.target() {
+                TargetId::Interpreter => {
+                    loop {
+                        let next = runtime.run_until_transition(&mut callstack, |target| {
+                            residual.islands.lookup(target).0 != island_id
+                        })?;
+
+                        match next {
+                            core::ops::ControlFlow::Continue(Yield::Return(value)) => {
+                                let Value::Integer(value) = value else {
+                                    return Err(RuntimeError::Suspension(
+                                        BridgeError::InvalidFilterReturn { body },
+                                    ));
+                                };
+
+                                let Some(value) = value.as_bool() else {
+                                    return Err(RuntimeError::Suspension(
+                                        BridgeError::InvalidFilterReturn { body },
+                                    ));
+                                };
+
+                                break 'eval value;
+                            }
+                            core::ops::ControlFlow::Continue(Yield::Suspension(suspension)) => {
+                                let continuation = Box::pin(self.inner.fulfill_in(
+                                    inputs,
+                                    &callstack,
+                                    suspension,
+                                    alloc.clone(),
+                                ))
+                                .await?;
+
+                                continuation.apply(&mut callstack)?;
+                            }
+                            core::ops::ControlFlow::Break(_) => {
+                                // We're finished, this means, and the next island is
+                                // up. To determine the next island we simply break.
+                                break;
+                            }
+                        }
+                    }
+                }
+                TargetId::Postgres => {
+                    // Postgres is special, because we hoist any computation directly
+                    // into the initial query.
+                    // There can be two different cases here:
+                    // 1. The value is NULL, meaning that the filter has already been fully
+                    //    evaluated in the postgres query
+                    // 2. The value is not NULL, which means that we need to continue evaluation of
+                    //    the filter body.
+                    let Some(state) = states
+                        .iter()
+                        .find(|state| state.body == body && state.island == island_id)
+                    else {
+                        // This is the implicit value, in case that the where clause
+                        // upstream has been evaluated. If the postgres query has
+                        // produced a value, it must mean that the condition must've
+                        // been true.
+                        break 'eval true;
+                    };
+
+                    // We must not flush the locals of the body to the values that have
+                    // been captured, and advance the pointer.
+                    state.flush(&mut callstack)?;
+                }
+                TargetId::Embedding => {
+                    // TODO: in the future this may benefit from a dispatch barrier, the
+                    // idea that we wait for sufficient embedding calls to the same
+                    // island to dispatch. Must be smaller than the buffer size.
+                    unimplemented!()
+                }
+            }
+        };
+
+        Ok(eval)
+    }
+
+    async fn process_row_transform_in<L: Allocator + Clone>(
+        &self,
+        inputs: &Inputs<'heap, L>,
+        parent: &CallStack<'ctx, 'heap, L>,
+
+        states: &[PostgresState<'heap, L>],
+
+        entity: Value<'heap, L>,
+
+        read: &GraphRead<'heap>,
+
+        alloc: L,
+    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+        let mut runtime = Runtime::new_in(
+            RuntimeConfig::default(),
+            self.inner.context.bodies,
+            inputs,
+            alloc.clone(),
+        );
+
+        for body in &read.body {
+            match body {
+                &GraphReadBody::Filter(body, env) => {
+                    let env = parent.locals()?.local(env)?;
+
+                    runtime.reset();
+                    let result = self
+                        .process_row_filter_in(
+                            inputs,
+                            &mut runtime,
+                            states,
+                            body,
+                            &entity,
+                            env,
+                            alloc.clone(),
+                        )
+                        .await?;
+
+                    // Filters are short circuiting and act as `&&`, meaning if one is false, all
+                    // are.
+                    if !result {
+                        return Ok(None);
+                    }
+                }
+            }
+        }
+
+        Ok(Some(entity))
+    }
+
+    async fn process_row_in<L: Allocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
@@ -147,130 +303,13 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
 
         let (entity, states) = self.finish_in(&decoder, partial, partial_states, alloc.clone())?;
 
-        let mut runtime = Runtime::new_in(
-            RuntimeConfig::default(),
-            self.inner.context.bodies,
-            inputs,
-            alloc.clone(),
-        );
-
         // Now that we have the completed states, it's time to fulfill the graph read, by running
         // everything through the filter chain.
         // This is sequential in nature, because in the future filters may depend on the mapped
         // value. The parallelisation opportunity of sequential filters isn't applicable here,
         // instead that should be done inside either the HIR or MIR.
-        for body in &read.body {
-            match body {
-                &GraphReadBody::Filter(def_id, env) => {
-                    let residual =
-                        self.inner.context.execution.lookup(def_id).ok_or_else(|| {
-                            RuntimeError::Suspension(BridgeError::MissingExecutionResidual {
-                                body: def_id,
-                            })
-                        })?;
-
-                    let env = parent.locals()?.local(env)?;
-
-                    let Ok(mut callstack) = CallStack::new_in(
-                        &self.inner.context.bodies[def_id],
-                        [Ok::<_, !>(env.clone()), Ok(entity.clone())],
-                        alloc.clone(),
-                    );
-
-                    let eval = 'eval: loop {
-                        let (island_id, island_node) =
-                            residual.islands.lookup(callstack.current_block()?);
-
-                        match island_node.target() {
-                            TargetId::Interpreter => {
-                                loop {
-                                    let next = runtime
-                                        .run_until_transition(&mut callstack, |target| {
-                                            residual.islands.lookup(target).0 != island_id
-                                        })?;
-
-                                    match next {
-                                        core::ops::ControlFlow::Continue(Yield::Return(value)) => {
-                                            let Value::Integer(value) = value else {
-                                                return Err(RuntimeError::Suspension(
-                                                    BridgeError::InvalidFilterReturn {
-                                                        body: def_id,
-                                                    },
-                                                ));
-                                            };
-
-                                            let Some(value) = value.as_bool() else {
-                                                return Err(RuntimeError::Suspension(
-                                                    BridgeError::InvalidFilterReturn {
-                                                        body: def_id,
-                                                    },
-                                                ));
-                                            };
-
-                                            break 'eval value;
-                                        }
-                                        core::ops::ControlFlow::Continue(Yield::Suspension(
-                                            suspension,
-                                        )) => {
-                                            let continuation = Box::pin(self.inner.fulfill_in(
-                                                inputs,
-                                                &callstack,
-                                                suspension,
-                                                alloc.clone(),
-                                            ))
-                                            .await?;
-
-                                            continuation.apply(&mut callstack)?;
-                                        }
-                                        core::ops::ControlFlow::Break(_) => {
-                                            // We're finished, this means, and the next island is
-                                            // up. To determine the next island we simply break.
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            TargetId::Postgres => {
-                                // Postgres is special, because we hoist any computation directly
-                                // into the initial query.
-                                // There can be two different cases here:
-                                // 1. The value is NULL, meaning that the filter has already been
-                                //    fully evaluated in the postgres query
-                                // 2. The value is not NULL, which means that we need to continue
-                                //    evaluation of the filter body.
-                                let Some(state) = states.iter().find(|state| {
-                                    state.body == def_id && state.island == island_id
-                                }) else {
-                                    // This is the implicit value, in case that the where clause
-                                    // upstream has been evaluated. If the postgres query has
-                                    // produced a value, it must mean that the condition must've
-                                    // been true.
-                                    break 'eval true;
-                                };
-
-                                // We must not flush the locals of the body to the values that have
-                                // been captured, and advance the pointer.
-                                state.flush(&mut callstack)?;
-                            }
-                            TargetId::Embedding => {
-                                // TODO: in the future this may benefit from a dispatch barrier, the
-                                // idea that we wait for sufficient embedding calls to the same
-                                // island to dispatch. Must be smaller than the buffer size.
-                                unimplemented!()
-                            }
-                        }
-                    };
-
-                    // Filters are short circuiting and act as `&&`, meaning if one is false, all
-                    // are.
-                    if !eval {
-                        return Ok(None);
-                    }
-                }
-            }
-        }
-
-        Ok(Some(entity))
+        self.process_row_transform_in(inputs, parent, &states, entity, read, alloc)
+            .await
     }
 
     // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
@@ -338,7 +377,7 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
                 .map_err(RuntimeError::Suspension)?;
 
             let item = self
-                .graph_read_row_in(inputs, callstack, read, query, row, alloc.clone())
+                .process_row_in(inputs, callstack, read, query, row, alloc.clone())
                 .await?;
 
             if let Some(item) = item {

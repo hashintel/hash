@@ -1,6 +1,5 @@
 use core::alloc::Allocator;
 
-use hashql_core::heap::CollectIn as _;
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, local::Local},
     def::DefId,
@@ -25,7 +24,7 @@ pub(crate) struct PartialPostgresState<A: Allocator> {
 }
 
 impl<A: Allocator> PartialPostgresState<A> {
-    pub(crate) fn new(body: DefId, island: IslandId) -> Self {
+    pub(crate) const fn new(body: DefId, island: IslandId) -> Self {
         Self {
             body,
             island,
@@ -54,7 +53,7 @@ impl<A: Allocator> PartialPostgresState<A> {
 
                 match block_id {
                     Some(block_id) => {
-                        let block_id = u32::try_from(block_id).map_err(|_| {
+                        let block_id = u32::try_from(block_id).map_err(|_err| {
                             BridgeError::InvalidContinuationBlockId {
                                 body: self.body,
                                 block_id,
@@ -78,12 +77,17 @@ impl<A: Allocator> PartialPostgresState<A> {
 
                 match locals {
                     Some(locals) => {
-                        self.locals = Optional::Value(
-                            locals
-                                .into_iter()
-                                .map(|local| Local::new(local as u32))
-                                .collect_in(alloc),
-                        );
+                        let mut result = Vec::with_capacity_in(locals.len(), alloc);
+                        for local in locals {
+                            let local = u32::try_from(local).map(Local::new).map_err(|_err| {
+                                BridgeError::InvalidContinuationLocal {
+                                    body: self.body,
+                                    local,
+                                }
+                            })?;
+                            result.push(local);
+                        }
+                        self.locals = Optional::Value(result);
                     }
                     None => {
                         self.locals = Optional::Null(());
@@ -188,7 +192,7 @@ pub(crate) struct PostgresState<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> PostgresState<'heap, A> {
-    pub fn flush<'ctx, E>(
+    pub(crate) fn flush<'ctx, E>(
         &self,
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<(), RuntimeError<'heap, E, A>>

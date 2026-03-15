@@ -59,6 +59,11 @@ const INVALID_CONTINUATION_BLOCK_ID: TerminalDiagnosticCategory = TerminalDiagno
     name: "Invalid Continuation Block ID",
 };
 
+const INVALID_CONTINUATION_LOCAL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-continuation-local",
+    name: "Invalid Continuation Local",
+};
+
 const QUERY_LOOKUP: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "query-lookup",
     name: "Query Lookup",
@@ -281,6 +286,20 @@ pub enum BridgeError<'heap> {
         block_id: i32,
     },
 
+    /// A continuation local index returned by PostgreSQL is out of range.
+    ///
+    /// The SQL lowering pass encodes local variable indices as integers in the
+    /// query result. A negative value cannot represent a valid [`Local`] and
+    /// indicates a bug in the lowering pass.
+    ///
+    /// [`Local`]: hashql_mir::body::local::Local
+    InvalidContinuationLocal {
+        /// The definition containing the continuation.
+        body: DefId,
+        /// The invalid local value returned by PostgreSQL.
+        local: i32,
+    },
+
     /// No prepared query exists for this graph read location.
     ///
     /// Every [`GraphRead`] terminator in the MIR should have a corresponding
@@ -351,6 +370,9 @@ impl<'heap> BridgeError<'heap> {
             } => continuation_deserialization(span, body, local, &source, env),
             Self::InvalidContinuationBlockId { body, block_id } => {
                 invalid_continuation_block_id(span, body, block_id)
+            }
+            Self::InvalidContinuationLocal { body, local } => {
+                invalid_continuation_local(span, body, local)
             }
             Self::ParameterEncoding { parameter, source } => {
                 parameter_encoding(span, parameter, &*source)
@@ -572,6 +594,21 @@ fn invalid_continuation_block_id(span: SpanId, body: DefId, block_id: i32) -> In
 
     diagnostic.add_message(Message::help(
         "the SQL lowering pass should produce non-negative block IDs for continuations",
+    ));
+
+    diagnostic
+}
+
+fn invalid_continuation_local(span: SpanId, body: DefId, local: i32) -> InterpretDiagnostic {
+    let mut diagnostic = Diagnostic::new(category(&INVALID_CONTINUATION_LOCAL), Severity::Bug)
+        .primary(Label::new(span, "continuation returned an invalid local"));
+
+    diagnostic.add_message(Message::note(format!(
+        "definition {body} returned local {local}, which cannot represent a valid local"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "the SQL lowering pass should produce non-negative local indices for continuations",
     ));
 
     diagnostic
