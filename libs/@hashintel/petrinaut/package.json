@@ -49,7 +49,8 @@
     "react-resizable-panels": "4.6.5",
     "typescript": "5.9.3",
     "uuid": "13.0.0",
-    "vscode-languageserver-types": "3.17.5"
+    "vscode-languageserver-types": "3.17.5",
+    "web-worker": "1.4.1"
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",

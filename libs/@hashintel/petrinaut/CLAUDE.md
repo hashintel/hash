@@ -26,7 +26,7 @@ function useMyHook() {
 }
 ```
 
-The compiler runs with `panicThreshold: "CRITICAL_ERRORS"` — the build fails if it encounters critical errors not opted out via `"use no memo"`.
+The compiler runs with `panicThreshold: "critical_errors"` — the build fails if it encounters critical errors not opted out via `"use no memo"`.
 
 ## Commands
 

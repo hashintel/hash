@@ -661,6 +661,7 @@ __metadata:
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:13.0.0"
     wait-on: "npm:9.0.1"
+    web-worker: "npm:1.4.1"
     webpack: "npm:5.104.1"
   languageName: unknown
   linkType: soft
@@ -7979,6 +7980,7 @@ __metadata:
     vite: "npm:8.0.0"
     vitest: "npm:4.1.0"
     vscode-languageserver-types: "npm:3.17.5"
+    web-worker: "npm:1.4.1"
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:^"
@@ -45969,6 +45971,13 @@ __metadata:
   version: 2.0.1
   resolution: "web-namespaces@npm:2.0.1"
   checksum: 10c0/df245f466ad83bd5cd80bfffc1674c7f64b7b84d1de0e4d2c0934fb0782e0a599164e7197a4bce310ee3342fd61817b8047ff04f076a1ce12dd470584142a4bd
+  languageName: node
+  linkType: hard
+
+"web-worker@npm:1.4.1":
+  version: 1.4.1
+  resolution: "web-worker@npm:1.4.1"
+  checksum: 10c0/8b5e6099692ad83e0bcd72595e9bbec9c5cc0c910215dce21379050c9a96d9678f651c161e58f29d5ecf62d50bbd897543b4fa1bcea83cd273dbf219fdda1089
   languageName: node
   linkType: hard
 
