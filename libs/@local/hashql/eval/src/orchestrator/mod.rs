@@ -8,8 +8,9 @@ use hashql_mir::{
     body::basic_block::BasicBlockId,
     def::{DefId, DefIdSlice},
     interpret::{
-        CallStack, Inputs, RuntimeError,
+        CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError,
         suspension::{Continuation, Suspension},
+        value::Value,
     },
 };
 use tokio_postgres::Client;
@@ -69,6 +70,42 @@ pub struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
 
 #[expect(clippy::future_not_send)]
 impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
+    pub async fn run_in<L: Allocator + Clone>(
+        &self,
+        inputs: &Inputs<'heap, L>,
+
+        body: DefId,
+        args: impl IntoIterator<Item = Value<'heap, L>, IntoIter: ExactSizeIterator>,
+
+        alloc: L,
+    ) -> Result<Value<'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+        let mut runtime = Runtime::new_in(
+            RuntimeConfig::default(),
+            self.context.bodies,
+            inputs,
+            alloc.clone(),
+        );
+        runtime.reset();
+
+        let mut callstack = CallStack::new(&runtime, body, args);
+
+        loop {
+            let next = runtime.run_until_suspension(&mut callstack)?;
+            match next {
+                hashql_mir::interpret::Yield::Return(value) => {
+                    return Ok(value);
+                }
+                hashql_mir::interpret::Yield::Suspension(suspension) => {
+                    let continuation = self
+                        .fulfill_in(inputs, &callstack, suspension, alloc.clone())
+                        .await?;
+
+                    continuation.apply(&mut callstack)?;
+                }
+            }
+        }
+    }
+
     pub async fn fulfill_in<L: Allocator + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
