@@ -87,7 +87,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
     `;
 
     // Use Function constructor to create and execute the module
-    // eslint-disable-next-line no-new-func
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
     const compiledFunction = new Function(executableCode)() as (
       ...args: T
     ) => unknown;

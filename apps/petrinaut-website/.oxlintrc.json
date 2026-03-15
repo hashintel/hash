@@ -45,6 +45,9 @@
     ],
     "no-void": ["error", { "allowAsStatement": true }],
 
+    "no-console": "error",
+    "new-cap": "error",
+    "no-new-func": "error",
     "func-names": "error",
     "no-bitwise": "error",
     "no-multi-assign": "error",
@@ -88,6 +91,7 @@
       "error",
       { "tags": [], "roles": ["tabpanel"] }
     ],
+    "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/no-static-element-interactions": [
       "error",
       {
@@ -113,6 +117,11 @@
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-require-imports": "error",
     "@typescript-eslint/no-unnecessary-type-constraint": "error",
+    "@typescript-eslint/no-implied-eval": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/no-unnecessary-condition": "error",
+    "@typescript-eslint/no-unsafe-assignment": "error",
+    "@typescript-eslint/no-unsafe-call": "error",
     "@typescript-eslint/no-unsafe-function-type": "error",
 
     "unicorn/no-new-array": "off",

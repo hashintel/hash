@@ -7,8 +7,8 @@
     "build": "vite build",
     "dev": "vite",
     "lint:tsc": "tsgo --noEmit",
-    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
-    "fix:eslint": "oxlint --fix ."
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error ."
   },
   "dependencies": {
     "@hashintel/petrinaut": "workspace:*",
@@ -26,6 +26,7 @@
     "@vitejs/plugin-react": "6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.55.0",
+    "oxlint-tsgolint": "0.17.0",
     "vite": "8.0.0"
   }
 }

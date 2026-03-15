@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { use, useEffect, useRef, useState } from "react";
 
 import { useLatest } from "../hooks/use-latest";

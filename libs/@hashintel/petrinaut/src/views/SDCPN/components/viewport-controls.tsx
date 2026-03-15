@@ -64,6 +64,7 @@ export const ViewportControls: React.FC = () => {
         variant="outline"
         aria-label="Zoom in"
         tooltip="Zoom in"
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
       >
         <TbPlus size={14} />
@@ -73,6 +74,7 @@ export const ViewportControls: React.FC = () => {
         variant="outline"
         aria-label="Zoom out"
         tooltip="Zoom out"
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
       >
         <TbMinus size={14} />

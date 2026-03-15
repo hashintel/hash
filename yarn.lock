@@ -781,6 +781,7 @@ __metadata:
     babel-plugin-react-compiler: "npm:1.0.0"
     immer: "npm:10.1.3"
     oxlint: "npm:1.55.0"
+    oxlint-tsgolint: "npm:0.17.0"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     vite: "npm:8.0.0"
@@ -7965,6 +7966,7 @@ __metadata:
     jsdom: "npm:24.1.3"
     monaco-editor: "npm:0.55.1"
     oxlint: "npm:1.55.0"
+    oxlint-tsgolint: "npm:0.17.0"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-icons: "npm:5.5.0"
@@ -11855,6 +11857,48 @@ __metadata:
   version: 0.115.0
   resolution: "@oxc-project/types@npm:0.115.0"
   checksum: 10c0/47fc31eb3fb3fcf4119955339f92ba2003f9b445834c1a28ed945cd6b9cd833c7ba66fca88aa5277336c2c55df300a593bc67970e544691eceaa486ebe12cb58
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/darwin-arm64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/darwin-arm64@npm:0.17.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/darwin-x64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/darwin-x64@npm:0.17.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/linux-arm64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/linux-arm64@npm:0.17.0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/linux-x64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/linux-x64@npm:0.17.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/win32-arm64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/win32-arm64@npm:0.17.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@oxlint-tsgolint/win32-x64@npm:0.17.0":
+  version: 0.17.0
+  resolution: "@oxlint-tsgolint/win32-x64@npm:0.17.0"
+  conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
@@ -37292,6 +37336,35 @@ __metadata:
     object-keys: "npm:^1.1.1"
     safe-push-apply: "npm:^1.0.0"
   checksum: 10c0/6dfeb3455bff92ec3f16a982d4e3e65676345f6902d9f5ded1d8265a6318d0200ce461956d6d1c70053c7fe9f9fe65e552faac03f8140d37ef0fdd108e67013a
+  languageName: node
+  linkType: hard
+
+"oxlint-tsgolint@npm:0.17.0":
+  version: 0.17.0
+  resolution: "oxlint-tsgolint@npm:0.17.0"
+  dependencies:
+    "@oxlint-tsgolint/darwin-arm64": "npm:0.17.0"
+    "@oxlint-tsgolint/darwin-x64": "npm:0.17.0"
+    "@oxlint-tsgolint/linux-arm64": "npm:0.17.0"
+    "@oxlint-tsgolint/linux-x64": "npm:0.17.0"
+    "@oxlint-tsgolint/win32-arm64": "npm:0.17.0"
+    "@oxlint-tsgolint/win32-x64": "npm:0.17.0"
+  dependenciesMeta:
+    "@oxlint-tsgolint/darwin-arm64":
+      optional: true
+    "@oxlint-tsgolint/darwin-x64":
+      optional: true
+    "@oxlint-tsgolint/linux-arm64":
+      optional: true
+    "@oxlint-tsgolint/linux-x64":
+      optional: true
+    "@oxlint-tsgolint/win32-arm64":
+      optional: true
+    "@oxlint-tsgolint/win32-x64":
+      optional: true
+  bin:
+    tsgolint: bin/tsgolint.js
+  checksum: 10c0/8a01a5bfad70a66fea3ca94d38aad8af1fdcc8ed7a2ca7b24d1a975de906c3d2bc7b4616c83411141429da4b13d72b26b02a3526d8d34933a0b2839d8aa7b66a
   languageName: node
   linkType: hard
 
