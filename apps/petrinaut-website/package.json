@@ -7,8 +7,8 @@
     "build": "vite build",
     "dev": "vite",
     "lint:tsc": "tsgo --noEmit",
-    "lint:eslint": "oxlint .",
-    "fix:eslint": "oxlint --fix ."
+    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error ."
   },
   "dependencies": {
     "@hashintel/petrinaut": "workspace:*",

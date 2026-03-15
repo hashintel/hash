@@ -15,7 +15,7 @@
     "default-param-last": "error",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "guard-for-in": "error",
-    "no-alert": "warn",
+    "no-alert": "error",
     "no-cond-assign": ["error", "always"],
     "no-extend-native": "error",
     "no-loop-func": "error",
@@ -45,7 +45,7 @@
     ],
     "no-void": ["error", { "allowAsStatement": true }],
 
-    "func-names": "warn",
+    "func-names": "error",
     "no-bitwise": "error",
     "no-multi-assign": "error",
 
@@ -73,19 +73,19 @@
       }
     ],
 
-    "import/no-named-as-default": "warn",
-    "import/no-named-as-default-member": "warn",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
-    "import/no-duplicates": "warn",
+    "import/no-duplicates": "error",
     "import/no-named-default": "error",
     "import/no-self-import": "error",
-    "import/no-cycle": "warn",
+    "import/no-cycle": "error",
 
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
-    "react/no-danger": "warn",
+    "react/no-danger": "error",
     "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
     "react/jsx-no-comment-textnodes": "error",
-    "react/no-array-index-key": "warn",
+    "react/no-array-index-key": "error",
     "react/button-has-type": [
       "error",
       { "button": true, "submit": true, "reset": false }
