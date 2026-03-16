@@ -23,8 +23,13 @@ pub(crate) struct Postgres<T>(pub T);
 
 /// Newtype wrapper that provides [`Serialize`](serde::Serialize)
 /// implementations for types that need custom JSON serialization.
+///
+/// Wrap a `&Value` in `Serde` to serialize it to JSON using the interpreter's
+/// value representation rules: booleans serialize as JSON booleans (not
+/// integers), opaques unwrap to their inner value, structs serialize as
+/// objects with field names as keys.
 #[derive(Debug)]
-pub(crate) struct Serde<T>(pub T);
+pub struct Serde<T>(pub T);
 
 /// Borrowed view over a JSON value, avoiding clones during decode.
 ///

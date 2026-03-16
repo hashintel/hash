@@ -41,6 +41,7 @@ hash-graph-test-data.workspace = true
 hashql-compiletest             = { workspace = true }
 insta                          = { workspace = true }
 libtest-mimic                  = { workspace = true }
+similar-asserts                = { workspace = true }
 testcontainers                 = { workspace = true, features = ["reusable-containers"] }
 testcontainers-modules         = { workspace = true, features = ["postgres"] }
 

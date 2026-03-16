@@ -58,7 +58,7 @@ use tokio_postgres::Client;
 use self::{error::BridgeError, request::GraphReadOrchestrator};
 use crate::{context::EvalContext, postgres::PreparedQueries};
 
-mod codec;
+pub mod codec;
 pub(crate) mod error;
 mod partial;
 mod postgres;

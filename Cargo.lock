@@ -4051,6 +4051,7 @@ dependencies = [
  "postgres-types",
  "serde",
  "serde_json",
+ "similar-asserts",
  "simple-mermaid",
  "testcontainers",
  "testcontainers-modules",
