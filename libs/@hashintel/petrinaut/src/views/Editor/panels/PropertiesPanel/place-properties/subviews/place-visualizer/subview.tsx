@@ -321,5 +321,9 @@ export const placeVisualizerSubView: SubView = {
   renderHeaderAction: () => <VisualizerHeaderAction />,
   alwaysShowHeaderAction: true,
   defaultCollapsed: true,
-  minHeight: 200,
+  resizable: {
+    minHeight: 200,
+    maxHeight: 1200,
+    defaultHeight: 300,
+  },
 };

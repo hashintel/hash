@@ -237,4 +237,9 @@ export const transitionMainContentSubView: SubView = {
   component: TransitionMainContent,
   renderHeaderAction: () => <DeleteTransitionAction />,
   alwaysShowHeaderAction: true,
+  resizable: {
+    minHeight: 100,
+    maxHeight: 1200,
+    defaultHeight: 300,
+  },
 };

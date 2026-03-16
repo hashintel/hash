@@ -12,7 +12,7 @@ const HEADER_HEIGHT = 44;
 /** Size of the icon in the main header */
 const HEADER_ICON_SIZE = 16;
 /** Default minimum panel height when no per-subview minHeight is set */
-const DEFAULT_MIN_PANEL_HEIGHT = 400;
+const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
 const containerStyle = css({
   flex: "[1]",
