@@ -78,6 +78,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setArcRendering,
     partialSelection,
     setPartialSelection,
+    useEntitiesTreeView,
+    setUseEntitiesTreeView,
   } = use(UserSettingsContext);
 
   return (
@@ -117,6 +119,15 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               <Switch
                 checked={partialSelection}
                 onCheckedChange={setPartialSelection}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Entities tree view"
+              description="Show a unified tree of all entities in the left sidebar"
+            >
+              <Switch
+                checked={useEntitiesTreeView}
+                onCheckedChange={setUseEntitiesTreeView}
               />
             </SettingRow>
             <SettingRow label="Arcs rendering">

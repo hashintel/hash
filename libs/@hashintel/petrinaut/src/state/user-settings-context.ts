@@ -39,6 +39,7 @@ export type UserSettings = {
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
   partialSelection: boolean;
+  useEntitiesTreeView: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -56,6 +57,7 @@ export type UserSettingsActions = {
   setCursorMode: (value: CursorMode) => void;
   setTimelineChartType: (value: TimelineChartType) => void;
   setPartialSelection: (value: boolean) => void;
+  setUseEntitiesTreeView: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -79,6 +81,7 @@ export const defaultUserSettings: UserSettings = {
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
   partialSelection: true,
+  useEntitiesTreeView: false,
   subViewPanels: {},
 };
 
@@ -97,6 +100,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setCursorMode: () => {},
   setTimelineChartType: () => {},
   setPartialSelection: () => {},
+  setUseEntitiesTreeView: () => {},
   updateSubViewSection: () => {},
 };
 

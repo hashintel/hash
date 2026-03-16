@@ -7,7 +7,10 @@ import {
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
-import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
+import {
+  LEFT_SIDEBAR_SUBVIEWS,
+  LEFT_SIDEBAR_TREE_SUBVIEWS,
+} from "../../../../constants/ui-subviews";
 import { EditorContext } from "../../../../state/editor-context";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
 import { searchSubView } from "./subviews/search-panel";
@@ -101,7 +104,11 @@ export const LeftSideBar: React.FC = () => {
     isSearchOpen,
   } = use(EditorContext);
 
-  const { keepPanelsMounted } = use(UserSettingsContext);
+  const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
+
+  const sidebarSubViews = useEntitiesTreeView
+    ? LEFT_SIDEBAR_TREE_SUBVIEWS
+    : LEFT_SIDEBAR_SUBVIEWS;
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 
@@ -133,7 +140,7 @@ export const LeftSideBar: React.FC = () => {
         >
           <VerticalSubViewsContainer
             name="left-sidebar"
-            subViews={LEFT_SIDEBAR_SUBVIEWS}
+            subViews={sidebarSubViews}
           />
         </div>
         <div

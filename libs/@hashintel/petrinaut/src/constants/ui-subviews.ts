@@ -10,6 +10,7 @@ import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
 import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
+import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
 import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
 import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
@@ -20,6 +21,8 @@ export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
   differentialEquationsListSubView,
   parametersListSubView,
 ];
+
+export const LEFT_SIDEBAR_TREE_SUBVIEWS: SubView[] = [entitiesTreeSubView];
 
 // Base subviews always visible in the bottom panel
 export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
