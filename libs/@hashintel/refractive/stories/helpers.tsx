@@ -1,7 +1,7 @@
 import { useId } from "react";
 
 import type { SurfaceFnDef } from "../src/helpers/surface-equations";
-import { CONVEX } from "../src/helpers/surface-equations";
+import { convex } from "../src/helpers/surface-equations";
 
 export type SharedFilterProps = {
   blur: number;
@@ -22,7 +22,7 @@ export const defaultFilterArgs: SharedFilterProps = {
   refractiveIndex: 1.5,
   specularOpacity: 0.9,
   specularAngle: 2,
-  bezelHeightFn: CONVEX,
+  bezelHeightFn: convex,
 };
 
 export const filterArgTypes = {

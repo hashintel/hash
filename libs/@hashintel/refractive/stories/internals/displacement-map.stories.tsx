@@ -3,10 +3,10 @@ import { useEffect, useRef } from "react";
 
 import type { SurfaceFnDef } from "../../src/helpers/surface-equations";
 import {
-  CONCAVE,
-  CONVEX,
-  CONVEX_CIRCLE,
-  LIP,
+  concave,
+  convex,
+  convexCircle,
+  lip,
 } from "../../src/helpers/surface-equations";
 import {
   calculateDisplacementMap,
@@ -109,7 +109,7 @@ const meta = {
     bezelWidth: 30,
     refractiveIndex: 1.5,
     pixelRatio: 6,
-    bezelHeightFn: CONVEX,
+    bezelHeightFn: convex,
   },
 } satisfies Meta<typeof DisplacementMapVis>;
 
@@ -117,7 +117,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Convex: Story = { args: { bezelHeightFn: CONVEX } };
-export const ConvexCircle: Story = { args: { bezelHeightFn: CONVEX_CIRCLE } };
-export const Concave: Story = { args: { bezelHeightFn: CONCAVE } };
-export const Lip: Story = { args: { bezelHeightFn: LIP } };
+export const Convex: Story = { args: { bezelHeightFn: convex } };
+export const ConvexCircle: Story = { args: { bezelHeightFn: convexCircle } };
+export const Concave: Story = { args: { bezelHeightFn: concave } };
+export const Lip: Story = { args: { bezelHeightFn: lip } };

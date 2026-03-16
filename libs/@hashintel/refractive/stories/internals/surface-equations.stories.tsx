@@ -3,10 +3,10 @@ import { useEffect, useRef } from "react";
 
 import type { SurfaceFnDef } from "../../src/helpers/surface-equations";
 import {
-  CONCAVE,
-  CONVEX,
-  CONVEX_CIRCLE,
-  LIP,
+  concave,
+  convex,
+  convexCircle,
+  lip,
 } from "../../src/helpers/surface-equations";
 import { calculateDisplacementMapRadius } from "../../src/maps/displacement-map";
 
@@ -15,10 +15,10 @@ const PLOT_HEIGHT = 300;
 const PADDING = 40;
 
 const equations: { name: string; fn: SurfaceFnDef; color: string }[] = [
-  { name: "CONVEX", fn: CONVEX, color: "#4fc3f7" },
-  { name: "CONVEX_CIRCLE", fn: CONVEX_CIRCLE, color: "#81c784" },
-  { name: "CONCAVE", fn: CONCAVE, color: "#ff8a65" },
-  { name: "LIP", fn: LIP, color: "#ce93d8" },
+  { name: "convex", fn: convex, color: "#4fc3f7" },
+  { name: "convexCircle", fn: convexCircle, color: "#81c784" },
+  { name: "concave", fn: concave, color: "#ff8a65" },
+  { name: "lip", fn: lip, color: "#ce93d8" },
 ];
 
 type Props = {
