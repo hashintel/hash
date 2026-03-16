@@ -18,7 +18,7 @@ import {
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
  */
-const DifferentialEquationsSectionHeaderAction: React.FC = () => {
+export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,

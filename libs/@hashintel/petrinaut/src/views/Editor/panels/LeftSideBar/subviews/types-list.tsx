@@ -60,7 +60,7 @@ function getNextTypeNumber(existingNames: string[]): number {
 /**
  * TypesSectionHeaderAction renders the add button for the types section header.
  */
-const TypesSectionHeaderAction: React.FC = () => {
+export const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
     addType,

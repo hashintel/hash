@@ -25,7 +25,7 @@ const parameterVarNameStyle = css({
  * Header action component for adding parameters.
  * Shown in the panel header when not in simulation mode.
  */
-const ParametersHeaderAction: React.FC = () => {
+export const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     addParameter,

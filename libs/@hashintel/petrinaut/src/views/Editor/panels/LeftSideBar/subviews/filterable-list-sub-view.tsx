@@ -168,6 +168,8 @@ interface FilterableListItem {
   children?: FilterableListItem[];
   /** Message shown when this group is expanded but has no children. */
   emptyGroupMessage?: string;
+  /** Optional action component shown on the right side of a group row (e.g. an add button). */
+  renderGroupAction?: ComponentType;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -567,6 +569,16 @@ const FilterableListContent = <T extends FilterableListItem>({
                 {renderItem(item, isSelected)}
               </div>
             </div>
+            {isGroup && item.renderGroupAction && (
+              <span
+                role="presentation"
+                data-row-action
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <item.renderGroupAction />
+              </span>
+            )}
             {!isGroup && RenderRowMenu && <RenderRowMenu item={item} />}
           </div>
         );

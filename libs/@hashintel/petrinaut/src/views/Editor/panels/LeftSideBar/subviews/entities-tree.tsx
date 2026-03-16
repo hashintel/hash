@@ -15,10 +15,13 @@ import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
+import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
+import { ParametersHeaderAction } from "./parameters-list";
+import { TypesSectionHeaderAction } from "./types-list";
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -33,6 +36,7 @@ interface EntityTreeItem {
   iconColor?: string;
   children?: EntityTreeItem[];
   emptyGroupMessage?: string;
+  renderGroupAction?: ComponentType;
   selectionItem?: SelectionItem;
   variableName?: string;
 }
@@ -121,6 +125,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
       id: "group-types",
       name: "Token Types",
       emptyGroupMessage: "No token types",
+      renderGroupAction: TypesSectionHeaderAction,
       children: types.map((t) => ({
         id: t.id,
         name: t.name,
@@ -133,6 +138,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
       id: "group-equations",
       name: "Differential Equations",
       emptyGroupMessage: "No differential equations",
+      renderGroupAction: DifferentialEquationsSectionHeaderAction,
       children: differentialEquations.map((eq) => ({
         id: eq.id,
         name: eq.name,
@@ -147,6 +153,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
       id: "group-parameters",
       name: "Parameters",
       emptyGroupMessage: "No parameters",
+      renderGroupAction: ParametersHeaderAction,
       children: parameters.map((p) => ({
         id: p.id,
         name: p.name,
