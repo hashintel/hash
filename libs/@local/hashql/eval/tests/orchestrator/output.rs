@@ -1,49 +1,159 @@
 use alloc::alloc::Global;
-use std::{fs, io, path::Path};
+use std::{fs, path::Path};
 
+use error_stack::{Report, ResultExt as _};
+use hashql_compiletest::pipeline::Pipeline;
+use hashql_core::span::SpanId;
+use hashql_diagnostics::{
+    Source, Sources,
+    diagnostic::{
+        BoxedDiagnostic,
+        render::{ColorDepth, Format, RenderOptions},
+    },
+};
 use hashql_eval::orchestrator::codec::Serde;
 use hashql_mir::interpret::value::Value;
 use similar_asserts::SimpleDiff;
 
-/// Serializes a [`Value`] to a stable, human-readable JSON string suitable
-/// for snapshot comparison.
-pub(crate) fn render_value(value: &Value<'_, Global>) -> String {
-    serde_json::to_string_pretty(&Serde(value)).expect("value should be serializable")
+use crate::error::TestError;
+
+/// Renders a single diagnostic to a plain-text string using the pipeline's
+/// span table for source resolution.
+fn render_diagnostic(
+    source: &str,
+    pipeline: &Pipeline<'_>,
+    diagnostic: &BoxedDiagnostic<'_, SpanId>,
+) -> String {
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
+
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
+
+    diagnostic.render(options, &mut &pipeline.spans)
+}
+
+/// Renders accumulated warnings from the pipeline into a single string.
+///
+/// Returns `None` if there are no warnings.
+fn render_warnings(source: &str, pipeline: &Pipeline<'_>) -> Option<String> {
+    if pipeline.diagnostics.is_empty() {
+        return None;
+    }
+
+    let mut output = String::new();
+
+    for diagnostic in pipeline.diagnostics.iter() {
+        if !output.is_empty() {
+            output.push_str("\n\n");
+        }
+        output.push_str(&render_diagnostic(source, pipeline, diagnostic));
+    }
+
+    Some(output)
+}
+
+/// Renders the complete test output: the JSON value followed by any warnings.
+///
+/// The format is:
+/// ```text
+/// <json value>
+/// ---
+/// <warning 1>
+///
+/// <warning 2>
+/// ```
+///
+/// The `---` separator and warnings section only appear when warnings exist.
+///
+/// # Errors
+///
+/// Returns [`TestError::Serialization`] if the value cannot be serialized to
+/// JSON.
+pub(crate) fn render_success(
+    source: &str,
+    value: &Value<'_, Global>,
+    pipeline: &Pipeline<'_>,
+) -> Result<String, Report<TestError>> {
+    let json =
+        serde_json::to_string_pretty(&Serde(value)).change_context(TestError::Serialization)?;
+
+    let mut output = json;
+
+    if let Some(warnings) = render_warnings(source, pipeline) {
+        output.push_str("\n---\n");
+        output.push_str(&warnings);
+    }
+
+    Ok(output)
+}
+
+/// Renders a compilation or execution failure as a test error message.
+///
+/// Includes the rendered diagnostic and any accumulated warnings from
+/// earlier pipeline stages.
+pub(crate) fn render_failure(
+    source: &str,
+    pipeline: &Pipeline<'_>,
+    diagnostic: &BoxedDiagnostic<'_, SpanId>,
+) -> String {
+    let mut output = render_diagnostic(source, pipeline, diagnostic);
+
+    if let Some(warnings) = render_warnings(source, pipeline) {
+        output.push_str("\n\nalso emitted warnings:\n");
+        output.push_str(&warnings);
+    }
+
+    output
 }
 
 /// Compares rendered output against the expected `.stdout` file.
 ///
 /// If `bless` is true, writes the actual output to the file instead of
-/// comparing. Returns `Ok(())` on match or after blessing, `Err` with a
-/// diff message on mismatch.
+/// comparing.
+///
+/// # Errors
+///
+/// Returns [`TestError::OutputMismatch`] when the actual output differs from
+/// the expected content, with the diff attached to the report.
 pub(crate) fn compare_or_bless(
     actual: &str,
     expected_path: &Path,
     bless: bool,
-) -> Result<(), Box<dyn core::error::Error>> {
+) -> Result<(), Report<TestError>> {
     if bless {
         if let Some(parent) = expected_path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent)
+                .change_context(TestError::OutputMismatch)
+                .attach_with(|| format!("could not create directory {}", parent.display()))?;
         }
 
-        fs::write(expected_path, actual)?;
+        fs::write(expected_path, actual)
+            .change_context(TestError::OutputMismatch)
+            .attach_with(|| {
+                format!(
+                    "could not write blessed output to {}",
+                    expected_path.display()
+                )
+            })?;
+
         return Ok(());
     }
 
     let expected = match fs::read_to_string(expected_path) {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Err(Box::from(format!(
-                "expected output file {} does not exist; run with --bless to create it\n\nactual \
-                 output:\n{actual}",
-                expected_path.display()
-            )));
+            return Err(Report::new(TestError::OutputMismatch)
+                .attach(format!(
+                    "expected output file {} does not exist; run with --bless to create it",
+                    expected_path.display()
+                ))
+                .attach(format!("actual output:\n{actual}")));
         }
         Err(error) => {
-            return Err(Box::from(format!(
-                "could not read {}: {error}",
-                expected_path.display()
-            )));
+            return Err(Report::new(error)
+                .change_context(TestError::OutputMismatch)
+                .attach(format!("could not read {}", expected_path.display())));
         }
     };
 
@@ -53,7 +163,7 @@ pub(crate) fn compare_or_bless(
 
     let diff = SimpleDiff::from_str(&expected, actual, "expected", "actual");
 
-    Err(Box::from(format!(
+    Err(Report::new(TestError::OutputMismatch).attach(format!(
         "output mismatch for {}\n\n{diff}\n\nrun with --bless to update the expected output",
         expected_path.display()
     )))

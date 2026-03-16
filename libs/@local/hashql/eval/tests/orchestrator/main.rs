@@ -1,10 +1,10 @@
 #![feature(allocator_api)]
 extern crate alloc;
 
-use alloc::alloc::Global;
-use core::error::Error;
-use std::sync::Arc;
+use alloc::{alloc::Global, sync::Arc};
 
+use error_stack::{Report, ResultExt as _};
+use hashql_compiletest::pipeline::Pipeline;
 use hashql_core::heap::Heap;
 use hashql_mir::interpret::Inputs;
 use testcontainers::{ImageExt as _, ReuseDirective, runners::AsyncRunner as _};
@@ -13,53 +13,74 @@ use tokio::runtime::{self, Runtime};
 use tokio_postgres::{Client, NoTls};
 
 mod discover;
+mod error;
 mod execution;
 mod output;
 mod seed;
 
 use self::{
-    discover::{TestSource, discover_jexpr_tests, discover_programmatic_tests, test_ui_dir},
-    output::{compare_or_bless, render_value},
+    discover::{
+        ProgrammaticBuilder, TestSource, discover_jexpr_tests, discover_programmatic_tests,
+        test_ui_dir,
+    },
+    error::{SetupError, TestError},
+    output::{compare_or_bless, render_failure, render_success},
     seed::SeededEntities,
 };
 
 struct TestContext {
-    runtime: Runtime,
+    _container: testcontainers::ContainerAsync<Postgres>,
+    #[expect(
+        dead_code,
+        reason = "will be used by programmatic tests that need entity IDs"
+    )]
     entities: SeededEntities,
     host: String,
     port: u16,
 }
 
 impl TestContext {
-    async fn connect(&self) -> Result<Client, Box<dyn Error>> {
-        let (client, connection) = tokio_postgres::Config::new()
-            .user("hash")
-            .password("hash")
-            .host(&self.host)
-            .port(self.port)
-            .dbname("hash")
-            .connect(NoTls)
-            .await?;
-        tokio::spawn(connection);
-
+    fn connect(&self, runtime: &Runtime) -> Result<Client, Report<TestError>> {
+        let (client, connection) = runtime
+            .block_on(
+                tokio_postgres::Config::new()
+                    .user("hash")
+                    .password("hash")
+                    .host(&self.host)
+                    .port(self.port)
+                    .dbname("hash")
+                    .connect(NoTls),
+            )
+            .change_context(TestError::Connection)?;
+        runtime.handle().spawn(connection);
         Ok(client)
     }
 }
 
-async fn setup() -> Result<TestContext, Box<dyn Error>> {
+async fn setup() -> Result<TestContext, Report<SetupError>> {
     let container = Postgres::default()
         .with_user("hash")
         .with_password("hash")
         .with_reuse(ReuseDirective::CurrentSession)
         .start()
-        .await?;
+        .await
+        .change_context(SetupError::Container)?;
 
-    let host = container.get_host().await?.to_string();
-    let port = container.get_host_port_ipv4(5432).await?;
+    let host = container
+        .get_host()
+        .await
+        .change_context(SetupError::Container)
+        .attach("could not resolve container host")?
+        .to_string();
+    let port = container
+        .get_host_port_ipv4(5432)
+        .await
+        .change_context(SetupError::Container)
+        .attach("could not resolve container port")?;
 
     let (_store, entities) = seed::setup(&host, port).await?;
 
-    Ok(TestDatabase {
+    Ok(TestContext {
         _container: container,
         entities,
         host,
@@ -67,19 +88,88 @@ async fn setup() -> Result<TestContext, Box<dyn Error>> {
     })
 }
 
-const PROGRAMMATIC_TESTS: &[(&str, ())] = &[];
+/// Runs a J-Expr test: parse source, compile, execute, compare output.
+fn run_jexpr_test(
+    runtime: &Runtime,
+    context: &TestContext,
+    path: &std::path::Path,
+    expected_output: &std::path::Path,
+    bless: bool,
+) -> Result<(), Report<TestError>> {
+    let bytes = std::fs::read(path)
+        .change_context(TestError::ReadSource)
+        .attach_with(|| format!("{}", path.display()))?;
 
-fn main() -> Result<(), Box<dyn Error>> {
+    let source = String::from_utf8_lossy(&bytes);
+    let heap = Heap::new();
+    let inputs = Inputs::<Global>::new();
+    let mut pipeline = Pipeline::new(&heap);
+
+    let client = context.connect(runtime)?;
+
+    match execution::execute_parse(&mut pipeline, runtime, client, &inputs, &bytes) {
+        Ok(value) => {
+            let rendered = render_success(&source, &value, &pipeline)?;
+            compare_or_bless(&rendered, expected_output, bless)
+        }
+        Err(diagnostic) => {
+            let rendered = render_failure(&source, &pipeline, &diagnostic);
+            Err(Report::new(TestError::Execution).attach(rendered))
+        }
+    }
+}
+
+/// Runs a programmatic test: build MIR directly, execute, compare output.
+fn run_programmatic_test(
+    runtime: &Runtime,
+    context: &TestContext,
+    builder: ProgrammaticBuilder,
+    expected_output: &std::path::Path,
+    bless: bool,
+) -> Result<(), Report<TestError>> {
+    let heap = Heap::new();
+    let (interner, entry, mut bodies, inputs) = builder(&heap);
+    let mut pipeline = Pipeline::new(&heap);
+
+    let client = context.connect(runtime)?;
+
+    // Programmatic tests have no J-Expr source, so diagnostics render
+    // without source context (all spans are synthetic).
+    let source = "";
+
+    match execution::execute(
+        &mut pipeline,
+        runtime,
+        client,
+        &inputs,
+        &interner,
+        entry,
+        &mut bodies,
+    ) {
+        Ok(value) => {
+            let rendered = render_success(source, &value, &pipeline)?;
+            compare_or_bless(&rendered, expected_output, bless)
+        }
+        Err(diagnostic) => {
+            let rendered = render_failure(source, &pipeline, &diagnostic);
+            Err(Report::new(TestError::Execution).attach(rendered))
+        }
+    }
+}
+
+const PROGRAMMATIC_TESTS: &[(&str, ProgrammaticBuilder)] = &[];
+
+fn main() -> Result<(), Report<SetupError>> {
     let arguments = libtest_mimic::Arguments::from_args();
     let bless = std::env::args().any(|arg| arg == "--bless");
 
     let runtime = runtime::Builder::new_current_thread()
         .enable_all()
-        .build()?;
-    let runtime = Arc::new(runtime);
+        .build()
+        .change_context(SetupError::Container)
+        .attach("could not build tokio runtime")?;
 
-    let mut context = runtime.block_on(setup())?;
-
+    let context = runtime.block_on(setup())?;
     let context = Arc::new(context);
 
     let ui_dir = test_ui_dir();
@@ -90,29 +180,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_iter()
         .map(|test_case| {
             let context = Arc::clone(&context);
-            let runtime = Arc::clone(&runtime);
 
             libtest_mimic::Trial::test(&test_case.name, move || {
-                let heap = Heap::new();
-                let inputs = Inputs::<Global>::new();
-
-                let client = runtime.block_on(context.connect())?;
+                // Each trial gets its own single-threaded runtime because
+                // the setup runtime cannot be shared into Send closures.
+                let runtime = runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|error| format!("could not build trial runtime: {error}"))?;
 
                 let result = match &test_case.source {
                     TestSource::JExpr { path } => {
-                        let bytes = std::fs::read(path)?;
-
-                        execution::execute_parse(&runtime, client, &heap, &inputs, &bytes)
-                            .map_err(|diagnostic| format!("{diagnostic:?}"))
+                        run_jexpr_test(&runtime, &context, path, &test_case.expected_output, bless)
                     }
-                    TestSource::Programmatic { index: _ } => {
-                        todo!("programmatic test execution")
-                    }
-                }?;
+                    TestSource::Programmatic { builder } => run_programmatic_test(
+                        &runtime,
+                        &context,
+                        *builder,
+                        &test_case.expected_output,
+                        bless,
+                    ),
+                };
 
-                let rendered = render_value(&result);
-                compare_or_bless(&rendered, &test_case.expected_output, bless)?;
-                Ok(())
+                result.map_err(|report| format!("{report:?}").into())
             })
         })
         .collect();

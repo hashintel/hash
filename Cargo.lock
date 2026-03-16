@@ -4035,6 +4035,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive_more",
+ "error-stack",
  "futures-lite",
  "hash-graph-authorization",
  "hash-graph-postgres-store",

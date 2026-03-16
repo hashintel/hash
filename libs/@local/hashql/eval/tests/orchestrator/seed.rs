@@ -1,6 +1,7 @@
 use alloc::sync::Arc;
 use std::collections::HashMap;
 
+use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::store::{AsClient as _, PostgresStore, PostgresStoreSettings};
 use hash_graph_store::{
@@ -34,6 +35,8 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
+use crate::error::SetupError;
+
 /// Entity IDs created during seeding, needed by tests to construct queries
 /// and provide inputs.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -64,7 +67,7 @@ const fn entity_provenance() -> ProvidedEntityEditionProvenance {
 /// if seeding was already completed.
 async fn load_existing_seed(
     store: &PostgresStore<Client>,
-) -> Result<Option<SeededEntities>, Box<dyn core::error::Error>> {
+) -> Result<Option<SeededEntities>, Report<SetupError>> {
     let client = store.as_client();
 
     client
@@ -75,19 +78,25 @@ async fn load_existing_seed(
             )",
             &[],
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not create state table")?;
 
     let row = client
         .query_opt(
             "SELECT value FROM _orchestrator_test_state WHERE key = $1",
             &[&SEED_KEY],
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not query seed state")?;
 
     match row {
         Some(row) => {
             let value: serde_json::Value = row.get(0);
-            let entities: SeededEntities = serde_json::from_value(value)?;
+            let entities: SeededEntities = serde_json::from_value(value)
+                .change_context(SetupError::Seed)
+                .attach("could not deserialize stored seed state")?;
             Ok(Some(entities))
         }
         None => Ok(None),
@@ -97,8 +106,10 @@ async fn load_existing_seed(
 async fn save_seed(
     store: &PostgresStore<Client>,
     entities: &SeededEntities,
-) -> Result<(), Box<dyn core::error::Error>> {
-    let value = serde_json::to_value(entities)?;
+) -> Result<(), Report<SetupError>> {
+    let value = serde_json::to_value(entities)
+        .change_context(SetupError::Seed)
+        .attach("could not serialize seed state")?;
 
     store
         .as_client()
@@ -106,7 +117,9 @@ async fn save_seed(
             "INSERT INTO _orchestrator_test_state (key, value) VALUES ($1, $2)",
             &[&SEED_KEY, &value],
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not persist seed state")?;
 
     Ok(())
 }
@@ -118,7 +131,7 @@ async fn save_seed(
 pub(crate) async fn setup(
     host: &str,
     port: u16,
-) -> Result<(PostgresStore<Client>, SeededEntities), Box<dyn core::error::Error>> {
+) -> Result<(PostgresStore<Client>, SeededEntities), Report<SetupError>> {
     let (client, connection) = tokio_postgres::Config::new()
         .user("hash")
         .password("hash")
@@ -126,12 +139,21 @@ pub(crate) async fn setup(
         .port(port)
         .dbname("hash")
         .connect(NoTls)
-        .await?;
+        .await
+        .change_context(SetupError::Connection)?;
     tokio::spawn(connection);
 
     let mut store = PostgresStore::new(client, None, Arc::new(PostgresStoreSettings::default()));
-    store.run_migrations().await?;
-    store.seed_system_policies().await?;
+
+    store
+        .run_migrations()
+        .await
+        .change_context(SetupError::Migration)?;
+    store
+        .seed_system_policies()
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not seed system policies")?;
 
     if let Some(entities) = load_existing_seed(&store).await? {
         return Ok((store, entities));
@@ -143,32 +165,17 @@ pub(crate) async fn setup(
     Ok((store, entities))
 }
 
-async fn seed_data(
+/// Seeds all ontology types (data types, property types, entity types).
+async fn seed_ontology(
     store: &mut PostgresStore<Client>,
-) -> Result<SeededEntities, Box<dyn core::error::Error>> {
-    let system_account_id: MachineId = store.get_or_create_system_machine("h").await?;
-    let user_id = store
-        .create_user_actor(
-            system_account_id.into(),
-            CreateUserActorParams {
-                user_id: None,
-                shortname: Some("orchestrator-test".to_owned()),
-                registration_complete: true,
-            },
-        )
-        .await?
-        .user_id;
-
-    let actor_id: ActorEntityUuid = user_id.into();
-    let web_id: WebId = user_id.into();
-
+    actor_id: ActorEntityUuid,
+    ownership: &OntologyOwnership,
+) -> Result<(), Report<SetupError>> {
     let ontology_provenance = ProvidedOntologyEditionProvenance {
         actor_type: ActorType::User,
         origin: OriginProvenance::from_empty_type(OriginType::Api),
         sources: Vec::new(),
     };
-
-    let ownership = OntologyOwnership::Local { web_id };
 
     store
         .create_data_types(
@@ -184,7 +191,9 @@ async fn seed_data(
                     conversions: HashMap::new(),
                 }),
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not seed data types")?;
 
     store
         .create_property_types(
@@ -209,7 +218,9 @@ async fn seed_data(
                 provenance: ontology_provenance.clone(),
             }),
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not seed property types")?;
 
     store
         .create_entity_types(
@@ -230,16 +241,25 @@ async fn seed_data(
                 provenance: ontology_provenance.clone(),
             }),
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not seed entity types")?;
 
-    let alice_properties: PropertyObject =
-        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
-    let bob_properties: PropertyObject =
-        serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
-    let organization_properties: PropertyObject =
-        serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
+    Ok(())
+}
 
-    let alice = store
+/// Creates a non-link entity from a property JSON fixture and entity type JSON.
+async fn create_entity(
+    store: &mut PostgresStore<Client>,
+    actor_id: ActorEntityUuid,
+    web_id: WebId,
+    entity_type_json: &str,
+    properties_json: &str,
+) -> Result<EntityId, Report<SetupError>> {
+    let properties: PropertyObject =
+        serde_json::from_str(properties_json).expect("could not parse entity properties");
+
+    let entity = store
         .create_entity(
             actor_id,
             CreateEntityParams {
@@ -247,9 +267,9 @@ async fn seed_data(
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: std::collections::HashSet::from([entity_type_id(
-                    entity_type::PERSON_V1,
+                    entity_type_json,
                 )]),
-                properties: PropertyObjectWithMetadata::from_parts(alice_properties, None)
+                properties: PropertyObjectWithMetadata::from_parts(properties, None)
                     .expect("could not create property metadata"),
                 confidence: None,
                 link_data: None,
@@ -258,52 +278,66 @@ async fn seed_data(
                 provenance: entity_provenance(),
             },
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)?;
 
-    let bob = store
-        .create_entity(
-            actor_id,
-            CreateEntityParams {
-                web_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: std::collections::HashSet::from([entity_type_id(
-                    entity_type::PERSON_V1,
-                )]),
-                properties: PropertyObjectWithMetadata::from_parts(bob_properties, None)
-                    .expect("could not create property metadata"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                policies: Vec::new(),
-                provenance: entity_provenance(),
+    Ok(entity.metadata.record_id.entity_id)
+}
+
+async fn seed_data(
+    store: &mut PostgresStore<Client>,
+) -> Result<SeededEntities, Report<SetupError>> {
+    let system_account_id: MachineId = store
+        .get_or_create_system_machine("h")
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not create system machine")?;
+    let user_id = store
+        .create_user_actor(
+            system_account_id.into(),
+            CreateUserActorParams {
+                user_id: None,
+                shortname: Some("orchestrator-test".to_owned()),
+                registration_complete: true,
             },
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not create test user")?
+        .user_id;
 
-    let organization = store
-        .create_entity(
-            actor_id,
-            CreateEntityParams {
-                web_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: std::collections::HashSet::from([entity_type_id(
-                    entity_type::ORGANIZATION_V1,
-                )]),
-                properties: PropertyObjectWithMetadata::from_parts(organization_properties, None)
-                    .expect("could not create property metadata"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                policies: Vec::new(),
-                provenance: entity_provenance(),
-            },
-        )
-        .await?;
+    let actor_id: ActorEntityUuid = user_id.into();
+    let web_id: WebId = user_id.into();
+    let ownership = OntologyOwnership::Local { web_id };
 
-    let alice_entity_id = alice.metadata.record_id.entity_id;
-    let bob_entity_id = bob.metadata.record_id.entity_id;
+    seed_ontology(store, actor_id, &ownership).await?;
+
+    let alice = create_entity(
+        store,
+        actor_id,
+        web_id,
+        entity_type::PERSON_V1,
+        entity::PERSON_ALICE_V1,
+    )
+    .await?;
+
+    let bob = create_entity(
+        store,
+        actor_id,
+        web_id,
+        entity_type::PERSON_V1,
+        entity::PERSON_BOB_V1,
+    )
+    .await?;
+
+    let organization = create_entity(
+        store,
+        actor_id,
+        web_id,
+        entity_type::ORGANIZATION_V1,
+        entity::ORGANIZATION_V1,
+    )
+    .await?;
 
     let friend_link = store
         .create_entity(
@@ -319,8 +353,8 @@ async fn seed_data(
                     .expect("could not create property metadata"),
                 confidence: None,
                 link_data: Some(LinkData {
-                    left_entity_id: alice_entity_id,
-                    right_entity_id: bob_entity_id,
+                    left_entity_id: alice,
+                    right_entity_id: bob,
                     left_entity_confidence: Confidence::new(0.9),
                     left_entity_provenance: PropertyProvenance::default(),
                     right_entity_confidence: Confidence::new(0.8),
@@ -331,12 +365,14 @@ async fn seed_data(
                 provenance: entity_provenance(),
             },
         )
-        .await?;
+        .await
+        .change_context(SetupError::Seed)
+        .attach("could not create friend-of link entity")?;
 
     Ok(SeededEntities {
-        alice: alice_entity_id,
-        bob: bob_entity_id,
-        organization: organization.metadata.record_id.entity_id,
+        alice,
+        bob,
+        organization,
         friend_link: friend_link.metadata.record_id.entity_id,
     })
 }
