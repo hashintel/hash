@@ -1,0 +1,14 @@
+// Select Alice (a Person, not a link). Verifies NULL link columns from
+// LEFT JOIN produce Optional::Null, not a hydration error.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

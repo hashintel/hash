@@ -1,5 +1,5 @@
 use alloc::alloc::Global;
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path, sync::LazyLock};
 
 use error_stack::{Report, ResultExt as _};
 use hashql_compiletest::pipeline::Pipeline;
@@ -13,6 +13,7 @@ use hashql_diagnostics::{
 };
 use hashql_eval::orchestrator::codec::Serde;
 use hashql_mir::interpret::value::Value;
+use regex::Regex;
 use similar_asserts::SimpleDiff;
 
 use crate::error::TestError;
@@ -53,6 +54,37 @@ fn render_warnings(source: &str, pipeline: &Pipeline<'_>) -> Option<String> {
     Some(output)
 }
 
+static UUID_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+        .expect("UUID regex is valid")
+});
+
+static TIMESTAMP_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
+        .expect("timestamp regex is valid")
+});
+
+/// Replaces UUIDs with positional placeholders (`<uuid:0>`, `<uuid:1>`, ...)
+/// and ISO timestamps with `<timestamp>`.
+///
+/// The same UUID always maps to the same placeholder within a single output,
+/// preserving structural assertions (e.g. two fields referencing the same
+/// entity get the same `<uuid:N>` tag).
+fn normalize(input: &str) -> String {
+    let mut uuid_map: HashMap<String, usize> = HashMap::new();
+
+    let after_uuids = UUID_RE.replace_all(input, |caps: &regex::Captures<'_>| {
+        let uuid = caps[0].to_owned();
+        let count = uuid_map.len();
+        let index = *uuid_map.entry(uuid).or_insert(count);
+        format!("<uuid:{index}>")
+    });
+
+    TIMESTAMP_RE
+        .replace_all(&after_uuids, "<timestamp>")
+        .into_owned()
+}
+
 /// Renders the complete test output: the JSON value followed by any warnings.
 ///
 /// The format is:
@@ -78,7 +110,7 @@ pub(crate) fn render_success(
     let json =
         serde_json::to_string_pretty(&Serde(value)).change_context(TestError::Serialization)?;
 
-    let mut output = json;
+    let mut output = normalize(&json);
 
     if let Some(warnings) = render_warnings(source, pipeline) {
         output.push_str("\n---\n");

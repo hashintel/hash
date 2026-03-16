@@ -1,0 +1,14 @@
+// Select the Organization entity by UUID. Different entity type, different
+// property schema. Catches bugs where type ID binding is hard-coded to Person.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "org_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

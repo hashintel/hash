@@ -4050,6 +4050,7 @@ dependencies = [
  "libtest-mimic",
  "postgres-protocol",
  "postgres-types",
+ "regex",
  "serde",
  "serde_json",
  "similar-asserts",

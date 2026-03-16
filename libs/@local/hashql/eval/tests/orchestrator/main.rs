@@ -1,39 +1,38 @@
 #![feature(allocator_api)]
 extern crate alloc;
 
-use alloc::{alloc::Global, sync::Arc};
+use alloc::sync::Arc;
 
 use error_stack::{Report, ResultExt as _};
 use hashql_compiletest::pipeline::Pipeline;
 use hashql_core::heap::Heap;
-use hashql_mir::interpret::Inputs;
 use testcontainers::{ImageExt as _, ReuseDirective, runners::AsyncRunner as _};
 use testcontainers_modules::postgres::Postgres;
 use tokio::runtime::{self, Runtime};
 use tokio_postgres::{Client, NoTls};
 
+mod directives;
 mod discover;
 mod error;
 mod execution;
+mod inputs;
 mod output;
 mod seed;
 
 use self::{
+    directives::parse_directives,
     discover::{
         ProgrammaticBuilder, TestSource, discover_jexpr_tests, discover_programmatic_tests,
         test_ui_dir,
     },
     error::{SetupError, TestError},
+    inputs::build_inputs,
     output::{compare_or_bless, render_failure, render_success},
     seed::SeededEntities,
 };
 
 struct TestContext {
     _container: testcontainers::ContainerAsync<Postgres>,
-    #[expect(
-        dead_code,
-        reason = "will be used by programmatic tests that need entity IDs"
-    )]
     entities: SeededEntities,
     host: String,
     port: u16,
@@ -88,7 +87,7 @@ async fn setup() -> Result<TestContext, Report<SetupError>> {
     })
 }
 
-/// Runs a J-Expr test: parse source, compile, execute, compare output.
+/// Runs a J-Expr test: parse, lower, build inputs, execute, compare output.
 fn run_jexpr_test(
     runtime: &Runtime,
     context: &TestContext,
@@ -101,13 +100,30 @@ fn run_jexpr_test(
         .attach_with(|| format!("{}", path.display()))?;
 
     let source = String::from_utf8_lossy(&bytes);
+    let axis_directives = parse_directives(&source);
     let heap = Heap::new();
-    let inputs = Inputs::<Global>::new();
     let mut pipeline = Pipeline::new(&heap);
 
     let client = context.connect(runtime)?;
 
-    match execution::execute_parse(&mut pipeline, runtime, client, &inputs, &bytes) {
+    // Lower first so the type environment is populated, then build inputs.
+    let mut lowered = match execution::lower(&mut pipeline, &bytes) {
+        Ok(lowered) => lowered,
+        Err(diagnostic) => {
+            let rendered = render_failure(&source, &pipeline, &diagnostic);
+            return Err(Report::new(TestError::Execution).attach(rendered));
+        }
+    };
+
+    let inputs = build_inputs(
+        &heap,
+        &pipeline,
+        &lowered.interner,
+        &context.entities,
+        &axis_directives,
+    );
+
+    match execution::run(&mut pipeline, runtime, client, &inputs, &mut lowered) {
         Ok(value) => {
             let rendered = render_success(&source, &value, &pipeline)?;
             compare_or_bless(&rendered, expected_output, bless)
@@ -182,8 +198,6 @@ fn main() -> Result<(), Report<SetupError>> {
             let context = Arc::clone(&context);
 
             libtest_mimic::Trial::test(&test_case.name, move || {
-                // Each trial gets its own single-threaded runtime because
-                // the setup runtime cannot be shared into Send closures.
                 let runtime = runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()

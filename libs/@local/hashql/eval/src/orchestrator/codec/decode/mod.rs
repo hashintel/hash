@@ -40,7 +40,7 @@ mod tests;
 /// [`Param`]: hashql_core::type_::kind::TypeKind::Param
 /// [`Infer`]: hashql_core::type_::kind::TypeKind::Infer
 /// [`Unknown`]: hashql_core::type_::kind::TypeKind::Unknown
-pub(crate) struct Decoder<'env, 'heap, A> {
+pub struct Decoder<'env, 'heap, A> {
     env: &'env Environment<'heap>,
     interner: &'env hashql_mir::intern::Interner<'heap>,
 
@@ -48,7 +48,7 @@ pub(crate) struct Decoder<'env, 'heap, A> {
 }
 
 impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
-    pub(crate) const fn new(
+    pub const fn new(
         env: &'env Environment<'heap>,
         interner: &'env hashql_mir::intern::Interner<'heap>,
         alloc: A,
@@ -155,7 +155,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
     ///
     /// [`Value`]: hashql_mir::interpret::value::Value
     #[expect(clippy::too_many_lines)]
-    pub(crate) fn decode(
+    pub fn decode(
         &self,
         type_id: TypeId,
         value: JsonValueRef<'_>,

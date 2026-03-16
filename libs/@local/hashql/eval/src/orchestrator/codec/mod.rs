@@ -16,6 +16,9 @@
 pub(crate) mod decode;
 pub(crate) mod encode;
 
+pub use self::decode::Decoder;
+pub use crate::orchestrator::error::DecodeError;
+
 /// Newtype wrapper that provides [`ToSql`](postgres_types::ToSql)
 /// implementations for types that need custom PostgreSQL wire encoding.
 #[derive(Debug)]
@@ -38,7 +41,7 @@ pub struct Serde<T>(pub T);
 /// [`From`] impl, or directly for single-typed columns (e.g.
 /// `JsonValueRef::String(&str)` for a `TEXT` column).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum JsonValueRef<'value> {
+pub enum JsonValueRef<'value> {
     Null,
     Bool(bool),
     Number(&'value serde_json::Number),

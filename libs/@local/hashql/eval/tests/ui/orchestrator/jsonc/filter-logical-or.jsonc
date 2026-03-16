@@ -1,0 +1,10 @@
+// Logical OR: first false, second true. All entities pass.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["||", {"#literal": false}, {"#literal": true}]
+    ]
+  ]
+]

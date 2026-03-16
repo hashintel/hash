@@ -43,6 +43,7 @@ hashql-compiletest             = { workspace = true }
 hashql-diagnostics             = { workspace = true, features = ["render"] }
 insta                          = { workspace = true }
 libtest-mimic                  = { workspace = true }
+regex                          = { workspace = true }
 similar-asserts                = { workspace = true }
 testcontainers                 = { workspace = true, features = ["reusable-containers"] }
 testcontainers-modules         = { workspace = true, features = ["postgres"] }
