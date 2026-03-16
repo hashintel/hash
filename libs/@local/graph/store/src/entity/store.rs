@@ -579,6 +579,13 @@ pub enum LinkDeletionBehavior {
 ///             }
 ///         ]
 ///     },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
 ///     "includeDrafts": false,
 ///     "scope": "purge",
 ///     "linkBehavior": "error"
@@ -593,6 +600,13 @@ pub enum LinkDeletionBehavior {
 /// # use hash_graph_store::entity::DeleteEntitiesParams;
 /// let json = serde_json::json!({
 ///     "filter": { "all": [] },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
 ///     "includeDrafts": true,
 ///     "scope": "erase"
 /// });
