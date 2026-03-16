@@ -65,7 +65,7 @@ use self::{
 };
 pub use self::{
     continuation::ContinuationField,
-    parameters::{Parameter, ParameterIndex, Parameters, TemporalAxis},
+    parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
 };
 use crate::context::EvalContext;
 
@@ -125,8 +125,11 @@ impl<A: Allocator> DatabaseContext<'_, A> {
         let tx_param = self
             .parameters
             .temporal_axis(TemporalAxis::Transaction)
-            .into();
-        let dt_param = self.parameters.temporal_axis(TemporalAxis::Decision).into();
+            .to_expr();
+        let dt_param = self
+            .parameters
+            .temporal_axis(TemporalAxis::Decision)
+            .to_expr();
 
         self.where_expression.add_condition(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {

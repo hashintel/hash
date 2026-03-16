@@ -59,7 +59,7 @@ pub(crate) fn run<'heap>(
     pipeline: &mut Pipeline<'heap>,
 
     runtime: &runtime::Runtime,
-    client: Client,
+    client: &Client,
 
     inputs: &Inputs<'heap, Global>,
 
@@ -88,7 +88,7 @@ pub(crate) fn execute<'heap>(
     pipeline: &mut Pipeline<'heap>,
 
     runtime: &runtime::Runtime,
-    client: Client,
+    client: &Client,
 
     inputs: &Inputs<'heap, Global>,
 
@@ -99,11 +99,18 @@ pub(crate) fn execute<'heap>(
     run_impl(pipeline, runtime, client, inputs, interner, entry, bodies)
 }
 
+struct PostgresClient<'client>(&'client Client);
+impl AsRef<Client> for PostgresClient<'_> {
+    fn as_ref(&self) -> &Client {
+        self.0
+    }
+}
+
 fn run_impl<'heap>(
     pipeline: &mut Pipeline<'heap>,
 
     runtime: &runtime::Runtime,
-    client: Client,
+    client: &Client,
 
     inputs: &Inputs<'heap, Global>,
 
@@ -129,7 +136,7 @@ fn run_impl<'heap>(
     let diagnostics = mem::take(&mut context.diagnostics);
     pipeline.diagnostics.append(&mut diagnostics.boxed());
 
-    let orchestrator = Orchestrator::new(client, &queries, &context);
+    let orchestrator = Orchestrator::new(PostgresClient(client), &queries, &context);
 
     runtime
         .block_on(orchestrator.run(inputs, entry, []))

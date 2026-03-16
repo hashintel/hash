@@ -237,11 +237,17 @@ pub(crate) fn build_inputs<'heap>(
         "friend_link_uuid",
         &entities.friend_link.entity_uuid,
     );
+    insert_uuid(
+        &mut inputs,
+        "draft_alice_uuid",
+        &entities.draft_alice.entity_uuid,
+    );
 
     insert_entity_id(&mut inputs, "alice_id", &entities.alice);
     insert_entity_id(&mut inputs, "bob_id", &entities.bob);
     insert_entity_id(&mut inputs, "org_id", &entities.organization);
     insert_entity_id(&mut inputs, "friend_link_id", &entities.friend_link);
+    insert_entity_id(&mut inputs, "draft_alice_id", &entities.draft_alice);
 
     // String inputs for property-based filtering.
     let string_type = ty.string();

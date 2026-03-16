@@ -1,9 +1,8 @@
-use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
-use hash_graph_postgres_store::store::{AsClient as _, PostgresStore, PostgresStoreSettings};
+use hash_graph_postgres_store::store::{AsClient as _, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{CreateDataTypeParams, DataTypeStore as _},
@@ -14,7 +13,7 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use tokio_postgres::{Client, NoTls};
+use tokio_postgres::Client;
 use type_system::{
     knowledge::{
         Confidence,
@@ -45,6 +44,7 @@ pub(crate) struct SeededEntities {
     pub bob: EntityId,
     pub organization: EntityId,
     pub friend_link: EntityId,
+    pub draft_alice: EntityId,
 }
 
 const SEED_KEY: &str = "orchestrator_test_seed";
@@ -129,22 +129,8 @@ async fn save_seed(
 /// On a reused container where seeding already completed, returns the
 /// previously stored entity IDs without creating duplicates.
 pub(crate) async fn setup(
-    host: &str,
-    port: u16,
-) -> Result<(PostgresStore<Client>, SeededEntities), Report<SetupError>> {
-    let (client, connection) = tokio_postgres::Config::new()
-        .user("hash")
-        .password("hash")
-        .host(host)
-        .port(port)
-        .dbname("hash")
-        .connect(NoTls)
-        .await
-        .change_context(SetupError::Connection)?;
-    tokio::spawn(connection);
-
-    let mut store = PostgresStore::new(client, None, Arc::new(PostgresStoreSettings::default()));
-
+    store: &mut PostgresStore<Client>,
+) -> Result<SeededEntities, Report<SetupError>> {
     store
         .run_migrations()
         .await
@@ -155,14 +141,14 @@ pub(crate) async fn setup(
         .change_context(SetupError::Seed)
         .attach("could not seed system policies")?;
 
-    if let Some(entities) = load_existing_seed(&store).await? {
-        return Ok((store, entities));
+    if let Some(entities) = load_existing_seed(store).await? {
+        return Ok(entities);
     }
 
-    let entities = seed_data(&mut store).await?;
-    save_seed(&store, &entities).await?;
+    let entities = seed_data(store).await?;
+    save_seed(store, &entities).await?;
 
-    Ok((store, entities))
+    Ok(entities)
 }
 
 /// Seeds all ontology types (data types, property types, entity types).
@@ -180,16 +166,19 @@ async fn seed_ontology(
     store
         .create_data_types(
             actor_id,
-            [data_type::TEXT_V1, data_type::NUMBER_V1]
-                .into_iter()
-                .map(|json| CreateDataTypeParams {
-                    schema: serde_json::from_str::<DataType>(json)
-                        .expect("could not parse data type"),
-                    ownership: ownership.clone(),
-                    conflict_behavior: ConflictBehavior::Skip,
-                    provenance: ontology_provenance.clone(),
-                    conversions: HashMap::new(),
-                }),
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ]
+            .into_iter()
+            .map(|json| CreateDataTypeParams {
+                schema: serde_json::from_str::<DataType>(json).expect("could not parse data type"),
+                ownership: ownership.clone(),
+                conflict_behavior: ConflictBehavior::Skip,
+                provenance: ontology_provenance.clone(),
+                conversions: HashMap::new(),
+            }),
         )
         .await
         .change_context(SetupError::Seed)
@@ -199,15 +188,14 @@ async fn seed_ontology(
         .create_property_types(
             actor_id,
             [
+                // Leaf property types (no property type refs).
                 property_type::NAME_V1,
                 property_type::AGE_V1,
-                property_type::BLURB_V1,
-                property_type::PUBLISHED_ON_V1,
-                property_type::ADDRESS_LINE_1_V1,
-                property_type::CITY_V1,
-                property_type::POSTCODE_NUMBER_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::HOBBY_V1,
+                // Composite (refs leaf property types above).
                 property_type::INTERESTS_V1,
-                property_type::EMAIL_V1,
             ]
             .into_iter()
             .map(|json| CreatePropertyTypeParams {
@@ -255,6 +243,7 @@ async fn create_entity(
     web_id: WebId,
     entity_type_json: &str,
     properties_json: &str,
+    draft: bool,
 ) -> Result<EntityId, Report<SetupError>> {
     let properties: PropertyObject =
         serde_json::from_str(properties_json).expect("could not parse entity properties");
@@ -273,7 +262,7 @@ async fn create_entity(
                     .expect("could not create property metadata"),
                 confidence: None,
                 link_data: None,
-                draft: false,
+                draft,
                 policies: Vec::new(),
                 provenance: entity_provenance(),
             },
@@ -318,6 +307,7 @@ async fn seed_data(
         web_id,
         entity_type::PERSON_V1,
         entity::PERSON_ALICE_V1,
+        false,
     )
     .await?;
 
@@ -327,6 +317,7 @@ async fn seed_data(
         web_id,
         entity_type::PERSON_V1,
         entity::PERSON_BOB_V1,
+        false,
     )
     .await?;
 
@@ -336,6 +327,17 @@ async fn seed_data(
         web_id,
         entity_type::ORGANIZATION_V1,
         entity::ORGANIZATION_V1,
+        false,
+    )
+    .await?;
+
+    let draft_alice = create_entity(
+        store,
+        actor_id,
+        web_id,
+        entity_type::PERSON_V1,
+        entity::PERSON_ALICE_V1,
+        true,
     )
     .await?;
 
@@ -374,5 +376,6 @@ async fn seed_data(
         bob,
         organization,
         friend_link: friend_link.metadata.record_id.entity_id,
+        draft_alice,
     })
 }

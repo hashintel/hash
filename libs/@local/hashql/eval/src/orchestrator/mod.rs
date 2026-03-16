@@ -42,7 +42,7 @@
 //! [`fulfill_in`]: Orchestrator::fulfill_in
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, marker::PhantomData, ops::Deref};
+use core::{alloc::Allocator, ops::Deref};
 
 use hashql_mir::{
     def::DefId,
@@ -108,16 +108,14 @@ impl<T> Deref for Indexed<T> {
 ///
 /// [`Suspension`]: hashql_mir::interpret::suspension::Suspension
 pub struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
-    client: Client,
+    client: C,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
-
-    _marker: PhantomData<C>,
 }
 
-impl<'env, 'ctx, 'heap, A: Allocator> Orchestrator<'env, 'ctx, 'heap, !, A> {
+impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, A> {
     pub const fn new(
-        client: Client,
+        client: C,
         queries: &'env PreparedQueries<'heap, A>,
         context: &'env EvalContext<'ctx, 'heap, A>,
     ) -> Self {
@@ -125,7 +123,6 @@ impl<'env, 'ctx, 'heap, A: Allocator> Orchestrator<'env, 'ctx, 'heap, !, A> {
             client,
             queries,
             context,
-            _marker: PhantomData,
         }
     }
 }
@@ -157,7 +154,10 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         args: impl IntoIterator<Item = Value<'heap, L>, IntoIter: ExactSizeIterator>,
 
         alloc: L,
-    ) -> Result<Value<'heap, L>, InterpretDiagnostic> {
+    ) -> Result<Value<'heap, L>, InterpretDiagnostic>
+    where
+        C: AsRef<Client>,
+    {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
             self.context.bodies,
@@ -210,7 +210,10 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         inputs: &Inputs<'heap, Global>,
         body: DefId,
         args: impl IntoIterator<Item = Value<'heap, Global>, IntoIter: ExactSizeIterator>,
-    ) -> Result<Value<'heap, Global>, InterpretDiagnostic> {
+    ) -> Result<Value<'heap, Global>, InterpretDiagnostic>
+    where
+        C: AsRef<Client>,
+    {
         self.run_in(inputs, body, args, Global).await
     }
 
@@ -236,7 +239,10 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         callstack: &CallStack<'ctx, 'heap, L>,
         suspension: Suspension<'ctx, 'heap>,
         alloc: L,
-    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        C: AsRef<Client>,
+    {
         match suspension {
             Suspension::GraphRead(suspension) => {
                 GraphReadOrchestrator::new(self)
@@ -259,6 +265,8 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         callstack: &CallStack<'ctx, 'heap, Global>,
         suspension: Suspension<'ctx, 'heap>,
     ) -> Result<Continuation<'ctx, 'heap, Global>, RuntimeError<'heap, BridgeError<'heap>, Global>>
+    where
+        C: AsRef<Client>,
     {
         self.fulfill_in(inputs, callstack, suspension, Global).await
     }

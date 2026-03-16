@@ -300,7 +300,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 rest @ ..,
             ] => {
                 let param = db.parameters.env(self.env, *field);
-                (param.into(), rest)
+                (param.to_expr(), rest)
             }
             [..] => {
                 self.diagnostics.push(invalid_env_projection(span));
@@ -338,7 +338,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                     ProjectionKind::Field(field_index) => {
                         Expression::Constant(query::Constant::U32(field_index.as_u32()))
                     }
-                    &ProjectionKind::FieldByName(symbol) => db.parameters.symbol(symbol).into(),
+                    &ProjectionKind::FieldByName(symbol) => db.parameters.symbol(symbol).to_expr(),
                     &ProjectionKind::Index(local) => self
                         .locals
                         .lookup(local)
@@ -367,8 +367,8 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
             Constant::Int(int) if let Ok(uint) = u32::try_from(int.as_uint()) => {
                 Expression::Constant(query::Constant::U32(uint))
             }
-            &Constant::Int(int) => db.parameters.int(int).into(),
-            &Constant::Primitive(primitive) => db.parameters.primitive(primitive).into(),
+            &Constant::Int(int) => db.parameters.int(int).to_expr(),
+            &Constant::Primitive(primitive) => db.parameters.primitive(primitive).to_expr(),
             // Unit is the zero-sized type, represented as JSON `null` inside jsonb values.
             Constant::Unit => Expression::Constant(query::Constant::JsonNull),
             Constant::FnPtr(_) => {
@@ -454,12 +454,12 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         let index = db.parameters.input(*name);
 
         match *op {
-            InputOp::Load { required: _ } => index.into(),
+            InputOp::Load { required: _ } => index.to_expr(),
             InputOp::Exists => Expression::Unary(UnaryExpression {
                 op: UnaryOperator::Not,
                 expr: Box::new(Expression::Unary(UnaryExpression {
                     op: UnaryOperator::IsNull,
-                    expr: Box::new(index.into()),
+                    expr: Box::new(index.to_expr()),
                 })),
             }),
         }
@@ -492,7 +492,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                     let key = db.parameters.symbol(key);
                     let value = self.compile_operand(db, span, value);
 
-                    expressions.push((key.into(), value));
+                    expressions.push((key.to_expr(), value));
                 }
 
                 // Values are reconstructed to their corresponding tuple and struct definitions

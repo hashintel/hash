@@ -309,14 +309,14 @@ impl Projections {
                 expression: query::Expression::Function(query::Function::JsonAgg(Box::new(
                     query::Expression::Function(query::Function::JsonBuildObject(vec![
                         (
-                            parameters.symbol(sym::base_url).into(),
+                            parameters.symbol(sym::base_url).to_expr(),
                             query::Expression::ColumnReference(ColumnReference {
                                 correlation: None,
                                 name: ColumnName::from(Identifier::from("b")),
                             }),
                         ),
                         (
-                            parameters.symbol(sym::version).into(),
+                            parameters.symbol(sym::version).to_expr(),
                             query::Expression::ColumnReference(ColumnReference {
                                 correlation: None,
                                 name: ColumnName::from(Identifier::from("v")),

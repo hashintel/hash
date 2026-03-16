@@ -1,10 +1,12 @@
-// Logical AND: both conditions true, all entities pass.
+// Filter entities where link_data is present (link entities only).
+// Verifies PartialLinkData hydration from real LEFT JOIN columns:
+// entity IDs, confidence, provenance.
 // biome-ignore format: readability
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "temporal_axes", "_"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-      ["&&", {"#literal": true}, {"#literal": true}]
+      ["!=", "vertex.link_data", ["None"]]
     ]
   ]
 ]

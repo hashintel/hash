@@ -11,7 +11,7 @@ use core::{
     fmt::{self, Display},
 };
 
-use hash_graph_postgres_store::store::postgres::query::Expression;
+use hash_graph_postgres_store::store::postgres::query::{Expression, PostgresType};
 use hashql_core::{
     collections::{FastHashMap, fast_hash_map_in},
     id::{self, Id as _, IdVec},
@@ -41,12 +41,47 @@ impl From<ParameterIndex> for Expression {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ParameterKind {
+    Value,
+    String,
+    Integer,
+    Boolean,
+    Number,
+    TimestampInterval,
+}
+
+impl From<ParameterKind> for PostgresType {
+    fn from(value: ParameterKind) -> Self {
+        match value {
+            ParameterKind::Value => Self::JsonB,
+            ParameterKind::String => Self::Text,
+            ParameterKind::Integer => Self::BigInt,
+            ParameterKind::Boolean => Self::Boolean,
+            ParameterKind::Number => Self::Numeric,
+            ParameterKind::TimestampInterval => Self::TimestampTzRange,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Parameter {
+    pub index: ParameterIndex,
+    pub kind: ParameterKind,
+}
+
+impl Parameter {
+    pub fn to_expr(self) -> Expression {
+        Expression::Cast(Box::new(self.index.into()), PostgresType::from(self.kind))
+    }
+}
+
 /// Interned identity for a SQL parameter.
 ///
 /// Parameters are deduplicated by this key so multiple occurrences of the same logical value
 /// (e.g. the same input symbol) share one `$N` placeholder.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Parameter<'heap> {
+pub enum ParameterValue<'heap> {
     /// A user-provided input binding.
     Input(Symbol<'heap>),
     /// An integer constant that does not fit in a `u32`.
@@ -65,7 +100,25 @@ pub enum Parameter<'heap> {
     TemporalAxis(TemporalAxis),
 }
 
-impl fmt::Display for Parameter<'_> {
+impl ParameterValue<'_> {
+    pub const fn kind(&self) -> ParameterKind {
+        match self {
+            Self::Input(_) => ParameterKind::Value,
+            Self::Int(int) if int.is_bool() => ParameterKind::Boolean,
+            Self::Int(_) => ParameterKind::Integer,
+            Self::Primitive(Primitive::Boolean(_)) => ParameterKind::Boolean,
+            Self::Primitive(Primitive::Float(_)) => ParameterKind::Number,
+            Self::Primitive(Primitive::Integer(_)) => ParameterKind::Integer,
+            Self::Primitive(Primitive::String(_)) => ParameterKind::String,
+            Self::Primitive(Primitive::Null) => ParameterKind::Value,
+            Self::Symbol(_) => ParameterKind::String,
+            Self::Env(_, _) => ParameterKind::Value,
+            Self::TemporalAxis(_) => ParameterKind::TimestampInterval,
+        }
+    }
+}
+
+impl fmt::Display for ParameterValue<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Input(symbol) => write!(fmt, "Input({symbol})"),
@@ -103,8 +156,8 @@ impl fmt::Display for TemporalAxis {
 ///
 /// The interpreter uses the reverse mapping to bind runtime values in the correct order.
 pub struct Parameters<'heap, A: Allocator = Global> {
-    lookup: FastHashMap<Parameter<'heap>, ParameterIndex, A>,
-    reverse: IdVec<ParameterIndex, Parameter<'heap>, A>,
+    lookup: FastHashMap<ParameterValue<'heap>, ParameterIndex, A>,
+    reverse: IdVec<ParameterIndex, ParameterValue<'heap>, A>,
 }
 
 impl<'heap, A: Allocator> Parameters<'heap, A> {
@@ -118,36 +171,39 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
         }
     }
 
-    fn get_or_insert(&mut self, param: Parameter<'heap>) -> ParameterIndex {
-        *self
+    fn get_or_insert(&mut self, param: ParameterValue<'heap>) -> Parameter {
+        let kind = param.kind();
+        let index = *self
             .lookup
             .entry(param)
-            .or_insert_with(|| self.reverse.push(param))
+            .or_insert_with(|| self.reverse.push(param));
+
+        Parameter { index, kind }
     }
 
-    pub(crate) fn input(&mut self, name: Symbol<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Input(name))
+    pub(crate) fn input(&mut self, name: Symbol<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Input(name))
     }
 
     /// Allocates a parameter for a symbol used as a JSON object key in SQL expressions.
-    pub(crate) fn symbol(&mut self, name: Symbol<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Symbol(name))
+    pub(crate) fn symbol(&mut self, name: Symbol<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Symbol(name))
     }
 
-    pub(crate) fn int(&mut self, value: Int) -> ParameterIndex {
-        self.get_or_insert(Parameter::Int(value))
+    pub(crate) fn int(&mut self, value: Int) -> Parameter {
+        self.get_or_insert(ParameterValue::Int(value))
     }
 
-    pub(crate) fn primitive(&mut self, primitive: Primitive<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Primitive(primitive))
+    pub(crate) fn primitive(&mut self, primitive: Primitive<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Primitive(primitive))
     }
 
-    pub(crate) fn env(&mut self, local: Local, field: FieldIndex) -> ParameterIndex {
-        self.get_or_insert(Parameter::Env(local, field))
+    pub(crate) fn env(&mut self, local: Local, field: FieldIndex) -> Parameter {
+        self.get_or_insert(ParameterValue::Env(local, field))
     }
 
-    pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> ParameterIndex {
-        self.get_or_insert(Parameter::TemporalAxis(axis))
+    pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> Parameter {
+        self.get_or_insert(ParameterValue::TemporalAxis(axis))
     }
 
     /// Returns the number of distinct parameters allocated so far.
@@ -160,15 +216,18 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
         self.reverse.is_empty()
     }
 
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = &Parameter<'heap>> + DoubleEndedIterator {
+    pub fn iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &ParameterValue<'heap>> + DoubleEndedIterator {
         self.reverse.iter()
     }
 }
 
 impl<'this, 'heap> IntoIterator for &'this Parameters<'heap> {
-    type Item = &'this Parameter<'heap>;
+    type Item = &'this ParameterValue<'heap>;
 
-    type IntoIter = impl ExactSizeIterator<Item = &'this Parameter<'heap>> + DoubleEndedIterator;
+    type IntoIter =
+        impl ExactSizeIterator<Item = &'this ParameterValue<'heap>> + DoubleEndedIterator;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {

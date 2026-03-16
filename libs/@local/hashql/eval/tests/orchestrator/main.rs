@@ -4,6 +4,7 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 use error_stack::{Report, ResultExt as _};
+use hash_graph_postgres_store::store::{AsClient as _, PostgresStore, PostgresStoreSettings};
 use hashql_compiletest::pipeline::Pipeline;
 use hashql_core::heap::Heap;
 use testcontainers::{ImageExt as _, ReuseDirective, runners::AsyncRunner as _};
@@ -33,33 +34,17 @@ use self::{
 
 struct TestContext {
     _container: testcontainers::ContainerAsync<Postgres>,
+    store: Arc<PostgresStore<Client>>,
     entities: SeededEntities,
-    host: String,
-    port: u16,
-}
-
-impl TestContext {
-    fn connect(&self, runtime: &Runtime) -> Result<Client, Report<TestError>> {
-        let (client, connection) = runtime
-            .block_on(
-                tokio_postgres::Config::new()
-                    .user("hash")
-                    .password("hash")
-                    .host(&self.host)
-                    .port(self.port)
-                    .dbname("hash")
-                    .connect(NoTls),
-            )
-            .change_context(TestError::Connection)?;
-        runtime.handle().spawn(connection);
-        Ok(client)
-    }
 }
 
 async fn setup() -> Result<TestContext, Report<SetupError>> {
     let container = Postgres::default()
         .with_user("hash")
         .with_password("hash")
+        .with_db_name("hash")
+        .with_name("pgvector/pgvector")
+        .with_tag("0.8.2-pg18-trixie")
         .with_reuse(ReuseDirective::CurrentSession)
         .start()
         .await
@@ -77,13 +62,24 @@ async fn setup() -> Result<TestContext, Report<SetupError>> {
         .change_context(SetupError::Container)
         .attach("could not resolve container port")?;
 
-    let (_store, entities) = seed::setup(&host, port).await?;
+    let (client, connection) = tokio_postgres::Config::new()
+        .user("hash")
+        .password("hash")
+        .host(&host)
+        .port(port)
+        .dbname("hash")
+        .connect(NoTls)
+        .await
+        .change_context(SetupError::Connection)?;
+    tokio::spawn(connection);
+
+    let mut store = PostgresStore::new(client, None, Arc::new(PostgresStoreSettings::default()));
+    let entities = seed::setup(&mut store).await?;
 
     Ok(TestContext {
         _container: container,
+        store: Arc::new(store),
         entities,
-        host,
-        port,
     })
 }
 
@@ -104,8 +100,6 @@ fn run_jexpr_test(
     let heap = Heap::new();
     let mut pipeline = Pipeline::new(&heap);
 
-    let client = context.connect(runtime)?;
-
     // Lower first so the type environment is populated, then build inputs.
     let mut lowered = match execution::lower(&mut pipeline, &bytes) {
         Ok(lowered) => lowered,
@@ -123,7 +117,13 @@ fn run_jexpr_test(
         &axis_directives,
     );
 
-    match execution::run(&mut pipeline, runtime, client, &inputs, &mut lowered) {
+    match execution::run(
+        &mut pipeline,
+        runtime,
+        context.store.as_client(),
+        &inputs,
+        &mut lowered,
+    ) {
         Ok(value) => {
             let rendered = render_success(&source, &value, &pipeline)?;
             compare_or_bless(&rendered, expected_output, bless)
@@ -147,8 +147,6 @@ fn run_programmatic_test(
     let (interner, entry, mut bodies, inputs) = builder(&heap);
     let mut pipeline = Pipeline::new(&heap);
 
-    let client = context.connect(runtime)?;
-
     // Programmatic tests have no J-Expr source, so diagnostics render
     // without source context (all spans are synthetic).
     let source = "";
@@ -156,7 +154,7 @@ fn run_programmatic_test(
     match execution::execute(
         &mut pipeline,
         runtime,
-        client,
+        context.store.as_client(),
         &inputs,
         &interner,
         entry,
@@ -179,11 +177,12 @@ fn main() -> Result<(), Report<SetupError>> {
     let arguments = libtest_mimic::Arguments::from_args();
     let bless = std::env::args().any(|arg| arg == "--bless");
 
-    let runtime = runtime::Builder::new_current_thread()
+    let runtime = runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .change_context(SetupError::Container)
         .attach("could not build tokio runtime")?;
+    let runtime = Arc::new(runtime);
 
     let context = runtime.block_on(setup())?;
     let context = Arc::new(context);
@@ -196,13 +195,9 @@ fn main() -> Result<(), Report<SetupError>> {
         .into_iter()
         .map(|test_case| {
             let context = Arc::clone(&context);
+            let runtime = Arc::clone(&runtime);
 
             libtest_mimic::Trial::test(&test_case.name, move || {
-                let runtime = runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .map_err(|error| format!("could not build trial runtime: {error}"))?;
-
                 let result = match &test_case.source {
                     TestSource::JExpr { path } => {
                         run_jexpr_test(&runtime, &context, path, &test_case.expected_output, bless)

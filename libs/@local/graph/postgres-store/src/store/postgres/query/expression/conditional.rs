@@ -242,6 +242,7 @@ pub enum PostgresType {
     Int,
     BigInt,
     Boolean,
+    TimestampTzRange,
 }
 
 impl Transpile for PostgresType {
@@ -260,6 +261,7 @@ impl Transpile for PostgresType {
             Self::Int => fmt.write_str("int"),
             Self::BigInt => fmt.write_str("bigint"),
             Self::Boolean => fmt.write_str("boolean"),
+            Self::TimestampTzRange => fmt.write_str("tstzrange"),
         }
     }
 }

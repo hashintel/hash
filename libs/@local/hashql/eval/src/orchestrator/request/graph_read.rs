@@ -30,7 +30,7 @@ use hashql_mir::{
     },
     pass::execution::TargetId,
 };
-use tokio_postgres::Row;
+use tokio_postgres::{Client, Row};
 
 use crate::{
     orchestrator::{
@@ -61,7 +61,9 @@ pub(crate) struct GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A: Allocator>
 }
 
 #[expect(clippy::future_not_send)]
-impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A> {
+impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
+    GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A>
+{
     pub(crate) const fn new(orchestrator: &'or Orchestrator<'ctx, 'env, 'heap, C, A>) -> Self {
         Self {
             inner: orchestrator,
@@ -185,7 +187,7 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
                 TargetId::Interpreter => {
                     loop {
                         let next = runtime.run_until_transition(&mut callstack, |target| {
-                            residual.islands.lookup(target).0 != island_id
+                            residual.islands.lookup(target).0 == island_id
                         })?;
 
                         match next {
@@ -383,6 +385,7 @@ impl<'or, 'ctx, 'env, 'heap, C, A: Allocator> GraphReadOrchestrator<'or, 'ctx, '
         let response = self
             .inner
             .client
+            .as_ref()
             .query_raw(&statement, params.iter().map(|param| &**param))
             .await
             .map_err(|source| BridgeError::QueryExecution {

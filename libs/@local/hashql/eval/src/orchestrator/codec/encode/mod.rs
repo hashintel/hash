@@ -21,7 +21,7 @@ use serde_json::value::RawValue;
 use super::{Postgres, Serde};
 use crate::{
     orchestrator::error::BridgeError,
-    postgres::{Parameter, TemporalAxis},
+    postgres::{ParameterValue, TemporalAxis},
 };
 
 #[cfg(test)]
@@ -209,7 +209,7 @@ pub(crate) fn serialize_value<'heap, V: Allocator>(
 ///
 /// [`ToSql`]: postgres_types::ToSql
 pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator>(
-    parameter: &Parameter<'heap>,
+    parameter: &ParameterValue<'heap>,
     inputs: &'ctx Inputs<'heap, impl Allocator>,
     temporal_axes: &TemporalAxesInterval,
     env: impl FnOnce(
@@ -219,14 +219,14 @@ pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator
     alloc: A,
 ) -> Result<Box<dyn ToSql + Sync + 'heap, A>, RuntimeError<'heap, BridgeError<'heap>, V>> {
     match parameter {
-        &Parameter::Input(symbol) => {
+        &ParameterValue::Input(symbol) => {
             let value = inputs
                 .get(symbol)
                 .map(|value| serialize_value(value).map_err(RuntimeError::Suspension))
                 .transpose()?;
             Ok(Box::new_in(value, alloc))
         }
-        Parameter::Int(int) => {
+        ParameterValue::Int(int) => {
             let int = int.as_int();
             if let Ok(int) = i64::try_from(int) {
                 Ok(Box::new_in(int, alloc))
@@ -235,7 +235,7 @@ pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator
                 Ok(Box::new_in(Json(int), alloc))
             }
         }
-        Parameter::Primitive(primitive) => match primitive {
+        ParameterValue::Primitive(primitive) => match primitive {
             Primitive::Null => Ok(Box::new_in(None::<Json<()>>, alloc)),
             &Primitive::Boolean(value) => Ok(Box::new_in(value, alloc)),
             Primitive::Float(float) => Ok(Box::new_in(float.as_f64(), alloc)),
@@ -251,17 +251,17 @@ pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator
             }
             Primitive::String(value) => Ok(Box::new_in(Box::<str>::from(value.as_str()), alloc)),
         },
-        &Parameter::Symbol(symbol) => Ok(Box::new_in(Postgres(symbol), alloc)),
-        &Parameter::Env(local, field_index) => {
+        &ParameterValue::Symbol(symbol) => Ok(Box::new_in(Postgres(symbol), alloc)),
+        &ParameterValue::Env(local, field_index) => {
             let value = env(local, field_index)?;
             let serialized = serialize_value(value).map_err(RuntimeError::Suspension)?;
             Ok(Box::new_in(serialized, alloc) as Box<dyn ToSql + Sync, A>)
         }
-        Parameter::TemporalAxis(TemporalAxis::Decision) => Ok(Box::new_in(
+        ParameterValue::TemporalAxis(TemporalAxis::Decision) => Ok(Box::new_in(
             Postgres(temporal_axes.decision_time.clone()),
             alloc,
         )),
-        Parameter::TemporalAxis(TemporalAxis::Transaction) => Ok(Box::new_in(
+        ParameterValue::TemporalAxis(TemporalAxis::Transaction) => Ok(Box::new_in(
             Postgres(temporal_axes.transaction_time.clone()),
             alloc,
         )),

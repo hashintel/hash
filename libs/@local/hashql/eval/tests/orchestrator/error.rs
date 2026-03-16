@@ -26,7 +26,6 @@ impl Error for SetupError {}
 /// Errors during individual test execution.
 #[derive(Debug)]
 pub(crate) enum TestError {
-    Connection,
     ReadSource,
     Execution,
     Serialization,
@@ -36,7 +35,6 @@ pub(crate) enum TestError {
 impl fmt::Display for TestError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Connection => f.write_str("failed to connect to database"),
             Self::ReadSource => f.write_str("failed to read test source file"),
             Self::Execution => f.write_str("query execution failed"),
             Self::Serialization => f.write_str("failed to serialize result value"),

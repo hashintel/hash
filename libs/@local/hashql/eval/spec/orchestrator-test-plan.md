@@ -1,5 +1,34 @@
 # Orchestrator Test Plan
 
+## Progress
+
+| ID  | Name                                    | Status | File |
+| --- | --------------------------------------- | ------ | ---- |
+| 1.1 | Simple entity read, no filter           | done   | `jsonc/simple-read.jsonc` |
+| 1.2 | Property access                         | skip   | needs MIR builder (properties are un-narrowed `?`) |
+| 1.3 | Individual metadata leaf fields         | skip   | needs MIR builder (metadata behind `List`/`Option`) |
+| 1.4 | Equality filter                         | done   | `jsonc/filter-by-uuid.jsonc` |
+| 1.5 | Input-driven filter                     | done   | `jsonc/filter-by-entity-id.jsonc` |
+| 1.6 | Link entity read                        | done   | `jsonc/has-link-data.jsonc` |
+| 1.7 | Non-link entity (null link_data)        | done   | `jsonc/null-link-data.jsonc` |
+| 1.8 | Organization type                       | skip   | needs MIR builder (entity_type_ids behind `List`) |
+| 1.9 | Pinned temporal axis                    | done   | `jsonc/pinned-decision-time.jsonc` |
+| 1.A | Inequality filter                       | done   | `jsonc/filter-not-equal.jsonc` |
+| 1.B | Let binding propagation                 | done   | `jsonc/let-binding.jsonc` |
+| 1.C | Empty result set                        | done   | `jsonc/filter-false.jsonc` |
+| 2.1 | Interpreter-only filter                 | todo   | programmatic |
+| 2.2 | Postgres-only filter                    | todo   | programmatic |
+| 2.3 | Mixed island filter (continuation)      | todo   | programmatic |
+| 2.4 | Multiple sequential filters             | todo   | programmatic |
+| 2.5 | Diamond CFG in filter                   | todo   | programmatic |
+| 3.1 | Metadata only, no properties            | todo   | unit test (hydration) |
+| 3.2 | Full metadata population                | todo   | unit test (hydration) |
+| 3.3 | Composite path: RecordId                | todo   | unit test (hydration) |
+| 3.4 | Composite path: TemporalVersioning      | todo   | unit test (hydration) |
+| 3.5 | Draft entity (non-null draft_id)        | done   | `jsonc/draft-entity.jsonc` |
+| 4.* | Decoder unit tests (23 tests)           | done   | `src/orchestrator/codec/decode/tests.rs` |
+| 5.* | Encoder unit tests (16 tests)           | done   | `src/orchestrator/codec/encode/tests.rs` |
+
 ## Structure
 
 Two test locations:
@@ -26,6 +55,10 @@ evaluation against real data, and final result correctness.
 
 ### 1. End-to-end reads (J-Expr, full pipeline)
 
+Tests 1.1 through 1.9 use J-Expr source files. Tests 1.2, 1.3, 1.6, 1.7, and
+1.8 need the MIR builder because they touch types behind `List`, `Option`, or
+un-narrowed `?` that cannot typecheck through the HIR.
+
 | ID  | Name | Justification |
 | --- | ---- | ------------- |
 | 1.1 | Simple entity read, no filter | Baseline: proves the full pipeline produces a hydrated entity list from a real database. No existing test executes a query. |
@@ -37,40 +70,58 @@ evaluation against real data, and final result correctness.
 | 1.7 | Non-link entity (null link_data) | Verifies NULL link columns from LEFT JOIN produce `Optional::Null`, not a hydration error. The NULL handling path in `hydrate_from_postgres` (early return on `None`) is untested without real NULL data. |
 | 1.8 | Organization type | Verifies entity_type_id filtering works for a different type. Would catch bugs where type ID binding is hard-coded to Person. |
 | 1.9 | Pinned temporal axis | Verifies `Postgres<TemporalInterval>` wire encoding is accepted by PostgreSQL and produces correct temporal filtering. The `ToSql` impl is untested against a real database. |
+| 1.A | Inequality filter | Verifies `!=` exclusion against real data. Complements 1.4. |
+| 1.B | Let binding propagation | Verifies let-bound values propagate into filter bodies correctly through the full pipeline. |
+| 1.C | Empty result set | Verifies the orchestrator handles zero matching rows without error. |
 
 **1.1 Simple entity read, no filter**
-Query all Person entities with unbounded axes. Output is a list of hydrated
-entities with properties and metadata.
+Query all entities with unbounded axes and a trivial `true` filter. Output is
+a list of hydrated entities with properties and metadata.
 
-**1.2 Entity read with property access**
+**1.2 Entity read with property access** (MIR builder)
 Query accessing `entity.properties` (the name field). Verifies JSON property
 decoding through the `Decoder` against real JSONB data.
 
-**1.3 Entity read with individual metadata fields**
+**1.3 Entity read with individual metadata fields** (MIR builder)
 Query accessing entity_uuid, web_id, archived as individual leaf columns.
 Verifies `EntityPath` leaf hydration from real TEXT/BOOL column types.
 
 **1.4 Entity read with equality filter**
-Filter persons where `name == "Alice"`. Only Alice should appear in the result.
+Filter entities where `entity_uuid == alice_uuid`. Only Alice should appear.
 
 **1.5 Entity read with input-driven filter**
-Filter using `input.load!` for the comparison value. Verifies the
-`Parameter::Input` encoding and binding path end-to-end.
+Filter using a full `EntityId` struct input. Verifies the `Parameter::Input`
+encoding and binding path end-to-end for composite types.
 
 **1.6 Read returning link entities**
-Query friend-of links. Verifies `PartialLinkData` hydration including
-confidence values and left/right entity IDs.
+Filter entities where `link_data != [None]`. Returns only link entities.
+Verifies `PartialLinkData` hydration including confidence values and
+left/right entity IDs from real LEFT JOIN columns.
 
 **1.7 Read of non-link entity (null link_data columns)**
-Query a Person where link_data LEFT JOIN produces NULLs. Verifies
-`Optional::Null` handling in `hydrate_from_postgres`.
+Filter entities where `link_data == [None]`. Returns only non-link entities.
+Verifies NULL link columns from LEFT JOIN produce `Optional::Null`, not a
+hydration error.
 
-**1.8 Read for Organization type**
-Query Organization entities. Different entity type, different property schema.
+**1.8 Read for Organization type** (MIR builder)
+Query entities filtered by `entity_type_ids`. Different entity type, different
+property schema. Verifies entity type ID matching against real data.
 
 **1.9 Read with pinned temporal axis**
 Query with `//@ axis[decision] = (T)` directive. Verifies temporal parameter
 wire encoding against a real PostgreSQL instance.
+
+**1.A Inequality filter**
+Filter entities where `entity_uuid != alice_uuid`. Should exclude Alice and
+return all other seeded entities.
+
+**1.B Let binding propagation**
+Bind `alice_uuid` via `let`, reference it in the filter. Verifies the let
+desugaring produces correct MIR through the full pipeline.
+
+**1.C Empty result set**
+Filter with literal `false`. Verifies the orchestrator returns an empty list
+without error.
 
 ### 2. Filter chain tests (programmatic, `body!` macro)
 
@@ -107,7 +158,12 @@ only on survivors. Verifies short-circuit AND behavior.
 Filter with diamond control flow (branch on input, converge). Verifies
 continuation decode when different branches produce different local sets.
 
-### 3. Hydration edge cases (programmatic, `body!` macro)
+### 3. Hydration edge cases
+
+Tests 3.1 through 3.4 are unit tests of the hydration internals (partial struct
+assembly, column decomposition, skipped field handling). They do not need a
+database. Test 3.5 is an integration test (J-Expr) that verifies draft entity
+hydration against real data.
 
 | ID  | Name | Justification |
 | --- | ---- | ------------- |
@@ -117,25 +173,28 @@ continuation decode when different branches produce different local sets.
 | 3.4 | Composite path: TemporalVersioning | Same decomposition pattern as 3.3 but for a different column type (tstzrange vs JSONB). |
 | 3.5 | Draft entity (non-null draft_id) | Verifies the `Optional::Value` path for draft_id. All other test entities have null draft_id, so without this the `Some` path is never exercised. |
 
-**3.1 Partial provides: metadata only**
-Query accessing only metadata fields. Properties stays `Required::Skipped` and
-is omitted from the assembled struct.
+**3.1 Partial provides: metadata only** (unit test)
+Construct a `StructBuilder` with only metadata fields populated, properties
+as `Required::Skipped`. Call `finish_in` and assert the resulting struct omits
+the skipped field.
 
-**3.2 Full metadata population**
-Query accessing every metadata subfield. Verifies complete `PartialMetadata`
-assembly through all nested `finish_in` calls.
+**3.2 Full metadata population** (unit test)
+Construct a complete `PartialMetadata` with all subfields populated. Call
+`finish_in` and assert every nested field is present and correctly typed.
 
-**3.3 Composite path: RecordId from single JSON column**
-Query requesting `EntityPath::RecordId`. Single JSON column decomposes into
-`PartialRecordId` and nested `PartialEntityId`.
+**3.3 Composite path: RecordId** (unit test)
+Feed a single JSON column value through the RecordId decomposition path.
+Assert it produces a `PartialRecordId` with correctly nested `PartialEntityId`
+fields.
 
-**3.4 Composite path: TemporalVersioning**
-Query requesting `EntityPath::TemporalVersioning`. Single column decomposes
-into `decision_time` + `transaction_time`.
+**3.4 Composite path: TemporalVersioning** (unit test)
+Feed a tstzrange column value through the TemporalVersioning decomposition.
+Assert it produces correctly split `decision_time` and `transaction_time`
+fields.
 
-**3.5 Draft entity**
-Query a draft entity. Verifies `EntityPath::DraftId` produces `Optional::Value`
-rather than the default `Optional::Skipped`.
+**3.5 Draft entity** (J-Expr integration test)
+Select a draft entity by UUID. Verifies `EntityPath::DraftId` produces
+`Optional::Value` rather than the default `Optional::Skipped`.
 
 ## Unit tests
 

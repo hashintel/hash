@@ -52,8 +52,8 @@ fn eval_tstzrange_as_left_closed_interval<A: Allocator>(
         else_result: Some(Box::new(upper_ms)),
     };
 
-    let start_key = db.parameters.symbol(sym::start).into();
-    let end_key = db.parameters.symbol(sym::end).into();
+    let start_key = db.parameters.symbol(sym::start).to_expr();
+    let end_key = db.parameters.symbol(sym::end).to_expr();
 
     Expression::Function(query::Function::JsonBuildObject(vec![
         (start_key, start_ms),
@@ -82,25 +82,25 @@ pub(crate) fn eval_entity_path<A: Allocator>(
         ),
         EntityPath::RecordId => Expression::Function(query::Function::JsonBuildObject(vec![
             (
-                db.parameters.symbol(sym::entity_id).into(),
+                db.parameters.symbol(sym::entity_id).to_expr(),
                 eval_entity_path(db, EntityPath::EntityId),
             ),
             (
-                db.parameters.symbol(sym::edition_id).into(),
+                db.parameters.symbol(sym::edition_id).to_expr(),
                 eval_entity_path(db, EntityPath::EditionId),
             ),
         ])),
         EntityPath::EntityId => Expression::Function(query::Function::JsonBuildObject(vec![
             (
-                db.parameters.symbol(sym::web_id).into(),
+                db.parameters.symbol(sym::web_id).to_expr(),
                 eval_entity_path(db, EntityPath::WebId),
             ),
             (
-                db.parameters.symbol(sym::entity_uuid).into(),
+                db.parameters.symbol(sym::entity_uuid).to_expr(),
                 eval_entity_path(db, EntityPath::EntityUuid),
             ),
             (
-                db.parameters.symbol(sym::draft_id).into(),
+                db.parameters.symbol(sym::draft_id).to_expr(),
                 eval_entity_path(db, EntityPath::DraftId),
             ),
         ])),
@@ -123,11 +123,11 @@ pub(crate) fn eval_entity_path<A: Allocator>(
         EntityPath::TemporalVersioning => {
             Expression::Function(query::Function::JsonBuildObject(vec![
                 (
-                    db.parameters.symbol(sym::decision_time).into(),
+                    db.parameters.symbol(sym::decision_time).to_expr(),
                     eval_entity_path(db, EntityPath::DecisionTime),
                 ),
                 (
-                    db.parameters.symbol(sym::transaction_time).into(),
+                    db.parameters.symbol(sym::transaction_time).to_expr(),
                     eval_entity_path(db, EntityPath::TransactionTime),
                 ),
             ]))
