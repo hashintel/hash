@@ -19,18 +19,28 @@ export function useSentryFeedbackAction(): ViewportAction {
     tooltip: "Give feedback",
     style: feedbackButtonStyle,
     ref: (node) => {
-      const feedback = Sentry.getFeedback();
-
-      if (!node || !feedback) {
+      if (!node) {
         return;
       }
 
-      // Attach feedback to the button and return the unsubscribe function
-      return feedback.attachTo(node, {
-        formTitle: "Give feedback",
-        messagePlaceholder: "Report a bug or suggest an improvement",
-        submitButtonLabel: "Submit feedback",
-      });
+      const feedback = Sentry.getFeedback();
+
+      if (feedback) {
+        return feedback.attachTo(node, {
+          formTitle: "Give feedback",
+          messagePlaceholder: "Report a bug or suggest an improvement",
+          submitButtonLabel: "Submit feedback",
+        });
+      } else {
+        const showFeedbackUnavailable = () =>
+          // eslint-disable-next-line no-alert -- intentional fallback when Sentry is not configured
+          window.alert(
+            "Sentry is not configured in this environment, so the feedback form is unavailable.",
+          );
+
+        node.addEventListener("click", showFeedbackUnavailable);
+        return () => node.removeEventListener("click", showFeedbackUnavailable);
+      }
     },
   };
 }
