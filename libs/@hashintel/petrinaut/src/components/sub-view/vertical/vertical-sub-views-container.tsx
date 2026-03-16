@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, use, useEffect, useRef, useState } from "react";
+import React, { Fragment, use, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -12,7 +12,7 @@ const HEADER_HEIGHT = 44;
 /** Size of the icon in the main header */
 const HEADER_ICON_SIZE = 16;
 /** Default minimum panel height when no per-subview minHeight is set */
-const DEFAULT_MIN_PANEL_HEIGHT = 100;
+const DEFAULT_MIN_PANEL_HEIGHT = 400;
 
 const containerStyle = css({
   flex: "[1]",
@@ -496,7 +496,8 @@ export const VerticalSubViewsContainer: React.FC<
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
         const Component = subView.component;
-        const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
+        const minSize =
+          subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
         return (
           <Fragment key={subView.id}>

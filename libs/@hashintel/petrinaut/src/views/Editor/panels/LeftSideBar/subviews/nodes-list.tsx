@@ -23,9 +23,9 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
   tooltip:
     "Manage nodes in the net, including places and transitions. Places represent states in the net, and transitions represent events which change the state of the net.",
   resizable: {
-    defaultHeight: 150,
-    minHeight: 80,
-    maxHeight: 400,
+    defaultHeight: 300,
+    minHeight: 200,
+    maxHeight: 600,
   },
   useItems: () => {
     const {

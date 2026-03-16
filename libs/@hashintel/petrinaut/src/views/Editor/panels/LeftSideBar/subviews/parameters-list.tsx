@@ -95,9 +95,9 @@ export const parametersListSubView: SubView = createFilterableListSubView({
     "Parameters are injected into dynamics, lambda, and kernel functions.",
   defaultCollapsed: false,
   resizable: {
-    defaultHeight: 100,
-    minHeight: 60,
-    maxHeight: 250,
+    defaultHeight: 300,
+    minHeight: 200,
+    maxHeight: 600,
   },
   useItems: () => {
     const {

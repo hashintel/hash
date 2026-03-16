@@ -133,9 +133,9 @@ export const typesListSubView: SubView = createFilterableListSubView({
   tooltip: "Manage data types which can be assigned to tokens in a place.",
   defaultCollapsed: false,
   resizable: {
-    defaultHeight: 120,
-    minHeight: 60,
-    maxHeight: 300,
+    defaultHeight: 300,
+    minHeight: 200,
+    maxHeight: 600,
   },
   useItems: () => {
     const {

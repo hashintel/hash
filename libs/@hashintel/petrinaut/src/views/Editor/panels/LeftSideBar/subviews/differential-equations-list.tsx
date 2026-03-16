@@ -80,9 +80,9 @@ export const differentialEquationsListSubView: SubView =
     tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
     defaultCollapsed: false,
     resizable: {
-      defaultHeight: 100,
-      minHeight: 60,
-      maxHeight: 250,
+      defaultHeight: 300,
+      minHeight: 200,
+      maxHeight: 600,
     },
     useItems: () => {
       const {
