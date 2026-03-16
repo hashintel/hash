@@ -1,6 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
-import { use, useEffect, useRef, useState } from "react";
+import { Fragment, use, useEffect, useRef, useState } from "react";
 import { LuChevronRight, LuSearch } from "react-icons/lu";
 import { TbDots } from "react-icons/tb";
 
@@ -26,6 +26,14 @@ const listContainerStyle = css({
   mx: "-1",
   /** Suppress browser default focus ring — focus is shown per-row via isFocused variant */
   outline: "none",
+  /** Enable animating height to/from `auto` for collapsible group children */
+  interpolateSize: "[allow-keywords]",
+});
+
+/** Wrapper around a group's children that animates height on collapse/expand */
+const groupChildrenStyle = css({
+  overflow: "hidden",
+  transition: "[height 150ms ease-out]",
 });
 
 const listItemRowStyle = cva({
@@ -266,27 +274,38 @@ const FilterableListContent = <T extends FilterableListItem>({
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Flatten tree: items with children become group header + child rows
+  // Flatten tree: items with children become group header + child rows.
+  // Children are always included (even when collapsed) so the DOM stays
+  // stable for height animation. The `hidden` flag marks collapsed children
+  // so keyboard navigation can skip them.
   const flatRows: {
     item: T;
     depth: number;
     isGroup: boolean;
+    hidden: boolean;
     emptyGroupMessage?: string;
   }[] = [];
   for (const item of items) {
     const children = item.children as T[] | undefined;
     const isGroup = children !== undefined;
-    flatRows.push({ item, depth: 0, isGroup });
-    if (isGroup && !collapsedGroups.has(item.id)) {
+    flatRows.push({ item, depth: 0, isGroup, hidden: false });
+    if (isGroup) {
+      const isCollapsed = collapsedGroups.has(item.id);
       if (children!.length > 0) {
         for (const child of children!) {
-          flatRows.push({ item: child, depth: 1, isGroup: false });
+          flatRows.push({
+            item: child,
+            depth: 1,
+            isGroup: false,
+            hidden: isCollapsed,
+          });
         }
       } else if (item.emptyGroupMessage) {
         flatRows.push({
           item,
           depth: 1,
           isGroup: false,
+          hidden: isCollapsed,
           emptyGroupMessage: item.emptyGroupMessage,
         });
       }
@@ -334,7 +353,7 @@ const FilterableListContent = <T extends FilterableListItem>({
     const newSelection: SelectionMap = new Map();
     for (let i = start; i <= end; i++) {
       const row = flatRows[i];
-      if (row && !row.isGroup && !row.emptyGroupMessage) {
+      if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
         const selItem = getSelectionItem(row.item);
         newSelection.set(selItem.id, selItem);
       }
@@ -358,16 +377,17 @@ const FilterableListContent = <T extends FilterableListItem>({
           focusedIndex === null
             ? 0
             : Math.min(focusedIndex + 1, flatRows.length - 1);
-        // Skip empty placeholder rows
+        // Skip hidden and empty placeholder rows
         while (
           nextIndex < flatRows.length - 1 &&
-          flatRows[nextIndex]?.emptyGroupMessage
+          (flatRows[nextIndex]?.hidden ||
+            flatRows[nextIndex]?.emptyGroupMessage)
         ) {
           nextIndex++;
         }
         setFocusedIndex(nextIndex);
         const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.emptyGroupMessage) {
+        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
           if (event.shiftKey) {
             selectRange(anchorIndex ?? nextIndex, nextIndex);
           } else {
@@ -383,13 +403,17 @@ const FilterableListContent = <T extends FilterableListItem>({
           focusedIndex === null
             ? flatRows.length - 1
             : Math.max(focusedIndex - 1, 0);
-        // Skip empty placeholder rows
-        while (nextIndex > 0 && flatRows[nextIndex]?.emptyGroupMessage) {
+        // Skip hidden and empty placeholder rows
+        while (
+          nextIndex > 0 &&
+          (flatRows[nextIndex]?.hidden ||
+            flatRows[nextIndex]?.emptyGroupMessage)
+        ) {
           nextIndex--;
         }
         setFocusedIndex(nextIndex);
         const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.emptyGroupMessage) {
+        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
           if (event.shiftKey) {
             selectRange(anchorIndex ?? nextIndex, nextIndex);
           } else {
@@ -404,7 +428,7 @@ const FilterableListContent = <T extends FilterableListItem>({
         event.preventDefault();
         if (focusedIndex !== null) {
           const row = flatRows[focusedIndex];
-          if (row && !row.emptyGroupMessage) {
+          if (row && !row.hidden && !row.emptyGroupMessage) {
             if (row.isGroup) {
               toggleGroup(row.item.id);
             } else {
@@ -491,96 +515,125 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
       }}
     >
-      {flatRows.map(({ item, depth, isGroup, emptyGroupMessage }, index) => {
-        if (emptyGroupMessage) {
+      {items.map((topItem) => {
+        const children = topItem.children as T[] | undefined;
+        const isGroup = children !== undefined;
+        const isCollapsed = isGroup && collapsedGroups.has(topItem.id);
+
+        const itemRow = (item: T, depth: number) => {
+          const index = flatRows.findIndex(
+            (r) => r.item === item && r.depth === depth,
+          );
+          const isItemGroup = item === topItem && isGroup;
+          const selected = !isItemGroup && checkIsSelected(item.id);
+          const focused = focusedIndex === index;
+
           return (
             <div
-              key={`empty-${item.id}`}
+              key={`${depth}-${item.id}`}
+              ref={(el) => {
+                rowRefs.current[index] = el;
+              }}
+              onClick={(event) =>
+                handleRowClick(event, index, {
+                  item,
+                  isGroup: isItemGroup,
+                })
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  if (isItemGroup) {
+                    toggleGroup(item.id);
+                  } else {
+                    selectItem(getSelectionItem(item));
+                    setFocusedIndex(index);
+                    setAnchorIndex(index);
+                  }
+                }
+              }}
+              role="option"
+              aria-selected={selected}
               className={listItemRowStyle({
-                selectable: false,
-                isSelected: false,
-                isFocused: false,
+                selectable: true,
+                isSelected: selected,
+                isFocused: focused,
               })}
-              style={{ paddingLeft: depth * NESTING_INDENT + 4 }}
+              style={
+                depth > 0
+                  ? { paddingLeft: depth * NESTING_INDENT + 4 }
+                  : undefined
+              }
             >
               <div className={listItemContentStyle}>
-                <div
-                  className={listItemNameStyle}
-                  style={{ color: "var(--colors-neutral-s65)" }}
-                >
-                  {emptyGroupMessage}
+                {isItemGroup && (
+                  <span className={chevronStyle({ expanded: !isCollapsed })}>
+                    <LuChevronRight size={CHEVRON_SIZE} />
+                  </span>
+                )}
+                {item.icon && (
+                  <span
+                    className={listItemIconStyle}
+                    style={{
+                      color: item.iconColor ?? LIST_ITEM_ICON_COLOR,
+                    }}
+                  >
+                    <item.icon size={LIST_ITEM_ICON_SIZE} />
+                  </span>
+                )}
+                <div className={listItemNameStyle}>
+                  {renderItem(item, selected)}
                 </div>
               </div>
+              {isItemGroup && item.renderGroupAction && (
+                <span
+                  role="presentation"
+                  data-row-action
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <item.renderGroupAction />
+                </span>
+              )}
+              {!isItemGroup && RenderRowMenu && <RenderRowMenu item={item} />}
             </div>
           );
+        };
+
+        if (!isGroup) {
+          return itemRow(topItem, 0);
         }
 
-        const isSelected = !isGroup && checkIsSelected(item.id);
-        const isFocused = focusedIndex === index;
-        const isCollapsed = isGroup && collapsedGroups.has(item.id);
-
         return (
-          <div
-            key={`${depth}-${item.id}`}
-            ref={(el) => {
-              rowRefs.current[index] = el;
-            }}
-            onClick={(event) => handleRowClick(event, index, { item, isGroup })}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                if (isGroup) {
-                  toggleGroup(item.id);
-                } else {
-                  selectItem(getSelectionItem(item));
-                  setFocusedIndex(index);
-                  setAnchorIndex(index);
-                }
-              }
-            }}
-            role="option"
-            aria-selected={isSelected}
-            className={listItemRowStyle({
-              selectable: true,
-              isSelected,
-              isFocused,
-            })}
-            style={
-              depth > 0
-                ? { paddingLeft: depth * NESTING_INDENT + 4 }
-                : undefined
-            }
-          >
-            <div className={listItemContentStyle}>
-              {isGroup && (
-                <span className={chevronStyle({ expanded: !isCollapsed })}>
-                  <LuChevronRight size={CHEVRON_SIZE} />
-                </span>
-              )}
-              {item.icon && (
-                <span
-                  className={listItemIconStyle}
-                  style={{ color: item.iconColor ?? LIST_ITEM_ICON_COLOR }}
-                >
-                  <item.icon size={LIST_ITEM_ICON_SIZE} />
-                </span>
-              )}
-              <div className={listItemNameStyle}>
-                {renderItem(item, isSelected)}
-              </div>
+          <Fragment key={topItem.id}>
+            {itemRow(topItem, 0)}
+            <div
+              className={groupChildrenStyle}
+              style={{ height: isCollapsed ? 0 : "auto" }}
+            >
+              {children!.length > 0
+                ? children!.map((child) => itemRow(child, 1))
+                : topItem.emptyGroupMessage && (
+                    <div
+                      className={listItemRowStyle({
+                        selectable: false,
+                        isSelected: false,
+                        isFocused: false,
+                      })}
+                      style={{ paddingLeft: NESTING_INDENT + 4 }}
+                    >
+                      <div className={listItemContentStyle}>
+                        <div
+                          className={listItemNameStyle}
+                          style={{ color: "var(--colors-neutral-s65)" }}
+                        >
+                          {topItem.emptyGroupMessage}
+                        </div>
+                      </div>
+                    </div>
+                  )}
             </div>
-            {isGroup && item.renderGroupAction && (
-              <span
-                role="presentation"
-                data-row-action
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                <item.renderGroupAction />
-              </span>
-            )}
-            {!isGroup && RenderRowMenu && <RenderRowMenu item={item} />}
-          </div>
+          </Fragment>
         );
       })}
       {items.length === 0 && (
