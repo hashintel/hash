@@ -987,6 +987,80 @@ fn struct_projection() {
     assert_eq!(result, Value::Integer(Int::from(200_i128)));
 }
 
+#[test]
+fn opaque_struct_projection_by_name() {
+    use hashql_core::symbol::sym;
+
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl inner: (x: Int, y: Int), wrapped: [Opaque sym::path::Entity; ?], result: Int;
+        @proj y_field = wrapped.y: Int;
+
+        bb0() {
+            inner = struct x: 100, y: 200;
+            wrapped = opaque (sym::path::Entity), inner;
+            result = load y_field;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Integer(Int::from(200_i128)));
+}
+
+#[test]
+fn opaque_tuple_projection_by_index() {
+    use hashql_core::symbol::sym;
+
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl inner: (Int, Int), wrapped: [Opaque sym::path::Entity; ?], result: Int;
+        @proj second = wrapped.1: Int;
+
+        bb0() {
+            inner = tuple 10, 20;
+            wrapped = opaque (sym::path::Entity), inner;
+            result = load second;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Integer(Int::from(20_i128)));
+}
+
+#[test]
+fn nested_opaque_projection_by_name() {
+    use hashql_core::symbol::sym;
+
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl inner: (val: Int), mid: [Opaque sym::path::EntityId; ?],
+             outer: [Opaque sym::path::Entity; ?], result: Int;
+        @proj val_field = outer.val: Int;
+
+        bb0() {
+            inner = struct val: 42;
+            mid = opaque (sym::path::EntityId), inner;
+            outer = opaque (sym::path::Entity), mid;
+            result = load val_field;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Integer(Int::from(42_i128)));
+}
+
 // =============================================================================
 // Input Operations
 // =============================================================================
