@@ -402,7 +402,7 @@ const SearchTitle: React.FC = () => {
     <input
       ref={searchInputRef}
       type="text"
-      placeholder="Find…"
+      placeholder="Find anything…"
       className={searchInputStyle}
       onKeyDown={(event) => {
         if (event.key === "ArrowDown") {
