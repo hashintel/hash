@@ -36,56 +36,72 @@ const listItemRowStyle = cva({
     minHeight: "8",
     p: "1",
     borderRadius: "lg",
-    cursor: "pointer",
     fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s115",
+    backgroundColor: "[transparent]",
 
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
-
-    /* Reveal the action button on hover or when its menu is open */
-    "& [data-row-action]": {
-      opacity: "[0]",
-      transition: "[opacity 150ms ease-out]",
-    },
-    "& [data-row-action] svg": {
-      transform: "[translateX(2px)]",
-      transition: "[transform 150ms ease-out]",
-    },
-    "&:hover [data-row-action], & [data-row-action][data-state=open]": {
-      opacity: "[1]",
-    },
-    "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg": {
-      transform: "none",
-    },
   },
   variants: {
+    selectable: {
+      true: {
+        cursor: "pointer",
+
+        /* Reveal the action button on hover or when its menu is open */
+        "& [data-row-action]": {
+          opacity: "[0]",
+          transition: "[opacity 150ms ease-out]",
+        },
+        "& [data-row-action] svg": {
+          transform: "[translateX(2px)]",
+          transition: "[transform 150ms ease-out]",
+        },
+        "&:hover [data-row-action], & [data-row-action][data-state=open]": {
+          opacity: "[1]",
+        },
+        "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg":
+          {
+            transform: "none",
+          },
+      },
+    },
     isSelected: {
       true: {
-        backgroundColor: "neutral.bg.subtle",
-        _hover: {
-          backgroundColor: "neutral.bg.subtle.hover",
-        },
+        backgroundColor: "blue.s30",
         "&:has([data-row-action][data-state=open])": {
-          backgroundColor: "neutral.bg.subtle.hover",
+          backgroundColor: "blue.s40",
         },
       },
-      false: {
-        backgroundColor: "[transparent]",
-        _hover: {
-          backgroundColor: "neutral.bg.surface.hover",
-        },
-        "&:has([data-row-action][data-state=open])": {
-          backgroundColor: "neutral.bg.surface.hover",
-        },
-      },
+      false: {},
     },
     isFocused: {
       true: {
-        backgroundColor: "neutral.bg.subtle.hover",
+        backgroundColor: "neutral.s25",
       },
     },
   },
+  compoundVariants: [
+    {
+      isFocused: true,
+      isSelected: true,
+      css: {
+        backgroundColor: "blue.s40",
+      },
+    },
+    {
+      selectable: true,
+      isSelected: false,
+      css: {
+        _hover: {
+          backgroundColor: "neutral.bg.surface.hover",
+        },
+        "&:has([data-row-action][data-state=open])": {
+          backgroundColor: "neutral.bg.surface.hover",
+        },
+      },
+    },
+  ],
 });
 
 const listItemContentStyle = css({
@@ -150,6 +166,8 @@ interface FilterableListItem {
   iconColor?: string;
   /** When present, this item becomes a collapsible group header. */
   children?: FilterableListItem[];
+  /** Message shown when this group is expanded but has no children. */
+  emptyGroupMessage?: string;
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -247,14 +265,28 @@ const FilterableListContent = <T extends FilterableListItem>({
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Flatten tree: items with children become group header + child rows
-  const flatRows: { item: T; depth: number; isGroup: boolean }[] = [];
+  const flatRows: {
+    item: T;
+    depth: number;
+    isGroup: boolean;
+    emptyGroupMessage?: string;
+  }[] = [];
   for (const item of items) {
     const children = item.children as T[] | undefined;
     const isGroup = children !== undefined;
     flatRows.push({ item, depth: 0, isGroup });
     if (isGroup && !collapsedGroups.has(item.id)) {
-      for (const child of children!) {
-        flatRows.push({ item: child, depth: 1, isGroup: false });
+      if (children!.length > 0) {
+        for (const child of children!) {
+          flatRows.push({ item: child, depth: 1, isGroup: false });
+        }
+      } else if (item.emptyGroupMessage) {
+        flatRows.push({
+          item,
+          depth: 1,
+          isGroup: false,
+          emptyGroupMessage: item.emptyGroupMessage,
+        });
       }
     }
   }
@@ -300,7 +332,7 @@ const FilterableListContent = <T extends FilterableListItem>({
     const newSelection: SelectionMap = new Map();
     for (let i = start; i <= end; i++) {
       const row = flatRows[i];
-      if (row && !row.isGroup) {
+      if (row && !row.isGroup && !row.emptyGroupMessage) {
         const selItem = getSelectionItem(row.item);
         newSelection.set(selItem.id, selItem);
       }
@@ -320,13 +352,20 @@ const FilterableListContent = <T extends FilterableListItem>({
     switch (event.key) {
       case "ArrowDown": {
         event.preventDefault();
-        const nextIndex =
+        let nextIndex =
           focusedIndex === null
             ? 0
             : Math.min(focusedIndex + 1, flatRows.length - 1);
+        // Skip empty placeholder rows
+        while (
+          nextIndex < flatRows.length - 1 &&
+          flatRows[nextIndex]?.emptyGroupMessage
+        ) {
+          nextIndex++;
+        }
         setFocusedIndex(nextIndex);
         const row = flatRows[nextIndex];
-        if (row && !row.isGroup) {
+        if (row && !row.isGroup && !row.emptyGroupMessage) {
           if (event.shiftKey) {
             selectRange(anchorIndex ?? nextIndex, nextIndex);
           } else {
@@ -338,13 +377,17 @@ const FilterableListContent = <T extends FilterableListItem>({
       }
       case "ArrowUp": {
         event.preventDefault();
-        const nextIndex =
+        let nextIndex =
           focusedIndex === null
             ? flatRows.length - 1
             : Math.max(focusedIndex - 1, 0);
+        // Skip empty placeholder rows
+        while (nextIndex > 0 && flatRows[nextIndex]?.emptyGroupMessage) {
+          nextIndex--;
+        }
         setFocusedIndex(nextIndex);
         const row = flatRows[nextIndex];
-        if (row && !row.isGroup) {
+        if (row && !row.isGroup && !row.emptyGroupMessage) {
           if (event.shiftKey) {
             selectRange(anchorIndex ?? nextIndex, nextIndex);
           } else {
@@ -359,7 +402,7 @@ const FilterableListContent = <T extends FilterableListItem>({
         event.preventDefault();
         if (focusedIndex !== null) {
           const row = flatRows[focusedIndex];
-          if (row) {
+          if (row && !row.emptyGroupMessage) {
             if (row.isGroup) {
               toggleGroup(row.item.id);
             } else {
@@ -446,7 +489,30 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
       }}
     >
-      {flatRows.map(({ item, depth, isGroup }, index) => {
+      {flatRows.map(({ item, depth, isGroup, emptyGroupMessage }, index) => {
+        if (emptyGroupMessage) {
+          return (
+            <div
+              key={`empty-${item.id}`}
+              className={listItemRowStyle({
+                selectable: false,
+                isSelected: false,
+                isFocused: false,
+              })}
+              style={{ paddingLeft: depth * NESTING_INDENT + 4 }}
+            >
+              <div className={listItemContentStyle}>
+                <div
+                  className={listItemNameStyle}
+                  style={{ color: "var(--colors-neutral-s65)" }}
+                >
+                  {emptyGroupMessage}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
         const isSelected = !isGroup && checkIsSelected(item.id);
         const isFocused = focusedIndex === index;
         const isCollapsed = isGroup && collapsedGroups.has(item.id);
@@ -472,7 +538,11 @@ const FilterableListContent = <T extends FilterableListItem>({
             }}
             role="option"
             aria-selected={isSelected}
-            className={listItemRowStyle({ isSelected, isFocused })}
+            className={listItemRowStyle({
+              selectable: true,
+              isSelected,
+              isFocused,
+            })}
             style={
               depth > 0
                 ? { paddingLeft: depth * NESTING_INDENT + 4 }
