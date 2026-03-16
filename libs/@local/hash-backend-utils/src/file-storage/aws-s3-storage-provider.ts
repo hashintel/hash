@@ -8,6 +8,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Url } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import mime from "mime-types";
 
 import type {
   FileStorageProvider,
@@ -17,6 +18,7 @@ import type {
   PresignedStorageRequest,
   StorageType,
 } from "../file-storage.js";
+import { getSafeContentType } from "../file-storage.js";
 
 export interface AwsS3StorageProviderConstructorArgs {
   credentials: S3ClientConfig["credentials"];
@@ -176,9 +178,16 @@ export class AwsS3StorageProvider implements FileStorageProvider {
       });
     }
 
+    const filename = key.split("/").pop() ?? key;
+    const mimeType = mime.lookup(filename) || "application/octet-stream";
+    const safeContentType = getSafeContentType(mimeType);
+
     const command = new GetObjectCommand({
       Bucket: fileStorageBucket,
       Key: key,
+      ...(safeContentType && {
+        ResponseContentType: safeContentType,
+      }),
     });
 
     return (await getSignedUrl(client, command, {

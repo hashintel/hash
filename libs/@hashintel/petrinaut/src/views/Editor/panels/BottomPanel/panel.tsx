@@ -1,31 +1,58 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use, useCallback, useEffect, useRef } from "react";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { use, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
+import { IconButton } from "../../../../components/icon-button";
 import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
   HorizontalTabsHeaderAction,
-} from "../../../../components/sub-view/horizontal-tabs-container";
+} from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import {
-  BOTTOM_PANEL_SUBVIEWS,
   MAX_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
-  SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
+import {
+  BOTTOM_PANEL_SUBVIEWS,
+  SIMULATION_ONLY_SUBVIEWS,
+} from "../../../../constants/ui-subviews";
 import { SimulationContext } from "../../../../simulation/context";
 import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../state/editor-context";
+import { UserSettingsContext } from "../../../../state/user-settings-context";
 
 const glassPanelBaseStyle = css({
-  padding: "[4px]",
+  position: "absolute",
+  zIndex: 1001,
+  borderTopWidth: "thin",
+  boxSizing: "border-box",
+});
+
+const panelStyle = cva({
+  base: {},
+  variants: {
+    open: {
+      true: {},
+      false: {
+        transform: "translateY(100%)",
+        pointerEvents: "none",
+      },
+    },
+    animating: {
+      true: {
+        transition:
+          "[width 150ms ease-in-out, opacity 150ms ease-in-out, height 150ms ease-in-out, top 150ms ease-in-out, left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out, transform 150ms ease-in-out]",
+      },
+    },
+  },
 });
 
 const panelContainerStyle = css({
+  padding: "[4px]",
   display: "flex",
   flexDirection: "column",
 });
@@ -42,24 +69,6 @@ const headerRightStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
-});
-
-const closeButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[22px]",
-  height: "[22px]",
-  border: "none",
-  borderRadius: "[5px]",
-  background: "[transparent]",
-  color: "neutral.s100",
-  cursor: "pointer",
-  transition: "[all 0.15s ease]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-    color: "neutral.s115",
-  },
 });
 
 /**
@@ -79,6 +88,7 @@ export const BottomPanel: React.FC = () => {
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
+    isPanelAnimating,
   } = use(EditorContext);
 
   // Simulation state for conditional subviews
@@ -119,13 +129,9 @@ export const BottomPanel: React.FC = () => {
     }
   }, [isSimulationActive, setBottomPanelOpen, setActiveTab, activeTab]);
 
-  // Handler for tab change that casts string to BottomPanelTab
-  const handleTabChange = useCallback(
-    (tabId: string) => {
-      setActiveTab(tabId as BottomPanelTab);
-    },
-    [setActiveTab],
-  );
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId as BottomPanelTab);
+  };
 
   // Calculate left position based on left sidebar state
   // Add sidebar padding (12px each side) when sidebar is open
@@ -133,20 +139,23 @@ export const BottomPanel: React.FC = () => {
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 
-  if (!isOpen) {
+  const { keepPanelsMounted } = use(UserSettingsContext);
+
+  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={glassPanelBaseStyle}
+      className={cx(
+        glassPanelBaseStyle,
+        panelStyle({ open: isOpen, animating: isPanelAnimating }),
+      )}
       style={{
-        position: "absolute",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
-        zIndex: 999,
       }}
       contentClassName={panelContainerStyle}
       resizable={{
@@ -169,14 +178,14 @@ export const BottomPanel: React.FC = () => {
             subViews={subViews}
             activeTabId={activeTab}
           />
-          <button
-            type="button"
+          <IconButton
+            size="xxs"
+            variant="ghost"
             onClick={toggleBottomPanel}
-            className={closeButtonStyle}
             aria-label="Close panel"
           >
             <FaXmark size={14} />
-          </button>
+          </IconButton>
         </div>
       </div>
 

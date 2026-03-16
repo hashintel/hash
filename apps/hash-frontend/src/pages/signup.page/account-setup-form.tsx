@@ -1,4 +1,5 @@
 import { TextField } from "@hashintel/design-system";
+import { validateDisplayName } from "@local/hash-graph-sdk/user-entity-restrictions";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import type { BoxProps } from "@mui/material";
 import {
@@ -81,6 +82,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
     handleSubmit,
     watch,
     control,
+    setValue,
     formState: { errors, isValid, touchedFields },
   } = useForm<AccountSetupFormData>({
     mode: "all",
@@ -163,7 +165,19 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             placeholder="Jonathan Smith"
             autoFocus
             sx={{ width: inputWidth }}
-            {...register("displayName", { required: true })}
+            {...register("displayName", {
+              required: "Display name is required",
+              validate: validateDisplayName,
+              onBlur: (event) => {
+                const trimmed = (event.target.value as string).trim();
+                if (trimmed !== event.target.value) {
+                  setValue("displayName", trimmed, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                }
+              },
+            })}
           />
         </Box>
         <Box>

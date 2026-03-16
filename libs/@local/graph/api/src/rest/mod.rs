@@ -323,6 +323,21 @@ pub enum OpenApiQuery<'a> {
     DiffEntity(&'a DiffEntityParams),
 }
 
+/// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
+pub struct ApiConfig {
+    /// The default and maximum number of entities returned by a single query.
+    ///
+    /// When a request omits `limit`, this value is used. Requests that specify a `limit` larger
+    /// than this value are rejected.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value_t = 1000, env = "HASH_GRAPH_QUERY_ENTITY_LIMIT")
+    )]
+    pub query_entity_limit: usize,
+}
+
 pub struct RestRouterDependencies<S>
 where
     S: StorePool + Send + Sync + 'static,
@@ -331,6 +346,7 @@ where
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
+    pub api_config: ApiConfig,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -376,7 +392,8 @@ where
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.temporal_client))
-        .layer(Extension(dependencies.domain_regex));
+        .layer(Extension(dependencies.domain_regex))
+        .layer(Extension(dependencies.api_config));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));

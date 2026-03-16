@@ -1,4 +1,3 @@
-/* eslint-disable id-length */
 type PlaceSpec = {
   count: number; // number of tokens in this place
   weight: number; // how many tokens to pick

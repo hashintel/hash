@@ -3,6 +3,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { validateOrgName } from "@local/hash-isomorphic-utils/organization";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
@@ -179,8 +180,7 @@ export const OrgForm = ({
     void refetchUserAndOrgs();
   };
 
-  const nameError =
-    touchedFields.name && !nameWatcher ? "Display name is required" : "";
+  const nameError = touchedFields.name ? (errors.name?.message ?? "") : "";
 
   const innerSubmit = handleSubmit(async (data) => {
     try {
@@ -213,7 +213,19 @@ export const OrgForm = ({
           id="name"
           helperText={nameError}
           placeholder="e.g. Acme Corp"
-          {...register("name", { required: true })}
+          {...register("name", {
+            required: "Display name is required",
+            validate: validateOrgName,
+            onBlur: (event) => {
+              const trimmed = (event.target.value as string).trim();
+              if (trimmed !== event.target.value) {
+                setValue("name", trimmed, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }
+            },
+          })}
           sx={{ width: 300 }}
         />
       </InputGroup>

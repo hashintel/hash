@@ -52,8 +52,8 @@ fn parse_jwt_algorithm(name: &str) -> Result<Algorithm, String> {
 /// JWT authentication configuration for the admin server.
 ///
 /// All three identity fields (`jwks_url`, `audience`, `issuer`) must be provided together or not at
-/// all. When none are set, JWT authentication is disabled (development mode). Partial configuration
-/// is rejected by clap's `requires`.
+/// all. When none are set, `--unsafe-allow-dev-authentication` is required for the server to start.
+/// Partial configuration is rejected by clap's `requires`.
 ///
 /// Operational parameters (cache TTL, refresh cooldown, HTTP timeout, algorithms) have sensible
 /// defaults and only take effect when JWT authentication is enabled.
@@ -177,6 +177,24 @@ pub struct AdminConfig {
 
     #[clap(flatten)]
     pub external_services: ExternalServicesConfig,
+
+    /// Allow header-based authentication and bulk destructive endpoints without JWT.
+    ///
+    /// When set, the admin server accepts the `X-Authenticated-User-Actor-Id` header for
+    /// authentication and registers bulk destructive endpoints (`/snapshot`, `/accounts`,
+    /// `/data-types`, `/property-types`, `/entity-types`).
+    ///
+    /// **This flag must never be used in production or staging.** Without JWT, any client that
+    /// can reach the admin port can execute destructive operations without authentication.
+    ///
+    /// If neither JWT nor this flag is configured, the server refuses to start.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_UNSAFE_DEV_AUTH",
+        default_value_t = false,
+        conflicts_with = "jwks_url"
+    )]
+    pub unsafe_allow_dev_authentication: bool,
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
@@ -204,6 +222,13 @@ pub(crate) async fn run_admin_server(
 ) -> Result<(), Report<GraphError>> {
     let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
         (Some(jwks_url), Some(audience), Some(issuer)) => {
+            if config.unsafe_allow_dev_authentication {
+                // Clap `conflicts_with` should prevent this, but guard against it anyway.
+                return Err(Report::new(GraphError).attach(
+                    "--unsafe-allow-dev-authentication cannot be used with JWT authentication. \
+                     Remove the flag or the JWT configuration.",
+                ));
+            }
             tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
             Some(Arc::new(JwtValidator::new(JwtValidatorConfig {
                 jwks_url,
@@ -215,9 +240,19 @@ pub(crate) async fn run_admin_server(
                 allowed_algorithms: config.jwt.allowed_algorithms,
             })))
         }
-        (None, None, None) => {
-            tracing::warn!("JWT authentication disabled for admin API -- no JWKS URL configured");
+        (None, None, None) if config.unsafe_allow_dev_authentication => {
+            tracing::warn!(
+                "--unsafe-allow-dev-authentication is set -- header-based authentication is \
+                 enabled without verification. DO NOT use this in production."
+            );
             None
+        }
+        (None, None, None) => {
+            return Err(Report::new(GraphError).attach(
+                "no JWT authentication configured and --unsafe-allow-dev-authentication is not \
+                 set. Either configure JWT (--jwt-jwks-url, --jwt-audience, --jwt-issuer) or pass \
+                 --unsafe-allow-dev-authentication for local development.",
+            ));
         }
         _ => {
             // Clap `requires` should prevent this, but guard against it anyway.

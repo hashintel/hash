@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 export interface ButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
   /** The variant style of the button */
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "error";
   /** The color scheme of the button */
-  colorScheme?: "brand" | "neutral" | "critical";
+  colorScheme?: "brand" | "neutral" | "critical" | "subtle";
   /** The size of the button */
   size?: "xs" | "sm" | "md" | "lg";
   /** Whether the button is in a loading state */
@@ -40,66 +40,68 @@ const LoadingSpinner = () => (
   </svg>
 );
 
-// Define recipe for button styling variants
 const buttonRecipe = cva({
   base: {
     position: "relative",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "[Inter, sans-serif]",
+    fontFamily: "body",
     fontWeight: "medium",
-    lineHeight: "[14px]",
+    lineHeight: "none",
     cursor: "pointer",
     overflow: "hidden",
+    whiteSpace: "nowrap",
     _disabled: {
       cursor: "not-allowed",
-      opacity: "[0.3]",
+      opacity: 0.4,
     },
   },
   variants: {
     variant: {
       primary: {},
       secondary: {},
-      ghost: {},
+      ghost: {
+        borderWidth: "1px",
+        borderStyle: "solid",
+        borderColor: "[transparent]",
+      },
+      error: {},
     },
     colorScheme: {
       brand: {},
       neutral: {},
       critical: {},
+      subtle: {},
     },
     size: {
       xs: {
-        height: "[24px]",
-        paddingX: "5",
-        paddingY: "5",
-        fontSize: "sm",
-        gap: "3",
-        borderRadius: "sm",
-      },
-      sm: {
-        height: "[28px]",
-        paddingX: "5",
-        paddingY: "5",
-        fontSize: "sm",
-        gap: "3",
-        borderRadius: "sm",
-      },
-      md: {
-        height: "[32px]",
-        paddingX: "6",
-        paddingY: "6",
-        fontSize: "sm",
-        gap: "4",
+        height: "6",
+        paddingX: "2",
+        paddingY: "1.5",
+        fontSize: "xs",
         borderRadius: "md",
       },
-      lg: {
-        height: "[40px]",
-        paddingX: "7",
-        paddingY: "7",
-        fontSize: "base",
-        gap: "4",
+      sm: {
+        height: "7",
+        paddingX: "2",
+        paddingY: "1.5",
+        fontSize: "sm",
         borderRadius: "lg",
+      },
+      md: {
+        height: "8",
+        paddingX: "2.5",
+        paddingY: "2",
+        fontSize: "sm",
+        borderRadius: "lg",
+      },
+      lg: {
+        height: "10",
+        paddingX: "3.5",
+        paddingY: "2.5",
+        fontSize: "base",
+        borderRadius: "xl",
       },
     },
     isLoading: {
@@ -177,7 +179,8 @@ const buttonRecipe = cva({
       colorScheme: "brand",
       css: {
         backgroundColor: "bg.subtle",
-        border: "[1px solid]",
+        borderWidth: "1px",
+        borderStyle: "solid",
         borderColor: "blue.bg.solid",
         color: "blue.fg.link",
         _hover: {
@@ -203,7 +206,8 @@ const buttonRecipe = cva({
       colorScheme: "neutral",
       css: {
         backgroundColor: "bg.subtle",
-        border: "[1px solid]",
+        borderWidth: "1px",
+        borderStyle: "solid",
         borderColor: "bd.solid",
         color: "fg.body",
         _hover: {
@@ -227,7 +231,8 @@ const buttonRecipe = cva({
       colorScheme: "critical",
       css: {
         backgroundColor: "bg.subtle",
-        border: "[1px solid]",
+        borderWidth: "1px",
+        borderStyle: "solid",
         borderColor: "status.error.bg.solid",
         color: "status.error.fg.heading",
         _hover: {
@@ -256,10 +261,12 @@ const buttonRecipe = cva({
         color: "blue.fg.link",
         _hover: {
           backgroundColor: "blue.bg.subtle.hover",
+          borderColor: "blue.bd.solid",
           color: "blue.fg.link.hover",
         },
         _active: {
           backgroundColor: "blue.bg.subtle.active",
+          borderColor: "blue.bd.solid",
           color: "blue.fg.link.hover",
         },
         _focusVisible: {
@@ -278,10 +285,12 @@ const buttonRecipe = cva({
         color: "fg.muted",
         _hover: {
           backgroundColor: "bg.subtle.hover",
+          borderColor: "bd.solid.hover",
           color: "fg.heading",
         },
         _active: {
           backgroundColor: "bg.subtle.active",
+          borderColor: "bd.solid.hover",
           color: "fg.heading",
         },
         _focusVisible: {
@@ -300,11 +309,53 @@ const buttonRecipe = cva({
         color: "status.error.fg.heading",
         _hover: {
           backgroundColor: "status.error.bg.subtle.hover",
+          borderColor: "status.error.bd.solid",
           color: "status.error.fg.heading",
         },
         _active: {
           backgroundColor: "status.error.bg.subtle.active",
+          borderColor: "status.error.bd.solid",
           color: "status.error.fg.heading",
+        },
+        _focusVisible: {
+          outline: "[2px solid]",
+          outlineColor: "red.s30",
+          outlineOffset: "[2px]",
+        },
+      },
+    },
+    // Error + Critical (solid red)
+    {
+      variant: "error",
+      colorScheme: "critical",
+      css: {
+        backgroundColor: "status.error.bg.solid",
+        color: "status.error.fg.onSolid",
+        _hover: {
+          backgroundColor: "status.error.bg.solid.hover",
+        },
+        _active: {
+          backgroundColor: "status.error.bg.solid.active",
+        },
+        _focusVisible: {
+          outline: "[2px solid]",
+          outlineColor: "red.s30",
+          outlineOffset: "[2px]",
+        },
+      },
+    },
+    // Error + Subtle (light bg, red text)
+    {
+      variant: "error",
+      colorScheme: "subtle",
+      css: {
+        backgroundColor: "status.error.bg.subtle",
+        color: "status.error.fg.heading",
+        _hover: {
+          backgroundColor: "status.error.bg.subtle.hover",
+        },
+        _active: {
+          backgroundColor: "status.error.bg.subtle.active",
         },
         _focusVisible: {
           outline: "[2px solid]",
@@ -321,6 +372,13 @@ const buttonRecipe = cva({
     isLoading: false,
   },
 });
+
+const contentGap = {
+  xs: "1",
+  sm: "1",
+  md: "1",
+  lg: "1.5",
+} as const;
 
 export const Button: React.FC<ButtonProps> = ({
   className,
@@ -363,7 +421,7 @@ export const Button: React.FC<ButtonProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "4",
+          gap: contentGap[size],
           opacity: isLoading ? 0 : 1,
         })}
       >

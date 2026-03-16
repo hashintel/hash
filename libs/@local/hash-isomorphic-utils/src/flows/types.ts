@@ -22,6 +22,8 @@ import type {
 import type { ScheduleSpec } from "./schedule-types.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
+export const flowRunsQueryMaxLimit = 100;
+
 export type FlowActionDefinitionId =
   | AiFlowActionDefinitionId
   | IntegrationFlowActionDefinitionId;

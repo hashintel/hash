@@ -6,10 +6,8 @@
       "outputs": ["dist/**"],
       "cache": false
     },
-    "build:site": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/demo-site/**"],
-      "cache": false
+    "lint:eslint": {
+      "dependsOn": []
     }
   }
 }

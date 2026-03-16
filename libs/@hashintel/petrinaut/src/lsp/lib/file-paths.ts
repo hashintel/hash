@@ -4,6 +4,7 @@
  */
 
 export type SDCPNFileType =
+  | "sdcpn-lib-defs"
   | "parameters-defs"
   | "color-defs"
   | "differential-equation-defs"
@@ -14,6 +15,7 @@ export type SDCPNFileType =
   | "transition-kernel-code";
 
 type FilePathParams = {
+  "sdcpn-lib-defs": Record<string, never>;
   "parameters-defs": Record<string, never>;
   "color-defs": { colorId: string };
   "differential-equation-defs": { id: string };
@@ -40,6 +42,9 @@ export const getItemFilePath = <T extends SDCPNFileType>(
   const params = args[0];
 
   switch (fileType) {
+    case "sdcpn-lib-defs":
+      return "/sdcpn-lib.d.ts";
+
     case "parameters-defs":
       return "/parameters/defs.d.ts";
 

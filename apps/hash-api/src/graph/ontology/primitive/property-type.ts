@@ -69,7 +69,6 @@ export const createPropertyType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createPropertyType(
     authentication.actorId,
     {
-      webId,
       schema,
       provenance: {
         ...ctx.provenance,

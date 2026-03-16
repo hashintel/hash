@@ -195,7 +195,7 @@ pub struct QueryEntitiesParams<'a> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
     pub conversions: Vec<QueryConversion<'a>>,
-    pub limit: Option<usize>,
+    pub limit: usize,
     pub include_drafts: bool,
     pub include_count: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
@@ -553,6 +553,51 @@ pub enum LinkDeletionBehavior {
     Archive,
 }
 
+/// Parameters for the `/entities/delete` admin API endpoint.
+///
+/// # Examples
+///
+/// Purge all entities of a specific type, erroring if any links remain:
+///
+/// ```
+/// # use serde::Deserialize as _;
+/// # use hash_graph_store::entity::DeleteEntitiesParams;
+/// let json = serde_json::json!({
+///     "filter": {
+///         "all": [
+///             {
+///                 "equal": [
+///                     { "path": ["type(inheritanceDepth = 0)", "baseUrl"] },
+///                     { "parameter": "https://hash.ai/@hash/types/entity-type/user/" }
+///                 ]
+///             },
+///             {
+///                 "equal": [
+///                     { "path": ["type(inheritanceDepth = 0)", "version"] },
+///                     { "parameter": 1 }
+///                 ]
+///             }
+///         ]
+///     },
+///     "includeDrafts": false,
+///     "scope": "purge",
+///     "linkBehavior": "error"
+/// });
+/// let params = DeleteEntitiesParams::deserialize(&json).unwrap();
+/// ```
+///
+/// Erase all entities (including drafts) — typically used for database resets:
+///
+/// ```
+/// # use serde::Deserialize as _;
+/// # use hash_graph_store::entity::DeleteEntitiesParams;
+/// let json = serde_json::json!({
+///     "filter": { "all": [] },
+///     "includeDrafts": true,
+///     "scope": "erase"
+/// });
+/// let params = DeleteEntitiesParams::deserialize(&json).unwrap();
+/// ```
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]

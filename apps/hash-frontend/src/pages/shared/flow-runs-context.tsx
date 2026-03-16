@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 import {
   getFlowRunById,
   getFlowRunsQuery,
@@ -48,7 +49,7 @@ export const FlowRunsContextProvider = ({
         offset: pagination.page * pagination.rowsPerPage,
         limit: pagination.rowsPerPage,
       }
-    : { offset: 0, limit: 50 };
+    : { offset: 0, limit: flowRunsQueryMaxLimit };
 
   const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,

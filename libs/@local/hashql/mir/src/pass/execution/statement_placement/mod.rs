@@ -17,7 +17,6 @@ mod tests;
 mod common;
 mod embedding;
 mod interpret;
-mod lookup;
 mod postgres;
 
 pub(crate) use self::{

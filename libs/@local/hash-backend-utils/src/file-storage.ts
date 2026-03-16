@@ -171,3 +171,42 @@ export const getEntityTypeIdForMimeType = (mimeType: string) =>
 export const formatFileUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
+
+/**
+ * MIME types that can execute scripts when rendered inline by a browser.
+ * Files with these types are served with `Content-Type: text/plain`
+ * so the browser displays raw text instead of executing anything.
+ */
+const dangerousMimeTypes = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "text/xml",
+  "application/xml",
+  "text/xsl",
+  "application/xslt+xml",
+  "text/javascript",
+  "application/javascript",
+  "text/ecmascript",
+  "application/ecmascript",
+  "application/rss+xml",
+  "application/atom+xml",
+  "application/mathml+xml",
+]);
+
+export const isScriptableMimeType = (mimeType: string): boolean =>
+  dangerousMimeTypes.has(mimeType.split(";")[0]!.trim());
+
+/**
+ * For file types that can execute scripts in the browser, returns
+ * a safe Content-Type to prevent XSS. The file is still rendered
+ * inline so users can preview the raw content in the browser.
+ * Returns `null` if the MIME type is safe to serve as-is.
+ */
+export const getSafeContentType = (mimeType: string): string | null => {
+  if (!isScriptableMimeType(mimeType)) {
+    return null;
+  }
+
+  return "text/plain";
+};

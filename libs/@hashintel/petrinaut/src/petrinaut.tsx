@@ -1,5 +1,7 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 import "./index.css";
+
+import { type FunctionComponent } from "react";
 
 import type {
   Color,
@@ -18,6 +20,11 @@ import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
+import {
+  UndoRedoContext,
+  type UndoRedoContextValue,
+} from "./state/undo-redo-context";
+import { UserSettingsProvider } from "./state/user-settings-provider";
 import { EditorView } from "./views/Editor/editor-view";
 
 export { isSDCPNEqual } from "./lib/deep-equal";
@@ -32,6 +39,8 @@ export type {
   SDCPN,
   Transition,
 };
+
+export type { UndoRedoContextValue as UndoRedoProps } from "./state/undo-redo-context";
 
 export type PetrinautProps = {
   /**
@@ -89,29 +98,39 @@ export type PetrinautProps = {
    * The title of the net which is currently loaded.
    */
   title: string;
+  /**
+   * Optional undo/redo support. When provided, the editor will show
+   * undo/redo buttons in the top bar and register keyboard shortcuts.
+   */
+  undoRedo?: UndoRedoContextValue;
 };
 
-export const Petrinaut = ({
+export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
+  undoRedo,
   ...rest
-}: PetrinautProps) => {
+}) => {
   return (
     <NotificationsProvider>
-      <SDCPNProvider {...rest}>
-        <LanguageClientProvider key={rest.petriNetId}>
-          <MonacoProvider>
-            <SimulationProvider>
-              <PlaybackProvider>
-                <EditorProvider>
-                  <EditorView
-                    hideNetManagementControls={hideNetManagementControls}
-                  />
-                </EditorProvider>
-              </PlaybackProvider>
-            </SimulationProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </SDCPNProvider>
+      <UndoRedoContext value={undoRedo ?? null}>
+        <SDCPNProvider {...rest}>
+          <LanguageClientProvider key={rest.petriNetId}>
+            <MonacoProvider>
+              <SimulationProvider>
+                <PlaybackProvider>
+                  <UserSettingsProvider>
+                    <EditorProvider>
+                      <EditorView
+                        hideNetManagementControls={hideNetManagementControls}
+                      />
+                    </EditorProvider>
+                  </UserSettingsProvider>
+                </PlaybackProvider>
+              </SimulationProvider>
+            </MonacoProvider>
+          </LanguageClientProvider>
+        </SDCPNProvider>
+      </UndoRedoContext>
     </NotificationsProvider>
   );
 };

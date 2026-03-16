@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use, useRef, useState } from "react";
 
 import {
   type DraggingStateByNodeId,
@@ -8,52 +8,121 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import type { SelectionItem, SelectionMap } from "./selection";
+import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
+import { UserSettingsContext } from "./user-settings-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
-  const [state, setState] = useState<EditorState>(initialEditorState);
+  const userSettings = use(UserSettingsContext);
 
-  const actions: EditorActions = {
+  const [state, setState] = useState<EditorState>(() => ({
+    ...initialEditorState,
+    cursorMode: userSettings.cursorMode,
+    isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
+    leftSidebarWidth: userSettings.leftSidebarWidth,
+    propertiesPanelWidth: userSettings.propertiesPanelWidth,
+    isBottomPanelOpen: userSettings.isBottomPanelOpen,
+    bottomPanelHeight: userSettings.bottomPanelHeight,
+    activeBottomPanelTab: userSettings.activeBottomPanelTab,
+    timelineChartType: userSettings.timelineChartType,
+  }));
+
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  const triggerPanelAnimation = () => {
+    if (!userSettings.showAnimations) {
+      return;
+    }
+    clearTimeout(animationTimerRef.current);
+    setState((prev) => ({ ...prev, isPanelAnimating: true }));
+    // This timeout is not perfectly precise, but good enough for CSS transitions
+    animationTimerRef.current = setTimeout(() => {
+      setState((prev) => ({ ...prev, isPanelAnimating: false }));
+    }, 500);
+  };
+
+  const setSelection = (
+    selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+  ) =>
+    setState((prev) => {
+      const selection =
+        typeof selectionOrUpdater === "function"
+          ? selectionOrUpdater(prev.selection)
+          : selectionOrUpdater;
+      const hasSelection = selection.size > 0;
+      if (prev.hasSelection !== hasSelection) {
+        triggerPanelAnimation();
+      }
+      return { ...prev, selection, hasSelection };
+    });
+
+  const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
       setState((prev) => ({ ...prev, editionMode: mode })),
-    setLeftSidebarOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen })),
+    setCursorMode: (mode) =>
+      setState((prev) => ({ ...prev, cursorMode: mode })),
+    setLeftSidebarOpen: (isOpen) => {
+      triggerPanelAnimation();
+      setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen }));
+    },
     setLeftSidebarWidth: (width) =>
       setState((prev) => ({ ...prev, leftSidebarWidth: width })),
     setPropertiesPanelWidth: (width) =>
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
-    setBottomPanelOpen: (isOpen) =>
-      setState((prev) => ({ ...prev, isBottomPanelOpen: isOpen })),
-    toggleBottomPanel: () =>
+    setBottomPanelOpen: (isOpen) => {
+      triggerPanelAnimation();
+      setState((prev) => ({ ...prev, isBottomPanelOpen: isOpen }));
+    },
+    toggleBottomPanel: () => {
+      triggerPanelAnimation();
       setState((prev) => ({
         ...prev,
         isBottomPanelOpen: !prev.isBottomPanelOpen,
-      })),
+      }));
+    },
     setBottomPanelHeight: (height) =>
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
-    setSelectedResourceId: (id) =>
-      setState((prev) => ({ ...prev, selectedResourceId: id })),
-    setSelectedItemIds: (ids) =>
-      setState((prev) => ({ ...prev, selectedItemIds: ids })),
-    addSelectedItemId: (id) =>
+    setSelection,
+    selectItem: (item: SelectionItem) => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.add(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    removeSelectedItemId: (id) =>
+        const newSelection: SelectionMap = new Map([[item.id, item]]);
+        if (!prev.hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection, hasSelection: true };
+      });
+    },
+    toggleItem: (item: SelectionItem) => {
       setState((prev) => {
-        const newSet = new Set(prev.selectedItemIds);
-        newSet.delete(id);
-        return { ...prev, selectedItemIds: newSet };
-      }),
-    clearSelection: () =>
-      setState((prev) => ({ ...prev, selectedItemIds: new Set() })),
+        const newSelection = new Map(prev.selection);
+        if (newSelection.has(item.id)) {
+          newSelection.delete(item.id);
+        } else {
+          newSelection.set(item.id, item);
+        }
+        const hasSelection = newSelection.size > 0;
+        if (prev.hasSelection !== hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: newSelection, hasSelection };
+      });
+    },
+    clearSelection: () => {
+      setState((prev) => {
+        if (prev.hasSelection) {
+          triggerPanelAnimation();
+        }
+        return { ...prev, selection: new Map(), hasSelection: false };
+      });
+    },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -63,14 +132,40 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       })),
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
+    collapseAllPanels: () => {
+      triggerPanelAnimation();
+      setState((prev) => ({
+        ...prev,
+        isLeftSidebarOpen: false,
+        isBottomPanelOpen: false,
+        selection: new Map(),
+        hasSelection: false,
+      }));
+    },
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
+    triggerPanelAnimation,
     __reinitialize: () => setState(initialEditorState),
   };
+
+  useSyncEditorToSettings({
+    cursorMode: state.cursorMode,
+    isLeftSidebarOpen: state.isLeftSidebarOpen,
+    leftSidebarWidth: state.leftSidebarWidth,
+    propertiesPanelWidth: state.propertiesPanelWidth,
+    isBottomPanelOpen: state.isBottomPanelOpen,
+    bottomPanelHeight: state.bottomPanelHeight,
+    activeBottomPanelTab: state.activeBottomPanelTab,
+    timelineChartType: state.timelineChartType,
+  });
+
+  const { selection } = state;
+  const isSelected = (id: string) => selection.has(id);
 
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
+    isSelected,
   };
 
   return (

@@ -12,8 +12,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: -375,
         y: 135,
-        width: 130,
-        height: 130,
       },
       {
         id: "place__infected",
@@ -23,8 +21,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: -195,
         y: 285,
-        width: 130,
-        height: 130,
       },
       {
         id: "place__recovered",
@@ -34,8 +30,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         differentialEquationId: null,
         x: 315,
         y: 120,
-        width: 130,
-        height: 130,
       },
     ],
     transitions: [
@@ -65,8 +59,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
         x: -165,
         y: 75,
-        width: 160,
-        height: 80,
       },
       {
         id: "transition__recovery",
@@ -90,8 +82,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
         x: 75,
         y: 225,
-        width: 160,
-        height: 80,
       },
     ],
     types: [],

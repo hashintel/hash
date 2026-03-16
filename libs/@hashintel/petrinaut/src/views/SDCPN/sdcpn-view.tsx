@@ -1,9 +1,9 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useRef, useState } from "react";
-import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import type { Connection } from "@xyflow/react";
+import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import {
@@ -13,24 +13,28 @@ import {
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
+import { UserSettingsContext } from "../../state/user-settings-context";
 import { Arc } from "./components/arc";
+import { ClassicPlaceNode } from "./components/classic-place-node";
+import { ClassicTransitionNode } from "./components/classic-transition-node";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
+import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
-import type {
-  ArcData,
-  NodeData,
-  PetrinautReactFlowInstance,
-} from "./reactflow-types";
-import { nodeDimensions } from "./styles/styling";
+import type { PetrinautReactFlowInstance } from "./reactflow-types";
 
 const SNAP_GRID_SIZE = 15;
 
-const REACTFLOW_NODE_TYPES = {
+const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
+};
+
+const CLASSIC_NODE_TYPES = {
+  place: ClassicPlaceNode,
+  transition: ClassicTransitionNode,
 };
 
 const REACTFLOW_EDGE_TYPES = {
@@ -55,22 +59,21 @@ export const SDCPNView: React.FC = () => {
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
+  const { compactNodes, partialSelection } = use(UserSettingsContext);
+  const nodeTypes = useMemo(
+    () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
+    [compactNodes],
+  );
+
   // SDCPN store
-  const {
-    petriNetId,
-    addPlace,
-    addTransition,
-    addArc,
-    deleteItemsByIds,
-    readonly,
-  } = use(SDCPNContext);
+  const { petriNetId, addPlace, addTransition, addArc, readonly } =
+    use(SDCPNContext);
 
   const {
     editionMode,
     setEditionMode,
-    selectedItemIds,
-    setSelectedItemIds,
-    setSelectedResourceId,
+    cursorMode,
+    selectItem,
     clearSelection,
   } = use(EditorContext);
 
@@ -82,7 +85,11 @@ export const SDCPNView: React.FC = () => {
 
   // Center viewport on SDCPN load
   useEffect(() => {
-    reactFlowInstance?.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
+    void reactFlowInstance?.fitView({
+      padding: 0.4,
+      minZoom: 0.4,
+      maxZoom: 1.1,
+    });
   }, [reactFlowInstance, petriNetId]);
 
   // Readonly if simulation mode or readonly has been provided by external consumer.
@@ -106,8 +113,8 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const source = connection.source ?? "";
-    const target = connection.target ?? "";
+    const source = connection.source;
+    const target = connection.target;
 
     const sourceNode = nodes.find((node) => node.id === source);
     const targetNode = nodes.find((node) => node.id === target);
@@ -129,7 +136,7 @@ export const SDCPNView: React.FC = () => {
     }
   }
 
-  function onInit(instance: ReactFlowInstance<NodeData, ArcData>) {
+  function onInit(instance: PetrinautReactFlowInstance) {
     setReactFlowInstance(instance);
   }
 
@@ -138,8 +145,6 @@ export const SDCPNView: React.FC = () => {
     nodeType: "place" | "transition",
     position: { x: number; y: number },
   ) {
-    const { width, height } = nodeDimensions[nodeType];
-
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
 
@@ -152,8 +157,6 @@ export const SDCPNView: React.FC = () => {
         differentialEquationId: null,
         x: position.x,
         y: position.y,
-        width,
-        height,
         visualizerCode: undefined,
       });
     } else {
@@ -167,18 +170,21 @@ export const SDCPNView: React.FC = () => {
         transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
         x: position.x,
         y: position.y,
-        width,
-        height,
       });
     }
-    setSelectedItemIds(new Set([id]));
-    setEditionMode("select");
+    selectItem({ type: nodeType, id });
+    setEditionMode("cursor");
   }
 
-  function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
-    // Set the selected resource ID for properties panel
-    setSelectedResourceId(node.id);
-    setSelectedItemIds(new Set([node.id]));
+  // Node click selection is handled by ReactFlow's internal handleNodeClick
+  // which fires select changes through onNodesChange → useApplyNodeChanges.
+  // We don't need an onNodeClick handler for selection — doing so would
+  // conflict with ReactFlow's internal selection management.
+
+  // Edge (arc) selection is handled here instead of in applyNodeChanges,
+  // because we want arcs selectable only by click, not by drag-to-select.
+  function onEdgeClick(_event: React.MouseEvent, edge: { id: string }) {
+    selectItem({ type: "arc", id: edge.id });
   }
 
   function onPaneClick(event: React.MouseEvent) {
@@ -187,9 +193,8 @@ export const SDCPNView: React.FC = () => {
     }
 
     // Clear selection when clicking empty canvas in select mode
-    if (editionMode === "select" || editionMode === "pan") {
-      setSelectedItemIds(new Set());
-      setSelectedResourceId(null);
+    if (editionMode === "cursor") {
+      clearSelection();
       return;
     }
 
@@ -200,12 +205,10 @@ export const SDCPNView: React.FC = () => {
     }
 
     const nodeType = editionMode === "add-place" ? "place" : "transition";
-    const { width, height } = nodeDimensions[nodeType];
 
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -231,11 +234,9 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
-    const { width, height } = nodeDimensions[nodeType];
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     createNodeAtPosition(nodeType, position);
@@ -279,7 +280,8 @@ export const SDCPNView: React.FC = () => {
   // Determine ReactFlow props based on edition mode
   const isAddMode =
     editionMode === "add-place" || editionMode === "add-transition";
-  const isPanMode = editionMode === "pan";
+  const isPanMode = editionMode === "cursor" && cursorMode === "pan";
+  const isSelectMode = editionMode === "cursor" && cursorMode === "select";
 
   // Set cursor style based on mode
   const getCursorStyle = () => {
@@ -293,7 +295,6 @@ export const SDCPNView: React.FC = () => {
   };
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={canvasContainer}
       className={canvasContainerStyle}
@@ -301,48 +302,40 @@ export const SDCPNView: React.FC = () => {
         // @ts-expect-error CSS variables work at runtime, but are not in the type system
         "--pane-cursor": getCursorStyle() as string,
       }}
-      onKeyDown={({ key }) => {
-        // Quick-and-dirty way to delete selected items with keyboard
-        // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
-        if ((key === "Delete" || key === "Backspace") && !isReadonly) {
-          setSelectedResourceId(null);
-          clearSelection();
-          deleteItemsByIds(selectedItemIds);
-        }
-      }}
     >
       <ReactFlow
         nodes={nodes}
         edges={arcs}
-        nodeTypes={REACTFLOW_NODE_TYPES}
+        nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
-        onNodeClick={onNodeClick}
+        onEdgeClick={isReadonly ? undefined : onEdgeClick}
         onPaneClick={onPaneClick}
-        onEdgeClick={(_e, edge) => {
-          setSelectedResourceId(null);
-          setSelectedItemIds(new Set([edge.id]));
-        }}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
-        connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
-        panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
+        panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
+        selectionOnDrag={isSelectMode && !isReadonly}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}
+        selectionMode={
+          partialSelection ? SelectionMode.Partial : SelectionMode.Full
+        }
         selectNodesOnDrag={false}
+        deleteKeyCode={null}
         panOnScroll={false}
         zoomOnScroll
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         <MiniMap pannable zoomable />
+        <ViewportControls />
       </ReactFlow>
     </div>
   );
