@@ -6,6 +6,19 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 {
   "filter": { "all": [] },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": { "kind": "unbounded" },
+        "end": null
+      }
+    }
+  },
   "includeDrafts": true,
   "scope": "erase"
 }

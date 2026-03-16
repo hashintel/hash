@@ -44,7 +44,9 @@ async fn delete_user() -> Result<(), Box<dyn Error>> {
     let user_id = client.create_user(None).await?;
     assert!(client.is_user(user_id).await?);
 
-    client.delete_user(user_id).await?;
+    client
+        .delete_principal(PrincipalId::Actor(ActorId::User(user_id)))
+        .await?;
     assert!(!client.is_user(user_id).await?);
 
     Ok(())

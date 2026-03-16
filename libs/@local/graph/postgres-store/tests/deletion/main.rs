@@ -457,6 +457,135 @@ pub(crate) async fn raw_count_entity_edge_any(
         .get(0)
 }
 
+/// Returns `true` if the entity has a live (current, non-draft) temporal metadata row.
+///
+/// "Live" means: `draft_id IS NULL`, `transaction_time` is open-ended (`upper_inf`),
+/// and `decision_time` is open-ended (`upper_inf`). An archived entity has its `decision_time`
+/// closed, so this returns `false` after archival.
+pub(crate) async fn is_entity_live(
+    api: &DatabaseApi<'_>,
+    web_id: WebId,
+    entity_uuid: EntityUuid,
+) -> bool {
+    api.store
+        .as_client()
+        .query_one(
+            "SELECT EXISTS(
+                SELECT 1 FROM entity_temporal_metadata
+                WHERE web_id = $1 AND entity_uuid = $2
+                  AND draft_id IS NULL
+                  AND upper_inf(decision_time)
+                  AND upper_inf(transaction_time)
+            )",
+            &[&web_id, &entity_uuid],
+        )
+        .await
+        .expect("is_entity_live query failed")
+        .get(0)
+}
+
+/// Returns `true` if the entity has ANY live temporal metadata row, including drafts.
+///
+/// Unlike [`is_entity_live`] (which only checks non-draft rows), this also considers draft rows.
+/// Returns `false` only when all temporal metadata rows (published and drafts) have been archived.
+pub(crate) async fn has_any_live_temporal_row(
+    api: &DatabaseApi<'_>,
+    web_id: WebId,
+    entity_uuid: EntityUuid,
+) -> bool {
+    api.store
+        .as_client()
+        .query_one(
+            "SELECT EXISTS(
+                SELECT 1 FROM entity_temporal_metadata
+                WHERE web_id = $1 AND entity_uuid = $2
+                  AND upper_inf(decision_time)
+                  AND upper_inf(transaction_time)
+            )",
+            &[&web_id, &entity_uuid],
+        )
+        .await
+        .expect("has_any_live_temporal_row query failed")
+        .get(0)
+}
+
+/// Returns `true` if any edition of the entity has `archivedById` in its provenance JSONB.
+pub(crate) async fn has_archived_provenance(
+    api: &DatabaseApi<'_>,
+    web_id: WebId,
+    entity_uuid: EntityUuid,
+) -> bool {
+    api.store
+        .as_client()
+        .query_one(
+            "SELECT EXISTS(
+                SELECT 1 FROM entity_editions ee
+                JOIN entity_temporal_metadata etm USING (entity_edition_id)
+                WHERE etm.web_id = $1 AND etm.entity_uuid = $2
+                  AND ee.provenance ? 'archivedById'
+            )",
+            &[&web_id, &entity_uuid],
+        )
+        .await
+        .expect("has_archived_provenance query failed")
+        .get(0)
+}
+
+/// Temporal axes that pin both axes at "now" — finds only live entities.
+///
+/// Equivalent to the old `decision_time: None` behavior.
+pub(crate) fn live_only_axes() -> QueryTemporalAxesUnresolved {
+    QueryTemporalAxesUnresolved::TransactionTime {
+        pinned: PinnedTemporalAxisUnresolved::new(None),
+        variable: VariableTemporalAxisUnresolved::new(None, None),
+    }
+}
+
+/// Temporal axes that pin `decision_time` at a specific past timestamp.
+pub(crate) fn axes_at_decision_time(
+    dt: hash_graph_temporal_versioning::Timestamp<hash_graph_temporal_versioning::DecisionTime>,
+) -> QueryTemporalAxesUnresolved {
+    QueryTemporalAxesUnresolved::TransactionTime {
+        pinned: PinnedTemporalAxisUnresolved::new(Some(dt)),
+        variable: VariableTemporalAxisUnresolved::new(None, None),
+    }
+}
+
+/// Counts temporal metadata rows where `decision_time` upper bound is closed (archived rows).
+///
+/// In the bi-temporal model, archiving an entity closes the `decision_time` upper bound on
+/// its current `entity_temporal_metadata` row. Historical rows (closed `transaction_time`) are
+/// also created. This counts ALL rows with a closed `decision_time`, including historical ones.
+pub(crate) async fn raw_count_archived_temporal_rows(
+    api: &DatabaseApi<'_>,
+    web_id: WebId,
+    entity_uuid: EntityUuid,
+) -> i64 {
+    api.store
+        .as_client()
+        .query_one(
+            "SELECT COUNT(*) FROM entity_temporal_metadata
+             WHERE web_id = $1 AND entity_uuid = $2
+               AND NOT upper_inf(decision_time)",
+            &[&web_id, &entity_uuid],
+        )
+        .await
+        .expect("raw_count_archived_temporal_rows query failed")
+        .get(0)
+}
+
+/// Returns the "find everything" temporal axes — unbounded decision time, transaction time at
+/// now.
+///
+/// This finds all entities regardless of their temporal state: live, archived, or any past
+/// decision time. Used by `resetGraph` and tests that need to find archived entities.
+pub(crate) fn find_all_axes() -> QueryTemporalAxesUnresolved {
+    QueryTemporalAxesUnresolved::DecisionTime {
+        pinned: PinnedTemporalAxisUnresolved::new(None),
+        variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+    }
+}
+
 pub(crate) async fn raw_entity_ids_exists(
     api: &DatabaseApi<'_>,
     web_id: WebId,

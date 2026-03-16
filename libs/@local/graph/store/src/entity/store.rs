@@ -550,7 +550,7 @@ pub enum DeletionScope {
 pub enum LinkDeletionBehavior {
     Ignore,
     Error,
-    // Cascade,
+    Archive,
 }
 
 /// Parameters for the `/entities/delete` admin API endpoint.
@@ -579,6 +579,13 @@ pub enum LinkDeletionBehavior {
 ///             }
 ///         ]
 ///     },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
 ///     "includeDrafts": false,
 ///     "scope": "purge",
 ///     "linkBehavior": "error"
@@ -593,6 +600,13 @@ pub enum LinkDeletionBehavior {
 /// # use hash_graph_store::entity::DeleteEntitiesParams;
 /// let json = serde_json::json!({
 ///     "filter": { "all": [] },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
 ///     "includeDrafts": true,
 ///     "scope": "erase"
 /// });
@@ -604,9 +618,14 @@ pub enum LinkDeletionBehavior {
 pub struct DeleteEntitiesParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(flatten)]
     pub scope: DeletionScope,
+    /// Decision time at which the deletion is recorded in provenance.
+    ///
+    /// Defaults to the current time when `None`. Must not exceed the current transaction time.
+    /// This is independent of `temporal_axes`, which controls entity *finding*.
     #[serde(default)]
     pub decision_time: Option<Timestamp<DecisionTime>>,
 }
@@ -620,6 +639,8 @@ pub struct DeletionSummary {
     pub full_entities: usize,
     /// Number of draft-only deletions performed.
     pub draft_deletions: usize,
+    /// Number of link entities archived during deletion.
+    pub links_archived: u64,
 }
 
 /// Describes the API of a store implementation for [Entities].

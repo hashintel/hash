@@ -9,11 +9,10 @@ use hash_graph_store::{
     },
     error::DeletionError,
     filter::Filter,
-    subgraph::temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_temporal_versioning::{
-    DecisionTime, LimitedTemporalBound, TemporalBound, TemporalTagged as _, Timestamp,
-    TransactionTime,
+    DecisionTime, TemporalTagged as _, Timestamp, TransactionTime,
 };
 use postgres_types::ToSql;
 use tokio_postgres::Transaction;
@@ -92,18 +91,9 @@ impl PostgresStore<Transaction<'_>> {
         &self,
         filter: &Filter<'_, Entity>,
         include_drafts: bool,
-        decision_time: Timestamp<DecisionTime>,
-        transaction_time: Timestamp<TransactionTime>,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<(FullEntityDeletionTarget, DraftOnlyDeletionTarget), Report<DeletionError>> {
-        let temporal_axes = QueryTemporalAxes::TransactionTime {
-            pinned: PinnedTemporalAxis::new(decision_time),
-            variable: VariableTemporalAxis::new(
-                TemporalBound::Inclusive(transaction_time),
-                LimitedTemporalBound::Inclusive(transaction_time),
-            ),
-        };
-
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), include_drafts);
         compiler
             .add_filter(filter)
             .change_context(DeletionError::Store)?;
@@ -502,12 +492,19 @@ impl PostgresStore<Transaction<'_>> {
     /// Correctness depends on outgoing/incoming edges always being created in pairs. For every
     /// `(source=endpoint, target=link, direction='incoming')` row there must exist a corresponding
     /// `(source=link, target=endpoint, direction='outgoing')` row. If this pairing is broken
-    /// (e.g. by direct DB manipulation), [`count_incoming_links`](Self::count_incoming_links) may
-    /// miss the orphaned incoming row and [`delete_entity_ids`](Self::delete_entity_ids) will fail
-    /// with an FK violation. This invariant is enforced by application code in `create_entities`,
-    /// not by a database constraint.
+    /// (e.g. by direct DB manipulation),
+    /// [`count_incoming_link_edges`](Self::count_incoming_link_edges) may miss the orphaned
+    /// incoming row and [`delete_entity_ids`](Self::delete_entity_ids) will fail with an FK
+    /// violation. This invariant is enforced by application code in `create_entities`, not by a
+    /// database constraint.
     ///
     /// Only applies to full entity deletions (`entity_edge` has no `draft_id`).
+    ///
+    /// Rows belonging to link entities *outside* the batch (where the batch entity appears as an
+    /// endpoint) are intentionally preserved:
+    /// - For purge: the tombstone in `entity_ids` satisfies their FKs.
+    /// - For erase: [`handle_incoming_link_edges`](Self::handle_incoming_link_edges) has already
+    ///   rejected deletion if any external link exists, so no external edges remain.
     async fn delete_entity_edge(
         &mut self,
         target: &FullEntityDeletionTarget,
@@ -539,46 +536,221 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(DeletionError::Store)
     }
 
-    /// Counts incoming links from entities outside the deletion batch.
+    /// Archives all link entities outside the deletion batch that reference entities inside it.
     ///
-    /// Only counts `direction = 'outgoing'` edges — these represent real link
-    /// relationships (a link entity's edge to its endpoint). Denormalized
-    /// `direction = 'incoming'` edges (stored for query optimization) are excluded
-    /// because they don't represent independent link relationships and are cleaned
-    /// up by [`delete_entity_edge`](Self::delete_entity_edge).
+    /// Finds link entities via `entity_edge` where `direction = 'outgoing'`, the link entity
+    /// (source) is outside the batch, and the referenced entity (target) is inside. For each
+    /// matching link entity, performs a temporal archive on both published and draft versions:
+    /// closes the `decision_time` range, inserts a historical `entity_temporal_metadata` row with a
+    /// closed `transaction_time` range, and sets `archivedById` provenance.
     ///
-    /// # Invariant
-    ///
-    /// This check is sufficient to guard [`delete_entity_ids`](Self::delete_entity_ids) only if
-    /// every `direction = 'incoming'` row has a paired `direction = 'outgoing'` row (see
-    /// [`delete_entity_edge`](Self::delete_entity_edge) for details). If the pairing invariant is
-    /// violated, an orphaned incoming row (`source = batch_entity`) would not be counted here but
-    /// would still cause an FK violation when `entity_ids` is deleted.
-    async fn count_incoming_links(
-        &self,
+    /// All operations run in a single CTE within the caller's transaction.
+    async fn archive_incoming_link_edges(
+        &mut self,
+        actor_id: ActorEntityUuid,
         target: &FullEntityDeletionTarget,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
     ) -> Result<u64, Report<DeletionError>> {
         let row = self
-            .as_client()
+            .as_mut_client()
             .query_one(
-                "SELECT COUNT(*) FROM entity_edge
-                 WHERE (target_web_id, target_entity_uuid) IN (
-                     SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
-                 )
-                 AND (source_web_id, source_entity_uuid) NOT IN (
-                     SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
-                 )
-                 AND direction = 'outgoing'",
-                &[&target.web_ids, &target.entity_uuids],
+                "
+                WITH to_archive AS (
+                    SELECT DISTINCT e.source_web_id AS web_id,
+                                    e.source_entity_uuid AS entity_uuid
+                    FROM entity_edge e
+                    WHERE e.direction = 'outgoing'
+                      AND (e.target_web_id, e.target_entity_uuid) IN (
+                          SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                      )
+                      AND (e.source_web_id, e.source_entity_uuid) NOT IN (
+                          SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                      )
+                ),
+                old_values AS (
+                    SELECT etm.web_id, etm.entity_uuid, etm.draft_id,
+                           etm.entity_edition_id,
+                           etm.decision_time AS old_decision_time,
+                           etm.transaction_time AS old_transaction_time
+                    FROM entity_temporal_metadata etm
+                    JOIN to_archive ta USING (web_id, entity_uuid)
+                    WHERE etm.transaction_time @> $3::timestamptz
+                      AND etm.decision_time @> $4::timestamptz
+                    FOR NO KEY UPDATE
+                ),
+                closed AS (
+                    UPDATE entity_temporal_metadata etm
+                    SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
+                        decision_time = tstzrange(
+                            lower(etm.decision_time), $4::timestamptz, '[)'
+                        )
+                    FROM old_values ov
+                    WHERE etm.web_id = ov.web_id
+                      AND etm.entity_uuid = ov.entity_uuid
+                      AND etm.draft_id IS NOT DISTINCT FROM ov.draft_id
+                      AND etm.transaction_time @> $3::timestamptz
+                      AND etm.decision_time @> $4::timestamptz
+                    RETURNING ov.*
+                ),
+                _historical AS (
+                    INSERT INTO entity_temporal_metadata (
+                        web_id, entity_uuid, draft_id, entity_edition_id,
+                        transaction_time, decision_time
+                    )
+                    SELECT web_id, entity_uuid, draft_id, entity_edition_id,
+                           tstzrange(
+                               lower(old_transaction_time), $3::timestamptz, '[)'
+                           ),
+                           old_decision_time
+                    FROM closed
+                ),
+                _provenance AS (
+                    UPDATE entity_editions
+                    SET provenance = provenance
+                        || jsonb_build_object('archivedById', $5::UUID)
+                    WHERE entity_edition_id IN (
+                        SELECT entity_edition_id FROM closed
+                    )
+                )
+                SELECT count(DISTINCT (web_id, entity_uuid)) FROM closed",
+                &[
+                    &target.web_ids as &(dyn ToSql + Sync),
+                    &target.entity_uuids,
+                    &transaction_time,
+                    &decision_time,
+                    &actor_id,
+                ],
             )
             .instrument(tracing::info_span!(
-                "SELECT COUNT incoming_links",
+                "ARCHIVE incoming_link_edges",
                 otel.kind = "client",
                 db.system = "postgresql",
                 peer.service = "Postgres",
             ))
             .await
             .change_context(DeletionError::Store)?;
+
+        let archived = row.get::<_, i64>(0).cast_unsigned();
+        if archived > 0 {
+            tracing::info!(archived, "archived incoming link entities");
+        }
+        Ok(archived)
+    }
+
+    /// Validates and handles incoming links based on the deletion scope.
+    ///
+    /// - [`DeletionScope::Erase`] — rejects if **any** incoming link exists (live or archived),
+    ///   because `entity_ids` will be physically deleted and any remaining edge would FK-violate.
+    /// - [`LinkDeletionBehavior::Error`] — rejects if any **live** incoming link exists. Archived
+    ///   links are ignored because the tombstone satisfies their FKs.
+    /// - [`LinkDeletionBehavior::Archive`] — temporally archives live incoming link entities by
+    ///   closing their `decision_time` range.
+    /// - [`LinkDeletionBehavior::Ignore`] — no-op.
+    async fn handle_incoming_link_edges(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        scope: &DeletionScope,
+        target: &FullEntityDeletionTarget,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
+    ) -> Result<u64, Report<DeletionError>> {
+        match scope {
+            DeletionScope::Erase => {
+                let count = self.count_incoming_link_edges(target, None).await?;
+                if count > 0 {
+                    return Err(Report::new(DeletionError::IncomingLinksExist { count }));
+                }
+                Ok(0)
+            }
+            DeletionScope::Purge {
+                link_behavior: LinkDeletionBehavior::Error,
+            } => {
+                let count = self
+                    .count_incoming_link_edges(target, Some((transaction_time, decision_time)))
+                    .await?;
+                if count > 0 {
+                    return Err(Report::new(DeletionError::IncomingLinksExist { count }));
+                }
+                Ok(0)
+            }
+            DeletionScope::Purge {
+                link_behavior: LinkDeletionBehavior::Archive,
+            } => {
+                self.archive_incoming_link_edges(actor_id, target, transaction_time, decision_time)
+                    .await
+            }
+            DeletionScope::Purge {
+                link_behavior: LinkDeletionBehavior::Ignore,
+            } => Ok(0),
+        }
+    }
+
+    /// Counts incoming links from entities outside the deletion batch.
+    ///
+    /// When `temporal_filter` is `Some`, only counts links whose source entity has live temporal
+    /// metadata (open `decision_time` and `transaction_time` containing the given timestamps).
+    /// This is the semantic check for [`LinkDeletionBehavior::Error`]: archived links are already
+    /// "dead" and shouldn't block purge, since the tombstone satisfies their FKs.
+    ///
+    /// When `temporal_filter` is `None`, counts **all** incoming links regardless of temporal
+    /// state. This is the FK-safety check for [`DeletionScope::Erase`]: any edge — even from an
+    /// archived link — would cause an FK violation when `entity_ids` is physically deleted.
+    async fn count_incoming_link_edges(
+        &self,
+        target: &FullEntityDeletionTarget,
+        temporal_filter: Option<(Timestamp<TransactionTime>, Timestamp<DecisionTime>)>,
+    ) -> Result<u64, Report<DeletionError>> {
+        let span = tracing::info_span!(
+            "SELECT COUNT incoming_link_edges",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        );
+        let row = if let Some((transaction_time, decision_time)) = temporal_filter {
+            self.as_client()
+                .query_one(
+                    "SELECT COUNT(DISTINCT (e.source_web_id, e.source_entity_uuid))
+                     FROM entity_edge e
+                     JOIN entity_temporal_metadata etm
+                       ON etm.web_id = e.source_web_id
+                      AND etm.entity_uuid = e.source_entity_uuid
+                     WHERE (e.target_web_id, e.target_entity_uuid) IN (
+                         SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                     )
+                     AND (e.source_web_id, e.source_entity_uuid) NOT IN (
+                         SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                     )
+                     AND e.direction = 'outgoing'
+                     AND etm.transaction_time @> $3::timestamptz
+                     AND etm.decision_time @> $4::timestamptz",
+                    &[
+                        &target.web_ids,
+                        &target.entity_uuids,
+                        &transaction_time,
+                        &decision_time,
+                    ],
+                )
+                .instrument(span)
+                .await
+        } else {
+            self.as_client()
+                .query_one(
+                    "SELECT COUNT(DISTINCT (source_web_id, source_entity_uuid))
+                     FROM entity_edge
+                     WHERE (target_web_id, target_entity_uuid) IN (
+                         SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                     )
+                     AND (source_web_id, source_entity_uuid) NOT IN (
+                         SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
+                     )
+                     AND direction = 'outgoing'",
+                    &[&target.web_ids, &target.entity_uuids],
+                )
+                .instrument(span)
+                .await
+        }
+        .change_context(DeletionError::Store)?;
         Ok(row.get::<_, i64>(0).cast_unsigned())
     }
 
@@ -618,18 +790,19 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(DeletionError::Store)
     }
 
-    /// Acquires `FOR UPDATE` locks on `entity_ids` rows to serialize with concurrent link
-    /// creation (erase scope only).
+    /// Acquires `FOR UPDATE` locks on `entity_ids` rows to serialize with concurrent link creation
+    /// (erase scope only).
     ///
     /// Concurrent `INSERT INTO entity_edge` performs an FK check that acquires a `KEY SHARE` lock
     /// on the referenced `entity_ids` row. Our `FOR UPDATE` lock conflicts with `KEY SHARE`,
     /// blocking the concurrent insert until we commit — at which point the row is gone and their
     /// insert fails with an FK violation.
     ///
-    /// This closes the TOCTOU gap between [`count_incoming_links`](Self::count_incoming_links)
-    /// (which reads `entity_edge`) and [`delete_entity_ids`](Self::delete_entity_ids) (which
-    /// removes the row). Without this lock, a concurrent transaction can insert an edge targeting
-    /// our entity between the check and the delete, causing a raw FK violation instead of a clean
+    /// This closes the TOCTOU gap between
+    /// [`count_incoming_link_edges`](Self::count_incoming_link_edges) (which reads `entity_edge`)
+    /// and [`delete_entity_ids`](Self::delete_entity_ids) (which removes the row). Without this
+    /// lock, a concurrent transaction can insert an edge targeting our entity between the check and
+    /// the delete, causing a raw FK violation instead of a clean
     /// [`DeletionError::IncomingLinksExist`].
     ///
     /// Not needed for purge scope: the tombstoned `entity_ids` row satisfies FK checks from
@@ -707,14 +880,17 @@ impl PostgresStore<Transaction<'_>> {
     /// Selects matching entities, validates link constraints, deletes all associated data,
     /// and either tombstones (purge) or fully removes (erase) `entity_ids`.
     ///
+    /// The `temporal_axes` in [`DeleteEntitiesParams`] control which entities are found — e.g.
+    /// pinning both axes at "now" finds only live entities, while using a variable decision-time
+    /// axis from unbounded to "now" also finds archived entities. Once found, an entity is always
+    /// deleted completely (all temporal versions).
+    ///
     /// # Errors
     ///
-    /// - [`InvalidDecisionTime`] if `decision_time` exceeds `transaction_time`
     /// - [`IncomingLinksExist`] if incoming links exist and [`LinkDeletionBehavior::Error`] or
     ///   [`DeletionScope::Erase`] is requested
     /// - [`Store`] if a database operation fails
     ///
-    /// [`InvalidDecisionTime`]: DeletionError::InvalidDecisionTime
     /// [`IncomingLinksExist`]: DeletionError::IncomingLinksExist
     /// [`Store`]: DeletionError::Store
     pub(super) async fn execute_entity_deletion(
@@ -731,50 +907,47 @@ impl PostgresStore<Transaction<'_>> {
             return Err(Report::new(DeletionError::InvalidDecisionTime));
         }
 
+        let temporal_axes = params.temporal_axes.resolve_with(transaction_time.cast());
+
         let (full_target, draft_target) = self
-            .select_entities_for_deletion(
-                &params.filter,
-                params.include_drafts,
-                decision_time,
-                transaction_time,
-            )
+            .select_entities_for_deletion(&params.filter, params.include_drafts, &temporal_axes)
             .await?;
 
-        let summary = DeletionSummary {
-            full_entities: full_target.web_ids.len(),
-            draft_deletions: draft_target.draft_ids.len(),
-        };
+        let full_entities = full_target.web_ids.len();
+        let draft_deletions = draft_target.draft_ids.len();
 
-        if summary.full_entities == 0 && summary.draft_deletions == 0 {
-            return Ok(summary);
+        if full_entities == 0 && draft_deletions == 0 {
+            return Ok(DeletionSummary {
+                full_entities: 0,
+                draft_deletions: 0,
+                links_archived: 0,
+            });
         }
 
-        if summary.full_entities > 0 {
+        let links_archived = if full_entities > 0 {
             if matches!(params.scope, DeletionScope::Erase) {
                 self.lock_entity_ids_for_erase(&full_target).await?;
             }
 
-            let should_check = match &params.scope {
-                DeletionScope::Purge { link_behavior } => {
-                    matches!(link_behavior, LinkDeletionBehavior::Error)
-                }
-                DeletionScope::Erase => true,
-            };
-            if should_check {
-                let count = self.count_incoming_links(&full_target).await?;
-                if count > 0 {
-                    return Err(Report::new(DeletionError::IncomingLinksExist { count }));
-                }
-            }
-        }
+            self.handle_incoming_link_edges(
+                actor_id,
+                &params.scope,
+                &full_target,
+                transaction_time,
+                decision_time,
+            )
+            .await?
+        } else {
+            0
+        };
 
         let mut satellite_counts = SatelliteDeletionCounts::default();
-        if summary.full_entities > 0 {
+        if full_entities > 0 {
             satellite_counts += self
                 .delete_target_data(DeletionTarget::Full(&full_target))
                 .await?;
         }
-        if summary.draft_deletions > 0 {
+        if draft_deletions > 0 {
             satellite_counts += self
                 .delete_target_data(DeletionTarget::Drafts(&draft_target))
                 .await?;
@@ -782,7 +955,7 @@ impl PostgresStore<Transaction<'_>> {
 
         let mut entity_edge = 0_u64;
         let mut entity_ids_affected = 0_u64;
-        if summary.full_entities > 0 {
+        if full_entities > 0 {
             entity_edge = self.delete_entity_edge(&full_target).await?;
 
             let expected = full_target.web_ids.len() as u64;
@@ -816,8 +989,8 @@ impl PostgresStore<Transaction<'_>> {
         }
 
         tracing::trace!(
-            full_entities = summary.full_entities,
-            draft_deletions = summary.draft_deletions,
+            full_entities = full_entities,
+            draft_deletions = draft_deletions,
             is_of_type = satellite_counts.is_of_type,
             embeddings = satellite_counts.embeddings,
             temporal_metadata = satellite_counts.temporal_metadata,
@@ -825,9 +998,14 @@ impl PostgresStore<Transaction<'_>> {
             drafts = satellite_counts.drafts,
             entity_edge,
             entity_ids_affected,
+            links_archived,
             "entity deletion complete"
         );
 
-        Ok(summary)
+        Ok(DeletionSummary {
+            full_entities,
+            draft_deletions,
+            links_archived,
+        })
     }
 }

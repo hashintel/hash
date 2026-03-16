@@ -54,12 +54,13 @@ use hash_graph_store::{
     account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
+    user_deletion,
 };
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 use tokio::io;
 use tokio_util::{codec::FramedRead, io::StreamReader};
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::{ActorEntityUuid, UserId};
 use uuid::Uuid;
 
 use super::{
@@ -67,22 +68,40 @@ use super::{
     jwt::{JwtValidator, OptionalJwtAuthentication},
     status::{BoxedResponse, status_to_response},
 };
-use crate::rest::status::report_to_response;
+use crate::{
+    email_subscription::MailchimpSubscriptionProvider, identity_provider::KratosIdentityProvider,
+    oauth_provider::HydraOAuthProvider, rest::status::report_to_response,
+};
+
+/// Configuration for external identity services passed to admin routes.
+#[derive(Debug, Clone)]
+pub struct ExternalServicesConfig {
+    pub kratos_admin_url: reqwest::Url,
+    pub hydra_admin_url: reqwest::Url,
+    pub mailchimp_api_key: Option<String>,
+    pub mailchimp_list_id: Option<String>,
+}
 
 /// Creates the admin API router.
 ///
 /// JWT and dev mode are mutually exclusive (enforced by the caller).
 ///
-/// - **JWT mode** (`Some`): Only `/health` and `/entities/delete` are available. The token's
-///   `email` claim is resolved to a HASH user actor for provenance tracking.
+/// - **JWT mode** (`Some`): Only `/health`, `/entities/delete`, and `/users/delete` are available.
+///   The token's `email` claim is resolved to a HASH user actor for provenance tracking.
 /// - **Dev mode** (`None`, requires `--unsafe-allow-dev-authentication`): All endpoints are
 ///   available. The `X-Authenticated-User-Actor-Id` header is used for authentication. Bulk
 ///   destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
 ///   `/entity-types`) are registered in this mode only.
-pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValidator>>) -> Router {
+pub fn routes(
+    store_pool: PostgresStorePool,
+    jwt_validator: Option<Arc<JwtValidator>>,
+    external_services: ExternalServicesConfig,
+) -> Router {
     let public = Router::new().route("/health", get(async || "Healthy"));
 
-    let mut protected = Router::new().route("/entities/delete", post(delete_entities));
+    let mut protected = Router::new()
+        .route("/entities/delete", post(delete_entities))
+        .route("/users/delete", post(delete_user));
 
     if let Some(validator) = jwt_validator {
         protected = protected.layer(Extension(validator));
@@ -97,8 +116,17 @@ pub fn routes(store_pool: PostgresStorePool, jwt_validator: Option<Arc<JwtValida
 
     public
         .merge(protected)
+        .fallback(|| async {
+            status_to_response(Status::<()>::new(
+                StatusCode::NotFound,
+                Some("endpoint not found".to_owned()),
+                vec![],
+            ))
+        })
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(Arc::new(store_pool)))
+        .layer(Extension(Arc::new(external_services)))
+        .layer(Extension(Arc::new(reqwest::Client::new())))
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -338,4 +366,86 @@ async fn delete_entities(
         .await
         .map(Json)
         .map_err(report_to_response)
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all_fields = "camelCase", untagged)]
+enum DeleteUserRequest {
+    ById { user_id: Uuid },
+    ByEmail { email: String },
+}
+
+async fn delete_user(
+    AdminActorId(actor_id): AdminActorId,
+    pool: Extension<Arc<PostgresStorePool>>,
+    external_services: Extension<Arc<ExternalServicesConfig>>,
+    http_client: Extension<Arc<reqwest::Client>>,
+    Json(request): Json<DeleteUserRequest>,
+) -> Result<BoxedResponse, BoxedResponse> {
+    let mut store = pool.acquire(None).await.map_err(report_to_response)?;
+
+    let user_id = match request {
+        DeleteUserRequest::ById { user_id } => UserId::new(user_id),
+        DeleteUserRequest::ByEmail { email } => {
+            tracing::info!(%email, "resolving user by email");
+            store
+                .get_user_id_by_email(&email)
+                .await
+                .map_err(report_to_response)?
+                .ok_or_else(|| {
+                    report_to_response(
+                        Report::new(AdminActorError::UserNotFound).attach(StatusCode::NotFound),
+                    )
+                })?
+        }
+    };
+    tracing::info!(%user_id, "user deletion requested");
+
+    let kratos = KratosIdentityProvider::new(
+        Arc::clone(&http_client),
+        external_services.kratos_admin_url.clone(),
+    );
+
+    let hydra = HydraOAuthProvider::new(
+        Arc::clone(&http_client),
+        external_services.hydra_admin_url.clone(),
+    );
+
+    let mailchimp = match (
+        &external_services.mailchimp_api_key,
+        &external_services.mailchimp_list_id,
+    ) {
+        (Some(api_key), Some(list_id)) => Some(
+            MailchimpSubscriptionProvider::new(
+                Arc::clone(&http_client),
+                api_key.clone(),
+                list_id.clone(),
+            )
+            .map_err(report_to_response)?,
+        ),
+        _ => None,
+    };
+
+    let outcome = user_deletion::delete_user(
+        &mut store,
+        &kratos,
+        &hydra,
+        mailchimp.as_ref(),
+        actor_id,
+        user_id,
+    )
+    .await
+    .map_err(report_to_response)?;
+
+    let message = if outcome.errors.is_ok() {
+        "User deleted successfully"
+    } else {
+        "User deleted with external service errors, check report"
+    };
+
+    Ok(status_to_response(Status::new(
+        StatusCode::Ok,
+        Some(message.to_owned()),
+        vec![outcome.report],
+    )))
 }

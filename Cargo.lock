@@ -3292,6 +3292,7 @@ dependencies = [
  "hyper",
  "include_dir",
  "jsonwebtoken",
+ "md-5",
  "mime",
  "opentelemetry",
  "opentelemetry-semantic-conventions",

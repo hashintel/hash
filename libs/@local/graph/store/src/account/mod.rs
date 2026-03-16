@@ -97,6 +97,10 @@ pub struct CreateOrgWebParams {
 #[error("Could not query web")]
 pub struct QueryWebError;
 
+#[derive(Debug, Error)]
+#[error("Could not delete account")]
+pub struct AccountDeletionError;
+
 /// Describes the API of a store implementation for accounts.
 pub trait AccountStore {
     /// Creates a user actor with the specified [`ActorEntityUuid`] in the database.
@@ -143,6 +147,26 @@ pub trait AccountStore {
         &self,
         email: &str,
     ) -> impl Future<Output = Result<Option<UserId>, Report<GetActorError>>> + Send;
+
+    /// Returns the Kratos identity ID for a user, read from their entity properties.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_kratos_identity_id(
+        &self,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<Option<String>, Report<GetActorError>>> + Send;
+
+    /// Returns the email addresses for a user, read from their entity properties.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_emails(
+        &self,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<Vec<String>, Report<GetActorError>>> + Send;
 
     /// Returns a [`Machine`] actor by its [`MachineId`].
     ///

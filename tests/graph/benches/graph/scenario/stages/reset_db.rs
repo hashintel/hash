@@ -6,6 +6,7 @@ use hash_graph_store::{
     entity::{DeleteEntitiesParams, DeletionScope, EntityStore as _},
     filter::Filter,
     pool::StorePool as _,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use type_system::principal::actor::ActorEntityUuid;
 
@@ -89,6 +90,7 @@ impl ResetDbStage {
                         ActorEntityUuid::new(uuid::Uuid::nil()).into(),
                         DeleteEntitiesParams {
                             filter: Filter::All(Vec::new()),
+                            temporal_axes: QueryTemporalAxesUnresolved::default(),
                             include_drafts: true,
                             scope: DeletionScope::Erase,
                             decision_time: None,
