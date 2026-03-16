@@ -228,6 +228,7 @@ const mainHeaderContentStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  pl: "1",
   flex: "[1]",
   minWidth: "[0]",
   overflow: "hidden",
@@ -245,7 +246,7 @@ const headerIconStyle = css({
 const mainTitleStyle = css({
   fontWeight: "medium",
   fontSize: "sm",
-  color: "neutral.s85",
+  color: "neutral.s100",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",

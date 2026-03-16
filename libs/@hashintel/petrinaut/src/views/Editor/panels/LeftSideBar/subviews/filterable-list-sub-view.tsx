@@ -1,7 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
 import { use, useEffect, useRef, useState } from "react";
-import { LuSearch } from "react-icons/lu";
+import { LuChevronRight, LuSearch } from "react-icons/lu";
 import { TbDots } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -117,6 +117,26 @@ const listItemIconStyle = css({
   justifyContent: "center",
 });
 
+const chevronStyle = cva({
+  base: {
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "[transform 150ms ease-out]",
+    color: "neutral.s80",
+  },
+  variants: {
+    expanded: {
+      true: { transform: "rotate(90deg)" },
+      false: { transform: "rotate(0deg)" },
+    },
+  },
+});
+
+const CHEVRON_SIZE = 10;
+const NESTING_INDENT = 16;
+
 const emptyMessageStyle = css({
   pt: "1",
   px: "1",
@@ -128,6 +148,8 @@ interface FilterableListItem {
   id: string;
   icon?: ComponentType<{ size: number }>;
   iconColor?: string;
+  /** When present, this item becomes a collapsible group header. */
+  children?: FilterableListItem[];
 }
 
 interface FilterableListSubViewConfig<T extends FilterableListItem> {
@@ -136,6 +158,8 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   tooltip?: string;
   defaultCollapsed?: boolean;
   resizable?: SubViewResizeConfig;
+  /** When true, the panel's maximum height is determined by its content. */
+  fitContent?: boolean;
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
@@ -216,24 +240,52 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Clamp focus/anchor when items shrink and truncate stale row refs
+  // Flatten tree: items with children become group header + child rows
+  const flatRows: { item: T; depth: number; isGroup: boolean }[] = [];
+  for (const item of items) {
+    const children = item.children as T[] | undefined;
+    const isGroup = children !== undefined;
+    flatRows.push({ item, depth: 0, isGroup });
+    if (isGroup && !collapsedGroups.has(item.id)) {
+      for (const child of children!) {
+        flatRows.push({ item: child, depth: 1, isGroup: false });
+      }
+    }
+  }
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  // Clamp focus/anchor when visible rows change and truncate stale row refs
   useEffect(() => {
-    rowRefs.current.length = items.length;
-    if (items.length === 0) {
+    rowRefs.current.length = flatRows.length;
+    if (flatRows.length === 0) {
       setFocusedIndex(null);
       setAnchorIndex(null);
     } else {
       setFocusedIndex((prev) =>
-        prev !== null ? Math.min(prev, items.length - 1) : prev,
+        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
       );
       setAnchorIndex((prev) =>
-        prev !== null ? Math.min(prev, items.length - 1) : prev,
+        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
       );
     }
-  }, [items.length]);
+  }, [flatRows.length]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -247,9 +299,9 @@ const FilterableListContent = <T extends FilterableListItem>({
     const end = Math.max(fromIndex ?? toIndex, toIndex);
     const newSelection: SelectionMap = new Map();
     for (let i = start; i <= end; i++) {
-      const item = items[i];
-      if (item) {
-        const selItem = getSelectionItem(item);
+      const row = flatRows[i];
+      if (row && !row.isGroup) {
+        const selItem = getSelectionItem(row.item);
         newSelection.set(selItem.id, selItem);
       }
     }
@@ -261,7 +313,7 @@ const FilterableListContent = <T extends FilterableListItem>({
     if (event.target !== event.currentTarget) {
       return;
     }
-    if (items.length === 0) {
+    if (flatRows.length === 0) {
       return;
     }
 
@@ -271,16 +323,16 @@ const FilterableListContent = <T extends FilterableListItem>({
         const nextIndex =
           focusedIndex === null
             ? 0
-            : Math.min(focusedIndex + 1, items.length - 1);
+            : Math.min(focusedIndex + 1, flatRows.length - 1);
         setFocusedIndex(nextIndex);
-        if (event.shiftKey) {
-          selectRange(anchorIndex ?? nextIndex, nextIndex);
-        } else {
-          const item = items[nextIndex];
-          if (item) {
-            selectItem(getSelectionItem(item));
+        const row = flatRows[nextIndex];
+        if (row && !row.isGroup) {
+          if (event.shiftKey) {
+            selectRange(anchorIndex ?? nextIndex, nextIndex);
+          } else {
+            selectItem(getSelectionItem(row.item));
+            setAnchorIndex(nextIndex);
           }
-          setAnchorIndex(nextIndex);
         }
         break;
       }
@@ -288,17 +340,17 @@ const FilterableListContent = <T extends FilterableListItem>({
         event.preventDefault();
         const nextIndex =
           focusedIndex === null
-            ? items.length - 1
+            ? flatRows.length - 1
             : Math.max(focusedIndex - 1, 0);
         setFocusedIndex(nextIndex);
-        if (event.shiftKey) {
-          selectRange(anchorIndex ?? nextIndex, nextIndex);
-        } else {
-          const item = items[nextIndex];
-          if (item) {
-            selectItem(getSelectionItem(item));
+        const row = flatRows[nextIndex];
+        if (row && !row.isGroup) {
+          if (event.shiftKey) {
+            selectRange(anchorIndex ?? nextIndex, nextIndex);
+          } else {
+            selectItem(getSelectionItem(row.item));
+            setAnchorIndex(nextIndex);
           }
-          setAnchorIndex(nextIndex);
         }
         break;
       }
@@ -306,10 +358,34 @@ const FilterableListContent = <T extends FilterableListItem>({
       case " ": {
         event.preventDefault();
         if (focusedIndex !== null) {
-          const item = items[focusedIndex];
-          if (item) {
-            selectItem(getSelectionItem(item));
-            setAnchorIndex(focusedIndex);
+          const row = flatRows[focusedIndex];
+          if (row) {
+            if (row.isGroup) {
+              toggleGroup(row.item.id);
+            } else {
+              selectItem(getSelectionItem(row.item));
+              setAnchorIndex(focusedIndex);
+            }
+          }
+        }
+        break;
+      }
+      case "ArrowRight": {
+        if (focusedIndex !== null) {
+          const row = flatRows[focusedIndex];
+          if (row?.isGroup && collapsedGroups.has(row.item.id)) {
+            event.preventDefault();
+            toggleGroup(row.item.id);
+          }
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        if (focusedIndex !== null) {
+          const row = flatRows[focusedIndex];
+          if (row?.isGroup && !collapsedGroups.has(row.item.id)) {
+            event.preventDefault();
+            toggleGroup(row.item.id);
           }
         }
         break;
@@ -332,11 +408,17 @@ const FilterableListContent = <T extends FilterableListItem>({
   const handleRowClick = (
     event: React.MouseEvent,
     index: number,
-    selectionItem: SelectionItem,
+    row: { item: T; isGroup: boolean },
   ) => {
     event.stopPropagation();
     setFocusedIndex(index);
 
+    if (row.isGroup) {
+      toggleGroup(row.item.id);
+      return;
+    }
+
+    const selectionItem = getSelectionItem(row.item);
     if (event.shiftKey && anchorIndex !== null) {
       selectRange(anchorIndex, index);
     } else if (event.metaKey || event.ctrlKey) {
@@ -364,31 +446,45 @@ const FilterableListContent = <T extends FilterableListItem>({
         }
       }}
     >
-      {items.map((item, index) => {
-        const isSelected = checkIsSelected(item.id);
-        const selectionItem = getSelectionItem(item);
+      {flatRows.map(({ item, depth, isGroup }, index) => {
+        const isSelected = !isGroup && checkIsSelected(item.id);
         const isFocused = focusedIndex === index;
+        const isCollapsed = isGroup && collapsedGroups.has(item.id);
 
         return (
           <div
-            key={item.id}
+            key={`${depth}-${item.id}`}
             ref={(el) => {
               rowRefs.current[index] = el;
             }}
-            onClick={(event) => handleRowClick(event, index, selectionItem)}
+            onClick={(event) => handleRowClick(event, index, { item, isGroup })}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                selectItem(selectionItem);
-                setFocusedIndex(index);
-                setAnchorIndex(index);
+                if (isGroup) {
+                  toggleGroup(item.id);
+                } else {
+                  selectItem(getSelectionItem(item));
+                  setFocusedIndex(index);
+                  setAnchorIndex(index);
+                }
               }
             }}
             role="option"
             aria-selected={isSelected}
             className={listItemRowStyle({ isSelected, isFocused })}
+            style={
+              depth > 0
+                ? { paddingLeft: depth * NESTING_INDENT + 4 }
+                : undefined
+            }
           >
             <div className={listItemContentStyle}>
+              {isGroup && (
+                <span className={chevronStyle({ expanded: !isCollapsed })}>
+                  <LuChevronRight size={CHEVRON_SIZE} />
+                </span>
+              )}
               {item.icon && (
                 <span
                   className={listItemIconStyle}
@@ -401,7 +497,7 @@ const FilterableListContent = <T extends FilterableListItem>({
                 {renderItem(item, isSelected)}
               </div>
             </div>
-            {RenderRowMenu && <RenderRowMenu item={item} />}
+            {!isGroup && RenderRowMenu && <RenderRowMenu item={item} />}
           </div>
         );
       })}
@@ -428,6 +524,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     tooltip,
     defaultCollapsed,
     resizable,
+    fitContent,
     useItems,
     getSelectionItem,
     renderItem,
@@ -459,5 +556,6 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     ),
     defaultCollapsed,
     resizable,
+    fitContent,
   };
 }
