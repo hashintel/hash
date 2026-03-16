@@ -422,22 +422,31 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         // Operands coming from jsonb extraction are untyped from Postgres' perspective.
         // Arithmetic and bitwise operators need explicit casts; comparisons work on jsonb
         // directly.
-        let (op, cast) = match *op {
-            BinOp::Add => (BinaryOperator::Add, Some(PostgresType::Numeric)),
-            BinOp::Sub => (BinaryOperator::Subtract, Some(PostgresType::Numeric)),
-            BinOp::BitAnd => (BinaryOperator::BitwiseAnd, Some(PostgresType::BigInt)),
-            BinOp::BitOr => (BinaryOperator::BitwiseOr, Some(PostgresType::BigInt)),
-            BinOp::Eq => (BinaryOperator::Equal, None),
-            BinOp::Ne => (BinaryOperator::NotEqual, None),
-            BinOp::Lt => (BinaryOperator::Less, None),
-            BinOp::Lte => (BinaryOperator::LessOrEqual, None),
-            BinOp::Gt => (BinaryOperator::Greater, None),
-            BinOp::Gte => (BinaryOperator::GreaterOrEqual, None),
+        let (op, cast, function) = match *op {
+            BinOp::Add => (BinaryOperator::Add, Some(PostgresType::Numeric), None),
+            BinOp::Sub => (BinaryOperator::Subtract, Some(PostgresType::Numeric), None),
+            BinOp::BitAnd => (BinaryOperator::BitwiseAnd, Some(PostgresType::BigInt), None),
+            BinOp::BitOr => (BinaryOperator::BitwiseOr, Some(PostgresType::BigInt), None),
+            BinOp::Eq => (BinaryOperator::Equal, None, Some(query::Function::ToJson)),
+            BinOp::Ne => (
+                BinaryOperator::NotEqual,
+                None,
+                Some(query::Function::ToJson),
+            ),
+            BinOp::Lt => (BinaryOperator::Less, None, None),
+            BinOp::Lte => (BinaryOperator::LessOrEqual, None, None),
+            BinOp::Gt => (BinaryOperator::Greater, None, None),
+            BinOp::Gte => (BinaryOperator::GreaterOrEqual, None, None),
         };
 
         if let Some(target) = cast {
             left = left.grouped().cast(target.clone());
             right = right.grouped().cast(target);
+        }
+
+        if let Some(function) = function {
+            left = Expression::Function(function(Box::new(left)));
+            right = Expression::Function(function(Box::new(right)));
         }
 
         Expression::Binary(BinaryExpression {

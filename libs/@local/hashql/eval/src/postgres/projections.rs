@@ -6,7 +6,8 @@ use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
-    JoinType, SelectExpression, SelectStatement, Table, TableName, TableReference, table,
+    JoinType, PostgresType, SelectExpression, SelectStatement, Table, TableName, TableReference,
+    table,
 };
 use hashql_core::symbol::sym;
 
@@ -273,7 +274,8 @@ impl Projections {
                     query::Expression::ColumnReference(ColumnReference {
                         correlation: Some(eit_ref),
                         name: Column::EntityIsOfTypeIds(table::EntityIsOfTypeIds::Versions).into(),
-                    }),
+                    })
+                    .cast(PostgresType::Array(Box::new(PostgresType::Text))),
                 ]),
                 with_ordinality: false,
                 alias: Some(TableReference {

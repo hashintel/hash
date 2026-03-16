@@ -22,6 +22,7 @@ pub enum Function {
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
+    JsonScalar(Box<Expression>),
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
@@ -32,6 +33,12 @@ pub enum Function {
         elements: Vec<Expression>,
         element_type: PostgresType,
     },
+    /// Converts any SQL value to jsonb.
+    ///
+    /// Transpiles to `to_jsonb(<expr>)` in PostgreSQL. Passes through jsonb
+    /// values unchanged; wraps text, uuid, integer, boolean, etc. as jsonb
+    /// scalars.
+    ToJson(Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
     LowerInc(Box<Expression>),
@@ -65,6 +72,11 @@ impl Transpile for Function {
             }
             Self::JsonAgg(expression) => {
                 fmt.write_str("jsonb_agg(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonScalar(expression) => {
+                fmt.write_str("json_scalar(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
@@ -120,6 +132,11 @@ impl Transpile for Function {
                 fmt.write_char(')')
             }
             Self::Now => fmt.write_str("now()"),
+            Self::ToJson(expression) => {
+                fmt.write_str("to_jsonb(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::Lower(expression) => {
                 fmt.write_str("lower(")?;
                 expression.transpile(fmt)?;
@@ -603,6 +620,10 @@ impl Expression {
     #[must_use]
     pub fn cast(self, r#type: PostgresType) -> Self {
         Self::Cast(Box::new(self), r#type)
+    }
+
+    pub fn json_scalar(self) -> Self {
+        Self::Function(Function::JsonScalar(Box::new(self)))
     }
 }
 

@@ -175,7 +175,7 @@ const PROGRAMMATIC_TESTS: &[(&str, ProgrammaticBuilder)] = &[];
 
 fn main() -> Result<(), Report<SetupError>> {
     let arguments = libtest_mimic::Arguments::from_args();
-    let bless = std::env::args().any(|arg| arg == "--bless");
+    let bless = std::env::args().any(|arg| arg == "--bless") || std::env::var("BLESS").is_ok();
 
     let runtime = runtime::Builder::new_multi_thread()
         .enable_all()

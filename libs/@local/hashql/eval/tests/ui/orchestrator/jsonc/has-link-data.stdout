@@ -1,0 +1,68 @@
+[
+  {
+    "link_data": {
+      "left_entity_confidence": 0.9,
+      "left_entity_id": {
+        "draft_id": null,
+        "entity_uuid": "<uuid:0>",
+        "web_id": "<uuid:1>"
+      },
+      "left_entity_provenance": {},
+      "right_entity_confidence": 0.8,
+      "right_entity_id": {
+        "draft_id": null,
+        "entity_uuid": "<uuid:2>",
+        "web_id": "<uuid:1>"
+      },
+      "right_entity_provenance": {}
+    },
+    "metadata": {
+      "archived": false,
+      "confidence": null,
+      "entity_type_ids": [
+        {
+          "base_url": "https://blockprotocol.org/@alice/types/entity-type/friend-of/",
+          "version": "1"
+        }
+      ],
+      "property_metadata": {
+        "value": {}
+      },
+      "provenance": {
+        "edition": {
+          "actorType": "user",
+          "createdById": "<uuid:1>",
+          "origin": {
+            "type": "api"
+          }
+        },
+        "inferred": {
+          "createdAtDecisionTime": "<timestamp>",
+          "createdAtTransactionTime": "<timestamp>",
+          "createdById": "<uuid:1>",
+          "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
+          "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
+        }
+      },
+      "record_id": {
+        "edition_id": "<uuid:3>",
+        "entity_id": {
+          "draft_id": null,
+          "entity_uuid": "<uuid:4>",
+          "web_id": "<uuid:1>"
+        }
+      },
+      "temporal_versioning": {
+        "decision_time": {
+          "end": null,
+          "start": 1773697901948
+        },
+        "transaction_time": {
+          "end": null,
+          "start": 1773697901948
+        }
+      }
+    },
+    "properties": {}
+  }
+]

@@ -39,6 +39,7 @@ use hashql_mir::{
     },
 };
 use tokio_postgres::Row;
+use uuid::Uuid;
 
 use super::{
     Indexed,
@@ -130,11 +131,25 @@ impl<T> Hydrated<T, ()> {
 
     pub(crate) fn null(&mut self) {
         debug_assert!(
-            matches!(self, Self::Skipped),
-            "field already populated: duplicate column in row hydration"
+            matches!(self, Self::Skipped | Self::Null(())),
+            "field already populated with a value: cannot null"
         );
 
         *self = Self::Null(());
+    }
+
+    pub(crate) fn filter(self, func: impl FnOnce(&T) -> bool) -> Self {
+        match self {
+            Self::Skipped => Self::Skipped,
+            Self::Null(()) => Self::Null(()),
+            Self::Value(value) => {
+                if func(&value) {
+                    Self::Value(value)
+                } else {
+                    Self::Null(())
+                }
+            }
+        }
     }
 }
 
@@ -572,6 +587,10 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::metadata);
         self.link_data
+            .filter(|partial| {
+                matches!(partial.left_entity_id, Hydrated::Value(_))
+                    && matches!(partial.right_entity_id, Hydrated::Value(_))
+            })
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::link_data, alloc.clone());
         self.encodings
@@ -625,16 +644,27 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 self.hydrate_entity_id(env, decoder, column, &value)?;
             }
             EntityPath::WebId => {
-                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_web_id(env, decoder, column, JsonValueRef::String(&value))?;
+                let value: Uuid = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_web_id(
+                    env,
+                    decoder,
+                    column,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                )?;
             }
             EntityPath::EntityUuid => {
-                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_entity_uuid(env, decoder, column, JsonValueRef::String(&value))?;
+                let value: Uuid = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_entity_uuid(
+                    env,
+                    decoder,
+                    column,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                )?;
             }
             EntityPath::DraftId => {
-                let value: Option<String> =
-                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value: Option<Uuid> = row.try_get(column.index).map_err(row_hydration_error)?;
+                let value = value.map(|uuid| uuid.hyphenated().to_string());
+
                 self.hydrate_draft_id(
                     env,
                     decoder,
@@ -643,8 +673,13 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 )?;
             }
             EntityPath::EditionId => {
-                let value: String = row.try_get(column.index).map_err(row_hydration_error)?;
-                self.hydrate_edition_id(env, decoder, column, JsonValueRef::String(&value))?;
+                let value: Uuid = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_edition_id(
+                    env,
+                    decoder,
+                    column,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                )?;
             }
             EntityPath::TemporalVersioning => {
                 let value: serde_json::Value =
@@ -701,51 +736,63 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 hydrate!(self->metadata->property_metadata = value);
             }
             EntityPath::LeftEntityWebId => {
-                let value: Option<String> =
-                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value: Option<Uuid> = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
                     self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(
+                    r#type,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                    column,
+                )?;
                 hydrate!(self->link_data->left_entity_id->web_id = value);
             }
             EntityPath::LeftEntityUuid => {
-                let value: Option<String> =
-                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value: Option<Uuid> = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
                     self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(
+                    r#type,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                    column,
+                )?;
                 hydrate!(self->link_data->left_entity_id->entity_uuid = value);
             }
             EntityPath::RightEntityWebId => {
-                let value: Option<String> =
-                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value: Option<Uuid> = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
                     self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(
+                    r#type,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                    column,
+                )?;
                 hydrate!(self->link_data->right_entity_id->web_id = value);
             }
             EntityPath::RightEntityUuid => {
-                let value: Option<String> =
-                    row.try_get(column.index).map_err(row_hydration_error)?;
+                let value: Option<Uuid> = row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
                     self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(
+                    r#type,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                    column,
+                )?;
                 hydrate!(self->link_data->right_entity_id->entity_uuid = value);
             }
             EntityPath::LeftEntityConfidence => {
@@ -757,27 +804,27 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                 hydrate!(self->link_data->right_entity_confidence = value.map(Num::from).map(Value::Number));
             }
             EntityPath::LeftEntityProvenance => {
-                let value: Option<String> =
+                let value: Option<serde_json::Value> =
                     row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
-                    self.link_data.null();
+                    // TODO: self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
                 hydrate!(self->link_data->left_entity_provenance = value);
             }
             EntityPath::RightEntityProvenance => {
-                let value: Option<String> =
+                let value: Option<serde_json::Value> =
                     row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
-                    self.link_data.null();
+                    // TODO: self.link_data.null();
                     return Ok(());
                 };
 
-                let value = decoder.try_decode(r#type, JsonValueRef::String(&value), column)?;
+                let value = decoder.try_decode(r#type, (&value).into(), column)?;
                 hydrate!(self->link_data->right_entity_provenance = value);
             }
         }

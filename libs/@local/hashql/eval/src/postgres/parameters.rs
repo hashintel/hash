@@ -71,6 +71,7 @@ pub struct Parameter {
 }
 
 impl Parameter {
+    #[must_use]
     pub fn to_expr(self) -> Expression {
         Expression::Cast(Box::new(self.index.into()), PostgresType::from(self.kind))
     }
@@ -101,18 +102,17 @@ pub enum ParameterValue<'heap> {
 }
 
 impl ParameterValue<'_> {
+    #[must_use]
     pub const fn kind(&self) -> ParameterKind {
         match self {
-            Self::Input(_) => ParameterKind::Value,
             Self::Int(int) if int.is_bool() => ParameterKind::Boolean,
-            Self::Int(_) => ParameterKind::Integer,
+            Self::Int(_) | Self::Primitive(Primitive::Integer(_)) => ParameterKind::Integer,
             Self::Primitive(Primitive::Boolean(_)) => ParameterKind::Boolean,
             Self::Primitive(Primitive::Float(_)) => ParameterKind::Number,
-            Self::Primitive(Primitive::Integer(_)) => ParameterKind::Integer,
-            Self::Primitive(Primitive::String(_)) => ParameterKind::String,
-            Self::Primitive(Primitive::Null) => ParameterKind::Value,
-            Self::Symbol(_) => ParameterKind::String,
-            Self::Env(_, _) => ParameterKind::Value,
+            Self::Primitive(Primitive::String(_)) | Self::Symbol(_) => ParameterKind::String,
+            Self::Input(_) | Self::Primitive(Primitive::Null) | Self::Env(_, _) => {
+                ParameterKind::Value
+            }
             Self::TemporalAxis(_) => ParameterKind::TimestampInterval,
         }
     }

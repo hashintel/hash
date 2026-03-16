@@ -25,7 +25,7 @@ bytes.workspace             = true
 derive_more                 = { workspace = true, features = ["display"] }
 futures-lite                = "2.6.1"
 postgres-protocol.workspace = true
-postgres-types.workspace    = true
+postgres-types              = { workspace = true, features = ["uuid-1"] }
 serde                       = { workspace = true }
 serde_json                  = { workspace = true, features = ["raw_value"] }
 simple-mermaid              = { workspace = true }
@@ -33,6 +33,7 @@ tokio.workspace             = true
 tokio-postgres.workspace    = true
 tokio-util                  = { workspace = true, features = ["rt"] }
 url.workspace               = true
+uuid.workspace              = true
 
 [dev-dependencies]
 error-stack.workspace          = true

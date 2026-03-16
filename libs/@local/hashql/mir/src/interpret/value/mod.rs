@@ -237,6 +237,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: FieldIndex,
     ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
         match self {
+            Self::Opaque(opaque) => opaque.value().project(index),
             Self::Struct(r#struct) => {
                 r#struct
                     .get_by_index(index)
@@ -254,7 +255,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -293,12 +293,12 @@ impl<'heap, A: Allocator> Value<'heap, A> {
                     base: TypeName::terse(terse_name),
                     field: index,
                 }),
+            Self::Opaque(opaque) => opaque.value_mut().project_mut(index),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -317,18 +317,27 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         &'this self,
         index: Symbol<'heap>,
     ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+        match self {
+            Value::Opaque(opaque) => opaque.value().project_by_name(index),
+            Value::Struct(r#struct) => {
+                r#struct
+                    .get_by_name(index)
+                    .ok_or_else(|| RuntimeError::UnknownFieldByName {
+                        base: self.type_name().into(),
+                        field: index,
+                    })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        r#struct
-            .get_by_name(index)
-            .ok_or_else(|| RuntimeError::UnknownFieldByName {
-                base: self.type_name().into(),
-                field: index,
-            })
+            }),
+        }
     }
 
     /// Mutably projects a field from this value by name.
@@ -346,20 +355,29 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         A: Clone,
     {
         let terse_name = self.type_name_terse();
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+        match self {
+            Value::Opaque(opaque) => opaque.value_mut().project_by_name_mut(index),
+            Value::Struct(r#struct) => {
+                if let Some(value) = r#struct.get_by_name_mut(index) {
+                    return Ok(value);
+                }
+
+                Err(RuntimeError::UnknownFieldByName {
+                    base: TypeName::terse(terse_name),
+                    field: index,
+                })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        if let Some(value) = r#struct.get_by_name_mut(index) {
-            return Ok(value);
+            }),
         }
-
-        Err(RuntimeError::UnknownFieldByName {
-            base: TypeName::terse(terse_name),
-            field: index,
-        })
     }
 }
 
