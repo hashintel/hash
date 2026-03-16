@@ -8,8 +8,8 @@ Sentry.init({
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserTracingIntegration(),
     Sentry.feedbackIntegration({
+      autoInject: false,
       colorScheme: "system",
-      triggerLabel: "",
       formTitle: "Give feedback",
       messagePlaceholder: "Report a bug or suggest an improvement",
       submitButtonLabel: "Submit feedback",

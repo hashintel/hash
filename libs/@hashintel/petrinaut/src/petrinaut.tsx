@@ -25,6 +25,7 @@ import {
   type UndoRedoContextValue,
 } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
+import type { ViewportAction } from "./types/viewport-action";
 import { EditorView } from "./views/Editor/editor-view";
 
 export { isSDCPNEqual } from "./lib/deep-equal";
@@ -41,6 +42,7 @@ export type {
 };
 
 export type { UndoRedoContextValue as UndoRedoProps } from "./state/undo-redo-context";
+export type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   /**
@@ -103,11 +105,17 @@ export type PetrinautProps = {
    * undo/redo buttons in the top bar and register keyboard shortcuts.
    */
   undoRedo?: UndoRedoContextValue;
+  /**
+   * Optional additional action buttons to render in the viewport controls panel,
+   * after the built-in buttons.
+   */
+  viewportActions?: ViewportAction[];
 };
 
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
   undoRedo,
+  viewportActions,
   ...rest
 }) => {
   return (
@@ -122,6 +130,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                     <EditorProvider>
                       <EditorView
                         hideNetManagementControls={hideNetManagementControls}
+                        viewportActions={viewportActions}
                       />
                     </EditorProvider>
                   </UserSettingsProvider>

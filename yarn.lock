@@ -785,6 +785,7 @@ __metadata:
     oxlint-tsgolint: "npm:0.17.0"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
+    react-icons: "npm:5.5.0"
     vite: "npm:8.0.0"
   languageName: unknown
   linkType: soft

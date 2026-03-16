@@ -14,6 +14,7 @@ import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useSelectionCleanup } from "../../state/use-selection-cleanup";
+import type { ViewportAction } from "../../types/viewport-action";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
@@ -57,8 +58,10 @@ const portalContainerStyle = css({
  */
 export const EditorView = ({
   hideNetManagementControls,
+  viewportActions,
 }: {
   hideNetManagementControls: boolean;
+  viewportActions?: ViewportAction[];
 }) => {
   // Get data from sdcpn-store
   const {
@@ -259,7 +262,7 @@ export const EditorView = ({
             <PropertiesPanel />
 
             {/* SDCPN Visualization */}
-            <SDCPNView />
+            <SDCPNView viewportActions={viewportActions} />
 
             {/* Bottom Panel - Diagnostics, Simulation Settings */}
             <BottomPanel />
