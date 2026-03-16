@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { Filter } from "../../src/components/filter";
 import {
-  CONCAVE,
-  CONVEX,
-  CONVEX_CIRCLE,
-  LIP,
+  concave,
+  convex,
+  convexCircle,
+  lip,
 } from "../../src/helpers/surface-equations";
 import {
   defaultFilterArgs,
@@ -41,17 +41,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Convex: Story = {
-  args: { bezelHeightFn: CONVEX },
+  args: { bezelHeightFn: convex },
 };
 
 export const ConvexCircle: Story = {
-  args: { bezelHeightFn: CONVEX_CIRCLE },
+  args: { bezelHeightFn: convexCircle },
 };
 
 export const Concave: Story = {
-  args: { bezelHeightFn: CONCAVE },
+  args: { bezelHeightFn: concave },
 };
 
 export const Lip: Story = {
-  args: { bezelHeightFn: LIP },
+  args: { bezelHeightFn: lip },
 };
