@@ -93,7 +93,7 @@ export const parametersListSubView: SubView = createFilterableListSubView({
   title: "Global Parameters",
   tooltip:
     "Parameters are injected into dynamics, lambda, and kernel functions.",
-  defaultCollapsed: true,
+  defaultCollapsed: false,
   resizable: {
     defaultHeight: 100,
     minHeight: 60,

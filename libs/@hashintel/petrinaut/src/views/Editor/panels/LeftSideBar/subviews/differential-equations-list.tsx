@@ -78,7 +78,7 @@ export const differentialEquationsListSubView: SubView =
     id: "differential-equations-list",
     title: "Differential Equations",
     tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
-    defaultCollapsed: true,
+    defaultCollapsed: false,
     resizable: {
       defaultHeight: 100,
       minHeight: 60,
