@@ -22,6 +22,7 @@ export function useKeyboardShortcuts(
     isSearchOpen,
     setSearchOpen,
     searchInputRef,
+    setLeftSidebarOpen,
   } = use(EditorContext);
   const { deleteItemsByIds, readonly } = use(SDCPNContext);
   const isSimulationReadOnly = useIsReadOnly();
@@ -65,6 +66,7 @@ export function useKeyboardShortcuts(
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       } else {
+        setLeftSidebarOpen(true);
         setSearchOpen(true);
       }
       return;
@@ -77,6 +79,7 @@ export function useKeyboardShortcuts(
       document.activeElement === searchInputRef.current
     ) {
       event.preventDefault();
+      searchInputRef.current?.blur();
       setSearchOpen(false);
       return;
     }

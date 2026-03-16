@@ -248,8 +248,9 @@ const SearchContent: React.FC = () => {
             )),
           }));
 
-  // Clamp focusedIndex when results shrink
+  // Clamp focusedIndex when results shrink and truncate stale row refs
   useEffect(() => {
+    rowRefs.current.length = results.length;
     if (results.length === 0) {
       setFocusedIndex(null);
     } else {
@@ -355,6 +356,7 @@ const SearchContent: React.FC = () => {
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
+                    event.stopPropagation();
                     event.preventDefault();
                     selectItem(item.selectionItem);
                     setFocusedIndex(index);

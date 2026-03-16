@@ -117,7 +117,7 @@ const listItemIconStyle = css({
   justifyContent: "center",
 });
 
-export const emptyMessageStyle = css({
+const emptyMessageStyle = css({
   pt: "1",
   px: "1",
   fontSize: "sm",
@@ -219,8 +219,9 @@ const FilterableListContent = <T extends FilterableListItem>({
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Clamp focus/anchor when items shrink
+  // Clamp focus/anchor when items shrink and truncate stale row refs
   useEffect(() => {
+    rowRefs.current.length = items.length;
     if (items.length === 0) {
       setFocusedIndex(null);
       setAnchorIndex(null);
