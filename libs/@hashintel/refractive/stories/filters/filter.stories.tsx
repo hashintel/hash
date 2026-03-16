@@ -14,8 +14,8 @@ import {
   type SharedFilterProps,
 } from "../helpers";
 
-const FilterStory = (props: SharedFilterProps) => (
-  <FilterShowcase>
+const FilterStory = ({ background, ...props }: SharedFilterProps) => (
+  <FilterShowcase background={background}>
     {(id) => (
       <Filter
         id={id}

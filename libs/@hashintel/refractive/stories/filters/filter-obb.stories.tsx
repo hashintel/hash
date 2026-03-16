@@ -14,8 +14,8 @@ import {
   type SharedFilterProps,
 } from "../helpers";
 
-const FilterOBBStory = (props: SharedFilterProps) => (
-  <FilterShowcase>
+const FilterOBBStory = ({ background, ...props }: SharedFilterProps) => (
+  <FilterShowcase background={background}>
     {(id) => <FilterOBB id={id} scaleRatio={1} pixelRatio={6} {...props} />}
   </FilterShowcase>
 );

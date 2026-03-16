@@ -19,8 +19,8 @@ type FilterPolarStoryProps = Omit<
   "specularOpacity" | "specularAngle"
 >;
 
-const FilterPolarStory = (props: FilterPolarStoryProps) => (
-  <FilterShowcase>
+const FilterPolarStory = ({ background, ...props }: FilterPolarStoryProps) => (
+  <FilterShowcase background={background}>
     {(id) => <FilterPolar id={id} pixelRatio={6} {...props} />}
   </FilterShowcase>
 );
