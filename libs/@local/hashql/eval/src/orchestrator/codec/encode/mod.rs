@@ -24,6 +24,9 @@ use crate::{
     postgres::{Parameter, TemporalAxis},
 };
 
+#[cfg(test)]
+mod tests;
+
 // timestamp is in ms
 impl ToSql for Postgres<Timestamp> {
     accepts!(TIMESTAMPTZ);

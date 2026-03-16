@@ -21,6 +21,9 @@ use crate::{
     postgres::ColumnDescriptor,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Type-directed JSON deserializer that converts column values into interpreter
 /// [`Value`]s.
 ///
