@@ -15,7 +15,7 @@ use postgres_types::ToSql as _;
 use super::{Postgres, Serde, serialize_value};
 
 fn to_json_string(value: &Value<'_, Global>) -> String {
-    serde_json::to_string(&Serde(value)).unwrap()
+    serde_json::to_string(&Serde(value)).expect("should succeed")
 }
 
 #[test]
@@ -37,9 +37,25 @@ fn serialize_integer() {
 }
 
 #[test]
+fn serialize_integer_one_not_as_bool() {
+    // Int::from(1_i32) has size=128, not size=1.
+    // Must serialize as numeric 1, not as boolean true.
+    let value = Value::<Global>::Integer(value::Int::from(1_i32));
+    assert_eq!(to_json_string(&value), "1");
+}
+
+#[test]
+fn serialize_integer_zero_not_as_bool() {
+    // Int::from(0_i32) has size=128, not size=1.
+    // Must serialize as numeric 0, not as boolean false.
+    let value = Value::<Global>::Integer(value::Int::from(0_i32));
+    assert_eq!(to_json_string(&value), "0");
+}
+
+#[test]
 fn serialize_number() {
-    let value = Value::<Global>::Number(value::Num::from(3.14));
-    assert_eq!(to_json_string(&value), "3.14");
+    let value = Value::<Global>::Number(value::Num::from(2.72));
+    assert_eq!(to_json_string(&value), "2.72");
 }
 
 #[test]
@@ -70,7 +86,7 @@ fn serialize_tuple_as_array() {
         Value::<Global>::Integer(value::Int::from(1_i128)),
         Value::Integer(value::Int::from(2_i128)),
     ])
-    .unwrap();
+    .expect("should succeed");
 
     let value = Value::Tuple(tuple);
     assert_eq!(to_json_string(&value), "[1,2]");
@@ -100,11 +116,13 @@ fn serialize_struct_as_map() {
         Value::Integer(value::Int::from(42_i128)),
     ];
 
-    let struct_value = value::Struct::new(fields, values).unwrap();
+    let struct_value = value::Struct::new(fields, values).expect("should succeed");
     let value = Value::Struct(struct_value);
     let json = to_json_string(&value);
 
-    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json).expect("should succeed");
+    let object = parsed.as_object().expect("should be an object");
+    assert_eq!(object.len(), 2);
     assert_eq!(parsed["name"], "Alice");
     assert_eq!(parsed["value"], 42);
 }
@@ -113,13 +131,13 @@ fn serialize_struct_as_map() {
 fn serialize_pointer_fails() {
     let value = Value::<Global>::Pointer(value::Ptr::new(hashql_mir::def::DefId::new(0)));
     let result = serde_json::to_string(&Serde(&value));
-    assert!(result.is_err());
+    assert!(result.is_err(), "pointer values should not be serializable");
 }
 
 #[test]
 fn serialize_value_produces_raw_json() {
     let value = Value::<Global>::Integer(value::Int::from(42_i128));
-    let result = serialize_value(&value).unwrap();
+    let result = serialize_value(&value).expect("should succeed");
     assert_eq!(result.0.get(), "42");
 }
 
@@ -131,11 +149,15 @@ fn timestamp_to_sql_known_epoch() {
     let timestamp = Timestamp::from(value::Int::from(946_684_800_000_i128));
     Postgres(timestamp)
         .to_sql(&postgres_types::Type::TIMESTAMPTZ, &mut buffer)
-        .unwrap();
+        .expect("should succeed");
 
     // Should encode as 0 microseconds since the postgres epoch (2000-01-01)
     assert_eq!(buffer.len(), 8);
-    let encoded = i64::from_be_bytes(buffer[..8].try_into().unwrap());
+    #[expect(
+        clippy::big_endian_bytes,
+        reason = "postgres wire format is big-endian"
+    )]
+    let encoded = i64::from_be_bytes(buffer[..8].try_into().expect("should succeed"));
     assert_eq!(encoded, 0);
 }
 
@@ -147,9 +169,13 @@ fn timestamp_to_sql_one_second_after_epoch() {
     let timestamp = Timestamp::from(value::Int::from(946_684_801_000_i128));
     Postgres(timestamp)
         .to_sql(&postgres_types::Type::TIMESTAMPTZ, &mut buffer)
-        .unwrap();
+        .expect("should succeed");
 
-    let encoded = i64::from_be_bytes(buffer[..8].try_into().unwrap());
+    #[expect(
+        clippy::big_endian_bytes,
+        reason = "postgres wire format is big-endian"
+    )]
+    let encoded = i64::from_be_bytes(buffer[..8].try_into().expect("should succeed"));
     // 1 second = 1_000_000 microseconds
     assert_eq!(encoded, 1_000_000);
 }
@@ -166,10 +192,17 @@ fn temporal_interval_point_encodes() {
 
     Postgres(interval)
         .to_sql(&postgres_types::Type::TSTZ_RANGE, &mut buffer)
-        .unwrap();
+        .expect("should succeed");
 
-    // Should produce a non-empty range encoding
-    assert!(!buffer.is_empty());
+    // Range wire format: 1 byte flags + lower bound (4 byte len + 8 byte data) +
+    // upper bound (4 byte len + 8 byte data) = 25 bytes for two inclusive timestamps
+    assert_eq!(buffer.len(), 25);
+
+    // Flags byte: bit 1 (has lower) | bit 2 (has upper) | bit 2 (lower inclusive) |
+    // bit 3 (upper inclusive) = 0x06 for [inclusive, inclusive]
+    // (postgres_protocol range encoding details)
+    let flags = buffer[0];
+    assert_ne!(flags, 0, "flags should indicate both bounds are present");
 }
 
 #[test]
@@ -183,7 +216,8 @@ fn temporal_interval_unbounded_encodes() {
 
     Postgres(interval)
         .to_sql(&postgres_types::Type::TSTZ_RANGE, &mut buffer)
-        .unwrap();
+        .expect("should succeed");
 
-    assert!(!buffer.is_empty());
+    // Fully unbounded range: only 1 byte for flags
+    assert_eq!(buffer.len(), 1);
 }

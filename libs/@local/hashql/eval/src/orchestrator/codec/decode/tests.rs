@@ -1,4 +1,5 @@
 use alloc::{alloc::Global, rc::Rc};
+use core::assert_matches;
 
 use hashql_core::{
     heap::Heap,
@@ -33,7 +34,7 @@ fn primitive_string() {
 
     let result = decoder
         .decode(types.string(), JsonValueRef::String("hello"))
-        .unwrap();
+        .expect("should succeed");
     assert_eq!(result, str_value("hello"));
 }
 
@@ -48,7 +49,7 @@ fn primitive_integer() {
     let number = serde_json::Number::from(42);
     let result = decoder
         .decode(types.integer(), JsonValueRef::Number(&number))
-        .unwrap();
+        .expect("should succeed");
     assert_eq!(result, Value::Integer(value::Int::from(42_i128)));
 }
 
@@ -60,11 +61,11 @@ fn primitive_number() {
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
-    let number = serde_json::Number::from_f64(3.14).unwrap();
+    let number = serde_json::Number::from_f64(2.72).expect("valid f64");
     let result = decoder
         .decode(types.number(), JsonValueRef::Number(&number))
-        .unwrap();
-    assert_eq!(result, Value::Number(value::Num::from(3.14)));
+        .expect("should decode number");
+    assert_eq!(result, Value::Number(value::Num::from(2.72)));
 }
 
 #[test]
@@ -77,7 +78,7 @@ fn primitive_boolean_true() {
 
     let result = decoder
         .decode(types.boolean(), JsonValueRef::Bool(true))
-        .unwrap();
+        .expect("should succeed");
     let Value::Integer(int) = result else {
         panic!("expected Value::Integer, got {result:?}");
     };
@@ -94,7 +95,7 @@ fn primitive_boolean_false() {
 
     let result = decoder
         .decode(types.boolean(), JsonValueRef::Bool(false))
-        .unwrap();
+        .expect("should succeed");
     let Value::Integer(int) = result else {
         panic!("expected Value::Integer, got {result:?}");
     };
@@ -109,7 +110,9 @@ fn primitive_null() {
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
-    let result = decoder.decode(types.null(), JsonValueRef::Null).unwrap();
+    let result = decoder
+        .decode(types.null(), JsonValueRef::Null)
+        .expect("should succeed");
     assert_eq!(result, Value::Unit);
 }
 
@@ -122,7 +125,7 @@ fn primitive_type_mismatch() {
     let decoder = decoder(&env, &interner);
 
     let result = decoder.decode(types.integer(), JsonValueRef::String("hello"));
-    assert!(matches!(result, Err(DecodeError::TypeMismatch { .. })));
+    assert_matches!(result, Err(DecodeError::TypeMismatch { .. }));
 }
 
 #[test]
@@ -141,11 +144,13 @@ fn struct_matching_fields() {
 
     let result = decoder
         .decode(struct_type, JsonValueRef::Object(&object))
-        .unwrap();
+        .expect("should succeed");
     let Value::Struct(fields) = &result else {
         panic!("expected Value::Struct, got {result:?}");
     };
     assert_eq!(fields.len(), 2);
+    assert_eq!(fields.values()[0], Value::Integer(value::Int::from(1_i128)));
+    assert_eq!(fields.values()[1], str_value("two"));
 }
 
 #[test]
@@ -162,10 +167,7 @@ fn struct_missing_field() {
     object.insert("a".to_owned(), serde_json::Value::Number(1.into()));
 
     let result = decoder.decode(struct_type, JsonValueRef::Object(&object));
-    assert!(matches!(
-        result,
-        Err(DecodeError::StructLengthMismatch { .. })
-    ));
+    assert_matches!(result, Err(DecodeError::StructLengthMismatch { .. }));
 }
 
 #[test]
@@ -183,10 +185,7 @@ fn struct_extra_field() {
     object.insert("b".to_owned(), serde_json::Value::Number(2.into()));
 
     let result = decoder.decode(struct_type, JsonValueRef::Object(&object));
-    assert!(matches!(
-        result,
-        Err(DecodeError::StructLengthMismatch { .. })
-    ));
+    assert_matches!(result, Err(DecodeError::StructLengthMismatch { .. }));
 }
 
 #[test]
@@ -206,11 +205,16 @@ fn tuple_correct_length() {
 
     let result = decoder
         .decode(tuple_type, JsonValueRef::Array(&array))
-        .unwrap();
+        .expect("should succeed");
     let Value::Tuple(elements) = &result else {
         panic!("expected Value::Tuple, got {result:?}");
     };
     assert_eq!(elements.len().get(), 2);
+    assert_eq!(
+        elements.values()[0],
+        Value::Integer(value::Int::from(1_i128))
+    );
+    assert_eq!(elements.values()[1], str_value("two"));
 }
 
 #[test]
@@ -225,10 +229,7 @@ fn tuple_length_mismatch() {
     let array = [serde_json::Value::Number(1.into())];
 
     let result = decoder.decode(tuple_type, JsonValueRef::Array(&array));
-    assert!(matches!(
-        result,
-        Err(DecodeError::TupleLengthMismatch { .. })
-    ));
+    assert_matches!(result, Err(DecodeError::TupleLengthMismatch { .. }));
 }
 
 #[test]
@@ -244,7 +245,7 @@ fn union_first_variant_matches() {
 
     let result = decoder
         .decode(union_type, JsonValueRef::Number(&number))
-        .unwrap();
+        .expect("should succeed");
     assert_eq!(result, Value::Integer(value::Int::from(42_i128)));
 }
 
@@ -260,7 +261,7 @@ fn union_second_variant_matches() {
 
     let result = decoder
         .decode(union_type, JsonValueRef::String("hello"))
-        .unwrap();
+        .expect("should succeed");
     assert_eq!(result, str_value("hello"));
 }
 
@@ -275,7 +276,7 @@ fn union_no_variant_matches() {
     let union_type = types.union([types.integer(), types.string()]);
 
     let result = decoder.decode(union_type, JsonValueRef::Bool(true));
-    assert!(matches!(result, Err(DecodeError::NoMatchingVariant { .. })));
+    assert_matches!(result, Err(DecodeError::NoMatchingVariant { .. }));
 }
 
 #[test]
@@ -290,7 +291,7 @@ fn opaque_wraps_inner() {
 
     let result = decoder
         .decode(opaque_type, JsonValueRef::String("inner"))
-        .unwrap();
+        .expect("should succeed");
     let Value::Opaque(opaque) = &result else {
         panic!("expected Value::Opaque, got {result:?}");
     };
@@ -314,11 +315,14 @@ fn list_intrinsic() {
 
     let result = decoder
         .decode(list_type, JsonValueRef::Array(&array))
-        .unwrap();
+        .expect("should succeed");
     let Value::List(list) = &result else {
         panic!("expected Value::List, got {result:?}");
     };
     assert_eq!(list.len(), 2);
+    let items: Vec<_> = list.iter().collect();
+    assert_eq!(items[0], &Value::Integer(value::Int::from(1_i128)));
+    assert_eq!(items[1], &Value::Integer(value::Int::from(2_i128)));
 }
 
 #[test]
@@ -337,11 +341,19 @@ fn dict_intrinsic() {
 
     let result = decoder
         .decode(dict_type, JsonValueRef::Object(&object))
-        .unwrap();
+        .expect("should succeed");
     let Value::Dict(dict) = &result else {
         panic!("expected Value::Dict, got {result:?}");
     };
     assert_eq!(dict.len(), 2);
+    assert_eq!(
+        dict.get(&str_value("x")),
+        Some(&Value::Integer(value::Int::from(1_i128)))
+    );
+    assert_eq!(
+        dict.get(&str_value("y")),
+        Some(&Value::Integer(value::Int::from(2_i128)))
+    );
 }
 
 #[test]
@@ -355,7 +367,7 @@ fn intersection_type_error() {
     let intersection_type = types.intersection([types.integer(), types.string()]);
 
     let result = decoder.decode(intersection_type, JsonValueRef::Null);
-    assert!(matches!(result, Err(DecodeError::IntersectionType { .. })));
+    assert_matches!(result, Err(DecodeError::IntersectionType { .. }));
 }
 
 #[test]
@@ -369,7 +381,7 @@ fn closure_type_error() {
     let closure_type = types.closure([] as [TypeId; 0], types.integer());
 
     let result = decoder.decode(closure_type, JsonValueRef::Null);
-    assert!(matches!(result, Err(DecodeError::ClosureType { .. })));
+    assert_matches!(result, Err(DecodeError::ClosureType { .. }));
 }
 
 #[test]
@@ -381,7 +393,7 @@ fn never_type_error() {
     let decoder = decoder(&env, &interner);
 
     let result = decoder.decode(types.never(), JsonValueRef::Null);
-    assert!(matches!(result, Err(DecodeError::NeverType { .. })));
+    assert_matches!(result, Err(DecodeError::NeverType { .. }));
 }
 
 #[test]
@@ -395,7 +407,7 @@ fn unknown_type_integer_fallback() {
     let number = serde_json::Number::from(42);
     let result = decoder
         .decode(types.unknown(), JsonValueRef::Number(&number))
-        .unwrap();
+        .expect("should succeed");
     assert_eq!(result, Value::Integer(value::Int::from(42_i128)));
 }
 
@@ -407,11 +419,11 @@ fn unknown_type_float_fallback() {
     let types = TypeBuilder::synthetic(&env);
     let decoder = decoder(&env, &interner);
 
-    let number = serde_json::Number::from_f64(3.14).unwrap();
+    let number = serde_json::Number::from_f64(2.72).expect("should succeed");
     let result = decoder
         .decode(types.unknown(), JsonValueRef::Number(&number))
-        .unwrap();
-    assert_eq!(result, Value::Number(value::Num::from(3.14)));
+        .expect("should succeed");
+    assert_eq!(result, Value::Number(value::Num::from(2.72)));
 }
 
 #[test]
@@ -425,11 +437,13 @@ fn unknown_type_array_becomes_list() {
     let array = [serde_json::Value::Number(1.into())];
     let result = decoder
         .decode(types.unknown(), JsonValueRef::Array(&array))
-        .unwrap();
+        .expect("should succeed");
     let Value::List(list) = &result else {
         panic!("expected Value::List, got {result:?}");
     };
     assert_eq!(list.len(), 1);
+    let items: Vec<_> = list.iter().collect();
+    assert_eq!(items[0], &Value::Integer(value::Int::from(1_i128)));
 }
 
 #[test]
@@ -445,7 +459,7 @@ fn unknown_type_non_url_object_becomes_dict() {
 
     let result = decoder
         .decode(types.unknown(), JsonValueRef::Object(&object))
-        .unwrap();
+        .expect("should succeed");
     let Value::Dict(_) = &result else {
         panic!("expected Value::Dict, got {result:?}");
     };
@@ -467,9 +481,10 @@ fn unknown_type_url_object_becomes_struct() {
 
     let result = decoder
         .decode(types.unknown(), JsonValueRef::Object(&object))
-        .unwrap();
+        .expect("should succeed");
     let Value::Struct(fields) = &result else {
         panic!("expected Value::Struct, got {result:?}");
     };
     assert_eq!(fields.len(), 1);
+    assert_eq!(fields.values()[0], str_value("Alice"));
 }
