@@ -1,3 +1,4 @@
+#![feature(allocator_api)]
 extern crate alloc;
 
 use core::error::Error;
@@ -6,9 +7,14 @@ use testcontainers::{ImageExt as _, ReuseDirective, runners::AsyncRunner as _};
 use testcontainers_modules::postgres::Postgres;
 use tokio::runtime;
 
+mod discover;
+mod execution;
 mod seed;
 
-use self::seed::SeededEntities;
+use self::{
+    discover::{discover_jexpr_tests, discover_programmatic_tests, test_ui_dir},
+    seed::SeededEntities,
+};
 
 struct TestDatabase {
     _container: testcontainers::ContainerAsync<Postgres>,
@@ -34,6 +40,13 @@ async fn setup() -> Result<TestDatabase, Box<dyn Error>> {
     })
 }
 
+/// Registry of programmatic tests. Each entry is a name and a placeholder
+/// for the body-building function (to be filled in).
+const PROGRAMMATIC_TESTS: &[(&str, ())] = &[
+    // ("hydrate-link-data", ()),
+    // ("continuation-round-trip", ()),
+];
+
 fn main() -> Result<(), Box<dyn Error>> {
     let arguments = libtest_mimic::Arguments::from_args();
 
@@ -43,7 +56,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let database = runtime.block_on(setup())?;
 
-    let trials = vec![];
+    let ui_dir = test_ui_dir();
+    let mut test_cases = discover_jexpr_tests(&ui_dir);
+    test_cases.extend(discover_programmatic_tests(&ui_dir, PROGRAMMATIC_TESTS));
+
+    let trials: Vec<_> = test_cases
+        .into_iter()
+        .map(|test_case| {
+            libtest_mimic::Trial::test(&test_case.name, move || {
+                // TODO: trial execution (Bilal's part)
+                Ok(())
+            })
+        })
+        .collect();
 
     libtest_mimic::run(&arguments, trials).exit();
 }

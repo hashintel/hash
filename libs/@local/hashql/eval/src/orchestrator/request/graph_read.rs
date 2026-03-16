@@ -1,14 +1,15 @@
 //! Orchestrator for [`GraphRead`] suspensions.
 //!
-//! A [`GraphRead`] suspension is the interpreter's request to load entities
+//! A [`GraphRead`] suspension is the interpreter's request to load vertices
 //! from the graph store. The [`GraphReadOrchestrator`] resolves it by:
 //!
-//! 1. Looking up the pre-compiled SQL query for the suspension's `(body, block)`.
+//! 1. Looking up the pre-compiled SQL query for the suspension's `(body, block)` pair.
 //! 2. Encoding the query parameters from the interpreter's current state.
 //! 3. Executing the query against PostgreSQL and streaming rows.
-//! 4. For each row: hydrating flat columns into a nested entity [`Value`], decoding any
+//! 4. For each row: hydrating flat columns into a nested vertex [`Value`], decoding any
 //!    continuation state, running client-side filter chains (which may themselves involve
-//!    interpreter/postgres interleaving), and accumulating accepted values via a [`Tail`] strategy.
+//!    interpreter and postgres interleaving), and accumulating accepted values via a [`Tail`]
+//!    strategy.
 //! 5. Packaging the collected output into a [`Continuation`] for the interpreter to resume with.
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead

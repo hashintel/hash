@@ -16,7 +16,8 @@
     allocator_api,
     iter_array_chunks,
     maybe_uninit_fill,
-    impl_trait_in_assoc_type
+    impl_trait_in_assoc_type,
+    try_blocks
 )]
 
 extern crate alloc;

@@ -1,32 +1,38 @@
 //! Orchestration layer between the MIR interpreter and external data sources.
 //!
-//! The interpreter executes HashQL programs as bytecode, but cannot satisfy data
-//! access on its own. When execution reaches a [`GraphRead`] terminator, the
-//! interpreter yields a [`Suspension`] describing what data is needed and where
-//! to resume. The orchestrator takes over: it looks up the pre-compiled SQL
-//! query, encodes parameters, sends the query to PostgreSQL, hydrates each
+//! The interpreter executes HashQL programs over MIR bodies but cannot satisfy
+//! data access on its own. When execution reaches a [`GraphRead`] terminator,
+//! the interpreter yields a [`Suspension`] describing what data is needed and
+//! where to resume. The orchestrator takes over: it looks up the pre-compiled
+//! SQL query, encodes parameters, sends the query to PostgreSQL, hydrates each
 //! result row into a typed [`Value`], runs any client-side filter chains, and
-//! packages the output into a [`Continuation`] that the interpreter can apply to
-//! resume execution.
+//! packages the output into a [`Continuation`] that the interpreter can apply
+//! to resume execution.
 //!
 //! Key types:
 //!
 //! - [`Orchestrator`]: top-level driver that owns the database client and query registry. Provides
 //!   [`run_in`] for full query execution and [`fulfill_in`] for resolving a single suspension.
-//! - [`Indexed`]: positional wrapper used to carry a column's index alongside its descriptor
-//!   through the hydration pipeline.
+//! - [`Indexed`]: positional wrapper that carries a column's index alongside its descriptor through
+//!   the hydration pipeline, used for error reporting.
 //!
 //! Submodules:
 //!
-//! - `codec`: JSON serialization (parameter encoding) and deserialization (result column decoding)
-//!   between [`Value`] and the PostgreSQL wire format.
-//! - `partial`: three-state hydration tracking that assembles flat result columns into nested
-//!   entity [`Value`] trees.
-//! - `postgres`: continuation state management for multi-island execution where the interpreter
-//!   resumes after a database round-trip.
-//! - `request`: per-suspension-type orchestrators (currently [`GraphRead`]).
+//! - `codec`: JSON codec between interpreter [`Value`]s and the PostgreSQL wire format. The
+//!   `decode` side deserializes result columns into typed values guided by the HashQL type system;
+//!   the `encode` side serializes runtime values and query parameters for transmission to
+//!   PostgreSQL.
+//! - `partial`: three-state hydration tracking (Skipped, Null, Value) that assembles flat result
+//!   columns into nested vertex value trees. Each `Partial*` struct mirrors a level of the vertex
+//!   type hierarchy.
+//! - `postgres`: continuation state for multi-island execution. When a compiled query returns
+//!   continuation columns (target block, locals, serialized values), this module hydrates and
+//!   validates them, then flushes the decoded state into the interpreter's callstack.
+//! - `request`: per-suspension-type handlers (currently [`GraphRead`]).
 //! - `tail`: result accumulation strategies (currently collection into a list).
-//! - `error`: error types for all failure modes in the bridge.
+//! - `error`: error types for all failure modes in the bridge. All variants use `Severity::Bug`
+//!   because the user wrote HashQL, not SQL: if the bridge fails, the compiler or runtime produced
+//!   something invalid.
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 //! [`Suspension`]: hashql_mir::interpret::suspension::Suspension
@@ -42,6 +48,7 @@ use hashql_mir::{
     def::DefId,
     interpret::{
         CallStack, Inputs, Runtime, RuntimeConfig, RuntimeError,
+        error::InterpretDiagnostic,
         suspension::{Continuation, Suspension},
         value::Value,
     },
@@ -108,6 +115,21 @@ pub struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
     _marker: PhantomData<C>,
 }
 
+impl<'env, 'ctx, 'heap, A: Allocator> Orchestrator<'env, 'ctx, 'heap, !, A> {
+    pub const fn new(
+        client: Client,
+        queries: &'env PreparedQueries<'heap, A>,
+        context: &'env EvalContext<'ctx, 'heap, A>,
+    ) -> Self {
+        Self {
+            client,
+            queries,
+            context,
+            _marker: PhantomData,
+        }
+    }
+}
+
 #[expect(clippy::future_not_send)]
 impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
     /// Executes a complete query, resolving suspensions in a loop until the
@@ -115,14 +137,16 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
     ///
     /// Creates a fresh [`Runtime`] and [`CallStack`], then alternates between
     /// running the interpreter and fulfilling suspensions until the program
-    /// either returns or fails.
+    /// either returns or fails. On failure, the callstack is unwound to
+    /// produce span information for the diagnostic.
     ///
     /// `L` is the allocator for runtime values and intermediate results.
     ///
     /// # Errors
     ///
-    /// Returns a [`RuntimeError`] if the interpreter fails or any suspension
-    /// cannot be fulfilled (database errors, decoding failures, etc.).
+    /// Returns an [`InterpretDiagnostic`] if the interpreter fails or any
+    /// suspension cannot be fulfilled (database errors, decoding failures,
+    /// filter evaluation failures).
     ///
     /// [`Value`]: hashql_mir::interpret::value::Value
     pub async fn run_in<L: Allocator + Clone>(
@@ -133,7 +157,7 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
         args: impl IntoIterator<Item = Value<'heap, L>, IntoIter: ExactSizeIterator>,
 
         alloc: L,
-    ) -> Result<Value<'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Value<'heap, L>, InterpretDiagnostic> {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
             self.context.bodies,
@@ -144,21 +168,50 @@ impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
 
         let mut callstack = CallStack::new(&runtime, body, args);
 
-        loop {
-            let next = runtime.run_until_suspension(&mut callstack)?;
-            match next {
-                hashql_mir::interpret::Yield::Return(value) => {
-                    return Ok(value);
-                }
-                hashql_mir::interpret::Yield::Suspension(suspension) => {
-                    let continuation = self
-                        .fulfill_in(inputs, &callstack, suspension, alloc.clone())
-                        .await?;
+        let Err(error) = try {
+            loop {
+                let next = runtime.run_until_suspension(&mut callstack)?;
+                match next {
+                    hashql_mir::interpret::Yield::Return(value) => {
+                        return Ok(value);
+                    }
+                    hashql_mir::interpret::Yield::Suspension(suspension) => {
+                        let continuation = self
+                            .fulfill_in(inputs, &callstack, suspension, alloc.clone())
+                            .await?;
 
-                    continuation.apply(&mut callstack)?;
+                        continuation.apply(&mut callstack)?;
+                    }
                 }
             }
-        }
+        };
+
+        Err(
+            error.into_diagnostic(callstack.unwind().map(|(_, span)| span), |suspension| {
+                let span = callstack
+                    .unwind()
+                    .next()
+                    .map_or(self.context.bodies[body].span, |(_, span)| span);
+
+                suspension.into_diagnostic(span, self.context.env)
+            }),
+        )
+    }
+
+    /// Convenience wrapper around [`run_in`](Self::run_in) that uses the
+    /// [`Global`] allocator.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`InterpretDiagnostic`] on failure. See
+    /// [`run_in`](Self::run_in).
+    pub async fn run(
+        &self,
+        inputs: &Inputs<'heap, Global>,
+        body: DefId,
+        args: impl IntoIterator<Item = Value<'heap, Global>, IntoIter: ExactSizeIterator>,
+    ) -> Result<Value<'heap, Global>, InterpretDiagnostic> {
+        self.run_in(inputs, body, args, Global).await
     }
 
     /// Resolves a single [`Suspension`] by dispatching to the appropriate

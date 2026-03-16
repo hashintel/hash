@@ -17,6 +17,7 @@
     string_from_utf8_lossy_owned,
     try_trait_v2,
     vec_from_fn,
+    macro_metavar_expr
 )]
 
 extern crate alloc;
@@ -33,6 +34,7 @@ use self::{
 
 mod annotation;
 mod harness;
+pub mod pipeline;
 pub mod runner;
 mod suite;
 mod ui;

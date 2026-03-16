@@ -1,8 +1,8 @@
 //! Errors that occur while fulfilling [`GraphRead`] suspensions.
 //!
-//! These are internal runtime errors — failures in the compiled query execution,
-//! row decoding, or parameter encoding. The user wrote HashQL, not SQL; if the
-//! bridge fails, it indicates a bug in the compiler or runtime.
+//! These are internal runtime errors: failures in compiled query execution,
+//! row decoding, or parameter encoding. The user wrote HashQL, not SQL; if
+//! the bridge fails, it indicates a bug in the compiler or runtime.
 //!
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 
@@ -95,7 +95,7 @@ const fn category(terminal: &'static TerminalDiagnosticCategory) -> InterpretDia
 
 /// Errors that occur while decoding a JSON value into a typed [`Value`].
 ///
-/// Each variant carries the leaf [`TypeId`] at the point of failure — the
+/// Each variant carries the leaf [`TypeId`] at the point of failure: the
 /// specific type in the tree where decoding broke. The caller provides the
 /// top-level type context (e.g. via a column descriptor), so the diagnostic
 /// can show both *what* the column was supposed to produce and *where* in the
@@ -155,7 +155,7 @@ pub enum DecodeError<'heap> {
     ///
     /// This only occurs when `serde_json`'s `arbitrary_precision` feature is
     /// active and the number overflows to infinity or NaN. The variant
-    /// optionally carries the type being decoded — absent when the failure
+    /// optionally carries the type being decoded, absent when the failure
     /// occurs inside the untyped fallback path.
     NumberOutOfRange {
         /// The numeric type that was being decoded, if known.
@@ -164,9 +164,9 @@ pub enum DecodeError<'heap> {
 
     /// An internal invariant was violated during value construction.
     ///
-    /// This indicates a bug in the decoder itself — for example, constructing
+    /// This indicates a bug in the decoder itself, for example constructing
     /// a struct with mismatched field/value counts, or an empty tuple. The
-    /// variant optionally carries the type — absent when the failure occurs
+    /// variant optionally carries the type, absent when the failure occurs
     /// inside the untyped fallback path.
     MalformedConstruction {
         /// The type being constructed when the invariant was violated, if known.
@@ -205,8 +205,8 @@ pub enum DecodeError<'heap> {
 
 /// Errors from the bridge while fulfilling a [`GraphRead`] suspension.
 ///
-/// All variants represent internal failures — the user wrote HashQL, not SQL.
-/// If the bridge fails, the compiler or runtime produced something invalid.
+/// All variants represent internal failures. The user wrote HashQL, not SQL;
+/// if the bridge fails, the compiler or runtime produced something invalid.
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 #[derive(Debug)]

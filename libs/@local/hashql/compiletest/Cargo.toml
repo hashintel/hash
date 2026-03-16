@@ -8,17 +8,17 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hashql-ast         = { workspace = true, public = true }
+hashql-core        = { workspace = true, public = true }
+hashql-diagnostics = { workspace = true, features = ["render"], public = true }
+hashql-eval        = { workspace = true, features = ["graph"], public = true }
+hashql-hir         = { workspace = true, public = true }
+hashql-mir         = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
 error-stack         = { workspace = true }
-hashql-ast          = { workspace = true }
-hashql-core         = { workspace = true }
-hashql-diagnostics  = { workspace = true, features = ["render"] }
-hashql-eval         = { workspace = true, features = ["graph"] }
-hashql-hir          = { workspace = true }
-hashql-mir          = { workspace = true }
 hashql-syntax-jexpr = { workspace = true }
 
 # Private third-party dependencies

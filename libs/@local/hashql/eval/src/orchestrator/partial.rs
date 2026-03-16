@@ -1,23 +1,26 @@
-//! Partial entity representation for row hydration.
+//! Partial vertex representation for row hydration.
 //!
-//! When the bridge receives a row from PostgreSQL, each column corresponds to a leaf
-//! [`EntityPath`] in the provides set. The columns are flat, one per requested storage
-//! location, but the interpreter expects a nested [`Value`] tree with intermediate structs,
-//! opaque wrappers, and correct `Option` representation.
+//! When the bridge receives a row from PostgreSQL, each column corresponds to
+//! a leaf [`TraversalPath`] in the provides set. The columns are flat, one per
+//! requested storage location, but the interpreter expects a nested [`Value`]
+//! tree with intermediate structs, opaque wrappers, and correct `Option`
+//! representation.
 //!
-//! This module provides [`Hydrated`], a three-state enum that tracks whether a field was
-//! requested by the query and, if so, whether the database returned a value or `NULL`.
-//! The [`Required`] and [`Optional`] aliases restrict the state space based on the schema:
-//! non-nullable fields cannot be [`Null`](Hydrated::Null), enforced at the type level via
-//! the uninhabited type [`!`].
+//! This module provides [`Hydrated`], a three-state enum that tracks whether
+//! a field was requested by the query and, if so, whether the database
+//! returned a value or `NULL`. The [`Required`] and [`Optional`] aliases
+//! restrict the state space based on the schema: non-nullable fields cannot
+//! be [`Null`](Hydrated::Null), enforced at the type level via the
+//! uninhabited type [`!`].
 //!
-//! The `Partial*` structs mirror the entity type hierarchy. Each leaf field holds a
-//! [`Hydrated`] wrapping a [`Value`]; intermediate structs group fields by their position
-//! in the type tree. Conversion from [`PartialEntity`] to [`Value`] is a separate step
-//! that walks the partial tree, wraps intermediate levels in their opaque constructors,
-//! and collapses `Option` boundaries.
+//! The `Partial*` structs mirror the vertex type hierarchy. Each leaf field
+//! holds a [`Hydrated`] wrapping a [`Value`]; intermediate structs group
+//! fields by their position in the type tree. Conversion from a partial
+//! struct to a [`Value`] is a separate step that walks the partial tree,
+//! wraps intermediate levels in their opaque constructors, and collapses
+//! `Option` boundaries.
 //!
-//! [`EntityPath`]: hashql_mir::pass::execution::traversal::EntityPath
+//! [`TraversalPath`]: hashql_mir::pass::execution::traversal::TraversalPath
 //! [`Value`]: hashql_mir::interpret::value::Value
 
 use alloc::rc::Rc;
