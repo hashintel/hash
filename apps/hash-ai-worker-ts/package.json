@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "0.26.4",
-    "@anthropic-ai/sdk": "0.79.0",
+    "@anthropic-ai/sdk": "0.78.0",
     "@apps/hash-graph": "workspace:*",
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/type-system": "workspace:*",
