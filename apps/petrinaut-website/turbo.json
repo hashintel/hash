@@ -1,8 +1,10 @@
 {
   "extends": ["//"],
   "tasks": {
-    "lint:eslint": {
-      "dependsOn": []
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": false
     }
   }
 }
