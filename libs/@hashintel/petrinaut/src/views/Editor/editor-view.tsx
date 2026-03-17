@@ -1,8 +1,6 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { use, useRef, useState } from "react";
 
-import { LuFileText } from "react-icons/lu";
-
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
