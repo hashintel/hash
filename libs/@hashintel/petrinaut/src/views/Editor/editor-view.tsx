@@ -175,9 +175,7 @@ export const EditorView = ({
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
     if (hadMissingPositions) {
-      const positions = await calculateGraphLayout(sdcpnToLoad, dims, {
-        onlyMissingPositions: true,
-      });
+      const positions = await calculateGraphLayout(sdcpnToLoad, dims);
 
       if (Object.keys(positions).length > 0) {
         sdcpnToLoad = {

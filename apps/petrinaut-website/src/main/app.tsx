@@ -1,11 +1,10 @@
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut";
-import { convertOldFormatToSDCPN, Petrinaut } from "@hashintel/petrinaut";
+import { Petrinaut } from "@hashintel/petrinaut";
 import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
 import {
-  isOldFormatInLocalStorage,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
@@ -35,9 +34,6 @@ export const DevApp = () => {
   const currentNet = currentNetId ? (storedSDCPNs[currentNetId] ?? null) : null;
 
   const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
-    .filter(
-      (net): net is SDCPNInLocalStorage => !isOldFormatInLocalStorage(net),
-    )
     .map((net) => ({
       netId: net.id,
       title: net.title,
@@ -65,11 +61,7 @@ export const DevApp = () => {
       // Remove the previous net if it was empty and unmodified
       if (currentNetId && currentNetId !== newNet.id) {
         const prevNet = prev[currentNetId];
-        if (
-          prevNet &&
-          !isOldFormatInLocalStorage(prevNet) &&
-          isEmptySDCPN(prevNet.sdcpn)
-        ) {
+        if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           delete next[currentNetId];
         }
       }
@@ -84,11 +76,7 @@ export const DevApp = () => {
     if (currentNetId && currentNetId !== petriNetId) {
       setStoredSDCPNs((prev) => {
         const prevNet = prev[currentNetId];
-        if (
-          prevNet &&
-          !isOldFormatInLocalStorage(prevNet) &&
-          isEmptySDCPN(prevNet.sdcpn)
-        ) {
+        if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           const next = { ...prev };
           delete next[currentNetId];
           return next;
@@ -106,7 +94,7 @@ export const DevApp = () => {
 
     setStoredSDCPNs((prev) =>
       produce(prev, (draft) => {
-        if (draft[currentNetId] && "title" in draft[currentNetId]) {
+        if (draft[currentNetId]) {
           draft[currentNetId].title = title;
         }
       }),
@@ -136,11 +124,7 @@ export const DevApp = () => {
     history,
     currentIndex,
     reset: resetHistory,
-  } = useUndoRedo(
-    currentNet && !isOldFormatInLocalStorage(currentNet)
-      ? currentNet.sdcpn
-      : EMPTY_SDCPN,
-  );
+  } = useUndoRedo(currentNet ? currentNet.sdcpn : EMPTY_SDCPN);
 
   const mutatePetriNetDefinition = (
     definitionMutationFn: (draft: SDCPN) => void,
@@ -155,7 +139,7 @@ export const DevApp = () => {
     // (e.g. multi-node drag end) each see the latest state.
     setStoredSDCPNs((prev) => {
       const net = prev[currentNetId];
-      if (!net || isOldFormatInLocalStorage(net)) {
+      if (!net) {
         return prev;
       }
       const updatedSDCPN = produce(net.sdcpn, definitionMutationFn);
@@ -179,7 +163,7 @@ export const DevApp = () => {
   useEffect(() => {
     if (currentNetId !== prevNetIdRef.current) {
       prevNetIdRef.current = currentNetId;
-      if (currentNet && !isOldFormatInLocalStorage(currentNet)) {
+      if (currentNet) {
         resetHistory(currentNet.sdcpn);
       }
     }
@@ -214,41 +198,6 @@ export const DevApp = () => {
   useEffect(() => {
     const sdcpnsInStorage = Object.values(storedSDCPNs);
 
-    const convertedNets: Record<string, SDCPNInLocalStorage> = {};
-
-    for (const sdcpnInStorage of sdcpnsInStorage) {
-      if (!isOldFormatInLocalStorage(sdcpnInStorage)) {
-        continue;
-      }
-
-      const convertedSdcpn = convertOldFormatToSDCPN(sdcpnInStorage.sdcpn);
-
-      if (!convertedSdcpn) {
-        throw new Error(
-          "Couldn't convert old format to SDCPN, but should have been able to",
-        );
-      }
-
-      convertedNets[sdcpnInStorage.sdcpn.id] = {
-        /**
-         * The id and title used to be in the SDCPN definition itself, so we add them back here.
-         * A legacy provision only which can probably be removed once 2025 is over.
-         */
-        id: sdcpnInStorage.sdcpn.id,
-        title: sdcpnInStorage.sdcpn.title,
-        sdcpn: convertedSdcpn,
-        lastUpdated: sdcpnInStorage.lastUpdated,
-      };
-    }
-
-    if (Object.keys(convertedNets).length > 0) {
-      setStoredSDCPNs((existingSDCPNs) => ({
-        ...existingSDCPNs,
-        ...convertedNets,
-      }));
-      return;
-    }
-
     if (!sdcpnsInStorage[0]) {
       createNewNet({
         petriNetDefinition: {
@@ -260,16 +209,12 @@ export const DevApp = () => {
         },
         title: "New Process",
       });
-    } else if (isOldFormatInLocalStorage(sdcpnsInStorage[0])) {
-      throw new Error(
-        "Old format SDCPN found in storage, but should have been converted",
-      );
     } else if (!currentNetId) {
       setCurrentNetId(sdcpnsInStorage[0].id);
     }
   }, [currentNetId, createNewNet, setStoredSDCPNs, storedSDCPNs]);
 
-  if (!currentNet || isOldFormatInLocalStorage(currentNet)) {
+  if (!currentNet) {
     return null;
   }
 
