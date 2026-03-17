@@ -1,4 +1,5 @@
 import type { SDCPN } from "../core/types/sdcpn";
+import { convertOldFormatToSDCPN, oldFormatFileSchema } from "./old-format";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
@@ -103,6 +104,17 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
       ok: true,
       sdcpn: fillMissingVisualInfo(legacy.data),
       hadMissingPositions: hasMissingPositions(legacy.data),
+    };
+  }
+
+  // Try the pre-2025-11-28 old format (different field names)
+  const oldFormat = oldFormatFileSchema.safeParse(data);
+  if (oldFormat.success) {
+    const converted = convertOldFormatToSDCPN(oldFormat.data);
+    return {
+      ok: true,
+      sdcpn: converted,
+      hadMissingPositions: false,
     };
   }
 
