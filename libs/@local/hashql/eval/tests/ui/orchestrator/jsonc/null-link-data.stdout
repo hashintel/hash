@@ -260,3 +260,30 @@
     }
   }
 ]
+---
+query executed: body 5, block bb0
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter rejected: body 4
+row rejected

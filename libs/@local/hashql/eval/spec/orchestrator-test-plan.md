@@ -17,11 +17,10 @@
 | 1.B | Let binding propagation                 | done   | `jsonc/let-binding.jsonc` |
 | 1.C | Empty result set                        | done   | `jsonc/filter-false.jsonc` |
 | 1.D | Diamond CFG in filter                   | todo   | `jsonc/filter-diamond-cfg.jsonc` |
-| 2.1 | Interpreter-only filter                 | todo   | programmatic |
-| 2.2 | Postgres-only filter                    | todo   | programmatic |
-| 2.3 | Mixed island filter (continuation)      | todo   | programmatic |
-| 2.4 | Multiple sequential filters             | todo   | programmatic |
-
+| 2.1 | Interpreter-only filter                 | done   | `jsonc/filter-by-entity-id.jsonc` (EntityId is not serialization-safe) |
+| 2.2 | Postgres-only filter                    | done   | `jsonc/filter-by-uuid.jsonc` (EntityUuid is serialization-safe) |
+| 2.3 | Mixed island filter (continuation)      | done   | `jsonc/filter-diamond-cfg.jsonc` (both EntityUuid and EntityId branches) |
+| 2.4 | Multiple sequential filters             | todo   | `jsonc/filter-sequential.jsonc` |
 | 3.1 | Metadata only, no properties            | todo   | unit test (hydration) |
 | 3.2 | Full metadata population                | todo   | unit test (hydration) |
 | 3.3 | Composite path: RecordId                | todo   | unit test (hydration) |
@@ -135,34 +134,22 @@ and Bob are returned, all other entities are filtered out. Exercises
 continuation column decode with different local sets per branch, and both
 composite-input and scalar-input parameter binding paths.
 
-### 2. Filter chain tests (programmatic, `body!` macro)
+### 2. Filter placement tests (J-Expr)
 
-All filter tests use `input.load!` for discriminants so control flow survives
-MIR optimization.
+Placement is determined by input types: `EntityUuid` is serialization-safe
+(compiles to SQL), `EntityId` contains `Option` with an opaque union member
+and is not serialization-safe (forces interpreter). Existing J-Expr tests
+already exercise each placement path through their choice of input types.
 
 | ID  | Name | Justification |
 | --- | ---- | ------------- |
-| 2.1 | Interpreter-only filter | Exercises the `TargetId::Interpreter` loop in `process_row_filter_in` where no postgres continuation exists. The implicit `true` path (no `PostgresState` found) is only reachable at runtime. |
-| 2.2 | Postgres-only filter | Verifies that server-side filtering actually excludes rows from the hydrated result set. SQL generation is tested; row exclusion against real data is not. |
-| 2.3 | Mixed island filter (continuation) | Exercises `PartialPostgresState` hydration, `finish_in` decoding, and `flush` into the callstack. The entire continuation round-trip path is untested by SQL snapshot tests. |
+| 2.1 | Interpreter-only filter | Exercises the `TargetId::Interpreter` loop in `process_row_filter_in` where no postgres continuation exists. Covered by `filter-by-entity-id.jsonc` (EntityId is not serialization-safe). |
+| 2.2 | Postgres-only filter | Verifies that server-side filtering actually excludes rows from the hydrated result set. Covered by `filter-by-uuid.jsonc` (EntityUuid is serialization-safe). |
+| 2.3 | Mixed island filter (continuation) | Exercises `PartialPostgresState` hydration, `finish_in` decoding, and `flush` into the callstack. Covered by `filter-diamond-cfg.jsonc` (both EntityUuid and EntityId branches). |
 | 2.4 | Multiple sequential filters | Verifies short-circuit AND behavior: second filter does not run on rejected rows. Composition semantics are only observable at runtime. |
 
-**2.1 Interpreter-only filter**
-Filter body where a closure application forces `TargetId::Interpreter`. No
-continuation columns. Tests the interpreter evaluation path and the implicit
-`true` when no `PostgresState` is found for the body.
-
-**2.2 Postgres-only filter**
-Filter body that compiles entirely to SQL. Verifies rows passing the WHERE
-clause appear in the output and rejected rows do not.
-
-**2.3 Mixed island filter (postgres to interpreter continuation)**
-Filter with postgres exec island exiting to interpreter. Verifies
-`PartialPostgresState` hydration of block/locals/values, `finish_in` decoding,
-and `flush` writing locals into the callstack for resumed interpretation.
-
 **2.4 Multiple sequential filters**
-Two filter bodies on the same graph read. First rejects some rows, second runs
+Two filter calls on the same graph read. First rejects some rows, second runs
 only on survivors. Verifies short-circuit AND behavior.
 
 ### 3. Hydration edge cases

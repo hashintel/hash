@@ -55,11 +55,13 @@ use hashql_mir::{
 };
 use tokio_postgres::Client;
 
+pub use self::events::{AppendEventLog, Event, EventLog};
 use self::{error::BridgeError, request::GraphReadOrchestrator};
 use crate::{context::EvalContext, postgres::PreparedQueries};
 
 pub mod codec;
 pub(crate) mod error;
+mod events;
 mod partial;
 mod postgres;
 mod request;
@@ -100,20 +102,27 @@ impl<T> Deref for Indexed<T> {
 /// Owns a database [`Client`], a reference to the compiled query registry, and
 /// the evaluation context (type environment, body definitions, execution
 /// analysis results). The type parameter `C` is reserved for future
-/// configuration; `A` is the allocator used by the query registry.
+/// configuration; `A` is the allocator used by the query registry; `E` is
+/// the [`EventLog`] sink for execution tracing.
+///
+/// By default `E` is `()`, which compiles all event logging to no-ops. Use
+/// [`with_event_log`](Self::with_event_log) to attach a collector such as
+/// [`AppendEventLog`] for test assertions or debugging.
 ///
 /// Use [`run_in`](Self::run_in) to execute a complete query from scratch, or
 /// [`fulfill_in`](Self::fulfill_in) / [`fulfill`](Self::fulfill) to resolve an
 /// individual [`Suspension`] when driving the interpreter manually.
 ///
 /// [`Suspension`]: hashql_mir::interpret::suspension::Suspension
-pub struct Orchestrator<'env, 'ctx, 'heap, C, A: Allocator> {
+pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: Allocator> {
     client: C,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env EvalContext<'ctx, 'heap, A>,
+    /// Event sink for execution tracing. See [`EventLog`].
+    pub event_log: E,
 }
 
-impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, A> {
+impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, (), A> {
     pub const fn new(
         client: C,
         queries: &'env PreparedQueries<'heap, A>,
@@ -123,12 +132,26 @@ impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, A> {
             client,
             queries,
             context,
+            event_log: (),
+        }
+    }
+}
+
+impl<'env, 'ctx, 'heap, C, E, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, E, A> {
+    /// Replaces the event log, returning a new orchestrator with the given
+    /// sink.
+    pub fn with_event_log<E2>(self, event_log: E2) -> Orchestrator<'env, 'ctx, 'heap, C, E2, A> {
+        Orchestrator {
+            client: self.client,
+            queries: self.queries,
+            context: self.context,
+            event_log,
         }
     }
 }
 
 #[expect(clippy::future_not_send)]
-impl<'ctx, 'heap, C, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, A> {
+impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, E, A> {
     /// Executes a complete query, resolving suspensions in a loop until the
     /// interpreter returns a final [`Value`].
     ///

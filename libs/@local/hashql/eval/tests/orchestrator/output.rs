@@ -11,7 +11,7 @@ use hashql_diagnostics::{
         render::{ColorDepth, Format, RenderOptions},
     },
 };
-use hashql_eval::orchestrator::codec::Serde;
+use hashql_eval::orchestrator::{Event, codec::Serde};
 use hashql_mir::interpret::value::Value;
 use regex::Regex;
 use similar_asserts::SimpleDiff;
@@ -111,12 +111,21 @@ fn normalize(input: &str) -> String {
 pub(crate) fn render_success(
     source: &str,
     value: &Value<'_, Global>,
+    events: &[Event],
     pipeline: &Pipeline<'_>,
 ) -> Result<String, Report<TestError>> {
     let json =
         serde_json::to_string_pretty(&Serde(value)).change_context(TestError::Serialization)?;
 
     let mut output = normalize(&json);
+
+    if !events.is_empty() {
+        output.push_str("\n---\n");
+        for event in events {
+            output.push_str(&event.to_string());
+            output.push('\n');
+        }
+    }
 
     if let Some(warnings) = render_warnings(source, pipeline) {
         output.push_str("\n---\n");

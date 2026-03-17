@@ -622,6 +622,7 @@ impl Expression {
         Self::Cast(Box::new(self), r#type)
     }
 
+    #[must_use]
     pub fn json_scalar(self) -> Self {
         Self::Function(Function::JsonScalar(Box::new(self)))
     }

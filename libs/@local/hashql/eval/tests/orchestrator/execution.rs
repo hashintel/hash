@@ -4,7 +4,11 @@ use core::mem;
 use hashql_compiletest::pipeline::Pipeline;
 use hashql_core::{heap::ResetAllocator as _, span::SpanId};
 use hashql_diagnostics::{Diagnostic, diagnostic::BoxedDiagnostic};
-use hashql_eval::{context::EvalContext, orchestrator::Orchestrator, postgres::PostgresCompiler};
+use hashql_eval::{
+    context::EvalContext,
+    orchestrator::{AppendEventLog, Event, Orchestrator},
+    postgres::PostgresCompiler,
+};
 use hashql_mir::{
     body::Body,
     def::{DefId, DefIdSlice, DefIdVec},
@@ -64,7 +68,7 @@ pub(crate) fn run<'heap>(
     inputs: &Inputs<'heap, Global>,
 
     lowered: &mut Lowered<'heap>,
-) -> Result<Value<'heap, Global>, BoxedDiagnostic<'static, SpanId>> {
+) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
     run_impl(
         pipeline,
         runtime,
@@ -95,7 +99,7 @@ pub(crate) fn execute<'heap>(
     interner: &Interner<'heap>,
     entry: DefId,
     bodies: &mut DefIdSlice<Body<'heap>>,
-) -> Result<Value<'heap, Global>, BoxedDiagnostic<'static, SpanId>> {
+) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
     run_impl(pipeline, runtime, client, inputs, interner, entry, bodies)
 }
 
@@ -117,7 +121,7 @@ fn run_impl<'heap>(
     interner: &Interner<'heap>,
     entry: DefId,
     bodies: &mut DefIdSlice<Body<'heap>>,
-) -> Result<Value<'heap, Global>, BoxedDiagnostic<'static, SpanId>> {
+) -> Result<(Value<'heap, Global>, Vec<Event>), BoxedDiagnostic<'static, SpanId>> {
     pipeline.transform(interner, bodies)?;
     let analysis = pipeline.prepare(interner, bodies)?;
 
@@ -136,9 +140,13 @@ fn run_impl<'heap>(
     let diagnostics = mem::take(&mut context.diagnostics);
     pipeline.diagnostics.append(&mut diagnostics.boxed());
 
-    let orchestrator = Orchestrator::new(PostgresClient(client), &queries, &context);
+    let event_log = AppendEventLog::new();
+    let orchestrator =
+        Orchestrator::new(PostgresClient(client), &queries, &context).with_event_log(&event_log);
 
-    runtime
+    let value = runtime
         .block_on(orchestrator.run(inputs, entry, []))
-        .map_err(Diagnostic::boxed)
+        .map_err(Diagnostic::boxed)?;
+
+    Ok((value, event_log.take()))
 }

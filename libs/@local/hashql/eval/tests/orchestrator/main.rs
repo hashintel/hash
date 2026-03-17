@@ -21,7 +21,7 @@ mod output;
 mod seed;
 
 use self::{
-    directives::parse_directives,
+    directives::{AxisDirectives, parse_directives},
     discover::{
         ProgrammaticBuilder, TestSource, discover_jexpr_tests, discover_programmatic_tests,
         test_ui_dir,
@@ -124,8 +124,8 @@ fn run_jexpr_test(
         &inputs,
         &mut lowered,
     ) {
-        Ok(value) => {
-            let rendered = render_success(&source, &value, &pipeline)?;
+        Ok((value, events)) => {
+            let rendered = render_success(&source, &value, &events, &pipeline)?;
             compare_or_bless(&rendered, expected_output, bless)
         }
         Err(diagnostic) => {
@@ -136,6 +136,11 @@ fn run_jexpr_test(
 }
 
 /// Runs a programmatic test: build MIR directly, execute, compare output.
+///
+/// Inputs are constructed from seeded entity data using the same
+/// [`build_inputs`] helper as J-Expr tests. The programmatic builder
+/// only constructs the MIR bodies; it references inputs via
+/// `input.load!` statements.
 fn run_programmatic_test(
     runtime: &Runtime,
     context: &TestContext,
@@ -144,8 +149,16 @@ fn run_programmatic_test(
     bless: bool,
 ) -> Result<(), Report<TestError>> {
     let heap = Heap::new();
-    let (interner, entry, mut bodies, inputs) = builder(&heap);
+    let (interner, entry, mut bodies) = builder(&heap);
     let mut pipeline = Pipeline::new(&heap);
+
+    let inputs = build_inputs(
+        &heap,
+        &pipeline,
+        &interner,
+        &context.entities,
+        &AxisDirectives::default(),
+    );
 
     // Programmatic tests have no J-Expr source, so diagnostics render
     // without source context (all spans are synthetic).
@@ -160,8 +173,8 @@ fn run_programmatic_test(
         entry,
         &mut bodies,
     ) {
-        Ok(value) => {
-            let rendered = render_success(source, &value, &pipeline)?;
+        Ok((value, events)) => {
+            let rendered = render_success(source, &value, &events, &pipeline)?;
             compare_or_bless(&rendered, expected_output, bless)
         }
         Err(diagnostic) => {

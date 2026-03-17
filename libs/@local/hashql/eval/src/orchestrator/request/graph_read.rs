@@ -37,6 +37,7 @@ use crate::{
         Indexed, Orchestrator,
         codec::{decode::Decoder, encode::encode_parameter_in},
         error::BridgeError,
+        events::{Event, EventLog},
         partial::Partial,
         postgres::{PartialPostgresState, PostgresState},
         tail::Tail,
@@ -56,15 +57,15 @@ type State<'heap, L> = (Value<'heap, L>, Vec<PostgresState<'heap, L>, L>);
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 /// [`Orchestrator`]: super::super::Orchestrator
-pub(crate) struct GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A: Allocator> {
-    inner: &'or Orchestrator<'ctx, 'env, 'heap, C, A>,
+pub(crate) struct GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, E, A: Allocator> {
+    inner: &'or Orchestrator<'ctx, 'env, 'heap, C, E, A>,
 }
 
 #[expect(clippy::future_not_send)]
-impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
-    GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, A>
+impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
+    GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, E, A>
 {
-    pub(crate) const fn new(orchestrator: &'or Orchestrator<'ctx, 'env, 'heap, C, A>) -> Self {
+    pub(crate) const fn new(orchestrator: &'or Orchestrator<'ctx, 'env, 'heap, C, E, A>) -> Self {
         Self {
             inner: orchestrator,
         }
@@ -180,10 +181,19 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
             alloc.clone(),
         );
 
+        self.inner.event_log.log(Event::FilterStarted { body });
+
         let eval = 'eval: loop {
             let (island_id, island_node) = residual.islands.lookup(callstack.current_block()?);
+            let target = island_node.target();
 
-            match island_node.target() {
+            self.inner.event_log.log(Event::IslandEntered {
+                body,
+                island: island_id,
+                target,
+            });
+
+            match target {
                 TargetId::Interpreter => {
                     loop {
                         let next = runtime.run_until_transition(&mut callstack, |target| {
@@ -241,12 +251,19 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
                         // upstream has been evaluated. If the postgres query has
                         // produced a value, it must mean that the condition must've
                         // been true.
+                        self.inner
+                            .event_log
+                            .log(Event::ContinuationImplicitTrue { body });
                         break 'eval true;
                     };
 
                     // We must not flush the locals of the body to the values that have
                     // been captured, and advance the pointer.
                     state.flush(&mut callstack)?;
+                    self.inner.event_log.log(Event::ContinuationFlushed {
+                        body,
+                        island: island_id,
+                    });
                 }
                 TargetId::Embedding => {
                     // TODO: in the future this may benefit from a dispatch barrier, the
@@ -300,7 +317,10 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
 
                     // Filters are short circuiting and act as `&&`, meaning if one is false, all
                     // are.
-                    if !result {
+                    if result {
+                        self.inner.event_log.log(Event::FilterAccepted { body });
+                    } else {
+                        self.inner.event_log.log(Event::FilterRejected { body });
                         return Ok(None);
                     }
                 }
@@ -381,6 +401,10 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
             params.push(param?);
         }
 
+        self.inner
+            .event_log
+            .log(Event::QueryExecuted { body, block });
+
         // The actual data and entities that we need to take a look at.
         let response = self
             .inner
@@ -406,12 +430,17 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, A: Allocator>
                 })
                 .map_err(RuntimeError::Suspension)?;
 
+            self.inner.event_log.log(Event::RowReceived);
+
             let item = self
                 .process_row_in(inputs, callstack, read, query, row, alloc.clone())
                 .await?;
 
             if let Some(item) = item {
+                self.inner.event_log.log(Event::RowAccepted);
                 output.push(item);
+            } else {
+                self.inner.event_log.log(Event::RowRejected);
             }
         }
 

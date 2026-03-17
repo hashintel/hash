@@ -1,4 +1,3 @@
-use alloc::alloc::Global;
 use std::path::{Path, PathBuf};
 
 use hashql_core::heap::Heap;
@@ -6,16 +5,15 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     intern::Interner,
-    interpret::Inputs,
 };
 
 /// Signature for programmatic test builders.
 ///
 /// Each builder receives a heap and returns the MIR components needed for
-/// execution: an interner, the entry definition, the body set, and any
-/// input values.
-pub(crate) type ProgrammaticBuilder =
-    fn(&Heap) -> (Interner<'_>, DefId, DefIdVec<Body<'_>>, Inputs<'_, Global>);
+/// execution: an interner, the entry definition, and the body set. Inputs
+/// are constructed by the test runner from seeded entity data, not by the
+/// builder.
+pub(crate) type ProgrammaticBuilder = fn(&Heap) -> (Interner<'_>, DefId, DefIdVec<Body<'_>>);
 
 /// A discovered test case, either from a `.jsonc` file or a programmatic
 /// registration.
