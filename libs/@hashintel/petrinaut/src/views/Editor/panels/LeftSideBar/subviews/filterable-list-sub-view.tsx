@@ -186,8 +186,6 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
   tooltip?: string;
   defaultCollapsed?: boolean;
   resizable?: SubViewResizeConfig;
-  /** When true, the panel's maximum height is determined by its content. */
-  fitContent?: boolean;
   useItems: () => T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
@@ -659,7 +657,6 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     tooltip,
     defaultCollapsed,
     resizable,
-    fitContent,
     useItems,
     getSelectionItem,
     renderItem,
@@ -691,6 +688,5 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     ),
     defaultCollapsed,
     resizable,
-    fitContent,
   };
 }

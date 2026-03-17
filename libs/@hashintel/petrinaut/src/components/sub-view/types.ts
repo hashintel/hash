@@ -72,10 +72,4 @@ export interface SubView {
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */
   resizable?: SubViewResizeConfig;
-  /**
-   * When true, the panel's maximum height is determined by its content height.
-   * The panel will not grow beyond what the content needs, but can still be
-   * shrunk by the user or other panels. Only affects vertical layout.
-   */
-  fitContent?: boolean;
 }
