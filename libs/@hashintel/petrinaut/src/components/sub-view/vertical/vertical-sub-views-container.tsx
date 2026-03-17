@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { Fragment, use, useEffect, useRef, useState } from "react";
+import React, { Fragment, use, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
@@ -9,6 +9,8 @@ import type { SubView } from "../types";
 
 /** Height of the header row in pixels */
 const HEADER_HEIGHT = 44;
+/** Size of the icon in the main header */
+const HEADER_ICON_SIZE = 16;
 /** Default minimum panel height when no per-subview minHeight is set */
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
@@ -37,6 +39,17 @@ const sectionWrapperStyle = css({
   flexDirection: "column",
   height: "[100%]",
   overflow: "hidden",
+
+  /* Reveal header actions and info tooltip on hover or focus-within */
+  "&:hover [data-header-action], &:focus-within [data-header-action]": {
+    opacity: "[1]",
+    width: "auto",
+    overflow: "visible",
+    transition: "[opacity 150ms ease-out]",
+  },
+  "&:hover [data-info-tooltip], &:focus-within [data-info-tooltip]": {
+    opacity: "[1]",
+  },
 });
 
 const sectionContentStyle = css({
@@ -61,8 +74,8 @@ const panelContentStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
-  p: "3",
-  pt: "0",
+  p: "4",
+  pt: "2",
 });
 
 const SHADOW_HEIGHT = 7;
@@ -82,48 +95,87 @@ const scrollShadowStyle = cva({
     position: {
       top: {
         top: "[0]",
-        background: "[linear-gradient(to bottom, #F0F0F0, transparent)]",
+        background: "[linear-gradient(to bottom, #D0D0D0, #FFFFFF10)]",
       },
       bottom: {
         bottom: "[0]",
-        background: "[linear-gradient(to top, #F0F0F0, transparent)]",
+        background: "[linear-gradient(to top, #D0D0D0, #FFFFFF10)]",
       },
     },
     visible: {
-      true: { opacity: "[0.7]" },
+      true: { opacity: "[0.2]" },
     },
   },
 });
 
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
-  borderTopColor: "neutral.a30",
+  borderTopColor: "neutral.a20",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
   "&[data-separator=hover]": {
-    backgroundColor: "[rgba(0, 0, 0, 0.1)]",
+    backgroundColor: "neutral.a40",
   },
   "&[data-separator=active]": {
-    backgroundColor: "[rgba(59, 130, 246, 0.4)]",
+    backgroundColor: "blue.s60",
+    outlineWidth: "[2px]",
+    outlineStyle: "solid",
+    outlineColor: "blue.s20",
   },
 });
 
-const headerRowStyle = css({
-  height: "[44px]",
-  px: "2",
+const headerRowStyle = cva({
+  base: {
+    height: "11",
+    pl: "0.5",
+    pr: "2",
+
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+
+    borderBottomWidth: "thin",
+    borderBottomColor: "neutral.a20",
+  },
+  variants: {
+    isCollapsed: {
+      true: {
+        borderBottomColor: "[transparent]",
+      },
+    },
+  },
+});
+
+const mainHeaderRowStyle = css({
+  p: "3",
+  h: "11",
 
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a20",
 });
 
-const headerActionStyle = css({
+const headerActionVisibleStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
   display: "flex",
   alignItems: "center",
-  gap: "1",
+  flexShrink: 0,
+});
+
+const headerActionStyle = css({
+  maxHeight: "[44px]",
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
+  opacity: "[0]",
+  width: "[0]",
+  overflow: "hidden",
+  transition: "[opacity 150ms ease-out, width 0s 150ms]",
 });
 
 const sectionToggleStyle = css({
@@ -133,23 +185,71 @@ const sectionToggleStyle = css({
   fontSize: "sm",
   color: "neutral.s100",
   cursor: "pointer",
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+
+  /* Reveal the chevron icon on toggle section hover */
+  "& [data-toggle-icon]": {
+    width: "3.5",
+    opacity: "[0]",
+  },
+  "&:hover [data-toggle-icon]": {
+    opacity: "[1]",
+  },
+});
+
+const sectionToggleLabelStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const sectionToggleIconStyle = css({
-  w: "4",
+  flexShrink: 0,
   display: "flex",
   justifyContent: "center",
-  transition: "[transform 150ms ease-out]",
+  alignItems: "center",
+  overflow: "hidden",
+  transition:
+    "[width 150ms ease-out, opacity 150ms ease-out, transform 150ms ease-out]",
 });
 
 const sectionToggleIconExpandedStyle = css({
   transform: "[rotate(90deg)]",
 });
 
+const infoTooltipWrapperStyle = css({
+  opacity: "[0]",
+  transition: "[opacity 150ms ease-out]",
+});
+
+const mainHeaderContentStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  pl: "1",
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+});
+
+const headerIconStyle = css({
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "5",
+  color: "neutral.s85",
+});
+
 const mainTitleStyle = css({
-  fontWeight: "semibold",
-  fontSize: "base",
-  px: "1",
+  fontWeight: "medium",
+  fontSize: "sm",
+  color: "neutral.s100",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 /**
@@ -237,24 +337,45 @@ interface SubViewHeaderProps {
   id: string;
   title: string;
   tooltip?: string;
+  icon?: React.ComponentType<{ size: number }>;
   main?: boolean;
+  renderTitle?: () => React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
+  alwaysShowHeaderAction?: boolean;
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   id,
   title,
   tooltip,
+  icon: Icon,
   main = false,
+  renderTitle,
   isExpanded,
   onToggle,
   renderHeaderAction,
+  alwaysShowHeaderAction,
 }) => (
-  <div className={headerRowStyle}>
+  <div
+    className={
+      main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
+    }
+  >
     {main ? (
-      <div className={mainTitleStyle}>{title}</div>
+      <div className={mainHeaderContentStyle}>
+        {Icon && (
+          <span className={headerIconStyle}>
+            <Icon size={HEADER_ICON_SIZE} />
+          </span>
+        )}
+        {renderTitle ? (
+          renderTitle()
+        ) : (
+          <span className={mainTitleStyle}>{title}</span>
+        )}
+      </div>
     ) : (
       <div
         onClick={onToggle}
@@ -271,6 +392,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         aria-controls={`subview-content-${id}`}
       >
         <div
+          data-toggle-icon
           className={cx(
             sectionToggleIconStyle,
             isExpanded && sectionToggleIconExpandedStyle,
@@ -278,14 +400,25 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         >
           <FaChevronRight size={9} />
         </div>
-        <span>
+        <span className={sectionToggleLabelStyle}>
           {title}
-          {tooltip && <InfoIconTooltip tooltip={tooltip} />}
+          {tooltip && (
+            <span data-info-tooltip className={infoTooltipWrapperStyle}>
+              <InfoIconTooltip tooltip={tooltip} outlined />
+            </span>
+          )}
         </span>
       </div>
     )}
     {isExpanded && renderHeaderAction && (
-      <div className={headerActionStyle}>{renderHeaderAction()}</div>
+      <div
+        {...(!alwaysShowHeaderAction && { "data-header-action": true })}
+        className={
+          alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle
+        }
+      >
+        {renderHeaderAction()}
+      </div>
     )}
   </div>
 );
@@ -363,7 +496,8 @@ export const VerticalSubViewsContainer: React.FC<
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
         const Component = subView.component;
-        const minSize = subView.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
+        const minSize =
+          subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
         return (
           <Fragment key={subView.id}>
@@ -379,10 +513,13 @@ export const VerticalSubViewsContainer: React.FC<
                   id={subView.id}
                   title={subView.title}
                   tooltip={subView.tooltip}
+                  icon={subView.icon}
                   main={isMain}
+                  renderTitle={subView.renderTitle}
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={subView.renderHeaderAction}
+                  alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                 />
 
                 {isExpanded && (

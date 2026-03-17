@@ -44,6 +44,7 @@
     "@xyflow/react": "12.10.1",
     "d3-scale": "4.0.2",
     "elkjs": "0.11.0",
+    "fuzzysort": "3.1.0",
     "monaco-editor": "0.55.1",
     "react-icons": "5.5.0",
     "react-resizable-panels": "4.6.5",

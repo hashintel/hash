@@ -46,8 +46,24 @@ const selectStyle = css({
   flexShrink: "[0]",
 });
 
+const badgeStyle = css({
+  display: "inline-block",
+  marginLeft: "1.5",
+  px: "1.5",
+  py: "0.5",
+  fontSize: "[10px]",
+  fontWeight: "semibold",
+  lineHeight: "[1]",
+  letterSpacing: "wide",
+  textTransform: "uppercase",
+  color: "neutral.s10",
+  backgroundColor: "neutral.s100",
+  borderRadius: "md",
+  verticalAlign: "middle",
+});
+
 const SettingRow: React.FC<{
-  label: string;
+  label: React.ReactNode;
   description?: string;
   children: React.ReactNode;
 }> = ({ label, description, children }) => (
@@ -78,6 +94,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setArcRendering,
     partialSelection,
     setPartialSelection,
+    useEntitiesTreeView,
+    setUseEntitiesTreeView,
   } = use(UserSettingsContext);
 
   return (
@@ -117,6 +135,20 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               <Switch
                 checked={partialSelection}
                 onCheckedChange={setPartialSelection}
+              />
+            </SettingRow>
+            <SettingRow
+              label={
+                <>
+                  Entities tree view{" "}
+                  <span className={badgeStyle}>Experimental</span>
+                </>
+              }
+              description="Show a unified tree of all entities in the left sidebar"
+            >
+              <Switch
+                checked={useEntitiesTreeView}
+                onCheckedChange={setUseEntitiesTreeView}
               />
             </SettingRow>
             <SettingRow label="Arcs rendering">

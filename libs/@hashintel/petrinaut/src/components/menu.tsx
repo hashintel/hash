@@ -95,12 +95,18 @@ const itemStyle = cva({
     color: "neutral.s120",
     cursor: "pointer",
     _hover: {
-      backgroundColor: "neutral.s10",
+      backgroundColor: "neutral.s25",
+    },
+    _highlighted: {
+      backgroundColor: "neutral.bg.subtle.hover",
     },
     _disabled: {
       opacity: "[0.4]",
       cursor: "not-allowed",
       _hover: {
+        backgroundColor: "[transparent]",
+      },
+      _highlighted: {
         backgroundColor: "[transparent]",
       },
     },
@@ -117,7 +123,7 @@ const itemStyle = cva({
     },
     destructive: {
       true: {
-        color: "red.s60",
+        color: "red.s100",
       },
     },
   },
@@ -172,7 +178,10 @@ const triggerItemStyle = css({
   cursor: "pointer",
   justifyContent: "space-between",
   _hover: {
-    backgroundColor: "neutral.s10",
+    backgroundColor: "neutral.s25",
+  },
+  _highlighted: {
+    backgroundColor: "neutral.bg.subtle.hover",
   },
 });
 

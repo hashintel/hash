@@ -9,6 +9,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { Select, type SelectOption } from "../../../../../../components/select";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
+import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
@@ -352,7 +353,9 @@ const DeletePlaceAction: React.FC = () => {
 export const placeMainContentSubView: SubView = {
   id: "place-main-content",
   title: "Place",
+  icon: PlaceIcon,
   main: true,
   component: PlaceMainContent,
   renderHeaderAction: () => <DeletePlaceAction />,
+  alwaysShowHeaderAction: true,
 };

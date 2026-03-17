@@ -15,7 +15,15 @@ export function useKeyboardShortcuts(
   onCursorModeChange: (mode: CursorMode) => void,
 ) {
   const undoRedo = use(UndoRedoContext);
-  const { selection, hasSelection, clearSelection } = use(EditorContext);
+  const {
+    selection,
+    hasSelection,
+    clearSelection,
+    isSearchOpen,
+    setSearchOpen,
+    searchInputRef,
+    setLeftSidebarOpen,
+  } = use(EditorContext);
   const { deleteItemsByIds, readonly } = use(SDCPNContext);
   const isSimulationReadOnly = useIsReadOnly();
   const isReadonly = isSimulationReadOnly || readonly;
@@ -43,6 +51,36 @@ export function useKeyboardShortcuts(
       } else {
         undoRedo.undo();
       }
+      return;
+    }
+
+    // Open search with Ctrl/Cmd+F, or focus input if already open.
+    // Skip when focus is inside Monaco or another input so their native find works.
+    if (
+      !isInputFocused &&
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "f"
+    ) {
+      event.preventDefault();
+      if (isSearchOpen) {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else {
+        setLeftSidebarOpen(true);
+        setSearchOpen(true);
+      }
+      return;
+    }
+
+    // Escape closes search only when the search input itself is focused
+    if (
+      event.key === "Escape" &&
+      isSearchOpen &&
+      document.activeElement === searchInputRef.current
+    ) {
+      event.preventDefault();
+      searchInputRef.current?.blur();
+      setSearchOpen(false);
       return;
     }
 

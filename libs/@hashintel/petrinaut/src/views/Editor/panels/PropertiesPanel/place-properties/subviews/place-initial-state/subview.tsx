@@ -142,10 +142,9 @@ export const placeInitialStateSubView: SubView = {
   component: PlaceInitialStateContent,
   renderHeaderAction: () => <ClearStateHeaderAction />,
   defaultCollapsed: true,
-  minHeight: 250,
   resizable: {
-    defaultHeight: 300,
     minHeight: 250,
-    maxHeight: 700,
+    maxHeight: 1200,
+    defaultHeight: 300,
   },
 };

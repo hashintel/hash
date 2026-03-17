@@ -178,6 +178,10 @@ export const transitionResultsSubView: SubView = {
   tooltip:
     "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
   component: TransitionResultsContent,
-  minHeight: 300,
   renderHeaderAction: () => <ResultsHeaderAction />,
+  resizable: {
+    minHeight: 300,
+    maxHeight: 1200,
+    defaultHeight: 500,
+  },
 };

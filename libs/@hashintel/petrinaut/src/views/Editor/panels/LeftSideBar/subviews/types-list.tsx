@@ -1,68 +1,17 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
+import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
-
-const listContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[2px]",
-});
-
-const typeRowStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    gap: "[8px]",
-    padding: "[4px 2px 4px 8px]",
-    borderRadius: "sm",
-    cursor: "pointer",
-  },
-  variants: {
-    isSelected: {
-      true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
-        _hover: {
-          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
-        },
-      },
-      false: {
-        backgroundColor: "[transparent]",
-        _hover: {
-          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        },
-      },
-    },
-  },
-});
-
-const colorDotStyle = css({
-  width: "[12px]",
-  height: "[12px]",
-  borderRadius: "[50%]",
-  flexShrink: 0,
-});
-
-const typeNameStyle = css({
-  flex: "[1]",
-  fontSize: "[13px]",
-  color: "[#374151]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const emptyMessageStyle = css({
-  fontSize: "[13px]",
-  color: "[#9ca3af]",
-});
+import {
+  RowMenu,
+  createFilterableListSubView,
+} from "./filterable-list-sub-view";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -109,81 +58,9 @@ function getNextTypeNumber(existingNames: string[]): number {
 }
 
 /**
- * TypesSectionContent displays the list of token types.
- * This is the content portion without the collapsible header.
- */
-const TypesSectionContent: React.FC = () => {
-  const {
-    petriNetDefinition: { types },
-    removeType,
-  } = use(SDCPNContext);
-
-  const { isSelected, selectItem, toggleItem } = use(EditorContext);
-
-  const isReadOnly = useIsReadOnly();
-
-  return (
-    <div className={listContainerStyle}>
-      {types.map((type) => {
-        const typeSelected = isSelected(type.id);
-        const item: SelectionItem = { type: "type", id: type.id };
-
-        return (
-          <div
-            key={type.id}
-            onClick={(event) => {
-              // Don't trigger selection if clicking the delete button
-              if (
-                event.target instanceof HTMLElement &&
-                event.target.closest("button[aria-label^='Delete']")
-              ) {
-                return;
-              }
-              if (event.metaKey || event.ctrlKey) {
-                toggleItem(item);
-              } else {
-                selectItem(item);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                selectItem(item);
-              }
-            }}
-            className={typeRowStyle({ isSelected: typeSelected })}
-          >
-            <div
-              className={colorDotStyle}
-              style={{ backgroundColor: type.displayColor }}
-            />
-            <span className={typeNameStyle}>{type.name}</span>
-            <IconButton
-              size="xxs"
-              variant="ghost"
-              colorScheme="red"
-              disabled={isReadOnly}
-              onClick={() => removeType(type.id)}
-              aria-label={`Delete token type ${type.name}`}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            >
-              <TbX />
-            </IconButton>
-          </div>
-        );
-      })}
-      {types.length === 0 && (
-        <div className={emptyMessageStyle}>No token types yet</div>
-      )}
-    </div>
-  );
-};
-
-/**
  * TypesSectionHeaderAction renders the add button for the types section header.
  */
-const TypesSectionHeaderAction: React.FC = () => {
+export const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
     addType,
@@ -227,19 +104,52 @@ const TypesSectionHeaderAction: React.FC = () => {
   );
 };
 
+const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
+  const { removeType } = use(SDCPNContext);
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <RowMenu
+      items={[
+        {
+          id: "delete",
+          label: "Delete",
+          icon: <TbTrash />,
+          destructive: true,
+          disabled: isReadOnly,
+          onClick: () => removeType(item.id),
+        },
+      ]}
+    />
+  );
+};
+
 /**
  * SubView definition for Token Types list.
  */
-export const typesListSubView: SubView = {
+export const typesListSubView: SubView = createFilterableListSubView({
   id: "token-types-list",
   title: "Token Types",
   tooltip: "Manage data types which can be assigned to tokens in a place.",
-  component: TypesSectionContent,
-  renderHeaderAction: () => <TypesSectionHeaderAction />,
-  defaultCollapsed: true,
+  defaultCollapsed: false,
   resizable: {
-    defaultHeight: 120,
-    minHeight: 60,
-    maxHeight: 300,
+    defaultHeight: 300,
+    minHeight: 200,
+    maxHeight: 600,
   },
-};
+  useItems: () => {
+    const {
+      petriNetDefinition: { types },
+    } = use(SDCPNContext);
+    return types.map((type) => ({
+      ...type,
+      icon: TokenTypeIcon,
+      iconColor: type.displayColor,
+    }));
+  },
+  getSelectionItem: (type) => ({ type: "type", id: type.id }),
+  renderItem: (type) => type.name,
+  renderRowMenu: TypeRowMenu,
+  emptyMessage: "No token types yet",
+  renderHeaderAction: () => <TypesSectionHeaderAction />,
+});
