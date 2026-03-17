@@ -63,6 +63,7 @@ export type SDCPN = {
 export type MinimalNetMetadata = {
   netId: string;
   title: string;
+  lastUpdated: string;
 };
 
 export type MutateSDCPN = (mutateFn: (sdcpn: SDCPN) => void) => void;

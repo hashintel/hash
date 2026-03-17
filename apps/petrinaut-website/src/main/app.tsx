@@ -19,6 +19,13 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
+const isEmptySDCPN = (sdcpn: SDCPN) =>
+  sdcpn.places.length === 0 &&
+  sdcpn.transitions.length === 0 &&
+  sdcpn.types.length === 0 &&
+  sdcpn.parameters.length === 0 &&
+  sdcpn.differentialEquations.length === 0;
+
 export const DevApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -34,7 +41,12 @@ export const DevApp = () => {
     .map((net) => ({
       netId: net.id,
       title: net.title,
-    }));
+      lastUpdated: net.lastUpdated,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
+    );
 
   const createNewNet = (params: {
     petriNetDefinition: SDCPN;
@@ -47,11 +59,42 @@ export const DevApp = () => {
       lastUpdated: new Date().toISOString(),
     };
 
-    setStoredSDCPNs((prev) => ({ ...prev, [newNet.id]: newNet }));
+    setStoredSDCPNs((prev) => {
+      const next = { ...prev, [newNet.id]: newNet };
+
+      // Remove the previous net if it was empty and unmodified
+      if (currentNetId && currentNetId !== newNet.id) {
+        const prevNet = prev[currentNetId];
+        if (
+          prevNet &&
+          !isOldFormatInLocalStorage(prevNet) &&
+          isEmptySDCPN(prevNet.sdcpn)
+        ) {
+          delete next[currentNetId];
+        }
+      }
+
+      return next;
+    });
     setCurrentNetId(newNet.id);
   };
 
   const loadPetriNet = (petriNetId: string) => {
+    // Remove the current net if it was empty and unmodified
+    if (currentNetId && currentNetId !== petriNetId) {
+      const prevNet = storedSDCPNs[currentNetId];
+      if (
+        prevNet &&
+        !isOldFormatInLocalStorage(prevNet) &&
+        isEmptySDCPN(prevNet.sdcpn)
+      ) {
+        setStoredSDCPNs((prev) => {
+          const next = { ...prev };
+          delete next[currentNetId];
+          return next;
+        });
+      }
+    }
     setCurrentNetId(petriNetId);
   };
 
@@ -121,6 +164,7 @@ export const DevApp = () => {
         [currentNetId]: {
           ...net,
           sdcpn: updatedSDCPN,
+          lastUpdated: new Date().toISOString(),
         },
       };
     });

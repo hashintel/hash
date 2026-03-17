@@ -50,6 +50,7 @@ export const PetrinautStoryProvider = ({
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,
     title: net.title,
+    lastUpdated: new Date().toISOString(),
   }));
 
   const createNewNet = (params: {
