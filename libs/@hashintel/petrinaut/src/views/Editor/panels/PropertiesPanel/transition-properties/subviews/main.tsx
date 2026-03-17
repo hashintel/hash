@@ -11,6 +11,7 @@ import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
+import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { useTransitionPropertiesContext } from "../context";
@@ -231,7 +232,14 @@ const DeleteTransitionAction: React.FC = () => {
 export const transitionMainContentSubView: SubView = {
   id: "transition-main-content",
   title: "Transition",
+  icon: TransitionIcon,
   main: true,
   component: TransitionMainContent,
   renderHeaderAction: () => <DeleteTransitionAction />,
+  alwaysShowHeaderAction: true,
+  resizable: {
+    minHeight: 100,
+    maxHeight: 1200,
+    defaultHeight: 300,
+  },
 };

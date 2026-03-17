@@ -1,59 +1,54 @@
-import path from "node:path";
-
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { dts } from "rolldown-plugin-dts";
 import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
-
-// Dependencies that should not be bundled into the library
-const external = [
-  "react",
-  "react-dom",
-  "react/jsx-runtime",
-  "react/jsx-dev-runtime",
-  "react/compiler-runtime",
-];
 
 export default defineConfig(({ command }) => ({
-  // Use playground as root in dev mode
-  root: command === "serve" ? "playground" : undefined,
-
   plugins: [
-    react({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    react(),
+    babel({
+      presets: [
+        reactCompilerPreset({
+          target: "19",
+          compilationMode: "infer",
+          // @ts-expect-error - panicThreshold is accepted at runtime
+          panicThreshold: "critical_errors",
+        }),
+      ],
     }),
-    // Only generate types when building
+
     command === "build" &&
-      dts({
-        rollupTypes: true,
-        insertTypesEntry: true,
-        exclude: ["**/*.test.*", "**/*.spec.*", "playground/**"],
-        copyDtsFiles: false,
-        outDir: "dist",
-      }),
+      dts({ tsgo: true }).map((plugin) =>
+        // Ensure runs before Vite's native TypeScript transform
+        plugin.name.endsWith("fake-js")
+          ? { ...plugin, enforce: "pre" }
+          : plugin,
+      ),
   ],
 
-  build:
-    command === "build"
-      ? {
-          lib: {
-            entry: path.resolve(__dirname, "src/main.ts"),
-            formats: ["es", "cjs"],
-            fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
-          },
-          rollupOptions: {
-            external,
-            output: {
-              globals: {
-                react: "React",
-                "react-dom": "ReactDOM",
-              },
-            },
-          },
-          sourcemap: true,
-          emptyOutDir: true,
-          minify: true,
-        }
-      : undefined,
+  build: {
+    lib: {
+      entry: "src/main.ts",
+      fileName: "index",
+      formats: ["es"],
+    },
+    rolldownOptions: {
+      external: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react/compiler-runtime",
+      ],
+      output: {
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+        },
+      },
+    },
+    sourcemap: true,
+    emptyOutDir: true,
+    minify: true,
+  },
 }));

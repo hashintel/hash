@@ -66,7 +66,7 @@ use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
-use super::{ApiConfig, status::BoxedResponse};
+use super::{ApiConfig, LimitExceededError, resolve_limit, status::BoxedResponse};
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -485,8 +485,6 @@ pub enum EntityQueryOptionsError {
          instead."
     )]
     InvalidFieldForEntityOptions { field: &'static str },
-    #[display("The requested limit ({requested}) exceeds the maximum allowed limit ({max}).")]
-    LimitExceeded { requested: usize, max: usize },
 }
 
 impl core::error::Error for EntityQueryOptionsError {}
@@ -591,27 +589,17 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
 impl<'p> EntityQueryOptions<'_, 'p> {
     /// # Errors
     ///
-    /// Returns `LimitExceeded` if the requested limit exceeds the configured maximum in
+    /// Returns [`LimitExceededError`] if the requested limit exceeds the configured maximum in
     /// [`ApiConfig::query_entity_limit`].
     pub fn into_params<'f>(
         self,
         filter: Filter<'f, Entity>,
         config: ApiConfig,
-    ) -> Result<QueryEntitiesParams<'f>, Report<EntityQueryOptionsError>>
+    ) -> Result<QueryEntitiesParams<'f>, Report<LimitExceededError>>
     where
         'p: 'f,
     {
-        let max = config.query_entity_limit;
-        let limit = match self.limit {
-            Some(requested) if requested > max => {
-                return Err(Report::new(EntityQueryOptionsError::LimitExceeded {
-                    requested,
-                    max,
-                }));
-            }
-            Some(limit) => limit,
-            None => max,
-        };
+        let limit = resolve_limit(self.limit, config.query_entity_limit)?;
 
         Ok(QueryEntitiesParams {
             filter,
@@ -636,14 +624,14 @@ impl<'p> EntityQueryOptions<'_, 'p> {
 
     /// # Errors
     ///
-    /// Returns `LimitExceeded` if the requested limit exceeds the configured maximum in
+    /// Returns [`LimitExceededError`] if the requested limit exceeds the configured maximum in
     /// [`ApiConfig::query_entity_limit`].
     pub fn into_traversal_params<'q>(
         self,
         filter: Filter<'q, Entity>,
         traversal: SubgraphTraversalParams,
         config: ApiConfig,
-    ) -> Result<QueryEntitySubgraphParams<'q>, Report<EntityQueryOptionsError>>
+    ) -> Result<QueryEntitySubgraphParams<'q>, Report<LimitExceededError>>
     where
         'p: 'q,
     {

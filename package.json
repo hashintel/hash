@@ -9,6 +9,7 @@
   },
   "workspaces": {
     "packages": [
+      "!**/node_modules",
       "!**/pkg",
       ".claude/hooks",
       "apps/**",

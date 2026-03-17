@@ -44,8 +44,9 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
+    resolve_limit,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfPropertyType, subgraph::Subgraph},
 };
@@ -332,6 +333,7 @@ async fn query_property_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<QueryPropertyTypesResponse>, BoxedResponse>
@@ -342,20 +344,25 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypes(&request));
     }
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let mut params = QueryPropertyTypesParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+
+    params.limit = Some(
+        resolve_limit(params.limit, api_config.query_ontology_limit)
+            .attach(hash_status::StatusCode::InvalidArgument)
+            .map_err(report_to_response)?,
+    );
+
     let store = store_pool
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
     let response = store
-        .query_property_types(
-            actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            QueryPropertyTypesParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
-        )
+        .query_property_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json);
@@ -400,6 +407,7 @@ async fn query_property_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<QueryPropertyTypeSubgraphResponse>, BoxedResponse>
@@ -410,17 +418,23 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypeSubgraph(&request));
     }
 
-    let store = store_pool
-        .acquire(temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    let params = QueryPropertyTypeSubgraphParams::deserialize(&request)
+    let mut params = QueryPropertyTypeSubgraphParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
     params
         .validate()
         .map_err(Report::new)
+        .map_err(report_to_response)?;
+
+    params.request_mut().limit = Some(
+        resolve_limit(params.request().limit, api_config.query_ontology_limit)
+            .attach(hash_status::StatusCode::InvalidArgument)
+            .map_err(report_to_response)?,
+    );
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     let response = store

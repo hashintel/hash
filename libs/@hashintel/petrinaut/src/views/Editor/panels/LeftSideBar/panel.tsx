@@ -1,5 +1,5 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { use, useMemo } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -7,9 +7,13 @@ import {
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
-import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
+import {
+  LEFT_SIDEBAR_SUBVIEWS,
+  LEFT_SIDEBAR_TREE_SUBVIEWS,
+} from "../../../../constants/ui-subviews";
 import { EditorContext } from "../../../../state/editor-context";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -40,6 +44,52 @@ const panelStyle = cva({
   },
 });
 
+const contentWrapperStyle = css({
+  position: "relative",
+  height: "full",
+  overflow: "hidden",
+});
+
+const contentLayerStyle = cva({
+  base: {
+    position: "absolute",
+    inset: "0",
+    display: "flex",
+    flexDirection: "column",
+    transition: "[opacity 120ms ease-in-out, transform 120ms ease-in-out]",
+  },
+  variants: {
+    active: {
+      true: {
+        opacity: "1",
+        transform: "none",
+        pointerEvents: "auto",
+      },
+      false: {
+        opacity: "0",
+        pointerEvents: "none",
+        visibility: "hidden",
+      },
+    },
+    direction: {
+      forward: {},
+      backward: {},
+    },
+  },
+  compoundVariants: [
+    {
+      active: false,
+      direction: "forward",
+      css: { transform: "translateX(-8px)" },
+    },
+    {
+      active: false,
+      direction: "backward",
+      css: { transform: "translateX(8px)" },
+    },
+  ],
+});
+
 /**
  * LeftSideBar displays tools and content panels.
  * Visibility is controlled by the TopBar's sidebar toggle.
@@ -51,9 +101,16 @@ export const LeftSideBar: React.FC = () => {
     leftSidebarWidth,
     setLeftSidebarWidth,
     isPanelAnimating,
+    isSearchOpen,
   } = use(EditorContext);
 
-  const { keepPanelsMounted } = use(UserSettingsContext);
+  const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
+
+  const sidebarSubViews = useEntitiesTreeView
+    ? LEFT_SIDEBAR_TREE_SUBVIEWS
+    : LEFT_SIDEBAR_SUBVIEWS;
+
+  const searchSubViews = useMemo(() => [searchSubView], []);
 
   if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
@@ -74,10 +131,30 @@ export const LeftSideBar: React.FC = () => {
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}
     >
-      <VerticalSubViewsContainer
-        name="left-sidebar"
-        subViews={LEFT_SIDEBAR_SUBVIEWS}
-      />
+      <div className={contentWrapperStyle}>
+        <div
+          className={contentLayerStyle({
+            active: !isSearchOpen,
+            direction: "forward",
+          })}
+        >
+          <VerticalSubViewsContainer
+            name="left-sidebar"
+            subViews={sidebarSubViews}
+          />
+        </div>
+        <div
+          className={contentLayerStyle({
+            active: isSearchOpen,
+            direction: "backward",
+          })}
+        >
+          <VerticalSubViewsContainer
+            name="left-sidebar-search"
+            subViews={searchSubViews}
+          />
+        </div>
+      </div>
     </GlassPanel>
   );
 };

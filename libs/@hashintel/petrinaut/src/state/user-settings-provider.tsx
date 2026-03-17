@@ -71,6 +71,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, timelineChartType: value })),
     setPartialSelection: (value: boolean) =>
       setState((prev) => ({ ...prev, partialSelection: value })),
+    setUseEntitiesTreeView: (value: boolean) =>
+      setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

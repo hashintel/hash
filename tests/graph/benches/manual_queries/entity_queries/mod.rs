@@ -337,6 +337,7 @@ where
 {
     let config = ApiConfig {
         query_entity_limit: 1000,
+        query_ontology_limit: 1000,
     };
 
     match request {

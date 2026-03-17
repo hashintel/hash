@@ -86,7 +86,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sync-fetch": "0.5.2",
-    "tsdown": "^0.18.1",
+    "tsdown": "^0.21.4",
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vitest": "^4.0.16"

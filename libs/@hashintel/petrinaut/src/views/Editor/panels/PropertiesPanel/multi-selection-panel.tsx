@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
+import { GrMultiple } from "react-icons/gr";
 import { TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
@@ -93,9 +94,11 @@ const DeleteSelectionAction: React.FC = () => {
 const multiSelectionMainSubView: SubView = {
   id: "multi-selection-main",
   title: "Multiple Selection",
+  icon: GrMultiple,
   main: true,
   component: MultiSelectionContent,
   renderHeaderAction: () => <DeleteSelectionAction />,
+  alwaysShowHeaderAction: true,
 };
 
 const subViews: SubView[] = [multiSelectionMainSubView];

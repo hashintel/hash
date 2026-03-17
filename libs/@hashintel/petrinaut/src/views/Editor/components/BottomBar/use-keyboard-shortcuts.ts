@@ -1,8 +1,13 @@
 import { use, useEffect, useEffectEvent } from "react";
 
+import {
+  copySelectionToClipboard,
+  pasteFromClipboard,
+} from "../../../../clipboard/clipboard";
 import type { CursorMode, EditorState } from "../../../../state/editor-context";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
+import type { SelectionItem } from "../../../../state/selection";
 import { UndoRedoContext } from "../../../../state/undo-redo-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
@@ -15,8 +20,23 @@ export function useKeyboardShortcuts(
   onCursorModeChange: (mode: CursorMode) => void,
 ) {
   const undoRedo = use(UndoRedoContext);
-  const { selection, hasSelection, clearSelection } = use(EditorContext);
-  const { deleteItemsByIds, readonly } = use(SDCPNContext);
+  const {
+    selection,
+    hasSelection,
+    clearSelection,
+    setSelection,
+    isSearchOpen,
+    setSearchOpen,
+    searchInputRef,
+    setLeftSidebarOpen,
+  } = use(EditorContext);
+  const {
+    deleteItemsByIds,
+    readonly,
+    petriNetDefinition,
+    petriNetId,
+    mutatePetriNetDefinition,
+  } = use(SDCPNContext);
   const isSimulationReadOnly = useIsReadOnly();
   const isReadonly = isSimulationReadOnly || readonly;
 
@@ -46,6 +66,81 @@ export function useKeyboardShortcuts(
       return;
     }
 
+    // Open search with Ctrl/Cmd+F, or focus input if already open.
+    // Skip when focus is inside Monaco or another input so their native find works.
+    if (
+      !isInputFocused &&
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "f"
+    ) {
+      event.preventDefault();
+      if (isSearchOpen) {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else {
+        setLeftSidebarOpen(true);
+        setSearchOpen(true);
+      }
+      return;
+    }
+
+    // Escape closes search only when the search input itself is focused
+    if (
+      event.key === "Escape" &&
+      isSearchOpen &&
+      document.activeElement === searchInputRef.current
+    ) {
+      event.preventDefault();
+      searchInputRef.current?.blur();
+      setSearchOpen(false);
+      return;
+    }
+
+    // Handle copy/paste/select-all shortcuts (Cmd/Ctrl + C/V/A)
+    if (!isInputFocused && (event.metaKey || event.ctrlKey)) {
+      const key = event.key.toLowerCase();
+
+      if (key === "c" && hasSelection) {
+        event.preventDefault();
+        void copySelectionToClipboard(
+          petriNetDefinition,
+          selection,
+          petriNetId,
+        );
+        return;
+      }
+
+      if (key === "v" && !isReadonly) {
+        event.preventDefault();
+        void pasteFromClipboard(mutatePetriNetDefinition).then((newItemIds) => {
+          if (newItemIds && newItemIds.length > 0) {
+            setSelection(
+              new Map(
+                newItemIds.map((item) => [item.id, item as SelectionItem]),
+              ),
+            );
+          }
+        });
+        return;
+      }
+
+      if (key === "a") {
+        event.preventDefault();
+        const items = new Map<string, SelectionItem>();
+        for (const place of petriNetDefinition.places) {
+          items.set(place.id, { type: "place", id: place.id });
+        }
+        for (const transition of petriNetDefinition.transitions) {
+          items.set(transition.id, {
+            type: "transition",
+            id: transition.id,
+          });
+        }
+        setSelection(items);
+        return;
+      }
+    }
+
     if (isInputFocused) {
       return;
     }
@@ -72,6 +167,7 @@ export function useKeyboardShortcuts(
       // If escape is pressed, switch to cursor mode (keep current cursor)
       case "escape":
         event.preventDefault();
+        clearSelection();
         onEditionModeChange("cursor");
         break;
       case "v":
