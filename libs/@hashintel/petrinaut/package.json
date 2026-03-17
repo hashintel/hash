@@ -51,7 +51,8 @@
     "typescript": "5.9.3",
     "uuid": "13.0.0",
     "vscode-languageserver-types": "3.17.5",
-    "web-worker": "1.4.1"
+    "web-worker": "1.4.1",
+    "zod": "4.1.12"
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
