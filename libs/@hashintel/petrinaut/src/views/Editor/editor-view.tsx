@@ -1,6 +1,8 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { use, useRef, useState } from "react";
 
+import { LuFileText } from "react-icons/lu";
+
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
@@ -30,6 +32,32 @@ import { exportTikZ } from "./lib/export-tikz";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
+
+const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+});
+
+const formatRelativeTime = (isoTimestamp: string): string => {
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+  const diffSecs = Math.round(diffMs / 1_000);
+  const diffMins = Math.round(diffMs / 60_000);
+  const diffHours = Math.round(diffMs / 3_600_000);
+  const diffDays = Math.round(diffMs / 86_400_000);
+
+  if (diffSecs < 60) {
+    return relativeTimeFormat.format(-diffSecs, "second");
+  } else if (diffMins < 60) {
+    return relativeTimeFormat.format(-diffMins, "minute");
+  } else if (diffHours < 24) {
+    return relativeTimeFormat.format(-diffHours, "hour");
+  } else if (diffDays < 30) {
+    return relativeTimeFormat.format(-diffDays, "day");
+  }
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(isoTimestamp));
+};
 
 const rowContainerStyle = css({
   height: "full",
@@ -191,6 +219,8 @@ export const EditorView = ({
             submenu: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               label: net.title,
+              icon: <LuFileText style={{ opacity: 0.7 }} />,
+              suffix: formatRelativeTime(net.lastUpdated),
               onClick: () => {
                 loadPetriNet(net.netId);
                 clearSelection();
