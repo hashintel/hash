@@ -79,7 +79,7 @@ export const handleInferEntitiesRequest = async ({
       temporalClient,
     });
 
-    for (const flowRun of openFlowRuns) {
+    for (const flowRun of openFlowRuns.flowRuns) {
       const flowIsAlreadyRunningOnPage = (
         flowRun.inputs[0].flowTrigger.outputs as StepOutput<
           AutomaticInferenceTriggerInputs[AutomaticInferenceTriggerInputName]

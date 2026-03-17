@@ -74,7 +74,7 @@ const inferEntitiesMessageHandler = async ({
         temporalClient,
       });
 
-      for (const flowRun of openFlowRuns) {
+      for (const flowRun of openFlowRuns.flowRuns) {
         for (const inputRequest of flowRun.inputRequests) {
           if (!inputRequest.resolvedAt) {
             const requestMessage: ExternalInputWebsocketRequestMessage = {

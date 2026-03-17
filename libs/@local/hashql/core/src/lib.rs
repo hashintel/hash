@@ -3,7 +3,6 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![expect(clippy::indexing_slicing)]
-#![recursion_limit = "256"]
 #![feature(
     // Language Features
     arbitrary_self_types,
@@ -47,6 +46,7 @@ pub mod graph;
 pub mod heap;
 pub mod id;
 pub mod intern;
+mod macros;
 pub mod module;
 pub mod pretty;
 pub mod span;

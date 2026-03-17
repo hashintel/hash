@@ -72,6 +72,19 @@ pub struct WebRetrievalError;
 #[error("Could not insert web")]
 pub struct WebInsertionError;
 
+#[derive(Debug, derive_more::Display)]
+#[display("Could not update web: {_variant}")]
+pub enum WebUpdateError {
+    #[display("Web `{web_id}` does not exist")]
+    NotFound { web_id: WebId },
+    #[display("Shortname `{shortname}` is already taken")]
+    AlreadyExists { shortname: String },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl core::error::Error for WebUpdateError {}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -83,6 +96,10 @@ pub struct CreateOrgWebParams {
 #[derive(Debug, Error)]
 #[error("Could not query web")]
 pub struct QueryWebError;
+
+#[derive(Debug, Error)]
+#[error("Could not delete account")]
+pub struct AccountDeletionError;
 
 /// Describes the API of a store implementation for accounts.
 pub trait AccountStore {
@@ -118,6 +135,38 @@ pub trait AccountStore {
         actor_id: ActorEntityUuid,
         id: UserId,
     ) -> impl Future<Output = Result<Option<User>, Report<GetActorError>>> + Send;
+
+    /// Returns the [`UserId`] for a user with the given email address.
+    ///
+    /// Looks up the email in entity properties, bypassing property masking.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> impl Future<Output = Result<Option<UserId>, Report<GetActorError>>> + Send;
+
+    /// Returns the Kratos identity ID for a user, read from their entity properties.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_kratos_identity_id(
+        &self,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<Option<String>, Report<GetActorError>>> + Send;
+
+    /// Returns the email addresses for a user, read from their entity properties.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the lookup failed.
+    fn get_user_emails(
+        &self,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<Vec<String>, Report<GetActorError>>> + Send;
 
     /// Returns a [`Machine`] actor by its [`MachineId`].
     ///
@@ -184,6 +233,20 @@ pub trait AccountStore {
         actor_id: ActorEntityUuid,
         id: WebId,
     ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
+
+    /// Updates the web's shortname.
+    ///
+    /// # Errors
+    ///
+    /// - [`WebUpdateError::NotFound`] if the web does not exist.
+    /// - [`WebUpdateError::AlreadyExists`] if the shortname is already taken.
+    /// - [`WebUpdateError::StoreError`] if the underlying store operation failed.
+    fn update_web_shortname(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+        shortname: &str,
+    ) -> impl Future<Output = Result<(), Report<WebUpdateError>>> + Send;
 
     /// Retrieves the web as specified by the `shortname`.
     ///

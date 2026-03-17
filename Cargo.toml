@@ -18,7 +18,6 @@ members = [
     "libs/@local/graph/postgres-store",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
-    "libs/@local/graph/test-server",
     "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
     "libs/@local/graph/types",
@@ -37,6 +36,11 @@ members = [
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
     "libs/antsi",
+    "libs/darwin-kperf",
+    "libs/darwin-kperf/codegen",
+    "libs/darwin-kperf/criterion",
+    "libs/darwin-kperf/events",
+    "libs/darwin-kperf/sys",
     "libs/error-stack",
     "libs/error-stack/macros",
     "tests/graph/benches",
@@ -54,6 +58,10 @@ version = "0.0.0"
 
 [workspace.dependencies]
 # Workspace members
+darwin-kperf.path                   = "libs/darwin-kperf"
+darwin-kperf-criterion.path         = "libs/darwin-kperf/criterion"
+darwin-kperf-events.path            = "libs/darwin-kperf/events"
+darwin-kperf-sys.path               = "libs/darwin-kperf/sys"
 error-stack                         = { path = "./libs/error-stack", default-features = false }
 harpc-client.path                   = "libs/@local/harpc/client/rust"
 harpc-codec.path                    = "libs/@local/harpc/codec"
@@ -73,7 +81,6 @@ hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 hash-graph-test-data.path           = "tests/graph/test-data/rust"
-hash-graph-test-server.path         = "libs/@local/graph/test-server"
 hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
 hash-graph-types.path               = "libs/@local/graph/types"
@@ -88,6 +95,7 @@ hashql-core.path                    = "libs/@local/hashql/core"
 hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
 hashql-eval.path                    = "libs/@local/hashql/eval"
 hashql-hir.path                     = "libs/@local/hashql/hir"
+hashql-macros.path                  = "libs/@local/hashql/macros"
 hashql-mir.path                     = "libs/@local/hashql/mir"
 hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
@@ -120,9 +128,10 @@ clap                               = { version = "4.5.51", features = ["color", 
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
 clap_complete                      = { version = "4.5.60", default-features = false }
 codspeed-criterion-compat          = { version = "4.1.0" }
+codspeed-criterion-compat-walltime = { version = "4.3.0", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
-convert_case                       = { version = "0.10.0", default-features = false }
-criterion                          = { version = "0.8.0" }
+convert_case                       = { version = "0.11.0", default-features = false }
+criterion                          = { version = "0.8.0", default-features = false }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
@@ -163,6 +172,7 @@ insta                              = { version = "1.43.2", default-features = fa
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
+jsonwebtoken                       = { version = "10.3.0", default-features = false }
 lcov                               = { version = "0.8.1" }
 lexical                            = { version = "7.0.5", default-features = false }
 libp2p                             = { version = "0.56.0", default-features = false }
@@ -175,6 +185,7 @@ libp2p-yamux                       = { version = "0.47.0", default-features = fa
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
 logos                              = { version = "0.16.0", default-features = false }
+md-5                               = { version = "0.10.6", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
@@ -195,10 +206,12 @@ owo-colors                         = { version = "4.2.3", default-features = fal
 oxc                                = { version = "0.95.0", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
 pin-project-lite                   = { version = "0.2.16", default-features = false }
+plist                              = { version = "1.8.0", default-features = false }
 postgres-protocol                  = { version = "0.6.9", default-features = false }
 postgres-types                     = { version = "0.2.11", default-features = false }
 pretty                             = { version = "0.12.5", default-features = false }
 pretty_assertions                  = { version = "1.4.1", default-features = false, features = ["alloc"] }
+prettyplease                       = { version = "0.2.37", default-features = false }
 proc-macro-error2                  = { version = "2.0.1", default-features = false }
 proc-macro2                        = { version = "1.0.103", default-features = false }
 prometheus-client                  = { version = "0.24.0", default-features = false }
@@ -232,7 +245,7 @@ similar-asserts                    = { version = "1.7.0", default-features = fal
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
-sort-package-json                  = { version = "0.0.10" }
+sort-package-json                  = { version = "0.0.12" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
 stacker                            = { version = "0.1.22", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
@@ -273,6 +286,7 @@ unicode-ident                      = { version = "1.0.22", default-features = fa
 unicode-normalization              = { version = "0.1.25", default-features = false }
 unicode-properties                 = { version = "0.1.4", default-features = false }
 unicode-segmentation               = { version = "1.12.0", default-features = false }
+unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
 uuid                               = { version = "1.18.1", default-features = false }

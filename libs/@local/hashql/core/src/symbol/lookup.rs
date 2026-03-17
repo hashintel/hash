@@ -45,7 +45,7 @@ enum SymbolLookupInner<'heap, I> {
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
+/// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
 /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
 /// # let mut heap = Heap::new();
 /// # let symbol = heap.intern_symbol("example");
@@ -86,7 +86,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolLookup, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, id::newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let table = SymbolLookup::<MyId>::dense();
     /// // Insertions must be sequential: 0, 1, 2, ...
@@ -107,7 +107,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolLookup, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, id::newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let table = SymbolLookup::<MyId>::gapped();
     /// // Insertions can have gaps: 0, 5, 3, 10, ...
@@ -127,7 +127,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolLookup, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, id::newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// let table = SymbolLookup::<MyId>::sparse();
     /// // Insertions can be in any order: 100, 5, 1000, ...
@@ -155,7 +155,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");
@@ -167,7 +167,7 @@ where
     /// Non-sequential insertions will panic in dense tables:
     ///
     /// ```should_panic
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");
@@ -203,7 +203,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");

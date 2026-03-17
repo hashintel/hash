@@ -157,7 +157,7 @@ impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
 impl<A: Allocator> CallGraph<'_, A> {
     #[inline]
     pub fn callsites(&self, def: DefId) -> impl Iterator<Item = CallSite> {
-        let node = NodeId::new(def.as_usize());
+        let node = NodeId::from_usize(def.as_usize());
 
         self.inner.outgoing_edges(node).map(move |edge| CallSite {
             caller: def,
@@ -168,7 +168,7 @@ impl<A: Allocator> CallGraph<'_, A> {
 
     #[inline]
     pub fn apply_callsites(&self, def: DefId) -> impl Iterator<Item = CallSite<Location>> {
-        let node = NodeId::new(def.as_usize());
+        let node = NodeId::from_usize(def.as_usize());
 
         self.inner
             .outgoing_edges(node)
@@ -184,7 +184,7 @@ impl<A: Allocator> CallGraph<'_, A> {
 
     #[inline]
     pub fn is_leaf(&self, def: DefId) -> bool {
-        let def = NodeId::new(def.as_usize());
+        let def = NodeId::from_usize(def.as_usize());
 
         self.inner
             .outgoing_edges(def)
@@ -202,8 +202,8 @@ impl<A: Allocator> CallGraph<'_, A> {
 
     #[inline]
     pub fn is_single_caller(&self, caller: DefId, target: DefId) -> bool {
-        let caller = NodeId::new(caller.as_usize());
-        let target = NodeId::new(target.as_usize());
+        let caller = NodeId::from_usize(caller.as_usize());
+        let target = NodeId::from_usize(target.as_usize());
 
         self.inner
             .incoming_edges(target)
@@ -214,7 +214,7 @@ impl<A: Allocator> CallGraph<'_, A> {
     #[inline]
     pub fn unique_caller(&self, callee: DefId) -> Option<DefId> {
         // Same as is_single_caller, but makes sure that there is exactly one edge
-        let callee = NodeId::new(callee.as_usize());
+        let callee = NodeId::from_usize(callee.as_usize());
 
         let mut incoming = self
             .inner

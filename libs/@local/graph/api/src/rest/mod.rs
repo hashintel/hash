@@ -12,13 +12,15 @@ pub mod principal;
 pub mod property_type;
 pub mod status;
 
+pub mod admin;
 pub mod http_tracing_layer;
+pub mod jwt;
 
 mod entity_query_request;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
-use core::str::FromStr as _;
+use core::{error::Error, str::FromStr as _};
 use std::{
     fs,
     io::{self, Write as _},
@@ -321,14 +323,71 @@ pub enum OpenApiQuery<'a> {
     DiffEntity(&'a DiffEntityParams),
 }
 
+/// The requested limit exceeds the configured maximum.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("The requested limit ({requested}) exceeds the maximum allowed limit ({max}).")]
+pub struct LimitExceededError {
+    pub requested: usize,
+    pub max: usize,
+}
+
+impl Error for LimitExceededError {}
+
+/// Resolves an optional request limit against a configured maximum.
+///
+/// Returns the configured maximum when no limit is requested. Returns the requested limit if it
+/// does not exceed the maximum.
+///
+/// # Errors
+///
+/// Returns [`LimitExceededError`] if `requested` exceeds `max`.
+pub(crate) fn resolve_limit(
+    requested: Option<usize>,
+    max: usize,
+) -> Result<usize, Report<LimitExceededError>> {
+    match requested {
+        Some(requested) if requested > max => {
+            Err(Report::new(LimitExceededError { requested, max }))
+        }
+        Some(limit) => Ok(limit),
+        None => Ok(max),
+    }
+}
+
+/// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
+pub struct ApiConfig {
+    /// The default and maximum number of entities returned by a single query.
+    ///
+    /// When a request omits `limit`, this value is used. Requests that specify a `limit` larger
+    /// than this value are rejected.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value_t = 1000, env = "HASH_GRAPH_QUERY_ENTITY_LIMIT")
+    )]
+    pub query_entity_limit: usize,
+
+    /// The default and maximum number of ontology types returned by a single query.
+    ///
+    /// When a request omits `limit`, this value is used. Requests that specify a `limit` larger
+    /// than this value are rejected.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value_t = 1000, env = "HASH_GRAPH_QUERY_ONTOLOGY_LIMIT")
+    )]
+    pub query_ontology_limit: usize,
+}
+
 pub struct RestRouterDependencies<S>
 where
     S: StorePool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
-    pub temporal_client: Option<TemporalClient>,
+    pub temporal_client: Option<Arc<TemporalClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
+    pub api_config: ApiConfig,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -373,8 +432,9 @@ where
         )
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
-        .layer(Extension(dependencies.temporal_client.map(Arc::new)))
-        .layer(Extension(dependencies.domain_regex));
+        .layer(Extension(dependencies.temporal_client))
+        .layer(Extension(dependencies.domain_regex))
+        .layer(Extension(dependencies.api_config));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));

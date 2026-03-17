@@ -1,10 +1,17 @@
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  BaseEdge,
+  type EdgeProps,
+  getBezierPath,
+  getSmoothStepPath,
+  type Position,
+} from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
-import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
+import { UserSettingsContext } from "../../../state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { ArcData } from "../reactflow-types";
+import type { ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
@@ -56,8 +63,11 @@ function useFiringAnimation(
     const path = pathRef.current;
 
     // Stroke width based on total transitions
-    const peakStrokeWidth =
-      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * 6 * weight;
+    const peakStrokeWidth = Math.min(
+      65,
+      BASE_STROKE_WIDTH +
+        Math.log(1 + transitionsToAnimate) * Math.min(6 * weight, 25),
+    );
 
     const animation = path.animate(
       [
@@ -104,19 +114,59 @@ const selectionIndicatorStyle: CSSProperties = {
 
 const symbolTextStyle = css({
   fontSize: "[13px]",
-  fontWeight: "[400]",
+  fontWeight: "normal",
   fill: "[#999]",
   pointerEvents: "none",
 });
 
 const weightTextStyle = css({
-  fontSize: "[14px]",
-  fontWeight: "[600]",
+  fontSize: "sm",
+  fontWeight: "semibold",
   fill: "[#333]",
   pointerEvents: "none",
 });
 
-export const Arc: React.FC<EdgeProps<ArcData>> = ({
+/**
+ * Custom cubic bezier path between two points.
+ * Control point offsets are proportional to the horizontal distance
+ * so arcs stay tight for nearby nodes and sweep wide for distant ones.
+ */
+function getCustomArcPath({
+  sourceX,
+  sourceY,
+  sourcePosition: _sourcePosition,
+  targetX,
+  targetY,
+  targetPosition: _targetPosition,
+}: {
+  sourceX: number;
+  sourceY: number;
+  sourcePosition: Position;
+  targetX: number;
+  targetY: number;
+  targetPosition: Position;
+}): [path: string, labelX: number, labelY: number] {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+
+  // Control point offset scales with horizontal distance, with a minimum
+  const offset = Math.max(Math.abs(dx) * 0.7, 80);
+
+  const cp1x = sourceX + offset / 2;
+  const cp1y = sourceY;
+  const cp2x = targetX - offset;
+  const cp2y = targetY;
+
+  const path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
+
+  // Label at the midpoint of the cubic bezier (t=0.5)
+  const labelX = sourceX + dx / 2;
+  const labelY = sourceY + dy / 2;
+
+  return [path, labelX, labelY];
+}
+
+export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   id,
   sourceX,
   sourceY,
@@ -129,10 +179,11 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   markerEnd,
 }) => {
   // Derive selected state from EditorContext
-  const { selectedItemIds } = use(EditorContext);
+  const { isSelected } = use(EditorContext);
+  const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
-  const selected = selectedItemIds.has(id);
+  const selected = isSelected(id);
 
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
@@ -143,14 +194,39 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  const [arcPath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  // Compute path based on arc rendering setting
+  let arcPath: string;
+  let labelX: number;
+  let labelY: number;
+
+  if (arcRendering === "smoothstep") {
+    [arcPath, labelX, labelY] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  } else if (arcRendering === "bezier") {
+    [arcPath, labelX, labelY] = getBezierPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  } else {
+    [arcPath, labelX, labelY] = getCustomArcPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  }
 
   return (
     <>

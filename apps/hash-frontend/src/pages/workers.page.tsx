@@ -2,7 +2,7 @@ import { TerminalLightIcon } from "@hashintel/design-system";
 import { workerFlowFilterParam } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -11,6 +11,8 @@ import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-contex
 import { FlowRunsContextProvider } from "./shared/flow-runs-context";
 import { FlowRunTable } from "./workers.page/flow-run-table";
 import { FlowSchedulesTable } from "./workers.page/flow-schedules-table";
+
+const defaultRowsPerPage = 20;
 
 const WorkersPageContent = () => {
   const {
@@ -61,9 +63,31 @@ const WorkersPageContent = () => {
 };
 
 const WorkersPage: NextPageWithLayout = () => {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(defaultRowsPerPage);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  }, []);
+
+  const pagination = useMemo(
+    () => ({
+      page,
+      rowsPerPage,
+      onPageChange: handlePageChange,
+      onRowsPerPageChange: handleRowsPerPageChange,
+    }),
+    [page, rowsPerPage, handlePageChange, handleRowsPerPageChange],
+  );
+
   return (
     <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
-      <FlowRunsContextProvider selectedFlowRunId={null}>
+      <FlowRunsContextProvider pagination={pagination} selectedFlowRunId={null}>
         <WorkersPageContent />
       </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>

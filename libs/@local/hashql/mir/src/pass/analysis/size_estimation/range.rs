@@ -136,9 +136,28 @@ macro_rules! range {
             }
 
             #[inline]
+            pub const fn zero() -> Self {
+                let zero = <$inner>::new(0);
+                Self { min: zero, max: Bound::Included(zero) }
+            }
+
+            #[inline]
             pub const fn full() -> Self {
                 let zero = <$inner>::new(0);
                 Self { min: zero, max: Bound::Unbounded }
+            }
+
+            #[inline]
+            pub const fn min(self) -> $inner {
+                self.min
+            }
+
+            pub fn inclusive_max(self) -> Option<$inner> {
+                match self.max {
+                    Bound::Included(max) => Some(max),
+                    Bound::Excluded(max) => max.raw.checked_sub(1).map(<$inner>::new),
+                    Bound::Unbounded => None,
+                }
             }
 
             #[inline]
@@ -266,6 +285,12 @@ macro_rules! range {
         }
 
         forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for $name);
+
+        impl AsRef<$name> for $name {
+            fn as_ref(&self) -> &$name {
+                self
+            }
+        }
     };
 }
 

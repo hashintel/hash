@@ -25,14 +25,16 @@ pub use self::{resolver::Reference, universe::Universe};
 use crate::{
     collections::{FastHashMap, FastHashSet},
     heap::Heap,
-    id::{HasId, Id as _},
+    id::{HasId, Id as _, newtype},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
-    newtype,
     symbol::Symbol,
     r#type::environment::Environment,
 };
 
-newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
+newtype! {
+    #[id(crate = crate)]
+    pub struct ModuleId(u32 is 0..=0xFFFF_FF00)
+}
 
 impl ModuleId {
     pub const ROOT: Self = Self::MAX;

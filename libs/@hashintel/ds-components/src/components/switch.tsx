@@ -24,7 +24,7 @@ const switchControlStyles = (disabled: boolean) =>
     transition: "[all 0.2s ease]",
     backgroundColor: "neutral.s40",
     _checked: {
-      backgroundColor: "green.s40",
+      backgroundColor: "green.s80",
     },
   });
 
@@ -70,6 +70,11 @@ export interface SwitchProps {
   onCheckedChange?: (checked: boolean) => void;
 }
 
+const switchRootStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+});
+
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   defaultChecked = false,
@@ -83,6 +88,7 @@ export const Switch: React.FC<SwitchProps> = ({
       onCheckedChange={(details) => {
         onCheckedChange?.(details.checked);
       }}
+      className={switchRootStyles}
     >
       <BaseSwitch.Control
         style={{

@@ -1,5 +1,3 @@
-import type { ImageData } from "canvas";
-
 import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 
 type CompositePartsProps = {

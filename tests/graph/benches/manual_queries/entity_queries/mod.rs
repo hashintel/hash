@@ -6,7 +6,7 @@ use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
 use hash_graph_api::rest::{
-    self,
+    self, ApiConfig,
     entity::{EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest},
 };
 use hash_graph_postgres_store::{
@@ -335,6 +335,11 @@ async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, request: GraphQuery<'q, 's,
 where
     S: EntityStore + Sync,
 {
+    let config = ApiConfig {
+        query_entity_limit: 1000,
+        query_ontology_limit: 1000,
+    };
+
     match request {
         GraphQuery::QueryEntities(request) => {
             let (query, options) = request.request.into_parts();
@@ -343,7 +348,12 @@ where
             };
 
             let _response = store
-                .query_entities(request.actor_id, options.into_params(filter))
+                .query_entities(
+                    request.actor_id,
+                    options
+                        .into_params(filter, config)
+                        .expect("limit should not exceed configured maximum"),
+                )
                 .await
                 .expect("failed to read entities from store");
         }
@@ -356,7 +366,9 @@ where
             let _response = store
                 .query_entity_subgraph(
                     request.actor_id,
-                    options.into_traversal_params(filter, traversal),
+                    options
+                        .into_traversal_params(filter, traversal, config)
+                        .expect("limit should not exceed configured maximum"),
                 )
                 .await
                 .expect("failed to read entity subgraph from store");

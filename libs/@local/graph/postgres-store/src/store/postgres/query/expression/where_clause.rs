@@ -2,13 +2,11 @@ use core::fmt;
 
 use hash_graph_store::query::{NullOrdering, Ordering};
 
-use crate::store::postgres::query::{
-    Condition, Expression, Transpile, expression::conditional::Transpiler,
-};
+use crate::store::postgres::query::{Expression, Transpile, expression::conditional::Transpiler};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct WhereExpression {
-    pub conditions: Vec<Condition>,
+    pub conditions: Vec<Expression>,
     pub cursor: Vec<(
         Expression,
         Option<Expression>,
@@ -18,7 +16,7 @@ pub struct WhereExpression {
 }
 
 impl WhereExpression {
-    pub fn add_condition(&mut self, condition: Condition) {
+    pub fn add_condition(&mut self, condition: Expression) {
         self.conditions.push(condition);
     }
 

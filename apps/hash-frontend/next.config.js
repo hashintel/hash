@@ -149,6 +149,12 @@ export default withSentryConfig(
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
 
+      experimental: {
+        esmExternals: "loose",
+        webpackBuildWorker: true,
+        webpackMemoryOptimizations: true,
+      },
+
       transpilePackages: [
         "@blockprotocol/service",
         "@blockprotocol/core",
@@ -218,20 +224,6 @@ export default withSentryConfig(
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.resolve.alias.canvas = false;
-
-        if (!isServer) {
-          // Stub Node.js built-ins for browser — needed by `typescript` (used by
-          // @hashintel/petrinaut's in-browser language service)
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.resolve.fallback = {
-            ...webpackConfig.resolve.fallback,
-            module: false,
-            fs: false,
-            path: false,
-            os: false,
-            perf_hooks: false,
-          };
-        }
 
         webpackConfig.plugins.push(
           new DefinePlugin({

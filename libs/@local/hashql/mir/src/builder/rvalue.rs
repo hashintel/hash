@@ -235,6 +235,17 @@ macro_rules! rvalue {
             rv.tuple(members)
         }; $payload; $($rest)*)
     };
+    ($resume:path; $payload:tt; list; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            rv.list([] as [!; 0])
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; list $($members:tt),+; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let members = [$($crate::builder::_private::operand!(rv; $members)),*];
+            rv.list(members)
+        }; $payload; $($rest)*)
+    };
     ($resume:path; $payload:tt; struct $($field:ident : $value:tt),+ $(,)?; $($rest:tt)*) => {
         $resume!(@rvalue |rv| {
             let fields = [$(

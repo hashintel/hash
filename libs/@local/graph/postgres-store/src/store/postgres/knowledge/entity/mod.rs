@@ -1,3 +1,4 @@
+mod delete;
 mod query;
 mod read;
 use alloc::borrow::Cow;
@@ -15,15 +16,16 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityPermissions,
-        EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval,
-        EntityTypesError, EntityValidationReport, EntityValidationType,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EmptyEntityTypes, EntityPermissions, EntityQueryCursor, EntityQueryPath,
+        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
         protection::transform_filter,
@@ -87,7 +89,7 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, PostgresStore,
-    error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         ResponseCountMap, TraversalContext,
         crud::{QueryIndices, TypedRow},
@@ -400,42 +402,6 @@ where
         Ok(())
     }
 
-    /// Deletes all entities from the database.
-    ///
-    /// This function removes all entities along with their associated metadata,
-    /// including temporal data, embeddings, drafts, and relationships.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeletionError`] if the database deletion operation fails.
-    #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entities(&self) -> Result<(), Report<DeletionError>> {
-        tracing::debug!("Deleting all entities");
-        self.as_client()
-            .client()
-            .simple_query(
-                "
-                    DELETE FROM entity_edge;
-                    DELETE FROM entity_is_of_type;
-                    DELETE FROM entity_temporal_metadata;
-                    DELETE FROM entity_editions;
-                    DELETE FROM entity_embeddings;
-                    DELETE FROM entity_drafts;
-                    DELETE FROM entity_ids;
-                ",
-            )
-            .instrument(tracing::info_span!(
-                "DELETE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(DeletionError)?;
-
-        Ok(())
-    }
-
     async fn convert_entity_properties<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
@@ -734,9 +700,7 @@ where
                 (None, None, None, None, None, None)
             };
 
-        if let Some(limit) = params.limit {
-            compiler.set_limit(limit);
-        }
+        compiler.set_limit(params.limit);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params
@@ -776,7 +740,7 @@ where
                 .enumerate()
                 .map(|(idx, row)| {
                     let row = TypedRow::<Entity, EntityQueryCursor>::from(row);
-                    if idx == num_rows - 1 && params.limit == Some(num_rows) {
+                    if idx == num_rows - 1 && params.limit == num_rows {
                         cursor = Some(row.decode_cursor(&artifacts));
                     }
                     row.decode_record(&artifacts)
@@ -1074,6 +1038,7 @@ where
                         .draft_id
                         .is_none()
                         .then_some(decision_time),
+                    deletion: None,
                 },
                 edition: EntityEditionProvenance {
                     created_by_id: actor_uuid,
@@ -2336,6 +2301,29 @@ where
         }
         let [entity] = entities;
         Ok(entity)
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn delete_entities(
+        &mut self,
+        actor_id: AuthenticatedActor,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        // TODO: Authorization — check delete permission via PolicyComponents
+
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(DeletionError::Store)?;
+        let summary = transaction
+            .execute_entity_deletion(actor_id.into(), params)
+            .await?;
+        transaction
+            .commit()
+            .await
+            .change_context(DeletionError::Store)?;
+
+        Ok(summary)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

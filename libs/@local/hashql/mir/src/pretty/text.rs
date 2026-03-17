@@ -526,7 +526,7 @@ where
         self.format_part(body.source)?;
 
         self.line_buffer.write_all(b"(")?;
-        self.csv((0..body.args).map(Local::new).map(|local| {
+        self.csv((0..body.args).map(Local::from_usize).map(|local| {
             let decl = body.local_decls[local];
 
             KeyValuePair(

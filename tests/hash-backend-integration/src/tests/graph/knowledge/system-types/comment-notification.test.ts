@@ -17,7 +17,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,

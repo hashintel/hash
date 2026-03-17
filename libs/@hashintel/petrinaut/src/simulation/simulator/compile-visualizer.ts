@@ -70,7 +70,7 @@ export function compileVisualizer(code: string): VisualizerComponent {
 
     // Use Function constructor to create and execute the module
     // We need to provide React in scope for React.createElement calls
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
     const compiledComponent = new Function("React", executableCode)(
       // Provide a minimal React object with createElement
       { createElement },

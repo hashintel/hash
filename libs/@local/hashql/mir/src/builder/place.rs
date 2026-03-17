@@ -1,6 +1,9 @@
 use core::ops::Deref;
 
-use hashql_core::r#type::{TypeId, builder::IntoSymbol};
+use hashql_core::{
+    id::Id as _,
+    r#type::{TypeId, builder::IntoSymbol},
+};
 
 use super::base::BaseBuilder;
 use crate::body::{
@@ -63,7 +66,7 @@ impl<'heap> PlaceBuilder<'_, 'heap, HasLocal> {
     pub fn field(mut self, index: usize, ty: TypeId) -> Self {
         self.projections.push(Projection {
             r#type: ty,
-            kind: ProjectionKind::Field(FieldIndex::new(index)),
+            kind: ProjectionKind::Field(FieldIndex::from_usize(index)),
         });
 
         self

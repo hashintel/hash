@@ -1,29 +1,32 @@
 import { gql } from "@apollo/client";
 
 export const getFlowRunsQuery = gql`
-  query getFlowRuns {
-    getFlowRuns {
-      name
-      flowDefinitionId
-      flowRunId
-      flowScheduleId
-      webId
-      status
-      startedAt
-      executedAt
-      closedAt
-      # Requesting 'inputRequests' requires the API going through the event history for each flow run,
-      # which ideally we would not have to do when requesting all flow runs.
-      # This field is required to indicate goals which are pending input on the /goals page
-      # @todo consider some way of caching a 'input requested' status to avoid this, e.g. on the Flow entity
-      inputRequests
-      # We need 'steps' to be able to populate the 'last event occurred at' field in a goals list,
-      # Similarly to 'inputRequests', this involves going through the event history for each flow run
-      steps {
-        scheduledAt
+  query getFlowRuns($offset: Int, $limit: Int) {
+    getFlowRuns(offset: $offset, limit: $limit) {
+      totalCount
+      flowRuns {
+        name
+        flowDefinitionId
+        flowRunId
+        flowScheduleId
+        webId
+        status
         startedAt
+        executedAt
         closedAt
-        logs
+        # Requesting 'inputRequests' requires the API going through the event history for each flow run,
+        # which ideally we would not have to do when requesting all flow runs.
+        # This field is required to indicate goals which are pending input on the /goals page
+        # @todo consider some way of caching a 'input requested' status to avoid this, e.g. on the Flow entity
+        inputRequests
+        # We need 'steps' to be able to populate the 'last event occurred at' field in a goals list,
+        # Similarly to 'inputRequests', this involves going through the event history for each flow run
+        steps {
+          scheduledAt
+          startedAt
+          closedAt
+          logs
+        }
       }
     }
   }

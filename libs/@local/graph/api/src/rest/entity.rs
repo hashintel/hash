@@ -51,8 +51,8 @@ use type_system::{
             id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
-                EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
-                ProvidedEntityEditionProvenance,
+                EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
+                InferredEntityProvenance, ProvidedEntityEditionProvenance,
             },
         },
         property::{
@@ -75,13 +75,15 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::{InteractiveHeader, status::BoxedResponse};
 pub use crate::rest::entity_query_request::{
     EntityQuery, EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest,
 };
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, entity_query_request::CompilationOptions,
-    json::Json, status::report_to_response, utoipa_typedef::subgraph::Subgraph,
+    ApiConfig, AuthenticatedUserHeader, InteractiveHeader, OpenApiQuery, QueryLogger,
+    entity_query_request::CompilationOptions,
+    json::Json,
+    status::{BoxedResponse, report_to_response},
+    utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -150,6 +152,7 @@ use crate::rest::{
             EntityEditionId,
             EntityMetadata,
             EntityProvenance,
+            EntityDeletionProvenance,
             EntityEditionProvenance,
             InferredEntityProvenance,
             ProvidedEntityEditionProvenance,
@@ -427,6 +430,7 @@ async fn query_entities<S>(
     InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<Box<RawJsonvalue>>,
 ) -> Result<Json<QueryEntitiesResponse<'static>>, BoxedResponse>
@@ -448,13 +452,6 @@ where
 
     let (query, options) = request.into_parts();
 
-    if options.limit == Some(0) {
-        tracing::warn!(
-            %actor_id,
-            "The limit is set to zero, so no entities will be returned."
-        );
-    }
-
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
     let mut heap = Heap::uninitialized();
 
@@ -468,7 +465,10 @@ where
 
     let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
-    let params = options.into_params(filter);
+    let params = options
+        .into_params(filter, api_config)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
 
     let response = store
         .query_entities(actor_id, params)
@@ -544,6 +544,7 @@ async fn query_entity_subgraph<S>(
     InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<QueryEntitySubgraphResponse<'static>>, BoxedResponse>
@@ -577,7 +578,10 @@ where
 
     let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
-    let params = options.into_traversal_params(filter, traversal);
+    let params = options
+        .into_traversal_params(filter, traversal, api_config)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
 
     let response = store
         .query_entity_subgraph(actor_id, params)

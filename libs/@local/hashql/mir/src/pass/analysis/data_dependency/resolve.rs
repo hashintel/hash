@@ -138,7 +138,7 @@ fn traverse<'heap, A: Allocator + Clone>(
 ) -> ControlFlow<ResolutionResult<'heap, A>, Local> {
     // The edge's target may itself have projections that must be resolved first.
     let target = PlaceRef {
-        local: Local::new(edge.target().as_usize()),
+        local: Local::from_usize(edge.target().as_usize()),
         projections: edge.data.projections.0,
     };
 

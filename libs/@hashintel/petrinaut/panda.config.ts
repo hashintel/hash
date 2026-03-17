@@ -20,7 +20,11 @@ export default defineConfig({
   },
 
   // Where to look for css declarations
-  include: ["./src/**/*.{js,jsx,ts,tsx}"],
+  include: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "../ds-components/src/**/*.{ts,tsx}",
+    "./.storybook/**/*.{js,jsx,ts,tsx}",
+  ],
 
   // Files to exclude
   exclude: [],
@@ -36,6 +40,38 @@ export default defineConfig({
         fadeOut: {
           from: { opacity: "1", transform: "translateY(0)" },
           to: { opacity: "0", transform: "translateY(-10px)" },
+        },
+        expand: {
+          from: { height: "0", opacity: "0" },
+          to: { height: "var(--height)", opacity: "1" },
+        },
+        collapse: {
+          from: { height: "var(--height)", opacity: "1" },
+          to: { height: "0", opacity: "0" },
+        },
+        dialogBackdropIn: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        dialogBackdropOut: {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        dialogContentIn: {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        dialogContentOut: {
+          from: { opacity: "1", transform: "scale(1)" },
+          to: { opacity: "0", transform: "scale(0.95)" },
+        },
+        "popover-in": {
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "popover-out": {
+          from: { opacity: "1", transform: "scale(1)" },
+          to: { opacity: "0", transform: "scale(0.96)" },
         },
       },
     },

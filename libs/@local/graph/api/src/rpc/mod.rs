@@ -59,7 +59,7 @@ impl SubsystemIdentifier for GraphSubsystemId {
 
 pub struct Dependencies<S, C> {
     pub store: Arc<S>,
-    pub temporal_client: Option<TemporalClient>,
+    pub temporal_client: Option<Arc<TemporalClient>>,
     pub codec: C,
 }
 
@@ -84,7 +84,7 @@ where
         .register(AuthenticationDelegate::new(AuthenticationServer))
         .register(AccountDelegate::new(AccountServer {
             store_pool: dependencies.store,
-            temporal_client: dependencies.temporal_client.map(Arc::new),
+            temporal_client: dependencies.temporal_client,
         }))
         .register(EchoDelegate::new(EchoServer));
 

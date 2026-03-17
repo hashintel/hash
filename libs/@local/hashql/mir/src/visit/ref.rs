@@ -320,6 +320,7 @@ pub trait Visitor<'heap> {
         walk_graph_read_head(self, location, head)
     }
 
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn visit_graph_read_body(
         &mut self,
         location: GraphReadLocation,
@@ -756,6 +757,7 @@ pub fn walk_graph_read_head<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
+#[expect(clippy::trivially_copy_pass_by_ref)]
 pub fn walk_graph_read_body<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     location: GraphReadLocation,

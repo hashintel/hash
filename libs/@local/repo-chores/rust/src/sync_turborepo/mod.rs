@@ -1,4 +1,22 @@
-use alloc::collections::{BTreeMap, BTreeSet};
+//! Syncs Cargo workspace metadata to `package.json` files for Turborepo integration.
+//!
+//! Each Rust workspace crate gets a corresponding `package.json` with the correct name, version,
+//! and dependency graph derived from `Cargo.toml`. This allows Turborepo to understand the Rust
+//! dependency graph and schedule tasks accordingly.
+//!
+//! Package naming follows these conventions:
+//! - Crates under `@blockprotocol/` → `@blockprotocol/<name>-rs`
+//! - Crates with `[package.metadata.sync.turborepo.package-name]` → custom name
+//! - All other crates → `@rust/<name>`
+//!
+//! Additional `Cargo.toml` metadata keys:
+//! - `sync.turborepo.ignore` — skip this crate entirely
+//! - `sync.turborepo.extra-dependencies` — add non-Rust JS dependencies
+//! - `sync.turborepo.extra-dev-dependencies` — add non-Rust JS dev dependencies
+//! - `sync.turborepo.ignore-dependencies` — exclude specific Cargo deps from the JS graph
+//! - `sync.turborepo.ignore-dev-dependencies` — exclude specific Cargo dev deps
+
+use alloc::collections::BTreeMap;
 use core::{error, fmt::Display};
 
 use cargo_metadata::{
@@ -12,16 +30,12 @@ use guppy::{
     graph::{DependencyDirection, PackageGraph, PackageMetadata},
 };
 use nodejs_package_json::{PackageJson, VersionProtocol, WorkspaceProtocol};
-use tokio::{fs, process::Command};
+use tokio::fs;
 
 #[derive(Debug, Clone, derive_more::Display)]
 pub(crate) enum SyncTurborepoError {
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
-    #[display("Failed to list yarn workspaces")]
-    YarnWorkspacesList,
-    #[display("Failed to find git root")]
-    GitRoot,
     #[display("Malformed glob pattern")]
     MalformedGlob,
     #[display("Unexpected type expected {expected}, but found {actual} at {path}")]
@@ -96,8 +110,10 @@ fn expect_object<P: Display>(
     })
 }
 
+/// Configuration for the sync-turborepo process.
 #[derive(Debug, Clone)]
 pub(crate) struct SyncTurborepoConfig {
+    /// When set, only packages whose names match one of the globs are synced.
     pub include: Option<GlobSet>,
 }
 
@@ -108,6 +124,18 @@ fn is_blockprotocol(metadata: PackageMetadata) -> bool {
         .any(|component| component.as_str() == "@blockprotocol")
 }
 
+/// Determines the JavaScript package name for a Rust crate.
+///
+/// Resolution order:
+/// 1. `@blockprotocol/<name>-rs` if the crate lives under the `@blockprotocol` directory
+/// 2. Custom name from `[package.metadata.sync.turborepo.package-name]`
+/// 3. `@rust/<name>` as fallback
+///
+/// # Errors
+///
+/// Returns [`UnexpectedType`] if `package-name` metadata exists but is not a string.
+///
+/// [`UnexpectedType`]: SyncTurborepoError::UnexpectedType
 fn package_name(metadata: PackageMetadata) -> Result<String, Report<SyncTurborepoError>> {
     if is_blockprotocol(metadata) {
         return Ok(format!("@blockprotocol/{}-rs", metadata.name()));
@@ -123,6 +151,8 @@ fn package_name(metadata: PackageMetadata) -> Result<String, Report<SyncTurborep
     Ok(format!("@rust/{}", metadata.name()))
 }
 
+/// Returns the semver version for a crate, appending a `-private` pre-release tag for
+/// unpublished crates.
 fn package_version(metadata: PackageMetadata) -> semver::Version {
     if metadata.publish().is_never() {
         let mut version = metadata.version().clone();
@@ -140,7 +170,7 @@ struct JsDependency {
     version: String,
 }
 
-/// Extracts extra JS dependencies from Cargo.toml metadata.
+/// Extracts extra JS dependencies from Cargo.toml metadata at the given JSON pointer `path`.
 ///
 /// These are declared as objects with `name` and `version` fields:
 /// ```toml
@@ -148,6 +178,14 @@ struct JsDependency {
 ///     { name = "@local/status", version = "0.0.0-private" },
 /// ]
 /// ```
+///
+/// # Errors
+///
+/// Returns [`UnexpectedType`] if the metadata value at `path` is not an array of objects with
+/// string `name` and `version` fields. Collects all errors via [`ReportSink`] so that multiple
+/// malformed entries are reported together.
+///
+/// [`UnexpectedType`]: SyncTurborepoError::UnexpectedType
 fn extract_javascript_dependencies(
     path: &str,
     metadata: PackageMetadata<'_>,
@@ -202,12 +240,20 @@ fn extract_javascript_dependencies(
     sink.finish_ok(output)
 }
 
-/// Extracts Cargo package names from metadata for ignore lists.
+/// Extracts Cargo package names from metadata for ignore lists at the given JSON pointer `path`.
 ///
 /// These are declared as simple strings (Cargo package names):
 /// ```toml
 /// ignore-dependencies = ["some-crate"]
 /// ```
+///
+/// # Errors
+///
+/// - [`UnexpectedType`] if the value is not an array of strings.
+/// - [`PackageNotFound`] if a listed crate name cannot be resolved in the package graph.
+///
+/// [`UnexpectedType`]: SyncTurborepoError::UnexpectedType
+/// [`PackageNotFound`]: SyncTurborepoError::PackageNotFound
 fn extract_cargo_dependencies<'graph>(
     path: &str,
     metadata: PackageMetadata<'graph>,
@@ -243,6 +289,7 @@ fn extract_cargo_dependencies<'graph>(
     sink.finish_ok(output)
 }
 
+/// Extra JavaScript dependencies parsed from `[package.metadata.sync.turborepo]`.
 struct ExtraDependencies {
     normal: Vec<JsDependency>,
     dev: Vec<JsDependency>,
@@ -260,6 +307,7 @@ impl ExtraDependencies {
     }
 }
 
+/// Cargo dependencies to exclude from the generated `package.json`.
 struct IgnoreDependencies<'graph> {
     normal: Vec<PackageMetadata<'graph>>,
     dev: Vec<PackageMetadata<'graph>>,
@@ -283,59 +331,16 @@ fn is_ignored(metadata: PackageMetadata) -> bool {
         .unwrap_or(false)
 }
 
-async fn get_yarn_workspace_packages() -> Result<BTreeSet<String>, Report<SyncTurborepoError>> {
-    // We must first find the current cwd
-    let cwd = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .await
-        .change_context(SyncTurborepoError::GitRoot)?
-        .exit_ok()
-        .change_context(SyncTurborepoError::GitRoot)?;
-    let cwd = String::from_utf8(cwd.stdout).change_context(SyncTurborepoError::GitRoot)?;
-    let cwd = cwd.trim();
-    tracing::debug!(cwd, "Determined git root");
-
-    let output = Command::new("mise")
-        .args(["exec", "--", "yarn", "workspaces", "list", "--json"])
-        .current_dir(cwd)
-        .output()
-        .await
-        .change_context(SyncTurborepoError::YarnWorkspacesList)?
-        .exit_ok()
-        .change_context(SyncTurborepoError::YarnWorkspacesList)?;
-
-    let stdout =
-        String::from_utf8(output.stdout).change_context(SyncTurborepoError::YarnWorkspacesList)?;
-
-    let mut packages = BTreeSet::new();
-    for line in stdout.lines() {
-        let value: serde_json::Value =
-            serde_json::from_str(line).change_context(SyncTurborepoError::YarnWorkspacesList)?;
-        if let Some(name) = value.get("name").and_then(|name| name.as_str()) {
-            packages.insert(name.to_owned());
-        }
-    }
-
-    tracing::debug!(count = packages.len(), "Found yarn workspace packages");
-    Ok(packages)
-}
-
 async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTurborepoError>> {
-    let exists = fs::try_exists(path)
-        .await
-        .change_context_lazy(|| SyncTurborepoError::ReadFile(path.to_owned()))?;
-
-    if exists {
-        let contents = fs::read_to_string(path)
-            .await
-            .change_context_lazy(|| SyncTurborepoError::ReadFile(path.to_owned()))?;
-
-        serde_json::from_str(&contents)
-            .change_context_lazy(|| SyncTurborepoError::ParseFile(path.to_owned()))
-    } else {
-        tracing::info!("package.json does not exist at {path}, creating new one");
-        Ok(PackageJson::default())
+    match fs::read_to_string(path).await {
+        Ok(contents) => serde_json::from_str(&contents)
+            .change_context_lazy(|| SyncTurborepoError::ParseFile(path.to_owned())),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            tracing::info!("package.json does not exist at {path}, creating new one");
+            Ok(PackageJson::default())
+        }
+        Err(err) => Err(Report::new(err))
+            .change_context_lazy(|| SyncTurborepoError::ReadFile(path.to_owned())),
     }
 }
 
@@ -345,10 +350,19 @@ fn version_protocol_from_str(version: &str) -> VersionProtocol {
         .unwrap_or_else(|_| VersionProtocol::Tag(version.to_owned()))
 }
 
+/// Computes the target `package.json` content for a single Rust crate.
+///
+/// Merges Cargo workspace dependencies, extra JS dependencies, and ignore lists into the
+/// existing `package_json`. Non-workspace dependencies (e.g. manually added JS packages) are
+/// preserved across syncs.
+///
+/// # Errors
+///
+/// Returns errors from [`package_name`], [`ExtraDependencies::new`], or
+/// [`IgnoreDependencies::new`] if metadata is malformed.
 fn compute_package_json(
     metadata: PackageMetadata<'_>,
     mut package_json: PackageJson,
-    local_yarn_packages: &BTreeSet<String>,
 ) -> Result<PackageJson, Report<[SyncTurborepoError]>> {
     package_json.name = Some(package_name(metadata)?);
     package_json.version = Some(package_version(metadata));
@@ -373,12 +387,14 @@ fn compute_package_json(
         .other_fields
         .insert("private".to_owned(), true.into());
 
-    // Start with existing dependencies, but filter out local workspace packages
+    // Start with existing dependencies, but filter out workspace-protocol packages.
+    // These are always managed by the sync tool and will be re-added from Cargo.toml below.
+    // This ensures removed Cargo dependencies are also removed from package.json.
     let mut dependencies: BTreeMap<_, _> = package_json.dependencies.unwrap_or_default();
-    dependencies.retain(|name, _| !local_yarn_packages.contains(name));
+    dependencies.retain(|_, version| !matches!(version, VersionProtocol::Workspace(_)));
 
     let mut dev_dependencies: BTreeMap<_, _> = package_json.dev_dependencies.unwrap_or_default();
-    dev_dependencies.retain(|name, _| !local_yarn_packages.contains(name));
+    dev_dependencies.retain(|_, version| !matches!(version, VersionProtocol::Workspace(_)));
 
     // Add computed dependencies from Rust workspace
     for dependency in metadata.direct_links() {
@@ -439,10 +455,16 @@ async fn write_package_json_if_changed(
     let output = sort_package_json::sort_package_json(&serialized)
         .change_context(SyncTurborepoError::SerializePackageJson)?;
 
-    let current = fs::read_to_string(path).await.ok();
-    if current.as_ref() == Some(&output) {
-        tracing::debug!("Skipping unchanged package.json: {path}");
-        return Ok(());
+    match fs::read_to_string(path).await {
+        Ok(current) if current == output => {
+            tracing::debug!("Skipping unchanged package.json: {path}");
+            return Ok(());
+        }
+        Ok(_) => {}
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => {
+            tracing::warn!("Failed to read {path} for change detection, overwriting: {err}");
+        }
     }
 
     fs::write(path, &output)
@@ -453,10 +475,9 @@ async fn write_package_json_if_changed(
     Ok(())
 }
 
-#[tracing::instrument(level = "debug", skip(metadata, local_yarn_packages), fields(package = %metadata.name()))]
+#[tracing::instrument(level = "debug", skip(metadata), fields(package = %metadata.name()))]
 async fn sync_package_json(
     metadata: PackageMetadata<'_>,
-    local_yarn_packages: &BTreeSet<String>,
 ) -> Result<(), Report<[SyncTurborepoError]>> {
     let path = metadata
         .manifest_path()
@@ -465,19 +486,24 @@ async fn sync_package_json(
         .join("package.json");
 
     let package_json = read_package_json(&path).await?;
-    let package_json = compute_package_json(metadata, package_json, local_yarn_packages)?;
+    let package_json = compute_package_json(metadata, package_json)?;
     write_package_json_if_changed(&path, package_json).await?;
 
     Ok(())
 }
 
+/// Runs the sync-turborepo process across all (optionally filtered) workspace crates.
+///
+/// # Errors
+///
+/// - [`CargoMetadata`] if `cargo metadata` fails.
+/// - Individual per-package errors are collected and returned together.
+///
+/// [`CargoMetadata`]: SyncTurborepoError::CargoMetadata
 #[tracing::instrument(level = "info", skip_all)]
 pub(crate) async fn sync_turborepo(
     SyncTurborepoConfig { include }: SyncTurborepoConfig,
 ) -> Result<(), Report<[SyncTurborepoError]>> {
-    tracing::debug!("Retrieving yarn workspace packages");
-    let local_yarn_packages = get_yarn_workspace_packages().await?;
-
     tracing::debug!("Retrieving cargo metadata using guppy");
     let graph = PackageGraph::from_command(&mut MetadataCommand::new())
         .change_context(SyncTurborepoError::CargoMetadata)?;
@@ -509,7 +535,7 @@ pub(crate) async fn sync_turborepo(
     let mut failed = 0_usize;
 
     for package in packages {
-        if let Err(error) = sync_package_json(package, &local_yarn_packages).await {
+        if let Err(error) = sync_package_json(package).await {
             failed += 1;
             sink.append(error);
         }

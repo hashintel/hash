@@ -255,7 +255,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                             projections: self.context.mir.interner.projections.intern_slice(&[
                                 Projection {
                                     r#type: env_type.fields[index],
-                                    kind: ProjectionKind::Field(FieldIndex::new(index)),
+                                    kind: ProjectionKind::Field(FieldIndex::from_usize(index)),
                                 },
                             ]),
                         })),

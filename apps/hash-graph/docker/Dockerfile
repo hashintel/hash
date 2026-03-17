@@ -15,7 +15,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.1.12 && curl https://mise.run | sh && \
+    export MISE_VERSION=2026.3.3 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -83,22 +83,16 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 COPY --from=base /app/out/full/ .
 
 ARG PROFILE=production
-ARG ENABLE_TEST_SERVER=no
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
-    FEATURES=() && \
-    if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
-    FEATURES+=("test-server"); \
-    fi && \
     if [[ ${PROFILE} == dev ]]; then \
     export RUSTFLAGS="-C debuginfo=line-tables-only" && \
     export PROFILE=dev-llvm; \
     fi && \
-    FEATURES=${FEATURES[@]} && \
     rustup target add "$(uname -m)-unknown-linux-musl" && \
-    cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --features "${FEATURES// /,}" --profile $PROFILE --locked && \
+    cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --profile $PROFILE --locked && \
     mkdir -p /out/etc && \
     cp /tmp/bin/hash-graph /out/hash-graph && \
     echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd && \

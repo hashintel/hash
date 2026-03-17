@@ -187,7 +187,16 @@ export const flowTypedef = gql`
     steps: [StepRun!]!
   }
 
-
+  type PaginatedFlowRuns {
+    """
+    The flow runs for the requested page
+    """
+    flowRuns: [FlowRun!]!
+    """
+    The total number of flow runs matching the filters (before pagination)
+    """
+    totalCount: Int!
+  }
 
   extend type Query {
     getFlowRuns(
@@ -199,7 +208,18 @@ export const flowTypedef = gql`
       Return only flows that match the given status
       """
       executionStatus: FlowRunStatus
-    ): [FlowRun!]!
+      """
+      Number of flow runs to skip (for offset-based pagination).
+      Defaults to 0. Negative values are clamped to 0.
+      """
+      offset: Int
+      """
+      Maximum number of flow runs to return (for offset-based pagination).
+      Defaults to 100 and is capped at that value.
+      Negative values are clamped to 0.
+      """
+      limit: Int
+    ): PaginatedFlowRuns!
 
     getFlowRunById(flowRunId: String!): FlowRun!
   }

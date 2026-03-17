@@ -37,6 +37,11 @@ macro_rules! unit {
             }
 
             #[inline]
+            pub const fn as_u32(self) -> u32 {
+                self.raw as u32
+            }
+
+            #[inline]
             pub const fn checked_add(self, rhs: Self) -> Option<Self> {
                 match self.raw.checked_add(rhs.raw) {
                     Some(raw) => Some(Self { raw }),
@@ -156,6 +161,25 @@ unit!(
     /// Composite types have sizes equal to the sum of their components.
     pub struct InformationUnit(u32)
 );
+
+impl InformationUnit {
+    #[inline]
+    #[must_use]
+    pub const fn checked_mul(self, cardinal: Cardinal) -> Option<Self> {
+        let raw = self.raw.checked_mul(cardinal.raw);
+
+        match raw {
+            Some(value) => Some(Self::new(value)),
+            None => None,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn midpoint(self, other: Self) -> Self {
+        Self::new(u32::midpoint(self.raw, other.raw))
+    }
+}
 
 unit!(
     /// A unit of cardinality (element count).

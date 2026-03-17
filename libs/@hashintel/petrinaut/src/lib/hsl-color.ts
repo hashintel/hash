@@ -1,4 +1,3 @@
-/* eslint-disable id-length */
 /**
  * Utility for creating and manipulating HSL colors.
  *

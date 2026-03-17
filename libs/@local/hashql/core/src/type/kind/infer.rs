@@ -1,6 +1,7 @@
-use crate::{newtype, newtype_producer};
+use crate::{id::newtype, newtype_producer};
 
 newtype!(
+    #[id(crate = crate)]
     pub struct HoleId(u32 is 0..=0xFFFF_FF00)
 );
 

@@ -10,6 +10,7 @@ import type {
   SDCPN,
   Transition,
 } from "../core/types/sdcpn";
+import type { SelectionMap } from "./selection";
 
 export const ARC_ID_PREFIX = "$A_";
 export type ArcIdPrefix = typeof ARC_ID_PREFIX;
@@ -101,7 +102,7 @@ export type MutationHelperFunctions = {
     | "differentialEquation"
     | "parameter"
     | null;
-  deleteItemsByIds: (ids: Set<string>) => void;
+  deleteItemsByIds: (items: SelectionMap) => void;
   layoutGraph: () => Promise<void>;
 };
 

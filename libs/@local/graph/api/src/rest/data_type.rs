@@ -1,7 +1,7 @@
 //! Web routes for CRU operations on Data Types.
 
 use alloc::sync::Arc;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map};
 
 use axum::{
     Extension, Router,
@@ -14,6 +14,7 @@ use hash_graph_postgres_store::{
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_store::{
+    account::AccountStore as _,
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
         DataTypeStore, FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -47,8 +48,9 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
+    resolve_limit,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfDataType, subgraph::Subgraph},
 };
@@ -143,7 +145,6 @@ impl DataTypeResource {
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
-    web_id: WebId,
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
 }
@@ -182,33 +183,53 @@ where
 
     let Json(CreateDataTypeRequest {
         schema,
-        web_id,
         provenance,
         conversions,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
-    let mut metadata = store
-        .create_data_types(
-            actor_id,
-            schema
-                .into_iter()
-                .map(|schema| {
-                    domain_validator
-                        .validate(&schema)
-                        .map_err(report_to_response)?;
+    let mut web_cache = HashMap::<String, WebId>::new();
+    let mut params = Vec::new();
+    for schema in schema {
+        domain_validator
+            .validate(&schema)
+            .map_err(report_to_response)?;
 
-                    Ok(CreateDataTypeParams {
-                        schema,
-                        ownership: OntologyOwnership::Local { web_id },
-                        conflict_behavior: ConflictBehavior::Fail,
-                        provenance: provenance.clone(),
-                        conversions: conversions.clone(),
-                    })
-                })
-                .collect::<Result<Vec<_>, BoxedResponse>>()?,
-        )
+        let shortname = domain_validator
+            .extract_shortname(schema.id.base_url.as_str())
+            .map_err(report_to_response)?;
+
+        let web_id = match web_cache.entry(shortname.to_owned()) {
+            hash_map::Entry::Occupied(entry) => *entry.get(),
+            hash_map::Entry::Vacant(entry) => {
+                let web_id = store
+                    .get_web_by_shortname(actor_id, shortname)
+                    .await
+                    .map_err(report_to_response)?
+                    .ok_or_else(|| {
+                        status_to_response(Status::<()>::new(
+                            hash_status::StatusCode::NotFound,
+                            Some(format!("No web found for shortname `{shortname}`")),
+                            vec![],
+                        ))
+                    })?
+                    .id;
+                *entry.insert(web_id)
+            }
+        };
+
+        params.push(CreateDataTypeParams {
+            schema,
+            ownership: OntologyOwnership::Local { web_id },
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: provenance.clone(),
+            conversions: conversions.clone(),
+        });
+    }
+
+    let mut metadata = store
+        .create_data_types(actor_id, params)
         .await
         .map_err(report_to_response)?;
 
@@ -341,6 +362,7 @@ async fn query_data_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<QueryDataTypesResponse>, BoxedResponse>
@@ -351,20 +373,25 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetDataTypes(&request));
     }
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let mut params = QueryDataTypesParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+
+    params.limit = Some(
+        resolve_limit(params.limit, api_config.query_ontology_limit)
+            .attach(hash_status::StatusCode::InvalidArgument)
+            .map_err(report_to_response)?,
+    );
+
     let store = store_pool
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
     let response = store
-        .query_data_types(
-            actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            QueryDataTypesParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
-        )
+        .query_data_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json);
@@ -405,6 +432,7 @@ async fn query_data_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<QueryDataTypeSubgraphResponse>, BoxedResponse>
@@ -415,19 +443,25 @@ where
         query_logger.capture(actor_id, OpenApiQuery::GetDataTypeSubgraph(&request));
     }
 
-    let store = store_pool
-        .acquire(temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
     // Manually deserialize the query from a JSON value to allow borrowed deserialization
     // and better error reporting.
-    let params = QueryDataTypeSubgraphParams::deserialize(&request)
+    let mut params = QueryDataTypeSubgraphParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
     params
         .validate()
         .map_err(Report::new)
+        .map_err(report_to_response)?;
+
+    params.request_mut().limit = Some(
+        resolve_limit(params.request().limit, api_config.query_ontology_limit)
+            .attach(hash_status::StatusCode::InvalidArgument)
+            .map_err(report_to_response)?,
+    );
+
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     let response = store

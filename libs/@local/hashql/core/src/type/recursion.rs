@@ -1,7 +1,11 @@
-use core::ops::ControlFlow;
+use alloc::alloc::Global;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use super::{Type, kind::TypeKind};
-use crate::{collections::FastHashSet, intern::Interned};
+use crate::{
+    collections::{FastHashSet, fast_hash_set_in, fast_hash_set_with_capacity_in},
+    intern::Interned,
+};
 
 /// Recursive cycle.
 ///
@@ -43,21 +47,46 @@ impl RecursionCycle {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct RecursionBoundary<'heap> {
-    inner: FastHashSet<(
-        Interned<'heap, TypeKind<'heap>>,
-        Interned<'heap, TypeKind<'heap>>,
-    )>,
+pub struct RecursionBoundary<'heap, A: Allocator = Global> {
+    inner: FastHashSet<
+        (
+            Interned<'heap, TypeKind<'heap>>,
+            Interned<'heap, TypeKind<'heap>>,
+        ),
+        A,
+    >,
 }
 
-impl<'heap> RecursionBoundary<'heap> {
-    pub(crate) fn new() -> Self {
+impl Default for RecursionBoundary<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RecursionBoundary<'_> {
+    #[inline]
+    #[must_use]
+    pub fn new() -> Self {
+        Self::new_in(Global)
+    }
+}
+
+impl<'heap, A: Allocator> RecursionBoundary<'heap, A> {
+    #[inline]
+    pub fn new_in(alloc: A) -> Self {
         Self {
-            inner: FastHashSet::default(),
+            inner: fast_hash_set_in(alloc),
         }
     }
 
-    pub(crate) fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
+    #[inline]
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            inner: fast_hash_set_with_capacity_in(capacity, alloc),
+        }
+    }
+
+    pub fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
         // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
         // from interning. See the `Decompose` implementation for more details.
         let lhs_kind = Interned::new_unchecked(lhs.kind);
@@ -75,7 +104,7 @@ impl<'heap> RecursionBoundary<'heap> {
         }
     }
 
-    pub(crate) fn exit(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
+    pub fn exit(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
         // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
         // from interning. See the `Decompose` implementation for more details.
         let lhs_kind = Interned::new_unchecked(lhs.kind);

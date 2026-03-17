@@ -32,23 +32,22 @@
     try_trait_v2,
     temporary_niche_types,
     const_convert,
-    variant_count
+    variant_count,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
 
 pub mod body;
+pub mod builder;
 pub mod context;
 pub mod def;
 pub mod error;
 pub mod intern;
+pub mod interpret;
+mod macros;
 pub mod pass;
 pub mod pretty;
 pub mod reify;
-pub mod visit;
-
-pub mod builder;
-pub mod interpret;
-mod macros;
 #[cfg(test)]
 pub(crate) mod tests;
+pub mod visit;

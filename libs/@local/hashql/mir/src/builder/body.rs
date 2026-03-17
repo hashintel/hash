@@ -330,8 +330,17 @@ macro_rules! body {
     (@type $types:ident; ($($name:ident: $sub:tt),*)) => {
         $types.r#struct([$((stringify!($name), $crate::builder::body!(@type $types; $sub))),*])
     };
+    (@type $types:ident; [Union $($variants:tt),+ $(,)?]) => {
+        $types.union([$($crate::builder::body!(@type $types; $variants)),*])
+    };
+    (@type $types:ident; [Dict $key:tt $val:tt]) => {
+        $types.dict($crate::builder::body!(@type $types; $key), $crate::builder::body!(@type $types; $val))
+    };
     (@type $types:ident; [List $sub:tt]) => {
         $types.list($crate::builder::body!(@type $types; $sub))
+    };
+    (@type $types:ident; [Opaque $name:literal; $value:tt]) => {
+        $types.opaque($name, $crate::builder::body!(@type $types; $value))
     };
     (@type $types:ident; [Opaque $sym:path; $value:tt]) => {
         $types.opaque($sym, $crate::builder::body!(@type $types; $value))
@@ -341,6 +350,9 @@ macro_rules! body {
     };
     (@type $types:ident; [fn() -> $ret:tt]) => {
         $types.closure([] as [hashql_core::r#type::TypeId; 0], $crate::builder::body!(@type $types; $ret))
+    };
+    (@type $types:ident; String) => {
+        $types.string()
     };
     (@type $types:ident; Bool) => {
         $types.boolean()

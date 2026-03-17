@@ -1,9 +1,16 @@
-import type { ActorEntityUuid, BaseUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
-import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
+import {
+  addActorGroupAdministrator,
+  updateWebShortname,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   enabledFeatureFlagsPropertyBaseUrl,
@@ -80,8 +87,13 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
      */
     for (const patch of propertyPatches) {
       const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
+      if (targetBaseUrl === undefined) {
+        throw Error.badUserInput(
+          "Cannot replace the entire property object on a user entity",
+        );
+      }
+
       if (
-        targetBaseUrl !== undefined &&
         !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
         !speciallyHandledPropertyBaseUrls.has(targetBaseUrl)
       ) {
@@ -208,6 +220,12 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         context.graphApi,
         { actorId: systemAccountId },
         { actorId: user.accountId, actorGroupId: user.accountId },
+      );
+
+      await updateWebShortname(
+        context.graphApi,
+        { actorId: systemAccountId },
+        { webId: user.accountId as WebId, shortname: updatedShortname },
       );
     }
   };

@@ -1,5 +1,7 @@
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 import "./index.css";
+
+import { type FunctionComponent } from "react";
 
 import type {
   Color,
@@ -11,13 +13,19 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { LanguageClientProvider } from "./lsp/provider";
+import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
-import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
+import {
+  UndoRedoContext,
+  type UndoRedoContextValue,
+} from "./state/undo-redo-context";
+import { UserSettingsProvider } from "./state/user-settings-provider";
+import type { ViewportAction } from "./types/viewport-action";
 import { EditorView } from "./views/Editor/editor-view";
 
 export { isSDCPNEqual } from "./lib/deep-equal";
@@ -33,14 +41,8 @@ export type {
   Transition,
 };
 
-/**
- * Internal component to initialize Monaco global typings.
- * Must be inside SDCPNProvider to access the store.
- */
-const MonacoSetup: React.FC = () => {
-  useMonacoGlobalTypings();
-  return null;
-};
+export type { UndoRedoContextValue as UndoRedoProps } from "./state/undo-redo-context";
+export type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   /**
@@ -98,28 +100,46 @@ export type PetrinautProps = {
    * The title of the net which is currently loaded.
    */
   title: string;
+  /**
+   * Optional undo/redo support. When provided, the editor will show
+   * undo/redo buttons in the top bar and register keyboard shortcuts.
+   */
+  undoRedo?: UndoRedoContextValue;
+  /**
+   * Optional additional action buttons to render in the viewport controls panel,
+   * after the built-in buttons.
+   */
+  viewportActions?: ViewportAction[];
 };
 
-export const Petrinaut = ({
+export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
+  undoRedo,
+  viewportActions,
   ...rest
-}: PetrinautProps) => {
+}) => {
   return (
     <NotificationsProvider>
-      <SDCPNProvider {...rest}>
-        <CheckerProvider>
-          <SimulationProvider>
-            <PlaybackProvider>
-              <EditorProvider>
-                <MonacoSetup />
-                <EditorView
-                  hideNetManagementControls={hideNetManagementControls}
-                />
-              </EditorProvider>
-            </PlaybackProvider>
-          </SimulationProvider>
-        </CheckerProvider>
-      </SDCPNProvider>
+      <UndoRedoContext value={undoRedo ?? null}>
+        <SDCPNProvider {...rest}>
+          <LanguageClientProvider key={rest.petriNetId}>
+            <MonacoProvider>
+              <SimulationProvider>
+                <PlaybackProvider>
+                  <UserSettingsProvider>
+                    <EditorProvider>
+                      <EditorView
+                        hideNetManagementControls={hideNetManagementControls}
+                        viewportActions={viewportActions}
+                      />
+                    </EditorProvider>
+                  </UserSettingsProvider>
+                </PlaybackProvider>
+              </SimulationProvider>
+            </MonacoProvider>
+          </LanguageClientProvider>
+        </SDCPNProvider>
+      </UndoRedoContext>
     </NotificationsProvider>
   );
 };

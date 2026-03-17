@@ -48,7 +48,10 @@
 //! ```
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, ops::Index};
+use core::{
+    alloc::Allocator,
+    ops::{Index, IndexMut},
+};
 
 use super::{
     DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
@@ -59,7 +62,7 @@ use crate::id::{HasId, Id, IdSlice, IdVec};
 ///
 /// Uses the maximum [`EdgeId`] value, which can never be a valid edge ID since
 /// edge insertion would overflow before reaching this value.
-const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
+const TOMBSTONE: EdgeId = EdgeId::MAX;
 
 /// A node in a [`LinkedGraph`] with associated data.
 ///
@@ -266,6 +269,16 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         }
     }
 
+    pub fn with_capacity_in(num_nodes: usize, num_edges: usize, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        Self {
+            nodes: IdVec::with_capacity_in(num_nodes, alloc.clone()),
+            edges: IdVec::with_capacity_in(num_edges, alloc),
+        }
+    }
+
     /// Adds a new node to the graph with the given data.
     ///
     /// Returns the [`NodeId`] of the newly created node. The node starts with
@@ -306,7 +319,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # use hashql_core::graph::LinkedGraph;
     /// # use hashql_core::id::{Id, IdVec};
     /// #
-    /// # hashql_core::id::newtype!(struct MyId(usize is 0..=usize::MAX));
+    /// # hashql_core::id::newtype!(struct MyId(u32 is 0..=u32::MAX));
     /// #
     /// let mut items: IdVec<MyId, &str> = IdVec::new();
     /// items.push("first");
@@ -528,11 +541,23 @@ impl<N, E> Default for LinkedGraph<N, E> {
     }
 }
 
+impl<N, E, A: Allocator> IndexMut<NodeId> for LinkedGraph<N, E, A> {
+    fn index_mut(&mut self, index: NodeId) -> &mut Self::Output {
+        &mut self.nodes[index]
+    }
+}
+
 impl<N, E, A: Allocator> Index<NodeId> for LinkedGraph<N, E, A> {
     type Output = Node<N>;
 
     fn index(&self, index: NodeId) -> &Self::Output {
         &self.nodes[index]
+    }
+}
+
+impl<N, E, A: Allocator> IndexMut<EdgeId> for LinkedGraph<N, E, A> {
+    fn index_mut(&mut self, index: EdgeId) -> &mut Self::Output {
+        &mut self.edges[index]
     }
 }
 

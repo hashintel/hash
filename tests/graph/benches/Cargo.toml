@@ -27,7 +27,7 @@ hash-telemetry                 = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies
-criterion       = { workspace = true, features = ["async_tokio", "html_reports"] }
+criterion       = { workspace = true, default-features = true, features = ["async_tokio", "html_reports"] }
 criterion-macro = { workspace = true }
 derive_more     = { workspace = true, features = ["display"] }
 either          = { workspace = true }
@@ -66,6 +66,11 @@ path = "graph/lib.rs"
 [[bench]]
 name = "policy"
 path = "policy/lib.rs"
+
+[package.metadata.sync.turborepo]
+extra-dev-dependencies = [
+    { name = "@apps/hash-graph", version = "workspace:*" },
+]
 
 [package.metadata.cargo-shear]
 # Cargo shear does not detect these dependencies

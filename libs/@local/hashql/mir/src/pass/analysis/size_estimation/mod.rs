@@ -50,7 +50,7 @@ use hashql_core::{
         tarjan::{SccId, StronglyConnectedComponents},
     },
     heap::Heap,
-    id::{IdVec, bit_vec::DenseBitSet},
+    id::{Id as _, IdVec, bit_vec::DenseBitSet},
 };
 
 pub use self::{
@@ -102,8 +102,8 @@ impl PendingDataflow {
     }
 
     /// Returns the synthetic local used to track whether the return type needs dynamic analysis.
-    const fn return_slot(&self) -> Local {
-        Local::new(self.inner.domain_size() - 1)
+    fn return_slot(&self) -> Local {
+        Local::from_usize(self.inner.domain_size() - 1)
     }
 
     fn insert(&mut self, local: Local) {

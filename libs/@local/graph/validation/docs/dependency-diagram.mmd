@@ -17,36 +17,34 @@ graph TD
     6[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
     7[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
     8[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    9[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    10[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    11[hash-graph-validation]
-    class 11 root
-    12[<a href="../harpc_types/index.html">harpc-types</a>]
-    13[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    14[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    15[<a href="../error_stack/index.html">error-stack</a>]
-    16[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    17[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    18[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    0 --> 9
+    9[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    10[hash-graph-validation]
+    class 10 root
+    11[<a href="../harpc_types/index.html">harpc-types</a>]
+    12[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    14[<a href="../error_stack/index.html">error-stack</a>]
+    15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    16[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    17[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 4
     1 --> 8
-    1 -.-> 18
+    1 -.-> 17
     2 -.-> 3
-    2 --> 13
+    2 --> 12
     4 --> 6
     5 --> 1
-    6 --> 11
+    6 --> 10
     7 --> 5
-    7 --> 10
-    7 --> 14
+    7 --> 9
+    7 --> 13
     8 --> 2
-    9 --> 4
-    10 -.-> 18
-    11 -.-> 18
-    13 -.-> 12
-    13 --> 12
-    13 --> 15
-    14 --> 1
-    16 -.-> 4
-    17 -.-> 6
-    18 --> 7
+    9 -.-> 17
+    10 -.-> 17
+    12 -.-> 11
+    12 --> 11
+    12 --> 14
+    13 --> 1
+    15 -.-> 4
+    16 -.-> 6
+    17 --> 7

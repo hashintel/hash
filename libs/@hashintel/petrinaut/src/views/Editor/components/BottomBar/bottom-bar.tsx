@@ -1,27 +1,30 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { CheckerContext } from "../../../../state/checker-context";
+import { LanguageClientContext } from "../../../../lsp/context";
 import {
+  type CursorMode,
   EditorContext,
   type EditorState,
 } from "../../../../state/editor-context";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
+import { ToolbarDivider } from "./toolbar-divider";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const glassPanelStyle = css({
-  paddingX: "2",
-  paddingY: "1",
-  backgroundColor: "[rgba(255, 255, 255, 0.6)]",
+  padding: "1",
+  backgroundColor: "white.a95",
+  borderWidth: "thin",
+  borderColor: "neutral.a50",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
   transition: "[all 0.3s ease]",
   _hover: {
-    backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+    backgroundColor: "white.a110",
     boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
   },
 });
@@ -29,14 +32,7 @@ const glassPanelStyle = css({
 const toolbarContainerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "4",
-});
-
-const dividerStyle = css({
-  background: "neutral.s40",
-  width: "[1px]",
-  height: "[16px]",
-  margin: "[0 4px]",
+  gap: "1",
 });
 
 const bottomBarPositionStyle = css({
@@ -48,6 +44,17 @@ const bottomBarPositionStyle = css({
   gap: "[20px]",
 });
 
+const animatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition: "[bottom 150ms ease-in-out]",
+      },
+    },
+  },
+});
+
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
@@ -55,21 +62,26 @@ interface BottomBarProps {
   mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
+  cursorMode: CursorMode;
+  onCursorModeChange: (mode: CursorMode) => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   mode,
   editionMode,
   onEditionModeChange,
+  cursorMode,
+  onCursorModeChange,
 }) => {
   const {
     isBottomPanelOpen,
     setBottomPanelOpen,
     setActiveBottomPanelTab,
     bottomPanelHeight,
+    isPanelAnimating,
   } = use(EditorContext);
 
-  const { totalDiagnosticsCount } = use(CheckerContext);
+  const { totalDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;
 
   const showDiagnostics = useCallback(() => {
@@ -87,25 +99,48 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       mode === "simulate" &&
       (editionMode === "add-place" || editionMode === "add-transition")
     ) {
-      onEditionModeChange("pan");
+      onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);
 
   // Setup keyboard shortcuts
-  useKeyboardShortcuts(mode, onEditionModeChange);
+  useKeyboardShortcuts(mode, onEditionModeChange, onCursorModeChange);
 
   // Calculate bottom offset based on bottom panel visibility
   const bottomOffset = isBottomPanelOpen
-    ? bottomPanelHeight + 12 + 24 // panel height + margin + spacing
+    ? bottomPanelHeight + 24 // panel height + margin + spacing
     : 24;
 
   return (
-    <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
-      {/* Edition/Linting segment */}
+    <div
+      className={`${bottomBarPositionStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
+      style={{ bottom: bottomOffset }}
+    >
+      {/* Edition tools segment */}
       <refractive.div
         className={glassPanelStyle}
         refraction={{
-          radius: 12,
+          radius: 8,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <ToolbarModes
+            editionMode={editionMode}
+            onEditionModeChange={onEditionModeChange}
+            cursorMode={cursorMode}
+            onCursorModeChange={onCursorModeChange}
+          />
+        </div>
+      </refractive.div>
+
+      {/* Playback segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 8,
           blur: 3,
           bezelWidth: 20,
           glassThickness: 100,
@@ -128,25 +163,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             onClick={showDiagnostics}
             isExpanded={isBottomPanelOpen}
           />
-          <div className={dividerStyle} />
-          <ToolbarModes
-            editionMode={editionMode}
-            onEditionModeChange={onEditionModeChange}
-          />
-        </div>
-      </refractive.div>
-
-      {/* Play/PlaybackSettings/Timeline segment */}
-      <refractive.div
-        className={glassPanelStyle}
-        refraction={{
-          radius: 12,
-          blur: 3,
-          bezelWidth: 20,
-          glassThickness: 100,
-        }}
-      >
-        <div className={toolbarContainerStyle}>
+          <ToolbarDivider />
           <SimulationControls disabled={hasDiagnostics} />
         </div>
       </refractive.div>

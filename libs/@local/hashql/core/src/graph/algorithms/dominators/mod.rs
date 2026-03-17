@@ -41,8 +41,7 @@ pub use self::{
 };
 use crate::{
     graph::{DirectedGraph, Predecessors, Successors},
-    id::{Id, IdSlice, IdVec},
-    newtype,
+    id::{Id, IdSlice, IdVec, newtype},
 };
 
 mod frontier;
@@ -56,7 +55,7 @@ struct PreOrderFrame<Iter> {
 }
 
 newtype!(
-    #[steppable]
+    #[id(derive(Step), crate = crate)]
     struct PreorderIndex(u32 is 0..=u32::MAX)
 );
 
@@ -444,7 +443,7 @@ struct Time {
     finish: u32,
 }
 
-newtype!(struct EdgeIndex(u32 is 0..=u32::MAX));
+newtype!(#[id(crate = crate)] struct EdgeIndex(u32 is 0..=u32::MAX));
 
 fn compute_access_time<N: Id>(
     start_node: N,

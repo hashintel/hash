@@ -382,7 +382,10 @@ mod tests {
     use super::*;
 
     // Define a test ID type
-    crate::id::newtype!(struct TestId(u32 is 0..=1000));
+    crate::id::newtype!(
+        #[id(crate = crate)]
+        struct TestId(u32 is 0..=1000)
+    );
 
     #[test]
     fn path_compression() {

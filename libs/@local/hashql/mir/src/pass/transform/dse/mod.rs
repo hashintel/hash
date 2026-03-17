@@ -119,7 +119,7 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
         } = dependencies;
 
         while let Some(local) = queue.dequeue() {
-            for dependency in matrix.iter(local) {
+            for dependency in matrix.iter_row(local) {
                 if live.insert(dependency) {
                     queue.enqueue(dependency);
                 }

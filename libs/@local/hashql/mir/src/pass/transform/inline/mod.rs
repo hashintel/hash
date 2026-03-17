@@ -404,7 +404,7 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
             block.statements.push(Statement {
                 span: callsite.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(local_offset + index)),
+                    lhs: Place::local(Local::from_usize(local_offset + index)),
                     rhs: RValue::Load(arg),
                 }),
             });

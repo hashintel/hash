@@ -47,10 +47,10 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, DeleteEntitiesParams, DeletionSummary,
+        EntityStore, EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
+        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -59,7 +59,7 @@ use hash_graph_store::{
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -296,7 +296,8 @@ impl DataTypeStore for DatabaseApi<'_> {
         mut params: QueryDataTypesParams<'_>,
     ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
+        let is_first_page = params.after.is_none();
+        let limit = params.limit;
         params.include_count = true;
 
         let count = self
@@ -313,8 +314,9 @@ impl DataTypeStore for DatabaseApi<'_> {
 
         // We can ensure that `count_data_types` and `get_data_types` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of data types returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all data types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.data_types.len());
         }
 
@@ -331,7 +333,8 @@ impl DataTypeStore for DatabaseApi<'_> {
     ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
         let request = params.request_mut();
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let is_first_page = request.after.is_none();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -351,8 +354,9 @@ impl DataTypeStore for DatabaseApi<'_> {
 
         // We can ensure that `count_data_types` and `get_data_type_subgraph` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of data types returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all data types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.subgraph.roots.len());
         }
 
@@ -450,7 +454,8 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         mut params: QueryPropertyTypesParams<'_>,
     ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
+        let is_first_page = params.after.is_none();
+        let limit = params.limit;
         params.include_count = true;
 
         let count = self
@@ -467,9 +472,9 @@ impl PropertyTypeStore for DatabaseApi<'_> {
 
         // We can ensure that `count_property_types` and `get_property_types` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of property types
-        // returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all property types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.property_types.len());
         }
 
@@ -487,7 +492,8 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let is_first_page = request.after.is_none();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -508,9 +514,9 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         // We can ensure that `count_property_types` and `get_property_type_subgraph` return the
         // same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of property types
-        // returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all property types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.subgraph.roots.len());
         }
 
@@ -596,7 +602,8 @@ impl EntityTypeStore for DatabaseApi<'_> {
         let request = &mut params.request;
 
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let is_first_page = request.after.is_none();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -613,8 +620,9 @@ impl EntityTypeStore for DatabaseApi<'_> {
 
         // We can ensure that `count_entity_types` and `get_entity_types` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entity types returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all entity types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.entity_types.len());
         }
 
@@ -653,7 +661,8 @@ impl EntityTypeStore for DatabaseApi<'_> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let is_first_page = request.after.is_none();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -674,8 +683,9 @@ impl EntityTypeStore for DatabaseApi<'_> {
         // We can ensure that `count_entity_types` and `get_entity_type_subgraph` return the same
         // count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entity types returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough (or not set), all entity types
+        // should be returned
+        if is_first_page && limit.is_none_or(|limit| count <= limit) {
             assert_eq!(count, response.subgraph.roots.len());
         }
 
@@ -760,7 +770,8 @@ impl EntityStore for DatabaseApi<'_> {
         mut params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
+        let is_first_page = params.sorting.cursor.is_none();
+        let limit = params.limit;
         params.include_count = true;
 
         let count = self
@@ -778,8 +789,8 @@ impl EntityStore for DatabaseApi<'_> {
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entities returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough, all entities should be returned
+        if is_first_page && count <= limit {
             assert_eq!(count, response.entities.len());
         }
 
@@ -797,7 +808,8 @@ impl EntityStore for DatabaseApi<'_> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
-        let has_limit = request.limit.is_some();
+        let is_first_page = request.sorting.cursor.is_none();
+        let limit = request.limit;
         request.include_count = true;
 
         let count = self
@@ -814,8 +826,8 @@ impl EntityStore for DatabaseApi<'_> {
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entities returned
-        if !has_limit {
+        // if this is the first page and the limit is large enough, all entities should be returned
+        if is_first_page && count <= limit {
             assert_eq!(count, response.subgraph.roots.len());
         }
 
@@ -851,6 +863,14 @@ impl EntityStore for DatabaseApi<'_> {
         params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         self.store.patch_entity(actor_id, params).await
+    }
+
+    async fn delete_entities(
+        &mut self,
+        actor_id: AuthenticatedActor,
+        params: DeleteEntitiesParams<'_>,
+    ) -> Result<DeletionSummary, Report<DeletionError>> {
+        self.store.delete_entities(actor_id, params).await
     }
 
     async fn update_entity_embeddings(

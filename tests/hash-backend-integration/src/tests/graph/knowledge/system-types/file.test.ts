@@ -14,7 +14,7 @@ import type {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({

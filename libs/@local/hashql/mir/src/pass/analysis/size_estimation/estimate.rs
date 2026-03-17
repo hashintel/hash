@@ -97,6 +97,31 @@ impl<T> Estimate<T> {
         }
     }
 
+    pub(crate) fn eval<M>(&self, monoid: &M, values: impl IntoIterator<Item: AsRef<T>>) -> T
+    where
+        T: Clone,
+        M: AdditiveMonoid<T>,
+        for<'a> &'a T: SaturatingMul<u16, Output = T>,
+    {
+        match self {
+            Self::Constant(value) => value.clone(),
+            Self::Affine(AffineEquation {
+                coefficients,
+                constant,
+            }) => {
+                let mut result = constant.clone();
+
+                // in case values are not provided, we assume they are zero, therefore cannot be
+                // added.
+                for (&coefficient, value) in coefficients.iter().zip(values) {
+                    monoid.plus(&mut result, &value.as_ref().saturating_mul(coefficient));
+                }
+
+                result
+            }
+        }
+    }
+
     /// Returns mutable access to the constant term.
     pub(crate) const fn constant_mut(&mut self) -> &mut T {
         match self {
