@@ -168,13 +168,13 @@ export const EditorView = ({
       return;
     }
 
-    const { sdcpn: loadedSDCPN, hadMissingVisualInfo } = result;
+    const { sdcpn: loadedSDCPN, hadMissingPositions } = result;
     let sdcpnToLoad = loadedSDCPN;
 
     // If any nodes were missing positions, run ELK layout BEFORE creating the net.
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
-    if (hadMissingVisualInfo) {
+    if (hadMissingPositions) {
       const positions = await calculateGraphLayout(sdcpnToLoad, dims, {
         onlyMissingPositions: true,
       });

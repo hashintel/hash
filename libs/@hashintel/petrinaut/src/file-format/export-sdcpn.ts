@@ -24,12 +24,12 @@ export function exportSDCPN({
     : petriNetDefinition;
 
   const payload = {
+    ...sdcpnToExport,
     version: SDCPN_FILE_FORMAT_VERSION,
     meta: {
       generator: "Petrinaut",
     },
     title,
-    ...sdcpnToExport,
   };
 
   const jsonString = JSON.stringify(payload, null, 2);

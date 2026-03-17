@@ -1,7 +1,9 @@
 import type { SDCPN } from "../core/types/sdcpn";
-import { convertPre20251128ToSDCPN } from "./old-formats/pre-2025-11-28/convert";
-import { oldFormatFileSchema } from "./old-formats/pre-2025-11-28/schema";
-import { legacySdcpnFileSchema, sdcpnFileSchema } from "./types";
+import {
+  legacySdcpnFileSchema,
+  SDCPN_FILE_FORMAT_VERSION,
+  sdcpnFileSchema,
+} from "./types";
 
 type SDCPNWithTitle = SDCPN & { title: string };
 
@@ -9,24 +11,18 @@ type SDCPNWithTitle = SDCPN & { title: string };
  * Result of attempting to import an SDCPN file.
  */
 export type ImportResult =
-  | { ok: true; sdcpn: SDCPNWithTitle; hadMissingVisualInfo: boolean }
+  | { ok: true; sdcpn: SDCPNWithTitle; hadMissingPositions: boolean }
   | { ok: false; error: string };
 
 /**
- * Checks whether any visual information is missing (positions, color display info).
+ * Checks whether any node positions are missing.
  */
-const hasMissingVisualInfo = (sdcpn: {
+const hasMissingPositions = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
-  types: { iconSlug?: string; displayColor?: string }[];
 }): boolean => {
   for (const node of [...sdcpn.places, ...sdcpn.transitions]) {
     if (node.x === undefined || node.y === undefined) {
-      return true;
-    }
-  }
-  for (const type of sdcpn.types) {
-    if (type.iconSlug === undefined || type.displayColor === undefined) {
       return true;
     }
   }
@@ -71,11 +67,10 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
     const { version: _version, meta: _meta, ...sdcpnData } = versioned.data;
-    const hadMissing = hasMissingVisualInfo(sdcpnData);
     return {
       ok: true,
       sdcpn: fillMissingVisualInfo(sdcpnData),
-      hadMissingVisualInfo: hadMissing,
+      hadMissingPositions: hasMissingPositions(sdcpnData),
     };
   }
 
@@ -83,6 +78,18 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // rather than falling through to the legacy path (which would silently accept
   // future-versioned files by stripping the unknown `version` key).
   if (typeof data === "object" && data !== null && "version" in data) {
+    const version = (data as { version: unknown }).version;
+    if (
+      typeof version === "number" &&
+      version >= 1 &&
+      version <= SDCPN_FILE_FORMAT_VERSION
+    ) {
+      // Supported version but invalid structure — show actual Zod errors
+      return {
+        ok: false,
+        error: `Invalid SDCPN file: ${versioned.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ")}`,
+      };
+    }
     return {
       ok: false,
       error: "Unsupported SDCPN file format version",
@@ -92,22 +99,10 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
-    const hadMissing = hasMissingVisualInfo(legacy.data);
     return {
       ok: true,
       sdcpn: fillMissingVisualInfo(legacy.data),
-      hadMissingVisualInfo: hadMissing,
-    };
-  }
-
-  // Try the pre-2025-11-28 old format (different field names like `type`, `iconId`, etc.)
-  const oldFormat = oldFormatFileSchema.safeParse(data);
-  if (oldFormat.success) {
-    const converted = convertPre20251128ToSDCPN(oldFormat.data);
-    return {
-      ok: true,
-      sdcpn: { ...converted, title: oldFormat.data.title },
-      hadMissingVisualInfo: false, // old format has positions
+      hadMissingPositions: hasMissingPositions(legacy.data),
     };
   }
 

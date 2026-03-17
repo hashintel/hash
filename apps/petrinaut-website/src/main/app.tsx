@@ -82,18 +82,19 @@ export const DevApp = () => {
   const loadPetriNet = (petriNetId: string) => {
     // Remove the current net if it was empty and unmodified
     if (currentNetId && currentNetId !== petriNetId) {
-      const prevNet = storedSDCPNs[currentNetId];
-      if (
-        prevNet &&
-        !isOldFormatInLocalStorage(prevNet) &&
-        isEmptySDCPN(prevNet.sdcpn)
-      ) {
-        setStoredSDCPNs((prev) => {
+      setStoredSDCPNs((prev) => {
+        const prevNet = prev[currentNetId];
+        if (
+          prevNet &&
+          !isOldFormatInLocalStorage(prevNet) &&
+          isEmptySDCPN(prevNet.sdcpn)
+        ) {
           const next = { ...prev };
           delete next[currentNetId];
           return next;
-        });
-      }
+        }
+        return prev;
+      });
     }
     setCurrentNetId(petriNetId);
   };
