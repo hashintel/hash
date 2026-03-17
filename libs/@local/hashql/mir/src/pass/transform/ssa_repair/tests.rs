@@ -637,6 +637,43 @@ fn block_param_def_with_sibling_assignment() {
 
         bb0() {
             cond = load true;
+            if cond then bb2() else bb1(0);
+        },
+        bb1(x) {
+            return x;
+        },
+        bb2() {
+            x = load 1;
+            return x;
+        }
+    });
+
+    assert_ssa_pass(
+        "block_param_def_with_sibling_assignment",
+        body,
+        MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+#[test]
+fn block_param_def_with_sibling_assignment2() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // bb0 branches to bb1 or bb2. bb1 assigns x and returns it directly.
+    // bb2 receives x as a block parameter and returns it. Both blocks are
+    // terminal, so the IDF of {bb1, bb2} is empty.
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
+
+        bb0() {
+            cond = load true;
             if cond then bb1() else bb2(0);
         },
         bb1() {
@@ -649,7 +686,7 @@ fn block_param_def_with_sibling_assignment() {
     });
 
     assert_ssa_pass(
-        "block_param_def_with_sibling_assignment",
+        "block_param_def_with_sibling_assignment2",
         body,
         MirContext {
             heap: &heap,

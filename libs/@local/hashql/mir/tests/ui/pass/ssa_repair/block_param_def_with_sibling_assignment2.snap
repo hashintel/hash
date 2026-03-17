@@ -9,16 +9,16 @@ fn {closure@4294967040}() -> Integer {
     bb0(): {
         %1 = true
 
-        switchInt(%1) -> [0: bb1(0), 1: bb2()]
+        switchInt(%1) -> [0: bb2(0), 1: bb1()]
     }
 
-    bb1(%0): {
+    bb1(): {
+        %0 = 1
+
         return %0
     }
 
-    bb2(): {
-        %0 = 1
-
+    bb2(%0): {
         return %0
     }
 }
@@ -33,16 +33,16 @@ fn {closure@4294967040}() -> Integer {
     bb0(): {
         %1 = true
 
-        switchInt(%1) -> [0: bb1(0), 1: bb2()]
+        switchInt(%1) -> [0: bb2(0), 1: bb1()]
     }
 
-    bb1(%2): {
+    bb1(): {
+        %2 = 1
+
         return %2
     }
 
-    bb2(): {
-        %0 = 1
-
+    bb2(%0): {
         return %0
     }
 }
