@@ -16,17 +16,18 @@
 | 1.A | Inequality filter                       | done   | `jsonc/filter-not-equal.jsonc` |
 | 1.B | Let binding propagation                 | done   | `jsonc/let-binding.jsonc` |
 | 1.C | Empty result set                        | done   | `jsonc/filter-false.jsonc` |
+| 1.D | Diamond CFG in filter                   | todo   | `jsonc/filter-diamond-cfg.jsonc` |
 | 2.1 | Interpreter-only filter                 | todo   | programmatic |
 | 2.2 | Postgres-only filter                    | todo   | programmatic |
 | 2.3 | Mixed island filter (continuation)      | todo   | programmatic |
 | 2.4 | Multiple sequential filters             | todo   | programmatic |
-| 2.5 | Diamond CFG in filter                   | todo   | programmatic |
+
 | 3.1 | Metadata only, no properties            | todo   | unit test (hydration) |
 | 3.2 | Full metadata population                | todo   | unit test (hydration) |
 | 3.3 | Composite path: RecordId                | todo   | unit test (hydration) |
 | 3.4 | Composite path: TemporalVersioning      | todo   | unit test (hydration) |
 | 3.5 | Draft entity (non-null draft_id)        | done   | `jsonc/draft-entity.jsonc` |
-| 4.* | Decoder unit tests (23 tests)           | done   | `src/orchestrator/codec/decode/tests.rs` |
+| 4.*| Decoder unit tests (23 tests)           | done   | `src/orchestrator/codec/decode/tests.rs` |
 | 5.* | Encoder unit tests (16 tests)           | done   | `src/orchestrator/codec/encode/tests.rs` |
 
 ## Structure
@@ -55,7 +56,7 @@ evaluation against real data, and final result correctness.
 
 ### 1. End-to-end reads (J-Expr, full pipeline)
 
-Tests 1.1 through 1.9 use J-Expr source files. Tests 1.2, 1.3, 1.6, 1.7, and
+Tests 1.1 through 1.D use J-Expr source files. Tests 1.2, 1.3, 1.6, 1.7, and
 1.8 need the MIR builder because they touch types behind `List`, `Option`, or
 un-narrowed `?` that cannot typecheck through the HIR.
 
@@ -73,6 +74,7 @@ un-narrowed `?` that cannot typecheck through the HIR.
 | 1.A | Inequality filter | Verifies `!=` exclusion against real data. Complements 1.4. |
 | 1.B | Let binding propagation | Verifies let-bound values propagate into filter bodies correctly through the full pipeline. |
 | 1.C | Empty result set | Verifies the orchestrator handles zero matching rows without error. |
+| 1.D | Diamond CFG in filter | Verifies continuation column decode with different local sets per branch. Discriminant is vertex-dependent (`entity_uuid == alice_uuid`), so different rows take different branches. One arm compares against a composite `EntityId` input (Alice), the other against an `EntityUuid` input (Bob). |
 
 **1.1 Simple entity read, no filter**
 Query all entities with unbounded axes and a trivial `true` filter. Output is
@@ -123,6 +125,16 @@ desugaring produces correct MIR through the full pipeline.
 Filter with literal `false`. Verifies the orchestrator returns an empty list
 without error.
 
+**1.D Diamond CFG in filter**
+Filter with `if` expression whose discriminant depends on the vertex:
+`entity_uuid == alice_uuid_input`. Rows where the vertex is Alice take the
+first arm, which compares against a full `EntityId` input (composite type,
+parameter binding). All other rows take the second arm, which compares
+`entity_uuid` against an `EntityUuid` input for Bob. Expected result: Alice
+and Bob are returned, all other entities are filtered out. Exercises
+continuation column decode with different local sets per branch, and both
+composite-input and scalar-input parameter binding paths.
+
 ### 2. Filter chain tests (programmatic, `body!` macro)
 
 All filter tests use `input.load!` for discriminants so control flow survives
@@ -134,7 +146,6 @@ MIR optimization.
 | 2.2 | Postgres-only filter | Verifies that server-side filtering actually excludes rows from the hydrated result set. SQL generation is tested; row exclusion against real data is not. |
 | 2.3 | Mixed island filter (continuation) | Exercises `PartialPostgresState` hydration, `finish_in` decoding, and `flush` into the callstack. The entire continuation round-trip path is untested by SQL snapshot tests. |
 | 2.4 | Multiple sequential filters | Verifies short-circuit AND behavior: second filter does not run on rejected rows. Composition semantics are only observable at runtime. |
-| 2.5 | Diamond CFG in filter | Verifies continuation column decode when different branches carry different local sets. The CASE SQL is snapshot-tested; decoding the result back into locals is not. |
 
 **2.1 Interpreter-only filter**
 Filter body where a closure application forces `TargetId::Interpreter`. No
@@ -153,10 +164,6 @@ and `flush` writing locals into the callstack for resumed interpretation.
 **2.4 Multiple sequential filters**
 Two filter bodies on the same graph read. First rejects some rows, second runs
 only on survivors. Verifies short-circuit AND behavior.
-
-**2.5 Diamond CFG in filter**
-Filter with diamond control flow (branch on input, converge). Verifies
-continuation decode when different branches produce different local sets.
 
 ### 3. Hydration edge cases
 

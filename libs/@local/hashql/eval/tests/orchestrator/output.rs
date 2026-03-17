@@ -64,6 +64,10 @@ static TIMESTAMP_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("timestamp regex is valid")
 });
 
+static EPOCH_MS_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"("(?:start|end)":\s*)\d{13}"#).expect("epoch millis regex is valid")
+});
+
 /// Replaces UUIDs with positional placeholders (`<uuid:0>`, `<uuid:1>`, ...)
 /// and ISO timestamps with `<timestamp>`.
 ///
@@ -80,8 +84,10 @@ fn normalize(input: &str) -> String {
         format!("<uuid:{index}>")
     });
 
-    TIMESTAMP_RE
-        .replace_all(&after_uuids, "<timestamp>")
+    let after_timestamps = TIMESTAMP_RE.replace_all(&after_uuids, "<timestamp>");
+
+    EPOCH_MS_RE
+        .replace_all(&after_timestamps, "${1}<timestamp>")
         .into_owned()
 }
 

@@ -138,6 +138,12 @@ impl<T> Hydrated<T, ()> {
         *self = Self::Null(());
     }
 
+    pub(crate) fn try_null(&mut self) {
+        if matches!(self, Self::Value(_)) {
+            *self = Self::Null(());
+        }
+    }
+
     pub(crate) fn filter(self, func: impl FnOnce(&T) -> bool) -> Self {
         match self {
             Self::Skipped => Self::Skipped,
@@ -480,6 +486,24 @@ impl<'heap, A: Allocator> PartialLinkData<'heap, A> {
         let value = Value::Struct(builder.finish(interner, alloc.clone()));
         Value::Opaque(Opaque::new(sym::path::LinkData, Rc::new_in(value, alloc)))
     }
+
+    const fn has_value(&self) -> bool {
+        let Self {
+            left_entity_id,
+            right_entity_id,
+            left_entity_confidence,
+            left_entity_provenance,
+            right_entity_confidence,
+            right_entity_provenance,
+        } = self;
+
+        matches!(left_entity_id, Hydrated::Value(_))
+            || matches!(right_entity_id, Hydrated::Value(_))
+            || matches!(left_entity_confidence, Hydrated::Value(_))
+            || matches!(left_entity_provenance, Hydrated::Value(_))
+            || matches!(right_entity_confidence, Hydrated::Value(_))
+            || matches!(right_entity_provenance, Hydrated::Value(_))
+    }
 }
 
 impl<A: Allocator> Default for PartialLinkData<'_, A> {
@@ -587,10 +611,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::metadata);
         self.link_data
-            .filter(|partial| {
-                matches!(partial.left_entity_id, Hydrated::Value(_))
-                    && matches!(partial.right_entity_id, Hydrated::Value(_))
-            })
+            .filter(PartialLinkData::has_value)
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::link_data, alloc.clone());
         self.encodings
@@ -808,7 +829,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
-                    // TODO: self.link_data.null();
+                    self.link_data.try_null();
                     return Ok(());
                 };
 
@@ -820,7 +841,7 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
                     row.try_get(column.index).map_err(row_hydration_error)?;
 
                 let Some(value) = value else {
-                    // TODO: self.link_data.null();
+                    self.link_data.try_null();
                     return Ok(());
                 };
 

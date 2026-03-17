@@ -55,11 +55,11 @@
       "temporal_versioning": {
         "decision_time": {
           "end": null,
-          "start": 1773697901948
+          "start": <timestamp>
         },
         "transaction_time": {
           "end": null,
-          "start": 1773697901948
+          "start": <timestamp>
         }
       }
     },
