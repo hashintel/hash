@@ -217,7 +217,6 @@ export const EditorView = ({
             submenu: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               label: net.title,
-              icon: <LuFileText style={{ opacity: 0.7 }} />,
               suffix: formatRelativeTime(net.lastUpdated),
               onClick: () => {
                 loadPetriNet(net.netId);
