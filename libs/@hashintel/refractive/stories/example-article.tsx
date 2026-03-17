@@ -63,7 +63,7 @@ export const ExampleArticle: React.FC = () => {
 
       <img
         src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        alt="Something"
+        alt="Abstract colorful shapes"
         style={{
           width: "100%",
           height: "400px",
@@ -137,7 +137,7 @@ export const ExampleArticle: React.FC = () => {
 
       <img
         src="https://images.unsplash.com/photo-1496096265110-f83ad7f96608?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        alt="Something"
+        alt="Light refraction through prism"
         style={{
           width: "100%",
           height: "400px",
@@ -180,7 +180,7 @@ export const ExampleArticle: React.FC = () => {
 
       <img
         src="https://images.unsplash.com/photo-1579547621113-e4bb2a19bdd6?q=80&w=1239&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        alt="Something"
+        alt="Scientific equipment"
         style={{
           width: "100%",
           height: "400px",
@@ -230,7 +230,7 @@ export const ExampleArticle: React.FC = () => {
 
       <img
         src="https://images.unsplash.com/photo-1637789594401-5a0dac0d3e36?q=80&w=1294&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        alt="Something"
+        alt="Natural light patterns"
         style={{
           width: "100%",
           height: "400px",

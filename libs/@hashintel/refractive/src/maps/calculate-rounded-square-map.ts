@@ -79,7 +79,7 @@ export function calculateRoundedSquareMap(props: {
   const radius = Math.min(props.radius, width / 2, height / 2);
   const cornerWidth = Math.max(
     radius,
-    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2),
+    Math.min(props.maximumDistanceToBorder, width / 2, height / 2),
   );
 
   const widthBetweenCorners = width - cornerWidth * 2;
