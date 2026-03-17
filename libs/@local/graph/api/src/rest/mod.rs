@@ -20,7 +20,7 @@ mod entity_query_request;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
-use core::str::FromStr as _;
+use core::{error::Error, str::FromStr as _};
 use std::{
     fs,
     io::{self, Write as _},
@@ -323,6 +323,37 @@ pub enum OpenApiQuery<'a> {
     DiffEntity(&'a DiffEntityParams),
 }
 
+/// The requested limit exceeds the configured maximum.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("The requested limit ({requested}) exceeds the maximum allowed limit ({max}).")]
+pub struct LimitExceededError {
+    pub requested: usize,
+    pub max: usize,
+}
+
+impl Error for LimitExceededError {}
+
+/// Resolves an optional request limit against a configured maximum.
+///
+/// Returns the configured maximum when no limit is requested. Returns the requested limit if it
+/// does not exceed the maximum.
+///
+/// # Errors
+///
+/// Returns [`LimitExceededError`] if `requested` exceeds `max`.
+pub(crate) fn resolve_limit(
+    requested: Option<usize>,
+    max: usize,
+) -> Result<usize, Report<LimitExceededError>> {
+    match requested {
+        Some(requested) if requested > max => {
+            Err(Report::new(LimitExceededError { requested, max }))
+        }
+        Some(limit) => Ok(limit),
+        None => Ok(max),
+    }
+}
+
 /// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "clap", derive(clap::Parser))]
@@ -336,6 +367,16 @@ pub struct ApiConfig {
         clap(long, default_value_t = 1000, env = "HASH_GRAPH_QUERY_ENTITY_LIMIT")
     )]
     pub query_entity_limit: usize,
+
+    /// The default and maximum number of ontology types returned by a single query.
+    ///
+    /// When a request omits `limit`, this value is used. Requests that specify a `limit` larger
+    /// than this value are rejected.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value_t = 1000, env = "HASH_GRAPH_QUERY_ONTOLOGY_LIMIT")
+    )]
+    pub query_ontology_limit: usize,
 }
 
 pub struct RestRouterDependencies<S>
