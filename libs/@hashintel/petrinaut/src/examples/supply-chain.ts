@@ -1,3 +1,4 @@
+import { SNAP_GRID_SIZE } from "../constants/ui";
 import type { SDCPN } from "../core/types/sdcpn";
 
 export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
@@ -10,8 +11,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 20,
-        y: 120,
+        x: SNAP_GRID_SIZE,
+        y: 8 * SNAP_GRID_SIZE,
       },
       {
         id: "place__1",
@@ -19,8 +20,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 20,
-        y: 600,
+        x: SNAP_GRID_SIZE,
+        y: 40 * SNAP_GRID_SIZE,
       },
       {
         id: "place__2",
@@ -28,8 +29,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 300,
-        y: 300,
+        x: 20 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
       },
       {
         id: "place__3",
@@ -37,8 +38,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 700,
-        y: 350,
+        x: 47 * SNAP_GRID_SIZE,
+        y: 23 * SNAP_GRID_SIZE,
       },
       {
         id: "place__4",
@@ -46,8 +47,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1100,
-        y: 600,
+        x: 73 * SNAP_GRID_SIZE,
+        y: 40 * SNAP_GRID_SIZE,
       },
       {
         id: "place__5",
@@ -55,8 +56,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1000,
-        y: 200,
+        x: 67 * SNAP_GRID_SIZE,
+        y: 13 * SNAP_GRID_SIZE,
       },
       {
         id: "place__6",
@@ -64,8 +65,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1300,
-        y: 380,
+        x: 87 * SNAP_GRID_SIZE,
+        y: 25 * SNAP_GRID_SIZE,
       },
     ],
     transitions: [
@@ -80,8 +81,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",
         transitionKernelCode: "",
-        x: 100,
-        y: 400,
+        x: 7 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__1",
@@ -91,8 +92,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",
         transitionKernelCode: "",
-        x: 490,
-        y: 350,
+        x: 33 * SNAP_GRID_SIZE,
+        y: 23 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__2",
@@ -105,8 +106,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",
         transitionKernelCode: "",
-        x: 870,
-        y: 400,
+        x: 58 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__3",
@@ -116,8 +117,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",
         transitionKernelCode: "",
-        x: 1150,
-        y: 280,
+        x: 77 * SNAP_GRID_SIZE,
+        y: 19 * SNAP_GRID_SIZE,
       },
     ],
     types: [],

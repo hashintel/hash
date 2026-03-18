@@ -1,3 +1,4 @@
+import { SNAP_GRID_SIZE } from "../constants/ui";
 import type { SDCPN } from "../core/types/sdcpn";
 
 export const supplyChainStochasticSDCPN: {
@@ -13,8 +14,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -180,
-        y: 360,
+        x: -12 * SNAP_GRID_SIZE,
+        y: 24 * SNAP_GRID_SIZE,
       },
       {
         id: "place__1",
@@ -22,8 +23,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -180,
-        y: 450,
+        x: -12 * SNAP_GRID_SIZE,
+        y: 30 * SNAP_GRID_SIZE,
       },
       {
         id: "place__2",
@@ -31,8 +32,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 315,
-        y: 405,
+        x: 21 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "place__3",
@@ -40,8 +41,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: "type__product",
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 795,
-        y: 405,
+        x: 53 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "place__4",
@@ -49,8 +50,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1275,
-        y: 525,
+        x: 85 * SNAP_GRID_SIZE,
+        y: 35 * SNAP_GRID_SIZE,
       },
       {
         id: "place__5",
@@ -58,8 +59,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1275,
-        y: 300,
+        x: 85 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
       },
       {
         id: "place__6",
@@ -67,8 +68,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 1755,
-        y: 300,
+        x: 117 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
       },
     ],
     transitions: [
@@ -83,8 +84,8 @@ export const supplyChainStochasticSDCPN: {
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
         transitionKernelCode: "",
-        x: 75,
-        y: 405,
+        x: 5 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__1",
@@ -101,8 +102,8 @@ export default TransitionKernel(() => {
     ],
   };
 });`,
-        x: 555,
-        y: 405,
+        x: 37 * SNAP_GRID_SIZE,
+        y: 27 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__2",
@@ -116,8 +117,8 @@ export default Lambda((tokens, parameters) => {
   return tokens.QAQueue[0].quality >= quality_threshold;
 });`,
         transitionKernelCode: "",
-        x: 1035,
-        y: 300,
+        x: 69 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__3",
@@ -131,8 +132,8 @@ export default Lambda((tokens, parameters) => {
   return tokens.QAQueue[0].quality < quality_threshold;
 });`,
         transitionKernelCode: "",
-        x: 1035,
-        y: 525,
+        x: 69 * SNAP_GRID_SIZE,
+        y: 35 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__4",
@@ -142,8 +143,8 @@ export default Lambda((tokens, parameters) => {
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1 / 3);",
         transitionKernelCode: "",
-        x: 1515,
-        y: 300,
+        x: 101 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
       },
     ],
     types: [

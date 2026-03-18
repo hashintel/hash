@@ -6,6 +6,7 @@ import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
+import { SNAP_GRID_SIZE } from "../../constants/ui";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
@@ -26,8 +27,6 @@ import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
-
-const SNAP_GRID_SIZE = 15;
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,

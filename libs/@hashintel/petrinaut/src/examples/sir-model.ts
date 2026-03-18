@@ -1,3 +1,4 @@
+import { SNAP_GRID_SIZE } from "../constants/ui";
 import type { SDCPN } from "../core/types/sdcpn";
 
 export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
@@ -10,8 +11,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -375,
-        y: 135,
+        x: -29 * SNAP_GRID_SIZE,
+        y: 10 * SNAP_GRID_SIZE,
       },
       {
         id: "place__infected",
@@ -19,8 +20,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -195,
-        y: 285,
+        x: -13 * SNAP_GRID_SIZE,
+        y: 19 * SNAP_GRID_SIZE,
       },
       {
         id: "place__recovered",
@@ -28,8 +29,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 315,
-        y: 120,
+        x: 25 * SNAP_GRID_SIZE,
+        y: 13 * SNAP_GRID_SIZE,
       },
     ],
     transitions: [
@@ -57,8 +58,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default Lambda((tokens, parameters) => parameters.infection_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
-        x: -165,
-        y: 75,
+        x: -10 * SNAP_GRID_SIZE,
+        y: 5 * SNAP_GRID_SIZE,
       },
       {
         id: "transition__recovery",
@@ -80,8 +81,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default Lambda((tokens, parameters) => parameters.recovery_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
-        x: 75,
-        y: 225,
+        x: 6 * SNAP_GRID_SIZE,
+        y: 16 * SNAP_GRID_SIZE,
       },
     ],
     types: [],

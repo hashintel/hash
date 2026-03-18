@@ -4,6 +4,9 @@
  * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
+// Canvas grid
+export const SNAP_GRID_SIZE = 15;
+
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;
 
