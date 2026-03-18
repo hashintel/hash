@@ -38,7 +38,7 @@
     "@local/status": "workspace:*",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/api-logs": "0.207.0",
-    "@sentry/node": "10.27.0",
+    "@sentry/node": "10.42.0",
     "@smithy/protocol-http": "5.3.3",
     "@smithy/signature-v4": "5.3.3",
     "@temporalio/activity": "1.12.1",

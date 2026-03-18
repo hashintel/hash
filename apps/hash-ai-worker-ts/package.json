@@ -56,7 +56,7 @@
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@local/status": "workspace:*",
-    "@sentry/node": "10.27.0",
+    "@sentry/node": "10.42.0",
     "@temporalio/activity": "1.12.1",
     "@temporalio/common": "1.12.1",
     "@temporalio/proto": "1.12.1",
