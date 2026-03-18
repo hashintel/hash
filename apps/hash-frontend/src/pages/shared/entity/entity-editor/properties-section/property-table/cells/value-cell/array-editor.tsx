@@ -172,7 +172,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         value,
       ];
 
-      // @ts-expect-error:TS -- type instantiation is excessively deep and possibly infinite.
       draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
     onChange(newCell);
