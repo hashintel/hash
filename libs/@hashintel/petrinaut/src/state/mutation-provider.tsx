@@ -68,24 +68,16 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
           if (place.id === placeId) {
             sdcpn.places.splice(placeIndex, 1);
 
+            // Iterate backwards to avoid skipping entries when splicing
             for (const transition of sdcpn.transitions) {
-              for (const [
-                inputArcIndex,
-                inputArc,
-              ] of transition.inputArcs.entries()) {
-                if (inputArc.placeId === placeId) {
-                  transition.inputArcs.splice(inputArcIndex, 1);
+              for (let i = transition.inputArcs.length - 1; i >= 0; i--) {
+                if (transition.inputArcs[i]!.placeId === placeId) {
+                  transition.inputArcs.splice(i, 1);
                 }
               }
-            }
-
-            for (const transition of sdcpn.transitions) {
-              for (const [
-                outputArcIndex,
-                outputArc,
-              ] of transition.outputArcs.entries()) {
-                if (outputArc.placeId === placeId) {
-                  transition.outputArcs.splice(outputArcIndex, 1);
+              for (let i = transition.outputArcs.length - 1; i >= 0; i--) {
+                if (transition.outputArcs[i]!.placeId === placeId) {
+                  transition.outputArcs.splice(i, 1);
                 }
               }
             }

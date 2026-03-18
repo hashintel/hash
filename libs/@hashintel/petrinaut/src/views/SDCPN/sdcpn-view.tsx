@@ -148,6 +148,9 @@ export const SDCPNView: React.FC<{
     nodeType: "place" | "transition",
     rawPosition: { x: number; y: number },
   ) {
+    if (isReadonly) {
+      return;
+    }
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
     const position = snapToGrid ? snapPositionToGrid(rawPosition) : rawPosition;
