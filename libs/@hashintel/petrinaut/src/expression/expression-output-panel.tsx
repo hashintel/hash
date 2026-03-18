@@ -25,13 +25,14 @@ const selectContainerStyle = css({
   alignItems: "center",
   gap: "1",
   position: "absolute",
-  bottom: "0",
-  right: "0",
+  bottom: "[1px]",
+  right: "[1px]",
   zIndex: "[10]",
   backdropFilter: "[blur(20px)]",
   p: "1",
   pl: "2",
   borderTopLeftRadius: "sm",
+  borderBottomRightRadius: "sm",
 });
 
 const selectLabelStyle = css({
