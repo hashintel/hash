@@ -26,7 +26,6 @@ export function useKeyboardShortcuts(
     isSearchOpen,
     setSearchOpen,
     searchInputRef,
-    setLeftSidebarOpen,
   } = use(EditorContext);
   const { petriNetDefinition, petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds, pasteEntities } = use(MutationContext);
@@ -70,7 +69,6 @@ export function useKeyboardShortcuts(
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       } else {
-        setLeftSidebarOpen(true);
         setSearchOpen(true);
       }
       return;

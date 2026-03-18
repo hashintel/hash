@@ -82,6 +82,7 @@ export const BottomPanel: React.FC = () => {
     isBottomPanelOpen: isOpen,
     setBottomPanelOpen,
     isLeftSidebarOpen,
+    isSearchOpen,
     leftSidebarWidth,
     bottomPanelHeight: panelHeight,
     setBottomPanelHeight,
@@ -133,9 +134,10 @@ export const BottomPanel: React.FC = () => {
     setActiveTab(tabId as BottomPanelTab);
   };
 
-  // Calculate left position based on left sidebar state
-  // Add sidebar padding (12px each side) when sidebar is open
-  const leftOffset = isLeftSidebarOpen
+  // Calculate left position based on left sidebar visibility.
+  // The sidebar is visible when explicitly opened OR when search is active.
+  const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
+  const leftOffset = isSidebarVisible
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
 

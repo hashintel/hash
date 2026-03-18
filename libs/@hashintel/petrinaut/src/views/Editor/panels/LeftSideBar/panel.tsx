@@ -106,13 +106,16 @@ export const LeftSideBar: React.FC = () => {
 
   const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
 
+  // The sidebar is visible when explicitly opened OR when search is active
+  const isVisible = isOpen || isSearchOpen;
+
   const sidebarSubViews = useEntitiesTreeView
     ? LEFT_SIDEBAR_TREE_SUBVIEWS
     : LEFT_SIDEBAR_SUBVIEWS;
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 
-  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
+  if (!isVisible && !isPanelAnimating && !keepPanelsMounted) {
     return null;
   }
 
@@ -120,7 +123,7 @@ export const LeftSideBar: React.FC = () => {
     <GlassPanel
       className={cx(
         glassPanelBaseStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
+        panelStyle({ open: isVisible, animating: isPanelAnimating }),
       )}
       style={{ width: leftSidebarWidth }}
       resizable={{
