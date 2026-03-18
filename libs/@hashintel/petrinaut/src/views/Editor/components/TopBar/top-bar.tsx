@@ -66,7 +66,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   mode,
   onModeChange,
 }) => {
-  const { isLeftSidebarOpen, setLeftSidebarOpen } = use(EditorContext);
+  const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
+    use(EditorContext);
   const undoRedo = use(UndoRedoContext);
 
   return (
@@ -75,7 +76,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         <IconButton
           size="xs"
           variant="ghost"
-          onClick={() => setLeftSidebarOpen(!isLeftSidebarOpen)}
+          onClick={() => {
+            setLeftSidebarOpen(!isLeftSidebarOpen);
+            if (isLeftSidebarOpen) {
+              setSearchOpen(false);
+            }
+          }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isLeftSidebarOpen ? (
