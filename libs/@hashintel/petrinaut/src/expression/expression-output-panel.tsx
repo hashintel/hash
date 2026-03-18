@@ -8,6 +8,13 @@ import type {
   ExpressionOutputFormat,
 } from "./use-expression-ir-output";
 
+const FORMAT_LANGUAGE: Record<ExpressionOutputFormat, string> = {
+  ir: "json",
+  sympy: "python",
+  ocaml: "fsharp",
+  lean: "fsharp",
+};
+
 const containerStyle = css({
   position: "relative",
   height: "full",
@@ -61,7 +68,9 @@ export const ExpressionOutputPanel: React.FC<{
         />
       </div>
       <CodeEditor
+        key={format}
         value={output[format]}
+        defaultLanguage={FORMAT_LANGUAGE[format]}
         height="100%"
         options={{ readOnly: true, lineNumbers: "off" }}
       />
