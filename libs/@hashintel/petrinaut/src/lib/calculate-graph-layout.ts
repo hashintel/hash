@@ -33,7 +33,8 @@ export type NodePosition = {
  * It does not mutate any state or trigger side effects.
  *
  * @param sdcpn - The SDCPN to layout
- * @returns A promise that resolves to an array of node positions
+ * @param dims - Node dimensions for places and transitions
+ * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
@@ -102,6 +103,7 @@ export const calculateGraphLayout = async (
       const nodeDimensions = placeIds.has(child.id)
         ? dimensions.place
         : dimensions.transition;
+
       positionsByNodeId[child.id] = {
         x: child.x + nodeDimensions.width / 2,
         y: child.y + nodeDimensions.height / 2,

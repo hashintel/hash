@@ -37,11 +37,15 @@ export const getPersistedNetsFromSubgraph = (
     const userEditable =
       !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.update;
 
+    const lastUpdated =
+      net.metadata.temporalVersioning.decisionTime.start.limit;
+
     return {
       entityId: net.entityId,
       title: netTitle,
       definition,
       userEditable,
+      lastUpdated,
     };
   });
 };

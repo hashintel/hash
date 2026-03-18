@@ -1,5 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { use, useRef } from "react";
+import { use, useRef, useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -9,21 +9,53 @@ import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher
 import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
-import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
+import { exportSDCPN } from "../../file-format/export-sdcpn";
+import { importSDCPN } from "../../file-format/import-sdcpn";
+import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useSelectionCleanup } from "../../state/use-selection-cleanup";
 import type { ViewportAction } from "../../types/viewport-action";
+import { UserSettingsContext } from "../../state/user-settings-context";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "../SDCPN/styles/styling";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
+import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
-import { exportSDCPN } from "./lib/export-sdcpn";
 import { exportTikZ } from "./lib/export-tikz";
-import { importSDCPN } from "./lib/import-sdcpn";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
+
+const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+});
+
+const formatRelativeTime = (isoTimestamp: string): string => {
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+  const diffSecs = Math.round(diffMs / 1_000);
+  const diffMins = Math.round(diffMs / 60_000);
+  const diffHours = Math.round(diffMs / 3_600_000);
+  const diffDays = Math.round(diffMs / 86_400_000);
+
+  if (diffSecs < 60) {
+    return relativeTimeFormat.format(-diffSecs, "second");
+  } else if (diffMins < 60) {
+    return relativeTimeFormat.format(-diffMins, "minute");
+  } else if (diffHours < 24) {
+    return relativeTimeFormat.format(-diffHours, "hour");
+  } else if (diffDays < 30) {
+    return relativeTimeFormat.format(-diffDays, "day");
+  }
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(isoTimestamp));
+};
 
 const rowContainerStyle = css({
   height: "full",
@@ -85,10 +117,15 @@ export const EditorView = ({
     clearSelection,
   } = use(EditorContext);
 
+  const { compactNodes } = use(UserSettingsContext);
+  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  const [importError, setImportError] = useState<string | null>(null);
+
   // Clean up stale selections when items are deleted
   useSelectionCleanup();
 
-  function handleNew() {
+  function handleCreateEmpty() {
     createNewNet({
       title: "Untitled",
       petriNetDefinition: {
@@ -100,6 +137,10 @@ export const EditorView = ({
       },
     });
     clearSelection();
+  }
+
+  function handleNew() {
+    handleCreateEmpty();
   }
 
   function handleExport() {
@@ -114,16 +155,50 @@ export const EditorView = ({
     exportTikZ({ petriNetDefinition, title });
   }
 
-  function handleImport() {
-    importSDCPN((loadedSDCPN) => {
-      const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
+  async function handleImport() {
+    const result = await importSDCPN();
+    if (!result) {
+      return; // User cancelled file picker
+    }
 
-      createNewNet({
-        title: loadedSDCPN.title,
-        petriNetDefinition: convertedSdcpn ?? loadedSDCPN,
-      });
-      clearSelection();
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
+    }
+
+    const { sdcpn: loadedSDCPN, hadMissingPositions } = result;
+    let sdcpnToLoad = loadedSDCPN;
+
+    // If any nodes were missing positions, run ELK layout BEFORE creating the net.
+    // We must do this before createNewNet because after createNewNet triggers a
+    // re-render, the mutatePetriNetDefinition closure would be stale.
+    if (hadMissingPositions) {
+      const positions = await calculateGraphLayout(sdcpnToLoad, dims);
+
+      if (Object.keys(positions).length > 0) {
+        sdcpnToLoad = {
+          ...sdcpnToLoad,
+          places: sdcpnToLoad.places.map((place) => {
+            const position = positions[place.id];
+            return position
+              ? { ...place, x: position.x, y: position.y }
+              : place;
+          }),
+          transitions: sdcpnToLoad.transitions.map((transition) => {
+            const position = positions[transition.id];
+            return position
+              ? { ...transition, x: position.x, y: position.y }
+              : transition;
+          }),
+        };
+      }
+    }
+
+    createNewNet({
+      title: loadedSDCPN.title,
+      petriNetDefinition: sdcpnToLoad,
     });
+    clearSelection();
   }
 
   const menuItems = [
@@ -140,6 +215,7 @@ export const EditorView = ({
             submenu: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               label: net.title,
+              suffix: formatRelativeTime(net.lastUpdated),
               onClick: () => {
                 loadPetriNet(net.netId);
                 clearSelection();
@@ -241,6 +317,17 @@ export const EditorView = ({
     <PortalContainerContext value={portalContainerRef}>
       <Stack className={cx(editorRootStyle, "petrinaut-root")}>
         <div ref={portalContainerRef} className={portalContainerStyle} />
+
+        <ImportErrorDialog
+          open={importError !== null}
+          onOpenChange={({ open }) => {
+            if (!open) {
+              setImportError(null);
+            }
+          }}
+          errorMessage={importError ?? ""}
+          onCreateEmpty={handleCreateEmpty}
+        />
 
         {/* Top Bar - always visible */}
         <TopBar

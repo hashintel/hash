@@ -37,7 +37,8 @@ const submenuContentStyle = css({
   boxShadow:
     "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
   minWidth: "[180px]",
-  overflow: "hidden",
+  maxHeight: "var(--available-height)",
+  overflowY: "auto",
   zIndex: 2,
   transformOrigin: "var(--transform-origin)",
   '&[data-state="open"]': {
