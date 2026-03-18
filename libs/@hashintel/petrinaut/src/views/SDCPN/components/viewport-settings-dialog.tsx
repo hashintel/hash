@@ -170,7 +170,12 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               />
             </SettingRow>
             <SettingRow
-              label="Expression output"
+              label={
+                <>
+                  Expression output{" "}
+                  <span className={badgeStyle}>Experimental</span>
+                </>
+              }
               description="Show a read-only panel with the compiled expression IR next to code editors"
             >
               <Switch
