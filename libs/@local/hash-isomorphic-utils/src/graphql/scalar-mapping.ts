@@ -89,6 +89,8 @@ export const scalars = {
     "@local/hash-graph-client#ValidateEntityParamsComponents",
   EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
   CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
+  TypeIdsAndPropertiesForEntity:
+    "@blockprotocol/type-system#TypeIdsAndPropertiesForEntity",
   TypeIdsMap: "@local/hash-graph-sdk/entity#TypeIdsMap",
   TypeTitlesMap: "@local/hash-graph-sdk/entity#TypeTitlesMap",
   WebIdsMap: "@local/hash-graph-sdk/entity#WebIdsMap",
@@ -125,6 +127,8 @@ export const scalars = {
 
   EntityUuid: "@blockprotocol/type-system#EntityUuid",
   Uuid: "@local/hash-graph-sdk/authorization#Uuid",
+  ActorEntityUuid: "@blockprotocol/type-system#ActorEntityUuid",
+  ActorGroupEntityUuid: "@blockprotocol/type-system#ActorGroupEntityUuid",
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 

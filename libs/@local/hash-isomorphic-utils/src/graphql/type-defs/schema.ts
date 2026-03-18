@@ -25,9 +25,9 @@ const baseSchema = gql`
   scalar TextToken
   # Branded types
   scalar WebId
-  scalar AccountId
-  scalar AccountGroupId
   scalar AuthorizationSubjectId
+  scalar ActorEntityUuid
+  scalar ActorGroupEntityUuid
 
   type Query
 

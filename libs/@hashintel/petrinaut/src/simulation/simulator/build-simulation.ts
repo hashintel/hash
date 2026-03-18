@@ -200,6 +200,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const count = marking?.count ?? 0;
     const dimensions = getPlaceDimensions(place, sdcpn);
 
+    if (placeId === "__proto__") {
+      throw new Error("Cannot add place with id '__proto__'");
+    }
+
     placeStates[placeId] = {
       offset: bufferSize,
       count,
@@ -225,6 +229,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Initialize transition states
   const transitionStates: SimulationFrame["transitions"] = {};
   for (const transition of sdcpn.transitions) {
+    if (transition.id === "__proto__") {
+      throw new Error("Cannot add transition with id '__proto__'");
+    }
+
     transitionStates[transition.id] = {
       instance: transition,
       timeSinceLastFiringMs: 0,
