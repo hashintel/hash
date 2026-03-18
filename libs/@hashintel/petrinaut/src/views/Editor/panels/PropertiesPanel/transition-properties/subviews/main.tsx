@@ -14,7 +14,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { MutationContext } from "../../../../../../state/mutation-context";
-import { validateEntityName } from "../../../../../../validation/entity-name";
+import { validateDisplayName } from "../../../../../../validation/display-name";
 import { useTransitionPropertiesContext } from "../context";
 
 const errorMessageStyle = css({
@@ -141,7 +141,7 @@ const TransitionMainContent: React.FC = () => {
             }
           }}
           onBlur={() => {
-            const result = validateEntityName(nameInputValue);
+            const result = validateDisplayName(nameInputValue);
 
             if (!result.valid) {
               setNameError(result.error);
