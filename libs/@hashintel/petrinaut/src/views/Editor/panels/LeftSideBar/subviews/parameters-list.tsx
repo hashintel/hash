@@ -20,7 +20,7 @@ const parameterVarNameStyle = css({
   margin: "0",
   fontSize: "xs",
   color: "neutral.s90",
-  fontFamily: "['JetBrains Mono Variable', monospace]",
+  fontFamily: "mono",
 });
 
 /**

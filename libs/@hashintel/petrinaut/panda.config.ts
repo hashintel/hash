@@ -32,6 +32,13 @@ export default defineConfig({
   // Useful for theme customization
   theme: {
     extend: {
+      tokens: {
+        fonts: {
+          mono: {
+            value: "'JetBrains Mono Variable', monospace",
+          },
+        },
+      },
       keyframes: {
         fadeIn: {
           from: { opacity: "0", transform: "translateY(-10px)" },

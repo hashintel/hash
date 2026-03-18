@@ -28,7 +28,7 @@ const parameterVarNameStyle = css({
   margin: "0",
   fontSize: "xs",
   color: "neutral.s85",
-  fontFamily: "['JetBrains Mono Variable', monospace]",
+  fontFamily: "mono",
 });
 
 interface EntityTreeItem {

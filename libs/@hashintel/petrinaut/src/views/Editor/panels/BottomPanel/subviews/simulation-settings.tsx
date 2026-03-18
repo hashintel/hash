@@ -85,7 +85,7 @@ const parameterNameStyle = css({
 const parameterVarNameStyle = css({
   fontSize: "[11px]",
   color: "neutral.s100",
-  fontFamily: "['JetBrains Mono Variable', monospace]",
+  fontFamily: "mono",
 });
 
 const parameterInputStyle = css({

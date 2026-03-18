@@ -71,8 +71,7 @@ const diagnosticButtonStyle = css({
   marginLeft: "[8px]",
   padding: "[2px 4px]",
   fontSize: "[11px]",
-  fontFamily:
-    "[ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace]",
+  fontFamily: "mono",
   color: "[#dc2626]",
   lineHeight: "[1.5]",
   cursor: "pointer",

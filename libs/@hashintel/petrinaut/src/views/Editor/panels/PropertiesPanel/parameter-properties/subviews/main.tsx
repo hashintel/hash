@@ -91,7 +91,6 @@ const ParameterMainContent: React.FC = () => {
           value={parameter.defaultValue}
           onChange={handleUpdateDefaultValue}
           disabled={isDisabled}
-          monospace
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </Section>
