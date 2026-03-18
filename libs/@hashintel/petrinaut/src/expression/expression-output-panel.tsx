@@ -53,6 +53,8 @@ export const ExpressionOutputPanel: React.FC<{
           options={[
             { value: "ir", label: "IR" },
             { value: "sympy", label: "SymPy" },
+            { value: "ocaml", label: "OCaml" },
+            { value: "lean", label: "Lean" },
           ]}
           size="xs"
           portal={false}

@@ -6,36 +6,42 @@ import { irToSymPy } from "./ir-to-sympy";
 describe("irToSymPy", () => {
   describe("literals", () => {
     it("should emit number", () => {
-      expect(irToSymPy({ type: "number", value: "42" })).toBe("42");
+      expect(irToSymPy({ type: "number", value: "42" })).toBe("return 42");
     });
 
     it("should emit boolean true as True", () => {
-      expect(irToSymPy({ type: "boolean", value: true })).toBe("True");
+      expect(irToSymPy({ type: "boolean", value: true })).toBe("return True");
     });
 
     it("should emit boolean false as False", () => {
-      expect(irToSymPy({ type: "boolean", value: false })).toBe("False");
+      expect(irToSymPy({ type: "boolean", value: false })).toBe("return False");
     });
 
-    it("should emit infinity as sp.oo", () => {
-      expect(irToSymPy({ type: "infinity" })).toBe("sp.oo");
+    it("should emit infinity with import", () => {
+      expect(irToSymPy({ type: "infinity" })).toBe(
+        "from sympy import oo\n\nreturn oo",
+      );
     });
   });
 
   describe("symbols and parameters", () => {
     it("should emit symbol name", () => {
-      expect(irToSymPy({ type: "symbol", name: "x" })).toBe("x");
+      expect(irToSymPy({ type: "symbol", name: "x" })).toBe("return x");
     });
 
     it("should emit parameter name", () => {
       expect(irToSymPy({ type: "parameter", name: "infection_rate" })).toBe(
-        "infection_rate",
+        "return infection_rate",
       );
     });
 
-    it("should emit Math constants", () => {
-      expect(irToSymPy({ type: "symbol", name: "PI" })).toBe("sp.pi");
-      expect(irToSymPy({ type: "symbol", name: "E" })).toBe("sp.E");
+    it("should emit Math constants with import", () => {
+      expect(irToSymPy({ type: "symbol", name: "PI" })).toBe(
+        "from sympy import pi\n\nreturn pi",
+      );
+      expect(irToSymPy({ type: "symbol", name: "E" })).toBe(
+        "from sympy import E\n\nreturn E",
+      );
     });
   });
 
@@ -48,7 +54,7 @@ describe("irToSymPy", () => {
           index: { type: "number", value: "0" },
           field: "x",
         }),
-      ).toBe("Space_0_x");
+      ).toBe("return Space_0_x");
     });
   });
 
@@ -57,35 +63,41 @@ describe("irToSymPy", () => {
     const right: ExpressionIR = { type: "number", value: "2" };
 
     it("should emit arithmetic operators", () => {
-      expect(irToSymPy({ type: "binary", op: "+", left, right })).toBe("1 + 2");
-      expect(irToSymPy({ type: "binary", op: "*", left, right })).toBe("1 * 2");
-      expect(irToSymPy({ type: "binary", op: "**", left, right })).toBe("1**2");
+      expect(irToSymPy({ type: "binary", op: "+", left, right })).toBe(
+        "return 1 + 2",
+      );
+      expect(irToSymPy({ type: "binary", op: "*", left, right })).toBe(
+        "return 1 * 2",
+      );
+      expect(irToSymPy({ type: "binary", op: "**", left, right })).toBe(
+        "return 1**2",
+      );
     });
 
-    it("should emit modulo as sp.Mod", () => {
+    it("should emit modulo as Mod with import", () => {
       expect(irToSymPy({ type: "binary", op: "%", left, right })).toBe(
-        "sp.Mod(1, 2)",
+        "from sympy import Mod\n\nreturn Mod(1, 2)",
       );
     });
 
-    it("should emit equality as sp.Eq", () => {
+    it("should emit equality as Eq with import", () => {
       expect(irToSymPy({ type: "binary", op: "==", left, right })).toBe(
-        "sp.Eq(1, 2)",
+        "from sympy import Eq\n\nreturn Eq(1, 2)",
       );
     });
 
-    it("should emit inequality as sp.Ne", () => {
+    it("should emit inequality as Ne with import", () => {
       expect(irToSymPy({ type: "binary", op: "!=", left, right })).toBe(
-        "sp.Ne(1, 2)",
+        "from sympy import Ne\n\nreturn Ne(1, 2)",
       );
     });
 
-    it("should emit logical operators", () => {
+    it("should emit logical operators with imports", () => {
       expect(irToSymPy({ type: "binary", op: "&&", left, right })).toBe(
-        "sp.And(1, 2)",
+        "from sympy import And\n\nreturn And(1, 2)",
       );
       expect(irToSymPy({ type: "binary", op: "||", left, right })).toBe(
-        "sp.Or(1, 2)",
+        "from sympy import Or\n\nreturn Or(1, 2)",
       );
     });
   });
@@ -98,29 +110,29 @@ describe("irToSymPy", () => {
           op: "-",
           operand: { type: "symbol", name: "x" },
         }),
-      ).toBe("-(x)");
+      ).toBe("return -(x)");
     });
 
-    it("should emit logical not", () => {
+    it("should emit logical not with import", () => {
       expect(
         irToSymPy({
           type: "unary",
           op: "!",
           operand: { type: "boolean", value: true },
         }),
-      ).toBe("sp.Not(True)");
+      ).toBe("from sympy import Not\n\nreturn Not(True)");
     });
   });
 
   describe("function calls", () => {
-    it("should emit math functions with sp. prefix", () => {
+    it("should emit math functions with import", () => {
       expect(
         irToSymPy({
           type: "call",
           fn: "cos",
           args: [{ type: "symbol", name: "x" }],
         }),
-      ).toBe("sp.cos(x)");
+      ).toBe("from sympy import cos\n\nreturn cos(x)");
     });
 
     it("should emit hypot as sqrt of sum of squares", () => {
@@ -133,7 +145,7 @@ describe("irToSymPy", () => {
             { type: "symbol", name: "b" },
           ],
         }),
-      ).toBe("sp.sqrt((a)**2 + (b)**2)");
+      ).toBe("from sympy import sqrt\n\nreturn sqrt((a)**2 + (b)**2)");
     });
 
     it("should emit pow as exponentiation", () => {
@@ -146,12 +158,12 @@ describe("irToSymPy", () => {
             { type: "number", value: "2" },
           ],
         }),
-      ).toBe("(a)**(2)");
+      ).toBe("return (a)**(2)");
     });
   });
 
   describe("distributions", () => {
-    it("should emit Gaussian as sp.stats.Normal", () => {
+    it("should emit inline Gaussian as Normal", () => {
       expect(
         irToSymPy({
           type: "distribution",
@@ -161,10 +173,10 @@ describe("irToSymPy", () => {
             { type: "number", value: "1" },
           ],
         }),
-      ).toBe("sp.stats.Normal('X', 0, 1)");
+      ).toBe("from sympy.stats import Normal\n\nreturn Normal(0, 1)");
     });
 
-    it("should emit Lognormal as sp.stats.LogNormal", () => {
+    it("should emit inline Lognormal as LogNormal", () => {
       expect(
         irToSymPy({
           type: "distribution",
@@ -174,12 +186,42 @@ describe("irToSymPy", () => {
             { type: "number", value: "1" },
           ],
         }),
-      ).toBe("sp.stats.LogNormal('X', 0, 1)");
+      ).toBe("from sympy.stats import LogNormal\n\nreturn LogNormal(0, 1)");
+    });
+
+    it("should emit named distribution from let-binding with symbol name", () => {
+      expect(
+        irToSymPy({
+          type: "let",
+          bindings: [
+            {
+              name: "angle",
+              value: {
+                type: "distribution",
+                distribution: "Uniform",
+                args: [
+                  { type: "number", value: "0" },
+                  { type: "number", value: "1" },
+                ],
+              },
+            },
+          ],
+          body: { type: "symbol", name: "angle" },
+        }),
+      ).toBe(
+        [
+          "from sympy.stats import Uniform",
+          "",
+          "angle = Uniform('angle', 0, 1)",
+          "",
+          "return angle",
+        ].join("\n"),
+      );
     });
   });
 
   describe("derived distributions", () => {
-    it("should emit DerivedDistribution with lambda", () => {
+    it("should substitute inline distribution into body", () => {
       expect(
         irToSymPy({
           type: "derivedDistribution",
@@ -199,13 +241,18 @@ describe("irToSymPy", () => {
           },
         }),
       ).toBe(
-        "DerivedDistribution(sp.stats.Normal('X', 0, 10), lambda _x: sp.cos(_x))",
+        [
+          "from sympy import cos",
+          "from sympy.stats import Normal",
+          "",
+          "return cos(Normal(0, 10))",
+        ].join("\n"),
       );
     });
   });
 
   describe("piecewise", () => {
-    it("should emit sp.Piecewise", () => {
+    it("should emit Piecewise with import", () => {
       expect(
         irToSymPy({
           type: "piecewise",
@@ -218,7 +265,9 @@ describe("irToSymPy", () => {
           whenTrue: { type: "symbol", name: "x" },
           whenFalse: { type: "number", value: "0" },
         }),
-      ).toBe("sp.Piecewise((x, x > 0), (0, True))");
+      ).toBe(
+        "from sympy import Piecewise\n\nreturn Piecewise((x, x > 0), (0, True))",
+      );
     });
   });
 
@@ -232,7 +281,7 @@ describe("irToSymPy", () => {
             { type: "number", value: "2" },
           ],
         }),
-      ).toBe("[1, 2]");
+      ).toBe("return [1, 2]");
     });
 
     it("should emit object as Python dict", () => {
@@ -244,7 +293,7 @@ describe("irToSymPy", () => {
             { key: "y", value: { type: "number", value: "2" } },
           ],
         }),
-      ).toBe("{'x': 1, 'y': 2}");
+      ).toBe("return {'x': 1, 'y': 2}");
     });
   });
 
@@ -262,12 +311,12 @@ describe("irToSymPy", () => {
             right: { type: "number", value: "1" },
           },
         }),
-      ).toBe("[_iter + 1 for _iter in tokens]");
+      ).toBe("return [_iter + 1 for _iter in tokens]");
     });
   });
 
   describe("let bindings", () => {
-    it("should inline single binding", () => {
+    it("should emit single binding as assignment", () => {
       expect(
         irToSymPy({
           type: "let",
@@ -284,10 +333,10 @@ describe("irToSymPy", () => {
             right: { type: "number", value: "2" },
           },
         }),
-      ).toBe("gravitational_constant * 2");
+      ).toBe("mu = gravitational_constant\n\nreturn mu * 2");
     });
 
-    it("should inline chained bindings", () => {
+    it("should emit chained bindings as assignments", () => {
       expect(
         irToSymPy({
           type: "let",
@@ -305,7 +354,7 @@ describe("irToSymPy", () => {
             right: { type: "symbol", name: "b" },
           },
         }),
-      ).toBe("infection_rate + recovery_rate");
+      ).toBe("a = infection_rate\nb = recovery_rate\n\nreturn a + b");
     });
   });
 
@@ -317,7 +366,7 @@ describe("irToSymPy", () => {
           object: { type: "symbol", name: "obj" },
           property: "field",
         }),
-      ).toBe("obj_field");
+      ).toBe("return obj_field");
     });
 
     it("should emit element access with underscore", () => {
@@ -327,7 +376,7 @@ describe("irToSymPy", () => {
           object: { type: "symbol", name: "arr" },
           index: { type: "number", value: "0" },
         }),
-      ).toBe("arr_0");
+      ).toBe("return arr_0");
     });
   });
 });

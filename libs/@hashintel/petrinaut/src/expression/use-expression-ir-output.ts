@@ -3,17 +3,21 @@ import { use, useMemo } from "react";
 import type { Transition } from "../core/types/sdcpn";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { UserSettingsContext } from "../state/user-settings-context";
+import { irToLean } from "./ir-to-lean/ir-to-lean";
+import { irToOCaml } from "./ir-to-ocaml/ir-to-ocaml";
 import { irToSymPy } from "./ir-to-sympy/ir-to-sympy";
 import {
   buildContextForTransition,
   compileToIR,
 } from "./ts-to-ir/compile-to-ir";
 
-export type ExpressionOutputFormat = "ir" | "sympy";
+export type ExpressionOutputFormat = "ir" | "sympy" | "ocaml" | "lean";
 
 export type ExpressionOutput = {
   ir: string;
   sympy: string;
+  ocaml: string;
+  lean: string;
 };
 
 /**
@@ -45,6 +49,8 @@ export function useExpressionOutput(
       return {
         ir: JSON.stringify(result.ir, null, 2),
         sympy: irToSymPy(result.ir),
+        ocaml: irToOCaml(result.ir),
+        lean: irToLean(result.ir),
       };
     }
     const errorJson = JSON.stringify(
@@ -55,6 +61,8 @@ export function useExpressionOutput(
     return {
       ir: errorJson,
       sympy: `# Error: ${result.error}`,
+      ocaml: `(* Error: ${result.error} *)`,
+      lean: `-- Error: ${result.error}`,
     };
   }, [
     showExpressionOutput,
