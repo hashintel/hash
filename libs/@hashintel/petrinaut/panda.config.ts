@@ -34,6 +34,7 @@ export default defineConfig({
     extend: {
       tokens: {
         fonts: {
+          // Must match CODE_FONT_FAMILY in src/constants/ui.ts
           mono: {
             value: "'JetBrains Mono Variable', monospace",
           },

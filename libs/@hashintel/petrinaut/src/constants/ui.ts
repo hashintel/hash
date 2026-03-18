@@ -4,6 +4,10 @@
  * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
+// Code font — must match the fonts.mono token override in panda.config.ts.
+// Used by Monaco editor which needs the actual font name (can't resolve CSS variables).
+export const CODE_FONT_FAMILY = "'JetBrains Mono Variable', monospace";
+
 // Canvas grid
 export const SNAP_GRID_SIZE = 15;
 
