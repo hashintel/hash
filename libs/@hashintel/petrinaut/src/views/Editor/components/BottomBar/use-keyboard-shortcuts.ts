@@ -32,13 +32,11 @@ export function useKeyboardShortcuts(
   } = use(EditorContext);
   const {
     deleteItemsByIds,
-    readonly,
     petriNetDefinition,
     petriNetId,
     mutatePetriNetDefinition,
   } = use(SDCPNContext);
-  const isSimulationReadOnly = useIsReadOnly();
-  const isReadonly = isSimulationReadOnly || readonly;
+  const isReadonly = useIsReadOnly();
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;

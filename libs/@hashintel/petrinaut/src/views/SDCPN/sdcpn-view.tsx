@@ -69,8 +69,7 @@ export const SDCPNView: React.FC<{
   );
 
   // SDCPN store
-  const { petriNetId, addPlace, addTransition, addArc, readonly } =
-    use(SDCPNContext);
+  const { petriNetId, addPlace, addTransition, addArc } = use(SDCPNContext);
 
   const {
     editionMode,
@@ -95,9 +94,7 @@ export const SDCPNView: React.FC<{
     });
   }, [reactFlowInstance, petriNetId]);
 
-  // Readonly if simulation mode or readonly has been provided by external consumer.
-  const isSimulationReadOnly = useIsReadOnly();
-  const isReadonly = isSimulationReadOnly || readonly;
+  const isReadonly = useIsReadOnly();
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
