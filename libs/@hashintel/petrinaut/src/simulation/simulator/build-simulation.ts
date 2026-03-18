@@ -225,6 +225,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Initialize transition states
   const transitionStates: SimulationFrame["transitions"] = {};
   for (const transition of sdcpn.transitions) {
+    if (transition.id === "__proto__") {
+      throw new Error("Cannot add transition with id '__proto__'");
+    }
+
     transitionStates[transition.id] = {
       instance: transition,
       timeSinceLastFiringMs: 0,
