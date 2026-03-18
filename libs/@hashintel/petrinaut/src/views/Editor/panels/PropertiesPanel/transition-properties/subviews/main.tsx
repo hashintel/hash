@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import {
@@ -14,7 +14,13 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { MutationContext } from "../../../../../../state/mutation-context";
+import { validateEntityName } from "../../../../../../validation/entity-name";
 import { useTransitionPropertiesContext } from "../context";
+
+const errorMessageStyle = css({
+  fontSize: "xs",
+  color: "red.s100",
+});
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",
@@ -30,6 +36,14 @@ const TransitionMainContent: React.FC = () => {
     updateTransition,
     onArcWeightUpdate,
   } = useTransitionPropertiesContext();
+
+  const [nameInputValue, setNameInputValue] = useState(transition.name);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNameInputValue(transition.name);
+    setNameError(null);
+  }, [transition.id, transition.name]);
 
   const getPlaceColor = (placeId: string): string | undefined => {
     const place = places.find((pl) => pl.id === placeId);
@@ -119,15 +133,33 @@ const TransitionMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={transition.name}
+          value={nameInputValue}
           onChange={(event) => {
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.name = event.target.value;
-            });
+            setNameInputValue(event.target.value);
+            if (nameError) {
+              setNameError(null);
+            }
+          }}
+          onBlur={() => {
+            const result = validateEntityName(nameInputValue);
+
+            if (!result.valid) {
+              setNameError(result.error);
+              return;
+            }
+
+            setNameError(null);
+            if (result.name !== transition.name) {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.name = result.name;
+              });
+            }
           }}
           disabled={isReadOnly}
+          hasError={!!nameError}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
+        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
       </Section>
 
       <Section title="Input Arcs" collapsible>

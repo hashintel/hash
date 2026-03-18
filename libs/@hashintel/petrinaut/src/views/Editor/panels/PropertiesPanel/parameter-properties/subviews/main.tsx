@@ -1,54 +1,36 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { useEffect, useState } from "react";
+
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
+import { validateVariableName } from "../../../../../../validation/variable-name";
 import { useParameterPropertiesContext } from "../context";
 
-const slugifyToIdentifier = (str: string): string => {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, "_")
-    .replace(/^_+/, "")
-    .replace(/_+$/, "")
-    .replace(/^(\d)/, "_$1");
-};
+const errorMessageStyle = css({
+  fontSize: "xs",
+  color: "red.s100",
+});
 
 const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
+  const [varNameInput, setVarNameInput] = useState(parameter.variableName);
+  const [varNameError, setVarNameError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setVarNameInput(parameter.variableName);
+    setVarNameError(null);
+  }, [parameter.id, parameter.variableName]);
+
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateParameter(parameter.id, (existingParameter) => {
       existingParameter.name = event.target.value;
     });
-  };
-
-  const handleUpdateVariableName = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    updateParameter(parameter.id, (existingParameter) => {
-      existingParameter.variableName = event.target.value;
-    });
-  };
-
-  const handleBlurVariableName = (
-    event: React.FocusEvent<HTMLInputElement>,
-  ) => {
-    const value = event.target.value.trim();
-    if (value === "") {
-      updateParameter(parameter.id, (existingParameter) => {
-        existingParameter.variableName = "param";
-      });
-    } else {
-      const slugified = slugifyToIdentifier(value);
-      if (slugified !== value) {
-        updateParameter(parameter.id, (existingParameter) => {
-          existingParameter.variableName = slugified;
-        });
-      }
-    }
   };
 
   const handleUpdateDefaultValue = (
@@ -72,13 +54,36 @@ const ParameterMainContent: React.FC = () => {
 
       <Section title="Variable Name">
         <Input
-          value={parameter.variableName}
-          onChange={handleUpdateVariableName}
-          onBlur={handleBlurVariableName}
+          value={varNameInput}
+          onChange={(event) => {
+            setVarNameInput(event.target.value);
+            if (varNameError) {
+              setVarNameError(null);
+            }
+          }}
+          onBlur={() => {
+            const result = validateVariableName(varNameInput);
+
+            if (!result.valid) {
+              setVarNameError(result.error);
+              return;
+            }
+
+            setVarNameError(null);
+            if (result.name !== parameter.variableName) {
+              updateParameter(parameter.id, (existingParameter) => {
+                existingParameter.variableName = result.name;
+              });
+            }
+          }}
           disabled={isDisabled}
           monospace
+          hasError={!!varNameError}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
+        {varNameError && (
+          <div className={errorMessageStyle}>{varNameError}</div>
+        )}
       </Section>
 
       <Section title="Default Value">
