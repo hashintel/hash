@@ -361,7 +361,7 @@ describe("compileToIR", () => {
   });
 
   describe(".map() list comprehension", () => {
-    it("should compile .map with destructured params", () => {
+    it("should compile .map with destructured params as propertyAccess", () => {
       const result = compileToIR(
         `export default Lambda((tokens, parameters) => tokens.map(({ x }) => x * parameters.infection_rate))`,
         defaultContext,
@@ -370,12 +370,16 @@ describe("compileToIR", () => {
       if (result.ok) {
         expect(result.ir).toEqual({
           type: "listComprehension",
-          variable: "_iter",
+          variable: "token",
           collection: { type: "symbol", name: "tokens" },
           body: {
             type: "binary",
             op: "*",
-            left: { type: "symbol", name: "_iter_x" },
+            left: {
+              type: "propertyAccess",
+              object: { type: "symbol", name: "token" },
+              property: "x",
+            },
             right: { type: "parameter", name: "infection_rate" },
           },
         });
@@ -391,9 +395,9 @@ describe("compileToIR", () => {
       if (result.ok) {
         expect(result.ir).toEqual({
           type: "listComprehension",
-          variable: "_iter",
+          variable: "token",
           collection: { type: "symbol", name: "tokens" },
-          body: { type: "symbol", name: "_iter" },
+          body: { type: "symbol", name: "token" },
         });
       }
     });

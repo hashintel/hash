@@ -285,6 +285,21 @@ function compileBlockToIR(
 /**
  * Compiles `collection.map(callback)` to a list comprehension IR node.
  */
+/**
+ * Derives a singular iteration variable name from the collection expression.
+ * `tokens` → `token`, `items` → `item`, fallback → `item`.
+ */
+function deriveIterVarName(
+  collection: ts.Expression,
+  sourceFile: ts.SourceFile,
+): string {
+  const text = collection.getText(sourceFile);
+  if (text.endsWith("s") && text.length > 1) {
+    return text.slice(0, -1);
+  }
+  return "item";
+}
+
 function compileMapCallToIR(
   collection: ts.Expression,
   callback: ts.ArrowFunction | ts.FunctionExpression,
@@ -292,7 +307,6 @@ function compileMapCallToIR(
   outerScope: Scope,
   sourceFile: ts.SourceFile,
 ): IRResult {
-  const iterVar = "_iter";
   const mapScope: Scope = {
     localBindingNames: new Set(outerScope.localBindingNames),
     symbolOverrides: new Map(outerScope.symbolOverrides),
@@ -300,16 +314,28 @@ function compileMapCallToIR(
   };
 
   const param = callback.parameters[0];
+  let iterVar: string;
+
   if (param) {
     const paramName = param.name;
     if (ts.isObjectBindingPattern(paramName)) {
+      // Destructured: ({ x, y }) => ...
+      // Use a derived name and map fields to propertyAccess on it
+      iterVar = deriveIterVarName(collection, sourceFile);
       for (const element of paramName.elements) {
         const fieldName = element.name.getText(sourceFile);
-        mapScope.symbolOverrides.set(fieldName, `${iterVar}_${fieldName}`);
+        mapScope.symbolOverrides.set(
+          fieldName,
+          `\0propAccess:${iterVar}:${fieldName}`,
+        );
       }
     } else {
-      mapScope.symbolOverrides.set(paramName.getText(sourceFile), iterVar);
+      // Simple: (token) => ...
+      iterVar = paramName.getText(sourceFile);
+      mapScope.symbolOverrides.set(iterVar, iterVar);
     }
+  } else {
+    iterVar = deriveIterVarName(collection, sourceFile);
   }
 
   // Compile the body
@@ -529,9 +555,22 @@ function emitIR(
       return { ok: true, ir: { type: "infinity" } };
     }
     if (scope.symbolOverrides.has(name)) {
+      const override = scope.symbolOverrides.get(name)!;
+      // Destructured .map() fields are encoded as propertyAccess sentinels
+      if (override.startsWith("\0propAccess:")) {
+        const [, objName, property] = override.split(":");
+        return {
+          ok: true,
+          ir: {
+            type: "propertyAccess",
+            object: { type: "symbol", name: objName! },
+            property: property!,
+          },
+        };
+      }
       return {
         ok: true,
-        ir: { type: "symbol", name: scope.symbolOverrides.get(name)! },
+        ir: { type: "symbol", name: override },
       };
     }
     if (scope.localBindingNames.has(name)) {
