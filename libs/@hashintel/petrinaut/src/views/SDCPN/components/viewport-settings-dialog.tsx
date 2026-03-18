@@ -100,6 +100,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setPartialSelection,
     useEntitiesTreeView,
     setUseEntitiesTreeView,
+    showExpressionOutput,
+    setShowExpressionOutput,
   } = use(UserSettingsContext);
 
   return (
@@ -165,6 +167,15 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               <Switch
                 checked={useEntitiesTreeView}
                 onCheckedChange={setUseEntitiesTreeView}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Expression output"
+              description="Show a read-only panel with the compiled expression IR next to code editors"
+            >
+              <Switch
+                checked={showExpressionOutput}
+                onCheckedChange={setShowExpressionOutput}
               />
             </SettingRow>
             <SettingRow label="Arcs rendering">

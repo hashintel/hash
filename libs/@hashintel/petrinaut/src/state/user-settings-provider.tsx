@@ -77,6 +77,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setUseEntitiesTreeView: (value: boolean) =>
       setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
+    setShowExpressionOutput: (value: boolean) =>
+      setState((prev) => ({ ...prev, showExpressionOutput: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
