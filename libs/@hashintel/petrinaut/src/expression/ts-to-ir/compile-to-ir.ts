@@ -1,7 +1,7 @@
 import ts from "typescript";
 
 import type { SDCPN, Transition } from "../../core/types/sdcpn";
-import type { BinaryOp, ExpressionIR, UnaryOp } from "./expression-ir";
+import type { BinaryOp, ExpressionIR, UnaryOp } from "../expression-ir";
 
 /**
  * Context for compilation, derived from the SDCPN model.

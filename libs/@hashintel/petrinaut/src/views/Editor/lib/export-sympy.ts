@@ -1,9 +1,10 @@
 import type { SDCPN } from "../../../core/types/sdcpn";
+import { irToSymPy } from "../../../expression/ir-to-sympy/ir-to-sympy";
 import {
   buildContextForDifferentialEquation,
   buildContextForTransition,
-  compileToSymPy,
-} from "../../../simulation/simulator/compile-to-sympy";
+  compileToIR,
+} from "../../../expression/ts-to-ir/compile-to-ir";
 
 type SymPyExpression = {
   name: string;
@@ -11,6 +12,15 @@ type SymPyExpression = {
   sympyCode: string | null;
   error: string | null;
 };
+
+function compileToSymPy(
+  code: string,
+  ctx: ReturnType<typeof buildContextForTransition>,
+): { ok: true; sympyCode: string } | { ok: false; error: string } {
+  const irResult = compileToIR(code, ctx);
+  if (!irResult.ok) return irResult;
+  return { ok: true, sympyCode: irToSymPy(irResult.ir) };
+}
 
 /**
  * Converts all expressions in an SDCPN model to SymPy and produces a JSON

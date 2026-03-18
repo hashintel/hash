@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { ExpressionIR } from "../expression-ir";
 import type { CompilationContext } from "./compile-to-ir";
 import { compileToIR } from "./compile-to-ir";
-import type { ExpressionIR } from "./expression-ir";
 
 const defaultContext: CompilationContext = {
   parameterNames: new Set([

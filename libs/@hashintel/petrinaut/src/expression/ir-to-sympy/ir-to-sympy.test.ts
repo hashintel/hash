@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ExpressionIR } from "./expression-ir";
+import type { ExpressionIR } from "../expression-ir";
 import { irToSymPy } from "./ir-to-sympy";
 
 describe("irToSymPy", () => {

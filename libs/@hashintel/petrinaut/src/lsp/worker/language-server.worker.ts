@@ -62,7 +62,7 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
   const result = checkSDCPN(sdcpn, server);
   const allDiagnostics = [
     ...result.itemDiagnostics,
-    ...result.sympyDiagnostics,
+    ...result.expressionDiagnostics,
   ];
   const params: PublishDiagnosticsParams[] = allDiagnostics.map((item) => {
     const uri = filePathToUri(item.filePath);

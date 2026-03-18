@@ -1,4 +1,4 @@
-import type { ExpressionIR } from "./expression-ir";
+import type { ExpressionIR } from "../expression-ir";
 
 const MATH_FN_MAP: Record<string, string> = {
   cos: "sp.cos",
