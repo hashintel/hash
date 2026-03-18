@@ -8,7 +8,7 @@ import { SDCPNContext } from "./sdcpn-context";
  * Hook that determines if the editor is in read-only mode.
  *
  * The editor is read-only when any of the following are true:
- * 1. The external `readonly` prop is set by the consumer (e.g. HASH frontend)
+ * 1. The external `readonly` prop is set by the consumer
  * 2. The global mode is "simulate" (user has switched to simulation mode)
  * 3. A simulation is currently running, paused, or complete
  *
