@@ -106,6 +106,7 @@ const DEFAULT_USER_SETTINGS: UserSettingsContextValue = {
   setActiveBottomPanelTab: () => {},
   setCursorMode: () => {},
   setTimelineChartType: () => {},
+  setShowMinimap: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
   updateSubViewSection: () => {},

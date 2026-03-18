@@ -92,6 +92,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setCompactNodes,
     arcRendering,
     setArcRendering,
+    showMinimap,
+    setShowMinimap,
     partialSelection,
     setPartialSelection,
     useEntitiesTreeView,
@@ -121,6 +123,12 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                 checked={keepPanelsMounted}
                 onCheckedChange={setKeepPanelsMounted}
               />
+            </SettingRow>
+            <SettingRow
+              label="Minimap"
+              description="Show an overview minimap in the top-right corner"
+            >
+              <Switch checked={showMinimap} onCheckedChange={setShowMinimap} />
             </SettingRow>
             <SettingRow label="Compact nodes">
               <Switch

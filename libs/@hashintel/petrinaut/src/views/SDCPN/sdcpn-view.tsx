@@ -63,7 +63,8 @@ export const SDCPNView: React.FC<{
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
-  const { compactNodes, partialSelection } = use(UserSettingsContext);
+  const { compactNodes, showMinimap, partialSelection } =
+    use(UserSettingsContext);
   const nodeTypes = useMemo(
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
     [compactNodes],
@@ -336,7 +337,7 @@ export const SDCPNView: React.FC<{
         zoomOnScroll
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
-        <MiniMap pannable zoomable />
+        {showMinimap && <MiniMap pannable zoomable />}
         <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>
     </div>
