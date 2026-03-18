@@ -200,6 +200,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const count = marking?.count ?? 0;
     const dimensions = getPlaceDimensions(place, sdcpn);
 
+    if (placeId === "__proto__") {
+      throw new Error("Cannot add place with id '__proto__'");
+    }
+
     placeStates[placeId] = {
       offset: bufferSize,
       count,
