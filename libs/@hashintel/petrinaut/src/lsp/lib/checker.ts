@@ -27,10 +27,12 @@ export type SDCPNDiagnostic = {
 };
 
 export type SDCPNCheckResult = {
-  /** Whether the SDCPN is valid (no errors) */
+  /** Whether the SDCPN is valid (no TypeScript errors) */
   isValid: boolean;
-  /** All diagnostics grouped by item */
+  /** TypeScript error diagnostics grouped by item */
   itemDiagnostics: SDCPNDiagnostic[];
+  /** SymPy compilation warning diagnostics (informational, do not affect validity) */
+  sympyDiagnostics: SDCPNDiagnostic[];
 };
 
 /**
@@ -77,10 +79,8 @@ function appendSymPyDiagnostic(
  * Runs SymPy compilation on all SDCPN code expressions and appends
  * any errors as warning diagnostics.
  */
-function checkSymPyCompilation(
-  sdcpn: SDCPN,
-  itemDiagnostics: SDCPNDiagnostic[],
-): void {
+function checkSymPyCompilation(sdcpn: SDCPN): SDCPNDiagnostic[] {
+  const itemDiagnostics: SDCPNDiagnostic[] = [];
   // Check differential equations
   for (const de of sdcpn.differentialEquations) {
     const ctx = buildContextForDifferentialEquation(sdcpn, de.colorId);
@@ -116,28 +116,39 @@ function checkSymPyCompilation(
       );
     }
 
-    const kernelCtx = buildContextForTransition(
-      sdcpn,
-      transition,
-      "TransitionKernel",
-    );
-    const kernelResult = compileToSymPy(
-      transition.transitionKernelCode,
-      kernelCtx,
-    );
-    if (!kernelResult.ok) {
-      const filePath = getItemFilePath("transition-kernel-code", {
-        transitionId: transition.id,
-      });
-      appendSymPyDiagnostic(
-        itemDiagnostics,
-        transition.id,
-        "transition-kernel",
-        filePath,
-        kernelResult,
+    // Only check TransitionKernel if there are coloured output places,
+    // matching the TypeScript checker's behavior
+    const hasColouredOutputPlaces = transition.outputArcs.some((arc) => {
+      const place = sdcpn.places.find((pl) => pl.id === arc.placeId);
+      return place?.colorId != null;
+    });
+
+    if (hasColouredOutputPlaces) {
+      const kernelCtx = buildContextForTransition(
+        sdcpn,
+        transition,
+        "TransitionKernel",
       );
+      const kernelResult = compileToSymPy(
+        transition.transitionKernelCode,
+        kernelCtx,
+      );
+      if (!kernelResult.ok) {
+        const filePath = getItemFilePath("transition-kernel-code", {
+          transitionId: transition.id,
+        });
+        appendSymPyDiagnostic(
+          itemDiagnostics,
+          transition.id,
+          "transition-kernel",
+          filePath,
+          kernelResult,
+        );
+      }
     }
   }
+
+  return itemDiagnostics;
 }
 
 /**
@@ -225,10 +236,11 @@ export function checkSDCPN(
   }
 
   // Run SymPy compilation checks on all code expressions
-  checkSymPyCompilation(sdcpn, itemDiagnostics);
+  const sympyDiagnostics = checkSymPyCompilation(sdcpn);
 
   return {
     isValid: itemDiagnostics.length === 0,
     itemDiagnostics,
+    sympyDiagnostics,
   };
 }

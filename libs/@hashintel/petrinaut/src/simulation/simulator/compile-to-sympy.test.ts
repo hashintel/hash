@@ -423,6 +423,35 @@ describe("compileToSymPy", () => {
     });
   });
 
+  describe("derived distributions", () => {
+    it("should compile distribution.map(Math.cos) end-to-end", () => {
+      const result = compileToSymPy(
+        `export default Lambda(() => {
+          const angle = Distribution.Gaussian(0, 10);
+          return angle.map(Math.cos);
+        })`,
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode:
+          "DerivedDistribution(sp.stats.Normal('X', 0, 10), lambda _x: sp.cos(_x))",
+      });
+    });
+
+    it("should compile inline distribution.map(arrow)", () => {
+      const result = compileToSymPy(
+        "export default Lambda((tokens, parameters) => Distribution.Uniform(0, 1).map((x) => x * parameters.infection_rate))",
+        defaultContext,
+      );
+      expect(result).toEqual({
+        ok: true,
+        sympyCode:
+          "DerivedDistribution(sp.stats.Uniform('X', 0, 1), lambda _x: _x * infection_rate)",
+      });
+    });
+  });
+
   describe("global built-in functions", () => {
     it("should compile Boolean(expr) to sp.Ne(expr, 0)", () => {
       const result = compileToSymPy(
