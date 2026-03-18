@@ -27,7 +27,8 @@ import { TypesSectionHeaderAction } from "./types-list";
 const parameterVarNameStyle = css({
   margin: "0",
   fontSize: "xs",
-  color: "neutral.s90",
+  color: "neutral.s85",
+  fontFamily: "['JetBrains Mono Variable', monospace]",
 });
 
 interface EntityTreeItem {

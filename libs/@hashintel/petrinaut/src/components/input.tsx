@@ -1,3 +1,5 @@
+import "@fontsource-variable/jetbrains-mono";
+
 import { cva } from "@hashintel/ds-helpers/css";
 
 import { withTooltip } from "./hoc/with-tooltip";
@@ -67,7 +69,7 @@ const inputStyle = cva({
     },
     isMonospace: {
       true: {
-        fontFamily: "mono",
+        fontFamily: "['JetBrains Mono Variable', monospace]",
       },
       false: {},
     },
