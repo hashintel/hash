@@ -45,12 +45,13 @@ export function useApplyNodeChanges() {
 
       if (change.type === "position") {
         if (change.dragging) {
+          const rawPosition = change.position ?? { x: 0, y: 0 };
+          const position = snapToGrid
+            ? snapPositionToGrid(rawPosition)
+            : rawPosition;
           updateDraggingStateByNodeId((existing) => ({
             ...existing,
-            [change.id]: {
-              dragging: true,
-              position: change.position ?? { x: 0, y: 0 },
-            },
+            [change.id]: { dragging: true, position },
           }));
         } else {
           if (change.position) {
