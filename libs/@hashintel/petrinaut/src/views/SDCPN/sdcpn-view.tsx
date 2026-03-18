@@ -6,11 +6,14 @@ import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
+import { SNAP_GRID_SIZE } from "../../constants/ui";
+import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
 import { EditorContext } from "../../state/editor-context";
+import { MutationContext } from "../../state/mutation-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
@@ -25,8 +28,6 @@ import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
-
-const SNAP_GRID_SIZE = 15;
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -62,15 +63,16 @@ export const SDCPNView: React.FC<{
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
-  const { compactNodes, partialSelection } = use(UserSettingsContext);
+  const { compactNodes, showMinimap, snapToGrid, partialSelection } =
+    use(UserSettingsContext);
   const nodeTypes = useMemo(
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
     [compactNodes],
   );
 
   // SDCPN store
-  const { petriNetId, addPlace, addTransition, addArc, readonly } =
-    use(SDCPNContext);
+  const { petriNetId } = use(SDCPNContext);
+  const { addPlace, addTransition, addArc } = use(MutationContext);
 
   const {
     editionMode,
@@ -95,9 +97,7 @@ export const SDCPNView: React.FC<{
     });
   }, [reactFlowInstance, petriNetId]);
 
-  // Readonly if simulation mode or readonly has been provided by external consumer.
-  const isSimulationReadOnly = useIsReadOnly();
-  const isReadonly = isSimulationReadOnly || readonly;
+  const isReadonly = useIsReadOnly();
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -146,10 +146,14 @@ export const SDCPNView: React.FC<{
   // Shared function to create a node at a given position
   function createNodeAtPosition(
     nodeType: "place" | "transition",
-    position: { x: number; y: number },
+    rawPosition: { x: number; y: number },
   ) {
+    if (isReadonly) {
+      return;
+    }
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
+    const position = snapToGrid ? snapPositionToGrid(rawPosition) : rawPosition;
 
     if (nodeType === "place") {
       addPlace({
@@ -311,33 +315,32 @@ export const SDCPNView: React.FC<{
         edges={arcs}
         nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
-        onNodesChange={isReadonly ? undefined : applyNodeChanges}
-        onEdgesChange={isReadonly ? undefined : applyNodeChanges}
+        onNodesChange={applyNodeChanges}
+        onEdgesChange={applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
-        onEdgeClick={isReadonly ? undefined : onEdgeClick}
+        onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        snapToGrid
-        snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
         panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
-        selectionOnDrag={isSelectMode && !isReadonly}
+        selectionOnDrag={isSelectMode}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
-        elementsSelectable={!isReadonly && !isAddMode}
+        elementsSelectable={!isAddMode}
         selectionMode={
           partialSelection ? SelectionMode.Partial : SelectionMode.Full
         }
         selectNodesOnDrag={false}
+        nodeOrigin={[0.5, 0.5]}
         deleteKeyCode={null}
         panOnScroll={false}
         zoomOnScroll
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
-        <MiniMap pannable zoomable />
+        {showMinimap && <MiniMap pannable zoomable />}
         <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>
     </div>

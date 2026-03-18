@@ -38,6 +38,8 @@ export type UserSettings = {
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
+  showMinimap: boolean;
+  snapToGrid: boolean;
   partialSelection: boolean;
   useEntitiesTreeView: boolean;
   subViewPanels: SubViewPanelsSettings;
@@ -56,6 +58,8 @@ export type UserSettingsActions = {
   setActiveBottomPanelTab: (value: BottomPanelTab) => void;
   setCursorMode: (value: CursorMode) => void;
   setTimelineChartType: (value: TimelineChartType) => void;
+  setShowMinimap: (value: boolean) => void;
+  setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
   updateSubViewSection: (
@@ -80,6 +84,8 @@ export const defaultUserSettings: UserSettings = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
+  showMinimap: true,
+  snapToGrid: true,
   partialSelection: true,
   useEntitiesTreeView: false,
   subViewPanels: {},
@@ -99,6 +105,8 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setActiveBottomPanelTab: () => {},
   setCursorMode: () => {},
   setTimelineChartType: () => {},
+  setShowMinimap: () => {},
+  setSnapToGrid: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
   updateSubViewSection: () => {},

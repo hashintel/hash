@@ -1,11 +1,9 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import {
-  copySelectionToClipboard,
-  pasteFromClipboard,
-} from "../../../../clipboard/clipboard";
+import { copySelectionToClipboard } from "../../../../clipboard/clipboard";
 import type { CursorMode, EditorState } from "../../../../state/editor-context";
 import { EditorContext } from "../../../../state/editor-context";
+import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import type { SelectionItem } from "../../../../state/selection";
 import { UndoRedoContext } from "../../../../state/undo-redo-context";
@@ -28,17 +26,10 @@ export function useKeyboardShortcuts(
     isSearchOpen,
     setSearchOpen,
     searchInputRef,
-    setLeftSidebarOpen,
   } = use(EditorContext);
-  const {
-    deleteItemsByIds,
-    readonly,
-    petriNetDefinition,
-    petriNetId,
-    mutatePetriNetDefinition,
-  } = use(SDCPNContext);
-  const isSimulationReadOnly = useIsReadOnly();
-  const isReadonly = isSimulationReadOnly || readonly;
+  const { petriNetDefinition, petriNetId } = use(SDCPNContext);
+  const { deleteItemsByIds, pasteEntities } = use(MutationContext);
+  const isReadonly = useIsReadOnly();
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
@@ -78,7 +69,6 @@ export function useKeyboardShortcuts(
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       } else {
-        setLeftSidebarOpen(true);
         setSearchOpen(true);
       }
       return;
@@ -112,7 +102,7 @@ export function useKeyboardShortcuts(
 
       if (key === "v" && !isReadonly) {
         event.preventDefault();
-        void pasteFromClipboard(mutatePetriNetDefinition).then((newItemIds) => {
+        void pasteEntities().then((newItemIds) => {
           if (newItemIds && newItemIds.length > 0) {
             setSelection(
               new Map(

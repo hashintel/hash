@@ -13,6 +13,7 @@ import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
+import { MutationContext } from "../../state/mutation-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useSelectionCleanup } from "../../state/use-selection-cleanup";
@@ -100,12 +101,12 @@ export const EditorView = ({
   const {
     createNewNet,
     existingNets,
-    layoutGraph,
     loadPetriNet,
     petriNetDefinition,
     title,
     setTitle,
   } = use(SDCPNContext);
+  const { layoutGraph } = use(MutationContext);
 
   // Get editor context
   const {

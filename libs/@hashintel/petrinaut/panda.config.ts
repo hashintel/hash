@@ -1,5 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
+import { CODE_FONT_FAMILY } from "./src/constants/ui";
+
 export default defineConfig({
   // Whether to use css reset
   preflight: { scope: ".petrinaut-root" },
@@ -32,6 +34,13 @@ export default defineConfig({
   // Useful for theme customization
   theme: {
     extend: {
+      tokens: {
+        fonts: {
+          mono: {
+            value: CODE_FONT_FAMILY,
+          },
+        },
+      },
       keyframes: {
         fadeIn: {
           from: { opacity: "0", transform: "translateY(-10px)" },

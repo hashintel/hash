@@ -12,13 +12,14 @@ import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../state/editor-context";
+import { MutationContext } from "../../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
+import { validateEntityName } from "../../../../../../validation/entity-name";
 import { usePlacePropertiesContext } from "../context";
 
 const errorMessageStyle = css({
   fontSize: "xs",
-  color: "red.s50",
-  marginTop: "1",
+  color: "red.s100",
 });
 
 const jumpButtonContainerStyle = css({
@@ -89,33 +90,18 @@ const PlaceMainContent: React.FC = () => {
     }
   }, [isNameInputFocused]);
 
-  // Validate PascalCase format
-  const isPascalCase = (str: string): boolean => {
-    if (!str) {
-      return false;
-    }
-    // PascalCase: starts with uppercase, contains letters (and optionally numbers at the end)
-    return /^[A-Z][a-zA-Z]*\d*$/.test(str);
-  };
-
   const handleNameBlur = () => {
-    if (!nameInputValue.trim()) {
-      setNameError("Name cannot be empty");
+    const result = validateEntityName(nameInputValue);
+
+    if (!result.valid) {
+      setNameError(result.error);
       return;
     }
 
-    if (!isPascalCase(nameInputValue)) {
-      setNameError(
-        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end.",
-      );
-      return;
-    }
-
-    // Valid name - update and clear error
     setNameError(null);
-    if (nameInputValue !== place.name) {
+    if (result.name !== place.name) {
       updatePlace(place.id, (existingPlace) => {
-        existingPlace.name = nameInputValue;
+        existingPlace.name = result.name;
       });
     }
   };
@@ -334,7 +320,7 @@ const PlaceMainContent: React.FC = () => {
 
 const DeletePlaceAction: React.FC = () => {
   const { place, isReadOnly } = usePlacePropertiesContext();
-  const { removePlace } = use(SDCPNContext);
+  const { removePlace } = use(MutationContext);
 
   return (
     <IconButton

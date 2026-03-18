@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { sirModel } from "./examples/sir-model";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 
 const meta = {
@@ -30,7 +31,11 @@ export const Readonly: Story = {
 export const HiddenNetManagement: Story = {
   render: () => (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <PetrinautStoryProvider hideNetManagementControls />
+      <PetrinautStoryProvider
+        initialTitle={sirModel.title}
+        initialDefinition={sirModel.petriNetDefinition}
+        hideNetManagementControls
+      />
     </div>
   ),
 };

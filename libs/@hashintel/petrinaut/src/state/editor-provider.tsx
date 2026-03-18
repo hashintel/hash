@@ -33,13 +33,27 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     undefined,
   );
 
-  const triggerPanelAnimation = () => {
+  /**
+   * Returns state patch to enable panel animation. Must be spread into the
+   * same setState call as the layout change so CSS transitions are active
+   * before the panel's open/close state flips.
+   */
+  const animationPatch = (): Partial<EditorState> => {
+    if (!userSettings.showAnimations) {
+      return {};
+    }
+    return { isPanelAnimating: true };
+  };
+
+  /**
+   * Schedule clearing the animation flag after transitions complete.
+   * Called outside setState updaters to keep them pure.
+   */
+  const scheduleAnimationEnd = () => {
     if (!userSettings.showAnimations) {
       return;
     }
     clearTimeout(animationTimerRef.current);
-    setState((prev) => ({ ...prev, isPanelAnimating: true }));
-    // This timeout is not perfectly precise, but good enough for CSS transitions
     animationTimerRef.current = setTimeout(() => {
       setState((prev) => ({ ...prev, isPanelAnimating: false }));
     }, 500);
@@ -47,18 +61,23 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const setSelection = (
     selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
-  ) =>
+  ) => {
+    scheduleAnimationEnd();
     setState((prev) => {
       const selection =
         typeof selectionOrUpdater === "function"
           ? selectionOrUpdater(prev.selection)
           : selectionOrUpdater;
       const hasSelection = selection.size > 0;
-      if (prev.hasSelection !== hasSelection) {
-        triggerPanelAnimation();
-      }
-      return { ...prev, selection, hasSelection };
+      const animate = prev.hasSelection !== hasSelection;
+      return {
+        ...prev,
+        ...(animate ? animationPatch() : {}),
+        selection,
+        hasSelection,
+      };
     });
+  };
 
   const actions: Omit<EditorActions, "isSelected"> = {
     setGlobalMode: (mode) =>
@@ -68,21 +87,30 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
-      triggerPanelAnimation();
-      setState((prev) => ({ ...prev, isLeftSidebarOpen: isOpen }));
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
+        isLeftSidebarOpen: isOpen,
+      }));
     },
     setLeftSidebarWidth: (width) =>
       setState((prev) => ({ ...prev, leftSidebarWidth: width })),
     setPropertiesPanelWidth: (width) =>
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setBottomPanelOpen: (isOpen) => {
-      triggerPanelAnimation();
-      setState((prev) => ({ ...prev, isBottomPanelOpen: isOpen }));
-    },
-    toggleBottomPanel: () => {
-      triggerPanelAnimation();
+      scheduleAnimationEnd();
       setState((prev) => ({
         ...prev,
+        ...animationPatch(),
+        isBottomPanelOpen: isOpen,
+      }));
+    },
+    toggleBottomPanel: () => {
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...animationPatch(),
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
@@ -92,15 +120,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
     setSelection,
     selectItem: (item: SelectionItem) => {
+      scheduleAnimationEnd();
       setState((prev) => {
         const newSelection: SelectionMap = new Map([[item.id, item]]);
-        if (!prev.hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection: newSelection, hasSelection: true };
+        const animate = !prev.hasSelection;
+        return {
+          ...prev,
+          ...(animate ? animationPatch() : {}),
+          selection: newSelection,
+          hasSelection: true,
+        };
       });
     },
     toggleItem: (item: SelectionItem) => {
+      scheduleAnimationEnd();
       setState((prev) => {
         const newSelection = new Map(prev.selection);
         if (newSelection.has(item.id)) {
@@ -109,19 +142,23 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           newSelection.set(item.id, item);
         }
         const hasSelection = newSelection.size > 0;
-        if (prev.hasSelection !== hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection: newSelection, hasSelection };
+        const animate = prev.hasSelection !== hasSelection;
+        return {
+          ...prev,
+          ...(animate ? animationPatch() : {}),
+          selection: newSelection,
+          hasSelection,
+        };
       });
     },
     clearSelection: () => {
-      setState((prev) => {
-        if (prev.hasSelection) {
-          triggerPanelAnimation();
-        }
-        return { ...prev, selection: new Map(), hasSelection: false };
-      });
+      scheduleAnimationEnd();
+      setState((prev) => ({
+        ...prev,
+        ...(prev.hasSelection ? animationPatch() : {}),
+        selection: new Map(),
+        hasSelection: false,
+      }));
     },
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
@@ -133,10 +170,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
     collapseAllPanels: () => {
-      triggerPanelAnimation();
+      scheduleAnimationEnd();
       setState((prev) => ({
         ...prev,
+        ...animationPatch(),
         isLeftSidebarOpen: false,
+        isSearchOpen: false,
         isBottomPanelOpen: false,
         selection: new Map(),
         hasSelection: false,
@@ -145,9 +184,25 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
     setSearchOpen: (isOpen) => {
-      setState((prev) => ({ ...prev, isSearchOpen: isOpen }));
+      scheduleAnimationEnd();
+      setState((prev) => {
+        // Animate when search visibility changes the sidebar appearance
+        // (sidebar becomes visible due to search, or hides when search closes
+        // and sidebar was not explicitly open)
+        const sidebarWasVisible = prev.isLeftSidebarOpen || prev.isSearchOpen;
+        const sidebarWillBeVisible = prev.isLeftSidebarOpen || isOpen;
+        const animate = sidebarWasVisible !== sidebarWillBeVisible;
+        return {
+          ...prev,
+          ...(animate ? animationPatch() : {}),
+          isSearchOpen: isOpen,
+        };
+      });
     },
-    triggerPanelAnimation,
+    triggerPanelAnimation: () => {
+      scheduleAnimationEnd();
+      setState((prev) => ({ ...prev, ...animationPatch() }));
+    },
     __reinitialize: () => setState(initialEditorState),
   };
 

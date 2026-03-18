@@ -1,14 +1,12 @@
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { use } from "react";
 
+import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
 import { EditorContext } from "../../../state/editor-context";
+import { MutationContext } from "../../../state/mutation-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import type { SelectionMap } from "../../../state/selection";
 import { UserSettingsContext } from "../../../state/user-settings-context";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../styles/styling";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
@@ -17,12 +15,10 @@ import {
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export function useApplyNodeChanges() {
-  const { getItemType, mutatePetriNetDefinition } = use(SDCPNContext);
+  const { getItemType } = use(SDCPNContext);
+  const { commitNodePositions } = use(MutationContext);
   const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
-  const { compactNodes } = use(UserSettingsContext);
-  const dimensions = compactNodes
-    ? compactNodeDimensions
-    : classicNodeDimensions;
+  const { snapToGrid } = use(UserSettingsContext);
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionCommits: Array<{
@@ -49,12 +45,13 @@ export function useApplyNodeChanges() {
 
       if (change.type === "position") {
         if (change.dragging) {
+          const rawPosition = change.position ?? { x: 0, y: 0 };
+          const position = snapToGrid
+            ? snapPositionToGrid(rawPosition)
+            : rawPosition;
           updateDraggingStateByNodeId((existing) => ({
             ...existing,
-            [change.id]: {
-              dragging: true,
-              position: change.position ?? { x: 0, y: 0 },
-            },
+            [change.id]: { dragging: true, position },
           }));
         } else {
           if (change.position) {
@@ -124,33 +121,26 @@ export function useApplyNodeChanges() {
     // Commit all final positions from drag-end in a single atomic mutation
     // so that clearing the dragging state never exposes stale SDCPN positions.
     if (positionCommits.length > 0) {
-      const commits = positionCommits.map(({ id, position }) => ({
-        id,
-        itemType: getItemType(id),
-        position,
-      }));
+      const commits: Array<{
+        id: string;
+        itemType: "place" | "transition";
+        position: { x: number; y: number };
+      }> = [];
 
-      mutatePetriNetDefinition((sdcpn) => {
-        for (const { id, itemType, position } of commits) {
-          if (itemType === "place") {
-            for (const place of sdcpn.places) {
-              if (place.id === id) {
-                place.x = position.x + dimensions.place.width / 2;
-                place.y = position.y + dimensions.place.height / 2;
-                break;
-              }
-            }
-          } else if (itemType === "transition") {
-            for (const transition of sdcpn.transitions) {
-              if (transition.id === id) {
-                transition.x = position.x + dimensions.transition.width / 2;
-                transition.y = position.y + dimensions.transition.height / 2;
-                break;
-              }
-            }
-          }
+      for (const { id, position } of positionCommits) {
+        const type = getItemType(id);
+        if (type === "place" || type === "transition") {
+          commits.push({
+            id,
+            itemType: type,
+            position: snapToGrid ? snapPositionToGrid(position) : position,
+          });
         }
-      });
+      }
+
+      if (commits.length > 0) {
+        commitNodePositions(commits);
+      }
     }
   };
 }

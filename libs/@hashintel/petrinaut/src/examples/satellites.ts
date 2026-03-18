@@ -1,3 +1,4 @@
+import { SNAP_GRID_SIZE } from "../constants/ui";
 import type { SDCPN } from "../core/types/sdcpn";
 
 export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
@@ -94,8 +95,8 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
     </svg>
   );
 });`,
-        x: 30,
-        y: 83.33333333333333,
+        x: -2 * SNAP_GRID_SIZE,
+        y: 7 * SNAP_GRID_SIZE,
       },
       {
         id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
@@ -103,8 +104,8 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 510,
-        y: 75,
+        x: 36 * SNAP_GRID_SIZE,
+        y: 7 * SNAP_GRID_SIZE,
       },
     ],
     transitions: [
@@ -158,8 +159,8 @@ export default TransitionKernel((tokens) => {
     ]
   };
 })`,
-        x: 255,
-        y: 180,
+        x: 17 * SNAP_GRID_SIZE,
+        y: 13 * SNAP_GRID_SIZE,
       },
       {
         id: "716fe1e5-9b35-413f-83fe-99b28ba73945",
@@ -204,8 +205,8 @@ export default TransitionKernel((tokens) => {
     ]
   };
 })`,
-        x: 255,
-        y: 30,
+        x: 17 * SNAP_GRID_SIZE,
+        y: 2 * SNAP_GRID_SIZE,
       },
     ],
     types: [
