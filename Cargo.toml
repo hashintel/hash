@@ -293,7 +293,7 @@ uuid                               = { version = "1.18.1", default-features = fa
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
-winnow                             = { version = "0.7.13", default-features = false }
+winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
 
 [profile.dev]
