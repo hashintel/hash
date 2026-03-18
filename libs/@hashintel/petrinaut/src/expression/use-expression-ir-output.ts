@@ -1,12 +1,14 @@
 import { use, useMemo } from "react";
 
-import type { Transition } from "../core/types/sdcpn";
+import type { DifferentialEquation, Transition } from "../core/types/sdcpn";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { UserSettingsContext } from "../state/user-settings-context";
 import { irToLean } from "./ir-to-lean/ir-to-lean";
 import { irToOCaml } from "./ir-to-ocaml/ir-to-ocaml";
 import { irToSymPy } from "./ir-to-sympy/ir-to-sympy";
+import type { CompilationContext, IRResult } from "./ts-to-ir/compile-to-ir";
 import {
+  buildContextForDifferentialEquation,
   buildContextForTransition,
   compileToIR,
 } from "./ts-to-ir/compile-to-ir";
@@ -20,9 +22,42 @@ export type ExpressionOutput = {
   lean: string;
 };
 
+function formatIRResult(result: IRResult): ExpressionOutput {
+  if (result.ok) {
+    return {
+      ir: JSON.stringify(result.ir, null, 2),
+      sympy: irToSymPy(result.ir),
+      ocaml: irToOCaml(result.ir),
+      lean: irToLean(result.ir),
+    };
+  }
+  const errorJson = JSON.stringify(
+    { error: result.error, start: result.start, length: result.length },
+    null,
+    2,
+  );
+  return {
+    ir: errorJson,
+    sympy: `# Error: ${result.error}`,
+    ocaml: `(* Error: ${result.error} *)`,
+    lean: `-- Error: ${result.error}`,
+  };
+}
+
+function useCompileToOutput(
+  code: string,
+  ctx: CompilationContext,
+  enabled: boolean,
+): ExpressionOutput | null {
+  return useMemo(() => {
+    if (!enabled) return null;
+    return formatIRResult(compileToIR(code, ctx));
+  }, [enabled, code, ctx]);
+}
+
 /**
- * Compiles a transition's code to expression IR and SymPy, returning
- * both formatted strings, or `null` when the setting is disabled.
+ * Compiles a transition's code to all output formats,
+ * or `null` when the setting is disabled.
  */
 export function useExpressionOutput(
   transition: Transition,
@@ -36,39 +71,41 @@ export function useExpressionOutput(
       ? transition.lambdaCode
       : transition.transitionKernelCode;
 
-  return useMemo(() => {
-    if (!showExpressionOutput) return null;
+  const ctx = useMemo(
+    () =>
+      buildContextForTransition(
+        petriNetDefinition,
+        transition,
+        constructorFnName,
+      ),
+    [petriNetDefinition, transition, constructorFnName],
+  );
 
-    const ctx = buildContextForTransition(
-      petriNetDefinition,
-      transition,
-      constructorFnName,
-    );
-    const result = compileToIR(code, ctx);
-    if (result.ok) {
-      return {
-        ir: JSON.stringify(result.ir, null, 2),
-        sympy: irToSymPy(result.ir),
-        ocaml: irToOCaml(result.ir),
-        lean: irToLean(result.ir),
-      };
-    }
-    const errorJson = JSON.stringify(
-      { error: result.error, start: result.start, length: result.length },
-      null,
-      2,
-    );
-    return {
-      ir: errorJson,
-      sympy: `# Error: ${result.error}`,
-      ocaml: `(* Error: ${result.error} *)`,
-      lean: `-- Error: ${result.error}`,
-    };
-  }, [
+  return useCompileToOutput(code, ctx, showExpressionOutput);
+}
+
+/**
+ * Compiles a differential equation's code to all output formats,
+ * or `null` when the setting is disabled.
+ */
+export function useDiffEqExpressionOutput(
+  differentialEquation: DifferentialEquation,
+): ExpressionOutput | null {
+  const { showExpressionOutput } = use(UserSettingsContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+
+  const ctx = useMemo(
+    () =>
+      buildContextForDifferentialEquation(
+        petriNetDefinition,
+        differentialEquation.colorId,
+      ),
+    [petriNetDefinition, differentialEquation.colorId],
+  );
+
+  return useCompileToOutput(
+    differentialEquation.code,
+    ctx,
     showExpressionOutput,
-    petriNetDefinition,
-    transition,
-    constructorFnName,
-    code,
-  ]);
+  );
 }
