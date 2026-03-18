@@ -1,5 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
+import { CODE_FONT_FAMILY } from "./src/constants/ui";
+
 export default defineConfig({
   // Whether to use css reset
   preflight: { scope: ".petrinaut-root" },
@@ -34,9 +36,8 @@ export default defineConfig({
     extend: {
       tokens: {
         fonts: {
-          // Must match CODE_FONT_FAMILY in src/constants/ui.ts
           mono: {
-            value: "'JetBrains Mono Variable', monospace",
+            value: CODE_FONT_FAMILY,
           },
         },
       },

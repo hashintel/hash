@@ -1,11 +1,14 @@
 /**
  * UI-related constants for the Petrinaut editor.
  *
+ * NOTE: This file is imported by panda.config.ts (build-time, Node context).
+ * Do not add browser-only or React imports here.
+ *
  * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
-// Code font — must match the fonts.mono token override in panda.config.ts.
-// Used by Monaco editor which needs the actual font name (can't resolve CSS variables).
+// Code font — used by panda.config.ts (fonts.mono token) and by Monaco editor
+// which needs the actual font name (can't resolve CSS variables).
 export const CODE_FONT_FAMILY = "'JetBrains Mono Variable', monospace";
 
 // Canvas grid
