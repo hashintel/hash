@@ -7,6 +7,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import { SNAP_GRID_SIZE } from "../../constants/ui";
+import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
@@ -145,10 +146,11 @@ export const SDCPNView: React.FC<{
   // Shared function to create a node at a given position
   function createNodeAtPosition(
     nodeType: "place" | "transition",
-    position: { x: number; y: number },
+    rawPosition: { x: number; y: number },
   ) {
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
+    const position = snapPositionToGrid(rawPosition);
 
     if (nodeType === "place") {
       addPlace({
@@ -319,8 +321,6 @@ export const SDCPNView: React.FC<{
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        snapToGrid
-        snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
         panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
         selectionOnDrag={isSelectMode}
@@ -331,6 +331,7 @@ export const SDCPNView: React.FC<{
           partialSelection ? SelectionMode.Partial : SelectionMode.Full
         }
         selectNodesOnDrag={false}
+        nodeOrigin={[0.5, 0.5]}
         deleteKeyCode={null}
         panOnScroll={false}
         zoomOnScroll
