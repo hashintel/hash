@@ -159,6 +159,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...prev,
         ...startAnimation({}),
         isLeftSidebarOpen: false,
+        isSearchOpen: false,
         isBottomPanelOpen: false,
         selection: new Map(),
         hasSelection: false,
