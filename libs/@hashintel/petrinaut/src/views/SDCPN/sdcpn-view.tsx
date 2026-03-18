@@ -310,11 +310,11 @@ export const SDCPNView: React.FC<{
         edges={arcs}
         nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
-        onNodesChange={isReadonly ? undefined : applyNodeChanges}
-        onEdgesChange={isReadonly ? undefined : applyNodeChanges}
+        onNodesChange={applyNodeChanges}
+        onEdgesChange={applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
-        onEdgeClick={isReadonly ? undefined : onEdgeClick}
+        onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
@@ -323,10 +323,10 @@ export const SDCPNView: React.FC<{
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         proOptions={{ hideAttribution: true }}
         panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
-        selectionOnDrag={isSelectMode && !isReadonly}
+        selectionOnDrag={isSelectMode}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
-        elementsSelectable={!isReadonly && !isAddMode}
+        elementsSelectable={!isAddMode}
         selectionMode={
           partialSelection ? SelectionMode.Partial : SelectionMode.Full
         }
