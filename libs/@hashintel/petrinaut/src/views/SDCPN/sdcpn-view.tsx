@@ -63,7 +63,7 @@ export const SDCPNView: React.FC<{
   const [reactFlowInstance, setReactFlowInstance] =
     useState<PetrinautReactFlowInstance | null>(null);
 
-  const { compactNodes, showMinimap, partialSelection } =
+  const { compactNodes, showMinimap, snapToGrid, partialSelection } =
     use(UserSettingsContext);
   const nodeTypes = useMemo(
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
@@ -150,7 +150,7 @@ export const SDCPNView: React.FC<{
   ) {
     const id = `${nodeType}__${generateUuid()}`;
     const itemNumber = nodes.length + 1;
-    const position = snapPositionToGrid(rawPosition);
+    const position = snapToGrid ? snapPositionToGrid(rawPosition) : rawPosition;
 
     if (nodeType === "place") {
       addPlace({

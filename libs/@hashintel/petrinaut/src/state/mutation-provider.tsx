@@ -459,7 +459,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
                 break;
               }
             }
-          } else if (itemType === "transition") {
+          } else {
             for (const transition of sdcpn.transitions) {
               if (transition.id === id) {
                 transition.x = position.x;

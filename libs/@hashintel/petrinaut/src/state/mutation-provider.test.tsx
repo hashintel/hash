@@ -107,6 +107,7 @@ const DEFAULT_USER_SETTINGS: UserSettingsContextValue = {
   setCursorMode: () => {},
   setTimelineChartType: () => {},
   setShowMinimap: () => {},
+  setSnapToGrid: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
   updateSubViewSection: () => {},

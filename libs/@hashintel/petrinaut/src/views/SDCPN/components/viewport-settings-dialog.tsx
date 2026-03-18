@@ -94,6 +94,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setArcRendering,
     showMinimap,
     setShowMinimap,
+    snapToGrid,
+    setSnapToGrid,
     partialSelection,
     setPartialSelection,
     useEntitiesTreeView,
@@ -129,6 +131,12 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               description="Show an overview minimap in the top-right corner"
             >
               <Switch checked={showMinimap} onCheckedChange={setShowMinimap} />
+            </SettingRow>
+            <SettingRow
+              label="Snap to grid"
+              description="Snap node positions to the grid when placing or dragging"
+            >
+              <Switch checked={snapToGrid} onCheckedChange={setSnapToGrid} />
             </SettingRow>
             <SettingRow label="Compact nodes">
               <Switch

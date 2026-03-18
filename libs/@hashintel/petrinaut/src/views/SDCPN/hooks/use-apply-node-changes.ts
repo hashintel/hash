@@ -6,6 +6,7 @@ import { EditorContext } from "../../../state/editor-context";
 import { MutationContext } from "../../../state/mutation-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import type { SelectionMap } from "../../../state/selection";
+import { UserSettingsContext } from "../../../state/user-settings-context";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
@@ -17,6 +18,7 @@ export function useApplyNodeChanges() {
   const { getItemType } = use(SDCPNContext);
   const { commitNodePositions } = use(MutationContext);
   const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
+  const { snapToGrid } = use(UserSettingsContext);
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionCommits: Array<{
@@ -42,12 +44,6 @@ export function useApplyNodeChanges() {
       }
 
       if (change.type === "position") {
-        console.log(
-          "[drag]",
-          change.id,
-          change.dragging ? "move" : "end",
-          change.position,
-        );
         if (change.dragging) {
           updateDraggingStateByNodeId((existing) => ({
             ...existing,
@@ -136,7 +132,7 @@ export function useApplyNodeChanges() {
           commits.push({
             id,
             itemType: type,
-            position: snapPositionToGrid(position),
+            position: snapToGrid ? snapPositionToGrid(position) : position,
           });
         }
       }

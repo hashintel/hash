@@ -52,10 +52,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       type: "place",
       position: draggingState?.dragging
         ? draggingState.position
-        : {
-            x: place.x - dimensions.place.width / 2,
-            y: place.y - dimensions.place.height / 2,
-          },
+        : { x: place.x, y: place.y },
       width: dimensions.place.width,
       height: dimensions.place.height,
       measured: {
@@ -83,10 +80,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       type: "transition",
       position: draggingState?.dragging
         ? draggingState.position
-        : {
-            x: transition.x - dimensions.transition.width / 2,
-            y: transition.y - dimensions.transition.height / 2,
-          },
+        : { x: transition.x, y: transition.y },
       width: dimensions.transition.width,
       height: dimensions.transition.height,
       measured: {
