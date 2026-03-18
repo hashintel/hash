@@ -19,6 +19,7 @@ import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
+import { MutationProvider } from "./state/mutation-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import {
   UndoRedoContext,
@@ -114,6 +115,7 @@ export type PetrinautProps = {
 
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
+  mutatePetriNetDefinition,
   undoRedo,
   viewportActions,
   ...rest
@@ -128,10 +130,14 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 <PlaybackProvider>
                   <UserSettingsProvider>
                     <EditorProvider>
-                      <EditorView
-                        hideNetManagementControls={hideNetManagementControls}
-                        viewportActions={viewportActions}
-                      />
+                      <MutationProvider
+                        mutatePetriNetDefinition={mutatePetriNetDefinition}
+                      >
+                        <EditorView
+                          hideNetManagementControls={hideNetManagementControls}
+                          viewportActions={viewportActions}
+                        />
+                      </MutationProvider>
                     </EditorProvider>
                   </UserSettingsProvider>
                 </PlaybackProvider>

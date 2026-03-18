@@ -11,6 +11,7 @@ import {
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
 import { EditorContext } from "../../state/editor-context";
+import { MutationContext } from "../../state/mutation-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
@@ -69,7 +70,8 @@ export const SDCPNView: React.FC<{
   );
 
   // SDCPN store
-  const { petriNetId, addPlace, addTransition, addArc } = use(SDCPNContext);
+  const { petriNetId } = use(SDCPNContext);
+  const { addPlace, addTransition, addArc } = use(MutationContext);
 
   const {
     editionMode,

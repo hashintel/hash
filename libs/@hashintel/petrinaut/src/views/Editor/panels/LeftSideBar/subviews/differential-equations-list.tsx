@@ -8,6 +8,7 @@ import { DifferentialEquationIcon } from "../../../../../constants/entity-icons"
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
 import { EditorContext } from "../../../../../state/editor-context";
+import { MutationContext } from "../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
@@ -21,8 +22,8 @@ import {
 export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
-    addDifferentialEquation,
   } = use(SDCPNContext);
+  const { addDifferentialEquation } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -51,7 +52,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 };
 
 const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeDifferentialEquation } = use(SDCPNContext);
+  const { removeDifferentialEquation } = use(MutationContext);
   const isReadOnly = useIsReadOnly();
 
   return (

@@ -12,6 +12,7 @@ import {
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { EditorContext } from "../../../../../state/editor-context";
+import { MutationContext } from "../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
@@ -43,7 +44,7 @@ interface EntityTreeItem {
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
-    use(SDCPNContext);
+    use(MutationContext);
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 

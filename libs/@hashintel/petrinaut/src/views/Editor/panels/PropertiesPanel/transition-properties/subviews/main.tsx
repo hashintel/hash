@@ -13,7 +13,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
+import { MutationContext } from "../../../../../../state/mutation-context";
 import { useTransitionPropertiesContext } from "../context";
 
 const emptyArcMessageStyle = css({
@@ -213,7 +213,7 @@ const TransitionMainContent: React.FC = () => {
 
 const DeleteTransitionAction: React.FC = () => {
   const { transition, isReadOnly } = useTransitionPropertiesContext();
-  const { removeTransition } = use(SDCPNContext);
+  const { removeTransition } = use(MutationContext);
 
   return (
     <IconButton

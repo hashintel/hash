@@ -9,6 +9,7 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
+import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { usePanelTarget } from "../../../../state/use-selection";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
@@ -64,8 +65,8 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
+  const { petriNetDefinition } = use(SDCPNContext);
   const {
-    petriNetDefinition,
     updatePlace,
     updateTransition,
     updateArcWeight,
@@ -74,7 +75,7 @@ export const PropertiesPanel: React.FC = () => {
     updateDifferentialEquation,
     updateParameter,
     deleteItemsByIds,
-  } = use(SDCPNContext);
+  } = use(MutationContext);
 
   const panelTarget = usePanelTarget();
 

@@ -12,6 +12,7 @@ import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../state/editor-context";
+import { MutationContext } from "../../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
 import { usePlacePropertiesContext } from "../context";
 
@@ -334,7 +335,7 @@ const PlaceMainContent: React.FC = () => {
 
 const DeletePlaceAction: React.FC = () => {
   const { place, isReadOnly } = usePlacePropertiesContext();
-  const { removePlace } = use(SDCPNContext);
+  const { removePlace } = use(MutationContext);
 
   return (
     <IconButton

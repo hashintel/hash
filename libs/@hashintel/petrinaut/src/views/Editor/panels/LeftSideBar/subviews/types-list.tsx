@@ -6,6 +6,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
+import { MutationContext } from "../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
@@ -63,8 +64,8 @@ function getNextTypeNumber(existingNames: string[]): number {
 export const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
-    addType,
   } = use(SDCPNContext);
+  const { addType } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -105,7 +106,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
 };
 
 const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeType } = use(SDCPNContext);
+  const { removeType } = use(MutationContext);
   const isReadOnly = useIsReadOnly();
 
   return (

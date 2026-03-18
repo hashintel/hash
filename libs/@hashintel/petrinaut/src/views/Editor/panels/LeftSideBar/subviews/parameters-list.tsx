@@ -8,6 +8,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
+import { MutationContext } from "../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
@@ -28,8 +29,8 @@ const parameterVarNameStyle = css({
 export const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
-    addParameter,
   } = use(SDCPNContext);
+  const { addParameter } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -61,7 +62,7 @@ export const ParametersHeaderAction: React.FC = () => {
 };
 
 const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeParameter } = use(SDCPNContext);
+  const { removeParameter } = use(MutationContext);
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
