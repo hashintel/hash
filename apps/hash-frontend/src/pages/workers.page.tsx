@@ -63,26 +63,35 @@ const WorkersPageContent = () => {
 };
 
 const WorkersPage: NextPageWithLayout = () => {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(defaultRowsPerPage);
+  const [currentCursor, setCurrentCursor] = useState<string | null>(null);
+  const [previousCursors, setPreviousCursors] = useState<string[]>([]);
 
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
+  const handleNextPage = useCallback(
+    (nextCursor: string) => {
+      setPreviousCursors((prev) => [...prev, currentCursor ?? ""]);
+      setCurrentCursor(nextCursor);
+    },
+    [currentCursor],
+  );
 
-  const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
+  const handlePreviousPage = useCallback(() => {
+    setPreviousCursors((prev) => {
+      const newStack = [...prev];
+      const prevCursor = newStack.pop();
+      setCurrentCursor(prevCursor === "" ? null : (prevCursor ?? null));
+      return newStack;
+    });
   }, []);
 
   const pagination = useMemo(
     () => ({
-      page,
-      rowsPerPage,
-      onPageChange: handlePageChange,
-      onRowsPerPageChange: handleRowsPerPageChange,
+      currentCursor,
+      previousCursors,
+      rowsPerPage: defaultRowsPerPage,
+      onNextPage: handleNextPage,
+      onPreviousPage: handlePreviousPage,
     }),
-    [page, rowsPerPage, handlePageChange, handleRowsPerPageChange],
+    [currentCursor, previousCursors, handleNextPage, handlePreviousPage],
   );
 
   return (
