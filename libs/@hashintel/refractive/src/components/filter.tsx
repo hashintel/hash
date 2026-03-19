@@ -2,7 +2,6 @@ import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
 } from "../maps/displacement-map";
-import { calculateSpecularImage } from "../maps/specular";
 import { CompositeParts } from "./composite-parts";
 
 type FilterProps = {
@@ -15,8 +14,6 @@ type FilterProps = {
   glassThickness: number;
   bezelWidth: number;
   refractiveIndex: number;
-  specularOpacity: number;
-  specularAngle: number;
   bezelHeightFn: (x: number) => number;
   pixelRatio: number;
   hideTop?: boolean;
@@ -52,7 +49,6 @@ export const Filter: React.FC<FilterProps> = ({
   bezelWidth,
   refractiveIndex,
   scaleRatio,
-  specularOpacity,
   bezelHeightFn,
   pixelRatio,
   hideTop,
@@ -88,14 +84,6 @@ export const Filter: React.FC<FilterProps> = ({
     pixelRatio,
   });
 
-  const specularMap = calculateSpecularImage({
-    width: imageSide,
-    height: imageSide,
-    radius,
-    specularAngle: Math.PI / 4, // Default angle, could be made configurable
-    pixelRatio,
-  });
-
   const scale = maximumDisplacement * scaleRatio;
 
   const content = (
@@ -119,51 +107,12 @@ export const Filter: React.FC<FilterProps> = ({
         hideRight={hideRight}
       />
 
-      <CompositeParts
-        imageData={specularMap}
-        width={width}
-        height={height}
-        cornerWidth={cornerWidth}
-        pixelRatio={pixelRatio}
-        result="specular_map"
-        hideTop={hideTop}
-        hideBottom={hideBottom}
-        hideLeft={hideLeft}
-        hideRight={hideRight}
-      />
-
       <feDisplacementMap
         in="blurred_source"
         in2="displacement_map"
         scale={scale}
         xChannelSelector="R"
         yChannelSelector="G"
-        result="displaced_source"
-      />
-
-      <feColorMatrix
-        in="specular_map"
-        type="luminanceToAlpha"
-        result="specular_alpha"
-      />
-
-      <feComponentTransfer in="specular_alpha" result="specular_with_opacity">
-        <feFuncA type="linear" slope={specularOpacity} />
-      </feComponentTransfer>
-
-      <feFlood floodColor="white" result="white_layer" />
-
-      <feComposite
-        in="white_layer"
-        in2="specular_with_opacity"
-        operator="in"
-        result="masked_specular"
-      />
-
-      <feComposite
-        in="masked_specular"
-        in2="displaced_source"
-        operator="over"
       />
     </filter>
   );
