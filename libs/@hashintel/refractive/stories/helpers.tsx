@@ -12,8 +12,6 @@ export type SharedFilterProps = {
   glassThickness: number;
   bezelWidth: number;
   refractiveIndex: number;
-  specularOpacity: number;
-  specularAngle: number;
   bezelHeightFn: SurfaceFnDef;
   background: BackgroundType;
 };
@@ -24,8 +22,6 @@ export const defaultFilterArgs: SharedFilterProps = {
   glassThickness: 70,
   bezelWidth: 30,
   refractiveIndex: 1.5,
-  specularOpacity: 0.9,
-  specularAngle: 2,
   bezelHeightFn: convex,
   background: "article",
 };
@@ -41,12 +37,6 @@ export const filterArgTypes = {
   },
   refractiveIndex: {
     control: { type: "range" as const, min: 1, max: 3, step: 0.01 },
-  },
-  specularOpacity: {
-    control: { type: "range" as const, min: 0, max: 1, step: 0.01 },
-  },
-  specularAngle: {
-    control: { type: "range" as const, min: 0, max: 6.28, step: 0.01 },
   },
   bezelHeightFn: { table: { disable: true } },
   background: {

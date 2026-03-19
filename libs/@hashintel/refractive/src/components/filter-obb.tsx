@@ -2,7 +2,6 @@ import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
 } from "../maps/displacement-map";
-import { calculateSpecularImage } from "../maps/specular";
 import { CompositeImage } from "./composite-image";
 
 type FilterOBBProps = {
@@ -13,8 +12,6 @@ type FilterOBBProps = {
   glassThickness: number;
   bezelWidth: number;
   refractiveIndex: number;
-  specularOpacity: number;
-  specularAngle: number;
   bezelHeightFn: (x: number) => number;
   pixelRatio: number;
   hideTop?: boolean;
@@ -29,7 +26,7 @@ type FilterOBBProps = {
  *
  * Instead of requiring explicit width/height and a ResizeObserver, this filter:
  * - Sets the filter region to exactly match the element's bounding box (`x="0" y="0" width="1" height="1"`)
- * - Uses a single feImage per map (displacement + specular) referencing SVG data URLs
+ * - Uses a single feImage per map (displacement) referencing SVG data URLs
  * - The SVG data URLs contain all 9 image parts composited via nested SVGs with percentage positioning
  *
  * Usage:
@@ -51,7 +48,6 @@ export const FilterOBB: React.FC<FilterOBBProps> = ({
   bezelWidth,
   refractiveIndex,
   scaleRatio,
-  specularOpacity,
   bezelHeightFn,
   pixelRatio,
   hideTop,
@@ -87,14 +83,6 @@ export const FilterOBB: React.FC<FilterOBBProps> = ({
     pixelRatio,
   });
 
-  const specularMap = calculateSpecularImage({
-    width: imageSide,
-    height: imageSide,
-    radius,
-    specularAngle: Math.PI / 4, // Default angle, could be made configurable
-    pixelRatio,
-  });
-
   const scale = maximumDisplacement * scaleRatio;
 
   const content = (
@@ -116,49 +104,12 @@ export const FilterOBB: React.FC<FilterOBBProps> = ({
         hideRight={hideRight}
       />
 
-      <CompositeImage
-        imageData={specularMap}
-        cornerWidth={cornerWidth}
-        pixelRatio={pixelRatio}
-        result="specular_map"
-        hideTop={hideTop}
-        hideBottom={hideBottom}
-        hideLeft={hideLeft}
-        hideRight={hideRight}
-      />
-
       <feDisplacementMap
         in="blurred_source"
         in2="displacement_map"
         scale={scale}
         xChannelSelector="R"
         yChannelSelector="G"
-        result="displaced_source"
-      />
-
-      <feColorMatrix
-        in="specular_map"
-        type="luminanceToAlpha"
-        result="specular_alpha"
-      />
-
-      <feComponentTransfer in="specular_alpha" result="specular_with_opacity">
-        <feFuncA type="linear" slope={specularOpacity} />
-      </feComponentTransfer>
-
-      <feFlood floodColor="white" result="white_layer" />
-
-      <feComposite
-        in="white_layer"
-        in2="specular_with_opacity"
-        operator="in"
-        result="masked_specular"
-      />
-
-      <feComposite
-        in="masked_specular"
-        in2="displaced_source"
-        operator="over"
       />
     </filter>
   );

@@ -14,33 +14,17 @@ import {
   type SharedFilterProps,
 } from "../helpers";
 
-type FilterPolarStoryProps = Omit<
-  SharedFilterProps,
-  "specularOpacity" | "specularAngle"
->;
-
-const FilterPolarStory = ({ background, ...props }: FilterPolarStoryProps) => (
+const FilterPolarStory = ({ background, ...props }: SharedFilterProps) => (
   <FilterShowcase background={background}>
-    {(id) => <FilterPolar id={id} pixelRatio={6} {...props} />}
+    {(id) => <FilterPolar id={id} scaleRatio={1} pixelRatio={6} {...props} />}
   </FilterShowcase>
 );
 
-const {
-  specularOpacity: _a,
-  specularAngle: _b,
-  ...polarArgTypes
-} = filterArgTypes;
-const {
-  specularOpacity: _c,
-  specularAngle: _d,
-  ...polarArgs
-} = defaultFilterArgs;
-
 const meta = {
-  title: "Filters/Filter Polar (Debug)",
+  title: "Filters/Filter Polar (Indirection)",
   component: FilterPolarStory,
-  argTypes: polarArgTypes,
-  args: polarArgs,
+  argTypes: filterArgTypes,
+  args: defaultFilterArgs,
 } satisfies Meta<typeof FilterPolarStory>;
 
 export default meta;
