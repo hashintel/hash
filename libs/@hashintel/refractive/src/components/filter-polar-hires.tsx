@@ -1,7 +1,10 @@
 import { calculateDisplacementMapRadius } from "../maps/displacement-map";
 import { calculateGeometricPolarMap } from "../maps/geometric-polar-map";
+import { generateMagnitudeTable } from "../helpers/generate-table-values";
 import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 import { buildCompositeSvgUrl } from "./composite-image";
+import { FilterShell } from "./filter-shell";
+import { PolarToCartesian } from "./polar-to-cartesian";
 
 /**
  * Reference radius used to generate the hi-res polar field.
@@ -50,40 +53,15 @@ type FilterPolarHiResProps = {
 };
 
 /**
- * Generate a space-separated string of `size` values from a mapping function,
- * suitable for SVG `feComponentTransfer` `tableValues`.
- */
-function generateTableValues(
-  size: number,
-  fn: (index: number) => number,
-): string {
-  return Array.from({ length: size }, (_, i) => fn(i).toFixed(6)).join(" ");
-}
-
-// Trig tables are constant — computed once at module level.
-const cosTable = generateTableValues(256, (i) => {
-  const angle = (i / 255) * 2 * Math.PI;
-  return (Math.cos(angle) + 1) / 2;
-});
-
-const sinTable = generateTableValues(256, (i) => {
-  const angle = (i / 255) * 2 * Math.PI;
-  return (Math.sin(angle) + 1) / 2;
-});
-
-/**
  * @private
- * Filter that reuses a single pre-computed hi-res (513×513) geometric polar field
- * for any radius. The hi-res map is computed with bezelWidth = radius (full corner).
- * When bezelWidth < radius, the magnitude table remaps the distance ratio by
- * `radius / bezelWidth` (capped at 1), compressing the bezel into a narrower band.
+ * Pre-computed hi-res polar map + SVG filter math.
  *
- * The hi-res polar map and its 9-patch parts are computed once at module load.
- * On each render, only the SVG composite URL (positioning corners at the actual
- * radius) and the magnitude lookup table (encoding optical parameters) are
- * recomputed — both are cheap string operations.
+ * Reuses a single 513×513 geometric polar field for any radius.
+ * On each render, only the SVG composite URL (positioning corners at the
+ * actual radius) and the magnitude lookup table (encoding optical parameters)
+ * are recomputed — both are cheap string operations.
  *
- * Uses `objectBoundingBox` filter units (no ResizeObserver needed).
+ * Uses objectBoundingBox — auto-sizes with the element, no ResizeObserver.
  */
 export const FilterPolarHiRes: React.FC<FilterPolarHiResProps> = ({
   id,
@@ -99,8 +77,6 @@ export const FilterPolarHiRes: React.FC<FilterPolarHiResProps> = ({
   hideLeft,
   hideRight,
 }) => {
-  // Build composite SVG positioned at the actual radius (corners are hi-res,
-  // browser downscales them to fit).
   const svgUrl = buildCompositeSvgUrl(
     hiResParts,
     radius,
@@ -120,101 +96,26 @@ export const FilterPolarHiRes: React.FC<FilterPolarHiResProps> = ({
   );
 
   const maximumDisplacement = Math.max(...displacementRadius.map(Math.abs));
-
-  // The hi-res map encodes ratio over the full radius (bezelWidth = radius).
-  // When bezelWidth < radius, remap: the bezel occupies only the outer
-  // (bezelWidth / radius) fraction of the corner, so we scale the ratio
-  // by (radius / bezelWidth) and cap at 1. Anything beyond the bezel
-  // gets the deepest displacement value.
   const ratioScale = clampedBezelWidth > 0 ? radius / clampedBezelWidth : 1;
-
-  // Magnitude table: border distance ratio → signed normalized displacement.
-  const magnitudeTable = generateTableValues(256, (i) => {
-    if (i === 0 || maximumDisplacement === 0) {
-      return 0.5;
-    }
-    const ratio = Math.min(1, (i / 255) * ratioScale);
-    const sampleIndex = Math.min(
-      Math.round(ratio * displacementRadius.length),
-      displacementRadius.length - 1,
-    );
-    const displacement = displacementRadius[sampleIndex] ?? 0;
-    return Math.max(
-      0,
-      Math.min(1, (displacement / maximumDisplacement + 1) / 2),
-    );
-  });
-
-  const scale = 2 * maximumDisplacement * scaleRatio;
+  const magnitudeTable = generateMagnitudeTable(
+    displacementRadius,
+    maximumDisplacement,
+    ratioScale,
+  );
 
   return (
-    <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
-      <defs>
-        <filter id={id} x="0" y="0" width="1" height="1">
-          {/* 1. Blur source graphic */}
-          <feGaussianBlur
-            in="SourceGraphic"
-            stdDeviation={blur}
-            result="blurred_source"
-          />
-
-          {/* 2. Hi-res polar map, corners positioned at actual radius */}
-          <feImage
-            href={svgUrl}
-            result="polar_map"
-            preserveAspectRatio="none"
-          />
-
-          {/* 3. Copy angle (G) into R and G for trig lookup */}
-          <feColorMatrix
-            in="polar_map"
-            type="matrix"
-            values="0 1 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"
-            result="angle_rg"
-          />
-
-          {/* 4. Apply cos table to R, sin table to G */}
-          <feComponentTransfer in="angle_rg" result="trig">
-            <feFuncR type="table" tableValues={cosTable} />
-            <feFuncG type="table" tableValues={sinTable} />
-          </feComponentTransfer>
-
-          {/* 5. Copy distance ratio (R) into R and G for magnitude lookup */}
-          <feColorMatrix
-            in="polar_map"
-            type="matrix"
-            values="1 0 0 0 0  1 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
-            result="ratio_rg"
-          />
-
-          {/* 6. Apply optical transfer function (Snell's law) to both channels */}
-          <feComponentTransfer in="ratio_rg" result="magnitude">
-            <feFuncR type="table" tableValues={magnitudeTable} />
-            <feFuncG type="table" tableValues={magnitudeTable} />
-          </feComponentTransfer>
-
-          {/* 7. Signed multiplication: magnitude × trig → displacement map */}
-          <feComposite
-            in="magnitude"
-            in2="trig"
-            operator="arithmetic"
-            k1={2}
-            k2={-1}
-            k3={-1}
-            k4={1}
-            result="displacement_map"
-          />
-
-          {/* 8. Apply displacement */}
-          <feDisplacementMap
-            in="blurred_source"
-            in2="displacement_map"
-            scale={scale}
-            xChannelSelector="R"
-            yChannelSelector="G"
-          />
-        </filter>
-      </defs>
-    </svg>
+    <FilterShell
+      id={id}
+      blur={blur}
+      scale={2 * maximumDisplacement * scaleRatio}
+      obb
+    >
+      <feImage href={svgUrl} result="polar_map" preserveAspectRatio="none" />
+      <PolarToCartesian
+        magnitudeTable={magnitudeTable}
+        in="polar_map"
+        result="displacement_map"
+      />
+    </FilterShell>
   );
 };

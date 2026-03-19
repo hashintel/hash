@@ -3,6 +3,7 @@ import {
   calculateDisplacementMapRadius,
 } from "../maps/displacement-map";
 import { CompositeParts } from "./composite-parts";
+import { FilterShell } from "./filter-shell";
 
 type FilterProps = {
   id: string;
@@ -24,20 +25,8 @@ type FilterProps = {
 
 /**
  * @private
- * Creates an SVG containing a filter that can be used as `backdrop-filter`to create a refractive effect.
- *
- * At the moment, width and height need to be explicitly provided to match the size of element it will be applied to.
- *
- * Usage:
- * ```tsx
- * const filterId = "my-refractive-filter";
- *
- * <Filter id={filterId} {...otherProps} />
- * <div style={{ backdropFilter: `url(#${filterId})` }} />
- * ```
- *
- * @param props - The properties for the Filter component.
- * @returns An SVG element containing the filter definition.
+ * Rasterized displacement map + JavaScript compositing (CompositeParts).
+ * Requires explicit width/height (needs ResizeObserver in the HOC).
  */
 export const Filter: React.FC<FilterProps> = ({
   id,
@@ -56,13 +45,7 @@ export const Filter: React.FC<FilterProps> = ({
   hideLeft,
   hideRight,
 }) => {
-  // Size of each corner area
-  // If bezelWidth < radius, corners will be in a circle shape
-  // If bezelWidth >= radius, corners will be in a rounded square shape
   const cornerWidth = Math.max(radius, bezelWidth);
-
-  // Calculated image width and height are always odd,
-  // so we always have at least 1 pixel in the middle we can stretch
   const imageSide = cornerWidth * 2 + 1;
 
   const map = calculateDisplacementMapRadius(
@@ -84,16 +67,8 @@ export const Filter: React.FC<FilterProps> = ({
     pixelRatio,
   });
 
-  const scale = maximumDisplacement * scaleRatio;
-
-  const content = (
-    <filter id={id}>
-      <feGaussianBlur
-        in="SourceGraphic"
-        stdDeviation={blur}
-        result="blurred_source"
-      />
-
+  return (
+    <FilterShell id={id} blur={blur} scale={maximumDisplacement * scaleRatio}>
       <CompositeParts
         imageData={displacementMap}
         width={width}
@@ -106,20 +81,6 @@ export const Filter: React.FC<FilterProps> = ({
         hideLeft={hideLeft}
         hideRight={hideRight}
       />
-
-      <feDisplacementMap
-        in="blurred_source"
-        in2="displacement_map"
-        scale={scale}
-        xChannelSelector="R"
-        yChannelSelector="G"
-      />
-    </filter>
-  );
-
-  return (
-    <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
-      <defs>{content}</defs>
-    </svg>
+    </FilterShell>
   );
 };
