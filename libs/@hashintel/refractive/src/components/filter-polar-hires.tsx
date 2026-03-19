@@ -40,6 +40,7 @@ type FilterPolarHiResProps = {
   blur: number;
   radius: number;
   glassThickness: number;
+  bezelWidth: number;
   refractiveIndex: number;
   bezelHeightFn: (x: number) => number;
   hideTop?: boolean;
@@ -73,7 +74,9 @@ const sinTable = generateTableValues(256, (i) => {
 /**
  * @private
  * Filter that reuses a single pre-computed hi-res (513×513) geometric polar field
- * for any radius. The bezel width is always equal to the radius.
+ * for any radius. The hi-res map is computed with bezelWidth = radius (full corner).
+ * When bezelWidth < radius, the magnitude table remaps the distance ratio by
+ * `radius / bezelWidth` (capped at 1), compressing the bezel into a narrower band.
  *
  * The hi-res polar map and its 9-patch parts are computed once at module load.
  * On each render, only the SVG composite URL (positioning corners at the actual
@@ -88,6 +91,7 @@ export const FilterPolarHiRes: React.FC<FilterPolarHiResProps> = ({
   blur,
   scaleRatio,
   glassThickness,
+  bezelWidth,
   refractiveIndex,
   bezelHeightFn,
   hideTop,
@@ -106,22 +110,30 @@ export const FilterPolarHiRes: React.FC<FilterPolarHiResProps> = ({
     hideRight,
   );
 
-  // Optical transfer function: bezelWidth = radius for this filter.
+  const clampedBezelWidth = Math.min(bezelWidth, radius);
+
   const displacementRadius = calculateDisplacementMapRadius(
     glassThickness,
-    radius,
+    clampedBezelWidth,
     bezelHeightFn,
     refractiveIndex,
   );
 
   const maximumDisplacement = Math.max(...displacementRadius.map(Math.abs));
 
+  // The hi-res map encodes ratio over the full radius (bezelWidth = radius).
+  // When bezelWidth < radius, remap: the bezel occupies only the outer
+  // (bezelWidth / radius) fraction of the corner, so we scale the ratio
+  // by (radius / bezelWidth) and cap at 1. Anything beyond the bezel
+  // gets the deepest displacement value.
+  const ratioScale = clampedBezelWidth > 0 ? radius / clampedBezelWidth : 1;
+
   // Magnitude table: border distance ratio → signed normalized displacement.
   const magnitudeTable = generateTableValues(256, (i) => {
     if (i === 0 || maximumDisplacement === 0) {
       return 0.5;
     }
-    const ratio = i / 255;
+    const ratio = Math.min(1, (i / 255) * ratioScale);
     const sampleIndex = Math.min(
       Math.round(ratio * displacementRadius.length),
       displacementRadius.length - 1,

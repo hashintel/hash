@@ -15,6 +15,7 @@ type FilterPolarHiResStoryProps = {
   blur: number;
   radius: number;
   glassThickness: number;
+  bezelWidth: number;
   refractiveIndex: number;
   bezelHeightFn: SurfaceFnDef;
   background: BackgroundType;
@@ -45,6 +46,9 @@ const meta = {
     glassThickness: {
       control: { type: "range" as const, min: 0, max: 300, step: 1 },
     },
+    bezelWidth: {
+      control: { type: "range" as const, min: 0, max: 100, step: 1 },
+    },
     refractiveIndex: {
       control: { type: "range" as const, min: 1, max: 3, step: 0.01 },
     },
@@ -58,6 +62,7 @@ const meta = {
     blur: 2,
     radius: 20,
     glassThickness: 70,
+    bezelWidth: 30,
     refractiveIndex: 1.5,
     bezelHeightFn: convex,
     background: "article",
