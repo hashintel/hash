@@ -22,7 +22,7 @@ type CompositeImageProps = {
  * size the feImage renders it at. Corners are placed at fixed pixel sizes using
  * nested SVGs with overflow="visible" and percentage-based positioning.
  */
-function buildCompositeSvgUrl(
+export function buildCompositeSvgUrl(
   parts: Parts,
   cornerWidth: number,
   hideTop?: boolean,
