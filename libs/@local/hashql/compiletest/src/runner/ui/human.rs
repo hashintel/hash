@@ -315,7 +315,7 @@ impl Human {
 
         let reports = run_trials(set, context, tx);
 
-        let mut writer = anstream::stdout();
+        let mut writer = std::io::stdout();
 
         for event in rx {
             let Event::TrialFinished(index, success, trial_stats) = event;
