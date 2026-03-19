@@ -193,9 +193,15 @@ export const flowTypedef = gql`
     """
     flowRuns: [FlowRun!]!
     """
-    The total number of flow runs matching the filters (before pagination)
+    The total number of flow run entities matching the filters.
+    Note: this count comes from the graph query and may not reflect
+    Temporal-side filtering (e.g. by executionStatus).
     """
     totalCount: Int!
+    """
+    An opaque cursor for fetching the next page. Null when there are no more results.
+    """
+    nextCursor: String
   }
 
   extend type Query {
@@ -209,12 +215,11 @@ export const flowTypedef = gql`
       """
       executionStatus: FlowRunStatus
       """
-      Number of flow runs to skip (for offset-based pagination).
-      Defaults to 0. Negative values are clamped to 0.
+      An opaque cursor returned from a previous query, used to fetch the next page.
       """
-      offset: Int
+      cursor: String
       """
-      Maximum number of flow runs to return (for offset-based pagination).
+      Maximum number of flow runs to return per page.
       Defaults to 100 and is capped at that value.
       Negative values are clamped to 0.
       """

@@ -135,7 +135,7 @@ const convertScreamingSnakeToPascalCase = (str: string) =>
 type GetFlowRunsFilters = {
   executionStatus?: FlowRunStatus | null;
   flowDefinitionIds?: string[] | null;
-  offset?: number | null;
+  cursor?: string | null;
   limit?: number | null;
 };
 
@@ -158,6 +158,7 @@ type MinimalFlowMetadata = {
 type PaginatedFlowRuns<T> = {
   flowRuns: T[];
   totalCount: number;
+  nextCursor: string | null;
 };
 
 export async function getFlowRuns(
@@ -184,7 +185,12 @@ export async function getFlowRuns({
 }: GetFlowRunsFnArgs<boolean>): Promise<
   PaginatedFlowRuns<SparseFlowRun | FlowRun>
 > {
-  const temporalWorkflowIdToFlowDetails = await queryEntities<FlowRunEntity>(
+  const effectiveLimit = Math.min(
+    Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
+    flowRunsQueryMaxLimit,
+  );
+
+  const queryResult = await queryEntities<FlowRunEntity>(
     { graphApi: graphApiClient },
     authentication,
     {
@@ -217,39 +223,47 @@ export async function getFlowRuns({
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
       includePermissions: false,
+      limit: effectiveLimit,
+      ...(filters.cursor
+        ? { cursor: JSON.parse(filters.cursor) as object[] }
+        : {}),
+      includeCount: true,
     },
-  ).then(({ entities }) => {
-    const result: Record<string, MinimalFlowMetadata> = {};
+  );
 
-    for (const entity of entities) {
-      const [webId, entityUuid] = splitEntityId(
-        entity.metadata.recordId.entityId,
-      );
+  const temporalWorkflowIdToFlowDetails: Record<string, MinimalFlowMetadata> =
+    {};
 
-      const name =
-        entity.properties[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-        ];
+  for (const entity of queryResult.entities) {
+    const [webId, entityUuid] = splitEntityId(
+      entity.metadata.recordId.entityId,
+    );
 
-      const temporalWorkflowId =
-        entity.properties[
-          "https://hash.ai/@h/types/property-type/workflow-id/"
-        ];
+    const name =
+      entity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+      ];
 
-      result[temporalWorkflowId] = {
-        flowRunId: entityUuid,
-        name,
-        temporalWorkflowId,
-        webId,
-      };
-    }
-    return result;
-  });
+    const temporalWorkflowId =
+      entity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
+
+    temporalWorkflowIdToFlowDetails[temporalWorkflowId] = {
+      flowRunId: entityUuid,
+      name,
+      temporalWorkflowId,
+      webId,
+    };
+  }
 
   const temporalWorkflowIds = typedKeys(temporalWorkflowIdToFlowDetails);
 
+  const nextCursor = queryResult.cursor
+    ? JSON.stringify(queryResult.cursor)
+    : null;
+  const totalCount = queryResult.count ?? 0;
+
   if (!temporalWorkflowIds.length) {
-    return { flowRuns: [], totalCount: 0 };
+    return { flowRuns: [], totalCount, nextCursor };
   }
 
   /** @see https://docs.temporal.io/develop/typescript/observability#search-attributes */
@@ -296,19 +310,10 @@ export async function getFlowRuns({
     deduplicatedWorkflowIds.push(temporalWorkflowId);
   }
 
-  const totalCount = deduplicatedWorkflowIds.length;
-
-  const offset = Math.max(filters.offset ?? 0, 0);
-  const limit = Math.min(
-    Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
-    flowRunsQueryMaxLimit,
-  );
-  const paginatedIds = deduplicatedWorkflowIds.slice(offset, offset + limit);
-
   if (includeDetails) {
     const workflows: FlowRun[] = [];
 
-    for (const temporalWorkflowId of paginatedIds) {
+    for (const temporalWorkflowId of deduplicatedWorkflowIds) {
       const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getFlowRunFromTemporalWorkflowId({
@@ -322,11 +327,11 @@ export async function getFlowRuns({
       workflows.push(runInfo);
     }
 
-    return { flowRuns: workflows, totalCount };
+    return { flowRuns: workflows, totalCount, nextCursor };
   } else {
     const workflows: SparseFlowRun[] = [];
 
-    for (const temporalWorkflowId of paginatedIds) {
+    for (const temporalWorkflowId of deduplicatedWorkflowIds) {
       const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getSparseFlowRunFromTemporalWorkflowId({
@@ -339,6 +344,6 @@ export async function getFlowRuns({
       workflows.push(runInfo);
     }
 
-    return { flowRuns: workflows, totalCount };
+    return { flowRuns: workflows, totalCount, nextCursor };
   }
 }

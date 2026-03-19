@@ -19,15 +19,17 @@ import type {
 import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsPaginationState = {
-  page: number;
+  currentCursor: string | null;
+  previousCursors: string[];
   rowsPerPage: number;
-  onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onNextPage: (nextCursor: string) => void;
+  onPreviousPage: () => void;
 };
 
 export type FlowRunsContextType = {
   flowRuns: GetFlowRunsQuery["getFlowRuns"]["flowRuns"];
   totalCount: number;
+  nextCursor: string | null;
   loading: boolean;
   pagination: FlowRunsPaginationState | null;
   selectedFlowRun: FlowRun | null;
@@ -46,10 +48,10 @@ export const FlowRunsContextProvider = ({
 }>) => {
   const variables: GetFlowRunsQueryVariables = pagination
     ? {
-        offset: pagination.page * pagination.rowsPerPage,
+        cursor: pagination.currentCursor,
         limit: pagination.rowsPerPage,
       }
-    : { offset: 0, limit: flowRunsQueryMaxLimit };
+    : { limit: flowRunsQueryMaxLimit };
 
   const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,
@@ -79,6 +81,7 @@ export const FlowRunsContextProvider = ({
   }, [flowRunsData]);
 
   const totalCount = flowRunsData?.getFlowRuns.totalCount ?? 0;
+  const nextCursor = flowRunsData?.getFlowRuns.nextCursor ?? null;
 
   const selectedFlowRun = useMemo(() => {
     if (selectedFlowRunData) {
@@ -91,6 +94,7 @@ export const FlowRunsContextProvider = ({
     () => ({
       flowRuns,
       totalCount,
+      nextCursor,
       loading: selectedFlowRunLoading || flowRunsLoading,
       pagination: pagination ?? null,
       selectedFlowRun,
@@ -99,6 +103,7 @@ export const FlowRunsContextProvider = ({
     [
       flowRuns,
       totalCount,
+      nextCursor,
       flowRunsLoading,
       pagination,
       selectedFlowRunLoading,
