@@ -14,9 +14,21 @@ import {
   type SharedFilterProps,
 } from "../helpers";
 
-const FilterPolarStory = ({ background, ...props }: SharedFilterProps) => (
-  <FilterShowcase background={background}>
-    {(id) => <FilterPolar id={id} scaleRatio={1} pixelRatio={6} {...props} />}
+const FilterPolarStory = ({
+  background,
+  radius,
+  ...props
+}: SharedFilterProps) => (
+  <FilterShowcase background={background} radius={radius}>
+    {(id) => (
+      <FilterPolar
+        id={id}
+        scaleRatio={1}
+        pixelRatio={6}
+        radius={radius}
+        {...props}
+      />
+    )}
   </FilterShowcase>
 );
 
