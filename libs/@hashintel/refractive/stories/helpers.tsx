@@ -51,8 +51,9 @@ export const filterArgTypes = {
  */
 const GlassPane: React.FC<{
   filterId: string;
+  radius: number;
   children: React.ReactNode;
-}> = ({ filterId, children }) => (
+}> = ({ filterId, radius, children }) => (
   <>
     {children}
     <div
@@ -60,7 +61,7 @@ const GlassPane: React.FC<{
         width: 400,
         height: 300,
         backdropFilter: `url(#${filterId})`,
-        borderRadius: 20,
+        borderRadius: radius,
         backgroundColor: "rgba(255, 255, 255, 0.15)",
         display: "flex",
         alignItems: "center",
@@ -79,12 +80,17 @@ const GlassPane: React.FC<{
  * Wrapper that renders a filter + a div with that filter applied, over a selectable background.
  */
 export const FilterShowcase: React.FC<{
+  radius?: number;
   background?: BackgroundType;
   children: (id: string) => React.ReactNode;
-}> = ({ background = "article", children }) => {
+}> = ({ radius = 20, background = "article", children }) => {
   const filterId = useId();
 
-  const glass = <GlassPane filterId={filterId}>{children(filterId)}</GlassPane>;
+  const glass = (
+    <GlassPane filterId={filterId} radius={radius}>
+      {children(filterId)}
+    </GlassPane>
+  );
 
   if (background === "checkerboard") {
     return (
