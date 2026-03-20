@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW(((NOT($1))::boolean), NULL, NULL, NULL)::continuation)

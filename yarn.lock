@@ -15275,10 +15275,12 @@ __metadata:
   resolution: "@rust/hashql-eval@workspace:libs/@local/hashql/eval"
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hashql-core": "workspace:*"
     "@rust/hashql-diagnostics": "workspace:*"
     "@rust/hashql-hir": "workspace:*"
+    "@rust/hashql-mir": "workspace:*"
   languageName: unknown
   linkType: soft
 

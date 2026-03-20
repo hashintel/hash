@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+==================== Island (entry: bb0, target: postgres) =====================
+
+CASE WHEN (($1)::int) = 0 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 1 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 2 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 3 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) ELSE (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) END

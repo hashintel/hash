@@ -1,0 +1,13 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_7_0"."row")."block" AS "continuation_7_0_block", ("continuation_7_0"."row")."locals" AS "continuation_7_0_locals", ("continuation_7_0"."row")."values" AS "continuation_7_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL (SELECT (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $3)::boolean), NULL, NULL, NULL)::continuation) AS "row"
+OFFSET 0) AS "continuation_7_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_7_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Primitive("e2851dbb-7376-4959-9bca-f72cafc4448f")
