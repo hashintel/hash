@@ -18,6 +18,7 @@
     assert_matches,
     binary_heap_drain_sorted,
     clone_from_ref,
+    const_convert,
     const_type_name,
     get_mut_unchecked,
     iter_array_chunks,
@@ -25,13 +26,13 @@
     iter_intersperse,
     iterator_try_collect,
     likely_unlikely,
+    option_into_flat_iter,
     maybe_uninit_array_assume_init,
     maybe_uninit_fill,
     step_trait,
     string_from_utf8_lossy_owned,
-    try_trait_v2,
     temporary_niche_types,
-    const_convert,
+    try_trait_v2,
     variant_count,
 )]
 #![expect(clippy::indexing_slicing)]

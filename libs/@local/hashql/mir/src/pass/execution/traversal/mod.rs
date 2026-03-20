@@ -38,11 +38,13 @@ pub struct TraversalLattice {
 }
 
 impl TraversalLattice {
+    /// Creates a lattice for the given vertex type.
     #[must_use]
     pub const fn new(vertex: VertexType) -> Self {
         Self { vertex }
     }
 
+    /// Returns the vertex type this lattice operates over.
     #[must_use]
     pub const fn vertex(self) -> VertexType {
         self.vertex
@@ -124,6 +126,14 @@ impl TraversalPathBitSet {
         }
     }
 
+    /// Returns `true` if `path` is present in the bitset.
+    #[must_use]
+    pub const fn contains(self, path: TraversalPath) -> bool {
+        match (self, path) {
+            (Self::Entity(bitset), TraversalPath::Entity(path)) => bitset.contains(path),
+        }
+    }
+
     /// Inserts all possible paths into the set.
     #[inline]
     pub const fn insert_all(&mut self) {
@@ -132,6 +142,7 @@ impl TraversalPathBitSet {
         }
     }
 
+    /// Iterates over the paths in this bitset.
     #[must_use]
     #[inline]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = TraversalPath> {
