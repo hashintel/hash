@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use hashql_core::heap::Heap;
+use hashql_compiletest::pipeline::Pipeline;
 use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
@@ -9,11 +9,12 @@ use hashql_mir::{
 
 /// Signature for programmatic test builders.
 ///
-/// Each builder receives a heap and returns the MIR components needed for
-/// execution: an interner, the entry definition, and the body set. Inputs
-/// are constructed by the test runner from seeded entity data, not by the
-/// builder.
-pub(crate) type ProgrammaticBuilder = fn(&Heap) -> (Interner<'_>, DefId, DefIdVec<Body<'_>>);
+/// Each builder receives the pipeline (providing the heap and the shared type
+/// environment) and returns the MIR components needed for execution: an
+/// interner, the entry definition, and the body set. Inputs are constructed
+/// by the test runner from seeded entity data, not by the builder.
+pub(crate) type ProgrammaticBuilder =
+    for<'heap> fn(&Pipeline<'heap>) -> (Interner<'heap>, DefId, DefIdVec<Body<'heap>>);
 
 /// A discovered test case, either from a `.jsonc` file or a programmatic
 /// registration.

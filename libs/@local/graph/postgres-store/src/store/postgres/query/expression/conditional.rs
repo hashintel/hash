@@ -39,6 +39,10 @@ pub enum Function {
     /// values unchanged; wraps text, uuid, integer, boolean, etc. as jsonb
     /// scalars.
     ToJson(Box<Expression>),
+    /// Returns the first non-NULL argument.
+    ///
+    /// Transpiles to `COALESCE(expr, fallback)`.
+    Coalesce(Box<Expression>, Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
     LowerInc(Box<Expression>),
@@ -135,6 +139,13 @@ impl Transpile for Function {
             Self::ToJson(expression) => {
                 fmt.write_str("to_jsonb(")?;
                 expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Coalesce(expression, fallback) => {
+                fmt.write_str("COALESCE(")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                fallback.transpile(fmt)?;
                 fmt.write_char(')')
             }
             Self::Lower(expression) => {
@@ -600,6 +611,11 @@ impl Expression {
     #[must_use]
     pub fn grouped(self) -> Self {
         Self::Grouped(Box::new(self))
+    }
+
+    #[must_use]
+    pub fn coalesce(self, fallback: Self) -> Self {
+        Self::Function(Function::Coalesce(Box::new(self), Box::new(fallback)))
     }
 
     #[must_use]

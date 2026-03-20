@@ -15,6 +15,7 @@ use hash_graph_postgres_store::store::postgres::query::{Expression, Transpile as
 use hashql_core::{
     heap::{Heap, Scratch},
     id::Id as _,
+    module::std_lib::graph::types::knowledge::entity as entity_types,
     symbol::sym,
     r#type::{TypeBuilder, TypeId, environment::Environment},
 };
@@ -562,10 +563,10 @@ fn data_island_provides_without_lateral() {
 
     let callee_id = DefId::new(99);
 
-    // Light entity path accesses — solver puts everything on Interpreter, creating only a
+    // Light entity path accesses: solver puts everything on Interpreter, creating only a
     // Postgres Data island for the entity columns. No Postgres exec island exists.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              uuid: ?, func: [fn() -> ?], result: ?;
         @proj v_uuid = vertex.entity_uuid: ?;
 
@@ -612,7 +613,7 @@ fn provides_drives_select_and_joins() {
     // bb0 accesses entity paths (Postgres-origin), then bb1 uses a closure (Interpreter).
     // The Postgres island should provide the accessed paths to the Interpreter island.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              uuid: ?, archived: ?, func: [fn() -> ?], result: ?;
         @proj v_uuid = vertex.entity_uuid: ?,
               v_metadata = vertex.metadata: ?,
@@ -743,7 +744,7 @@ fn property_mask() {
     // Properties access in bb0 (Postgres Data island) with an apply in bb1 (Interpreter)
     // ensures Properties and `PropertyMetadata` appear in the provides set.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              props: ?, prop_meta: ?, func: [fn() -> ?], result: ?;
         @proj v_props = vertex.properties: ?,
               v_meta = vertex.metadata: ?,

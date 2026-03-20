@@ -4,4 +4,4 @@ expression: report.to_string()
 ---
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(((jsonb_extract_path(jsonb_build_array(10, 20, 30), (($1)::text)))::boolean), NULL, NULL, NULL)::continuation)
+(ROW(COALESCE(((jsonb_extract_path(jsonb_build_array(10, 20, 30), ((($1::jsonb))::text)))::boolean), FALSE), NULL, NULL, NULL)::continuation)

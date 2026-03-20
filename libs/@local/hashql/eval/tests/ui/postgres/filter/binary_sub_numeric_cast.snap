@@ -4,4 +4,4 @@ expression: report.to_string()
 ---
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW((((($1)::numeric) - (($2)::numeric))::boolean), NULL, NULL, NULL)::continuation)
+(ROW(COALESCE(((((($1::jsonb))::numeric) - ((($2::jsonb))::numeric))::boolean), FALSE), NULL, NULL, NULL)::continuation)

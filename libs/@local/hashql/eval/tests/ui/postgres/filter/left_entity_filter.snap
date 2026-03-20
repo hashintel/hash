@@ -4,4 +4,4 @@ expression: report.to_string()
 ---
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW((("entity_has_left_entity_0_0_1"."left_entity_uuid" = $1)::boolean), NULL, NULL, NULL)::continuation)
+(ROW(COALESCE(((to_jsonb("entity_has_left_entity_0_0_1"."left_entity_uuid") = to_jsonb(($1::jsonb)))::boolean), FALSE), NULL, NULL, NULL)::continuation)

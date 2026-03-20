@@ -2,7 +2,12 @@ use alloc::alloc::Global;
 
 use hashql_compiletest::pipeline::Pipeline;
 use hashql_core::{
-    heap::Heap, module::std_lib::graph::types::knowledge::entity, symbol::sym, r#type::TypeBuilder,
+    heap::Heap,
+    module::std_lib::graph::types::{
+        knowledge::entity, principal::actor_group::web::types as web_types,
+    },
+    symbol::sym,
+    r#type::TypeBuilder,
 };
 use hashql_eval::orchestrator::codec::{Decoder, JsonValueRef};
 use hashql_mir::{
@@ -248,6 +253,16 @@ pub(crate) fn build_inputs<'heap>(
     insert_entity_id(&mut inputs, "org_id", &entities.organization);
     insert_entity_id(&mut inputs, "friend_link_id", &entities.friend_link);
     insert_entity_id(&mut inputs, "draft_alice_id", &entities.draft_alice);
+
+    // WebId input (all seeded entities share the same web).
+    let web_id_type = web_types::web_id(&ty, None);
+    let web_id_value = decoder
+        .decode(
+            web_id_type,
+            JsonValueRef::String(&entities.alice.web_id.to_string()),
+        )
+        .expect("could not decode WebId input");
+    inputs.insert(heap.intern_symbol("web_id"), web_id_value);
 
     // String inputs for property-based filtering.
     let string_type = ty.string();

@@ -96,7 +96,10 @@ impl From<Continuation> for Expression {
         let row = match continuation {
             Continuation::Return { filter } => {
                 vec![
-                    filter.grouped().cast(PostgresType::Boolean),
+                    filter
+                        .grouped()
+                        .cast(PostgresType::Boolean)
+                        .coalesce(Self::Constant(query::Constant::Boolean(false))),
                     null.clone(),
                     null.clone(),
                     null,
@@ -184,7 +187,20 @@ fn finish_switch_int<A: Allocator>(
     let discriminant = Box::new(discriminant.grouped().cast(PostgresType::Int));
 
     let mut discriminant = Some(discriminant);
-    let mut conditions = Vec::with_capacity(targets.values().len());
+    // +1 for the NULL guard: a NULL discriminant means the computation could
+    // not be evaluated (e.g. missing JSONB key), so we reject the row.
+    let mut conditions = Vec::with_capacity(targets.values().len() + 1);
+
+    conditions.push((
+        Expression::Unary(UnaryExpression {
+            op: UnaryOperator::IsNull,
+            expr: discriminant.clone().unwrap_or_else(|| unreachable!()),
+        }),
+        Continuation::Return {
+            filter: Expression::Constant(query::Constant::Boolean(false)),
+        }
+        .into(),
+    ));
 
     for (index, (&value, then)) in targets.values().iter().zip(branch_results).enumerate() {
         let is_last = index == targets.values().len() - 1;

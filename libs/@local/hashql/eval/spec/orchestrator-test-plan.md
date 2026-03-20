@@ -5,22 +5,22 @@
 | ID  | Name                                    | Status | File |
 | --- | --------------------------------------- | ------ | ---- |
 | 1.1 | Simple entity read, no filter           | done   | `jsonc/simple-read.jsonc` |
-| 1.2 | Property access                         | skip   | needs MIR builder (properties are un-narrowed `?`) |
-| 1.3 | Individual metadata leaf fields         | skip   | needs MIR builder (metadata behind `List`/`Option`) |
+| 1.2 | Property access                         | done   | `programmatic/property-access` + `programmatic/property-arithmetic` |
+| 1.3 | Individual metadata leaf fields         | done   | `jsonc/metadata-leaf-fields.jsonc` |
 | 1.4 | Equality filter                         | done   | `jsonc/filter-by-uuid.jsonc` |
 | 1.5 | Input-driven filter                     | done   | `jsonc/filter-by-entity-id.jsonc` |
 | 1.6 | Link entity read                        | done   | `jsonc/has-link-data.jsonc` |
 | 1.7 | Non-link entity (null link_data)        | done   | `jsonc/null-link-data.jsonc` |
-| 1.8 | Organization type                       | skip   | needs MIR builder (entity_type_ids behind `List`) |
+| 1.8 | Organization type                       | done   | `jsonc/organization-type.jsonc` |
 | 1.9 | Pinned temporal axis                    | done   | `jsonc/pinned-decision-time.jsonc` |
 | 1.A | Inequality filter                       | done   | `jsonc/filter-not-equal.jsonc` |
 | 1.B | Let binding propagation                 | done   | `jsonc/let-binding.jsonc` |
 | 1.C | Empty result set                        | done   | `jsonc/filter-false.jsonc` |
-| 1.D | Diamond CFG in filter                   | todo   | `jsonc/filter-diamond-cfg.jsonc` |
+| 1.D | Diamond CFG in filter                   | done   | `jsonc/filter-diamond-cfg.jsonc` |
 | 2.1 | Interpreter-only filter                 | done   | `jsonc/filter-by-entity-id.jsonc` (EntityId is not serialization-safe) |
 | 2.2 | Postgres-only filter                    | done   | `jsonc/filter-by-uuid.jsonc` (EntityUuid is serialization-safe) |
 | 2.3 | Mixed island filter (continuation)      | done   | `jsonc/filter-diamond-cfg.jsonc` (both EntityUuid and EntityId branches) |
-| 2.4 | Multiple sequential filters             | todo   | `jsonc/filter-sequential.jsonc` |
+| 2.4 | Multiple sequential filters             | done   | `jsonc/filter-sequential.jsonc` |
 | 3.1 | Metadata only, no properties            | todo   | unit test (hydration) |
 | 3.2 | Full metadata population                | todo   | unit test (hydration) |
 | 3.3 | Composite path: RecordId                | todo   | unit test (hydration) |

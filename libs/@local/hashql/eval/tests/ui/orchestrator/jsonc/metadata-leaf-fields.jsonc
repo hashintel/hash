@@ -1,0 +1,25 @@
+// Filter using three different metadata leaf column types:
+//   entity_uuid (UUID/TEXT), web_id (UUID/TEXT), archived (BOOL).
+// All seeded entities share the same web_id. Combining all three
+// conditions selects only non-archived Alice.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["&&",
+        ["&&",
+          ["==",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+          ],
+          ["==",
+            "vertex.metadata.record_id.entity_id.web_id",
+            ["input", "web_id", "::graph::types::principal::actor_group::web::WebId"]
+          ]
+        ],
+        ["==", "vertex.metadata.archived", { "#literal": false }]
+      ]
+    ]
+  ]
+]

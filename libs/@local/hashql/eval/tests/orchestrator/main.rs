@@ -18,6 +18,7 @@ mod error;
 mod execution;
 mod inputs;
 mod output;
+mod programmatic;
 mod seed;
 
 use self::{
@@ -46,6 +47,13 @@ async fn setup() -> Result<TestContext, Report<SetupError>> {
         .with_name("pgvector/pgvector")
         .with_tag("0.8.2-pg18-trixie")
         .with_reuse(ReuseDirective::CurrentSession)
+        .with_cmd([
+            "postgres",
+            "-c",
+            "log_statement=all",
+            "-c",
+            "log_destination=stderr",
+        ])
         .start()
         .await
         .change_context(SetupError::Container)?;
@@ -149,8 +157,8 @@ fn run_programmatic_test(
     bless: bool,
 ) -> Result<(), Report<TestError>> {
     let heap = Heap::new();
-    let (interner, entry, mut bodies) = builder(&heap);
     let mut pipeline = Pipeline::new(&heap);
+    let (interner, entry, mut bodies) = builder(&pipeline);
 
     let inputs = build_inputs(
         &heap,
@@ -184,7 +192,10 @@ fn run_programmatic_test(
     }
 }
 
-const PROGRAMMATIC_TESTS: &[(&str, ProgrammaticBuilder)] = &[];
+const PROGRAMMATIC_TESTS: &[(&str, ProgrammaticBuilder)] = &[
+    ("property-access", programmatic::property_access),
+    ("property-arithmetic", programmatic::property_arithmetic),
+];
 
 fn main() -> Result<(), Report<SetupError>> {
     let arguments = libtest_mimic::Arguments::from_args();
