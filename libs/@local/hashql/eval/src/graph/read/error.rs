@@ -195,7 +195,8 @@ pub(super) fn path_conversion_error(
     diagnostic.add_message(Message::help(
         "Filter expressions can only query against simple scalar properties that map to database \
          columns, not complex objects. Use individual properties of the object instead (e.g., \
-         `entity.id.entity_uuid` instead of `entity.id`).",
+         `entity.metadata.record_id.entity_id.entity_uuid` instead of \
+         `entity.metadata.record_id`).",
     ));
 
     diagnostic.add_message(Message::note(

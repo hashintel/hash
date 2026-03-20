@@ -6,7 +6,7 @@
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
-        "vertex.id.entity_id.entity_uuid",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
         // This is one of the few times where we can actually test if we hit a compiler error,
         // because we don't typecheck the input in this test (yet)
         [".",

@@ -4,7 +4,7 @@ use core::fmt::{
 
 use hash_graph_store::filter::PathToken;
 
-use super::ColumnReference;
+use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{
     SelectStatement, Table, Transpile, WindowStatement,
     expression::{
@@ -17,6 +17,7 @@ use crate::store::postgres::query::{
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
+    JsonAgg(Box<Expression>),
     JsonExtractText(Box<Expression>),
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
@@ -33,7 +34,7 @@ pub enum Function {
     },
     Lower(Box<Expression>),
     Upper(Box<Expression>),
-    Unnest(Box<Expression>),
+    Unnest(Vec<Expression>),
     Now,
 }
 
@@ -51,6 +52,11 @@ impl Transpile for Function {
             }
             Self::Max(expression) => {
                 fmt.write_str("MAX(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonAgg(expression) => {
+                fmt.write_str("jsonb_agg(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
@@ -118,7 +124,15 @@ impl Transpile for Function {
             }
             Self::Unnest(expression) => {
                 fmt.write_str("UNNEST(")?;
-                expression.transpile(fmt)?;
+
+                for (index, element) in expression.iter().enumerate() {
+                    if index > 0 {
+                        fmt.write_str(", ")?;
+                    }
+
+                    element.transpile(fmt)?;
+                }
+
                 fmt.write_char(')')
             }
             Self::JsonPathQueryFirst(target, path) => {
@@ -149,8 +163,10 @@ impl Transpile for Function {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
+    Null,
     Boolean(bool),
-    UnsignedInteger(u32),
+    U32(u32),
+    U128(u128),
     /// The JSON `null` literal, distinct from SQL `NULL`.
     ///
     /// Transpiles to `'null'::jsonb`.
@@ -165,15 +181,17 @@ impl From<bool> for Constant {
 
 impl From<u32> for Constant {
     fn from(value: u32) -> Self {
-        Self::UnsignedInteger(value)
+        Self::U32(value)
     }
 }
 
 impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Null => write!(fmt, "NULL"),
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
-            Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
+            Self::U32(number) => fmt::Display::fmt(number, fmt),
+            Self::U128(number) => fmt::Display::fmt(number, fmt),
             Self::JsonNull => fmt.write_str("'null'::jsonb"),
         }
     }
@@ -184,7 +202,12 @@ pub enum PostgresType {
     Array(Box<Self>),
     Row(Table),
     Text,
+    JsonB,
     JsonPath,
+    Continuation,
+    Numeric,
+    Int,
+    BigInt,
 }
 
 impl Transpile for PostgresType {
@@ -196,7 +219,12 @@ impl Transpile for PostgresType {
             }
             Self::Row(table) => table.transpile(fmt),
             Self::Text => fmt.write_str("text"),
+            Self::JsonB => fmt.write_str("jsonb"),
             Self::JsonPath => fmt.write_str("jsonpath"),
+            Self::Continuation => fmt.write_str("continuation"),
+            Self::Numeric => fmt.write_str("numeric"),
+            Self::Int => fmt.write_str("int"),
+            Self::BigInt => fmt.write_str("bigint"),
         }
     }
 }
@@ -223,6 +251,27 @@ pub enum Expression {
     Function(Function),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
+    /// Composite field access - extracts a named field from a composite/row type value.
+    ///
+    /// Transpiles to `(<expr>)."field"` in PostgreSQL. This is the SQL standard mechanism
+    /// for decomposing composite types (created via `ROW(...)::type` or returned from
+    /// subqueries) into individual field values.
+    ///
+    /// Distinct from [`ColumnReference`], which resolves a column name within a table's
+    /// namespace. `FieldAccess` operates on a runtime composite *value*.
+    ///
+    /// Corresponds to `A_Indirection` in PostgreSQL's parse tree and
+    /// `CompoundFieldAccess` in sqlparser-rs.
+    ///
+    /// # Example SQL
+    /// ```sql
+    /// (f0.c).filter
+    /// (ROW(1, 'hello')::my_type).name
+    /// ```
+    FieldAccess {
+        expr: Box<Self>,
+        field: ColumnName<'static>,
+    },
     /// Row expansion - expands a composite type into its constituent columns.
     ///
     /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
@@ -265,6 +314,7 @@ pub enum Expression {
 }
 
 /// Convenience constructors for condition variants to avoid `Box::new()` boilerplate.
+#[expect(clippy::should_implement_trait)]
 impl Expression {
     #[must_use]
     pub const fn all(conditions: Vec<Self>) -> Self {
@@ -283,10 +333,10 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn not(inner: Self) -> Self {
+    pub fn not(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::Not,
-            expr: Box::new(inner),
+            expr: Box::new(self),
         })
     }
 
@@ -494,8 +544,8 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn grouped(inner: Self) -> Self {
-        Self::Grouped(Box::new(inner))
+    pub fn grouped(self) -> Self {
+        Self::Grouped(Box::new(self))
     }
 
     #[must_use]
@@ -512,12 +562,23 @@ impl Expression {
     pub fn contains_segment(lhs: Self, rhs: Self) -> Self {
         Self::ContainsSegment(Box::new(lhs), Box::new(rhs))
     }
+
+    #[must_use]
+    pub fn cast(self, r#type: PostgresType) -> Self {
+        Self::Cast(Box::new(self), r#type)
+    }
 }
 
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // --- Value expressions ---
+            Self::FieldAccess { expr, field } => {
+                fmt.write_char('(')?;
+                expr.transpile(fmt)?;
+                fmt.write_str(").")?;
+                field.transpile(fmt)
+            }
             Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
@@ -627,7 +688,8 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, SelectCompiler, test_helper::max_version_expression,
+        Alias, Identifier, PostgresQueryPath as _, SelectCompiler,
+        test_helper::max_version_expression,
     };
 
     #[test]
@@ -737,6 +799,97 @@ mod tests {
             element_type: PostgresType::Text,
         });
         assert_eq!(empty_array.transpile_to_string(), "ARRAY[]::text[]");
+    }
+
+    #[test]
+    fn transpile_null_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::Null).transpile_to_string(),
+            "NULL"
+        );
+    }
+
+    #[test]
+    fn transpile_u128_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::U128(0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF))
+                .transpile_to_string(),
+            "340282366920938463463374607431768211455"
+        );
+    }
+
+    #[test]
+    fn transpile_json_agg() {
+        assert_eq!(
+            Expression::Function(Function::JsonAgg(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "jsonb_agg($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_unnest_multiple() {
+        assert_eq!(
+            Expression::Function(Function::Unnest(vec![
+                Expression::Parameter(1),
+                Expression::Parameter(2),
+                Expression::Parameter(3),
+            ]))
+            .transpile_to_string(),
+            "UNNEST($1, $2, $3)"
+        );
+    }
+
+    #[test]
+    fn transpile_field_access() {
+        assert_eq!(
+            Expression::FieldAccess {
+                expr: Box::new(Expression::Parameter(1)),
+                field: ColumnName::from(Identifier::from("filter")),
+            }
+            .transpile_to_string(),
+            r#"($1)."filter""#
+        );
+    }
+
+    #[test]
+    fn transpile_is_not_false() {
+        assert_eq!(
+            Expression::Unary(UnaryExpression {
+                op: UnaryOperator::IsNotFalse,
+                expr: Box::new(Expression::Parameter(1)),
+            })
+            .transpile_to_string(),
+            "$1 IS NOT FALSE"
+        );
+    }
+
+    #[test]
+    fn transpile_cast_types() {
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::JsonB)
+                .transpile_to_string(),
+            "($1::jsonb)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Numeric)
+                .transpile_to_string(),
+            "($1::numeric)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Int)
+                .transpile_to_string(),
+            "($1::int)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::BigInt)
+                .transpile_to_string(),
+            "($1::bigint)"
+        );
     }
 
     fn test_condition<'p, 'f: 'p>(

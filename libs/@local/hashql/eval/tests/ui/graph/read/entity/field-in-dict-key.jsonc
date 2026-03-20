@@ -7,11 +7,11 @@
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
         ["[]",
-          {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]},
+          {"#dict": [["vertex.metadata.record_id.entity_id.entity_uuid", {"#literal": "a"}]]},
           //~^ ERROR path expressions are not supported in data constructs
           ["::graph::types::knowledge::entity::EntityUuid", ["::core::uuid::Uuid", {"#literal": "a"}]]
         ],
-        "vertex.id.entity_id.entity_uuid"
+        "vertex.metadata.record_id.entity_id.entity_uuid"
       ]
     ]
   ]
