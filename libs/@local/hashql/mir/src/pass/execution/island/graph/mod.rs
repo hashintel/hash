@@ -120,6 +120,24 @@ impl IslandNode {
         self.target
     }
 
+    #[inline]
+    pub fn members(&self) -> impl Iterator<Item = BasicBlockId> {
+        match &self.kind {
+            IslandKind::Exec(exec_island) => Some(exec_island.members.iter()),
+            IslandKind::Data => None,
+        }
+        .into_flat_iter()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, block: BasicBlockId) -> bool {
+        match &self.kind {
+            IslandKind::Exec(exec_island) => exec_island.members.contains(block),
+            IslandKind::Data => false,
+        }
+    }
+
     /// Returns the set of traversal paths this island requires.
     #[inline]
     #[must_use]
@@ -253,6 +271,13 @@ impl<A: Allocator> IslandGraph<A> {
         let start = self.lookup[BasicBlockId::START];
 
         RequirementResolver::new(self, start, scratch).resolve(&topo);
+    }
+
+    pub fn find(&self, target: TargetId) -> impl Iterator<Item = (IslandId, &'_ IslandNode)> {
+        self.inner
+            .iter_nodes()
+            .filter(move |node| node.data.target == target)
+            .map(|node| (IslandId::new(node.id().as_u32()), &node.data))
     }
 }
 
