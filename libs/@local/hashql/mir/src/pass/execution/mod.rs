@@ -98,6 +98,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             context,
             body,
             &mut statement_costs,
+            &mut terminator_costs,
             &self.scratch,
         );
 
@@ -105,7 +106,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
             TransferCostConfig::new(InformationRange::full()),
             &self.scratch,
         );
-        let mut terminator_costs = terminators.terminator_placement_in(
+        let mut transition_costs = terminators.terminator_placement_in(
             body,
             vertex,
             &self.footprints[body.id],
@@ -115,7 +116,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
 
         ArcConsistency {
             blocks: &mut assignments,
-            terminators: &mut terminator_costs,
+            terminators: &mut transition_costs,
         }
         .run_in(body, &self.scratch);
 
@@ -132,7 +133,7 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
 
         let mut solver = PlacementSolverContext {
             blocks: &block_costs,
-            terminators: &terminator_costs,
+            terminators: &transition_costs,
         }
         .build_in(body, &self.scratch);
 

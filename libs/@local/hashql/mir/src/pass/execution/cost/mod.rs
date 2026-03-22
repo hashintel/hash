@@ -20,11 +20,13 @@ use core::{
 };
 use std::f32;
 
+use hashql_core::id::Id as _;
+
 pub(crate) use self::analysis::{BasicBlockCostAnalysis, BasicBlockCostVec};
 use super::block_partitioned_vec::BlockPartitionedVec;
 use crate::{
     body::{
-        basic_block::{BasicBlockId, BasicBlockVec},
+        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
         basic_blocks::BasicBlocks,
         location::Location,
     },
@@ -366,6 +368,42 @@ impl<A: Allocator> TerminatorCostVec<A> {
 
     pub(crate) fn insert(&mut self, block: BasicBlockId, cost: Cost) {
         self.0.insert(block, cost);
+    }
+
+    /// Remaps terminator costs after block splitting.
+    ///
+    /// For each original block, the original terminator cost is placed on the last block
+    /// of its region (which holds the original terminator after splitting). All preceding
+    /// blocks in the region received synthesized `Goto` terminators and get zero cost.
+    ///
+    /// Operates in-place by extending the vec, then shuffling entries from back to front
+    /// to avoid overwriting unprocessed entries.
+    pub(crate) fn remap(&mut self, regions: &BasicBlockSlice<(core::num::NonZero<usize>, bool)>) {
+        let mut new_length = BasicBlockId::START;
+        for (_, (region_len, _)) in regions.iter_enumerated() {
+            new_length.increment_by(region_len.get());
+        }
+
+        // Extend to the new size. New slots are initialized to `None`.
+        self.0.fill_until(new_length.minus(1), || None);
+
+        // Walk regions in reverse so we never overwrite an unprocessed original entry.
+        let mut write = new_length;
+        for (original, (region_len, _)) in regions.iter_enumerated().rev() {
+            let original_cost = self.0[original];
+
+            // The last block in the region holds the original terminator.
+            write.decrement_by(1);
+            self.0[write] = original_cost;
+
+            // Preceding blocks have synthesized Goto terminators: zero cost.
+            for _ in 1..region_len.get() {
+                write.decrement_by(1);
+                self.0[write] = Some(cost!(0));
+            }
+        }
+
+        debug_assert_eq!(write, BasicBlockId::START);
     }
 
     /// Returns the approximate cost for the terminator in `block`, or zero if unassigned.

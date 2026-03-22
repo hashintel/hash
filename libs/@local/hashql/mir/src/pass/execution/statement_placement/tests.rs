@@ -104,7 +104,8 @@ pub(crate) fn run_placement<'heap>(
     let vertex = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
         .unwrap_or_else(|| unimplemented!("lookup for declared type"));
 
-    let statement_costs = placement.statement_placement_in(context, &body, vertex, context.heap);
+    let (statement_costs, _terminator_costs) =
+        placement.statement_placement_in(context, &body, vertex, context.heap);
 
     (body, statement_costs)
 }
