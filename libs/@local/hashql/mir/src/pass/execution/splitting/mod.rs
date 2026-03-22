@@ -49,8 +49,8 @@ fn supported_statement(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> Ta
     output
 }
 
-fn supported_terminator<A: Allocator>(
-    costs: &TargetArray<TerminatorCostVec<A>>,
+fn supported_terminator(
+    costs: &TargetArray<TerminatorCostVec<impl Allocator>>,
     block: BasicBlockId,
 ) -> TargetBitSet {
     let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
@@ -67,10 +67,10 @@ fn supported_terminator<A: Allocator>(
 /// Returns a non-zero count for each block. Blocks with fewer than two statements
 /// always yield one region.
 #[expect(unsafe_code, clippy::cast_possible_truncation)]
-fn count_regions<A: Allocator, B: Allocator>(
+fn count_regions<A: Allocator, T: Allocator, B: Allocator>(
     body: &Body<'_>,
     statement_costs: &TargetArray<StatementCostVec<A>>,
-    terminator_costs: &TargetArray<TerminatorCostVec<A>>,
+    terminator_costs: &TargetArray<TerminatorCostVec<T>>,
     alloc: B,
 ) -> BasicBlockVec<(NonZero<usize>, bool), B> {
     // Start with one region per block and only grow when target support changes.
@@ -152,7 +152,7 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
 ///
 /// Remaps all [`BasicBlockId`] references, connects split blocks with [`Goto`] chains,
 /// and updates [`StatementCostVec`] to reflect the new layout.
-#[expect(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation, clippy::too_many_lines)]
 fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
     context: &MirContext<'_, 'heap>,
     body: &mut Body<'heap>,
@@ -214,10 +214,9 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
         if region.len() < 2 {
             debug_assert_eq!(region.len(), 1);
 
-            // Unlike other regions, these may be empty. Mark empty blocks as supported everywhere.
             if costs[TargetId::Interpreter].is_empty() {
-                targets[start_id]
-                    .insert_range(TargetId::MIN..=TargetId::MAX, TargetId::VARIANT_COUNT);
+                // No statements: the block's target affinity comes from its terminator.
+                targets[start_id] = supported_terminator(terminator_costs, index);
             } else {
                 targets[start_id] = supported_statement(&costs, 0);
             }
@@ -310,9 +309,12 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
         index.increment_by(1);
     }
 
-    // TODO: must remap
     for cost in statement_costs.iter_mut() {
         cost.remap(&body.basic_blocks);
+    }
+
+    for cost in terminator_costs.iter_mut() {
+        cost.remap(regions);
     }
 
     targets
@@ -349,36 +351,43 @@ impl<S: Allocator> BasicBlockSplitting<S> {
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         statement_costs: &mut TargetArray<StatementCostVec<impl Allocator + Clone>>,
+        terminator_costs: &mut TargetArray<TerminatorCostVec<impl Allocator>>,
     ) -> BasicBlockVec<TargetBitSet, Global>
     where
         S: Clone,
     {
-        self.split_in(context, body, statement_costs, Global)
+        self.split_in(context, body, statement_costs, terminator_costs, Global)
     }
 
-    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities along with
-    /// the per-block region counts used during splitting.
+    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
     ///
-    /// The first element is indexed by the new [`BasicBlockId`]s. The second element maps
-    /// each original block to the number of blocks it was split into, which callers can use
-    /// to redistribute parallel data structures.
+    /// Partitions blocks so each resulting block's statements share the same target support,
+    /// with an additional split when the terminator narrows the target set. Updates both
+    /// `statement_costs` and `terminator_costs` to reflect the new block layout.
     pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         statement_costs: &mut TargetArray<StatementCostVec<impl Allocator + Clone>>,
+        terminator_costs: &mut TargetArray<TerminatorCostVec<impl Allocator>>,
         alloc: A,
     ) -> BasicBlockVec<TargetBitSet, A>
     where
         S: Clone,
     {
-        let regions = count_regions(body, statement_costs, self.scratch.clone());
+        let regions = count_regions(
+            body,
+            statement_costs,
+            terminator_costs,
+            self.scratch.clone(),
+        );
 
         offset_basic_blocks(
             context,
             body,
             &regions,
             statement_costs,
+            terminator_costs,
             self.scratch.clone(),
             alloc,
         )
