@@ -1,12 +1,15 @@
 //! Cost tracking for execution planning.
 //!
-//! Two levels of cost representation:
+//! Three levels of cost representation:
 //!
 //! - **Per-statement**: [`StatementCostVec`] records the [`Cost`] of each statement on a given
 //!   target. Produced by the statement placement pass and consumed by [`BasicBlockCostAnalysis`].
 //!
-//! - **Per-block**: [`BasicBlockCostVec`] aggregates statement costs and adds a path transfer
-//!   premium for non-origin backends. This is what the placement solver operates on.
+//! - **Per-terminator**: [`TerminatorCostVec`] records the [`Cost`] of each block's terminator on a
+//!   given target. Produced alongside statement costs during placement analysis.
+//!
+//! - **Per-block**: [`BasicBlockCostVec`] aggregates statement and terminator costs and adds a path
+//!   transfer premium for non-origin backends. This is what the placement solver operates on.
 
 use alloc::alloc::Global;
 use core::{
@@ -20,7 +23,11 @@ use std::f32;
 pub(crate) use self::analysis::{BasicBlockCostAnalysis, BasicBlockCostVec};
 use super::block_partitioned_vec::BlockPartitionedVec;
 use crate::{
-    body::{basic_block::BasicBlockId, basic_blocks::BasicBlocks, location::Location},
+    body::{
+        basic_block::{BasicBlockId, BasicBlockVec},
+        basic_blocks::BasicBlocks,
+        location::Location,
+    },
     macros::{forward_ref_binop, forward_ref_op_assign},
     pass::analysis::size_estimation::InformationUnit,
 };
@@ -323,6 +330,50 @@ impl Sum for ApproxCost {
 impl Sum<Cost> for ApproxCost {
     fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
         iter.fold(Self::ZERO, Add::add)
+    }
+}
+
+/// Per-block cost of executing the terminator on a given target.
+///
+/// Each block has exactly one terminator. A `None` cost indicates the target cannot execute that
+/// terminator (the terminator's operands are not supported on the target). One instance exists per
+/// target inside `TargetArray<TerminatorCostVec>`.
+#[derive(Debug)]
+pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BasicBlockVec<Option<Cost>, A>);
+
+impl<A: Allocator + Clone> TerminatorCostVec<A> {
+    /// Creates a cost vector with one slot per block, all initialized to `None` (unsupported).
+    pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self {
+        Self(BasicBlockVec::with_capacity_in(blocks.len(), alloc))
+    }
+}
+
+impl<A: Allocator> TerminatorCostVec<A> {
+    /// Returns `true` if no terminators have assigned costs.
+    #[cfg(test)]
+    pub(crate) fn all_unassigned(&self) -> bool {
+        self.0.iter().all(Option::is_none)
+    }
+
+    /// Returns the cost for the terminator in `block`, or `None` if the target cannot execute it.
+    pub(crate) fn of(&self, block: BasicBlockId) -> Option<Cost> {
+        self.0.lookup(block).copied()
+    }
+
+    pub(crate) fn of_mut(&mut self, block: BasicBlockId) -> Option<&mut Cost> {
+        self.0.lookup_mut(block)
+    }
+
+    pub(crate) fn insert(&mut self, block: BasicBlockId, cost: Cost) {
+        self.0.insert(block, cost);
+    }
+
+    /// Returns the approximate cost for the terminator in `block`, or zero if unassigned.
+    pub(crate) fn approx(&self, block: BasicBlockId) -> ApproxCost {
+        self.0
+            .lookup(block)
+            .copied()
+            .map_or(ApproxCost::ZERO, ApproxCost::from)
     }
 }
 
