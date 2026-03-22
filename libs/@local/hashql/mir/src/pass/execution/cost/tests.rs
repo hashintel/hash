@@ -1,7 +1,12 @@
 use alloc::alloc::Global;
+use core::num::NonZero;
 
-use super::{Cost, StatementCostVec};
-use crate::body::{basic_block::BasicBlockId, location::Location};
+use super::{Cost, StatementCostVec, TerminatorCostVec};
+use crate::body::{
+    basic_block::{BasicBlockId, BasicBlockSlice},
+    basic_blocks::BasicBlocks,
+    location::Location,
+};
 
 /// `Cost::new` succeeds for valid values (0 and 100).
 #[test]

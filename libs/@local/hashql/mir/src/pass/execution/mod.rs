@@ -123,7 +123,8 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         let block_costs = BasicBlockCostAnalysis {
             vertex,
             assignments: &assignments,
-            costs: &statement_costs,
+            statement_costs: &statement_costs,
+            terminator_costs: &terminator_costs,
         }
         .analyze_in(
             &TransferCostConfig::new(InformationRange::full()),

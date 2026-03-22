@@ -145,7 +145,7 @@ pub(crate) fn make_block_costs_with_config<'heap>(
     BasicBlockCostAnalysis {
         vertex: VertexType::Entity,
         assignments,
-        costs: statements,
+        statement_costs: statements,
     }
     .analyze_in(config, &body.basic_blocks, alloc)
 }
