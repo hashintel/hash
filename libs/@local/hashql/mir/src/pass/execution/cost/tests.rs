@@ -4,7 +4,6 @@ use core::num::NonZero;
 use super::{Cost, StatementCostVec, TerminatorCostVec};
 use crate::body::{
     basic_block::{BasicBlockId, BasicBlockSlice},
-    basic_blocks::BasicBlocks,
     location::Location,
 };
 
@@ -45,6 +44,76 @@ fn cost_new_unchecked_valid() {
     // SAFETY: 100 is not u32::MAX
     let hundred = unsafe { Cost::new_unchecked(100) };
     assert_eq!(Cost::new(100), Some(hundred));
+}
+
+macro_rules! nz {
+    ($value:expr) => {
+        const { NonZero::new($value).unwrap() }
+    };
+}
+
+fn bb(index: u32) -> BasicBlockId {
+    BasicBlockId::new(index)
+}
+
+/// No splits: region lengths all 1. Output equals input.
+#[test]
+fn remap_no_splits() {
+    let mut costs = TerminatorCostVec::from_costs(&[Some(cost!(7)), Some(cost!(3))], Global);
+
+    let regions = [(nz!(1), false), (nz!(1), false)];
+    costs.remap(BasicBlockSlice::from_raw(&regions));
+
+    assert_eq!(costs.of(bb(0)), Some(cost!(7)));
+    assert_eq!(costs.of(bb(1)), Some(cost!(3)));
+}
+
+/// Single block splits into 2 regions.
+#[test]
+fn remap_single_split() {
+    let mut costs = TerminatorCostVec::from_costs(&[Some(cost!(7))], Global);
+
+    let regions = [(nz!(2), true)];
+    costs.remap(BasicBlockSlice::from_raw(&regions));
+
+    // First block gets synthesized Goto: zero cost
+    assert_eq!(costs.of(bb(0)), Some(cost!(0)));
+    // Second block holds original terminator
+    assert_eq!(costs.of(bb(1)), Some(cost!(7)));
+}
+
+/// Mixed splits with None: original None cost preserved on last block of region.
+#[test]
+fn remap_mixed_with_none() {
+    let mut costs = TerminatorCostVec::from_costs(&[Some(cost!(4)), None, Some(cost!(8))], Global);
+
+    let regions = [(nz!(2), true), (nz!(1), false), (nz!(3), true)];
+    costs.remap(BasicBlockSlice::from_raw(&regions));
+
+    // Region 0: split into 2 blocks
+    assert_eq!(costs.of(bb(0)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(1)), Some(cost!(4)));
+    // Region 1: no split
+    assert_eq!(costs.of(bb(2)), None);
+    // Region 2: split into 3 blocks
+    assert_eq!(costs.of(bb(3)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(4)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(5)), Some(cost!(8)));
+}
+
+/// All blocks split: every non-last block in each region gets zero cost.
+#[test]
+fn remap_all_split() {
+    let mut costs = TerminatorCostVec::from_costs(&[Some(cost!(10)), Some(cost!(20))], Global);
+
+    let regions = [(nz!(3), true), (nz!(2), true)];
+    costs.remap(BasicBlockSlice::from_raw(&regions));
+
+    assert_eq!(costs.of(bb(0)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(1)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(2)), Some(cost!(10)));
+    assert_eq!(costs.of(bb(3)), Some(cost!(0)));
+    assert_eq!(costs.of(bb(4)), Some(cost!(20)));
 }
 
 /// `StatementCostVec` uses 1-based `Location` indexing to address the underlying

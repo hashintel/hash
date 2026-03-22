@@ -348,6 +348,16 @@ impl<A: Allocator + Clone> TerminatorCostVec<A> {
     pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self {
         Self(BasicBlockVec::with_capacity_in(blocks.len(), alloc))
     }
+
+    /// Creates a cost vector from a slice of optional cost values.
+    #[cfg(test)]
+    pub(crate) fn from_costs(costs: &[Option<Cost>], alloc: A) -> Self {
+        let mut vec = BasicBlockVec::from_elem_in(None, costs.len(), alloc);
+        for (i, cost) in costs.iter().enumerate() {
+            vec[BasicBlockId::from_usize(i)] = *cost;
+        }
+        Self(vec)
+    }
 }
 
 impl<A: Allocator> TerminatorCostVec<A> {

@@ -29,7 +29,9 @@ use crate::{
         analysis::size_estimation::{InformationRange, InformationUnit},
         execution::{
             ApproxCost, Cost, VertexType,
-            cost::{BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec},
+            cost::{
+                BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec, TerminatorCostVec,
+            },
             placement::error::PlacementDiagnosticCategory,
             target::{TargetArray, TargetBitSet, TargetId},
             terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
@@ -142,10 +144,14 @@ pub(crate) fn make_block_costs_with_config<'heap>(
     alloc: &'heap Heap,
 ) -> BasicBlockCostVec<&'heap Heap> {
     let assignments = BasicBlockSlice::from_raw(domains);
+    let terminator_costs: TargetArray<TerminatorCostVec<&Heap>> = TargetArray::from_fn(|_| {
+        TerminatorCostVec::from_costs(&vec![Some(cost!(0)); body.basic_blocks.len()], alloc)
+    });
     BasicBlockCostAnalysis {
         vertex: VertexType::Entity,
         assignments,
         statement_costs: statements,
+        terminator_costs: &terminator_costs,
     }
     .analyze_in(config, &body.basic_blocks, alloc)
 }
