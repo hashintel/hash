@@ -23,7 +23,7 @@ pub(crate) use self::{
     embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
     postgres::PostgresStatementPlacement,
 };
-use super::{VertexType, target::TargetId};
+use super::{VertexType, cost::TerminatorCostVec, target::TargetId};
 use crate::{body::Body, context::MirContext, pass::execution::cost::StatementCostVec};
 
 /// Computes statement placement costs for a specific execution target.
@@ -50,7 +50,7 @@ pub(crate) trait StatementPlacement<'heap, A: Allocator> {
         body: &Body<'heap>,
         vertex: VertexType,
         alloc: A,
-    ) -> StatementCostVec<A>;
+    ) -> (StatementCostVec<A>, TerminatorCostVec<A>);
 }
 
 pub(crate) enum TargetPlacementStatement<'heap, S: Allocator> {
@@ -80,7 +80,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         body: &Body<'heap>,
         vertex: VertexType,
         alloc: A,
-    ) -> StatementCostVec<A> {
+    ) -> (StatementCostVec<A>, TerminatorCostVec<A>) {
         match self {
             TargetPlacementStatement::Interpreter(placement) => {
                 placement.statement_placement_in(context, body, vertex, alloc)

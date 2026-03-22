@@ -78,17 +78,21 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         };
 
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
+        let mut terminator_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
         for target in TargetId::all() {
             let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
-            let statement_cost =
+            let (statement_cost, terminator_cost) =
                 statement.statement_placement_in(context, body, vertex, &self.scratch);
 
             statement_costs[target] = Some(statement_cost);
+            terminator_costs[target] = Some(terminator_cost);
         }
 
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
+        let mut terminator_costs =
+            terminator_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
         let mut assignments = BasicBlockSplitting::new_in(&self.scratch).split_in(
             context,

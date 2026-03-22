@@ -32,7 +32,7 @@ use crate::{
             cost::{BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec},
             placement::error::PlacementDiagnosticCategory,
             target::{TargetArray, TargetBitSet, TargetId},
-            terminator_placement::{TerminatorCostVec, TransMatrix},
+            terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
             traversal::TransferCostConfig,
         },
     },
@@ -160,7 +160,7 @@ pub(crate) fn run_solver<'heap>(
     interner: &Interner<'heap>,
     domains: &[TargetBitSet],
     statements: &TargetArray<StatementCostVec<&'heap Heap>>,
-    terminators: &TerminatorCostVec<&'heap Heap>,
+    terminators: &TerminatorTransitionCostVec<&'heap Heap>,
 ) -> BasicBlockVec<TargetId, &'heap Heap> {
     let mut context = MirContext::new(env, interner);
     let block_costs = make_block_costs(body, domains, statements, env.heap);
@@ -246,7 +246,7 @@ fn forward_pass_assigns_all_blocks() {
 
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(1);
@@ -322,7 +322,7 @@ fn backward_pass_improves_suboptimal_forward() {
     // bb0: arm0=bb2(else), arm1=bb1(then). All transitions at cost 0.
     // bb1→bb3: P→P=0 (cheap), P→I=50 (expensive), I→I=0.
     // bb2→bb3: same-target only (diagonal).
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(0);
@@ -399,7 +399,7 @@ fn rewind_triggers_on_join_with_conflicting_predecessors() {
 
     // bb0: arm0=bb2(else), arm1=bb1(then). All transitions allowed.
     // bb1→bb3: same-target only. bb2→bb3: swap only.
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(0);
@@ -484,7 +484,7 @@ fn rewind_skips_exhausted_region() {
         bb(1): I = 0, P = 10
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(0)];
         bb(1): [
@@ -530,7 +530,7 @@ fn single_block_trivial_region() {
         bb(0): I = 10, P = 5
     }
 
-    let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
 
     let result = run_solver(&body, &env, &interner, &domains, &statements, &terminators);
 
@@ -583,7 +583,7 @@ fn cyclic_region_in_forward_backward() {
         bb(2): I = 3, P = 1
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0, I->P = 5];
         bb(1): [diagonal(0), I->P = 5, P->I = 5];
@@ -668,7 +668,7 @@ fn rewind_retries_cyclic_region() {
         bb(2): I = 0, P = 1
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     // bb2→bb3 (arm0, else): diagonal — forces bb3 to match SCC target.
     //   SCC solver sees this as feasible for both I and P (each has a matching
     //   target in bb3's domain {I,P}).
@@ -766,7 +766,7 @@ fn rewind_skips_exhausted_cyclic_region() {
         bb(0): I = 0, P = 5
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     // bb0→bb3 (arm0, else): swap only — I→P, P→I.
     // bb0→bb1 (arm1, then): complete — permissive SCC entry.
     // SCC internal bb1→bb2: diagonal. bb2→bb1 (arm1, then): diagonal.
@@ -833,7 +833,7 @@ fn rewind_exhausts_all_regions() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0); diagonal(0)];
         bb(1): [diagonal(0)];
@@ -904,7 +904,7 @@ fn forward_pass_rewinds_on_cyclic_failure() {
         bb(0): I = 0, P = 5
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     // bb0→bb1 diagonal forces bb1==bb0. SCC internals only allow P.
     terminators! { terminators;
         bb(0): [diagonal(0)];
@@ -979,7 +979,7 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
         bb(2): I = 0, P = 10
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     // SCC internal diagonal. Exit bb2→bb3(arm0) only to I.
     terminators! { terminators;
         bb(0): [complete(0)];
@@ -1086,7 +1086,7 @@ fn backward_pass_adopts_better_cyclic_solution() {
         bb(2): I = 10, P = 0
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(0)];
         bb(1): [diagonal(0)];
@@ -1147,7 +1147,7 @@ fn trivial_failure_emits_diagnostic() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0); diagonal(0)];
         bb(1): [diagonal(0)];
@@ -1214,7 +1214,7 @@ fn cyclic_failure_emits_diagnostic() {
     // bb1→bb0 (arm0, goto): only I→P — forces bb1=I, bb0=P.
     // Contradiction: bb1 must be both P and I. AC-3 wipes the domain.
     // bb0→bb2 (arm0, else): permissive, irrelevant to the SCC.
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(0);
@@ -1279,7 +1279,7 @@ fn path_premiums_influence_placement() {
     // Equal base costs so the path premium is the deciding factor.
     stmt_costs! { statements; bb(0): I = 1, P = 1, E = 1 }
 
-    let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
 
     let config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(100)));
     let block_costs = make_block_costs_with_config(&body, &domains, &statements, &config, &heap);
