@@ -15,7 +15,7 @@ use crate::{
     intern::Interner,
     pass::execution::{
         target::{TargetBitSet, TargetId},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
+        terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
     },
 };
 
@@ -42,7 +42,7 @@ fn bb(index: u32) -> BasicBlockId {
 fn run_ac3<'heap>(
     body: &Body<'heap>,
     domains: &mut [TargetBitSet],
-    terminators: &mut TerminatorCostVec<&'heap Heap>,
+    terminators: &mut TerminatorTransitionCostVec<&'heap Heap>,
 ) {
     let mut arc = ArcConsistency {
         blocks: BasicBlockSlice::from_raw_mut(domains),
@@ -81,7 +81,7 @@ fn already_consistent_no_pruning() {
     });
 
     let mut domains = [all_targets(), all_targets()];
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = full_matrix();
 
     let before = domains;
@@ -113,7 +113,7 @@ fn source_side_pruning() {
     let mut matrix = TransMatrix::new();
     matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
 
     run_ac3(&body, &mut domains, &mut terminators);
@@ -149,7 +149,7 @@ fn target_side_pruning() {
     matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
     matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
 
     run_ac3(&body, &mut domains, &mut terminators);
@@ -190,7 +190,7 @@ fn mutual_pruning_both_sides() {
     let mut matrix = TransMatrix::new();
     matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
 
     run_ac3(&body, &mut domains, &mut terminators);
@@ -230,7 +230,7 @@ fn diamond_cfg_pruning() {
     let mut m_interp = TransMatrix::new();
     m_interp.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     let matrices = terminators.of_mut(bb(0));
     matrices[0] = m_interp;
     matrices[1] = m_interp;
@@ -264,7 +264,7 @@ fn self_loop_pruning() {
     matrix.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
     matrix.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
 
     run_ac3(&body, &mut domains, &mut terminators);
@@ -303,7 +303,7 @@ fn bidirectional_edges_require_joint_support() {
     let mut reverse = TransMatrix::new();
     reverse.insert(TargetId::Postgres, TargetId::Postgres, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = forward;
     terminators.of_mut(bb(1))[0] = reverse;
 
@@ -338,7 +338,7 @@ fn matrix_pruned_after_ac3() {
     matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(10));
     matrix.insert(TargetId::Embedding, TargetId::Interpreter, cost!(20));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators.of_mut(bb(0))[0] = matrix;
 
     run_ac3(&body, &mut domains, &mut terminators);
@@ -368,7 +368,7 @@ fn single_block_no_edges() {
     });
 
     let mut domains = [all_targets()];
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
 
     run_ac3(&body, &mut domains, &mut terminators);
 
@@ -403,7 +403,7 @@ fn switchint_multiple_edges_to_same_block() {
     let mut m1 = TransMatrix::new();
     m1.insert(TargetId::Interpreter, TargetId::Interpreter, cost!(0));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     let matrices = terminators.of_mut(bb(0));
     matrices[0] = m0;
     matrices[1] = m1;

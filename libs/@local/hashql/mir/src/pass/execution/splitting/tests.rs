@@ -17,7 +17,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
-use super::{BasicBlockSplitting, count_regions, offset_basic_blocks, supported};
+use super::{BasicBlockSplitting, count_regions, offset_basic_blocks, supported_statement};
 use crate::{
     body::{
         Body,
@@ -135,7 +135,7 @@ fn supported_all_targets() {
     let costs: TargetArray<&[Option<Cost>]> =
         TargetArray::from_raw([&[Some(cost!(1))], &[Some(cost!(2))], &[Some(cost!(3))]]);
 
-    let result = supported(&costs, 0);
+    let result = supported_statement(&costs, 0);
     let expected = Targets {
         interpreter: true,
         postgres: true,
@@ -150,7 +150,7 @@ fn supported_all_targets() {
 fn supported_no_targets() {
     let costs: TargetArray<&[Option<Cost>]> = TargetArray::from_raw([&[None], &[None], &[None]]);
 
-    let result = supported(&costs, 0);
+    let result = supported_statement(&costs, 0);
 
     assert!(result.is_empty());
 }
@@ -159,7 +159,7 @@ fn supported_no_targets() {
 fn supported_single_target() {
     let costs: TargetArray<&[_]> = TargetArray::from_raw([&[Some(cost!(1))], &[None], &[None]]);
 
-    let result = supported(&costs, 0);
+    let result = supported_statement(&costs, 0);
 
     assert!(result.contains(TargetId::Interpreter));
     assert!(!result.contains(TargetId::Postgres));
@@ -171,7 +171,7 @@ fn supported_mixed_targets() {
     let costs: TargetArray<&[_]> =
         TargetArray::from_raw([&[Some(cost!(1))], &[Some(cost!(2))], &[None]]);
 
-    let result = supported(&costs, 0);
+    let result = supported_statement(&costs, 0);
     let expected = Targets {
         interpreter: true,
         postgres: true,

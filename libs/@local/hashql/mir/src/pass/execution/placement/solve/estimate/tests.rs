@@ -16,7 +16,7 @@ use crate::{
     pass::execution::{
         cost::StatementCostVec,
         target::{TargetArray, TargetId},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
+        terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
     },
 };
 
@@ -155,7 +155,7 @@ fn self_loop_edges_excluded_from_cost() {
 
     stmt_costs! { statements; bb(0): I = 5, P = 5 }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             I->I = 0, P->I = 0;
@@ -221,7 +221,7 @@ fn boundary_multiplier_applied_to_cross_region_edges() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0), I->P = 20, P->I = 0];
         bb(1): [diagonal(0), I->P = 0, P->I = 20]
@@ -294,7 +294,7 @@ fn infeasible_transition_returns_none() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0]
     }
@@ -359,7 +359,7 @@ fn unassigned_neighbor_uses_heuristic_minimum() {
         bb(1): I = 3, P = 7
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0), I->P = 10, P->I = 5]
     }

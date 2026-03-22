@@ -6,11 +6,12 @@ use crate::{
         Body, Source,
         location::Location,
         statement::{Statement, StatementKind},
+        terminator::Terminator,
     },
     context::MirContext,
     pass::execution::{
         VertexType,
-        cost::{Cost, StatementCostVec},
+        cost::{Cost, StatementCostVec, TerminatorCostVec},
     },
     visit::Visitor,
 };
@@ -22,6 +23,7 @@ struct CostVisitor<A: Allocator> {
     cost: Cost,
 
     statement_costs: StatementCostVec<A>,
+    terminator_costs: TerminatorCostVec<A>,
 }
 
 impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<A> {
@@ -40,6 +42,17 @@ impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<A> {
                 self.statement_costs[location] = Some(cost!(0));
             }
         }
+
+        Ok(())
+    }
+
+    fn visit_terminator(&mut self, location: Location, _: &Terminator<'heap>) -> Self::Result {
+        // Because interpreter is our base case, every terminator is supported, via the default base
+        // cost.
+        // Because this is done *before* basic block splitting, we assign the same cost to as well,
+        // splitting, then assigns a cumulative cost of `0` for generated GOTOs to not distort the
+        // cost distribution.
+        self.terminator_costs.insert(location.block, self.cost);
 
         Ok(())
     }
@@ -68,22 +81,24 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterSt
         body: &Body<'heap>,
         _: VertexType,
         alloc: A,
-    ) -> StatementCostVec<A> {
-        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
+    ) -> (StatementCostVec<A>, TerminatorCostVec<A>) {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
+        let terminator_costs = TerminatorCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return statement_costs;
+                return (statement_costs, terminator_costs);
             }
         }
 
         let mut visitor = CostVisitor {
             cost: self.statement_cost,
             statement_costs,
+            terminator_costs,
         };
         visitor.visit_body(body);
 
-        visitor.statement_costs
+        (visitor.statement_costs, visitor.terminator_costs)
     }
 }
