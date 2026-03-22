@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use super::{ApproxCost, StatementCostVec};
+use super::{ApproxCost, StatementCostVec, TerminatorCostVec};
 use crate::{
     body::basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
     pass::{
@@ -98,7 +98,8 @@ impl<A: Allocator> BasicBlockCostVec<A> {
 pub(crate) struct BasicBlockCostAnalysis<'ctx, A: Allocator> {
     pub vertex: VertexType,
     pub assignments: &'ctx BasicBlockSlice<TargetBitSet>,
-    pub costs: &'ctx TargetArray<StatementCostVec<A>>,
+    pub statement_costs: &'ctx TargetArray<StatementCostVec<A>>,
+    pub terminator_costs: &'ctx TargetArray<TerminatorCostVec<A>>,
 }
 
 impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
@@ -109,7 +110,8 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
         target: TargetId,
         traversals: TraversalPathBitSet,
     ) -> BasicBlockTargetCost {
-        let base = self.costs[target].sum_approx(id);
+        let mut base = self.statement_costs[target].sum_approx(id);
+        base += self.terminator_costs[target].approx(id);
 
         let mut range = InformationRange::zero();
 
@@ -234,7 +236,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -275,7 +277,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let config = default_config();
@@ -330,7 +332,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -387,7 +389,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         // Use a bounded properties size so both premiums are finite and comparable.
@@ -446,7 +448,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let result = analysis.analyze_in(&config, &body.basic_blocks, Global);
@@ -496,7 +498,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -549,7 +551,7 @@ mod tests {
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
         };
 
         let result = analysis.analyze_in(&config, &body.basic_blocks, Global);

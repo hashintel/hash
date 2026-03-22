@@ -362,11 +362,6 @@ impl<A: Allocator> TerminatorCostVec<A> {
         self.0.lookup(block).copied()
     }
 
-    #[expect(dead_code, reason = "will be used by downstream cost analysis")]
-    pub(crate) fn of_mut(&mut self, block: BasicBlockId) -> Option<&mut Cost> {
-        self.0.lookup_mut(block)
-    }
-
     pub(crate) fn insert(&mut self, block: BasicBlockId, cost: Cost) {
         self.0.insert(block, cost);
     }
@@ -408,8 +403,8 @@ impl<A: Allocator> TerminatorCostVec<A> {
     }
 
     /// Returns the approximate cost for the terminator in `block`, or zero if unassigned.
-    #[expect(dead_code, reason = "will be used by downstream cost analysis")]
     pub(crate) fn approx(&self, block: BasicBlockId) -> ApproxCost {
+        debug_assert!(self.0.contains(block));
         self.0
             .lookup(block)
             .copied()

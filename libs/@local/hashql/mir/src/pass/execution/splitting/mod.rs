@@ -63,8 +63,10 @@ fn supported_terminator(
 
 /// Counts contiguous target regions per [`BasicBlock`].
 ///
-/// Returns a non-zero count for each block. Blocks with fewer than two statements
-/// always yield one region.
+/// Returns a `(region_count, has_separate_terminator_region)` pair for each block.
+/// An extra region is added when the terminator's target support is not a superset
+/// of the last statement region's support (including incomparable sets, not just
+/// strict subsets).
 #[expect(unsafe_code)]
 fn count_regions<A: Allocator, T: Allocator, B: Allocator>(
     body: &Body<'_>,
