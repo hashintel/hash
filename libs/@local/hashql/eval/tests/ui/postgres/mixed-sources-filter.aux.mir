@@ -19,14 +19,14 @@ fn {graph::read::filter@20}(%0: (::graph::types::knowledge::entity::EntityUuid,)
 }
 
 fn {graph::read::filter@36}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
-    bb0(): {                                                                    // interpreter
-        return 1
+    bb0(): {                                                                    // postgres
+        return true
     }
 }
 
 thunk {thunk#10}() -> List<::graph::types::knowledge::entity::Entity> {
     let %0: ::graph::types::knowledge::entity::EntityUuid
-    let %1: ::graph::TimeAxis
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
     let %2: List<::graph::types::knowledge::entity::Entity>
     let %3: ()
     let %4: (::graph::types::knowledge::entity::EntityUuid,)

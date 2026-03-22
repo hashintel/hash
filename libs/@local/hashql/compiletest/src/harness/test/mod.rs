@@ -7,6 +7,7 @@ use guppy::graph::{PackageGraph, PackageMetadata};
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
 pub(crate) struct Spec {
     pub suite: String,
+    pub skip: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -136,6 +136,6 @@ thunk is_positive:0() -> (Integer) -> Boolean {
 
 *thunk {thunk#3}() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
