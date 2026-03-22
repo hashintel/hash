@@ -38,9 +38,8 @@ mod tests;
 /// Returns a [`TargetBitSet`] of execution targets that can cover the statement at `index`.
 ///
 /// A target is supported when its [`Cost`] entry is present for that statement.
-#[expect(clippy::cast_possible_truncation)]
 fn supported_statement(costs: &TargetArray<&[Option<Cost>]>, index: usize) -> TargetBitSet {
-    let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
+    let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
 
     for (cost_index, cost) in costs.iter_enumerated() {
         output.set(cost_index, cost[index].is_some());
@@ -53,7 +52,7 @@ fn supported_terminator(
     costs: &TargetArray<TerminatorCostVec<impl Allocator>>,
     block: BasicBlockId,
 ) -> TargetBitSet {
-    let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
+    let mut output = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
 
     for (cost_index, cost) in costs.iter_enumerated() {
         output.set(cost_index, cost.of(block).is_some());
@@ -66,7 +65,7 @@ fn supported_terminator(
 ///
 /// Returns a non-zero count for each block. Blocks with fewer than two statements
 /// always yield one region.
-#[expect(unsafe_code, clippy::cast_possible_truncation)]
+#[expect(unsafe_code)]
 fn count_regions<A: Allocator, T: Allocator, B: Allocator>(
     body: &Body<'_>,
     statement_costs: &TargetArray<StatementCostVec<A>>,
@@ -90,7 +89,7 @@ fn count_regions<A: Allocator, T: Allocator, B: Allocator>(
         }
 
         let mut total = 0;
-        let mut current: TargetBitSet = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32);
+        let mut current: TargetBitSet = FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32);
 
         for stmt_index in 0..block.statements.len() {
             let next = supported_statement(&costs, stmt_index);
@@ -108,7 +107,7 @@ fn count_regions<A: Allocator, T: Allocator, B: Allocator>(
         // Check if the terminator narrows the target set of the last statement region.
         // If the terminator supports a strict subset of backends, it needs its own region
         // so that the preceding statements can still be assigned to the wider set.
-        let terminator_supported = supported_terminator(&terminator_costs, id);
+        let terminator_supported = supported_terminator(terminator_costs, id);
         if !terminator_supported.is_superset(&current) {
             total += 1;
             has_separate_terminator_region = true;
@@ -152,7 +151,7 @@ impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
 ///
 /// Remaps all [`BasicBlockId`] references, connects split blocks with [`Goto`] chains,
 /// and updates [`StatementCostVec`] to reflect the new layout.
-#[expect(clippy::cast_possible_truncation, clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
     context: &MirContext<'_, 'heap>,
     body: &mut Body<'heap>,
@@ -178,7 +177,7 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
     }
 
     let mut targets = BasicBlockVec::from_elem_in(
-        FiniteBitSet::new_empty(TargetId::VARIANT_COUNT as u32),
+        FiniteBitSet::new_empty(TargetId::VARIANT_COUNT_U32),
         length.as_usize(),
         alloc,
     );

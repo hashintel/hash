@@ -30,7 +30,7 @@ use crate::{
     context::MirContext,
     intern::Interner,
     pass::execution::{
-        cost::{Cost, StatementCostVec},
+        cost::{Cost, StatementCostVec, TerminatorCostVec},
         target::{TargetArray, TargetBitSet, TargetId},
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
@@ -90,6 +90,20 @@ fn make_target_costs<'heap, const N: usize>(
     }
 
     costs
+}
+
+/// Creates terminator costs where every target supports every block's terminator.
+fn make_all_supported_terminator_costs<'heap>(
+    body: &Body<'heap>,
+    heap: &'heap Heap,
+) -> TargetArray<TerminatorCostVec<&'heap Heap>> {
+    TargetArray::from_fn(|_| {
+        let mut costs = TerminatorCostVec::new_in(&body.basic_blocks, heap);
+        for (id, _) in body.basic_blocks.iter_enumerated() {
+            costs.insert(id, cost!(1));
+        }
+        costs
+    })
 }
 
 fn assert_assignment_locals(body: &Body<'_>, block_id: BasicBlockId, expected: &[&str]) {
@@ -201,9 +215,10 @@ fn count_regions_empty_block() {
     });
 
     let costs = TargetArray::from_fn(|_| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 1);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 1);
 }
 
 #[test]
@@ -223,9 +238,10 @@ fn count_regions_single_statement() {
 
     let patterns = TargetArray::from_raw([[[true]], [[true]], [[false]]]);
     let costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 1);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 1);
 }
 
 #[test]
@@ -251,9 +267,10 @@ fn count_regions_uniform_support() {
         [[false, false, false]],
     ]);
     let costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 1);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 1);
 }
 
 #[test]
@@ -274,9 +291,10 @@ fn count_regions_two_regions() {
 
     let patterns = TargetArray::from_raw([[[true, true]], [[true, false]], [[false, false]]]);
     let costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 2);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 2);
 }
 
 #[test]
@@ -302,9 +320,10 @@ fn count_regions_three_regions() {
         [[false, false, false]],
     ]);
     let costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 3);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 3);
 }
 
 #[test]
@@ -331,9 +350,10 @@ fn count_regions_alternating() {
         [[false, false, false, false]],
     ]);
     let costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    assert_eq!(regions[BasicBlockId::new(0)].get(), 4);
+    assert_eq!(regions[BasicBlockId::new(0)].0.get(), 4);
 }
 
 // =============================================================================
@@ -364,9 +384,18 @@ fn offset_single_block_no_split() {
 
     let patterns = TargetArray::from_raw([[[true]], [[true]], [[false]]]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 1);
     assert_eq!(targets.len(), 1);
@@ -408,9 +437,18 @@ fn offset_single_block_splits() {
 
     let patterns = TargetArray::from_raw([[[true, true]], [[true, false]], [[false, false]]]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
@@ -464,9 +502,18 @@ fn offset_multiple_blocks_no_splits() {
 
     let patterns = TargetArray::from_raw([[[true], [true]], [[true], [true]], [[false], [false]]]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 2);
     assert_eq!(targets.len(), 2);
@@ -519,9 +566,18 @@ fn offset_multiple_blocks_mixed() {
         [&[false, false], &[false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_eq!(targets.len(), 3);
@@ -580,9 +636,18 @@ fn offset_terminator_moves_to_last() {
         [[false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let _targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_return_terminator(&body, BasicBlockId::new(1));
 }
@@ -617,9 +682,18 @@ fn offset_goto_chain_created() {
         [[false, false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let _targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_goto_terminator(&body, BasicBlockId::new(0));
@@ -657,9 +731,18 @@ fn offset_goto_targets_correct() {
         [[false, false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let _targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_eq!(body.basic_blocks.len(), 3);
     assert_goto_target(&body, BasicBlockId::new(0), BasicBlockId::new(1));
@@ -696,9 +779,18 @@ fn offset_statements_split_correctly() {
         [[false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let _targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_assignment_locals(&body, BasicBlockId::new(0), &["x"]);
     assert_assignment_locals(&body, BasicBlockId::new(1), &["y"]);
@@ -734,9 +826,18 @@ fn offset_statement_order_preserved() {
         [[false, false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let _targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let _targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     assert_assignment_locals(&body, BasicBlockId::new(0), &["a"]);
     assert_assignment_locals(&body, BasicBlockId::new(1), &["b", "c"]);
@@ -771,9 +872,18 @@ fn offset_targets_populated() {
         [[false, false]],
     ]);
     let mut costs = make_target_costs(&body, patterns, &heap);
-    let regions = count_regions(&body, &costs, Global);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let regions = count_regions(&body, &costs, &terminator_costs, Global);
 
-    let targets = offset_basic_blocks(&context, &mut body, &regions, &mut costs, Global, Global);
+    let targets = offset_basic_blocks(
+        &context,
+        &mut body,
+        &regions,
+        &mut costs,
+        &mut terminator_costs,
+        Global,
+        Global,
+    );
 
     let expected_first = Targets {
         interpreter: true,
@@ -930,7 +1040,8 @@ fn split_no_changes_needed() {
     let mut costs = make_target_costs(&body, patterns, &heap);
 
     let splitting = BasicBlockSplitting::new();
-    let targets = splitting.split(&context, &mut body, &mut costs);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let targets = splitting.split(&context, &mut body, &mut costs, &mut terminator_costs);
 
     assert_split("split_no_changes_needed", &context, &body, &costs, &targets);
 }
@@ -966,7 +1077,8 @@ fn split_basic_two_regions() {
     let mut costs = make_target_costs(&body, patterns, &heap);
 
     let splitting = BasicBlockSplitting::new();
-    let targets = splitting.split(&context, &mut body, &mut costs);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let targets = splitting.split(&context, &mut body, &mut costs, &mut terminator_costs);
 
     assert_split("split_basic_two_regions", &context, &body, &costs, &targets);
 }
@@ -1007,7 +1119,8 @@ fn split_multi_block_complex() {
     let mut costs = make_target_costs(&body, patterns, &heap);
 
     let splitting = BasicBlockSplitting::new();
-    let targets = splitting.split(&context, &mut body, &mut costs);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let targets = splitting.split(&context, &mut body, &mut costs, &mut terminator_costs);
 
     assert_split(
         "split_multi_block_complex",
@@ -1050,7 +1163,8 @@ fn split_cost_remap() {
     let mut costs = make_target_costs(&body, patterns, &heap);
 
     let splitting = BasicBlockSplitting::new();
-    let targets = splitting.split(&context, &mut body, &mut costs);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let targets = splitting.split(&context, &mut body, &mut costs, &mut terminator_costs);
 
     assert_split("split_cost_remap", &context, &body, &costs, &targets);
 }
@@ -1093,7 +1207,8 @@ fn split_block_references_updated() {
     let mut costs = make_target_costs(&body, patterns, &heap);
 
     let splitting = BasicBlockSplitting::new();
-    let targets = splitting.split(&context, &mut body, &mut costs);
+    let mut terminator_costs = make_all_supported_terminator_costs(&body, &heap);
+    let targets = splitting.split(&context, &mut body, &mut costs, &mut terminator_costs);
 
     assert_split(
         "split_block_references_updated",
