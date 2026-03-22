@@ -9,7 +9,11 @@ fn {graph::read::filter@11}(%0: (::graph::types::knowledge::entity::EntityUuid,)
 }
 
 fn {graph::read::filter@27}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+<<<<<<< HEAD
+    bb0(): {                                                                    // interpreter
+=======
     bb0(): {                                                                    // postgres
+>>>>>>> e43f2d59e3 (feat: tests)
         return true
     }
 }
