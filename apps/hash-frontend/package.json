@@ -11,6 +11,7 @@
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts && panda cssgen --outfile ./src/pages/ds-components-styles.gen.css",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
+    "fix:format": "biome format --write",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
