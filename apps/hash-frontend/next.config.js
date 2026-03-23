@@ -100,6 +100,15 @@ export default withSentryConfig(
               ]
             : []),
           {
+            source: "/api/ingest-artifacts/:path*",
+            destination: `${mastraApiOrigin}/artifacts/:path*`,
+          },
+          // Page images are referenced as /artifacts/... in discovery view data
+          {
+            source: "/artifacts/:path*",
+            destination: `${mastraApiOrigin}/artifacts/:path*`,
+          },
+          {
             source: "/pages",
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
           },
