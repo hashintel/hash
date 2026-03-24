@@ -168,6 +168,21 @@ const SigninPage: NextPageWithLayout = () => {
       attributes.name === "traits.emails",
   );
 
+  const identifierNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
+  );
+
+  // Pre-fill email from Kratos flow (e.g., during account linking)
+  useEffect(() => {
+    if (identifierNode && isUiNodeInputAttributes(identifierNode.attributes)) {
+      const prefilled = identifierNode.attributes.value;
+      if (typeof prefilled === "string" && prefilled && !email) {
+        setEmail(prefilled);
+      }
+    }
+  }, [identifierNode, email]);
+
   const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
@@ -435,13 +450,44 @@ const SigninPage: NextPageWithLayout = () => {
               </>
             ) : (
               <>
+                {flow?.ui.messages && flow.ui.messages.length > 0 && (
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 1,
+                      backgroundColor: ({ palette }) => palette.blue[10],
+                      border: ({ palette }) => `1px solid ${palette.blue[30]}`,
+                    }}
+                  >
+                    {flow.ui.messages.map(({ text, id }) => (
+                      <Typography
+                        key={id}
+                        variant="smallTextParagraphs"
+                        sx={{ color: ({ palette }) => palette.blue[80] }}
+                      >
+                        {text}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
                 <TextField
                   label="Email address"
                   type="email"
                   autoComplete="email"
-                  autoFocus
+                  autoFocus={
+                    !identifierNode?.attributes ||
+                    !isUiNodeInputAttributes(identifierNode.attributes) ||
+                    !identifierNode.attributes.value
+                  }
                   placeholder="Enter your email address"
                   value={email}
+                  disabled={
+                    !!(
+                      identifierNode &&
+                      isUiNodeInputAttributes(identifierNode.attributes) &&
+                      identifierNode.attributes.value
+                    )
+                  }
                   onChange={({ target }) => setEmail(target.value)}
                   error={
                     !!emailInputUiNode?.messages.find(
@@ -517,9 +563,6 @@ const SigninPage: NextPageWithLayout = () => {
                 {errorMessage}
               </Typography>
             ) : null}
-            {flow?.ui.messages?.map(({ text, id }) => (
-              <Typography key={id}>{text}</Typography>
-            ))}
           </Box>
         </AuthPaper>
         <Box sx={{ maxWidth: 350 }}>
