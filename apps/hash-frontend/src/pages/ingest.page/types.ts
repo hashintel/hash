@@ -155,6 +155,69 @@ export interface RunStatus {
   error?: string;
 }
 
+// ---------------------------------------------------------------------------
+//  Mention context plans (assertion windows / fallback)
+// ---------------------------------------------------------------------------
+
+export interface AssertionWindow {
+  text: string;
+  chunkId: string;
+  blockId: string;
+  windowStart: number;
+  windowEnd: number;
+  mentionStart: number;
+  mentionEnd: number;
+  mentionSurface: string;
+  discourseResolutions: {
+    surface: string;
+    resolvedName: string;
+    kind: "direct" | "pronoun" | "description" | "alias";
+  }[];
+  evidenceRole: "identificational" | "attributive";
+  identityEvidenceKind?: string;
+  participants: {
+    rosterEntryId: string;
+    canonicalName: string;
+    role: string;
+  }[];
+}
+
+export interface FallbackWindow {
+  text: string;
+  chunkId: string;
+  blockId: string;
+  windowStart: number;
+  windowEnd: number;
+  mentionStart: number;
+  mentionEnd: number;
+  mentionSurface: string;
+}
+
+export interface ContextDiagnostics {
+  relevantChunkCount: number;
+  mentionCount: number;
+  relevantMentionCount: number;
+  resolvedWindowCount: number;
+  mentionChunkCoverage: number;
+}
+
+export type MentionContextPlan =
+  | {
+      localId: string;
+      rosterEntryId?: string;
+      mode: "assertion_windows";
+      assertionWindows: AssertionWindow[];
+      diagnostics: ContextDiagnostics;
+    }
+  | {
+      localId: string;
+      rosterEntryId?: string;
+      mode: "mechanical_fallback";
+      fallbackWindows: FallbackWindow[];
+      fallbackReason: string;
+      diagnostics: ContextDiagnostics;
+    };
+
 export interface IngestRunView {
   runId: string;
   sourceMetadata: {
@@ -165,5 +228,6 @@ export interface IngestRunView {
   pageImages: PageImageManifest[];
   roster: { entries: RosterEntry[] };
   claims: ExtractedClaim[];
+  mentionContexts: MentionContextPlan[];
   corpus: ExtractedCorpus;
 }
