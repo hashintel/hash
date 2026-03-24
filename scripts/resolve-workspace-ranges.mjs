@@ -106,3 +106,23 @@ for (const { location, name } of workspaces) {
 console.log(
   `Rewrote ${totalResolved} 'workspace:' dependency ranges in ${workspaces.length} packages`,
 );
+
+// Disable immutable installs so Yarn tolerates the package.json changes.
+// This must be set in .yarnrc.yml rather than via env var because turbo's
+// strict env mode filters out YARN_ENABLE_IMMUTABLE_INSTALLS before it
+// reaches the inner `yarn run build` invoked by lifecycle scripts.
+const yarnrcPath = resolve(rootDir, ".yarnrc.yml");
+const yarnrc = readFileSync(yarnrcPath, "utf-8");
+if (!yarnrc.includes("enableImmutableInstalls:")) {
+  writeFileSync(yarnrcPath, yarnrc + "\nenableImmutableInstalls: false\n");
+  console.log("Set enableImmutableInstalls: false in .yarnrc.yml");
+} else {
+  writeFileSync(
+    yarnrcPath,
+    yarnrc.replace(
+      /enableImmutableInstalls:\s*\S+/,
+      "enableImmutableInstalls: false",
+    ),
+  );
+  console.log("Set enableImmutableInstalls: false in .yarnrc.yml");
+}

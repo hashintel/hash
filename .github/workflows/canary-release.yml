@@ -32,7 +32,11 @@ jobs:
           EOF
 
           yarn changeset:resolve-workspace-ranges
-          YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn changeset publish --tag canary
+          yarn changeset publish --tag canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TURBO_UI: "false"
+          TURBO_LOG_ORDER: stream
+          TURBO_LOG_VERBOSITY: 1
+          TURBO_TELEMETRY_DISABLED: 1
