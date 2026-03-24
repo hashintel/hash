@@ -1,26 +1,21 @@
-import { Box, Container, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
-
 import { InfinityLightIcon } from "@hashintel/design-system";
+import { Box, Container, Typography } from "@mui/material";
+import type { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { isIngestEnabled } from "../../lib/public-env";
+import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
+import type { Selection } from "./results.page/evidence-resolver";
 import { resolveEvidence } from "./results.page/evidence-resolver";
+import type { PageViewerHandle } from "./results.page/page-viewer";
 import { PageViewer } from "./results.page/page-viewer";
 import { ResultsPanel } from "./results.page/results-panel";
-import {
-  getIngestResultsPath,
-  getIngestResultsSource,
-  ingestFixtures,
-} from "./shared/routing";
-
-import type { NextPageWithLayout } from "../../shared/layout";
-import type { Selection } from "./results.page/evidence-resolver";
+import { getIngestResultsSource } from "./shared/routing";
 import type { IngestRunView } from "./shared/types";
-import type { GetServerSideProps } from "next";
 
 const normalizeQueryParam = (
   value: string | string[] | undefined,
@@ -37,14 +32,14 @@ const IngestResultsPage: NextPageWithLayout = () => {
         runId: normalizeQueryParam(router.query.runId),
         fixture: normalizeQueryParam(router.query.fixture),
       }),
-    [router.query.runId, router.query.fixture],
+    [router.query.fixture, router.query.runId],
   );
 
   const [view, setView] = useState<IngestRunView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const pageViewerRef = useRef<PageViewerHandle>(null);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -52,7 +47,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
     setView(null);
     setError(null);
     setSelection(null);
-    setCurrentPage(1);
     setLoading(true);
 
     const endpoint =
@@ -103,20 +97,23 @@ const IngestResultsPage: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (evidence.targetPage !== null) {
-      setCurrentPage(evidence.targetPage);
+      pageViewerRef.current?.scrollToPage(evidence.targetPage);
     }
   }, [evidence]);
-
-  const handleFixtureChange = (fixtureId: string) => {
-    void router.push(getIngestResultsPath({ kind: "fixture", fixtureId }));
-  };
 
   const handleNewUpload = () => {
     void router.push("/ingest");
   };
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        position: "absolute",
+        inset: 0,
+      }}
+    >
       <WorkersHeader
         crumbs={[
           { title: "Ingest", href: "/ingest", id: "ingest" },
@@ -127,36 +124,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
           text: "Ingest Results",
         }}
         hideDivider
-        endElement={
-          <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-            {source.kind === "fixture" && (
-              <select
-                value={source.fixtureId}
-                onChange={(ev) => handleFixtureChange(ev.target.value)}
-                style={{
-                  background: "white",
-                  border: "1px solid rgba(0, 0, 0, 0.23)",
-                  borderRadius: "4px",
-                  padding: "4px 8px",
-                  fontSize: "0.8125rem",
-                }}
-              >
-                {ingestFixtures.map((fixture) => (
-                  <option key={fixture.id} value={fixture.id}>
-                    {fixture.label}
-                  </option>
-                ))}
-              </select>
-            )}
-            {view && (
-              <Typography variant="smallTextLabels" sx={{ color: "gray.60" }}>
-                {view.sourceMetadata.filename} · {view.pageImages.length} pages
-                · {view.roster.entries.length} entities · {view.claims.length}{" "}
-                claims
-              </Typography>
-            )}
-          </Box>
-        }
       />
 
       {error && (
@@ -184,35 +151,95 @@ const IngestResultsPage: NextPageWithLayout = () => {
       )}
 
       {view && (
-        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <Box
+          sx={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
           <ResultsPanel
             rosterEntries={view.roster.entries}
             claims={view.claims}
+            mentionContexts={view.mentionContexts}
             selection={selection}
             onSelect={setSelection}
           />
-          <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-            <PageViewer
-              pageImages={view.pageImages}
-              blocks={view.corpus.blocks}
-              highlightedBlockIds={evidence.blockIds}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-            />
-            {source.kind === "run" && (
-              <Button
-                variant="tertiary_quiet"
-                size="small"
-                onClick={handleNewUpload}
-                sx={{ mt: 2, color: "gray.60" }}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                flexShrink: 0,
+                px: 2,
+                py: 1.5,
+                borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+                bgcolor: "white",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  lineHeight: 1,
+                }}
               >
-                ← New Upload
-              </Button>
-            )}
+                {view.sourceMetadata.filename}
+              </Typography>
+              <Typography
+                variant="microText"
+                sx={{ color: "gray.50", mt: 0.5 }}
+              >
+                {view.pageImages.length} pages · {view.roster.entries.length}{" "}
+                entities · {view.claims.length} claims
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                flex: 1,
+                overflow: "auto",
+                p: 2,
+                maxWidth: 780,
+                mx: "auto",
+              }}
+            >
+              <PageViewer
+                ref={pageViewerRef}
+                pageImages={view.pageImages}
+                blocks={view.corpus.blocks}
+                highlightedBlockIds={evidence.blockIds}
+              />
+            </Box>
           </Box>
         </Box>
       )}
-    </>
+
+      {view && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+            px: 2,
+            py: 1,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            variant="tertiary_quiet"
+            size="small"
+            onClick={handleNewUpload}
+            sx={{ color: "gray.60" }}
+          >
+            ← New Upload
+          </Button>
+        </Box>
+      )}
+    </Box>
   );
 };
 
