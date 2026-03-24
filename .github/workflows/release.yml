@@ -36,8 +36,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
-          TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
+          # Ensure turbo outputs full build logs (not just summaries) so
+          # lifecycle script errors are visible in the changesets output.
+          TURBO_UI: "false"
+          TURBO_LOG_ORDER: stream
+          TURBO_LOG_VERBOSITY: 1
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
@@ -59,7 +63,10 @@ jobs:
         if: failure()
         run: |
           echo "🔍 Searching for turbo logs..."
-          find . -type f -path "*/.turbo/*.log" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
+          find . -type f -name "*.log" -path "*/.turbo/*" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
+          echo ""
+          echo "🔍 Searching for turbo daemon logs..."
+          find /tmp -type f -name "*.log" -path "*/turbod-*" -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || echo "No turbo daemon logs found."
 
       - name: Upload debug logs
         if: failure()
