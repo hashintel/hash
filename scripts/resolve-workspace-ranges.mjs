@@ -39,6 +39,7 @@ for (const { location } of workspaces) {
 
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
 let totalResolved = 0;
+let packagesProcessed = 0;
 
 for (const { location, name } of workspaces) {
   const pkgPath = resolve(rootDir, location, "package.json");
@@ -49,6 +50,7 @@ for (const { location, name } of workspaces) {
     continue;
   }
 
+  packagesProcessed++;
   let modified = false;
 
   for (const field of DEP_FIELDS) {
@@ -69,6 +71,9 @@ for (const { location, name } of workspaces) {
       }
 
       if (depInfo.private) {
+        console.warn(
+          `  ⚠ ${name}: ${dep} has ${range} but depends on private package`,
+        );
         continue;
       }
 
@@ -104,5 +109,5 @@ for (const { location, name } of workspaces) {
 }
 
 console.log(
-  `Rewrote ${totalResolved} 'workspace:' dependency ranges in ${workspaces.length} packages`,
+  `Rewrote ${totalResolved} 'workspace:' dependency ranges in ${packagesProcessed} packages`,
 );
