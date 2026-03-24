@@ -21,6 +21,7 @@ import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
@@ -521,13 +522,16 @@ const SigninPage: NextPageWithLayout = () => {
             ))}
           </Box>
         </AuthPaper>
-        <Box>
+        <Box sx={{ maxWidth: 350 }}>
           <Typography gutterBottom>
             <strong>No account?</strong> No problem.
           </Typography>
           <Button href="/signup" disabled={!userSelfRegistrationIsEnabled}>
             Create a free account
           </Button>
+          {flow ? (
+            <SsoProviderButtons flow={flow} onFlowError={handleFlowError} />
+          ) : null}
         </Box>
       </Box>
     </AuthLayout>

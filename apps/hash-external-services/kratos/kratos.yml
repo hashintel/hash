@@ -43,6 +43,31 @@ selfservice:
     lookup_secret:
       enabled: true
 
+    oidc:
+      # Disabled by default. Enable by setting SELFSERVICE_METHODS_OIDC_ENABLED=true
+      # along with provider credentials in .env.local (see docker-compose.yml).
+      enabled: false
+      config:
+        # Override the callback base URL to route through the API proxy (/auth → Kratos).
+        # Without this, Kratos would use SERVE_PUBLIC_BASE_URL (localhost:3000), which
+        # doesn't proxy /self-service/* paths.
+        # Set through the `SELFSERVICE_METHODS_OIDC_CONFIG_BASE_REDIRECT_URI` environment variable
+        providers:
+          - id: google
+            provider: google
+            # Set `client_id` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID` environment variable
+            # Set `client_secret` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET` environment variable
+            mapper_url: "file:///etc/config/kratos/hooks/oidc.google.jsonnet"
+            scope:
+              - email
+              - profile
+            requested_claims:
+              id_token:
+                email:
+                  essential: true
+                email_verified:
+                  essential: true
+
   flows:
     error:
       # Set `ui_url` through the `SELFSERVICE_FLOWS_ERROR_UI_URL` environment variable
@@ -79,6 +104,23 @@ selfservice:
                     # Set `value` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE` environment variable
                     in: header
             - hook: show_verification_ui
+            - hook: session
+        oidc:
+          hooks:
+            - hook: web_hook
+              config:
+                response:
+                  parse: false
+                # Set `url` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL` environment variable
+                method: POST
+                body: file:///etc/config/kratos/hooks/after.registration.jsonnet
+                auth:
+                  type: api_key
+                  config:
+                    name: KRATOS_API_KEY
+                    # Set `value` through the `SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE` environment variable
+                    in: header
+            # No show_verification_ui — OIDC providers deliver verified emails
             - hook: session
 
     verification:
