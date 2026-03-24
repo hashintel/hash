@@ -151,7 +151,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
         >
           <ResultsPanel
             rosterEntries={view.roster.entries}
-            claims={view.claims}
             mentionContexts={view.mentionContexts}
             selection={selection}
             onSelect={setSelection}

@@ -1,14 +1,27 @@
 /**
  * Evidence resolver: selection → highlighted block IDs + target page.
  *
- * Pure function. No I/O, no React.
+ * Pure functions. No I/O, no React.
  */
-import type { Block, ExtractedClaim, RosterEntry } from "./types";
+import type {
+  AssertionWindow,
+  Block,
+  MentionContextPlan,
+  RosterEntry,
+} from "./types";
+
+// ---------------------------------------------------------------------------
+// Selection types
+// ---------------------------------------------------------------------------
 
 export type Selection =
-  | { kind: "roster"; entry: RosterEntry }
-  | { kind: "claim"; claim: ExtractedClaim }
+  | { kind: "entity"; entry: RosterEntry }
+  | { kind: "assertion"; window: AssertionWindow }
   | null;
+
+// ---------------------------------------------------------------------------
+// Evidence resolution
+// ---------------------------------------------------------------------------
 
 export interface EvidenceResult {
   blockIds: string[];
@@ -24,13 +37,9 @@ export function resolveEvidence(
   }
 
   const blockIds =
-    selection.kind === "roster"
+    selection.kind === "entity"
       ? [...new Set(selection.entry.mentions.map((mention) => mention.blockId))]
-      : [
-          ...new Set(
-            selection.claim.evidenceRefs.flatMap((ref) => ref.blockIds),
-          ),
-        ];
+      : [selection.window.blockId];
 
   let targetPage: number | null = null;
   for (const block of blocks) {
@@ -48,4 +57,59 @@ export function resolveEvidence(
   }
 
   return { blockIds, targetPage };
+}
+
+// ---------------------------------------------------------------------------
+// Assertion window collection per entity
+// ---------------------------------------------------------------------------
+
+/**
+ * Collect all assertion windows where a given roster entry appears as a
+ * participant. An assertion window can appear under multiple entities.
+ */
+export function collectAssertionWindowsForEntity(
+  rosterEntryId: string,
+  mentionContexts: MentionContextPlan[],
+): AssertionWindow[] {
+  const windows: AssertionWindow[] = [];
+
+  for (const context of mentionContexts) {
+    if (context.mode !== "assertion_windows") {
+      continue;
+    }
+    for (const win of context.assertionWindows) {
+      const isParticipant = win.participants.some(
+        (participant) => participant.rosterEntryId === rosterEntryId,
+      );
+      if (isParticipant) {
+        windows.push(win);
+      }
+    }
+  }
+
+  return windows;
+}
+
+/**
+ * Pre-compute a map of rosterEntryId → AssertionWindow[] for all entities.
+ */
+export function buildEntityAssertionMap(
+  mentionContexts: MentionContextPlan[],
+): Map<string, AssertionWindow[]> {
+  const map = new Map<string, AssertionWindow[]>();
+
+  for (const context of mentionContexts) {
+    if (context.mode !== "assertion_windows") {
+      continue;
+    }
+    for (const win of context.assertionWindows) {
+      for (const participant of win.participants) {
+        const existing = map.get(participant.rosterEntryId) ?? [];
+        existing.push(win);
+        map.set(participant.rosterEntryId, existing);
+      }
+    }
+  }
+
+  return map;
 }

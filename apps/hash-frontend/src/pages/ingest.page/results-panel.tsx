@@ -1,23 +1,26 @@
 /**
- * Results panel: roster entries + claims list with click-to-highlight.
+ * Results panel: collapsible entity cards with assertion windows.
  *
- * Left-side panel in the ingest results view.
+ * Left-side panel in the ingest results view. Each entity card expands to
+ * show assertion windows where that entity appears as a participant.
  */
 import {
   Box,
   ButtonBase,
-  List,
+  Collapse,
   ListSubheader,
   Typography,
 } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { useMemo, useState } from "react";
 
 import type { Selection } from "./evidence-resolver";
-import type { ExtractedClaim, RosterEntry } from "./types";
+import { buildEntityAssertionMap } from "./evidence-resolver";
+import type { AssertionWindow, MentionContextPlan, RosterEntry } from "./types";
 
 interface ResultsPanelProps {
   rosterEntries: RosterEntry[];
-  claims: ExtractedClaim[];
+  mentionContexts: MentionContextPlan[];
   selection: Selection;
   onSelect: (selection: Selection) => void;
 }
@@ -31,18 +34,164 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: "◽",
 };
 
+const AssertionWindowItem: FunctionComponent<{
+  window: AssertionWindow;
+  isSelected: boolean;
+  onSelect: () => void;
+}> = ({ window: win, isSelected, onSelect }) => (
+  <ButtonBase
+    onClick={onSelect}
+    sx={{
+      display: "block",
+      width: "100%",
+      px: 2,
+      py: 1,
+      pl: 4,
+      textAlign: "left",
+      borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      bgcolor: isSelected ? "rgba(59, 130, 246, 0.08)" : "transparent",
+      "&:hover": { bgcolor: "rgba(59, 130, 246, 0.04)" },
+    }}
+  >
+    <Typography
+      variant="microText"
+      sx={{
+        color: "gray.80",
+        lineHeight: 1.5,
+        display: "-webkit-box",
+        WebkitLineClamp: 3,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+      }}
+    >
+      {win.text}
+    </Typography>
+    <Typography
+      variant="microText"
+      sx={{ color: "gray.50", mt: 0.5, fontStyle: "italic" }}
+    >
+      &quot;{win.mentionSurface}&quot;
+    </Typography>
+  </ButtonBase>
+);
+
+const EntityCard: FunctionComponent<{
+  entry: RosterEntry;
+  assertionWindows: AssertionWindow[];
+  selection: Selection;
+  onSelect: (selection: Selection) => void;
+}> = ({ entry, assertionWindows, selection, onSelect }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isEntitySelected =
+    selection?.kind === "entity" &&
+    selection.entry.rosterEntryId === entry.rosterEntryId;
+
+  const selectedAssertionBlockId =
+    selection?.kind === "assertion" ? selection.window.blockId : null;
+
+  return (
+    <Box>
+      <ButtonBase
+        onClick={() => {
+          setExpanded((prev) => !prev);
+          onSelect(isEntitySelected ? null : { kind: "entity", entry });
+        }}
+        sx={{
+          display: "flex",
+          width: "100%",
+          px: 2,
+          py: 1.5,
+          textAlign: "left",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          bgcolor: isEntitySelected
+            ? "rgba(59, 130, 246, 0.08)"
+            : "transparent",
+          "&:hover": { bgcolor: "rgba(59, 130, 246, 0.04)" },
+        }}
+      >
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}
+        >
+          <Typography component="span" sx={{ flexShrink: 0 }}>
+            {CATEGORY_ICONS[entry.category ?? "other"] ?? "◽"}
+          </Typography>
+          <Typography
+            variant="smallTextLabels"
+            sx={{
+              fontWeight: isEntitySelected || expanded ? 600 : 400,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {entry.canonicalName}
+          </Typography>
+        </Box>
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
+        >
+          {assertionWindows.length > 0 && (
+            <Typography variant="microText" sx={{ color: "gray.50" }}>
+              {assertionWindows.length}
+            </Typography>
+          )}
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              color: "gray.50",
+              transform: expanded ? "rotate(90deg)" : "none",
+              transition: "transform 0.15s",
+            }}
+          >
+            ▶
+          </Typography>
+        </Box>
+      </ButtonBase>
+
+      <Collapse in={expanded}>
+        {assertionWindows.length > 0 ? (
+          assertionWindows.map((win, idx) => (
+            <AssertionWindowItem
+              key={`${win.blockId}-${idx}`}
+              window={win}
+              isSelected={selectedAssertionBlockId === win.blockId}
+              onSelect={() =>
+                onSelect(
+                  selectedAssertionBlockId === win.blockId
+                    ? null
+                    : { kind: "assertion", window: win },
+                )
+              }
+            />
+          ))
+        ) : (
+          <Box sx={{ px: 4, py: 1.5 }}>
+            <Typography
+              variant="microText"
+              sx={{ color: "gray.50", fontStyle: "italic" }}
+            >
+              {entry.summary}
+            </Typography>
+          </Box>
+        )}
+      </Collapse>
+    </Box>
+  );
+};
+
 export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
   rosterEntries,
-  claims,
+  mentionContexts,
   selection,
   onSelect,
 }) => {
-  const isRosterSelected = (entry: RosterEntry) =>
-    selection?.kind === "roster" &&
-    selection.entry.rosterEntryId === entry.rosterEntryId;
-
-  const isClaimSelected = (claim: ExtractedClaim) =>
-    selection?.kind === "claim" && selection.claim.claimId === claim.claimId;
+  const entityAssertionMap = useMemo(
+    () => buildEntityAssertionMap(mentionContexts),
+    [mentionContexts],
+  );
 
   return (
     <Box
@@ -55,7 +204,6 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
         flexDirection: "column",
       }}
     >
-      {/* Roster section */}
       <ListSubheader
         sx={{
           px: 2,
@@ -68,142 +216,19 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
           lineHeight: 1,
         }}
       >
-        Roster ({rosterEntries.length})
+        Entities ({rosterEntries.length})
       </ListSubheader>
-      <List disablePadding sx={{ flex: "0 0 auto" }}>
-        {rosterEntries.map((entry) => {
-          const selected = isRosterSelected(entry);
-          return (
-            <ButtonBase
-              key={entry.rosterEntryId}
-              onClick={() =>
-                onSelect(selected ? null : { kind: "roster", entry })
-              }
-              sx={{
-                display: "block",
-                width: "100%",
-                px: 2,
-                py: 1,
-                textAlign: "left",
-                borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                bgcolor: selected ? "rgba(59, 130, 246, 0.08)" : "transparent",
-                "&:hover": { bgcolor: "rgba(59, 130, 246, 0.04)" },
-              }}
-            >
-              <Typography variant="smallTextLabels" component="span">
-                <span style={{ marginRight: "0.5rem" }}>
-                  {CATEGORY_ICONS[entry.category ?? "other"] ?? "◽"}
-                </span>
-                <span style={{ fontWeight: selected ? 600 : 400 }}>
-                  {entry.canonicalName}
-                </span>
-              </Typography>
-              <Typography
-                variant="microText"
-                component="div"
-                sx={{ color: "gray.60", mt: 0.25, pl: 3 }}
-              >
-                {entry.mentions.length} mention
-                {entry.mentions.length !== 1 ? "s" : ""}
-              </Typography>
-            </ButtonBase>
-          );
-        })}
-      </List>
 
-      {/* Claims section */}
-      <ListSubheader
-        sx={{
-          px: 2,
-          py: 1.5,
-          borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          mt: 1,
-          fontSize: "0.75rem",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          lineHeight: 1,
-        }}
-      >
-        Claims ({claims.length})
-      </ListSubheader>
       <Box sx={{ flex: 1, overflowY: "auto" }}>
-        {rosterEntries.map((entry) => {
-          const entryClaims = claims.filter(
-            (claim) => claim.rosterEntryId === entry.rosterEntryId,
-          );
-          if (entryClaims.length === 0) {
-            return null;
-          }
-          return (
-            <Box key={`claims-${entry.rosterEntryId}`}>
-              <Box
-                sx={{
-                  px: 2,
-                  py: 0.75,
-                  fontSize: "0.6875rem",
-                  fontWeight: 600,
-                  color: "gray.60",
-                  borderBottom: ({ palette }) =>
-                    `1px solid ${palette.gray[20]}`,
-                  bgcolor: "rgba(0, 0, 0, 0.02)",
-                }}
-              >
-                {CATEGORY_ICONS[entry.category ?? "other"] ?? "◽"}{" "}
-                {entry.canonicalName} ({entryClaims.length})
-              </Box>
-              {entryClaims.map((claim) => {
-                const selected = isClaimSelected(claim);
-                const firstEvidenceRef = claim.evidenceRefs.at(0);
-                const quote = firstEvidenceRef
-                  ? firstEvidenceRef.quote.substring(0, 60)
-                  : undefined;
-                return (
-                  <ButtonBase
-                    key={claim.claimId}
-                    onClick={() =>
-                      onSelect(selected ? null : { kind: "claim", claim })
-                    }
-                    sx={{
-                      display: "block",
-                      width: "100%",
-                      px: 2,
-                      py: 1,
-                      pl: 3,
-                      textAlign: "left",
-                      borderBottom: ({ palette }) =>
-                        `1px solid ${palette.gray[20]}`,
-                      bgcolor: selected
-                        ? "rgba(59, 130, 246, 0.08)"
-                        : "transparent",
-                      "&:hover": { bgcolor: "rgba(59, 130, 246, 0.04)" },
-                    }}
-                  >
-                    <Typography
-                      variant="smallTextLabels"
-                      sx={{ fontWeight: selected ? 600 : 400 }}
-                    >
-                      {claim.claimText}
-                    </Typography>
-                    {quote && (
-                      <Typography
-                        variant="microText"
-                        sx={{
-                          color: "gray.50",
-                          mt: 0.5,
-                          fontStyle: "italic",
-                        }}
-                      >
-                        &quot;{quote}…&quot;
-                      </Typography>
-                    )}
-                  </ButtonBase>
-                );
-              })}
-            </Box>
-          );
-        })}
+        {rosterEntries.map((entry) => (
+          <EntityCard
+            key={entry.rosterEntryId}
+            entry={entry}
+            assertionWindows={entityAssertionMap.get(entry.rosterEntryId) ?? []}
+            selection={selection}
+            onSelect={onSelect}
+          />
+        ))}
       </Box>
     </Box>
   );
