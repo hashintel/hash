@@ -265,7 +265,7 @@ tokio-postgres                     = { version = "0.7.15", default-features = fa
 tokio-stream                       = { version = "0.1.17", default-features = false }
 tokio-test                         = { version = "0.4.4", default-features = false }
 tokio-util                         = { version = "0.7.16", default-features = false }
-toml                               = { version = "0.9.8", default-features = false }
+toml                               = { version = "1.0.0", default-features = false }
 tower                              = { version = "0.5.2", default-features = false }
 tower-http                         = { version = "0.6.6", features = ["trace"] }
 tower-layer                        = { version = "0.3.3", default-features = false }
