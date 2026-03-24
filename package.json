@@ -23,6 +23,8 @@
     "bench": "npm-run-all --continue-on-error \"bench:*\"",
     "bench:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:integration --env-mode=loose --",
     "bench:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:unit --env-mode=loose --",
+    "changeset:resolve-workspace-ranges": "node scripts/resolve-workspace-ranges.mjs",
+    "changeset:publish": "yarn changeset:resolve-workspace-ranges && yarn changeset publish",
     "changeset:version": "yarn changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn",
     "codegen": "CARGO_TERM_PROGRESS_WHEN=never turbo codegen",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
@@ -74,7 +76,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "0.5.1",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.30.0#~/.yarn/patches/@changesets-cli-npm-2.30.0-83a4e8887c.patch",
-    "@local/claude-hooks": "workspace:*",
+    "@local/claude-hooks": "0.0.0-private",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4"

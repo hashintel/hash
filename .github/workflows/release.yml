@@ -30,7 +30,7 @@ jobs:
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         with:
-          publish: yarn changeset publish
+          publish: yarn changeset:publish
           version: yarn changeset:version
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
