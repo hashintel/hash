@@ -1,4 +1,4 @@
-FROM oryd/kratos:v25.4
+FROM oryd/kratos:v26.2
 
 USER root
 
