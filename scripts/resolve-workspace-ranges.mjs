@@ -103,9 +103,7 @@ for (const { location, name } of workspaces) {
   }
 }
 
-console.log(
-  `Rewrote ${totalResolved} 'workspace:' dependency ranges in ${workspaces.length} packages`,
-);
+console.log(`Rewrote ${totalResolved} 'workspace:' dependency ranges`);
 
 // With enableTransparentWorkspaces: false (the repo default), Yarn only treats
 // `workspace:` protocol references as local packages. After rewriting those to
@@ -113,15 +111,20 @@ console.log(
 // that Yarn matches e.g. ^0.0.2 to the local workspace at version 0.0.2.
 const yarnrcPath = resolve(rootDir, ".yarnrc.yml");
 const yarnrc = readFileSync(yarnrcPath, "utf-8");
-const yarnrcPatched = yarnrc.replace(
-  "enableTransparentWorkspaces: false",
-  "enableTransparentWorkspaces: true",
-);
-if (yarnrcPatched !== yarnrc) {
+const twMatch = yarnrc.match(/enableTransparentWorkspaces:\s*(\S+)/);
+if (!twMatch) {
+  writeFileSync(
+    yarnrcPath,
+    yarnrc.trimEnd() + "\nenableTransparentWorkspaces: true\n",
+  );
+  console.log("Added enableTransparentWorkspaces: true to .yarnrc.yml");
+} else if (twMatch[1] === "true") {
+  console.log(".yarnrc.yml already has enableTransparentWorkspaces: true");
+} else {
+  const yarnrcPatched = yarnrc.replace(
+    twMatch[0],
+    "enableTransparentWorkspaces: true",
+  );
   writeFileSync(yarnrcPath, yarnrcPatched);
   console.log("Patched .yarnrc.yml: enableTransparentWorkspaces → true");
-} else {
-  console.warn(
-    "⚠ Could not find enableTransparentWorkspaces: false in .yarnrc.yml",
-  );
 }
