@@ -103,26 +103,28 @@ for (const { location, name } of workspaces) {
   }
 }
 
-console.log(
-  `Rewrote ${totalResolved} 'workspace:' dependency ranges in ${workspaces.length} packages`,
-);
+console.log(`Rewrote ${totalResolved} 'workspace:' dependency ranges`);
 
-// Disable immutable installs so Yarn tolerates the package.json changes.
-// This must be set in .yarnrc.yml rather than via env var because turbo's
-// strict env mode filters out YARN_ENABLE_IMMUTABLE_INSTALLS before it
-// reaches the inner `yarn run build` invoked by lifecycle scripts.
+// With enableTransparentWorkspaces: false (the repo default), Yarn only treats
+// `workspace:` protocol references as local packages. After rewriting those to
+// concrete ranges, a subsequent `yarn install` needs transparent workspaces so
+// that Yarn matches e.g. ^0.0.2 to the local workspace at version 0.0.2.
 const yarnrcPath = resolve(rootDir, ".yarnrc.yml");
 const yarnrc = readFileSync(yarnrcPath, "utf-8");
-if (!yarnrc.includes("enableImmutableInstalls:")) {
-  writeFileSync(yarnrcPath, yarnrc + "\nenableImmutableInstalls: false\n");
-  console.log("Set enableImmutableInstalls: false in .yarnrc.yml");
-} else {
+const twMatch = yarnrc.match(/enableTransparentWorkspaces:\s*(\S+)/);
+if (!twMatch) {
   writeFileSync(
     yarnrcPath,
-    yarnrc.replace(
-      /enableImmutableInstalls:\s*\S+/,
-      "enableImmutableInstalls: false",
-    ),
+    yarnrc.trimEnd() + "\nenableTransparentWorkspaces: true\n",
   );
-  console.log("Set enableImmutableInstalls: false in .yarnrc.yml");
+  console.log("Added enableTransparentWorkspaces: true to .yarnrc.yml");
+} else if (twMatch[1] === "true") {
+  console.log(".yarnrc.yml already has enableTransparentWorkspaces: true");
+} else {
+  const yarnrcPatched = yarnrc.replace(
+    twMatch[0],
+    "enableTransparentWorkspaces: true",
+  );
+  writeFileSync(yarnrcPath, yarnrcPatched);
+  console.log("Patched .yarnrc.yml: enableTransparentWorkspaces → true");
 }

@@ -36,6 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
+          TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
           # Ensure turbo outputs full build logs (not just summaries) so
           # lifecycle script errors are visible in the changesets output.
