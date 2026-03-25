@@ -29,20 +29,25 @@ runs:
       id: run-url
       shell: bash
       run: |
-        repo_url="https://github.com/${{ github.repository }}"
-        run_url="$repo_url/actions/runs/${{ github.run_id }}"
+        repo_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        run_url="$repo_url/actions/runs/${GITHUB_RUN_ID}"
         echo "workflow_run_url=$run_url" >> "$GITHUB_OUTPUT"
 
     - name: Download SHAs from last run
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        ACTION_PATH: ${{ github.action_path }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        HEAD_REF: ${{ github.head_ref }}
+        REPOSITORY: ${{ github.repository }}
+        WORKFLOW_NAME: ${{ github.workflow }}
       run: |
-        "${{ github.action_path }}/latest_artifact.sh" \
-          "${{ github.repository }}" \
-          "${{ github.event.pull_request.number }}" \
-          "${{ github.head_ref }}" \
-          "${{ github.workflow }}" \
+        "$ACTION_PATH/latest_artifact.sh" \
+          "$REPOSITORY" \
+          "$PR_NUMBER" \
+          "$HEAD_REF" \
+          "$WORKFLOW_NAME" \
           "dismiss-stale-approvals-shas" || true
 
         if [[ -f shas.txt ]]; then
@@ -54,9 +59,12 @@ runs:
 
     - name: Read SHAs
       shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
-        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
+        echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+        echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
 
     - name: Write SHAs to file
       shell: bash
@@ -75,24 +83,32 @@ runs:
       id: range-diff
       continue-on-error: true
       shell: bash
+      env:
+        BASE_SHA: ${{ env.BASE_SHA }}
+        FETCH_DEPTH: ${{ inputs.fetch-depth }}
+        FETCHED_REPOSITORY_PATH: bare.git
+        GH_TOKEN: ${{ inputs.github-token }}
+        HEAD_SHA: ${{ env.HEAD_SHA }}
+        PREV_BASE_SHA: ${{ env.PREV_BASE_SHA }}
+        PREV_HEAD_SHA: ${{ env.PREV_HEAD_SHA }}
+        REPOSITORY: ${{ github.repository }}
       run: |
         if [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
           echo "stale=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
 
-        git init -q --bare bare.git
-        cd bare.git
-        git remote add origin "https://oauth2:${{ inputs.github-token }}@github.com/${{ github.repository }}.git"
-        git fetch -q origin --depth="${{ inputs.fetch-depth }}" \
-          "${{ env.PREV_BASE_SHA }}" \
-          "${{ env.PREV_HEAD_SHA }}" \
-          "${{ env.BASE_SHA }}" \
-          "${{ env.HEAD_SHA }}"
+        git init -q --bare "$FETCHED_REPOSITORY_PATH"
+        git -C "$FETCHED_REPOSITORY_PATH" remote add origin "https://oauth2:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+        git -C "$FETCHED_REPOSITORY_PATH" fetch -q origin --depth="$FETCH_DEPTH" \
+          "$PREV_BASE_SHA" \
+          "$PREV_HEAD_SHA" \
+          "$BASE_SHA" \
+          "$HEAD_SHA"
 
-        prev_merge_base="$(git merge-base "${{ env.PREV_BASE_SHA }}" "${{ env.PREV_HEAD_SHA }}")"
-        merge_base="$(git merge-base "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}")"
-        range_diff="$(git range-diff "$prev_merge_base..${{ env.PREV_HEAD_SHA }}" "$merge_base..${{ env.HEAD_SHA }}")"
+        prev_merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$PREV_BASE_SHA" "$PREV_HEAD_SHA")"
+        merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$BASE_SHA" "$HEAD_SHA")"
+        range_diff="$(git -C "$FETCHED_REPOSITORY_PATH" range-diff "$prev_merge_base..$PREV_HEAD_SHA" "$merge_base..$HEAD_SHA")"
 
         if echo "$range_diff" | awk '{print $3}' | grep -vq '^=$'; then
           echo "stale=true" >> "$GITHUB_OUTPUT"
@@ -105,8 +121,10 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPOSITORY: ${{ github.repository }}
       run: |
-        approval_sha="$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+        approval_sha="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
           --jq '[.[] | select(.state=="APPROVED")] | last | .commit_id // empty')"
         echo "sha=$approval_sha" >> "$GITHUB_OUTPUT"
 
@@ -114,33 +132,46 @@ runs:
       id: merge-tree
       continue-on-error: true
       shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        APPROVAL_SHA: ${{ steps.approval.outputs.sha }}
+        FETCHED_REPOSITORY_PATH: bare.git
+        HEAD_SHA: ${{ env.HEAD_SHA }}
       run: |
-        "${{ github.action_path }}/check-manual-merge-resolutions.sh" \
-          --approval-sha "${{ steps.approval.outputs.sha }}" \
-          --head-sha "${{ env.HEAD_SHA }}" >> "$GITHUB_OUTPUT"
+        "$ACTION_PATH/check-manual-merge-resolutions.sh" \
+          --repository-path "$FETCHED_REPOSITORY_PATH" \
+          --approval-sha "$APPROVAL_SHA" \
+          --head-sha "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
     - name: Decide whether approvals are stale
       id: decision
       shell: bash
+      env:
+        MERGE_TREE_OUTCOME: ${{ steps.merge-tree.outcome }}
+        MERGE_TREE_REASON: ${{ steps.merge-tree.outputs.reason }}
+        MERGE_TREE_STALE: ${{ steps.merge-tree.outputs.stale }}
+        RANGE_DIFF_OUTCOME: ${{ steps.range-diff.outcome }}
+        RANGE_DIFF_STALE: ${{ steps.range-diff.outputs.stale }}
+        WORKFLOW_RUN_URL: ${{ steps.run-url.outputs.workflow_run_url }}
       run: |
         stale=false
         reason=""
 
-        if [[ "${{ steps.merge-tree.outcome }}" != "success" ]]; then
+        if [[ "$MERGE_TREE_OUTCOME" != "success" ]]; then
           stale=true
-          reason="Failed to check whether merge commits after approval required manual conflict resolution; see action logs at ${{ steps.run-url.outputs.workflow_run_url }}"
-        elif [[ "${{ steps.merge-tree.outputs.stale }}" == "true" ]]; then
+          reason="Failed to check whether merge commits after approval required manual conflict resolution; see action logs at $WORKFLOW_RUN_URL"
+        elif [[ "$MERGE_TREE_STALE" == "true" ]]; then
           stale=true
-          reason="${{ steps.merge-tree.outputs.reason }}"
-        elif [[ "${{ steps.range-diff.outcome }}" != "success" ]]; then
+          reason="$MERGE_TREE_REASON"
+        elif [[ "$RANGE_DIFF_OUTCOME" != "success" ]]; then
           stale=true
-          reason="Failed to check if diff has changed; see action logs at ${{ steps.run-url.outputs.workflow_run_url }}"
+          reason="Failed to check if diff has changed; see action logs at $WORKFLOW_RUN_URL"
         elif [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
           stale=true
-          reason="Could not find data on the previous version of this PR; see action logs at ${{ steps.run-url.outputs.workflow_run_url }}"
-        elif [[ "${{ steps.range-diff.outputs.stale }}" == "true" ]]; then
+          reason="Could not find data on the previous version of this PR; see action logs at $WORKFLOW_RUN_URL"
+        elif [[ "$RANGE_DIFF_STALE" == "true" ]]; then
           stale=true
-          reason="See the output of \`git range-diff\` at ${{ steps.run-url.outputs.workflow_run_url }}"
+          reason="See the output of \`git range-diff\` at $WORKFLOW_RUN_URL"
         fi
 
         echo "stale=$stale" >> "$GITHUB_OUTPUT"
@@ -150,10 +181,15 @@ runs:
       if: steps.decision.outputs.stale == 'true'
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
+        DRY_RUN: ${{ inputs.dry-run }}
         GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REASON: ${{ steps.decision.outputs.reason }}
+        REPOSITORY: ${{ github.repository }}
       run: |
-        "${{ github.action_path }}/dismiss-reviews.sh" \
-          --repository "${{ github.repository }}" \
-          --pr-number "${{ github.event.pull_request.number }}" \
-          --reason "${{ steps.decision.outputs.reason }}" \
-          --dry-run "${{ inputs.dry-run }}"
+        "$ACTION_PATH/dismiss-reviews.sh" \
+          --repository "$REPOSITORY" \
+          --pr-number "$PR_NUMBER" \
+          --reason "$REASON" \
+          --dry-run "$DRY_RUN"
