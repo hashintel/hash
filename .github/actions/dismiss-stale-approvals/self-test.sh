@@ -68,19 +68,19 @@ test_collect_paginated_reviews() {
   local reviews_json latest_approval_sha
   reviews_json="$(
     printf '%s\n%s\n' \
-      '[{"state":"COMMENTED","commit_id":"ignore-comment"},{"state":"APPROVED","commit_id":"sha-1"}]' \
-      '[{"state":"APPROVED","commit_id":"sha-2"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request"}]' |
+      '[{"state":"APPROVED","commit_id":"sha-newest","submitted_at":"2026-03-25T12:00:00Z"},{"state":"COMMENTED","commit_id":"ignore-comment","submitted_at":"2026-03-25T13:00:00Z"}]' \
+      '[{"state":"APPROVED","commit_id":"sha-oldest","submitted_at":"2026-03-24T12:00:00Z"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request","submitted_at":"2026-03-25T14:00:00Z"}]' |
       collect_paginated_reviews
   )"
 
-  [[ "$reviews_json" == '[{"state":"COMMENTED","commit_id":"ignore-comment"},{"state":"APPROVED","commit_id":"sha-1"},{"state":"APPROVED","commit_id":"sha-2"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request"}]' ]] ||
+  [[ "$reviews_json" == '[{"state":"APPROVED","commit_id":"sha-newest","submitted_at":"2026-03-25T12:00:00Z"},{"state":"COMMENTED","commit_id":"ignore-comment","submitted_at":"2026-03-25T13:00:00Z"},{"state":"APPROVED","commit_id":"sha-oldest","submitted_at":"2026-03-24T12:00:00Z"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request","submitted_at":"2026-03-25T14:00:00Z"}]' ]] ||
     fail "Expected flattened paginated reviews array, got: $reviews_json"
 
   latest_approval_sha="$(find_latest_approval_sha "$reviews_json")"
-  [[ "$latest_approval_sha" == "sha-2" ]] ||
-    fail "Expected latest approval SHA sha-2, got: $latest_approval_sha"
+  [[ "$latest_approval_sha" == "sha-newest" ]] ||
+    fail "Expected latest approval SHA sha-newest, got: $latest_approval_sha"
 
-  latest_approval_sha="$(find_latest_approval_sha '[{"state":"COMMENTED","commit_id":"ignore"}]')"
+  latest_approval_sha="$(find_latest_approval_sha '[{"state":"COMMENTED","commit_id":"ignore","submitted_at":"2026-03-25T12:00:00Z"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request","submitted_at":"2026-03-25T13:00:00Z"}]')"
   [[ -z "$latest_approval_sha" ]] ||
     fail "Expected no approval SHA when there are no approved reviews, got: $latest_approval_sha"
 }

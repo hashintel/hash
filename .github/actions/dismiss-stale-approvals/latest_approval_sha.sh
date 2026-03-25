@@ -8,7 +8,7 @@ collect_paginated_reviews() {
 find_latest_approval_sha() {
   local reviews_json="$1"
 
-  jq -r '[.[] | select(.state=="APPROVED" and (.commit_id // empty != empty))] | last | .commit_id // empty' <<<"$reviews_json"
+  jq -r '[.[] | select(.state=="APPROVED" and (.commit_id // empty != empty) and (.submitted_at // empty != empty))] | (if length > 0 then max_by(.submitted_at).commit_id else empty end)' <<<"$reviews_json"
 }
 
 main() {
