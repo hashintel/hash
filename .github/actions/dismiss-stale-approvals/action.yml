@@ -1,0 +1,155 @@
+name: Dismiss stale approvals
+description: Dismiss approvals on a pull request if the diff has changed
+
+inputs:
+  github-token:
+    description: A GITHUB_TOKEN secret or PAT that has write access to the repository
+    required: true
+  fetch-depth:
+    default: 250
+    description: The maximum length of a branch from head to base that will be compared to the previous run
+    required: false
+  dry-run:
+    description: Comment on the PR instead of dismissing approvals
+    required: false
+    default: false
+
+outputs:
+  stale:
+    description: Whether approvals should be dismissed
+    value: ${{ steps.decision.outputs.stale }}
+  reason:
+    description: The dismissal reason
+    value: ${{ steps.decision.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set workflow run URL
+      id: run-url
+      shell: bash
+      run: |
+        repo_url="https://github.com/${{ github.repository }}"
+        run_url="$repo_url/actions/runs/${{ github.run_id }}"
+        echo "workflow_run_url=$run_url" >> "$GITHUB_OUTPUT"
+
+    - name: Download SHAs from last run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        "${{ github.action_path }}/latest_artifact.sh" \
+          "${{ github.repository }}" \
+          "${{ github.event.pull_request.number }}" \
+          "${{ github.head_ref }}" \
+          "${{ github.workflow }}" \
+          "dismiss-stale-approvals-shas" || true
+
+        if [[ -f shas.txt ]]; then
+          echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> "$GITHUB_ENV"
+          echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> "$GITHUB_ENV"
+        else
+          echo "NO_PREV_SHAS=1" >> "$GITHUB_ENV"
+        fi
+
+    - name: Read SHAs
+      shell: bash
+      run: |
+        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
+
+    - name: Write SHAs to file
+      shell: bash
+      run: |
+        echo "${{ env.HEAD_SHA }}" > shas.txt
+        echo "${{ env.BASE_SHA }}" >> shas.txt
+
+    - name: Upload SHAs
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      continue-on-error: true
+      with:
+        name: dismiss-stale-approvals-shas
+        path: shas.txt
+
+    - name: Check if diff has changed
+      id: range-diff
+      continue-on-error: true
+      shell: bash
+      run: |
+        if [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
+          echo "stale=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        git init -q --bare bare.git
+        cd bare.git
+        git remote add origin "https://oauth2:${{ inputs.github-token }}@github.com/${{ github.repository }}.git"
+        git fetch -q origin --depth="${{ inputs.fetch-depth }}" \
+          "${{ env.PREV_BASE_SHA }}" \
+          "${{ env.PREV_HEAD_SHA }}" \
+          "${{ env.BASE_SHA }}" \
+          "${{ env.HEAD_SHA }}"
+
+        prev_merge_base="$(git merge-base "${{ env.PREV_BASE_SHA }}" "${{ env.PREV_HEAD_SHA }}")"
+        merge_base="$(git merge-base "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}")"
+        range_diff="$(git range-diff "$prev_merge_base..${{ env.PREV_HEAD_SHA }}" "$merge_base..${{ env.HEAD_SHA }}")"
+
+        if echo "$range_diff" | awk '{print $3}' | grep -vq '^=$'; then
+          echo "stale=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "stale=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Read latest approval SHA
+      id: approval
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        approval_sha="$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+          --jq '[.[] | select(.state=="APPROVED")] | last | .commit_id // empty')"
+        echo "sha=$approval_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Check for manual merge resolutions after approval
+      id: merge-tree
+      shell: bash
+      run: |
+        "${{ github.action_path }}/check-manual-merge-resolutions.sh" \
+          --approval-sha "${{ steps.approval.outputs.sha }}" \
+          --head-sha "${{ env.HEAD_SHA }}" >> "$GITHUB_OUTPUT"
+
+    - name: Decide whether approvals are stale
+      id: decision
+      shell: bash
+      run: |
+        stale=false
+        reason=""
+
+        if [[ "${{ steps.merge-tree.outputs.stale }}" == "true" ]]; then
+          stale=true
+          reason="${{ steps.merge-tree.outputs.reason }}"
+        elif [[ "${{ steps.range-diff.outcome }}" != "success" ]]; then
+          stale=true
+          reason="Failed to check if diff has changed; see action logs at ${{ steps.run-url.outputs.workflow_run_url }}"
+        elif [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
+          stale=true
+          reason="Could not find data on the previous version of this PR; see action logs at ${{ steps.run-url.outputs.workflow_run_url }}"
+        elif [[ "${{ steps.range-diff.outputs.stale }}" == "true" ]]; then
+          stale=true
+          reason="See the output of \`git range-diff\` at ${{ steps.run-url.outputs.workflow_run_url }}"
+        fi
+
+        echo "stale=$stale" >> "$GITHUB_OUTPUT"
+        echo "reason=$reason" >> "$GITHUB_OUTPUT"
+
+    - name: Dismiss approvals
+      if: steps.decision.outputs.stale == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        "${{ github.action_path }}/dismiss-reviews.sh" \
+          --repository "${{ github.repository }}" \
+          --pr-number "${{ github.event.pull_request.number }}" \
+          --reason "${{ steps.decision.outputs.reason }}" \
+          --dry-run "${{ inputs.dry-run }}"

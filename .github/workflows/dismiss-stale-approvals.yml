@@ -16,7 +16,6 @@ jobs:
     steps:
       - name: Dismiss stale pull request approvals
         if: github.event_name == 'pull_request_target'
-        # see: https://github.com/withgraphite/dismiss-stale-approvals/pull/8#issuecomment-3386592574
-        uses: turnage/dismiss-stale-approvals@ff3fc67f2978497c420e446f704b9502dd911fd8 # fork
+        uses: ./.github/actions/dismiss-stale-approvals
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
