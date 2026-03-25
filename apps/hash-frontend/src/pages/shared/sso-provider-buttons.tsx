@@ -54,7 +54,7 @@ export const SsoProviderButtons: FunctionComponent<{
 
   const handleProviderClick = (provider: string) => {
     const csrf_token = mustGetCsrfTokenFromFlow(flow);
-    oryKratosClient
+    void oryKratosClient
       .updateLoginFlow({
         flow: flow.id,
         updateLoginFlowBody: {
@@ -71,11 +71,7 @@ export const SsoProviderButtons: FunctionComponent<{
           window.location.href = data.redirect_browser_to;
           return;
         }
-        onFlowError(err);
-      })
-      .catch(() => {
-        // Swallow unhandled rejections from onFlowError (which may
-        // return Promise.reject for unrecognized errors)
+        void onFlowError(err);
       });
   };
 

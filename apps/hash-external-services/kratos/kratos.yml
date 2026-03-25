@@ -55,6 +55,7 @@ selfservice:
         providers:
           - id: google
             provider: google
+            label: Google
             # Set `client_id` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID` environment variable
             # Set `client_secret` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET` environment variable
             mapper_url: "file:///etc/config/kratos/hooks/oidc.google.jsonnet"

@@ -20,6 +20,7 @@ import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
+import { formatKratosMessage } from "./shared/format-kratos-message";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
@@ -387,13 +388,13 @@ const SigninPage: NextPageWithLayout = () => {
                   border: ({ palette }) => `1px solid ${palette.blue[30]}`,
                 }}
               >
-                {flow.ui.messages.map(({ text, id }) => (
+                {flow.ui.messages.map((message) => (
                   <Typography
-                    key={id}
+                    key={message.id}
                     variant="smallTextParagraphs"
                     sx={{ color: ({ palette }) => palette.blue[80] }}
                   >
-                    {text}
+                    {formatKratosMessage(message)}
                   </Typography>
                 ))}
               </Box>
