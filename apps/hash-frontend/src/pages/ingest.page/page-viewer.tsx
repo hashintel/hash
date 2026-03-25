@@ -16,7 +16,7 @@ import {
 
 import { bboxToPercentage } from "./bbox-transform";
 import { highlightColors } from "./highlight-styles";
-import type { Block, PageImageManifest } from "./types";
+import type { Anchor, Block, PageImageManifest } from "./types";
 
 export interface PageViewerHandle {
   scrollToPage: (pageNumber: number) => void;
@@ -28,6 +28,12 @@ interface PageViewerProps {
   highlightedBlockIds: string[];
 }
 
+interface HighlightedOverlay {
+  key: string;
+  block: Block;
+  anchor: Anchor;
+}
+
 // ---------------------------------------------------------------------------
 // Single page with bbox overlays (defined first for no-use-before-define)
 // ---------------------------------------------------------------------------
@@ -35,9 +41,9 @@ interface PageViewerProps {
 const PageWithOverlays: FunctionComponent<{
   pageImage: PageImageManifest;
   totalPages: number;
-  highlightedBlocks: Block[];
+  highlightedOverlays: HighlightedOverlay[];
   setRef: (el: HTMLDivElement | null) => void;
-}> = ({ pageImage, totalPages, highlightedBlocks, setRef }) => (
+}> = ({ pageImage, totalPages, highlightedOverlays, setRef }) => (
   <Box ref={setRef} sx={{ width: "100%", maxWidth: 900 }}>
     <Typography
       variant="microText"
@@ -62,14 +68,7 @@ const PageWithOverlays: FunctionComponent<{
         }}
       />
 
-      {highlightedBlocks.map((block) => {
-        const anchor = block.anchors.find(
-          (anc) => anc.page === pageImage.pageNumber,
-        );
-        if (!anchor) {
-          return null;
-        }
-
+      {highlightedOverlays.map(({ key, block, anchor }) => {
         const pct = bboxToPercentage(
           anchor.bbox,
           pageImage.pdfPageWidth,
@@ -79,7 +78,7 @@ const PageWithOverlays: FunctionComponent<{
 
         return (
           <Box
-            key={block.blockId}
+            key={key}
             title={`[${block.kind}] ${block.text.substring(0, 80)}`}
             sx={{
               position: "absolute",
@@ -137,16 +136,30 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
 
     const highlightedBlocksByPage = useMemo(() => {
       if (highlightedBlockIds.length === 0) {
-        return new Map<number, Block[]>();
+        return new Map<number, HighlightedOverlay[]>();
       }
-      const map = new Map<number, Block[]>();
+      const highlightedBlockIdSet = new Set(highlightedBlockIds);
+      const map = new Map<number, HighlightedOverlay[]>();
+      const seenOverlayKeysByPage = new Map<number, Set<string>>();
       for (const block of blocks) {
-        if (!highlightedBlockIds.includes(block.blockId)) {
+        if (!highlightedBlockIdSet.has(block.blockId)) {
           continue;
         }
         for (const anchor of block.anchors) {
+          const overlay: HighlightedOverlay = {
+            key: `${block.blockId}:${anchor.page}:${anchor.bbox.x1}:${anchor.bbox.y1}:${anchor.bbox.x2}:${anchor.bbox.y2}`,
+            block,
+            anchor,
+          };
+          const seenOverlayKeys =
+            seenOverlayKeysByPage.get(anchor.page) ?? new Set<string>();
+          if (seenOverlayKeys.has(overlay.key)) {
+            continue;
+          }
+          seenOverlayKeys.add(overlay.key);
+          seenOverlayKeysByPage.set(anchor.page, seenOverlayKeys);
           const existing = map.get(anchor.page) ?? [];
-          existing.push(block);
+          existing.push(overlay);
           map.set(anchor.page, existing);
         }
       }
@@ -167,7 +180,7 @@ export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
             key={pageImage.pageNumber}
             pageImage={pageImage}
             totalPages={sortedPages.length}
-            highlightedBlocks={
+            highlightedOverlays={
               highlightedBlocksByPage.get(pageImage.pageNumber) ?? []
             }
             setRef={(el) => setPageRef(pageImage.pageNumber, el)}

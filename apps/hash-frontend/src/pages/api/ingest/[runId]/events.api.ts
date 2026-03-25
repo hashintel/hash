@@ -10,18 +10,39 @@ import type { NextApiRequest, NextApiResponse } from "next";
 const MASTRA_API_ORIGIN =
   process.env.MASTRA_API_ORIGIN ?? "http://localhost:4111";
 
+const getMastraApiOrigin = (): URL | null => {
+  try {
+    const url = new URL(MASTRA_API_ORIGIN);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   const { runId } = req.query;
+  const upstreamOrigin = getMastraApiOrigin();
 
-  if (typeof runId !== "string") {
+  if (!upstreamOrigin) {
+    res.status(500).json({ error: "Invalid MASTRA_API_ORIGIN" });
+    return;
+  }
+
+  if (typeof runId !== "string" || runId.trim().length === 0) {
     res.status(400).json({ error: "Missing runId" });
     return;
   }
 
-  const upstreamUrl = `${MASTRA_API_ORIGIN}/ingest-runs/${runId}/events`;
+  const upstreamUrl = new URL(
+    `/ingest-runs/${encodeURIComponent(runId)}/events`,
+    upstreamOrigin,
+  );
 
   const headers: Record<string, string> = {
     Accept: "text/event-stream",
@@ -33,11 +54,17 @@ export default async function handler(
   }
 
   const after = req.query.after;
-  const url =
-    typeof after === "string" ? `${upstreamUrl}?after=${after}` : upstreamUrl;
+  if (typeof after === "string") {
+    upstreamUrl.searchParams.set("after", after);
+  }
+
+  const abortController = new AbortController();
 
   try {
-    const upstream = await fetch(url, { headers });
+    const upstream = await fetch(upstreamUrl, {
+      headers,
+      signal: abortController.signal,
+    });
 
     if (!upstream.ok || !upstream.body) {
       res.status(upstream.status).json({ error: "Upstream error" });
@@ -68,13 +95,26 @@ export default async function handler(
     };
 
     req.on("close", () => {
+      abortController.abort();
       reader.cancel().catch(() => {});
     });
 
     await pump();
   } catch {
+    if (abortController.signal.aborted) {
+      if (!res.writableEnded) {
+        res.end();
+      }
+      return;
+    }
+
     if (!res.headersSent) {
       res.status(502).json({ error: "Failed to connect to upstream" });
+      return;
+    }
+
+    if (!res.writableEnded) {
+      res.end();
     }
   }
 }

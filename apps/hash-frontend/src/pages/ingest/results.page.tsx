@@ -165,10 +165,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
               overflow: "hidden",
             }}
           >
-<<<<<<< HEAD
-=======
             {/* Evidence header — matches ENTITIES header on the left */}
->>>>>>> 306008b320 (H-6364: Add evidence panel header with document stats)
             <Box
               sx={{
                 flexShrink: 0,

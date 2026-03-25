@@ -136,6 +136,7 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
 
   if (state.phase === "done") {
     const succeeded = state.runStatus.status === "succeeded";
+    const countsSummary = getCountsSummary(state.runStatus.counts);
     return (
       <StatusCard>
         {succeeded ? (
@@ -143,12 +144,12 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline complete!
             </Typography>
-            {getCountsSummary(state.runStatus.counts) && (
+            {countsSummary && (
               <Typography
                 variant="smallTextLabels"
                 sx={{ color: "gray.60", mt: 0.5 }}
               >
-                {getCountsSummary(state.runStatus.counts)}
+                {countsSummary}
               </Typography>
             )}
             <Typography
