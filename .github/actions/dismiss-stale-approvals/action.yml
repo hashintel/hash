@@ -120,12 +120,12 @@ runs:
       id: approval
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         GH_TOKEN: ${{ inputs.github-token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPOSITORY: ${{ github.repository }}
       run: |
-        approval_sha="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
-          --jq '[.[] | select(.state=="APPROVED")] | last | .commit_id // empty')"
+        approval_sha="$("$ACTION_PATH/latest_approval_sha.sh" "$REPOSITORY" "$PR_NUMBER")"
         echo "sha=$approval_sha" >> "$GITHUB_OUTPUT"
 
     - name: Check for manual merge resolutions after approval
@@ -135,9 +135,24 @@ runs:
       env:
         ACTION_PATH: ${{ github.action_path }}
         APPROVAL_SHA: ${{ steps.approval.outputs.sha }}
+        FETCH_DEPTH: ${{ inputs.fetch-depth }}
         FETCHED_REPOSITORY_PATH: bare.git
+        GH_TOKEN: ${{ inputs.github-token }}
         HEAD_SHA: ${{ env.HEAD_SHA }}
+        REPOSITORY: ${{ github.repository }}
       run: |
+        if [[ ! -d "$FETCHED_REPOSITORY_PATH" ]]; then
+          git init -q --bare "$FETCHED_REPOSITORY_PATH"
+          git -C "$FETCHED_REPOSITORY_PATH" remote add origin "https://oauth2:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+        fi
+
+        fetch_refs=("$HEAD_SHA")
+        if [[ -n "$APPROVAL_SHA" ]]; then
+          fetch_refs+=("$APPROVAL_SHA")
+        fi
+
+        git -C "$FETCHED_REPOSITORY_PATH" fetch -q origin --depth="$FETCH_DEPTH" "${fetch_refs[@]}"
+
         "$ACTION_PATH/check-manual-merge-resolutions.sh" \
           --repository-path "$FETCHED_REPOSITORY_PATH" \
           --approval-sha "$APPROVAL_SHA" \

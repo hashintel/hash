@@ -19,13 +19,14 @@ run_check_manual_merge_resolutions() {
   fi
 
   if ! run_git "$repository_path" rev-parse --verify --quiet "$approval_sha^{commit}" >/dev/null; then
-    printf 'stale=false\nreason=\n'
+    printf 'stale=true\n'
+    printf 'reason=Latest approval commit %s is not available in fetched repository state\n' "$approval_sha"
     return 0
   fi
 
   if ! run_git "$repository_path" rev-parse --verify --quiet "$head_sha^{commit}" >/dev/null; then
-    printf 'stale=false\nreason=\n'
-    return 0
+    echo "head commit ${head_sha} is not available in fetched repository state" >&2
+    return 1
   fi
 
   if ! run_git "$repository_path" merge-base --is-ancestor "$approval_sha" "$head_sha"; then

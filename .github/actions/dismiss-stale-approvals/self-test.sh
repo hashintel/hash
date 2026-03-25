@@ -8,6 +8,8 @@ ACTION_YML="$ACTION_DIR/action.yml"
 # shellcheck disable=SC1091
 source "$ACTION_DIR/latest_artifact.sh"
 # shellcheck disable=SC1091
+source "$ACTION_DIR/latest_approval_sha.sh"
+# shellcheck disable=SC1091
 source "$ACTION_DIR/check-manual-merge-resolutions.sh"
 
 fail() {
@@ -62,6 +64,27 @@ test_collect_paginated_array() {
   [[ "$artifact_id" == "42" ]] || fail "Expected latest artifact id 42, got: $artifact_id"
 }
 
+test_collect_paginated_reviews() {
+  local reviews_json latest_approval_sha
+  reviews_json="$(
+    printf '%s\n%s\n' \
+      '[{"state":"COMMENTED","commit_id":"ignore-comment"},{"state":"APPROVED","commit_id":"sha-1"}]' \
+      '[{"state":"APPROVED","commit_id":"sha-2"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request"}]' |
+      collect_paginated_reviews
+  )"
+
+  [[ "$reviews_json" == '[{"state":"COMMENTED","commit_id":"ignore-comment"},{"state":"APPROVED","commit_id":"sha-1"},{"state":"APPROVED","commit_id":"sha-2"},{"state":"CHANGES_REQUESTED","commit_id":"ignore-change-request"}]' ]] ||
+    fail "Expected flattened paginated reviews array, got: $reviews_json"
+
+  latest_approval_sha="$(find_latest_approval_sha "$reviews_json")"
+  [[ "$latest_approval_sha" == "sha-2" ]] ||
+    fail "Expected latest approval SHA sha-2, got: $latest_approval_sha"
+
+  latest_approval_sha="$(find_latest_approval_sha '[{"state":"COMMENTED","commit_id":"ignore"}]')"
+  [[ -z "$latest_approval_sha" ]] ||
+    fail "Expected no approval SHA when there are no approved reviews, got: $latest_approval_sha"
+}
+
 test_empty_range_diff_is_not_stale() {
   if range_diff_marks_stale ""; then
     fail "Expected an empty range-diff output to keep stale=false"
@@ -74,6 +97,23 @@ test_empty_range_diff_is_not_stale() {
   if ! range_diff_marks_stale $'1: abcdef < 1: fedcba'; then
     fail "Expected a changed range-diff entry to set stale=true"
   fi
+}
+
+test_no_approval_is_not_stale() {
+  local repo_path output
+  repo_path="$(mktemp -d)"
+
+  create_repo "$repo_path"
+
+  printf 'base\n' >"$repo_path/file.txt"
+  git -C "$repo_path" add file.txt
+  git -C "$repo_path" commit -qm "base"
+
+  output="$(run_check_manual_merge_resolutions "$repo_path" "" "$(git -C "$repo_path" rev-parse HEAD)")"
+
+  assert_contains "$output" "stale=false"
+
+  rm -rf "$repo_path"
 }
 
 test_rewritten_history_is_stale() {
@@ -105,6 +145,42 @@ test_rewritten_history_is_stale() {
   assert_contains "$output" "rewritten history"
 
   rm -rf "$repo_path"
+}
+
+test_missing_approval_commit_is_stale() {
+  local repo_path bare_repo_path shallow_repo_path
+  repo_path="$(mktemp -d)"
+  bare_repo_path="$(mktemp -d)"
+  shallow_repo_path="$(mktemp -d)"
+
+  create_repo "$repo_path"
+
+  printf '0\n' >"$repo_path/file.txt"
+  git -C "$repo_path" add file.txt
+  git -C "$repo_path" commit -qm "base"
+
+  printf '1\n' >"$repo_path/file.txt"
+  git -C "$repo_path" commit -qam "approved"
+  local approval_sha
+  approval_sha="$(git -C "$repo_path" rev-parse HEAD)"
+
+  printf '2\n' >"$repo_path/file.txt"
+  git -C "$repo_path" commit -qam "head"
+  local head_sha
+  head_sha="$(git -C "$repo_path" rev-parse HEAD)"
+
+  git clone --bare "$repo_path" "$bare_repo_path/repo.git" >/dev/null 2>&1
+  git init -q --bare "$shallow_repo_path/repo.git"
+  git -C "$shallow_repo_path/repo.git" remote add origin "$bare_repo_path/repo.git"
+  git -C "$shallow_repo_path/repo.git" fetch -q origin --depth=1 "$head_sha"
+
+  local output
+  output="$(run_check_manual_merge_resolutions "$shallow_repo_path/repo.git" "$approval_sha" "$head_sha")"
+
+  assert_contains "$output" "stale=true"
+  assert_contains "$output" "not available in fetched repository state"
+
+  rm -rf "$repo_path" "$bare_repo_path" "$shallow_repo_path"
 }
 
 test_bare_repo_conflict_merge_is_stale() {
@@ -154,8 +230,18 @@ test_bare_repo_conflict_merge_is_stale() {
 }
 
 test_action_wires_checker_to_fetched_repo() {
-  if ! grep -Fq -- '--repository-path "$FETCHED_REPOSITORY_PATH"' "$ACTION_YML"; then
+  if ! grep -Fq -- "--repository-path \"\$FETCHED_REPOSITORY_PATH\"" "$ACTION_YML"; then
     fail 'Expected action.yml to pass the fetched repository path into check-manual-merge-resolutions.sh'
+  fi
+}
+
+test_action_reads_latest_approval_sha_via_helper() {
+  if ! grep -Fq -- 'latest_approval_sha.sh' "$ACTION_YML"; then
+    fail 'Expected action.yml to read the latest approval SHA via latest_approval_sha.sh'
+  fi
+
+  if ! grep -Fq -- "\"\$APPROVAL_SHA\"" "$ACTION_YML"; then
+    fail 'Expected action.yml to fetch or pass the latest approval SHA explicitly'
   fi
 }
 
@@ -176,10 +262,14 @@ test_action_run_blocks_do_not_inline_github_context() {
 
 main() {
   test_collect_paginated_array
+  test_collect_paginated_reviews
   test_empty_range_diff_is_not_stale
+  test_no_approval_is_not_stale
   test_rewritten_history_is_stale
+  test_missing_approval_commit_is_stale
   test_bare_repo_conflict_merge_is_stale
   test_action_wires_checker_to_fetched_repo
+  test_action_reads_latest_approval_sha_via_helper
   test_action_run_blocks_do_not_inline_github_context
 
   echo "dismiss-stale-approvals self-test passed"
