@@ -26,6 +26,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
   const { runId } = req.query;
   const upstreamOrigin = getMastraApiOrigin();
 
@@ -71,15 +77,22 @@ export default async function handler(
       return;
     }
 
+    const contentType = upstream.headers.get("content-type");
+    if (!contentType?.includes("text/event-stream")) {
+      await upstream.body.cancel();
+      res.status(502).json({ error: "Unexpected upstream content type" });
+      return;
+    }
+
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "X-Content-Type-Options": "nosniff",
       "X-Accel-Buffering": "no",
     });
 
     const reader = upstream.body.getReader();
-    const decoder = new TextDecoder();
 
     const pump = async () => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- loop until stream ends
@@ -88,8 +101,7 @@ export default async function handler(
         if (done) {
           break;
         }
-        const chunk = decoder.decode(value, { stream: true });
-        res.write(chunk);
+        res.write(value);
       }
       res.end();
     };
