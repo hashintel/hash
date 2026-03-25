@@ -11,6 +11,7 @@ import { GitLabIcon } from "../../shared/icons/gitlab-icon";
 import { GoogleIcon } from "../../shared/icons/google-icon";
 import { MicrosoftIcon } from "../../shared/icons/microsoft-icon";
 import { Button } from "../../shared/ui";
+import { providerDisplayNames } from "./format-kratos-message";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./ory-kratos";
 
 const providerIcons: Record<string, FunctionComponent<SvgIconProps>> = {
@@ -100,8 +101,7 @@ export const SsoProviderButtons: FunctionComponent<{
             return null;
           }
           const providerId = attrs.value as string;
-          const providerName =
-            providerId.charAt(0).toUpperCase() + providerId.slice(1);
+          const providerName = providerDisplayNames[providerId] ?? providerId;
           const Icon = providerIcons[providerId];
           return (
             <Button

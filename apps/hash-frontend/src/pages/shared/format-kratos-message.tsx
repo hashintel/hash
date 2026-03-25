@@ -1,7 +1,7 @@
 import type { UiText } from "@ory/client";
 import type { ReactNode } from "react";
 
-const providerDisplayNames: Record<string, string> = {
+export const providerDisplayNames: Record<string, string> = {
   google: "Google",
   apple: "Apple",
   microsoft: "Microsoft",

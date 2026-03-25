@@ -7,7 +7,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import type { FormEventHandler } from "react";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
@@ -174,15 +174,20 @@ const SigninPage: NextPageWithLayout = () => {
       isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
   );
 
-  // Pre-fill email from Kratos flow (e.g., during account linking)
+  // Pre-fill email from Kratos flow (e.g., during account linking).
+  // Keyed on flow.id so it only runs once per flow, not on every re-render.
+  const passwordRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (identifierNode && isUiNodeInputAttributes(identifierNode.attributes)) {
       const prefilled = identifierNode.attributes.value;
-      if (typeof prefilled === "string" && prefilled && !email) {
+      if (typeof prefilled === "string" && prefilled) {
         setEmail(prefilled);
+        // Focus password field since email is already filled
+        requestAnimationFrame(() => passwordRef.current?.focus());
       }
     }
-  }, [identifierNode, email]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only on flow change
+  }, [flow?.id]);
 
   const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
@@ -475,20 +480,9 @@ const SigninPage: NextPageWithLayout = () => {
                   label="Email address"
                   type="email"
                   autoComplete="email"
-                  autoFocus={
-                    !identifierNode?.attributes ||
-                    !isUiNodeInputAttributes(identifierNode.attributes) ||
-                    !identifierNode.attributes.value
-                  }
+                  autoFocus
                   placeholder="Enter your email address"
                   value={email}
-                  disabled={
-                    !!(
-                      identifierNode &&
-                      isUiNodeInputAttributes(identifierNode.attributes) &&
-                      identifierNode.attributes.value
-                    )
-                  }
                   onChange={({ target }) => setEmail(target.value)}
                   error={
                     !!emailInputUiNode?.messages.find(
@@ -505,6 +499,7 @@ const SigninPage: NextPageWithLayout = () => {
                   label="Password"
                   type="password"
                   autoComplete="current-password"
+                  inputRef={passwordRef}
                   placeholder="Enter your password"
                   value={password}
                   onChange={({ target }) => setPassword(target.value)}
