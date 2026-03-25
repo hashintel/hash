@@ -43,10 +43,3 @@ export function getIngestResultsPath(source: IngestResultsSource): string {
 
   return `/ingest/results?${params.toString()}`;
 }
-
-export function getDefaultIngestResultsPath(): string {
-  return getIngestResultsPath({
-    kind: "fixture",
-    fixtureId: DEFAULT_FIXTURE_ID,
-  });
-}

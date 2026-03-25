@@ -1,7 +1,7 @@
 import { InfinityLightIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
@@ -18,13 +18,17 @@ import {
 } from "../ingest.page/routing";
 import type { IngestRunView } from "../ingest.page/types";
 
+const normalizeQueryParam = (
+  value: string | string[] | undefined,
+): string | undefined => (typeof value === "string" ? value : value?.[0]);
+
 const IngestResultsPage: NextPageWithLayout = () => {
   const router = useRouter();
   const source = useMemo(
     () =>
       getIngestResultsSource({
-        runId: router.query.runId as string | undefined,
-        fixture: router.query.fixture as string | undefined,
+        runId: normalizeQueryParam(router.query.runId),
+        fixture: normalizeQueryParam(router.query.fixture),
       }),
     [router.query.runId, router.query.fixture],
   );
@@ -35,7 +39,9 @@ const IngestResultsPage: NextPageWithLayout = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const fetchResults = useCallback(async () => {
+  useEffect(() => {
+    const abortController = new AbortController();
+
     setView(null);
     setError(null);
     setSelection(null);
@@ -44,36 +50,55 @@ const IngestResultsPage: NextPageWithLayout = () => {
 
     const endpoint =
       source.kind === "fixture"
-        ? `/api/ingest-fixtures/${source.fixtureId}/view`
-        : `/api/ingest/${source.runId}/view`;
+        ? `/api/ingest-fixtures/${encodeURIComponent(source.fixtureId)}/view`
+        : `/api/ingest/${encodeURIComponent(source.runId)}/view`;
 
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error(`Failed to load results: ${response.status}`);
+    void (async () => {
+      try {
+        const response = await fetch(endpoint, {
+          signal: abortController.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to load results: ${response.status}`);
+        }
+        const data = (await response.json()) as IngestRunView;
+        if (!abortController.signal.aborted) {
+          setView(data);
+        }
+      } catch (err) {
+        if (
+          abortController.signal.aborted ||
+          (err instanceof Error && err.name === "AbortError")
+        ) {
+          return;
+        }
+
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
-      const data = (await response.json()) as IngestRunView;
-      setView(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
+    })();
+
+    return () => {
+      abortController.abort();
+    };
   }, [source]);
 
-  useEffect(() => {
-    void fetchResults();
-  }, [fetchResults]);
+  const evidence = useMemo(
+    () =>
+      view && selection
+        ? resolveEvidence(selection, view.corpus.blocks)
+        : { blockIds: [], targetPage: null },
+    [selection, view],
+  );
 
   useEffect(() => {
-    if (!view || !selection) {
-      return;
+    if (evidence.targetPage !== null) {
+      setCurrentPage(evidence.targetPage);
     }
-    const { targetPage } = resolveEvidence(selection, view.corpus.blocks);
-    if (targetPage !== null) {
-      setCurrentPage(targetPage);
-    }
-  }, [selection, view]);
+  }, [evidence]);
 
   const handleFixtureChange = (fixtureId: string) => {
     void router.push(getIngestResultsPath({ kind: "fixture", fixtureId }));
@@ -163,11 +188,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
             <PageViewer
               pageImages={view.pageImages}
               blocks={view.corpus.blocks}
-              highlightedBlockIds={
-                selection
-                  ? resolveEvidence(selection, view.corpus.blocks).blockIds
-                  : []
-              }
+              highlightedBlockIds={evidence.blockIds}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
             />
