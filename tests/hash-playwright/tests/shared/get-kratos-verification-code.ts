@@ -48,6 +48,7 @@ export const getKratosVerificationCode = async (
 ): Promise<string> => {
   const maxWaitMs = 10_000;
   const pollIntervalMs = 250;
+  const timestampBufferMs = 5_000;
   let elapsed = 0;
   let lastError: unknown;
   let lastMailItems: MailslurperMailItem[] | undefined;
@@ -80,7 +81,7 @@ export const getKratosVerificationCode = async (
               extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
               (!afterTimestamp ||
                 (typeof sentTimestamp === "number" &&
-                  sentTimestamp >= afterTimestamp))
+                  sentTimestamp >= afterTimestamp - timestampBufferMs))
             );
           })
           .sort((a, b) => {
@@ -124,7 +125,10 @@ export const getKratosVerificationCode = async (
           const sent = item.dateSent
             ? new Date(item.dateSent).getTime()
             : undefined;
-          return typeof sent === "number" && sent < afterTimestamp;
+          return (
+            typeof sent === "number" &&
+            sent < afterTimestamp - timestampBufferMs
+          );
         })
       : [];
 
@@ -133,7 +137,7 @@ export const getKratosVerificationCode = async (
     `Emails to ${emailAddress}: ${toTargetAddress.length}`,
     `Verification emails to ${emailAddress}: ${verificationToTarget.length}`,
     afterTimestamp !== undefined
-      ? `Filtered out by timestamp (sent before ${new Date(afterTimestamp).toISOString()}): ${timestampFilteredOut.length}`
+      ? `Filtered out by timestamp (sent before ${new Date(afterTimestamp - timestampBufferMs).toISOString()}, i.e. afterTimestamp ${new Date(afterTimestamp).toISOString()} minus ${timestampBufferMs}ms buffer): ${timestampFilteredOut.length}`
       : null,
     toTargetAddress.length > 0
       ? `Subjects to target: ${toTargetAddress.map((item) => JSON.stringify(item.subject)).join(", ")}`
