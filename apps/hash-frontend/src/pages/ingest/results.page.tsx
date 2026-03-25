@@ -27,7 +27,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
         runId: normalizeQueryParam(router.query.runId),
         fixture: normalizeQueryParam(router.query.fixture),
       }),
-    [router.query.fixture, router.query.runId],
+    [router.query.runId, router.query.fixture],
   );
 
   const [view, setView] = useState<IngestRunView | null>(null);
@@ -151,6 +151,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
         >
           <ResultsPanel
             rosterEntries={view.roster.entries}
+            claims={view.claims}
             mentionContexts={view.mentionContexts}
             selection={selection}
             onSelect={setSelection}

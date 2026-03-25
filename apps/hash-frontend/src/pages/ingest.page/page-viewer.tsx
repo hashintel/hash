@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { bboxToPercentage } from "./bbox-transform";
+import { highlightColors } from "./highlight-styles";
 import type { Block, PageImageManifest } from "./types";
 
 export interface PageViewerHandle {
@@ -86,8 +87,8 @@ const PageWithOverlays: FunctionComponent<{
               top: `${pct.top}%`,
               width: `${pct.width}%`,
               height: `${pct.height}%`,
-              border: "2px solid rgba(59, 130, 246, 0.7)",
-              backgroundColor: "rgba(59, 130, 246, 0.12)",
+              border: `2px solid ${highlightColors.bboxBorder}`,
+              backgroundColor: highlightColors.bboxFill,
               pointerEvents: "none",
               boxSizing: "border-box",
               borderRadius: "2px",

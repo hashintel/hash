@@ -64,33 +64,6 @@ export function resolveEvidence(
 // ---------------------------------------------------------------------------
 
 /**
- * Collect all assertion windows where a given roster entry appears as a
- * participant. An assertion window can appear under multiple entities.
- */
-export function collectAssertionWindowsForEntity(
-  rosterEntryId: string,
-  mentionContexts: MentionContextPlan[],
-): AssertionWindow[] {
-  const windows: AssertionWindow[] = [];
-
-  for (const context of mentionContexts) {
-    if (context.mode !== "assertion_windows") {
-      continue;
-    }
-    for (const win of context.assertionWindows) {
-      const isParticipant = win.participants.some(
-        (participant) => participant.rosterEntryId === rosterEntryId,
-      );
-      if (isParticipant) {
-        windows.push(win);
-      }
-    }
-  }
-
-  return windows;
-}
-
-/**
  * Pre-compute a map of rosterEntryId → AssertionWindow[] for all entities.
  */
 export function buildEntityAssertionMap(
