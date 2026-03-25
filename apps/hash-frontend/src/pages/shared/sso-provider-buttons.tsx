@@ -40,9 +40,11 @@ const ssoButtonSx = {
   },
 } as const;
 
+type FlowErrorHandler = (err: AxiosError) => void | Promise<void>;
+
 export const SsoProviderButtons: FunctionComponent<{
   flow: LoginFlow;
-  onFlowError: (err: unknown) => void;
+  onFlowError: FlowErrorHandler;
 }> = ({ flow, onFlowError }) => {
   const oidcNodes = flow.ui.nodes.filter(({ group }) => group === "oidc");
 
