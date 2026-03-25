@@ -79,6 +79,9 @@ services:
       #   KRATOS_OIDC_ENABLED=true
       #   KRATOS_OIDC_GOOGLE_CLIENT_ID=<your-client-id>
       #   KRATOS_OIDC_GOOGLE_CLIENT_SECRET=<your-client-secret>
+      #   KRATOS_OIDC_MICROSOFT_CLIENT_ID=<your-client-id>
+      #   KRATOS_OIDC_MICROSOFT_CLIENT_SECRET=<your-client-secret>
+      #   KRATOS_OIDC_MICROSOFT_TENANT_ID=<your-tenant-id>
       SELFSERVICE_METHODS_OIDC_ENABLED: "${KRATOS_OIDC_ENABLED:-false}"
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: "http://host.docker.internal:5001/kratos-after-registration"
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY}"
