@@ -1,6 +1,6 @@
 import type { SvgIconProps } from "@mui/material";
 import { Box, Typography } from "@mui/material";
-import type { LoginFlow, RegistrationFlow } from "@ory/client";
+import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import type { FunctionComponent } from "react";
@@ -41,7 +41,7 @@ const ssoButtonSx = {
 } as const;
 
 export const SsoProviderButtons: FunctionComponent<{
-  flow: LoginFlow | RegistrationFlow;
+  flow: LoginFlow;
   onFlowError: (err: unknown) => void;
 }> = ({ flow, onFlowError }) => {
   const oidcNodes = flow.ui.nodes.filter(({ group }) => group === "oidc");
@@ -52,7 +52,7 @@ export const SsoProviderButtons: FunctionComponent<{
 
   const handleProviderClick = (provider: string) => {
     const csrf_token = mustGetCsrfTokenFromFlow(flow);
-    void oryKratosClient
+    oryKratosClient
       .updateLoginFlow({
         flow: flow.id,
         updateLoginFlowBody: {
@@ -62,17 +62,18 @@ export const SsoProviderButtons: FunctionComponent<{
         },
       })
       .catch((err: AxiosError) => {
-        if (
-          err.response?.status === 422 &&
-          (err.response.data as { redirect_browser_to?: string })
-            .redirect_browser_to
-        ) {
-          window.location.href = (
-            err.response.data as { redirect_browser_to: string }
-          ).redirect_browser_to;
+        const data = err.response?.data as
+          | { redirect_browser_to?: string }
+          | undefined;
+        if (err.response?.status === 422 && data?.redirect_browser_to) {
+          window.location.href = data.redirect_browser_to;
           return;
         }
         onFlowError(err);
+      })
+      .catch(() => {
+        // Swallow unhandled rejections from onFlowError (which may
+        // return Promise.reject for unrecognized errors)
       });
   };
 

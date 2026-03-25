@@ -378,6 +378,26 @@ const SigninPage: NextPageWithLayout = () => {
               gap: 1,
             }}
           >
+            {flow?.ui.messages && flow.ui.messages.length > 0 && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 1,
+                  backgroundColor: ({ palette }) => palette.blue[10],
+                  border: ({ palette }) => `1px solid ${palette.blue[30]}`,
+                }}
+              >
+                {flow.ui.messages.map(({ text, id }) => (
+                  <Typography
+                    key={id}
+                    variant="smallTextParagraphs"
+                    sx={{ color: ({ palette }) => palette.blue[80] }}
+                  >
+                    {text}
+                  </Typography>
+                ))}
+              </Box>
+            )}
             {isAal2Flow ? (
               <>
                 <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
@@ -450,26 +470,6 @@ const SigninPage: NextPageWithLayout = () => {
               </>
             ) : (
               <>
-                {flow?.ui.messages && flow.ui.messages.length > 0 && (
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 1,
-                      backgroundColor: ({ palette }) => palette.blue[10],
-                      border: ({ palette }) => `1px solid ${palette.blue[30]}`,
-                    }}
-                  >
-                    {flow.ui.messages.map(({ text, id }) => (
-                      <Typography
-                        key={id}
-                        variant="smallTextParagraphs"
-                        sx={{ color: ({ palette }) => palette.blue[80] }}
-                      >
-                        {text}
-                      </Typography>
-                    ))}
-                  </Box>
-                )}
                 <TextField
                   label="Email address"
                   type="email"
