@@ -6,8 +6,8 @@
 import type {
   AssertionWindow,
   Block,
+  ExtractedClaim,
   MentionContextPlan,
-  RosterEntry,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 export type Selection =
-  | { kind: "entity"; entry: RosterEntry }
+  | { kind: "claim"; claim: ExtractedClaim }
   | { kind: "assertion"; window: AssertionWindow }
   | null;
 
@@ -37,8 +37,12 @@ export function resolveEvidence(
   }
 
   const blockIds =
-    selection.kind === "entity"
-      ? [...new Set(selection.entry.mentions.map((mention) => mention.blockId))]
+    selection.kind === "claim"
+      ? [
+          ...new Set(
+            selection.claim.evidenceRefs.flatMap((ref) => ref.blockIds),
+          ),
+        ]
       : [selection.window.blockId];
 
   let targetPage: number | null = null;
