@@ -60,7 +60,7 @@
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
     "preflight:ladle": "ladle build && ladle preview",
-    "prepare": "turbo run build",
+    "prepublishOnly": "turbo run build",
     "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },
