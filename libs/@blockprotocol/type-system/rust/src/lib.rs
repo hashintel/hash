@@ -1,9 +1,6 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-
-    // Library Features
-    extend_one,
 )]
 #![expect(unsafe_code)]
 #![cfg_attr(

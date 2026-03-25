@@ -305,8 +305,7 @@ impl<C> Report<C> {
 
         #[cfg(all(nightly, feature = "backtrace"))]
         let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
-            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-            .is_none()
+            .is_none_or(|backtrace| backtrace.status() != BacktraceStatus::Captured)
             .then(Backtrace::capture);
 
         #[cfg(all(not(nightly), feature = "backtrace"))]
@@ -314,8 +313,7 @@ impl<C> Report<C> {
 
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = core::error::request_ref::<SpanTrace>(&frame.as_error())
-            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
-            .is_none()
+            .is_none_or(|span_trace| span_trace.status() != SpanTraceStatus::CAPTURED)
             .then(SpanTrace::capture);
 
         #[cfg(all(not(nightly), feature = "spantrace"))]

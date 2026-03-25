@@ -1,7 +1,3 @@
-#![feature(
-    // Library Features
-    assert_matches,
-)]
 #![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,

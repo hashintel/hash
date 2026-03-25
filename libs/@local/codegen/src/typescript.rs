@@ -341,7 +341,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             | Type::NonEmptyList(_)
             | Type::Map(_)
             | Type::Nullable(_)) => {
-                unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",)
+                unimplemented!("Tried to generate an interface from unsupported type: {ty:?}")
             }
         };
 
