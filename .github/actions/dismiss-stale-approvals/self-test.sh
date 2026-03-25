@@ -30,6 +30,16 @@ create_repo() {
   git -C "$repo_path" config user.email "codex@example.com"
 }
 
+range_diff_marks_stale() {
+  local range_diff="$1"
+
+  if printf '%s\n' "$range_diff" | awk 'NF >= 3 { print $3 }' | grep -vq '^=$'; then
+    return 0
+  fi
+
+  return 1
+}
+
 test_collect_paginated_array() {
   local output
   output="$(
@@ -50,6 +60,20 @@ test_collect_paginated_array() {
   [[ "$workflow_id" == "22" ]] || fail "Expected latest workflow id 22, got: $workflow_id"
   [[ "$run_id" == "32" ]] || fail "Expected latest workflow run id 32, got: $run_id"
   [[ "$artifact_id" == "42" ]] || fail "Expected latest artifact id 42, got: $artifact_id"
+}
+
+test_empty_range_diff_is_not_stale() {
+  if range_diff_marks_stale ""; then
+    fail "Expected an empty range-diff output to keep stale=false"
+  fi
+
+  if range_diff_marks_stale $'1: abcdef = 1: abcdef'; then
+    fail "Expected an unchanged range-diff entry to keep stale=false"
+  fi
+
+  if ! range_diff_marks_stale $'1: abcdef < 1: fedcba'; then
+    fail "Expected a changed range-diff entry to set stale=true"
+  fi
 }
 
 test_rewritten_history_is_stale() {
@@ -152,6 +176,7 @@ test_action_run_blocks_do_not_inline_github_context() {
 
 main() {
   test_collect_paginated_array
+  test_empty_range_diff_is_not_stale
   test_rewritten_history_is_stale
   test_bare_repo_conflict_merge_is_stale
   test_action_wires_checker_to_fetched_repo
