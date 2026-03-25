@@ -39,7 +39,7 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
 }) => {
   const isRosterSelected = (entry: RosterEntry) =>
     selection?.kind === "roster" &&
-    selection.entry.canonicalName === entry.canonicalName;
+    selection.entry.rosterEntryId === entry.rosterEntryId;
 
   const isClaimSelected = (claim: ExtractedClaim) =>
     selection?.kind === "claim" && selection.claim.claimId === claim.claimId;
@@ -75,7 +75,7 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
           const selected = isRosterSelected(entry);
           return (
             <ButtonBase
-              key={entry.canonicalName}
+              key={entry.rosterEntryId}
               onClick={() =>
                 onSelect(selected ? null : { kind: "roster", entry })
               }
@@ -155,6 +155,10 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
               </Box>
               {entryClaims.map((claim) => {
                 const selected = isClaimSelected(claim);
+                const firstEvidenceRef = claim.evidenceRefs.at(0);
+                const quote = firstEvidenceRef
+                  ? firstEvidenceRef.quote.substring(0, 60)
+                  : undefined;
                 return (
                   <ButtonBase
                     key={claim.claimId}
@@ -182,17 +186,18 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
                     >
                       {claim.claimText}
                     </Typography>
-                    <Typography
-                      variant="microText"
-                      sx={{
-                        color: "gray.50",
-                        mt: 0.5,
-                        fontStyle: "italic",
-                      }}
-                    >
-                      &quot;{claim.evidenceRefs[0]?.quote.substring(0, 60)}
-                      …&quot;
-                    </Typography>
+                    {quote && (
+                      <Typography
+                        variant="microText"
+                        sx={{
+                          color: "gray.50",
+                          mt: 0.5,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        &quot;{quote}…&quot;
+                      </Typography>
+                    )}
                   </ButtonBase>
                 );
               })}
