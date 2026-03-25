@@ -110,11 +110,7 @@ runs:
         merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$BASE_SHA" "$HEAD_SHA")"
         range_diff="$(git -C "$FETCHED_REPOSITORY_PATH" range-diff "$prev_merge_base..$PREV_HEAD_SHA" "$merge_base..$HEAD_SHA")"
 
-        if printf '%s\n' "$range_diff" | awk 'NF >= 3 { print $3 }' | grep -vq '^=$'; then
-          echo "stale=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "stale=false" >> "$GITHUB_OUTPUT"
-        fi
+        printf '%s\n' "$range_diff" | "$ACTION_PATH/range_diff_stale.sh" >> "$GITHUB_OUTPUT"
 
     - name: Read latest approval SHA
       id: approval

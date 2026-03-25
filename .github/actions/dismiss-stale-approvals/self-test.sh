@@ -13,6 +13,8 @@ source "$ACTION_DIR/latest_approval_sha.sh"
 source "$ACTION_DIR/decide_stale_approvals.sh"
 # shellcheck disable=SC1091
 source "$ACTION_DIR/check-manual-merge-resolutions.sh"
+# shellcheck disable=SC1091
+source "$ACTION_DIR/range_diff_stale.sh"
 
 fail() {
   echo "$*" >&2
@@ -52,16 +54,6 @@ extract_step_block() {
       seen_step=1
     }
   ' "$ACTION_YML"
-}
-
-range_diff_marks_stale() {
-  local range_diff="$1"
-
-  if printf '%s\n' "$range_diff" | awk 'NF >= 3 { print $3 }' | grep -vq '^=$'; then
-    return 0
-  fi
-
-  return 1
 }
 
 test_collect_paginated_array() {
@@ -114,17 +106,19 @@ test_collect_paginated_reviews() {
 }
 
 test_empty_range_diff_is_not_stale() {
-  if range_diff_marks_stale ""; then
-    fail "Expected an empty range-diff output to keep stale=false"
-  fi
+  local output
 
-  if range_diff_marks_stale $'1: abcdef = 1: abcdef'; then
-    fail "Expected an unchanged range-diff entry to keep stale=false"
-  fi
+  output="$(printf '' | run_range_diff_stale)"
+  [[ "$output" == "stale=false" ]] ||
+    fail "Expected an empty range-diff output to keep stale=false, got: $output"
 
-  if ! range_diff_marks_stale $'1: abcdef < 1: fedcba'; then
-    fail "Expected a changed range-diff entry to set stale=true"
-  fi
+  output="$(printf '%s\n' '1: abcdef = 1: abcdef' | run_range_diff_stale)"
+  [[ "$output" == "stale=false" ]] ||
+    fail "Expected an unchanged range-diff entry to keep stale=false, got: $output"
+
+  output="$(printf '%s\n' '1: abcdef < 1: fedcba' | run_range_diff_stale)"
+  [[ "$output" == "stale=true" ]] ||
+    fail "Expected a changed range-diff entry to set stale=true, got: $output"
 }
 
 test_no_approval_is_not_stale() {
@@ -279,6 +273,12 @@ test_action_wires_checker_to_fetched_repo() {
   fi
 }
 
+test_action_uses_shared_range_diff_helper() {
+  if ! grep -Fq -- 'range_diff_stale.sh' "$ACTION_YML"; then
+    fail 'Expected action.yml to delegate range-diff parsing to range_diff_stale.sh'
+  fi
+}
+
 test_action_reads_latest_approval_sha_via_helper() {
   if ! grep -Fq -- 'latest_approval_sha.sh' "$ACTION_YML"; then
     fail 'Expected action.yml to read the latest approval SHA via latest_approval_sha.sh'
@@ -322,6 +322,7 @@ main() {
   test_rewritten_history_is_stale
   test_missing_approval_commit_is_stale
   test_bare_repo_conflict_merge_is_stale
+  test_action_uses_shared_range_diff_helper
   test_action_wires_checker_to_fetched_repo
   test_action_reads_latest_approval_sha_via_helper
   test_action_continues_after_approval_lookup_failure
