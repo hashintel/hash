@@ -10,6 +10,8 @@ source "$ACTION_DIR/latest_artifact.sh"
 # shellcheck disable=SC1091
 source "$ACTION_DIR/latest_approval_sha.sh"
 # shellcheck disable=SC1091
+source "$ACTION_DIR/decide_stale_approvals.sh"
+# shellcheck disable=SC1091
 source "$ACTION_DIR/check-manual-merge-resolutions.sh"
 
 fail() {
@@ -30,6 +32,26 @@ create_repo() {
   git init -q "$repo_path"
   git -C "$repo_path" config user.name "Codex"
   git -C "$repo_path" config user.email "codex@example.com"
+}
+
+extract_step_block() {
+  local step_name="$1"
+
+  awk -v step_name="$step_name" '
+    $0 ~ "^[[:space:]]*-[[:space:]]name:[[:space:]]*" step_name "$" {
+      if (seen_step) {
+        exit
+      }
+      capture=1
+    }
+    capture {
+      if ($0 ~ "^[[:space:]]*-[[:space:]]name:[[:space:]]*" && $0 !~ step_name && seen_step) {
+        exit
+      }
+      print
+      seen_step=1
+    }
+  ' "$ACTION_YML"
 }
 
 range_diff_marks_stale() {
@@ -114,6 +136,22 @@ test_no_approval_is_not_stale() {
   assert_contains "$output" "stale=false"
 
   rm -rf "$repo_path"
+}
+
+test_decision_marks_approval_lookup_failure_stale() {
+  local output
+  output="$(run_decide_stale_approvals "failure" "success" "false" "" "success" "false" "0" "https://example.test/run")"
+
+  assert_contains "$output" "stale=true"
+  assert_contains "$output" "Failed to read latest approval SHA"
+}
+
+test_decision_keeps_successful_no_approval_path_safe() {
+  local output
+  output="$(run_decide_stale_approvals "success" "success" "false" "" "success" "false" "0" "https://example.test/run")"
+
+  [[ "$output" == $'stale=false\nreason=' ]] ||
+    fail "Expected a successful no-approval decision to stay non-stale, got:"$'\n'"$output"
 }
 
 test_rewritten_history_is_stale() {
@@ -245,6 +283,14 @@ test_action_reads_latest_approval_sha_via_helper() {
   fi
 }
 
+test_action_continues_after_approval_lookup_failure() {
+  local approval_block
+  approval_block="$(extract_step_block "Read latest approval SHA")"
+
+  [[ "$approval_block" == *"continue-on-error: true"* ]] ||
+    fail "Expected the approval lookup step to continue on error"$'\n'"$approval_block"
+}
+
 test_action_run_blocks_do_not_inline_github_context() {
   local offending_lines
   offending_lines="$(
@@ -265,11 +311,14 @@ main() {
   test_collect_paginated_reviews
   test_empty_range_diff_is_not_stale
   test_no_approval_is_not_stale
+  test_decision_marks_approval_lookup_failure_stale
+  test_decision_keeps_successful_no_approval_path_safe
   test_rewritten_history_is_stale
   test_missing_approval_commit_is_stale
   test_bare_repo_conflict_merge_is_stale
   test_action_wires_checker_to_fetched_repo
   test_action_reads_latest_approval_sha_via_helper
+  test_action_continues_after_approval_lookup_failure
   test_action_run_blocks_do_not_inline_github_context
 
   echo "dismiss-stale-approvals self-test passed"

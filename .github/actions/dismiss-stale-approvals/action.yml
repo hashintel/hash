@@ -118,6 +118,7 @@ runs:
 
     - name: Read latest approval SHA
       id: approval
+      continue-on-error: true
       shell: bash
       env:
         ACTION_PATH: ${{ github.action_path }}
@@ -162,35 +163,25 @@ runs:
       id: decision
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
+        APPROVAL_OUTCOME: ${{ steps.approval.outcome }}
         MERGE_TREE_OUTCOME: ${{ steps.merge-tree.outcome }}
         MERGE_TREE_REASON: ${{ steps.merge-tree.outputs.reason }}
         MERGE_TREE_STALE: ${{ steps.merge-tree.outputs.stale }}
+        NO_PREV_SHAS: ${{ env.NO_PREV_SHAS }}
         RANGE_DIFF_OUTCOME: ${{ steps.range-diff.outcome }}
         RANGE_DIFF_STALE: ${{ steps.range-diff.outputs.stale }}
         WORKFLOW_RUN_URL: ${{ steps.run-url.outputs.workflow_run_url }}
       run: |
-        stale=false
-        reason=""
-
-        if [[ "$MERGE_TREE_OUTCOME" != "success" ]]; then
-          stale=true
-          reason="Failed to check whether merge commits after approval required manual conflict resolution; see action logs at $WORKFLOW_RUN_URL"
-        elif [[ "$MERGE_TREE_STALE" == "true" ]]; then
-          stale=true
-          reason="$MERGE_TREE_REASON"
-        elif [[ "$RANGE_DIFF_OUTCOME" != "success" ]]; then
-          stale=true
-          reason="Failed to check if diff has changed; see action logs at $WORKFLOW_RUN_URL"
-        elif [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
-          stale=true
-          reason="Could not find data on the previous version of this PR; see action logs at $WORKFLOW_RUN_URL"
-        elif [[ "$RANGE_DIFF_STALE" == "true" ]]; then
-          stale=true
-          reason="See the output of \`git range-diff\` at $WORKFLOW_RUN_URL"
-        fi
-
-        echo "stale=$stale" >> "$GITHUB_OUTPUT"
-        echo "reason=$reason" >> "$GITHUB_OUTPUT"
+        "$ACTION_PATH/decide_stale_approvals.sh" \
+          --approval-outcome "$APPROVAL_OUTCOME" \
+          --merge-tree-outcome "$MERGE_TREE_OUTCOME" \
+          --merge-tree-stale "$MERGE_TREE_STALE" \
+          --merge-tree-reason "$MERGE_TREE_REASON" \
+          --range-diff-outcome "$RANGE_DIFF_OUTCOME" \
+          --range-diff-stale "$RANGE_DIFF_STALE" \
+          --no-prev-shas "${NO_PREV_SHAS:-0}" \
+          --workflow-run-url "$WORKFLOW_RUN_URL" >> "$GITHUB_OUTPUT"
 
     - name: Dismiss approvals
       if: steps.decision.outputs.stale == 'true'
