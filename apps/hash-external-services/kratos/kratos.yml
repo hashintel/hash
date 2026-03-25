@@ -68,6 +68,16 @@ selfservice:
                   essential: true
                 email_verified:
                   essential: true
+          - id: microsoft
+            provider: microsoft
+            label: Microsoft
+            # Set `client_id` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_ID` environment variable
+            # Set `client_secret` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_SECRET` environment variable
+            # Set `microsoft_tenant` through the `SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_MICROSOFT_TENANT` environment variable
+            mapper_url: "file:///etc/config/kratos/hooks/oidc.microsoft.jsonnet"
+            scope:
+              - email
+              - profile
 
   flows:
     error:
