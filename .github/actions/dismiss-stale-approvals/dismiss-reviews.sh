@@ -39,13 +39,14 @@ if [[ -z "$review_ids" ]]; then
   exit 0
 fi
 
+if [[ "$dry_run" =~ ^(true|1|yes)$ ]]; then
+  gh pr comment "$pr_number" --repo "$repository" --body "$reason" >/dev/null
+  echo "[dry-run] Commented on PR ${pr_number} instead of dismissing approvals"
+  exit 0
+fi
+
 while read -r review_id; do
   [[ -n "$review_id" ]] || continue
-
-  if [[ "$dry_run" =~ ^(true|1|yes)$ ]]; then
-    echo "[dry-run] Would dismiss review ${review_id}"
-    continue
-  fi
 
   gh api \
     --method PUT \
