@@ -8,6 +8,7 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { Button } from "../../shared/ui/button";
+import { getCountsSummary, getProgressLabel } from "./progress-labels";
 import type { RunStatus } from "./types";
 import type { IngestRunState } from "./use-ingest-run";
 
@@ -32,49 +33,29 @@ const StatusCard: FunctionComponent<{ children: React.ReactNode }> = ({
   </Box>
 );
 
-const RunCounts: FunctionComponent<{ status: RunStatus }> = ({ status }) => {
-  if (!status.counts) {
-    return null;
-  }
-  const { pages, chunks, mentions, claims } = status.counts;
-  const items = [
-    pages && `${pages} pages`,
-    chunks && `${chunks} chunks`,
-    mentions && `${mentions} mentions`,
-    claims && `${claims} claims`,
-  ].filter(Boolean);
-  if (items.length === 0) {
-    return null;
-  }
-  return (
-    <Typography variant="smallTextLabels" sx={{ color: "gray.60", mt: 0.5 }}>
-      {items.join(" · ")}
-    </Typography>
-  );
-};
+const RunProgress: FunctionComponent<{ status: RunStatus }> = ({ status }) => {
+  const label = getProgressLabel(status);
+  const counts = getCountsSummary(status.counts);
 
-const RunProgress: FunctionComponent<{ status: RunStatus }> = ({ status }) => (
-  <Box>
-    <Typography fontWeight={600} sx={{ mb: 0.25 }}>
-      {status.phase && (
-        <span style={{ textTransform: "capitalize" }}>{status.phase}</span>
-      )}
-      {status.step && (
+  return (
+    <Box>
+      <Typography fontWeight={600} sx={{ mb: 0.25 }}>
+        {label}
+      </Typography>
+      {counts && (
         <Typography
-          component="span"
           variant="smallTextLabels"
-          sx={{ color: "gray.60", ml: 0.5 }}
+          sx={{ color: "gray.60", mt: 0.5 }}
         >
-          → {status.step}
+          {counts}
         </Typography>
       )}
-    </Typography>
-    <RunCounts status={status} />
-    <Typography variant="microText" sx={{ color: "gray.50", mt: 1 }}>
-      Run: {status.runId.slice(0, 8)}…
-    </Typography>
-  </Box>
-);
+      <Typography variant="microText" sx={{ color: "gray.50", mt: 1 }}>
+        Run: {status.runId.slice(0, 8)}…
+      </Typography>
+    </Box>
+  );
+};
 
 const DropZone: FunctionComponent<{ onUpload: (file: File) => void }> = ({
   onUpload,
@@ -162,7 +143,14 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline complete!
             </Typography>
-            <RunCounts status={state.runStatus} />
+            {getCountsSummary(state.runStatus.counts) && (
+              <Typography
+                variant="smallTextLabels"
+                sx={{ color: "gray.60", mt: 0.5 }}
+              >
+                {getCountsSummary(state.runStatus.counts)}
+              </Typography>
+            )}
             <Typography
               variant="smallTextLabels"
               sx={{ color: "gray.60", mt: 2 }}
