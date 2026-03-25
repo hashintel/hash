@@ -390,11 +390,11 @@ const SigninPage: NextPageWithLayout = () => {
                   p: 2,
                   borderRadius: 1,
                   backgroundColor: ({ palette }) =>
-                    flow.ui.messages?.some((m) => m.type === "error")
+                    flow.ui.messages?.some((msg) => msg.type === "error")
                       ? palette.red[10]
                       : palette.blue[10],
                   border: ({ palette }) =>
-                    `1px solid ${flow.ui.messages?.some((m) => m.type === "error") ? palette.red[30] : palette.blue[30]}`,
+                    `1px solid ${flow.ui.messages?.some((msg) => msg.type === "error") ? palette.red[30] : palette.blue[30]}`,
                 }}
               >
                 {flow.ui.messages.map((message) => (
