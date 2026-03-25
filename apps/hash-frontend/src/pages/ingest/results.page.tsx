@@ -164,7 +164,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
           <Box
             sx={{
               flex: 1,
-<<<<<<< HEAD
               display: "flex",
               flexDirection: "column",
               minWidth: 0,
@@ -188,26 +187,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
                   letterSpacing: "0.05em",
                   lineHeight: 1,
                 }}
-=======
-              overflow: "auto",
-              p: 2,
-              maxWidth: 780,
-              mx: "auto",
-            }}
-          >
-            <PageViewer
-              ref={pageViewerRef}
-              pageImages={view.pageImages}
-              blocks={view.corpus.blocks}
-              highlightedBlockIds={evidence.blockIds}
-            />
-            {source.kind === "run" && (
-              <Button
-                variant="tertiary_quiet"
-                size="small"
-                onClick={handleNewUpload}
-                sx={{ mt: 2, color: "gray.60" }}
->>>>>>> 6345875909 (H-6364: Fix results panel — claims fallback, scroll containment, selection)
               >
                 {view.sourceMetadata.filename}
               </Typography>
@@ -238,7 +217,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
           </Box>
         </Box>
       )}
-<<<<<<< HEAD
 
       {view && (
         <Box
@@ -261,8 +239,6 @@ const IngestResultsPage: NextPageWithLayout = () => {
           </Button>
         </Box>
       )}
-=======
->>>>>>> d7c0c101b8 (H-6364: Fix results layout — independent scroll containers)
     </Box>
   );
 };
