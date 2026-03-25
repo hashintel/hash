@@ -87,15 +87,15 @@ export default withSentryConfig(
             ? [
                 {
                   source: "/api/ingest",
-                  destination: `${mastraApiOrigin}/discovery-runs`,
+                  destination: `${mastraApiOrigin}/ingest-runs`,
                 },
                 {
                   source: "/api/ingest/:path*",
-                  destination: `${mastraApiOrigin}/discovery-runs/:path*`,
+                  destination: `${mastraApiOrigin}/ingest-runs/:path*`,
                 },
                 {
                   source: "/api/ingest-fixtures/:path*",
-                  destination: `${mastraApiOrigin}/discovery-fixtures/:path*`,
+                  destination: `${mastraApiOrigin}/ingest-fixtures/:path*`,
                 },
               ]
             : []),
