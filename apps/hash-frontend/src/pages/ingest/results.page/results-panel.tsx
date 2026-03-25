@@ -17,7 +17,10 @@ import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
 import type { Selection } from "./evidence-resolver";
-import { buildEntityAssertionMap } from "./evidence-resolver";
+import {
+  buildEntityAssertionMap,
+  getAssertionWindowKey,
+} from "./evidence-resolver";
 import { highlightColors } from "./highlight-styles";
 import type {
   AssertionWindow,
@@ -43,26 +46,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: "◽",
 };
 
-<<<<<<< HEAD
-=======
-/** Stable identity key for an assertion window. */
->>>>>>> 6345875909 (H-6364: Fix results panel — claims fallback, scroll containment, selection)
-function assertionWindowKey(win: AssertionWindow): string {
-  return `${win.blockId}:${win.windowStart}:${win.windowEnd}`;
-}
-
-<<<<<<< HEAD
-=======
-// ---------------------------------------------------------------------------
-// Claim item (fallback when no assertion windows)
-// ---------------------------------------------------------------------------
-
->>>>>>> 6345875909 (H-6364: Fix results panel — claims fallback, scroll containment, selection)
 const ClaimItem: FunctionComponent<{
   claim: ExtractedClaim;
   isSelected: boolean;
   onSelect: () => void;
-<<<<<<< HEAD
 }> = ({ claim, isSelected, onSelect }) => {
   const firstEvidenceRef = claim.evidenceRefs.at(0);
   const quote = firstEvidenceRef
@@ -108,50 +95,6 @@ const ClaimItem: FunctionComponent<{
     </ButtonBase>
   );
 };
-=======
-}> = ({ claim, isSelected, onSelect }) => (
-  <ButtonBase
-    onClick={onSelect}
-    sx={{
-      display: "block",
-      width: "100%",
-      px: 2,
-      py: 1,
-      pl: 4,
-      textAlign: "left",
-      borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-      bgcolor: isSelected ? highlightColors.selectedBg : "transparent",
-      "&:hover": { bgcolor: highlightColors.hoverBg },
-    }}
-  >
-    <Typography
-      variant="microText"
-      sx={{
-        color: "gray.80",
-        lineHeight: 1.5,
-        display: "-webkit-box",
-        WebkitLineClamp: 3,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden",
-      }}
-    >
-      {claim.claimText}
-    </Typography>
-    {claim.evidenceRefs[0]?.quote && (
-      <Typography
-        variant="microText"
-        sx={{ color: "gray.50", mt: 0.5, fontStyle: "italic" }}
-      >
-        &quot;{claim.evidenceRefs[0].quote.substring(0, 80)}…&quot;
-      </Typography>
-    )}
-  </ButtonBase>
-);
-
-// ---------------------------------------------------------------------------
-// Assertion window item
-// ---------------------------------------------------------------------------
->>>>>>> 6345875909 (H-6364: Fix results panel — claims fallback, scroll containment, selection)
 
 const AssertionWindowItem: FunctionComponent<{
   window: AssertionWindow;
@@ -207,7 +150,7 @@ const EntityCard: FunctionComponent<{
     selection?.kind === "claim" ? selection.claim.claimId : null;
   const selectedAssertionKey =
     selection?.kind === "assertion"
-      ? assertionWindowKey(selection.window)
+      ? getAssertionWindowKey(selection.window)
       : null;
 
   const itemCount =
@@ -272,7 +215,7 @@ const EntityCard: FunctionComponent<{
       <Collapse in={expanded}>
         {assertionWindows.length > 0 ? (
           assertionWindows.map((win) => {
-            const winKey = assertionWindowKey(win);
+            const winKey = getAssertionWindowKey(win);
             const isWinSelected = selectedAssertionKey === winKey;
             return (
               <AssertionWindowItem

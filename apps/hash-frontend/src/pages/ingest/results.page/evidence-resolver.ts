@@ -28,6 +28,10 @@ export interface EvidenceResult {
   targetPage: number | null;
 }
 
+export function getAssertionWindowKey(win: AssertionWindow): string {
+  return `${win.blockId}:${win.windowStart}:${win.windowEnd}:${win.mentionStart}:${win.mentionEnd}`;
+}
+
 export function resolveEvidence(
   selection: Selection,
   blocks: Block[],
@@ -73,20 +77,28 @@ export function resolveEvidence(
 export function buildEntityAssertionMap(
   mentionContexts: MentionContextPlan[],
 ): Map<string, AssertionWindow[]> {
-  const map = new Map<string, AssertionWindow[]>();
+  const map = new Map<string, Map<string, AssertionWindow>>();
 
   for (const context of mentionContexts) {
     if (context.mode !== "assertion_windows") {
       continue;
     }
     for (const win of context.assertionWindows) {
+      const windowKey = getAssertionWindowKey(win);
       for (const participant of win.participants) {
-        const existing = map.get(participant.rosterEntryId) ?? [];
-        existing.push(win);
+        const existing =
+          map.get(participant.rosterEntryId) ??
+          new Map<string, AssertionWindow>();
+        existing.set(windowKey, win);
         map.set(participant.rosterEntryId, existing);
       }
     }
   }
 
-  return map;
+  return new Map(
+    [...map.entries()].map(([rosterEntryId, windows]) => [
+      rosterEntryId,
+      [...windows.values()],
+    ]),
+  );
 }
