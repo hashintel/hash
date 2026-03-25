@@ -35,7 +35,7 @@ find_latest_artifact_id() {
   local artifact_name="$2"
   jq \
     --arg artifact_name "$artifact_name" \
-    '[.[] | select(.name==$artifact_name)] | (if length>0 then (.[0].id) else null end)' <<<"${artifacts_json}"
+    '[.[] | select(.name==$artifact_name)] | (if length>0 then (max_by(.created_at // .updated_at // "").id) else null end)' <<<"${artifacts_json}"
 }
 
 main() {

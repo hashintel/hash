@@ -84,6 +84,12 @@ test_collect_paginated_array() {
   [[ "$workflow_id" == "22" ]] || fail "Expected latest workflow id 22, got: $workflow_id"
   [[ "$run_id" == "32" ]] || fail "Expected latest workflow run id 32, got: $run_id"
   [[ "$artifact_id" == "42" ]] || fail "Expected latest artifact id 42, got: $artifact_id"
+
+  artifact_id="$(find_latest_artifact_id '[{"id":51,"name":"dismiss-stale-approvals-shas","created_at":"2026-03-24T00:00:00Z"},{"id":52,"name":"dismiss-stale-approvals-shas","created_at":"2026-03-25T00:00:00Z"}]' 'dismiss-stale-approvals-shas')"
+  [[ "$artifact_id" == "52" ]] || fail "Expected newest duplicate artifact id 52, got: $artifact_id"
+
+  artifact_id="$(find_latest_artifact_id '[{"id":61,"name":"other-artifact","created_at":"2026-03-25T00:00:00Z"}]' 'dismiss-stale-approvals-shas')"
+  [[ "$artifact_id" == "null" ]] || fail "Expected null when no artifact matches, got: $artifact_id"
 }
 
 test_collect_paginated_reviews() {
