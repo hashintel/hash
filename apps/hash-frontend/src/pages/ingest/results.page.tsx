@@ -186,7 +186,8 @@ const IngestResultsPage: NextPageWithLayout = () => {
 =======
               overflow: "auto",
               p: 2,
-              maxWidth: 720,
+              maxWidth: 780,
+              mx: "auto",
             }}
           >
             <PageViewer
@@ -232,6 +233,7 @@ const IngestResultsPage: NextPageWithLayout = () => {
           </Box>
         </Box>
       )}
+<<<<<<< HEAD
 
       {view && (
         <Box
@@ -254,6 +256,8 @@ const IngestResultsPage: NextPageWithLayout = () => {
           </Button>
         </Box>
       )}
+=======
+>>>>>>> d7c0c101b8 (H-6364: Fix results layout — independent scroll containers)
     </Box>
   );
 };
