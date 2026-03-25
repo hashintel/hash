@@ -389,15 +389,24 @@ const SigninPage: NextPageWithLayout = () => {
                 sx={{
                   p: 2,
                   borderRadius: 1,
-                  backgroundColor: ({ palette }) => palette.blue[10],
-                  border: ({ palette }) => `1px solid ${palette.blue[30]}`,
+                  backgroundColor: ({ palette }) =>
+                    flow.ui.messages?.some((m) => m.type === "error")
+                      ? palette.red[10]
+                      : palette.blue[10],
+                  border: ({ palette }) =>
+                    `1px solid ${flow.ui.messages?.some((m) => m.type === "error") ? palette.red[30] : palette.blue[30]}`,
                 }}
               >
                 {flow.ui.messages.map((message) => (
                   <Typography
                     key={message.id}
                     variant="smallTextParagraphs"
-                    sx={{ color: ({ palette }) => palette.blue[80] }}
+                    sx={{
+                      color: ({ palette }) =>
+                        message.type === "error"
+                          ? palette.red[80]
+                          : palette.blue[80],
+                    }}
                   >
                     {formatKratosMessage(message)}
                   </Typography>
