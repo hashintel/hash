@@ -21,7 +21,7 @@ export default async function handler(
     return;
   }
 
-  const upstreamUrl = `${MASTRA_API_ORIGIN}/discovery-runs/${runId}/events`;
+  const upstreamUrl = `${MASTRA_API_ORIGIN}/ingest-runs/${runId}/events`;
 
   const headers: Record<string, string> = {
     Accept: "text/event-stream",
