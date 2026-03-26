@@ -164,7 +164,6 @@ export const SDCPNView: React.FC<{
         differentialEquationId: null,
         x: position.x,
         y: position.y,
-        visualizerCode: undefined,
       });
     } else {
       addTransition({

@@ -7777,8 +7777,6 @@ __metadata:
     "@babel/standalone": "npm:7.28.5"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"
-    "@fontsource-variable/inter": "npm:5.2.8"
-    "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
