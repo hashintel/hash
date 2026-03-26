@@ -11,8 +11,11 @@
 
     // Library Features
     variant_count,
-    int_from_ascii,
 )]
+#![cfg_attr(feature = "serde", feature(
+    // Library Features
+    int_from_ascii,
+))]
 
 extern crate alloc;
 
