@@ -35,7 +35,12 @@ run_check_manual_merge_resolutions() {
     return 0
   fi
 
-  local merge_commit merge_tree_output merge_tree_status conflict_files reason
+  local merge_commit merge_commits merge_tree_output merge_tree_status conflict_files reason
+
+  if ! merge_commits="$(run_git "$repository_path" rev-list --merges "${approval_sha}..${head_sha}")"; then
+    echo "rev-list failed for ${approval_sha}..${head_sha}" >&2
+    return 1
+  fi
 
   while read -r merge_commit; do
     [[ -n "$merge_commit" ]] || continue
@@ -72,7 +77,7 @@ run_check_manual_merge_resolutions() {
     printf 'conflict_files=%s\n' "$conflict_files"
     printf 'reason=%s\n' "$reason"
     return 0
-  done < <(run_git "$repository_path" rev-list --merges "${approval_sha}..${head_sha}")
+  done <<< "$merge_commits"
 
   printf 'stale=false\nreason=\n'
 }

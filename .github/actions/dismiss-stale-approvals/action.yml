@@ -43,7 +43,7 @@ runs:
         REPOSITORY: ${{ github.repository }}
         WORKFLOW_NAME: ${{ github.workflow }}
       run: |
-        "$ACTION_PATH/latest_artifact.sh" \
+        "$ACTION_PATH/latest-artifact.sh" \
           "$REPOSITORY" \
           "$PR_NUMBER" \
           "$HEAD_REF" \
@@ -69,8 +69,8 @@ runs:
     - name: Write SHAs to file
       shell: bash
       run: |
-        echo "${{ env.HEAD_SHA }}" > shas.txt
-        echo "${{ env.BASE_SHA }}" >> shas.txt
+        echo "$HEAD_SHA" > shas.txt
+        echo "$BASE_SHA" >> shas.txt
 
     - name: Upload SHAs
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -84,11 +84,10 @@ runs:
       continue-on-error: true
       shell: bash
       env:
-        BASE_SHA: ${{ env.BASE_SHA }}
+        ACTION_PATH: ${{ github.action_path }}
         FETCH_DEPTH: ${{ inputs.fetch-depth }}
         FETCHED_REPOSITORY_PATH: bare.git
         GH_TOKEN: ${{ inputs.github-token }}
-        HEAD_SHA: ${{ env.HEAD_SHA }}
         PREV_BASE_SHA: ${{ env.PREV_BASE_SHA }}
         PREV_HEAD_SHA: ${{ env.PREV_HEAD_SHA }}
         REPOSITORY: ${{ github.repository }}
@@ -110,7 +109,7 @@ runs:
         merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$BASE_SHA" "$HEAD_SHA")"
         range_diff="$(git -C "$FETCHED_REPOSITORY_PATH" range-diff "$prev_merge_base..$PREV_HEAD_SHA" "$merge_base..$HEAD_SHA")"
 
-        printf '%s\n' "$range_diff" | "$ACTION_PATH/range_diff_stale.sh" >> "$GITHUB_OUTPUT"
+        printf '%s\n' "$range_diff" | "$ACTION_PATH/range-diff-stale.sh" >> "$GITHUB_OUTPUT"
 
     - name: Read latest approval SHA
       id: approval
@@ -122,7 +121,7 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPOSITORY: ${{ github.repository }}
       run: |
-        approval_sha="$("$ACTION_PATH/latest_approval_sha.sh" "$REPOSITORY" "$PR_NUMBER")"
+        approval_sha="$("$ACTION_PATH/latest-approval-sha.sh" "$REPOSITORY" "$PR_NUMBER")"
         echo "sha=$approval_sha" >> "$GITHUB_OUTPUT"
 
     - name: Check for manual merge resolutions after approval
@@ -135,7 +134,6 @@ runs:
         FETCH_DEPTH: ${{ inputs.fetch-depth }}
         FETCHED_REPOSITORY_PATH: bare.git
         GH_TOKEN: ${{ inputs.github-token }}
-        HEAD_SHA: ${{ env.HEAD_SHA }}
         REPOSITORY: ${{ github.repository }}
       run: |
         if [[ ! -d "$FETCHED_REPOSITORY_PATH" ]]; then
@@ -169,7 +167,7 @@ runs:
         RANGE_DIFF_STALE: ${{ steps.range-diff.outputs.stale }}
         WORKFLOW_RUN_URL: ${{ steps.run-url.outputs.workflow_run_url }}
       run: |
-        "$ACTION_PATH/decide_stale_approvals.sh" \
+        "$ACTION_PATH/decide-stale-approvals.sh" \
           --approval-outcome "$APPROVAL_OUTCOME" \
           --merge-tree-outcome "$MERGE_TREE_OUTCOME" \
           --merge-tree-stale "$MERGE_TREE_STALE" \

@@ -6,15 +6,31 @@ ACTION_DIR="$REPO_ROOT/.github/actions/dismiss-stale-approvals"
 ACTION_YML="$ACTION_DIR/action.yml"
 
 # shellcheck disable=SC1091
-source "$ACTION_DIR/latest_artifact.sh"
+source "$ACTION_DIR/latest-artifact.sh"
 # shellcheck disable=SC1091
-source "$ACTION_DIR/latest_approval_sha.sh"
+source "$ACTION_DIR/latest-approval-sha.sh"
 # shellcheck disable=SC1091
-source "$ACTION_DIR/decide_stale_approvals.sh"
+source "$ACTION_DIR/decide-stale-approvals.sh"
 # shellcheck disable=SC1091
 source "$ACTION_DIR/check-manual-merge-resolutions.sh"
 # shellcheck disable=SC1091
-source "$ACTION_DIR/range_diff_stale.sh"
+source "$ACTION_DIR/range-diff-stale.sh"
+
+TEMP_PATHS=()
+
+register_temp_path() {
+  TEMP_PATHS+=("$1")
+}
+
+cleanup_temp_paths() {
+  local temp_path
+
+  for temp_path in "${TEMP_PATHS[@]}"; do
+    [[ -e "$temp_path" ]] && rm -rf "$temp_path"
+  done
+}
+
+trap cleanup_temp_paths EXIT
 
 fail() {
   echo "$*" >&2
@@ -26,6 +42,13 @@ assert_contains() {
   local needle="$2"
 
   [[ "$haystack" == *"$needle"* ]] || fail "Expected output to contain: $needle"$'\n'"Actual output:"$'\n'"$haystack"
+}
+
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+
+  [[ "$haystack" != *"$needle"* ]] || fail "Expected output not to contain: $needle"$'\n'"Actual output:"$'\n'"$haystack"
 }
 
 create_repo() {
@@ -124,6 +147,7 @@ test_empty_range_diff_is_not_stale() {
 test_no_approval_is_not_stale() {
   local repo_path output
   repo_path="$(mktemp -d)"
+  register_temp_path "$repo_path"
 
   create_repo "$repo_path"
 
@@ -134,8 +158,6 @@ test_no_approval_is_not_stale() {
   output="$(run_check_manual_merge_resolutions "$repo_path" "" "$(git -C "$repo_path" rev-parse HEAD)")"
 
   assert_contains "$output" "stale=false"
-
-  rm -rf "$repo_path"
 }
 
 test_decision_marks_approval_lookup_failure_stale() {
@@ -157,6 +179,7 @@ test_decision_keeps_successful_no_approval_path_safe() {
 test_rewritten_history_is_stale() {
   local repo_path
   repo_path="$(mktemp -d)"
+  register_temp_path "$repo_path"
 
   create_repo "$repo_path"
 
@@ -181,8 +204,51 @@ test_rewritten_history_is_stale() {
 
   assert_contains "$output" "stale=true"
   assert_contains "$output" "rewritten history"
+}
 
-  rm -rf "$repo_path"
+test_rev_list_failure_returns_nonzero() {
+  local repo_path output status
+  repo_path="$(mktemp -d)"
+  register_temp_path "$repo_path"
+
+  create_repo "$repo_path"
+
+  printf 'base\n' >"$repo_path/file.txt"
+  git -C "$repo_path" add file.txt
+  git -C "$repo_path" commit -qm "base"
+
+  printf 'approved\n' >"$repo_path/file.txt"
+  git -C "$repo_path" commit -qam "approved"
+  local approval_sha
+  approval_sha="$(git -C "$repo_path" rev-parse HEAD)"
+
+  printf 'head\n' >"$repo_path/file.txt"
+  git -C "$repo_path" commit -qam "head"
+  local head_sha
+  head_sha="$(git -C "$repo_path" rev-parse HEAD)"
+
+  run_git() {
+    local repository_path="$1"
+    shift
+
+    if [[ "$1" == "rev-list" ]]; then
+      echo "forced rev-list failure" >&2
+      return 42
+    fi
+
+    git -C "$repository_path" "$@"
+  }
+
+  if output="$(run_check_manual_merge_resolutions "$repo_path" "$approval_sha" "$head_sha" 2>/dev/null)"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  # shellcheck disable=SC1091
+  source "$ACTION_DIR/check-manual-merge-resolutions.sh"
+
+  [[ $status -ne 0 ]] || fail "Expected rev-list failure to propagate as non-zero, got output:"$'\n'"$output"
 }
 
 test_missing_approval_commit_is_stale() {
@@ -190,6 +256,9 @@ test_missing_approval_commit_is_stale() {
   repo_path="$(mktemp -d)"
   bare_repo_path="$(mktemp -d)"
   shallow_repo_path="$(mktemp -d)"
+  register_temp_path "$repo_path"
+  register_temp_path "$bare_repo_path"
+  register_temp_path "$shallow_repo_path"
 
   create_repo "$repo_path"
 
@@ -217,14 +286,14 @@ test_missing_approval_commit_is_stale() {
 
   assert_contains "$output" "stale=true"
   assert_contains "$output" "not available in fetched repository state"
-
-  rm -rf "$repo_path" "$bare_repo_path" "$shallow_repo_path"
 }
 
 test_bare_repo_conflict_merge_is_stale() {
   local repo_path bare_repo_path
   repo_path="$(mktemp -d)"
   bare_repo_path="$(mktemp -d)"
+  register_temp_path "$repo_path"
+  register_temp_path "$bare_repo_path"
 
   create_repo "$repo_path"
 
@@ -263,8 +332,6 @@ test_bare_repo_conflict_merge_is_stale() {
 
   assert_contains "$output" "stale=true"
   assert_contains "$output" "file.txt"
-
-  rm -rf "$repo_path" "$bare_repo_path"
 }
 
 test_action_wires_checker_to_fetched_repo() {
@@ -274,19 +341,31 @@ test_action_wires_checker_to_fetched_repo() {
 }
 
 test_action_uses_shared_range_diff_helper() {
-  if ! grep -Fq -- 'range_diff_stale.sh' "$ACTION_YML"; then
-    fail 'Expected action.yml to delegate range-diff parsing to range_diff_stale.sh'
+  if ! grep -Fq -- 'range-diff-stale.sh' "$ACTION_YML"; then
+    fail 'Expected action.yml to delegate range-diff parsing to range-diff-stale.sh'
   fi
 }
 
 test_action_reads_latest_approval_sha_via_helper() {
-  if ! grep -Fq -- 'latest_approval_sha.sh' "$ACTION_YML"; then
-    fail 'Expected action.yml to read the latest approval SHA via latest_approval_sha.sh'
+  if ! grep -Fq -- 'latest-approval-sha.sh' "$ACTION_YML"; then
+    fail 'Expected action.yml to read the latest approval SHA via latest-approval-sha.sh'
   fi
 
   if ! grep -Fq -- "\"\$APPROVAL_SHA\"" "$ACTION_YML"; then
     fail 'Expected action.yml to fetch or pass the latest approval SHA explicitly'
   fi
+}
+
+test_hyphenated_helpers_exist_and_are_executable() {
+  local helper_path
+
+  for helper_path in \
+    "$ACTION_DIR/decide-stale-approvals.sh" \
+    "$ACTION_DIR/latest-approval-sha.sh" \
+    "$ACTION_DIR/latest-artifact.sh" \
+    "$ACTION_DIR/range-diff-stale.sh"; do
+    [[ -x "$helper_path" ]] || fail "Expected helper to exist and be executable: $helper_path"
+  done
 }
 
 test_action_continues_after_approval_lookup_failure() {
@@ -312,6 +391,24 @@ test_action_run_blocks_do_not_inline_github_context() {
   fi
 }
 
+test_action_uses_github_env_shas_without_redeclaring_them() {
+  local range_diff_block merge_tree_block
+  range_diff_block="$(extract_step_block "Check if diff has changed")"
+  merge_tree_block="$(extract_step_block "Check for manual merge resolutions after approval")"
+
+  if grep -Eq '^[[:space:]]+BASE_SHA:' <<<"$range_diff_block"; then
+    fail "Expected the range-diff step to read BASE_SHA from GITHUB_ENV"$'\n'"$range_diff_block"
+  fi
+
+  if grep -Eq '^[[:space:]]+HEAD_SHA:' <<<"$range_diff_block"; then
+    fail "Expected the range-diff step to read HEAD_SHA from GITHUB_ENV"$'\n'"$range_diff_block"
+  fi
+
+  if grep -Eq '^[[:space:]]+HEAD_SHA:' <<<"$merge_tree_block"; then
+    fail "Expected the merge-tree step to read HEAD_SHA from GITHUB_ENV"$'\n'"$merge_tree_block"
+  fi
+}
+
 main() {
   test_collect_paginated_array
   test_collect_paginated_reviews
@@ -320,13 +417,16 @@ main() {
   test_decision_marks_approval_lookup_failure_stale
   test_decision_keeps_successful_no_approval_path_safe
   test_rewritten_history_is_stale
+  test_rev_list_failure_returns_nonzero
   test_missing_approval_commit_is_stale
   test_bare_repo_conflict_merge_is_stale
   test_action_uses_shared_range_diff_helper
   test_action_wires_checker_to_fetched_repo
   test_action_reads_latest_approval_sha_via_helper
+  test_hyphenated_helpers_exist_and_are_executable
   test_action_continues_after_approval_lookup_failure
   test_action_run_blocks_do_not_inline_github_context
+  test_action_uses_github_env_shas_without_redeclaring_them
 
   echo "dismiss-stale-approvals self-test passed"
 }
