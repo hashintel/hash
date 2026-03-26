@@ -478,7 +478,7 @@
 #![cfg_attr(nightly, feature(error_generic_member_access))]
 #![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
 #![cfg_attr(all(doc, nightly), feature(doc_cfg))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
+#![cfg_attr(all(nightly, feature = "backtrace"), feature(backtrace_frames))]
 #![cfg_attr(
     not(miri),
     doc(test(attr(
