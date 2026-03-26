@@ -34,6 +34,7 @@
     temporary_niche_types,
     try_trait_v2,
     variant_count,
+    maybe_uninit_uninit_array_transpose
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;

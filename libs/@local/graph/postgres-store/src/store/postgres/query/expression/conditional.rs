@@ -22,6 +22,7 @@ pub enum Function {
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
+    JsonScalar(Box<Expression>),
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
@@ -32,8 +33,26 @@ pub enum Function {
         elements: Vec<Expression>,
         element_type: PostgresType,
     },
+    /// Converts any SQL value to jsonb.
+    ///
+    /// Transpiles to `to_jsonb(<expr>)` in PostgreSQL. Passes through jsonb
+    /// values unchanged; wraps text, uuid, integer, boolean, etc. as jsonb
+    /// scalars.
+    ToJson(Box<Expression>),
+    /// Returns the first non-NULL argument.
+    ///
+    /// Transpiles to `COALESCE(expr, fallback)`.
+    Coalesce(Box<Expression>, Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
+    LowerInc(Box<Expression>),
+    UpperInc(Box<Expression>),
+    LowerInf(Box<Expression>),
+    UpperInf(Box<Expression>),
+    /// Extracts the epoch as milliseconds since Unix epoch from a timestamp expression.
+    ///
+    /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
+    ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
     Now,
 }
@@ -57,6 +76,11 @@ impl Transpile for Function {
             }
             Self::JsonAgg(expression) => {
                 fmt.write_str("jsonb_agg(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonScalar(expression) => {
+                fmt.write_str("json_scalar(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
@@ -112,6 +136,18 @@ impl Transpile for Function {
                 fmt.write_char(')')
             }
             Self::Now => fmt.write_str("now()"),
+            Self::ToJson(expression) => {
+                fmt.write_str("to_jsonb(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Coalesce(expression, fallback) => {
+                fmt.write_str("COALESCE(")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                fallback.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::Lower(expression) => {
                 fmt.write_str("lower(")?;
                 expression.transpile(fmt)?;
@@ -121,6 +157,31 @@ impl Transpile for Function {
                 fmt.write_str("upper(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            Self::LowerInc(expression) => {
+                fmt.write_str("lower_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInc(expression) => {
+                fmt.write_str("upper_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::LowerInf(expression) => {
+                fmt.write_str("lower_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInf(expression) => {
+                fmt.write_str("upper_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::ExtractEpochMs(expression) => {
+                fmt.write_str("(extract(epoch from ")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(") * 1000)::int8")
             }
             Self::Unnest(expression) => {
                 fmt.write_str("UNNEST(")?;
@@ -209,6 +270,7 @@ pub enum PostgresType {
     Int,
     BigInt,
     Boolean,
+    TimestampTzRange,
 }
 
 impl Transpile for PostgresType {
@@ -227,6 +289,7 @@ impl Transpile for PostgresType {
             Self::Int => fmt.write_str("int"),
             Self::BigInt => fmt.write_str("bigint"),
             Self::Boolean => fmt.write_str("boolean"),
+            Self::TimestampTzRange => fmt.write_str("tstzrange"),
         }
     }
 }
@@ -551,6 +614,11 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn coalesce(self, fallback: Self) -> Self {
+        Self::Function(Function::Coalesce(Box::new(self), Box::new(fallback)))
+    }
+
+    #[must_use]
     pub fn starts_with(lhs: Self, rhs: Self) -> Self {
         Self::StartsWith(Box::new(lhs), Box::new(rhs))
     }
@@ -568,6 +636,11 @@ impl Expression {
     #[must_use]
     pub fn cast(self, r#type: PostgresType) -> Self {
         Self::Cast(Box::new(self), r#type)
+    }
+
+    #[must_use]
+    pub fn json_scalar(self) -> Self {
+        Self::Function(Function::JsonScalar(Box::new(self)))
     }
 }
 

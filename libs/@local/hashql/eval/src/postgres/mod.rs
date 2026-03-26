@@ -36,25 +36,36 @@ use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
     WhereExpression, table::EntityTemporalMetadata,
 };
-use hashql_core::heap::BumpAllocator;
+use hashql_core::{
+    debug_panic,
+    heap::BumpAllocator,
+    id::Id as _,
+    r#type::{TypeBuilder, TypeId, environment::LatticeEnvironment},
+};
 use hashql_mir::{
     body::{
         Body,
-        terminator::{GraphRead, GraphReadBody},
+        basic_block::BasicBlockId,
+        local::Local,
+        terminator::{GraphRead, GraphReadBody, GraphReadHead, TerminatorKind},
     },
-    def::DefId,
+    def::{DefId, DefIdSlice},
     pass::{
         analysis::dataflow::lattice::HasBottom as _,
         execution::{
-            IslandKind, IslandNode, TargetId, VertexType,
+            IslandId, IslandKind, IslandNode, TargetId, VertexType,
             traversal::{EntityPath, TraversalMapLattice, TraversalPath, TraversalPathBitMap},
         },
     },
 };
 
-pub use self::parameters::{ParameterIndex, Parameters, TemporalAxis};
 use self::{
     continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
+    types::traverse_struct,
+};
+pub use self::{
+    continuation::ContinuationField,
+    parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
 };
 use crate::context::EvalContext;
 
@@ -64,6 +75,7 @@ mod filter;
 mod parameters;
 mod projections;
 mod traverse;
+mod types;
 
 /// Mutable compilation state accumulated while building a single SQL query.
 ///
@@ -113,8 +125,11 @@ impl<A: Allocator> DatabaseContext<'_, A> {
         let tx_param = self
             .parameters
             .temporal_axis(TemporalAxis::Transaction)
-            .into();
-        let dt_param = self.parameters.temporal_axis(TemporalAxis::Decision).into();
+            .to_expr();
+        let dt_param = self
+            .parameters
+            .temporal_axis(TemporalAxis::Decision)
+            .to_expr();
 
         self.where_expression.add_condition(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {
@@ -135,18 +150,88 @@ impl<A: Allocator> DatabaseContext<'_, A> {
     }
 }
 
+/// Describes a single column in the `SELECT` list of a compiled query.
+///
+/// The bridge uses this manifest to decode each column in a result row without
+/// parsing column names. Entity field columns carry a [`TraversalPath`] for
+/// hydration; continuation columns carry the body/island identity for routing
+/// control flow back to the interpreter.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ColumnDescriptor {
+    /// An entity field produced by the provides set.
+    ///
+    /// The [`TraversalPath`] identifies the storage location; the [`TypeId`] is the
+    /// field's type within the instantiated vertex type, used for type-directed
+    /// deserialization.
+    Path { path: TraversalPath, r#type: TypeId },
+    /// A decomposed continuation field from an island's `CROSS JOIN LATERAL`.
+    Continuation {
+        body: DefId,
+        island: IslandId,
+        field: ContinuationField,
+    },
+}
+
+impl Display for ColumnDescriptor {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Path { path, .. } => write!(fmt, "entity path `{}`", path.as_symbol()),
+            Self::Continuation {
+                body,
+                island,
+                field,
+            } => {
+                write!(
+                    fmt,
+                    "continuation {} (body {body}, island {island})",
+                    ContinuationColumn::from(*field).as_str()
+                )
+            }
+        }
+    }
+}
+
 /// A fully-compiled SQL query ready for execution.
 ///
-/// Contains the typed query AST ([`SelectStatement`]) and the parameter catalog ([`Parameters`])
-/// that the interpreter uses to bind runtime values in the correct order.
+/// Contains the typed query AST ([`SelectStatement`]), the parameter catalog ([`Parameters`])
+/// for binding runtime values, and a column manifest ([`ColumnDescriptor`]s) that tells the
+/// bridge how to decode each result column.
 pub struct PreparedQuery<'heap, A: Allocator> {
+    pub vertex_type: VertexType,
     pub parameters: Parameters<'heap, A>,
     pub statement: SelectStatement,
+    pub columns: Vec<ColumnDescriptor, A>,
 }
 
 impl<A: Allocator> PreparedQuery<'_, A> {
     pub fn transpile(&self) -> impl Display {
         core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
+    }
+}
+
+/// Registry of compiled SQL queries, indexed by definition and basic block.
+///
+/// The SQL lowering pass produces one [`PreparedQuery`] per [`GraphRead`]
+/// terminator in the MIR. This struct stores them contiguously in `queries`
+/// with `offsets` providing per-definition starting positions, so
+/// [`find`](Self::find) can locate the correct query for a given `(DefId,
+/// BasicBlockId)` pair.
+///
+/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+pub struct PreparedQueries<'heap, A: Allocator> {
+    offsets: Box<DefIdSlice<usize>, A>,
+    queries: Vec<(BasicBlockId, PreparedQuery<'heap, A>), A>,
+}
+
+impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
+    pub fn find(&self, body: DefId, block: BasicBlockId) -> Option<&PreparedQuery<'heap, A>> {
+        let start = self.offsets[body];
+        let end = self.offsets[body.plus(1)];
+
+        self.queries[start..end]
+            .iter()
+            .find(|(id, _)| *id == block)
+            .map(|(_, query)| query)
     }
 }
 
@@ -200,11 +285,42 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         self
     }
 
+    /// Joins the property types across all filter bodies into a single type.
+    ///
+    /// Each filter body may operate on a different `Entity<T>`. This computes the
+    /// least upper bound of all the `T` parameters, producing the unified property type
+    /// for the query's SELECT list. Returns `unknown` if there are no filter bodies.
+    fn resolve_property_type(&self, read: &GraphRead<'heap>) -> TypeId {
+        let mut lattice = LatticeEnvironment::new(self.context.env).without_warnings();
+
+        read.body
+            .iter()
+            .map(|body| match body {
+                &GraphReadBody::Filter(def_id, _) => {
+                    let vertex = self.context.bodies[def_id].local_decls[Local::VERTEX].r#type;
+
+                    let path = EntityPath::Properties.field_path();
+
+                    traverse_struct(self.context.env, vertex, path).unwrap_or_else(|| {
+                        debug_panic!(
+                            "failed to extract property type from vertex type {vertex:?}; the \
+                             vertex type should contain a resolvable properties field"
+                        );
+
+                        TypeBuilder::synthetic(self.context.env).unknown()
+                    })
+                }
+            })
+            .reduce(|lhs, rhs| lattice.join(lhs, rhs))
+            .unwrap_or_else(|| TypeBuilder::synthetic(self.context.env).unknown())
+    }
+
     /// Returns `None` for data-only islands that produce no SQL.
     fn compile_graph_read_filter_island(
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         body: &Body<'heap>,
+        env: Local,
         island: &IslandNode,
         provides: &mut TraversalPathBitMap,
     ) -> Option<Expression> {
@@ -219,7 +335,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         // TODO: we might want a longer lived graph read filter compiler here
         let expression = self.scratch.scoped(|alloc| {
-            let mut compiler = GraphReadFilterCompiler::new(self.context, body, &alloc);
+            let mut compiler = GraphReadFilterCompiler::new(self.context, body, env, &alloc);
 
             let expression = compiler.compile_body(db, island);
             let mut diagnostics = compiler.into_diagnostics();
@@ -236,6 +352,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         def: DefId,
+        env: Local,
         provides: &mut TraversalPathBitMap,
     ) {
         let body = &self.context.bodies[def];
@@ -251,7 +368,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         for (island_id, island) in islands {
             let Some(expression) =
-                self.compile_graph_read_filter_island(db, body, island, provides)
+                self.compile_graph_read_filter_island(db, body, env, island, provides)
             else {
                 continue;
             };
@@ -287,14 +404,13 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
     }
 
-    /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
-    ///
-    /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-    pub fn compile(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    fn compile_graph_read_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
     where
         A: Clone,
     {
         let mut db = DatabaseContext::new_in(self.alloc.clone());
+
+        let mut property_type = None;
 
         // Temporal conditions go first - they're always present on the base table
         // and don't depend on anything the filter body produces.
@@ -304,8 +420,8 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
         for body in &read.body {
             match body {
-                &GraphReadBody::Filter(def_id, _) => {
-                    self.compile_graph_read_filter(&mut db, def_id, &mut provides);
+                &GraphReadBody::Filter(def_id, env) => {
+                    self.compile_graph_read_filter(&mut db, def_id, env, &mut provides);
                 }
             }
         }
@@ -314,6 +430,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         // Each EntityPath in `provides` becomes a SELECT expression via eval_entity_path,
         // which also registers the necessary projection joins in DatabaseContext.
         let mut select_expressions = vec![];
+        let mut columns = Vec::new_in(self.alloc.clone());
 
         for traversal_path in provides[VertexType::Entity].iter() {
             let TraversalPath::Entity(path) = traversal_path;
@@ -328,9 +445,19 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
             let alias = Identifier::from(traversal_path.as_symbol().unwrap());
 
+            let field_type = traversal_path
+                .resolve_type(self.context.env)
+                .unwrap_or_else(|| {
+                    *property_type.get_or_insert_with(|| self.resolve_property_type(read))
+                });
+
             select_expressions.push(SelectExpression::Expression {
                 expression,
                 alias: Some(alias),
+            });
+            columns.push(ColumnDescriptor::Path {
+                path: traversal_path,
+                r#type: field_type,
             });
         }
 
@@ -341,13 +468,18 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             let table_ref = cont_alias.table_ref();
 
             for field in [
-                ContinuationColumn::Block,
-                ContinuationColumn::Locals,
-                ContinuationColumn::Values,
+                ContinuationField::Block,
+                ContinuationField::Locals,
+                ContinuationField::Values,
             ] {
                 select_expressions.push(SelectExpression::Expression {
-                    expression: continuation::field_access(&table_ref, field),
-                    alias: Some(cont_alias.field_identifier(field)),
+                    expression: continuation::field_access(&table_ref, field.into()),
+                    alias: Some(cont_alias.field_identifier(field.into())),
+                });
+                columns.push(ColumnDescriptor::Continuation {
+                    body: cont_alias.body,
+                    island: cont_alias.island,
+                    field,
                 });
             }
         }
@@ -371,8 +503,57 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .build();
 
         PreparedQuery {
+            vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query,
+            columns,
         }
+    }
+
+    /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
+    ///
+    /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
+    pub fn compile_graph_read(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    where
+        A: Clone,
+    {
+        match read.head {
+            GraphReadHead::Entity { .. } => self.compile_graph_read_entity(read),
+        }
+    }
+
+    #[expect(unsafe_code)]
+    pub fn compile(&mut self) -> PreparedQueries<'heap, A>
+    where
+        A: Clone,
+    {
+        // SAFETY: 0 is a valid value for `usize`
+        let offsets = unsafe {
+            Box::new_zeroed_slice_in(self.context.bodies.len() + 1, self.alloc.clone())
+                .assume_init()
+        };
+        let mut offsets = DefIdSlice::from_boxed_slice(offsets);
+
+        let mut queries = Vec::with_capacity_in(self.context.bodies.len(), self.alloc.clone());
+
+        let bodies = self.context.bodies;
+        for (body_id, body) in bodies.iter_enumerated() {
+            for (block_id, block) in body.basic_blocks.iter_enumerated() {
+                match &block.terminator.kind {
+                    TerminatorKind::GraphRead(read) => {
+                        let query = self.compile_graph_read(read);
+                        queries.push((block_id, query));
+                    }
+                    TerminatorKind::Goto(_)
+                    | TerminatorKind::SwitchInt(_)
+                    | TerminatorKind::Return(_)
+                    | TerminatorKind::Unreachable => {}
+                }
+            }
+
+            offsets[body_id.plus(1)] = queries.len();
+        }
+
+        PreparedQueries { offsets, queries }
     }
 }

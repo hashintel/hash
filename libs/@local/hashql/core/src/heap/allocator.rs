@@ -6,7 +6,11 @@ use bump_scope::{Bump, BumpBox, BumpScope};
 
 use super::{BumpAllocator, bump::ResetAllocator};
 
-pub struct Checkpoint(bump_scope::Checkpoint);
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "constructed and destructured by sibling allocator types"
+)]
+pub struct Checkpoint(pub(super) bump_scope::Checkpoint);
 
 /// Internal arena allocator.
 #[derive(Debug)]
@@ -155,7 +159,11 @@ unsafe impl alloc::Allocator for Allocator {
     }
 }
 
-pub struct AllocatorScope<'scope>(BumpScope<'scope>);
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "constructed by sibling allocator types in scoped callbacks"
+)]
+pub struct AllocatorScope<'scope>(pub(super) BumpScope<'scope>);
 
 impl BumpAllocator for AllocatorScope<'_> {
     type Checkpoint = Checkpoint;

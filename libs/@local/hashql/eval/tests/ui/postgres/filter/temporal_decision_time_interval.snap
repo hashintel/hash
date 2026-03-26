@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== SQL ======================================
+
+SELECT jsonb_build_object(($3::text), (extract(epoch from lower("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8, ($4::text), CASE WHEN upper_inf("entity_temporal_metadata_0_0_0"."decision_time") THEN NULL ELSE (extract(epoch from upper("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8 END) AS "decision_time"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange) AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
+================================== Parameters ==================================
+
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Symbol(start)
+$4: Symbol(end)

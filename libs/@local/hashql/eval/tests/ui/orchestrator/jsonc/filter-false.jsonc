@@ -1,0 +1,10 @@
+// Filter that rejects all entities. Result should be an empty list.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      {"#literal": false}
+    ]
+  ]
+]

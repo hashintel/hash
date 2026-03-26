@@ -15,7 +15,9 @@
     assert_matches,
     allocator_api,
     iter_array_chunks,
-    maybe_uninit_fill
+    maybe_uninit_fill,
+    impl_trait_in_assoc_type,
+    try_blocks
 )]
 
 extern crate alloc;
@@ -23,6 +25,7 @@ pub mod context;
 pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
+pub mod orchestrator;
 pub mod postgres;
 
 #[cfg(test)]

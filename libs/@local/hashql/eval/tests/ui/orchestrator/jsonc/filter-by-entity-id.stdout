@@ -1,0 +1,40 @@
+[
+  {
+    "metadata": {
+      "record_id": {
+        "entity_id": {
+          "draft_id": null,
+          "entity_uuid": "<uuid:0>",
+          "web_id": "<uuid:1>"
+        }
+      }
+    }
+  }
+]
+---
+query executed: body 3, block bb0
+row received
+filter started: body 2
+island entered: body 2, island 0, target interpreter
+filter accepted: body 2
+row accepted
+row received
+filter started: body 2
+island entered: body 2, island 0, target interpreter
+filter rejected: body 2
+row rejected
+row received
+filter started: body 2
+island entered: body 2, island 0, target interpreter
+filter rejected: body 2
+row rejected
+row received
+filter started: body 2
+island entered: body 2, island 0, target interpreter
+filter rejected: body 2
+row rejected
+row received
+filter started: body 2
+island entered: body 2, island 0, target interpreter
+filter rejected: body 2
+row rejected

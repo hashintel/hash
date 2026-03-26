@@ -15,6 +15,7 @@ use hash_graph_postgres_store::store::postgres::query::{Expression, Transpile as
 use hashql_core::{
     heap::{Heap, Scratch},
     id::Id as _,
+    module::std_lib::graph::types::knowledge::entity as entity_types,
     symbol::sym,
     r#type::{TypeBuilder, TypeId, environment::Environment},
 };
@@ -125,9 +126,11 @@ impl core::fmt::Display for FilterReport {
 fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
+    let interner = Interner::new(heap);
 
     let context = EvalContext::new_in(
         &fixture.env,
+        &interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -157,7 +160,7 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
         let island = &residual.islands[island_id];
 
         let mut db = DatabaseContext::new_in(heap);
-        let mut compiler = GraphReadFilterCompiler::new(&context, body, Global);
+        let mut compiler = GraphReadFilterCompiler::new(&context, body, Local::ENV, Global);
 
         let expression = compiler.compile_body(&mut db, island);
         let diagnostics = compiler.into_diagnostics();
@@ -227,9 +230,11 @@ fn compile_full_query_with_mask<'heap>(
 ) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
+    let interner = Interner::new(heap);
 
     let mut context = EvalContext::new_in(
         &fixture.env,
+        &interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -253,7 +258,7 @@ fn compile_full_query_with_mask<'heap>(
     let prepared_query = {
         let mut compiler =
             PostgresCompiler::new_in(&mut context, &mut scratch).with_property_mask(property_mask);
-        compiler.compile(&read)
+        compiler.compile_graph_read(&read)
     };
 
     assert!(
@@ -558,10 +563,10 @@ fn data_island_provides_without_lateral() {
 
     let callee_id = DefId::new(99);
 
-    // Light entity path accesses — solver puts everything on Interpreter, creating only a
+    // Light entity path accesses: solver puts everything on Interpreter, creating only a
     // Postgres Data island for the entity columns. No Postgres exec island exists.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              uuid: ?, func: [fn() -> ?], result: ?;
         @proj v_uuid = vertex.entity_uuid: ?;
 
@@ -608,7 +613,7 @@ fn provides_drives_select_and_joins() {
     // bb0 accesses entity paths (Postgres-origin), then bb1 uses a closure (Interpreter).
     // The Postgres island should provide the accessed paths to the Interpreter island.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              uuid: ?, archived: ?, func: [fn() -> ?], result: ?;
         @proj v_uuid = vertex.entity_uuid: ?,
               v_metadata = vertex.metadata: ?,
@@ -739,7 +744,7 @@ fn property_mask() {
     // Properties access in bb0 (Postgres Data island) with an apply in bb1 (Interpreter)
     // ensures Properties and `PropertyMetadata` appear in the provides set.
     let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
-        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+        decl env: (), vertex: (|t| entity_types::types::entity(t, t.unknown(), None)),
              props: ?, prop_meta: ?, func: [fn() -> ?], result: ?;
         @proj v_props = vertex.properties: ?,
               v_meta = vertex.metadata: ?,
@@ -977,6 +982,43 @@ fn unary_bitnot() {
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
     assert_snapshot!("unary_bitnot", report.to_string());
+}
+
+/// Temporal leaf path: `vertex.metadata.temporal_versioning.decision_time` decomposes
+/// the `tstzrange` column into a structured interval with `lower`/`upper`/`lower_inc`/
+/// `upper_inc`/`lower_inf` and epoch-millisecond extraction.
+#[test]
+fn temporal_decision_time_interval() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee_id = DefId::new(99);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             decision: ?, func: [fn() -> ?], result: ?;
+        @proj v_meta = vertex.metadata: ?,
+              v_temporal = v_meta.temporal_versioning: ?,
+              v_decision = v_temporal.decision_time: ?;
+
+        bb0() {
+            decision = load v_decision;
+            goto bb1();
+        },
+        bb1() {
+            func = load callee_id;
+            result = apply func;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_full_query(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("temporal_decision_time_interval", report.to_string());
 }
 
 /// `BinOp::BitAnd` → `BinaryOperator::BitwiseAnd` with `::bigint` casts on both operands.

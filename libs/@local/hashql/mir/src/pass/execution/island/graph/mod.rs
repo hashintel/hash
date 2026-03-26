@@ -279,6 +279,12 @@ impl<A: Allocator> IslandGraph<A> {
             .filter(move |node| node.data.target == target)
             .map(|node| (IslandId::new(node.id().as_u32()), &node.data))
     }
+
+    pub fn lookup(&self, block: BasicBlockId) -> (IslandId, &IslandNode) {
+        let id = self.lookup[block];
+
+        (id, &self[id])
+    }
 }
 
 impl<A: Allocator> DirectedGraph for IslandGraph<A> {
