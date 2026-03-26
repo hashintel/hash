@@ -15,6 +15,8 @@ source "$ACTION_DIR/decide-stale-approvals.sh"
 source "$ACTION_DIR/check-manual-merge-resolutions.sh"
 # shellcheck disable=SC1091
 source "$ACTION_DIR/range-diff-stale.sh"
+# shellcheck disable=SC1091
+source "$ACTION_DIR/dismiss-reviews.sh"
 
 TEMP_PATHS=()
 
@@ -42,13 +44,6 @@ assert_contains() {
   local needle="$2"
 
   [[ "$haystack" == *"$needle"* ]] || fail "Expected output to contain: $needle"$'\n'"Actual output:"$'\n'"$haystack"
-}
-
-assert_not_contains() {
-  local haystack="$1"
-  local needle="$2"
-
-  [[ "$haystack" != *"$needle"* ]] || fail "Expected output not to contain: $needle"$'\n'"Actual output:"$'\n'"$haystack"
 }
 
 create_repo() {
@@ -361,6 +356,8 @@ test_hyphenated_helpers_exist_and_are_executable() {
 
   for helper_path in \
     "$ACTION_DIR/decide-stale-approvals.sh" \
+    "$ACTION_DIR/check-manual-merge-resolutions.sh" \
+    "$ACTION_DIR/dismiss-reviews.sh" \
     "$ACTION_DIR/latest-approval-sha.sh" \
     "$ACTION_DIR/latest-artifact.sh" \
     "$ACTION_DIR/range-diff-stale.sh"; do
