@@ -1,1 +1,1 @@
-<?26: Number>(foo:0: ?26, bar:0: ?26): ?26 -> ::core::math::add(foo:0, bar:0)
+<?30: Number>(foo:0: ?30, bar:0: ?30): ?30 -> ::core::math::add(foo:0, bar:0)

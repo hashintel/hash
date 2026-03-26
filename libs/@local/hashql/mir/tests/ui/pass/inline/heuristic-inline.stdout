@@ -44,7 +44,7 @@ fn {closure#10}(%0: ()) -> Boolean {
     }
 
     bb2(): {
-        goto -> bb3(0)
+        goto -> bb3(false)
     }
 
     bb3(%3): {
@@ -115,7 +115,7 @@ fn {closure#10}(%0: ()) -> Boolean {
     }
 
     bb2(): {
-        return 0
+        return false
     }
 }
 
@@ -182,7 +182,7 @@ fn {closure#10}(%0: ()) -> Boolean {
     }
 
     bb2(): {
-        return 0
+        return false
     }
 
     bb3(%2): {
@@ -249,7 +249,7 @@ thunk use_flag:0() -> () -> Boolean {
     }
 
     bb4(): {
-        goto -> bb1(0)
+        goto -> bb1(false)
     }
 
     bb5(%3): {

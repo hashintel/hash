@@ -1,6 +1,5 @@
 ---
 source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
-assertion_line: 92
 expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity<T?19>) -> Boolean {
@@ -13,6 +12,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity<T?19>) -> Boolean {
         %4 = opaque(::graph::types::knowledge::entity::EntityUuid, %3)          // cost: 8
         %2 = %1.id.entity_id.entity_uuid == %4                                  // cost: 8
 
-        return %2
+        return %2                                                               // cost: 8
     }
 }

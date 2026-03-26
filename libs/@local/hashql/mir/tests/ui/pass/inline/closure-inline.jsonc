@@ -7,8 +7,8 @@
     "fn",
     { "#tuple": [] },
     { "#struct": {} },
-    "::graph::QueryTemporalAxes",
-    ["input", "axis", "::graph::QueryTemporalAxes"]
+    "::graph::temporal::QueryTemporalAxes",
+    ["input", "axis", "_"]
   ],
   ["get_axis"]
 ]

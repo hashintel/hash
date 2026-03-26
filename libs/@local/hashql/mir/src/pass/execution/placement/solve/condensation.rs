@@ -32,7 +32,7 @@ use super::{
 };
 use crate::{
     body::{Body, basic_block::BasicBlockId},
-    pass::execution::terminator_placement::{TerminatorCostVec, TransMatrix},
+    pass::execution::terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
 };
 
 /// A placement region containing a single basic block.
@@ -105,7 +105,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
     /// Builds the condensation from a [`Body`]'s CFG and terminator transition costs.
     pub(crate) fn new(
         body: &Body<'_>,
-        terminators: &TerminatorCostVec<impl Allocator>,
+        terminators: &TerminatorTransitionCostVec<impl Allocator>,
         alloc: &'alloc S,
     ) -> Self {
         let scc = Tarjan::new_in(&body.basic_blocks, alloc).run();
@@ -153,7 +153,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
     }
 
     /// Populates the condensation graph with regions and boundary edges.
-    fn fill(&mut self, body: &Body<'_>, terminators: &TerminatorCostVec<impl Allocator>) {
+    fn fill(&mut self, body: &Body<'_>, terminators: &TerminatorTransitionCostVec<impl Allocator>) {
         for scc in self.scc.iter_nodes() {
             let members = self.scc_members.of(scc);
 

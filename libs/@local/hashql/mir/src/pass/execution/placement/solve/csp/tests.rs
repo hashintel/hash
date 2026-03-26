@@ -21,7 +21,7 @@ use crate::{
             },
         },
         target::{TargetArray, TargetId},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
+        terminator_placement::{TerminatorTransitionCostVec, TransMatrix},
     },
 };
 
@@ -70,7 +70,7 @@ fn narrow_restricts_successor_domain() {
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0, I->P = 0];
         bb(1): [complete(1)];
@@ -120,7 +120,7 @@ fn narrow_restricts_predecessor_domain() {
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
         bb(1): [complete(1)];
@@ -171,7 +171,7 @@ fn narrow_to_empty_domain() {
     let domains = [target_set(&[I]), target_set(&[P]), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(1);
@@ -220,7 +220,7 @@ fn narrow_multiple_edges_intersect() {
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             I->I = 0, I->P = 0;
@@ -282,7 +282,7 @@ fn replay_narrowing_resets_then_repropagates() {
     let domains = [all_targets(), all_targets(), all_targets(), all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [I->I = 0, I->P = 0, P->E = 0];
         bb(1): [complete(1)];
@@ -360,7 +360,7 @@ fn lower_bound_min_block_cost_per_block() {
         bb(2): I = 5, P = 15
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0)];
         bb(1): [diagonal(0)];
@@ -415,7 +415,7 @@ fn lower_bound_min_transition_cost_per_edge() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0)];
         bb(1): [I->P = 10, P->I = 3];
@@ -467,7 +467,7 @@ fn lower_bound_skips_self_loop_edges() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             diagonal(0);
@@ -522,7 +522,7 @@ fn lower_bound_fixed_successor_uses_concrete_target() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0)];
         bb(1): [I->P = 10, I->I = 0];
@@ -579,7 +579,7 @@ fn lower_bound_all_fixed_returns_zero() {
         bb(1): I = 5
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             I->I = 3;
@@ -633,7 +633,7 @@ fn mrv_selects_smallest_domain() {
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
         bb(1): [complete(1)];
@@ -682,7 +682,7 @@ fn mrv_tiebreak_by_constraint_degree() {
     let domains = [ip, ip, ip, all_targets()];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(1);
@@ -736,7 +736,7 @@ fn mrv_skips_fixed_blocks() {
     ];
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
         bb(1): [complete(1)];
@@ -794,7 +794,7 @@ fn greedy_solves_two_block_loop() {
         bb(1): I = 8, P = 3
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0), I->P = 5, P->I = 5];
         bb(1): [
@@ -847,7 +847,7 @@ fn greedy_rollback_finds_alternative() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [complete(1)];
         bb(1): [I->P = 0];
@@ -905,7 +905,7 @@ fn greedy_fails_when_infeasible() {
     let statements: TargetArray<StatementCostVec<&Heap>> =
         IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             I->I = 0;
@@ -960,7 +960,7 @@ fn bnb_finds_optimal() {
         bb(2): I = 1, P = 50
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             diagonal(0), I->P = 20, P->I = 20;
@@ -1017,7 +1017,7 @@ fn bnb_retains_ranked_solutions() {
         bb(1): I = 5, P = 10, E = 15
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             diagonal(0);
@@ -1091,7 +1091,7 @@ fn bnb_pruning_preserves_optimal() {
         bb(3): I = 1, P = 1
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [diagonal(0), I->P = 100, P->I = 100];
         bb(1): [diagonal(0), I->P = 100, P->I = 100];
@@ -1149,7 +1149,7 @@ fn retry_returns_ranked_solutions_in_order() {
         bb(1): I = 1, P = 2
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             diagonal(0), I->P = 5, P->I = 5;
@@ -1219,7 +1219,7 @@ fn retry_exhausts_then_perturbs() {
         bb(1): I = 1, P = 2
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             diagonal(0);
@@ -1283,7 +1283,7 @@ fn greedy_rollback_on_empty_heap() {
         bb(0): I = 0, P = 5
     }
 
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     // arm0 (bb0→bb2): complete (exit edge, always feasible)
     // arm1 (bb0→bb1): swap-only transitions (I→P, P→I)
     // bb1→bb0: from I go to P or I
@@ -1356,7 +1356,7 @@ fn retry_perturbation_after_ranked_exhaustion() {
     }
 
     // All transitions allowed → all combinations feasible
-    let mut terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let mut terminators = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
     terminators! { terminators;
         bb(0): [
             complete(0);

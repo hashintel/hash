@@ -24,7 +24,7 @@ thunk {thunk#2}() -> Boolean {
 
     bb0(): {
         %0 = apply (identity:0 as FnPtr)
-        %1 = apply %0.0 %0.1 1
+        %1 = apply %0.0 %0.1 true
 
         return %1
     }
@@ -73,7 +73,7 @@ thunk identity:0() -> (Boolean) -> Boolean {
 
 thunk {thunk#2}() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 
