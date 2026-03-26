@@ -1,6 +1,8 @@
 name: Dismiss stale pull request approvals
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
   pull_request_target:
     types: [opened, synchronize, reopened]
   merge_group:
@@ -18,4 +20,11 @@ jobs:
         if: github.event_name == 'pull_request_target'
         uses: ./.github/actions/dismiss-stale-approvals
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry-run stale approval check on pull_request
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/dismiss-stale-approvals
+        with:
+          dry-run: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
