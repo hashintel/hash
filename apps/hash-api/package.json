@@ -23,7 +23,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@apollo/server": "5.4.0",
+    "@apollo/server": "5.5.0",
     "@apollo/utils.keyvadapter": "4.0.1",
     "@apps/hash-graph": "workspace:*",
     "@as-integrations/express5": "1.1.2",
