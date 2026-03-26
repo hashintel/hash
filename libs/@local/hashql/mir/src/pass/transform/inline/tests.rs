@@ -1022,7 +1022,12 @@ fn heuristics_caller_bonuses() {
 
     let graph = CallGraph::analyze_in(bodies_slice, &heap);
     let loops = DefIdVec::new_in(&heap);
-    let config = InlineHeuristicsConfig::default();
+    // Use 0.875 (7/8) instead of default 0.9: exactly representable in f32,
+    // so the test isn't sensitive to mul_add vs separate multiply-subtract rounding.
+    let config = InlineHeuristicsConfig {
+        size_penalty_factor: 0.875,
+        ..InlineHeuristicsConfig::default()
+    };
     let cost = 30.0;
 
     let properties = DefIdVec::from_raw(vec![
@@ -1047,10 +1052,8 @@ fn heuristics_caller_bonuses() {
         properties: properties.as_slice(),
     };
 
-    let expected = config.leaf_bonus + config.single_caller_bonus + config.unique_callsite_bonus
-        - cost * config.size_penalty_factor;
-
-    assert!((heuristics.score(default_callsite()) - expected).abs() < f32::EPSILON);
+    // 10 + 5 + 12 - 30 * 0.875 = 27.0 - 26.25 = 0.75
+    assert!((heuristics.score(default_callsite()) - 0.75).abs() <= f32::EPSILON);
 }
 
 #[test]
@@ -1078,7 +1081,10 @@ fn heuristics_no_unique_callsite_bonus_multiple_calls() {
 
     let graph = CallGraph::analyze_in(bodies_slice, &heap);
     let loops = DefIdVec::new_in(&heap);
-    let config = InlineHeuristicsConfig::default();
+    let config = InlineHeuristicsConfig {
+        size_penalty_factor: 0.875,
+        ..InlineHeuristicsConfig::default()
+    };
     let cost = 30.0;
 
     let properties = DefIdVec::from_raw(vec![
@@ -1104,8 +1110,6 @@ fn heuristics_no_unique_callsite_bonus_multiple_calls() {
     };
 
     // No unique_callsite_bonus because 2 callsites
-    let expected =
-        config.leaf_bonus + config.single_caller_bonus - cost * config.size_penalty_factor;
-
-    assert!((heuristics.score(default_callsite()) - expected).abs() < f32::EPSILON);
+    // 10 + 5 - 30 * 0.875 = 15.0 - 26.25 = -11.25
+    assert!((heuristics.score(default_callsite()) - (-11.25)).abs() < f32::EPSILON);
 }
