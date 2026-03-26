@@ -5,6 +5,7 @@ use core::alloc::Allocator;
 use hashql_core::{
     heap::{BumpAllocator, Heap},
     id::{IdArray, bit_vec::FiniteBitSet},
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::severity::Severity;
@@ -23,12 +24,16 @@ use crate::{
     context::MirContext,
     error::MirDiagnosticCategory,
     intern::Interner,
-    pass::execution::{
-        ApproxCost, Cost,
-        cost::StatementCostVec,
-        placement::error::PlacementDiagnosticCategory,
-        target::{TargetArray, TargetBitSet, TargetId},
-        terminator_placement::{TerminatorCostVec, TransMatrix},
+    pass::{
+        analysis::size_estimation::{InformationRange, InformationUnit},
+        execution::{
+            ApproxCost, Cost, VertexType,
+            cost::{BasicBlockCostAnalysis, BasicBlockCostVec, StatementCostVec},
+            placement::error::PlacementDiagnosticCategory,
+            target::{TargetArray, TargetBitSet, TargetId},
+            terminator_placement::{TerminatorCostVec, TransMatrix},
+            traversal::TransferCostConfig,
+        },
     },
 };
 
@@ -113,8 +118,40 @@ pub(crate) fn bb(index: u32) -> BasicBlockId {
     BasicBlockId::new(index)
 }
 
+pub(crate) fn make_block_costs<'heap>(
+    body: &Body<'_>,
+    domains: &[TargetBitSet],
+    statements: &TargetArray<StatementCostVec<&'heap Heap>>,
+    alloc: &'heap Heap,
+) -> BasicBlockCostVec<&'heap Heap> {
+    make_block_costs_with_config(
+        body,
+        domains,
+        statements,
+        &TransferCostConfig::new(InformationRange::full()),
+        alloc,
+    )
+}
+
+pub(crate) fn make_block_costs_with_config<'heap>(
+    body: &Body<'_>,
+    domains: &[TargetBitSet],
+    statements: &TargetArray<StatementCostVec<&'heap Heap>>,
+    config: &TransferCostConfig,
+    alloc: &'heap Heap,
+) -> BasicBlockCostVec<&'heap Heap> {
+    let assignments = BasicBlockSlice::from_raw(domains);
+    BasicBlockCostAnalysis {
+        vertex: VertexType::Entity,
+        assignments,
+        costs: statements,
+    }
+    .analyze_in(config, &body.basic_blocks, alloc)
+}
+
 const I: TargetId = TargetId::Interpreter;
 const P: TargetId = TargetId::Postgres;
+const E: TargetId = TargetId::Embedding;
 
 pub(crate) fn run_solver<'heap>(
     body: &Body<'heap>,
@@ -125,10 +162,9 @@ pub(crate) fn run_solver<'heap>(
     terminators: &TerminatorCostVec<&'heap Heap>,
 ) -> BasicBlockVec<TargetId, &'heap Heap> {
     let mut context = MirContext::new(env, interner);
-    let assignment = BasicBlockSlice::from_raw(domains);
+    let block_costs = make_block_costs(body, domains, statements, env.heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements,
+        blocks: &block_costs,
         terminators,
     };
     let mut solver = data.build_in(body, env.heap);
@@ -185,8 +221,8 @@ fn forward_pass_assigns_all_blocks() {
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -249,8 +285,8 @@ fn backward_pass_improves_suboptimal_forward() {
     // bb1=P look cheap. But bb3 ultimately gets I (because bb2=I with diagonal-
     // only forces bb3=I after backward). Backward then re-evaluates bb1 with
     // bb3=I known and sees P→I=50, correcting bb1 to I.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -327,8 +363,8 @@ fn rewind_triggers_on_join_with_conflicting_predecessors() {
     //   bb3=I: bb1→bb3 I→I ok, bb2→bb3 I→I missing → infeasible
     //   bb3=P: bb1→bb3 I→P missing → infeasible
     // bb3 heap empty → rewind flips bb2 (or bb1) to resolve the conflict.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -412,8 +448,8 @@ fn rewind_skips_exhausted_region() {
     // Rewind: bb2 has no alternatives (domain {I}) → skip. bb1 has alternative P.
     //   bb1=P, resume. bb2=I (re-estimated). bb3: bb1→bb3 P→I ok, bb2→bb3 I→I ok.
     //   bb3=I succeeds.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             x = load 0;
@@ -465,18 +501,18 @@ fn rewind_skips_exhausted_region() {
     assert_eq!(result[bb(3)], I);
 }
 
-/// Verifies the trivial region fast path picks the cheapest target by statement cost.
+/// Verifies the trivial region fast path picks the cheapest target by block cost.
 ///
 /// Single block with a return terminator and no edges. The solver should select
-/// the target with the lowest per-statement cost without consulting any neighbors.
+/// the target with the lowest block cost without consulting any neighbors.
 #[test]
 fn single_block_trivial_region() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int;
 
         bb0() {
             x = load 0;
@@ -511,8 +547,8 @@ fn cyclic_region_in_forward_backward() {
     let env = Environment::new(&heap);
 
     // bb0 → bb1, bb1 → bb2, bb2 → bb1 (loop), bb2 → bb3 (exit)
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -570,7 +606,7 @@ fn cyclic_region_in_forward_backward() {
 /// Verifies that rewind walks back into a cyclic region and uses `retry()` to find an alternative.
 ///
 /// The SCC exit edge is diagonal, so the SCC solver sees both all-I and all-P
-/// as feasible (each can reach some target in bb3's domain). Statement costs
+/// as feasible (each can reach some target in bb3's domain). Block costs
 /// bias the SCC toward all-I. With SCC=all-I, the diagonal exit forces bb3
 /// to match bb2=I, but bb3→bb4 only allows P→I, making bb3 infeasible for
 /// both I (outgoing fails) and P (incoming fails). Rewind reaches the SCC,
@@ -590,8 +626,8 @@ fn rewind_retries_cyclic_region() {
     //   bb3=P: diagonal I→P missing → infeasible.
     // Rewind reaches the SCC; retry() picks all-P. With SCC=all-P:
     //   bb3=P: diagonal P→P ok, bb3→bb4 P→I ok → feasible.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -690,8 +726,8 @@ fn rewind_skips_exhausted_cyclic_region() {
     // With bb0=P:
     //   SCC: all-P (forced). bb3 predecessors: bb0=P, bb2=P.
     //   bb3=I: bb0→bb3 P→I ok. bb2→bb3 P→I ok. bb3→bb4 I→I ok. Feasible!
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             cond = load true;
@@ -770,8 +806,8 @@ fn rewind_exhausts_all_regions() {
     let env = Environment::new(&heap);
 
     // Diamond: bb0→bb1(then), bb0→bb2(else), bb1→bb3, bb2→bb3. All trivial SCCs.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -803,10 +839,9 @@ fn rewind_exhausts_all_regions() {
         bb(2): [I->P = 0, P->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -834,8 +869,8 @@ fn forward_pass_rewinds_on_cyclic_failure() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -903,8 +938,8 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -955,10 +990,9 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
         bb(3): [complete(0)]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1010,8 +1044,8 @@ fn backward_pass_adopts_better_cyclic_solution() {
     let env = Environment::new(&heap);
 
     // bb0→bb1→bb2→bb1(loop)/bb2→bb3→bb4.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, cond: Bool;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, cond: Bool;
 
         bb0() {
             x = load 0;
@@ -1086,8 +1120,8 @@ fn trivial_failure_emits_diagnostic() {
     // bb1→bb3: diagonal only. bb2→bb3: swap only (I→P, P→I).
     // No assignment for bb3 satisfies both predecessors simultaneously, and
     // rewind exhausts all alternatives.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -1119,10 +1153,9 @@ fn trivial_failure_emits_diagnostic() {
         bb(2): [I->P = 0, P->I = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1154,8 +1187,8 @@ fn cyclic_failure_emits_diagnostic() {
 
     // bb0 branches to bb1(then) and bb2(else). bb1→bb0 closes the cycle.
     // bb2 is the exit. SCC = {bb0, bb1}, processed first.
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int;
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], cond: Bool, x: Int;
 
         bb0() {
             cond = load true;
@@ -1189,10 +1222,9 @@ fn cyclic_failure_emits_diagnostic() {
         bb(1): [I->P = 0]
     }
 
-    let assignment = BasicBlockSlice::from_raw(&domains);
+    let block_costs = make_block_costs(&body, &domains, &statements, &heap);
     let data = PlacementSolverContext {
-        assignment,
-        statements: &statements,
+        blocks: &block_costs,
         terminators: &terminators,
     };
     let mut solver = data.build_in(&body, &heap);
@@ -1206,5 +1238,152 @@ fn cyclic_failure_emits_diagnostic() {
     assert_eq!(
         diagnostic.category,
         MirDiagnosticCategory::Placement(PlacementDiagnosticCategory::UnsatisfiablePlacement),
+    );
+}
+
+/// Path premiums steer the solver toward origin backends.
+///
+/// bb0 accesses `vertex.encodings.vectors` (Embedding-origin) and `vertex.properties`
+/// (Postgres-origin). With equal base block costs and permissive transitions, the solver
+/// picks the backend that minimizes the combined path premium. Embedding avoids the Vectors
+/// premium (3072) but pays the Properties premium. Postgres avoids the Properties premium
+/// but pays the Vectors premium. Interpreter pays both.
+///
+/// The solver should not pick Interpreter for bb0 since both specialized backends have lower
+/// total cost.
+#[test]
+fn path_premiums_influence_placement() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> (?, ?) {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], result: (?, ?);
+        @proj properties = vertex.properties: ?,
+              encodings = vertex.encodings: ?,
+              vectors = encodings.vectors: ?;
+
+        bb0() {
+            result = tuple properties, vectors;
+            return result;
+        }
+    });
+
+    let all = target_set(&[I, P, E]);
+    let domains = [all];
+
+    let mut statements: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body.basic_blocks, &heap));
+
+    // Equal base costs so the path premium is the deciding factor.
+    stmt_costs! { statements; bb(0): I = 1, P = 1, E = 1 }
+
+    let terminators = TerminatorCostVec::new(&body.basic_blocks, &heap);
+
+    let config = TransferCostConfig::new(InformationRange::value(InformationUnit::new(100)));
+    let block_costs = make_block_costs_with_config(&body, &domains, &statements, &config, &heap);
+
+    // Verify the premiums are as expected: Interpreter pays both, others pay one each.
+    let interp_cost = block_costs.cost(bb(0), I);
+    let pg_cost = block_costs.cost(bb(0), P);
+    let emb_cost = block_costs.cost(bb(0), E);
+
+    assert!(
+        interp_cost > pg_cost,
+        "Interpreter ({interp_cost}) should be more expensive than Postgres ({pg_cost})"
+    );
+    assert!(
+        interp_cost > emb_cost,
+        "Interpreter ({interp_cost}) should be more expensive than Embedding ({emb_cost})"
+    );
+
+    // Run the solver end-to-end.
+    let data = PlacementSolverContext {
+        blocks: &block_costs,
+        terminators: &terminators,
+    };
+    let mut context = MirContext::new(&env, &interner);
+    let mut solver = data.build_in(&body, &heap);
+    let result = solver.run(&mut context, &body);
+
+    assert_ne!(
+        result[bb(0)],
+        I,
+        "solver should prefer a specialized backend over Interpreter when path premiums dominate"
+    );
+}
+
+/// Provenance variants produce different path premiums due to different size estimates.
+///
+/// `ProvenanceEdition` has size `3..=20` (midpoint 11) while `ProvenanceInferred` has size
+/// `3..=5` (midpoint 4). A block accessing edition provenance should have a higher load cost
+/// than one accessing inferred provenance, and this difference should be visible in the
+/// solver's block cost inputs.
+#[test]
+fn provenance_variants_produce_different_premiums() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body_edition = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              edition = prov.edition: ?;
+
+        bb0() {
+            val = load edition;
+            return val;
+        }
+    });
+
+    let body_inferred = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+        @proj metadata = vertex.metadata: ?,
+              prov = metadata.provenance: ?,
+              inferred = prov.inferred: ?;
+
+        bb0() {
+            val = load inferred;
+            return val;
+        }
+    });
+
+    let ip = target_set(&[I, P]);
+    let domains = [ip];
+
+    let config = TransferCostConfig::new(InformationRange::zero());
+
+    let statements_edition: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| StatementCostVec::new_in(&body_edition.basic_blocks, &heap));
+    let edition_costs =
+        make_block_costs_with_config(&body_edition, &domains, &statements_edition, &config, &heap);
+
+    let statements_inferred: TargetArray<StatementCostVec<&Heap>> =
+        IdArray::from_fn(|_: TargetId| {
+            StatementCostVec::new_in(&body_inferred.basic_blocks, &heap)
+        });
+    let inferred_costs = make_block_costs_with_config(
+        &body_inferred,
+        &domains,
+        &statements_inferred,
+        &config,
+        &heap,
+    );
+
+    // Both are Postgres-origin, so Interpreter pays the premium, Postgres doesn't.
+    let edition_interp = edition_costs.cost(bb(0), I);
+    let edition_pg = edition_costs.cost(bb(0), P);
+    let inferred_interp = inferred_costs.cost(bb(0), I);
+    let inferred_pg = inferred_costs.cost(bb(0), P);
+
+    // Postgres pays no premium for either (it's the origin).
+    assert_eq!(edition_pg, inferred_pg, "Postgres is origin for both");
+
+    // Edition premium (midpoint 11) > Inferred premium (midpoint 4) on Interpreter.
+    assert!(
+        edition_interp > inferred_interp,
+        "Edition ({edition_interp}) should cost more than Inferred ({inferred_interp}) on \
+         Interpreter"
     );
 }

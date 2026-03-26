@@ -13,10 +13,7 @@ use hashql_mir::{
     builder::body,
     def::DefIdSlice,
     intern::Interner,
-    pass::{
-        Changed, GlobalAnalysisPass as _, TransformPass as _,
-        analysis::size_estimation::SizeEstimationAnalysis, transform::TraversalExtraction,
-    },
+    pass::{GlobalAnalysisPass as _, analysis::size_estimation::SizeEstimationAnalysis},
 };
 
 use self::run::run_bencher;
@@ -98,22 +95,12 @@ fn execution_analysis(criterion: &mut Criterion) {
 
     group.bench_function("simple", |bencher| {
         run_bencher(bencher, create_simple, |context, [body], scratch| {
-            let mut extraction = TraversalExtraction::new_in(&mut *scratch);
-            let _: Changed = extraction.run(context, body);
-            let traversals = extraction
-                .take_traversals()
-                .expect("expected GraphReadFilter body");
-            scratch.reset();
-
             let mut size_analysis = SizeEstimationAnalysis::new_in(&*scratch);
             size_analysis.run(context, DefIdSlice::from_raw(core::slice::from_ref(&*body)));
             let footprints = size_analysis.finish();
             scratch.reset();
 
-            let bodies = [Some(traversals)];
-
             let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
-                traversals: DefIdSlice::from_raw(&bodies),
                 footprints: &footprints,
                 scratch: &mut *scratch,
             };
@@ -127,22 +114,12 @@ fn execution_analysis(criterion: &mut Criterion) {
             bencher,
             create_entity_projections,
             |context, [body], scratch| {
-                let mut extraction = TraversalExtraction::new_in(&mut *scratch);
-                let _: Changed = extraction.run(context, body);
-                let traversals = extraction
-                    .take_traversals()
-                    .expect("expected GraphReadFilter body");
-                scratch.reset();
-
                 let mut size_analysis = SizeEstimationAnalysis::new_in(&*scratch);
                 size_analysis.run(context, DefIdSlice::from_raw(core::slice::from_ref(&*body)));
                 let footprints = size_analysis.finish();
                 scratch.reset();
 
-                let bodies = [Some(traversals)];
-
                 let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
-                    traversals: DefIdSlice::from_raw(&bodies),
                     footprints: &footprints,
                     scratch: &mut *scratch,
                 };
@@ -154,22 +131,12 @@ fn execution_analysis(criterion: &mut Criterion) {
 
     group.bench_function("diamond_cfg", |bencher| {
         run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
-            let mut extraction = TraversalExtraction::new_in(&mut *scratch);
-            let _: Changed = extraction.run(context, body);
-            let traversals = extraction
-                .take_traversals()
-                .expect("expected GraphReadFilter body");
-            scratch.reset();
-
             let mut size_analysis = SizeEstimationAnalysis::new_in(&scratch);
             size_analysis.run(context, DefIdSlice::from_raw(core::slice::from_ref(&*body)));
             let footprints = size_analysis.finish();
             scratch.reset();
 
-            let bodies = [Some(traversals)];
-
             let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
-                traversals: DefIdSlice::from_raw(&bodies),
                 footprints: &footprints,
                 scratch: &mut *scratch,
             };

@@ -17,7 +17,3 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
         return %5
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

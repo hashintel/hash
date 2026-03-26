@@ -203,6 +203,14 @@ macro_rules! range {
                 // Could become empty if min > max (no overlap)
                 Self { min, max: max.map(<$inner>::new) }
             }
+
+            pub fn midpoint(self) -> Option<$inner> {
+                let min = self.min.raw;
+                let max = self.inclusive_max()?.raw;
+
+                let avg = min.midpoint(max);
+                Some(<$inner>::new(avg))
+            }
         }
 
         impl Debug for $name {

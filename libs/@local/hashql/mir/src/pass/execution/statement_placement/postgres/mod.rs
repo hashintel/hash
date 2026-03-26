@@ -27,14 +27,11 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
     },
     context::MirContext,
-    pass::{
-        execution::{
-            VertexType,
-            cost::{Cost, StatementCostVec, TraversalCostVec},
-            statement_placement::common::entity_projection_access,
-            storage::Access,
-        },
-        transform::Traversals,
+    pass::execution::{
+        VertexType,
+        cost::{Cost, StatementCostVec},
+        statement_placement::common::entity_projection_access,
+        traversal::Access,
     },
     visit::Visitor as _,
 };
@@ -334,6 +331,7 @@ struct PostgresSupported<'ctx, 'heap, A: Allocator> {
     ///
     /// Fields containing closures or dicts with non-string keys are excluded.
     env_domain: &'ctx DenseBitSet<FieldIndex>,
+    vertex: VertexType,
 
     guard: LocalLock<&'ctx mut RecursiveVisitorGuard<'heap, A>>,
 }
@@ -345,13 +343,7 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
     /// any other local (falls through to the regular domain check).
     ///
     /// [`GraphReadFilter`]: Source::GraphReadFilter
-    fn is_supported_place_graph_read_filter(
-        &self,
-        context: &MirContext<'_, 'heap>,
-        body: &Body<'heap>,
-
-        place: &Place<'heap>,
-    ) -> Option<bool> {
+    fn is_supported_place_graph_read_filter(&self, place: &Place<'heap>) -> Option<bool> {
         match place.local {
             Local::ENV => {
                 // The environment projections depend on the first projection, because that
@@ -372,26 +364,19 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
 
                 Some(self.env_domain.contains(field))
             }
-            Local::VERTEX => {
-                let decl = &body.local_decls[place.local];
-                let Some(vertex_type) = VertexType::from_local(context.env, decl) else {
-                    unimplemented!("lookup for declared type")
-                };
-
-                match vertex_type {
-                    VertexType::Entity => Some(matches!(
-                        entity_projection_access(&place.projections),
-                        Some(Access::Postgres(_))
-                    )),
-                }
-            }
+            Local::VERTEX => match self.vertex {
+                VertexType::Entity => Some(matches!(
+                    entity_projection_access(&place.projections),
+                    Some(Access::Postgres(_))
+                )),
+            },
             _ => None,
         }
     }
 
     fn is_supported_place(
         &self,
-        context: &MirContext<'_, 'heap>,
+        _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
         place: &Place<'heap>,
@@ -400,7 +385,7 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
         // env fields are checked against env_domain, vertex projections against entity
         // field access. Other locals fall through to the regular domain check.
         if matches!(body.source, Source::GraphReadFilter(_))
-            && let Some(result) = self.is_supported_place_graph_read_filter(context, body, place)
+            && let Some(result) = self.is_supported_place_graph_read_filter(place)
         {
             return result;
         }
@@ -711,16 +696,15 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        vertex: VertexType,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
-        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc.clone());
+    ) -> StatementCostVec<A> {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return (traversal_costs, statement_costs);
+                return statement_costs;
             }
         }
 
@@ -728,6 +712,7 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
 
         let supported = PostgresSupported {
             env_domain: &env_domain,
+            vertex,
             guard: LocalLock::new(&mut self.type_visitor_guard),
         };
 
@@ -755,12 +740,11 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             cost: self.statement_cost,
 
             statement_costs,
-            traversal_costs,
 
             supported: &supported,
         };
         visitor.visit_body(body);
 
-        (visitor.traversal_costs, visitor.statement_costs)
+        visitor.statement_costs
     }
 }
