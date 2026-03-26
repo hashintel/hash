@@ -16,6 +16,16 @@ jobs:
   dismiss_stale_approvals:
     runs-on: ubuntu-24.04
     steps:
+      - name: Checkout trusted base revision
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Checkout pull request revision
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
       - name: Dismiss stale pull request approvals
         if: github.event_name == 'pull_request_target'
         uses: ./.github/actions/dismiss-stale-approvals
