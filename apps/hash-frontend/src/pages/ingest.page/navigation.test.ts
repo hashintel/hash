@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getIngestNavigationAction,
-  getIngestPath,
-  getIngestResetNavigationAction,
-  getIngestResumeNavigationAction,
-} from "./navigation";
+import { getIngestPageNavigationAction, getIngestPath } from "./navigation";
 
 describe("getIngestPath", () => {
   it("includes the runId query once a run has started", () => {
@@ -17,15 +12,19 @@ describe("getIngestPath", () => {
   });
 });
 
-describe("getIngestNavigationAction", () => {
+describe("getIngestPageNavigationAction", () => {
   it("replaces the ingest URL with the started runId while streaming", () => {
     expect(
-      getIngestNavigationAction({
-        phase: "streaming",
-        runStatus: {
-          runId: "run-123",
-          status: "running",
-          phase: "upload",
+      getIngestPageNavigationAction({
+        kind: "state",
+        currentRunId: undefined,
+        state: {
+          phase: "streaming",
+          runStatus: {
+            runId: "run-123",
+            status: "running",
+            phase: "upload",
+          },
         },
       }),
     ).toEqual({
@@ -34,13 +33,34 @@ describe("getIngestNavigationAction", () => {
     });
   });
 
+  it("does not replace the URL when the current runId already matches the streaming run", () => {
+    expect(
+      getIngestPageNavigationAction({
+        kind: "state",
+        currentRunId: "run-123",
+        state: {
+          phase: "streaming",
+          runStatus: {
+            runId: "run-123",
+            status: "running",
+            phase: "upload",
+          },
+        },
+      }),
+    ).toBeNull();
+  });
+
   it("keeps terminal succeeded runs navigating to results", () => {
     expect(
-      getIngestNavigationAction({
-        phase: "done",
-        runStatus: {
-          runId: "run-456",
-          status: "succeeded",
+      getIngestPageNavigationAction({
+        kind: "state",
+        currentRunId: "run-456",
+        state: {
+          phase: "done",
+          runStatus: {
+            runId: "run-456",
+            status: "succeeded",
+          },
         },
       }),
     ).toEqual({
@@ -51,23 +71,10 @@ describe("getIngestNavigationAction", () => {
 
   it("keeps failed runs on the ingest page", () => {
     expect(
-      getIngestNavigationAction({
-        phase: "done",
-        runStatus: {
-          runId: "run-789",
-          status: "failed",
-          error: "pipeline failed",
-        },
-      }),
-    ).toBeNull();
-  });
-});
-
-describe("getIngestResetNavigationAction", () => {
-  it("clears a stale runId from the ingest URL when resetting a failed run", () => {
-    expect(
-      getIngestResetNavigationAction(
-        {
+      getIngestPageNavigationAction({
+        kind: "state",
+        currentRunId: "run-789",
+        state: {
           phase: "done",
           runStatus: {
             runId: "run-789",
@@ -75,8 +82,24 @@ describe("getIngestResetNavigationAction", () => {
             error: "pipeline failed",
           },
         },
-        { runId: "run-789" },
-      ),
+      }),
+    ).toBeNull();
+  });
+
+  it("clears a stale runId from the ingest URL when resetting a failed run", () => {
+    expect(
+      getIngestPageNavigationAction({
+        kind: "reset",
+        currentRunId: "run-789",
+        state: {
+          phase: "done",
+          runStatus: {
+            runId: "run-789",
+            status: "failed",
+            error: "pipeline failed",
+          },
+        },
+      }),
     ).toEqual({
       kind: "replace",
       path: "/ingest",
@@ -85,13 +108,14 @@ describe("getIngestResetNavigationAction", () => {
 
   it("clears a stale runId from the ingest URL when resetting after an error", () => {
     expect(
-      getIngestResetNavigationAction(
-        {
+      getIngestPageNavigationAction({
+        kind: "reset",
+        currentRunId: "run-789",
+        state: {
           phase: "error",
           message: "Lost connection to progress stream",
         },
-        { runId: "run-789" },
-      ),
+      }),
     ).toEqual({
       kind: "replace",
       path: "/ingest",
@@ -100,25 +124,26 @@ describe("getIngestResetNavigationAction", () => {
 
   it("does not affect succeeded runs", () => {
     expect(
-      getIngestResetNavigationAction(
-        {
+      getIngestPageNavigationAction({
+        kind: "reset",
+        currentRunId: "run-456",
+        state: {
           phase: "done",
           runStatus: {
             runId: "run-456",
             status: "succeeded",
           },
         },
-        { runId: "run-456" },
-      ),
+      }),
     ).toBeNull();
   });
-});
 
-describe("getIngestResumeNavigationAction", () => {
   it("clears a stale runId from the ingest URL when resume discovers a missing run", () => {
     expect(
-      getIngestResumeNavigationAction("cleared-missing-run", {
-        runId: "missing-run",
+      getIngestPageNavigationAction({
+        kind: "resume",
+        currentRunId: "missing-run",
+        resumeOutcome: "cleared-missing-run",
       }),
     ).toEqual({
       kind: "replace",
@@ -128,16 +153,20 @@ describe("getIngestResumeNavigationAction", () => {
 
   it("does not clear the URL for non-notfound resume failures", () => {
     expect(
-      getIngestResumeNavigationAction("failed", {
-        runId: "missing-run",
+      getIngestPageNavigationAction({
+        kind: "resume",
+        currentRunId: "missing-run",
+        resumeOutcome: "failed",
       }),
     ).toBeNull();
   });
 
   it("does not clear the URL for a superseded resume", () => {
     expect(
-      getIngestResumeNavigationAction("superseded", {
-        runId: "missing-run",
+      getIngestPageNavigationAction({
+        kind: "resume",
+        currentRunId: "missing-run",
+        resumeOutcome: "superseded",
       }),
     ).toBeNull();
   });

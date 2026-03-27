@@ -14,11 +14,7 @@ import { useCallback, useEffect } from "react";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { WorkersHeader } from "../shared/workers-header";
-import {
-  getIngestNavigationAction,
-  getIngestResetNavigationAction,
-  getIngestResumeNavigationAction,
-} from "./ingest.page/navigation";
+import { getIngestPageNavigationAction } from "./ingest.page/navigation";
 import { UploadPanel } from "./ingest.page/upload-panel";
 import { useIngestRun } from "./ingest.page/use-ingest-run";
 
@@ -32,7 +28,11 @@ const IngestPage: NextPageWithLayout = () => {
   const runId = normalizeQueryParam(router.query.runId);
 
   const handleReset = useCallback(() => {
-    const navigationAction = getIngestResetNavigationAction(state, { runId });
+    const navigationAction = getIngestPageNavigationAction({
+      kind: "reset",
+      currentRunId: runId,
+      state,
+    });
 
     reset();
 
@@ -51,8 +51,10 @@ const IngestPage: NextPageWithLayout = () => {
     void (async () => {
       const resumeOutcome = await resume(runId);
 
-      const navigationAction = getIngestResumeNavigationAction(resumeOutcome, {
-        runId,
+      const navigationAction = getIngestPageNavigationAction({
+        kind: "resume",
+        currentRunId: runId,
+        resumeOutcome,
       });
 
       if (!navigationAction) {
@@ -64,17 +66,17 @@ const IngestPage: NextPageWithLayout = () => {
   }, [resume, router, router.isReady, runId]);
 
   useEffect(() => {
-    const navigationAction = getIngestNavigationAction(state);
+    const navigationAction = getIngestPageNavigationAction({
+      kind: "state",
+      currentRunId: runId,
+      state,
+    });
 
     if (!navigationAction) {
       return;
     }
 
-    if (navigationAction.kind === "replace" && state.phase === "streaming") {
-      if (runId === state.runStatus.runId) {
-        return;
-      }
-
+    if (navigationAction.kind === "replace") {
       void router.replace(navigationAction.path, undefined, { shallow: true });
       return;
     }

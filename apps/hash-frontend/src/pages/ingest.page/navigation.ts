@@ -10,6 +10,23 @@ export type IngestNavigationAction =
   | { kind: "push"; path: string }
   | null;
 
+type IngestPageNavigationInput =
+  | {
+      kind: "state";
+      currentRunId?: string;
+      state: IngestRunState;
+    }
+  | {
+      kind: "reset";
+      currentRunId?: string;
+      state: IngestRunState;
+    }
+  | {
+      kind: "resume";
+      currentRunId?: string;
+      resumeOutcome: IngestResumeOutcome;
+    };
+
 export function getIngestPath(query?: { runId?: string }): string {
   const runId = query?.runId?.trim();
 
@@ -21,26 +38,6 @@ export function getIngestPath(query?: { runId?: string }): string {
   return `/ingest?${params.toString()}`;
 }
 
-export function getIngestNavigationAction(
-  state: IngestRunState,
-): IngestNavigationAction {
-  if (state.phase === "streaming") {
-    return {
-      kind: "replace",
-      path: getIngestPath({ runId: state.runStatus.runId }),
-    };
-  }
-
-  if (state.phase === "done" && state.runStatus.status === "succeeded") {
-    return {
-      kind: "push",
-      path: getIngestResultsPath({ kind: "run", runId: state.runStatus.runId }),
-    };
-  }
-
-  return null;
-}
-
 function isFailedDoneState(
   state: IngestRunState,
 ): state is DoneIngestRunState & {
@@ -49,33 +46,55 @@ function isFailedDoneState(
   return state.phase === "done" && state.runStatus.status === "failed";
 }
 
-export function getIngestResetNavigationAction(
-  state: IngestRunState,
-  query?: { runId?: string },
-): Extract<IngestNavigationAction, { kind: "replace" }> | null {
-  const runId = query?.runId?.trim();
+export function getIngestPageNavigationAction(
+  input: IngestPageNavigationInput,
+): IngestNavigationAction {
+  const currentRunId = input.currentRunId?.trim();
 
-  if (!runId) {
+  if (input.kind === "state") {
+    if (input.state.phase === "streaming") {
+      if (currentRunId === input.state.runStatus.runId) {
+        return null;
+      }
+
+      return {
+        kind: "replace",
+        path: getIngestPath({ runId: input.state.runStatus.runId }),
+      };
+    }
+
+    if (
+      input.state.phase === "done" &&
+      input.state.runStatus.status === "succeeded"
+    ) {
+      return {
+        kind: "push",
+        path: getIngestResultsPath({
+          kind: "run",
+          runId: input.state.runStatus.runId,
+        }),
+      };
+    }
+
     return null;
   }
 
-  if (state.phase === "error" || isFailedDoneState(state)) {
-    return {
-      kind: "replace",
-      path: getIngestPath(),
-    };
+  if (input.kind === "reset") {
+    if (!currentRunId) {
+      return null;
+    }
+
+    if (input.state.phase === "error" || isFailedDoneState(input.state)) {
+      return {
+        kind: "replace",
+        path: getIngestPath(),
+      };
+    }
+
+    return null;
   }
 
-  return null;
-}
-
-export function getIngestResumeNavigationAction(
-  outcome: IngestResumeOutcome,
-  query?: { runId?: string },
-): Extract<IngestNavigationAction, { kind: "replace" }> | null {
-  const runId = query?.runId?.trim();
-
-  if (!runId || outcome !== "cleared-missing-run") {
+  if (!currentRunId || input.resumeOutcome !== "cleared-missing-run") {
     return null;
   }
 
