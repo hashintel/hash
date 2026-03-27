@@ -10,13 +10,17 @@ import {
 } from "@mui/material";
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import { isIngestEnabled } from "../../lib/public-env";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { WorkersHeader } from "../../shared/workers-header";
-import { getIngestNavigationAction } from "./index.page/navigation";
+import {
+  getIngestNavigationAction,
+  getIngestResetNavigationAction,
+  getIngestResumeNavigationAction,
+} from "./index.page/navigation";
 import { UploadPanel } from "./index.page/upload-panel";
 import { useIngestRun } from "./index.page/use-ingest-run";
 
@@ -32,13 +36,37 @@ const IngestPage: NextPageWithLayout = () => {
   const { state, upload, reset, resume } = useIngestRun();
   const runId = normalizeQueryParam(router.query.runId);
 
+  const handleReset = useCallback(() => {
+    const navigationAction = getIngestResetNavigationAction(state, { runId });
+
+    reset();
+
+    if (!navigationAction) {
+      return;
+    }
+
+    void router.replace(navigationAction.path, undefined, { shallow: true });
+  }, [reset, router, runId, state]);
+
   useEffect(() => {
     if (!router.isReady || !runId) {
       return;
     }
 
-    void resume(runId);
-  }, [resume, router.isReady, runId]);
+    void (async () => {
+      const resumeOutcome = await resume(runId);
+
+      const navigationAction = getIngestResumeNavigationAction(resumeOutcome, {
+        runId,
+      });
+
+      if (!navigationAction) {
+        return;
+      }
+
+      void router.replace(navigationAction.path, undefined, { shallow: true });
+    })();
+  }, [resume, router, router.isReady, runId]);
 
   useEffect(() => {
     const navigationAction = getIngestNavigationAction(state);
@@ -86,7 +114,11 @@ const IngestPage: NextPageWithLayout = () => {
         >
           {/* Left panel: upload */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <UploadPanel state={state} onUpload={upload} onReset={reset} />
+            <UploadPanel
+              state={state}
+              onUpload={upload}
+              onReset={handleReset}
+            />
           </Box>
 
           {/* Right panel: extraction mode */}

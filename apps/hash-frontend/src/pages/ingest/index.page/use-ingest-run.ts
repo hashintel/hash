@@ -38,6 +38,16 @@ export function getStateForRunStatus(
     : { phase: "streaming", runStatus };
 }
 
+export class IngestRunStatusError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "IngestRunStatusError";
+  }
+}
+
 export async function loadIngestRunStatus(
   runId: string,
   fetchFn: typeof fetch = fetch,
@@ -47,7 +57,10 @@ export async function loadIngestRunStatus(
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to load run status: ${response.status}`);
+    throw new IngestRunStatusError(
+      `Failed to load run status: ${response.status}`,
+      response.status,
+    );
   }
 
   return (await response.json()) as RunStatus;
@@ -96,6 +109,28 @@ export async function recoverDoneStateFromStreamError(
   const { state } = await loadResumeTargetForRun(runId, fetchFn);
 
   return state.phase === "done" ? state : null;
+}
+
+export type IngestResumeOutcome = "loaded" | "cleared-missing-run" | "failed";
+
+export function getResumeFailureResolution(error: unknown): {
+  nextState: Extract<IngestRunState, { phase: "idle" | "error" }>;
+  clearRunId: boolean;
+} {
+  if (error instanceof IngestRunStatusError && error.status === 404) {
+    return {
+      nextState: { phase: "idle" },
+      clearRunId: true,
+    };
+  }
+
+  return {
+    nextState: {
+      phase: "error",
+      message: error instanceof Error ? error.message : String(error),
+    },
+    clearRunId: false,
+  };
 }
 
 /** Map an SSE event payload to a RunStatus shape for the UI. */
@@ -303,18 +338,18 @@ export function useIngestRun() {
   );
 
   const resume = useCallback(
-    async (runId: string) => {
+    async (runId: string): Promise<IngestResumeOutcome> => {
       const normalizedRunId = runId.trim();
 
       if (!normalizedRunId) {
-        return;
+        return "loaded";
       }
 
       if (
         currentRunIdRef.current === normalizedRunId ||
         resumingRunIdRef.current === normalizedRunId
       ) {
-        return;
+        return "loaded";
       }
 
       resumingRunIdRef.current = normalizedRunId;
@@ -323,7 +358,7 @@ export function useIngestRun() {
         const resumeTarget = await loadResumeTargetForRun(normalizedRunId);
 
         if (resumingRunIdRef.current !== normalizedRunId) {
-          return;
+          return "loaded";
         }
 
         stopStream();
@@ -332,16 +367,18 @@ export function useIngestRun() {
         if (resumeTarget.streamPath) {
           startStream(normalizedRunId, resumeTarget.streamPath);
         }
+
+        return "loaded";
       } catch (err) {
         if (resumingRunIdRef.current !== normalizedRunId) {
-          return;
+          return "loaded";
         }
 
+        const failure = getResumeFailureResolution(err);
+
         stopStream();
-        setState({
-          phase: "error",
-          message: err instanceof Error ? err.message : String(err),
-        });
+        setState(failure.nextState);
+        return failure.clearRunId ? "cleared-missing-run" : "failed";
       } finally {
         if (resumingRunIdRef.current === normalizedRunId) {
           resumingRunIdRef.current = null;
