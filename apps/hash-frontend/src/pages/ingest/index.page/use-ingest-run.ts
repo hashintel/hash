@@ -206,6 +206,73 @@ const getEffectiveEventKind = (
   return typeof payloadEventKind === "string" ? payloadEventKind : eventKind;
 };
 
+export type IngestRunStreamMessage = {
+  event: string;
+  data: string;
+};
+
+const normalizeSseChunkText = (chunk: string): string =>
+  chunk.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+
+const parseSseFrame = (frame: string): IngestRunStreamMessage | null => {
+  let event = "message";
+  const dataLines: string[] = [];
+
+  for (const line of frame.split("\n")) {
+    if (!line || line.startsWith(":")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf(":");
+    const field = separatorIndex === -1 ? line : line.slice(0, separatorIndex);
+    const rawValue =
+      separatorIndex === -1 ? "" : line.slice(separatorIndex + 1);
+    const value = rawValue.startsWith(" ") ? rawValue.slice(1) : rawValue;
+
+    if (field === "event") {
+      event = value || "message";
+    }
+
+    if (field === "data") {
+      dataLines.push(value);
+    }
+  }
+
+  if (dataLines.length === 0) {
+    return null;
+  }
+
+  return {
+    event,
+    data: dataLines.join("\n"),
+  };
+};
+
+export function parseSseFrameBuffer(buffer: string): {
+  messages: IngestRunStreamMessage[];
+  remainder: string;
+} {
+  let remainder = normalizeSseChunkText(buffer);
+  const messages: IngestRunStreamMessage[] = [];
+
+  for (;;) {
+    const separatorIndex = remainder.indexOf("\n\n");
+
+    if (separatorIndex === -1) {
+      return { messages, remainder };
+    }
+
+    const frame = remainder.slice(0, separatorIndex);
+    remainder = remainder.slice(separatorIndex + 2);
+
+    const parsedFrame = parseSseFrame(frame);
+
+    if (parsedFrame) {
+      messages.push(parsedFrame);
+    }
+  }
+}
+
 /** Normalize an SSE browser event into the current run's visible status. */
 export function getRunStatusFromStreamEvent(
   runId: string,
@@ -239,6 +306,61 @@ export function getRunStatusFromStreamEvent(
   };
 }
 
+export async function consumeIngestRunEventStream({
+  runId,
+  stream,
+  onRunStatus,
+}: {
+  runId: string;
+  stream: ReadableStream<Uint8Array>;
+  onRunStatus: (runStatus: RunStatus) => "stop" | void;
+}): Promise<void> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+
+      buffer += done
+        ? decoder.decode()
+        : decoder.decode(value, { stream: true });
+
+      const { messages, remainder } = parseSseFrameBuffer(buffer);
+      buffer = remainder;
+
+      for (const message of messages) {
+        try {
+          const payload = JSON.parse(message.data) as Record<string, unknown>;
+          const runStatus = getRunStatusFromStreamEvent(
+            runId,
+            message.event,
+            payload,
+          );
+
+          if (!runStatus) {
+            continue;
+          }
+
+          if (onRunStatus(runStatus) === "stop") {
+            await reader.cancel().catch(() => {});
+            return;
+          }
+        } catch {
+          // Malformed payload — ignore
+        }
+      }
+
+      if (done) {
+        return;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // State machine
 // ---------------------------------------------------------------------------
@@ -266,11 +388,15 @@ export type IngestRunState =
 
 export function useIngestRun() {
   const [state, setState] = useState<IngestRunState>({ phase: "idle" });
-  const esRef = useRef<EventSource | null>(null);
+  const streamRef = useRef<{
+    controller: AbortController;
+    requestId: number;
+  } | null>(null);
   const isRecoveringRef = useRef(false);
   const currentRunIdRef = useRef<string | null>(null);
   const resumingRunIdRef = useRef<string | null>(null);
   const sessionGenerationRef = useRef(0);
+  const nextStreamRequestIdRef = useRef(0);
 
   useEffect(() => {
     currentRunIdRef.current =
@@ -279,16 +405,21 @@ export function useIngestRun() {
 
   useEffect(() => {
     return () => {
-      esRef.current?.close();
+      streamRef.current?.controller.abort();
     };
   }, []);
 
   const stopStream = useCallback(() => {
-    if (esRef.current) {
-      esRef.current.close();
-      esRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.controller.abort();
+      streamRef.current = null;
     }
   }, []);
+
+  const isCurrentStreamRequest = useCallback(
+    (requestId: number): boolean => streamRef.current?.requestId === requestId,
+    [],
+  );
 
   const supersedePendingResume = useCallback(() => {
     sessionGenerationRef.current += 1;
@@ -296,8 +427,11 @@ export function useIngestRun() {
   }, []);
 
   const reconcileStreamError = useCallback(
-    async (runId: string, eventSource: EventSource) => {
-      if (isRecoveringRef.current) {
+    async (runId: string, requestId: number) => {
+      if (
+        isRecoveringRef.current ||
+        streamRef.current?.requestId !== requestId
+      ) {
         return;
       }
 
@@ -306,7 +440,7 @@ export function useIngestRun() {
       try {
         const recoveredState = await recoverDoneStateFromStreamError(runId);
 
-        if (esRef.current !== eventSource) {
+        if (!isCurrentStreamRequest(requestId)) {
           return;
         }
 
@@ -316,21 +450,13 @@ export function useIngestRun() {
           return;
         }
 
-        if (eventSource.readyState !== EventSource.CLOSED) {
-          return;
-        }
-
         stopStream();
         setState({
           phase: "error",
           message: "Lost connection to progress stream",
         });
       } catch {
-        if (esRef.current !== eventSource) {
-          return;
-        }
-
-        if (eventSource.readyState !== EventSource.CLOSED) {
+        if (!isCurrentStreamRequest(requestId)) {
           return;
         }
 
@@ -343,61 +469,69 @@ export function useIngestRun() {
         isRecoveringRef.current = false;
       }
     },
-    [stopStream],
+    [isCurrentStreamRequest, stopStream],
   );
 
   const startStream = useCallback(
     (runId: string, streamPath = getIngestRunEventsPath(runId)) => {
       stopStream();
 
-      const es = new EventSource(streamPath);
-      esRef.current = es;
+      const controller = new AbortController();
+      const requestId = nextStreamRequestIdRef.current + 1;
+      nextStreamRequestIdRef.current = requestId;
+      streamRef.current = { controller, requestId };
 
-      const handleEvent = (event: MessageEvent) => {
+      void (async () => {
         try {
-          const payload = JSON.parse(event.data) as Record<string, unknown>;
-          const runStatus = getRunStatusFromStreamEvent(
-            runId,
-            event.type,
-            payload,
-          );
+          const response = await fetch(streamPath, {
+            headers: {
+              Accept: "text/event-stream",
+            },
+            signal: controller.signal,
+          });
 
-          if (!runStatus) {
+          if (!response.ok || !response.body) {
+            throw new Error("Failed to open ingest event stream");
+          }
+
+          const contentType = response.headers.get("content-type");
+
+          if (!contentType?.includes("text/event-stream")) {
+            throw new Error("Unexpected ingest event stream content type");
+          }
+
+          await consumeIngestRunEventStream({
+            runId,
+            stream: response.body,
+            onRunStatus: (runStatus) => {
+              if (!isCurrentStreamRequest(requestId)) {
+                return "stop";
+              }
+
+              setState(getStateForRunStatus(runStatus));
+
+              if (isTerminalRunStatus(runStatus)) {
+                streamRef.current = null;
+                return "stop";
+              }
+            },
+          });
+
+          if (!isCurrentStreamRequest(requestId)) {
             return;
           }
 
-          setState(getStateForRunStatus(runStatus));
-
-          if (isTerminalRunStatus(runStatus)) {
-            stopStream();
-          }
+          await reconcileStreamError(runId, requestId);
         } catch {
-          // Malformed event — ignore
+          if (controller.signal.aborted || !isCurrentStreamRequest(requestId)) {
+            return;
+          }
+
+          await reconcileStreamError(runId, requestId);
         }
-      };
-
-      for (const kind of [
-        "message",
-        "run-queued",
-        "phase-start",
-        "phase-complete",
-        "step-start",
-        "step-complete",
-        "run-succeeded",
-        "run-failed",
-      ]) {
-        es.addEventListener(kind, handleEvent);
-      }
-
-      es.onerror = () => {
-        if (esRef.current !== es) {
-          return;
-        }
-
-        void reconcileStreamError(runId, es);
-      };
+      })();
     },
-    [reconcileStreamError, stopStream],
+    [isCurrentStreamRequest, reconcileStreamError, stopStream],
   );
 
   const upload = useCallback(
