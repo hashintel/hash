@@ -6,7 +6,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { RunStatus } from "./types";
+import type {
+  ActiveRunStatus,
+  RunStatus,
+  SucceededRunStatus,
+  TerminalRunStatus,
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Pure functions (functional core)
@@ -24,18 +29,36 @@ export function isTerminalStatus(
   return status === "succeeded" || status === "failed";
 }
 
+export function isTerminalRunStatus(
+  runStatus: RunStatus,
+): runStatus is TerminalRunStatus {
+  return isTerminalStatus(runStatus.status);
+}
+
+export function isActiveRunStatus(
+  runStatus: RunStatus,
+): runStatus is ActiveRunStatus {
+  return runStatus.status === "queued" || runStatus.status === "running";
+}
+
 export function shouldFetchResults(
   state: IngestRunState,
-): state is Extract<IngestRunState, { phase: "done" }> {
+): state is DoneIngestRunState & { runStatus: SucceededRunStatus } {
   return state.phase === "done" && state.runStatus.status === "succeeded";
 }
 
 export function getStateForRunStatus(
   runStatus: RunStatus,
-): Extract<IngestRunState, { phase: "streaming" | "done" }> {
-  return isTerminalStatus(runStatus.status)
-    ? { phase: "done", runStatus }
-    : { phase: "streaming", runStatus };
+): StreamingIngestRunState | DoneIngestRunState {
+  if (isTerminalRunStatus(runStatus)) {
+    return { phase: "done", runStatus };
+  }
+
+  if (isActiveRunStatus(runStatus)) {
+    return { phase: "streaming", runStatus };
+  }
+
+  throw new Error(`Unknown ingest run status: ${String(runStatus.status)}`);
 }
 
 export class IngestRunStatusError extends Error {
@@ -87,7 +110,7 @@ export async function loadResumeTargetForRun(
   runId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<{
-  state: Extract<IngestRunState, { phase: "streaming" | "done" }>;
+  state: StreamingIngestRunState | DoneIngestRunState;
   streamPath: string | null;
 }> {
   const runStatus = await loadIngestRunStatus(runId, fetchFn);
@@ -220,11 +243,21 @@ export function getRunStatusFromStreamEvent(
 // State machine
 // ---------------------------------------------------------------------------
 
+export type StreamingIngestRunState = {
+  phase: "streaming";
+  runStatus: ActiveRunStatus;
+};
+
+export type DoneIngestRunState = {
+  phase: "done";
+  runStatus: TerminalRunStatus;
+};
+
 export type IngestRunState =
   | { phase: "idle" }
   | { phase: "uploading" }
-  | { phase: "streaming"; runStatus: RunStatus }
-  | { phase: "done"; runStatus: RunStatus }
+  | StreamingIngestRunState
+  | DoneIngestRunState
   | { phase: "error"; message: string };
 
 // ---------------------------------------------------------------------------
@@ -333,11 +366,10 @@ export function useIngestRun() {
             return;
           }
 
-          if (isTerminalStatus(runStatus.status)) {
+          setState(getStateForRunStatus(runStatus));
+
+          if (isTerminalRunStatus(runStatus)) {
             stopStream();
-            setState({ phase: "done", runStatus });
-          } else {
-            setState({ phase: "streaming", runStatus });
           }
         } catch {
           // Malformed event — ignore

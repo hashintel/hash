@@ -9,8 +9,8 @@ import type { FunctionComponent } from "react";
 
 import { Button } from "../../shared/ui/button";
 import { getCountsSummary, getProgressLabel } from "./progress-labels";
-import type { RunStatus } from "./types";
-import type { IngestRunState } from "./use-ingest-run";
+import type { ActiveRunStatus } from "./types";
+import type { DoneIngestRunState, IngestRunState } from "./use-ingest-run";
 
 // ---------------------------------------------------------------------------
 // Sub-components (defined first to satisfy no-use-before-define)
@@ -33,7 +33,9 @@ const StatusCard: FunctionComponent<{ children: React.ReactNode }> = ({
   </Box>
 );
 
-const RunProgress: FunctionComponent<{ status: RunStatus }> = ({ status }) => {
+const RunProgress: FunctionComponent<{ status: ActiveRunStatus }> = ({
+  status,
+}) => {
   const label = getProgressLabel(status);
   const counts = getCountsSummary(status.counts);
 
@@ -56,6 +58,9 @@ const RunProgress: FunctionComponent<{ status: RunStatus }> = ({ status }) => {
     </Box>
   );
 };
+
+const getFailedRunError = (state: DoneIngestRunState): string | undefined =>
+  state.runStatus.status === "failed" ? state.runStatus.error : undefined;
 
 const DropZone: FunctionComponent<{ onUpload: (file: File) => void }> = ({
   onUpload,
@@ -135,11 +140,10 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
   }
 
   if (state.phase === "done") {
-    const succeeded = state.runStatus.status === "succeeded";
     const countsSummary = getCountsSummary(state.runStatus.counts);
     return (
       <StatusCard>
-        {succeeded ? (
+        {state.runStatus.status === "succeeded" ? (
           <>
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline complete!
@@ -164,9 +168,9 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline failed
             </Typography>
-            {state.runStatus.error && (
+            {getFailedRunError(state) && (
               <Typography variant="smallTextLabels" sx={{ color: "red.70" }}>
-                {state.runStatus.error}
+                {getFailedRunError(state)}
               </Typography>
             )}
             <Button

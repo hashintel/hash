@@ -1,14 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
+  type DoneIngestRunState,
   getResumeAttemptDisposition,
   getResumeFailureResolution,
   getRunStatusFromStreamEvent,
+  getStateForRunStatus,
   IngestRunStatusError,
   loadIngestRunStatus,
   loadResumeTargetForRun,
   recoverDoneStateFromStreamError,
   shouldFetchResults,
+  type StreamingIngestRunState,
 } from "./use-ingest-run";
 
 describe("loadIngestRunStatus", () => {
@@ -82,6 +85,20 @@ describe("loadResumeTargetForRun", () => {
   });
 });
 
+describe("ingest run state types", () => {
+  it("narrows streaming state to active statuses only", () => {
+    expectTypeOf<
+      StreamingIngestRunState["runStatus"]["status"]
+    >().toEqualTypeOf<"queued" | "running">();
+  });
+
+  it("narrows done state to terminal statuses only", () => {
+    expectTypeOf<DoneIngestRunState["runStatus"]["status"]>().toEqualTypeOf<
+      "succeeded" | "failed"
+    >();
+  });
+});
+
 describe("getRunStatusFromStreamEvent", () => {
   it("maps replayed non-terminal events into visible streaming progress", () => {
     expect(
@@ -132,7 +149,12 @@ describe("getRunStatusFromStreamEvent", () => {
         phase: "results",
       }),
     );
-    expect(shouldFetchResults({ phase: "done", runStatus })).toBe(true);
+    const doneState = getStateForRunStatus(runStatus);
+    expect(doneState.phase).toBe("done");
+    expect(shouldFetchResults(doneState)).toBe(true);
+    if (shouldFetchResults(doneState)) {
+      expectTypeOf(doneState.runStatus.status).toEqualTypeOf<"succeeded">();
+    }
   });
 
   it("ignores payloads for a different run when a payload runId is present", () => {

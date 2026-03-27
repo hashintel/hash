@@ -156,6 +156,22 @@ export interface RunStatus {
   error?: string;
 }
 
+export type ActiveRunStatus = RunStatus & {
+  status: "queued" | "running";
+};
+
+export type TerminalRunStatus = RunStatus & {
+  status: "succeeded" | "failed";
+};
+
+export type SucceededRunStatus = TerminalRunStatus & {
+  status: "succeeded";
+};
+
+export type FailedRunStatus = TerminalRunStatus & {
+  status: "failed";
+};
+
 // ---------------------------------------------------------------------------
 //  Mention context plans (assertion windows / fallback)
 // ---------------------------------------------------------------------------
