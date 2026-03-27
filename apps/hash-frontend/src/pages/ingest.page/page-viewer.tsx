@@ -1,129 +1,192 @@
 /**
- * Page viewer: PDF page image with bbox overlay highlights.
+ * Page viewer: continuous-scroll PDF page images with bbox overlay highlights.
+ *
+ * Renders all pages in a vertically scrolling container. Exposes a
+ * `scrollToPage` imperative handle for programmatic navigation.
  */
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 
-import { Button } from "../../shared/ui/button";
 import { bboxToPercentage } from "./bbox-transform";
-import type { Block, PageImageManifest } from "./types";
+import { highlightColors } from "./highlight-styles";
+import type { Anchor, Block, PageImageManifest } from "./types";
+
+export interface PageViewerHandle {
+  scrollToPage: (pageNumber: number) => void;
+}
 
 interface PageViewerProps {
   pageImages: PageImageManifest[];
   blocks: Block[];
   highlightedBlockIds: string[];
-  currentPage: number;
-  onPageChange: (page: number) => void;
 }
 
-export const PageViewer: FunctionComponent<PageViewerProps> = ({
-  pageImages,
-  blocks,
-  highlightedBlockIds,
-  currentPage,
-  onPageChange,
-}) => {
-  const totalPages = pageImages.length;
-  const pageImage = pageImages.find((img) => img.pageNumber === currentPage);
-  if (!pageImage) {
-    return null;
-  }
+interface HighlightedOverlay {
+  key: string;
+  block: Block;
+  anchor: Anchor;
+}
 
-  const visibleBlocks =
-    highlightedBlockIds.length > 0
-      ? blocks.filter(
-          (block) =>
-            highlightedBlockIds.includes(block.blockId) &&
-            block.anchors.some((anchor) => anchor.page === currentPage),
-        )
-      : [];
+// ---------------------------------------------------------------------------
+// Single page with bbox overlays (defined first for no-use-before-define)
+// ---------------------------------------------------------------------------
 
-  return (
-    <Box>
-      {/* Page navigation */}
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ mb: 1, fontSize: "0.875rem" }}
-      >
-        <Button
-          size="small"
-          variant="secondary"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage <= 1}
-        >
-          ← Prev
-        </Button>
-        <Typography variant="smallTextLabels">
-          Page {currentPage} / {totalPages}
-        </Typography>
-        <Button
-          size="small"
-          variant="secondary"
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage >= totalPages}
-        >
-          Next →
-        </Button>
-        {visibleBlocks.length > 0 && (
-          <Typography
-            variant="smallTextLabels"
-            sx={{ color: "blue.70", ml: 1 }}
-          >
-            {visibleBlocks.length} highlighted
-          </Typography>
-        )}
-      </Stack>
+const PageWithOverlays: FunctionComponent<{
+  pageImage: PageImageManifest;
+  totalPages: number;
+  highlightedOverlays: HighlightedOverlay[];
+  setRef: (el: HTMLDivElement | null) => void;
+}> = ({ pageImage, totalPages, highlightedOverlays, setRef }) => (
+  <Box ref={setRef} sx={{ width: "100%", maxWidth: 900 }}>
+    <Typography
+      variant="microText"
+      sx={{
+        color: "gray.50",
+        mb: 0.5,
+        textAlign: "center",
+      }}
+    >
+      Page {pageImage.pageNumber} of {totalPages}
+    </Typography>
+    <Box sx={{ position: "relative", lineHeight: 0 }}>
+      <img
+        src={pageImage.imageUrl}
+        alt={`Page ${pageImage.pageNumber}`}
+        style={{
+          width: "100%",
+          height: "auto",
+          border: "1px solid",
+          borderColor: "rgba(0, 0, 0, 0.12)",
+          borderRadius: "4px",
+        }}
+      />
 
-      {/* Page image with bbox overlays */}
-      <Box
-        sx={{ position: "relative", display: "inline-block", lineHeight: 0 }}
-      >
-        <img
-          src={pageImage.imageUrl}
-          alt={`Page ${currentPage}`}
-          style={{
-            maxWidth: "100%",
-            height: "auto",
-            border: "1px solid",
-            borderColor: "rgba(0, 0, 0, 0.12)",
-          }}
-        />
+      {highlightedOverlays.map(({ key, block, anchor }) => {
+        const pct = bboxToPercentage(
+          anchor.bbox,
+          pageImage.pdfPageWidth,
+          pageImage.pdfPageHeight,
+          pageImage.bboxOrigin,
+        );
 
-        {visibleBlocks.map((block) => {
-          const anchor = block.anchors.find((anc) => anc.page === currentPage);
-          if (!anchor) {
-            return null;
-          }
-
-          const pct = bboxToPercentage(
-            anchor.bbox,
-            pageImage.pdfPageWidth,
-            pageImage.pdfPageHeight,
-            pageImage.bboxOrigin,
-          );
-
-          return (
-            <Box
-              key={block.blockId}
-              title={`[${block.kind}] ${block.text.substring(0, 80)}`}
-              sx={{
-                position: "absolute",
-                left: `${pct.left}%`,
-                top: `${pct.top}%`,
-                width: `${pct.width}%`,
-                height: `${pct.height}%`,
-                border: "2px solid rgba(59, 130, 246, 0.7)",
-                backgroundColor: "rgba(59, 130, 246, 0.12)",
-                pointerEvents: "none",
-                boxSizing: "border-box",
-                borderRadius: "2px",
-              }}
-            />
-          );
-        })}
-      </Box>
+        return (
+          <Box
+            key={key}
+            title={`[${block.kind}] ${block.text.substring(0, 80)}`}
+            sx={{
+              position: "absolute",
+              left: `${pct.left}%`,
+              top: `${pct.top}%`,
+              width: `${pct.width}%`,
+              height: `${pct.height}%`,
+              border: `2px solid ${highlightColors.bboxBorder}`,
+              backgroundColor: highlightColors.bboxFill,
+              pointerEvents: "none",
+              boxSizing: "border-box",
+              borderRadius: "2px",
+            }}
+          />
+        );
+      })}
     </Box>
-  );
-};
+  </Box>
+);
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+export const PageViewer = forwardRef<PageViewerHandle, PageViewerProps>(
+  ({ pageImages, blocks, highlightedBlockIds }, ref) => {
+    const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+    const setPageRef = useCallback(
+      (pageNumber: number, el: HTMLDivElement | null) => {
+        if (el) {
+          pageRefs.current.set(pageNumber, el);
+        } else {
+          pageRefs.current.delete(pageNumber);
+        }
+      },
+      [],
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        scrollToPage(pageNumber: number) {
+          const el = pageRefs.current.get(pageNumber);
+          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+      }),
+      [],
+    );
+
+    const sortedPages = useMemo(
+      () => [...pageImages].sort((a, b) => a.pageNumber - b.pageNumber),
+      [pageImages],
+    );
+
+    const highlightedBlocksByPage = useMemo(() => {
+      if (highlightedBlockIds.length === 0) {
+        return new Map<number, HighlightedOverlay[]>();
+      }
+      const highlightedBlockIdSet = new Set(highlightedBlockIds);
+      const map = new Map<number, HighlightedOverlay[]>();
+      const seenOverlayKeysByPage = new Map<number, Set<string>>();
+      for (const block of blocks) {
+        if (!highlightedBlockIdSet.has(block.blockId)) {
+          continue;
+        }
+        for (const anchor of block.anchors) {
+          const overlay: HighlightedOverlay = {
+            key: `${block.blockId}:${anchor.page}:${anchor.bbox.x1}:${anchor.bbox.y1}:${anchor.bbox.x2}:${anchor.bbox.y2}`,
+            block,
+            anchor,
+          };
+          const seenOverlayKeys =
+            seenOverlayKeysByPage.get(anchor.page) ?? new Set<string>();
+          if (seenOverlayKeys.has(overlay.key)) {
+            continue;
+          }
+          seenOverlayKeys.add(overlay.key);
+          seenOverlayKeysByPage.set(anchor.page, seenOverlayKeys);
+          const existing = map.get(anchor.page) ?? [];
+          existing.push(overlay);
+          map.set(anchor.page, existing);
+        }
+      }
+      return map;
+    }, [blocks, highlightedBlockIds]);
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          alignItems: "center",
+        }}
+      >
+        {sortedPages.map((pageImage) => (
+          <PageWithOverlays
+            key={pageImage.pageNumber}
+            pageImage={pageImage}
+            totalPages={sortedPages.length}
+            highlightedOverlays={
+              highlightedBlocksByPage.get(pageImage.pageNumber) ?? []
+            }
+            setRef={(el) => setPageRef(pageImage.pageNumber, el)}
+          />
+        ))}
+      </Box>
+    );
+  },
+);
