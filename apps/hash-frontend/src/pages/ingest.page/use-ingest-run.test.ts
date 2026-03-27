@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getResumeFailureResolution,
+  IngestRunStatusError,
+  loadIngestRunStatus,
   loadResumeTargetForRun,
   recoverDoneStateFromStreamError,
   shouldFetchResults,
   statusFromEvent,
 } from "./use-ingest-run";
+
+describe("loadIngestRunStatus", () => {
+  it("preserves a not-found status for missing runs", async () => {
+    await expect(
+      loadIngestRunStatus("missing-run", () =>
+        Promise.resolve(new Response(null, { status: 404 })),
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: "IngestRunStatusError",
+        status: 404,
+      }),
+    );
+  });
+});
 
 describe("loadResumeTargetForRun", () => {
   it("restores queued or running runs into streaming state and resumes replay from the beginning", async () => {
@@ -78,6 +96,33 @@ describe("statusFromEvent", () => {
       phase: "discovery",
       step: "entity-resolution",
       counts: { pages: 3, chunks: 12 },
+    });
+  });
+});
+
+describe("getResumeFailureResolution", () => {
+  it("returns idle state and clears the runId for missing runs", () => {
+    expect(
+      getResumeFailureResolution(
+        new IngestRunStatusError("Failed to load run status: 404", 404),
+      ),
+    ).toEqual({
+      nextState: { phase: "idle" },
+      clearRunId: true,
+    });
+  });
+
+  it("keeps non-notfound failures visible to the user", () => {
+    expect(
+      getResumeFailureResolution(
+        new IngestRunStatusError("Failed to load run status: 500", 500),
+      ),
+    ).toEqual({
+      nextState: {
+        phase: "error",
+        message: "Failed to load run status: 500",
+      },
+      clearRunId: false,
     });
   });
 });

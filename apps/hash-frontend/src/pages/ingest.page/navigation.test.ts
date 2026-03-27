@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { getIngestNavigationAction, getIngestPath } from "./navigation";
+import {
+  getIngestNavigationAction,
+  getIngestPath,
+  getIngestResetNavigationAction,
+  getIngestResumeNavigationAction,
+} from "./navigation";
 
 describe("getIngestPath", () => {
   it("includes the runId query once a run has started", () => {
@@ -53,6 +58,78 @@ describe("getIngestNavigationAction", () => {
           status: "failed",
           error: "pipeline failed",
         },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("getIngestResetNavigationAction", () => {
+  it("clears a stale runId from the ingest URL when resetting a failed run", () => {
+    expect(
+      getIngestResetNavigationAction(
+        {
+          phase: "done",
+          runStatus: {
+            runId: "run-789",
+            status: "failed",
+            error: "pipeline failed",
+          },
+        },
+        { runId: "run-789" },
+      ),
+    ).toEqual({
+      kind: "replace",
+      path: "/ingest",
+    });
+  });
+
+  it("clears a stale runId from the ingest URL when resetting after an error", () => {
+    expect(
+      getIngestResetNavigationAction(
+        {
+          phase: "error",
+          message: "Lost connection to progress stream",
+        },
+        { runId: "run-789" },
+      ),
+    ).toEqual({
+      kind: "replace",
+      path: "/ingest",
+    });
+  });
+
+  it("does not affect succeeded runs", () => {
+    expect(
+      getIngestResetNavigationAction(
+        {
+          phase: "done",
+          runStatus: {
+            runId: "run-456",
+            status: "succeeded",
+          },
+        },
+        { runId: "run-456" },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("getIngestResumeNavigationAction", () => {
+  it("clears a stale runId from the ingest URL when resume discovers a missing run", () => {
+    expect(
+      getIngestResumeNavigationAction("cleared-missing-run", {
+        runId: "missing-run",
+      }),
+    ).toEqual({
+      kind: "replace",
+      path: "/ingest",
+    });
+  });
+
+  it("does not clear the URL for non-notfound resume failures", () => {
+    expect(
+      getIngestResumeNavigationAction("failed", {
+        runId: "missing-run",
       }),
     ).toBeNull();
   });
