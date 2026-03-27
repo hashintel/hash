@@ -14,24 +14,36 @@ import { useEffect } from "react";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { WorkersHeader } from "../shared/workers-header";
-import { getIngestResultsPath } from "./ingest.page/routing";
+import { getIngestNavigationAction } from "./ingest.page/navigation";
 import { UploadPanel } from "./ingest.page/upload-panel";
-import { shouldFetchResults, useIngestRun } from "./ingest.page/use-ingest-run";
+import { useIngestRun } from "./ingest.page/use-ingest-run";
+
+const normalizeQueryParam = (
+  value: string | string[] | undefined,
+): string | undefined => (typeof value === "string" ? value : value?.[0]);
 
 const IngestPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { state, upload, reset } = useIngestRun();
 
   useEffect(() => {
-    if (!shouldFetchResults(state)) {
+    const navigationAction = getIngestNavigationAction(state);
+
+    if (!navigationAction) {
       return;
     }
-    void router.push(
-      getIngestResultsPath({
-        kind: "run",
-        runId: state.runStatus.runId,
-      }),
-    );
+
+    if (navigationAction.kind === "replace" && state.phase === "streaming") {
+      const currentRunId = normalizeQueryParam(router.query.runId);
+      if (currentRunId === state.runStatus.runId) {
+        return;
+      }
+
+      void router.replace(navigationAction.path, undefined, { shallow: true });
+      return;
+    }
+
+    void router.push(navigationAction.path);
   }, [router, state]);
 
   return (
