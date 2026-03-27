@@ -10,6 +10,7 @@
     "build:docker": "docker buildx build --tag hash-frontend --file ../../infra/docker/frontend/prod/Dockerfile ../../ --load --build-arg FRONTEND_URL=\"$FRONTEND_URL\" --build-arg API_ORIGIN=\"$API_ORIGIN\"",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
+    "dev:test": "vitest",
     "fix:eslint": "eslint --fix .",
     "fix:format": "biome format --write",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -17,7 +18,8 @@
     "start": "next start",
     "start:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "start:test": "next start",
-    "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000"
+    "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000",
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
@@ -153,12 +155,14 @@
     "@types/react-dom": "19.2.3",
     "@types/react-window": "1.8.8",
     "@types/url-regex-safe": "1.0.2",
+    "@vitest/coverage-istanbul": "3.2.4",
     "@welldone-software/why-did-you-render": "10.0.1",
     "eslint": "9.39.3",
     "graphology-types": "0.24.8",
     "rimraf": "6.1.3",
     "sass": "1.93.2",
     "typescript": "5.9.3",
+    "vitest": "3.2.4",
     "wait-on": "9.0.1",
     "webpack": "5.104.1"
   }

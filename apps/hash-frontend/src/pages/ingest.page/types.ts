@@ -114,6 +114,7 @@ export interface RosterEntry {
 export interface ExtractedClaim {
   claimId: string;
   rosterEntryId: string;
+  linkedRosterEntryIds?: string[];
   claimText: string;
   subject: string;
   predicate: string;

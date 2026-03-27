@@ -16,6 +16,7 @@ import {
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
+import { groupClaimsByEntity } from "./claim-grouping";
 import type { Selection } from "./evidence-resolver";
 import {
   buildEntityAssertionMap,
@@ -271,15 +272,7 @@ export const ResultsPanel: FunctionComponent<ResultsPanelProps> = ({
     [mentionContexts],
   );
 
-  const claimsByEntity = useMemo(() => {
-    const map = new Map<string, ExtractedClaim[]>();
-    for (const claim of claims) {
-      const existing = map.get(claim.rosterEntryId) ?? [];
-      existing.push(claim);
-      map.set(claim.rosterEntryId, existing);
-    }
-    return map;
-  }, [claims]);
+  const claimsByEntity = useMemo(() => groupClaimsByEntity(claims), [claims]);
 
   return (
     <Box

@@ -30,6 +30,32 @@ export function shouldFetchResults(
   return state.phase === "done" && state.runStatus.status === "succeeded";
 }
 
+export async function loadIngestRunStatus(
+  runId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<RunStatus> {
+  const response = await fetchFn(
+    `/api/ingest/${encodeURIComponent(runId)}/status`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load run status: ${response.status}`);
+  }
+
+  return (await response.json()) as RunStatus;
+}
+
+export async function recoverDoneStateFromStreamError(
+  runId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Extract<IngestRunState, { phase: "done" }> | null> {
+  const runStatus = await loadIngestRunStatus(runId, fetchFn);
+
+  return isTerminalStatus(runStatus.status)
+    ? { phase: "done", runStatus }
+    : null;
+}
+
 /** Map an SSE event payload to a RunStatus shape for the UI. */
 export function statusFromEvent(
   runId: string,
@@ -71,6 +97,7 @@ export type IngestRunState =
 export function useIngestRun() {
   const [state, setState] = useState<IngestRunState>({ phase: "idle" });
   const esRef = useRef<EventSource | null>(null);
+  const isRecoveringRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -84,6 +111,57 @@ export function useIngestRun() {
       esRef.current = null;
     }
   }, []);
+
+  const reconcileStreamError = useCallback(
+    async (runId: string, eventSource: EventSource) => {
+      if (isRecoveringRef.current) {
+        return;
+      }
+
+      isRecoveringRef.current = true;
+
+      try {
+        const recoveredState = await recoverDoneStateFromStreamError(runId);
+
+        if (esRef.current !== eventSource) {
+          return;
+        }
+
+        if (recoveredState) {
+          stopStream();
+          setState(recoveredState);
+          return;
+        }
+
+        if (eventSource.readyState !== EventSource.CLOSED) {
+          return;
+        }
+
+        stopStream();
+        setState({
+          phase: "error",
+          message: "Lost connection to progress stream",
+        });
+      } catch {
+        if (esRef.current !== eventSource) {
+          return;
+        }
+
+        if (eventSource.readyState !== EventSource.CLOSED) {
+          return;
+        }
+
+        stopStream();
+        setState({
+          phase: "error",
+          message: "Lost connection to progress stream",
+        });
+      } finally {
+        isRecoveringRef.current = false;
+      }
+    },
+    [stopStream],
+  );
 
   const startStream = useCallback(
     (runId: string) => {
@@ -121,17 +199,14 @@ export function useIngestRun() {
       }
 
       es.onerror = () => {
-        if (!esRef.current) {
+        if (esRef.current !== es) {
           return;
         }
-        stopStream();
-        setState({
-          phase: "error",
-          message: "Lost connection to progress stream",
-        });
+
+        void reconcileStreamError(runId, es);
       };
     },
-    [stopStream],
+    [reconcileStreamError, stopStream],
   );
 
   const upload = useCallback(
