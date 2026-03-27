@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getResumeAttemptDisposition,
   getResumeFailureResolution,
+  getRunStatusFromStreamEvent,
   IngestRunStatusError,
   loadIngestRunStatus,
   loadResumeTargetForRun,
   recoverDoneStateFromStreamError,
   shouldFetchResults,
-  statusFromEvent,
 } from "./use-ingest-run";
 
 describe("loadIngestRunStatus", () => {
@@ -81,10 +82,10 @@ describe("loadResumeTargetForRun", () => {
   });
 });
 
-describe("statusFromEvent", () => {
+describe("getRunStatusFromStreamEvent", () => {
   it("maps replayed non-terminal events into visible streaming progress", () => {
     expect(
-      statusFromEvent("run-queued", "phase-start", {
+      getRunStatusFromStreamEvent("run-queued", "phase-start", {
         status: "running",
         phase: "discovery",
         step: "entity-resolution",
@@ -97,6 +98,51 @@ describe("statusFromEvent", () => {
       step: "entity-resolution",
       counts: { pages: 3, chunks: 12 },
     });
+  });
+
+  it("maps default message events into visible streaming progress", () => {
+    expect(
+      getRunStatusFromStreamEvent("run-queued", "message", {
+        status: "running",
+        phase: "discovery",
+        step: "entity-resolution",
+      }),
+    ).toMatchObject({
+      runId: "run-queued",
+      status: "running",
+      phase: "discovery",
+      step: "entity-resolution",
+    });
+  });
+
+  it("maps default message terminal payloads into terminal run state", () => {
+    const runStatus = getRunStatusFromStreamEvent("run-queued", "message", {
+      status: "succeeded",
+      phase: "results",
+    });
+
+    if (!runStatus) {
+      throw new Error("Expected a terminal run status from the stream event");
+    }
+
+    expect(runStatus).toEqual(
+      expect.objectContaining({
+        runId: "run-queued",
+        status: "succeeded",
+        phase: "results",
+      }),
+    );
+    expect(shouldFetchResults({ phase: "done", runStatus })).toBe(true);
+  });
+
+  it("ignores payloads for a different run when a payload runId is present", () => {
+    expect(
+      getRunStatusFromStreamEvent("run-queued", "message", {
+        runId: "run-other",
+        status: "running",
+        phase: "discovery",
+      }),
+    ).toBeNull();
   });
 });
 
@@ -124,6 +170,41 @@ describe("getResumeFailureResolution", () => {
       },
       clearRunId: false,
     });
+  });
+});
+
+describe("getResumeAttemptDisposition", () => {
+  it("treats a resume as superseded when a newer session generation has taken over", () => {
+    expect(
+      getResumeAttemptDisposition({
+        expectedRunId: "run-123",
+        currentResumingRunId: "run-123",
+        expectedSessionGeneration: 1,
+        currentSessionGeneration: 2,
+      }),
+    ).toBe("superseded");
+  });
+
+  it("treats a resume as superseded when the pending resume id has been cleared", () => {
+    expect(
+      getResumeAttemptDisposition({
+        expectedRunId: "run-123",
+        currentResumingRunId: null,
+        expectedSessionGeneration: 1,
+        currentSessionGeneration: 1,
+      }),
+    ).toBe("superseded");
+  });
+
+  it("keeps a resume current when its run and session generation still match", () => {
+    expect(
+      getResumeAttemptDisposition({
+        expectedRunId: "run-123",
+        currentResumingRunId: "run-123",
+        expectedSessionGeneration: 2,
+        currentSessionGeneration: 2,
+      }),
+    ).toBe("apply");
   });
 });
 

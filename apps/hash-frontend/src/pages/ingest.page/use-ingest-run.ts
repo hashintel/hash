@@ -111,7 +111,32 @@ export async function recoverDoneStateFromStreamError(
   return state.phase === "done" ? state : null;
 }
 
-export type IngestResumeOutcome = "loaded" | "cleared-missing-run" | "failed";
+export type IngestResumeOutcome =
+  | "loaded"
+  | "cleared-missing-run"
+  | "failed"
+  | "superseded";
+
+export function getResumeAttemptDisposition({
+  expectedRunId,
+  currentResumingRunId,
+  expectedSessionGeneration,
+  currentSessionGeneration,
+}: {
+  expectedRunId: string;
+  currentResumingRunId: string | null;
+  expectedSessionGeneration: number;
+  currentSessionGeneration: number;
+}): "apply" | "superseded" {
+  if (
+    currentResumingRunId !== expectedRunId ||
+    currentSessionGeneration !== expectedSessionGeneration
+  ) {
+    return "superseded";
+  }
+
+  return "apply";
+}
 
 export function getResumeFailureResolution(error: unknown): {
   nextState: Extract<IngestRunState, { phase: "idle" | "error" }>;
@@ -133,18 +158,53 @@ export function getResumeFailureResolution(error: unknown): {
   };
 }
 
-/** Map an SSE event payload to a RunStatus shape for the UI. */
-export function statusFromEvent(
+const isRunStatus = (value: unknown): value is RunStatus["status"] =>
+  value === "queued" ||
+  value === "running" ||
+  value === "succeeded" ||
+  value === "failed";
+
+const getPayloadRunId = (payload: Record<string, unknown>): string | null => {
+  const payloadRunId = payload.runId;
+
+  return typeof payloadRunId === "string" ? payloadRunId : null;
+};
+
+const getEffectiveEventKind = (
+  eventKind: string,
+  payload: Record<string, unknown>,
+): string => {
+  if (eventKind !== "message") {
+    return eventKind;
+  }
+
+  const payloadEventKind = payload.event;
+
+  return typeof payloadEventKind === "string" ? payloadEventKind : eventKind;
+};
+
+/** Normalize an SSE browser event into the current run's visible status. */
+export function getRunStatusFromStreamEvent(
   runId: string,
   eventKind: string,
   payload: Record<string, unknown>,
-): RunStatus {
+): RunStatus | null {
+  const payloadRunId = getPayloadRunId(payload);
+
+  if (payloadRunId && payloadRunId !== runId) {
+    return null;
+  }
+
+  const effectiveEventKind = getEffectiveEventKind(eventKind, payload);
   const status: RunStatus["status"] =
-    eventKind === "run-succeeded"
+    effectiveEventKind === "run-succeeded"
       ? "succeeded"
-      : eventKind === "run-failed"
+      : effectiveEventKind === "run-failed"
         ? "failed"
-        : ((payload.status as RunStatus["status"] | undefined) ?? "running");
+        : isRunStatus(payload.status)
+          ? payload.status
+          : "running";
+
   return {
     runId,
     status,
@@ -177,6 +237,7 @@ export function useIngestRun() {
   const isRecoveringRef = useRef(false);
   const currentRunIdRef = useRef<string | null>(null);
   const resumingRunIdRef = useRef<string | null>(null);
+  const sessionGenerationRef = useRef(0);
 
   useEffect(() => {
     currentRunIdRef.current =
@@ -194,6 +255,11 @@ export function useIngestRun() {
       esRef.current.close();
       esRef.current = null;
     }
+  }, []);
+
+  const supersedePendingResume = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    resumingRunIdRef.current = null;
   }, []);
 
   const reconcileStreamError = useCallback(
@@ -257,7 +323,15 @@ export function useIngestRun() {
       const handleEvent = (event: MessageEvent) => {
         try {
           const payload = JSON.parse(event.data) as Record<string, unknown>;
-          const runStatus = statusFromEvent(runId, event.type, payload);
+          const runStatus = getRunStatusFromStreamEvent(
+            runId,
+            event.type,
+            payload,
+          );
+
+          if (!runStatus) {
+            return;
+          }
 
           if (isTerminalStatus(runStatus.status)) {
             stopStream();
@@ -271,6 +345,7 @@ export function useIngestRun() {
       };
 
       for (const kind of [
+        "message",
         "run-queued",
         "phase-start",
         "phase-complete",
@@ -295,6 +370,8 @@ export function useIngestRun() {
 
   const upload = useCallback(
     async (file: File) => {
+      supersedePendingResume();
+
       if (!isPdfFile(file)) {
         setState({ phase: "error", message: "Only PDF files are accepted" });
         return;
@@ -334,7 +411,7 @@ export function useIngestRun() {
         });
       }
     },
-    [startStream],
+    [startStream, supersedePendingResume],
   );
 
   const resume = useCallback(
@@ -353,12 +430,20 @@ export function useIngestRun() {
       }
 
       resumingRunIdRef.current = normalizedRunId;
+      const sessionGeneration = sessionGenerationRef.current;
 
       try {
         const resumeTarget = await loadResumeTargetForRun(normalizedRunId);
 
-        if (resumingRunIdRef.current !== normalizedRunId) {
-          return "loaded";
+        if (
+          getResumeAttemptDisposition({
+            expectedRunId: normalizedRunId,
+            currentResumingRunId: resumingRunIdRef.current,
+            expectedSessionGeneration: sessionGeneration,
+            currentSessionGeneration: sessionGenerationRef.current,
+          }) === "superseded"
+        ) {
+          return "superseded";
         }
 
         stopStream();
@@ -370,8 +455,15 @@ export function useIngestRun() {
 
         return "loaded";
       } catch (err) {
-        if (resumingRunIdRef.current !== normalizedRunId) {
-          return "loaded";
+        if (
+          getResumeAttemptDisposition({
+            expectedRunId: normalizedRunId,
+            currentResumingRunId: resumingRunIdRef.current,
+            expectedSessionGeneration: sessionGeneration,
+            currentSessionGeneration: sessionGenerationRef.current,
+          }) === "superseded"
+        ) {
+          return "superseded";
         }
 
         const failure = getResumeFailureResolution(err);
@@ -389,9 +481,10 @@ export function useIngestRun() {
   );
 
   const reset = useCallback(() => {
+    supersedePendingResume();
     stopStream();
     setState({ phase: "idle" });
-  }, [stopStream]);
+  }, [stopStream, supersedePendingResume]);
 
   return { state, upload, reset, resume };
 }

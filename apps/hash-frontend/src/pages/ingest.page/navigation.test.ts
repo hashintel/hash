@@ -133,4 +133,12 @@ describe("getIngestResumeNavigationAction", () => {
       }),
     ).toBeNull();
   });
+
+  it("does not clear the URL for a superseded resume", () => {
+    expect(
+      getIngestResumeNavigationAction("superseded", {
+        runId: "missing-run",
+      }),
+    ).toBeNull();
+  });
 });
