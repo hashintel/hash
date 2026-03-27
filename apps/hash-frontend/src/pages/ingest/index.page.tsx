@@ -16,9 +16,13 @@ import { isIngestEnabled } from "../../lib/public-env";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { WorkersHeader } from "../../shared/workers-header";
-import { getIngestResultsPath } from "./shared/routing";
+import { getIngestNavigationAction } from "./index.page/navigation";
 import { UploadPanel } from "./index.page/upload-panel";
-import { shouldFetchResults, useIngestRun } from "./index.page/use-ingest-run";
+import { useIngestRun } from "./index.page/use-ingest-run";
+
+const normalizeQueryParam = (
+  value: string | string[] | undefined,
+): string | undefined => (typeof value === "string" ? value : value?.[0]);
 
 export const getServerSideProps: GetServerSideProps = () =>
   Promise.resolve(isIngestEnabled ? { props: {} } : { notFound: true });
@@ -28,15 +32,23 @@ const IngestPage: NextPageWithLayout = () => {
   const { state, upload, reset } = useIngestRun();
 
   useEffect(() => {
-    if (!shouldFetchResults(state)) {
+    const navigationAction = getIngestNavigationAction(state);
+
+    if (!navigationAction) {
       return;
     }
-    void router.push(
-      getIngestResultsPath({
-        kind: "run",
-        runId: state.runStatus.runId,
-      }),
-    );
+
+    if (navigationAction.kind === "replace" && state.phase === "streaming") {
+      const currentRunId = normalizeQueryParam(router.query.runId);
+      if (currentRunId === state.runStatus.runId) {
+        return;
+      }
+
+      void router.replace(navigationAction.path, undefined, { shallow: true });
+      return;
+    }
+
+    void router.push(navigationAction.path);
   }, [router, state]);
 
   return (
