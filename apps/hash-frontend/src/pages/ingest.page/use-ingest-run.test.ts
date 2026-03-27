@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
+  consumeIngestRunEventStream,
   type DoneIngestRunState,
   getResumeAttemptDisposition,
   getResumeFailureResolution,
@@ -9,10 +10,23 @@ import {
   IngestRunStatusError,
   loadIngestRunStatus,
   loadResumeTargetForRun,
+  parseSseFrameBuffer,
   recoverDoneStateFromStreamError,
   shouldFetchResults,
   type StreamingIngestRunState,
 } from "./use-ingest-run";
+
+const encoder = new TextEncoder();
+
+const createSseStream = (...chunks: string[]) =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(encoder.encode(chunk));
+      }
+      controller.close();
+    },
+  });
 
 describe("loadIngestRunStatus", () => {
   it("preserves a not-found status for missing runs", async () => {
@@ -165,6 +179,71 @@ describe("getRunStatusFromStreamEvent", () => {
         phase: "discovery",
       }),
     ).toBeNull();
+  });
+});
+
+describe("parseSseFrameBuffer", () => {
+  it("parses arbitrary custom event names from raw SSE frames", () => {
+    expect(
+      parseSseFrameBuffer(
+        'event: phase-progress\ndata: {"status":"running","phase":"discovery"}\n\n',
+      ),
+    ).toEqual({
+      messages: [
+        {
+          event: "phase-progress",
+          data: '{"status":"running","phase":"discovery"}',
+        },
+      ],
+      remainder: "",
+    });
+  });
+});
+
+describe("consumeIngestRunEventStream", () => {
+  it("updates progress from a valid payload delivered under an unknown event name", async () => {
+    const runStatuses: unknown[] = [];
+
+    await consumeIngestRunEventStream({
+      runId: "run-123",
+      stream: createSseStream(
+        'event: phase-progress\ndata: {"status":"running","phase":"discovery","step":"entity-resolution"}\n\n',
+      ),
+      onRunStatus: (runStatus) => {
+        runStatuses.push(runStatus);
+      },
+    });
+
+    expect(runStatuses).toEqual([
+      expect.objectContaining({
+        runId: "run-123",
+        status: "running",
+        phase: "discovery",
+        step: "entity-resolution",
+      }),
+    ]);
+  });
+
+  it("completes from a terminal payload delivered under an unknown event name", async () => {
+    const runStatuses: unknown[] = [];
+
+    await consumeIngestRunEventStream({
+      runId: "run-999",
+      stream: createSseStream(
+        'event: phase-progress\ndata: {"status":"succeeded","phase":"results"}\n\n',
+      ),
+      onRunStatus: (runStatus) => {
+        runStatuses.push(runStatus);
+      },
+    });
+
+    expect(runStatuses).toEqual([
+      expect.objectContaining({
+        runId: "run-999",
+        status: "succeeded",
+        phase: "results",
+      }),
+    ]);
   });
 });
 
