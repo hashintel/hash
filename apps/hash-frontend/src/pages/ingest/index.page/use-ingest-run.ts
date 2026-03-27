@@ -53,19 +53,39 @@ export async function loadIngestRunStatus(
   return (await response.json()) as RunStatus;
 }
 
+export function getIngestRunEventsPath(
+  runId: string,
+  options?: { after?: number },
+): string {
+  const path = `/api/ingest/${encodeURIComponent(runId)}/events`;
+
+  if (options?.after === undefined) {
+    return path;
+  }
+
+  const searchParams = new URLSearchParams({
+    after: String(options.after),
+  });
+
+  return `${path}?${searchParams.toString()}`;
+}
+
 export async function loadResumeTargetForRun(
   runId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<{
   state: Extract<IngestRunState, { phase: "streaming" | "done" }>;
-  shouldStartStream: boolean;
+  streamPath: string | null;
 }> {
   const runStatus = await loadIngestRunStatus(runId, fetchFn);
   const state = getStateForRunStatus(runStatus);
 
   return {
     state,
-    shouldStartStream: state.phase === "streaming",
+    streamPath:
+      state.phase === "streaming"
+        ? getIngestRunEventsPath(runId, { after: 0 })
+        : null,
   };
 }
 
@@ -193,10 +213,10 @@ export function useIngestRun() {
   );
 
   const startStream = useCallback(
-    (runId: string) => {
+    (runId: string, streamPath = getIngestRunEventsPath(runId)) => {
       stopStream();
 
-      const es = new EventSource(`/api/ingest/${runId}/events`);
+      const es = new EventSource(streamPath);
       esRef.current = es;
 
       const handleEvent = (event: MessageEvent) => {
@@ -309,8 +329,8 @@ export function useIngestRun() {
         stopStream();
         setState(resumeTarget.state);
 
-        if (resumeTarget.shouldStartStream) {
-          startStream(normalizedRunId);
+        if (resumeTarget.streamPath) {
+          startStream(normalizedRunId, resumeTarget.streamPath);
         }
       } catch (err) {
         if (resumingRunIdRef.current !== normalizedRunId) {

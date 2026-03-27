@@ -4,10 +4,11 @@ import {
   loadResumeTargetForRun,
   recoverDoneStateFromStreamError,
   shouldFetchResults,
+  statusFromEvent,
 } from "./use-ingest-run";
 
 describe("loadResumeTargetForRun", () => {
-  it("restores queued or running runs into streaming state and resumes the stream", async () => {
+  it("restores queued or running runs into streaming state and resumes replay from the beginning", async () => {
     const restoredTarget = await loadResumeTargetForRun("run-queued", () =>
       Promise.resolve(
         new Response(
@@ -31,11 +32,11 @@ describe("loadResumeTargetForRun", () => {
           step: "received",
         },
       },
-      shouldStartStream: true,
+      streamPath: "/api/ingest/run-queued/events?after=0",
     });
   });
 
-  it("restores failed runs into done state without resuming the stream", async () => {
+  it("restores failed runs into done state without resuming replay", async () => {
     const restoredTarget = await loadResumeTargetForRun("run-failed", () =>
       Promise.resolve(
         new Response(
@@ -57,7 +58,26 @@ describe("loadResumeTargetForRun", () => {
           error: "pipeline failed",
         },
       },
-      shouldStartStream: false,
+      streamPath: null,
+    });
+  });
+});
+
+describe("statusFromEvent", () => {
+  it("maps replayed non-terminal events into visible streaming progress", () => {
+    expect(
+      statusFromEvent("run-queued", "phase-start", {
+        status: "running",
+        phase: "discovery",
+        step: "entity-resolution",
+        counts: { pages: 3, chunks: 12 },
+      }),
+    ).toMatchObject({
+      runId: "run-queued",
+      status: "running",
+      phase: "discovery",
+      step: "entity-resolution",
+      counts: { pages: 3, chunks: 12 },
     });
   });
 });

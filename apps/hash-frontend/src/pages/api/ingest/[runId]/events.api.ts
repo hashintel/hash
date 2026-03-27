@@ -91,8 +91,17 @@ export default async function handler(
       "X-Content-Type-Options": "nosniff",
       "X-Accel-Buffering": "no",
     });
+    res.flushHeaders();
 
     const reader = upstream.body.getReader();
+    const abortUpstream = () => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      abortController.abort();
+      reader.cancel().catch(() => {});
+    };
 
     const pump = async () => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- loop until stream ends
@@ -106,9 +115,14 @@ export default async function handler(
       res.end();
     };
 
-    req.on("close", () => {
-      abortController.abort();
-      reader.cancel().catch(() => {});
+    req.on("aborted", () => {
+      abortUpstream();
+    });
+
+    res.on("close", () => {
+      if (!res.writableEnded) {
+        abortUpstream();
+      }
     });
 
     await pump();
