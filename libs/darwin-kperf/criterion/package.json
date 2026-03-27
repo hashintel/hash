@@ -1,6 +1,6 @@
 {
   "name": "@rust/darwin-kperf-criterion",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Criterion measurement plugin using Apple's hardware performance counters",
   "license": "MIT OR Apache-2.0",

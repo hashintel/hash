@@ -1933,7 +1933,7 @@ dependencies = [
 
 [[package]]
 name = "darwin-kperf"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "darwin-kperf-events",
  "darwin-kperf-sys",
@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "darwin-kperf-codegen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "convert_case 0.11.0",
  "plist",
@@ -1954,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "darwin-kperf-criterion"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "codspeed-criterion-compat-walltime",
  "criterion",
@@ -1964,11 +1964,11 @@ dependencies = [
 
 [[package]]
 name = "darwin-kperf-events"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "darwin-kperf-sys"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "dashu-base"
