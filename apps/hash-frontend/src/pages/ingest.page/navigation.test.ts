@@ -43,4 +43,17 @@ describe("getIngestNavigationAction", () => {
       path: "/ingest/results?runId=run-456",
     });
   });
+
+  it("keeps failed runs on the ingest page", () => {
+    expect(
+      getIngestNavigationAction({
+        phase: "done",
+        runStatus: {
+          runId: "run-789",
+          status: "failed",
+          error: "pipeline failed",
+        },
+      }),
+    ).toBeNull();
+  });
 });

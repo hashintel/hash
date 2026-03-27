@@ -30,6 +30,14 @@ export function shouldFetchResults(
   return state.phase === "done" && state.runStatus.status === "succeeded";
 }
 
+export function getStateForRunStatus(
+  runStatus: RunStatus,
+): Extract<IngestRunState, { phase: "streaming" | "done" }> {
+  return isTerminalStatus(runStatus.status)
+    ? { phase: "done", runStatus }
+    : { phase: "streaming", runStatus };
+}
+
 export async function loadIngestRunStatus(
   runId: string,
   fetchFn: typeof fetch = fetch,
@@ -45,15 +53,29 @@ export async function loadIngestRunStatus(
   return (await response.json()) as RunStatus;
 }
 
+export async function loadResumeTargetForRun(
+  runId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{
+  state: Extract<IngestRunState, { phase: "streaming" | "done" }>;
+  shouldStartStream: boolean;
+}> {
+  const runStatus = await loadIngestRunStatus(runId, fetchFn);
+  const state = getStateForRunStatus(runStatus);
+
+  return {
+    state,
+    shouldStartStream: state.phase === "streaming",
+  };
+}
+
 export async function recoverDoneStateFromStreamError(
   runId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<Extract<IngestRunState, { phase: "done" }> | null> {
-  const runStatus = await loadIngestRunStatus(runId, fetchFn);
+  const { state } = await loadResumeTargetForRun(runId, fetchFn);
 
-  return isTerminalStatus(runStatus.status)
-    ? { phase: "done", runStatus }
-    : null;
+  return state.phase === "done" ? state : null;
 }
 
 /** Map an SSE event payload to a RunStatus shape for the UI. */
@@ -98,6 +120,13 @@ export function useIngestRun() {
   const [state, setState] = useState<IngestRunState>({ phase: "idle" });
   const esRef = useRef<EventSource | null>(null);
   const isRecoveringRef = useRef(false);
+  const currentRunIdRef = useRef<string | null>(null);
+  const resumingRunIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    currentRunIdRef.current =
+      "runStatus" in state ? state.runStatus.runId : null;
+  }, [state]);
 
   useEffect(() => {
     return () => {
@@ -237,10 +266,10 @@ export function useIngestRun() {
 
         const status: RunStatus = (await res.json()) as RunStatus;
 
-        if (isTerminalStatus(status.status)) {
-          setState({ phase: "done", runStatus: status });
-        } else {
-          setState({ phase: "streaming", runStatus: status });
+        const nextState = getStateForRunStatus(status);
+        setState(nextState);
+
+        if (nextState.phase === "streaming") {
           startStream(status.runId);
         }
       } catch (err) {
@@ -253,10 +282,59 @@ export function useIngestRun() {
     [startStream],
   );
 
+  const resume = useCallback(
+    async (runId: string) => {
+      const normalizedRunId = runId.trim();
+
+      if (!normalizedRunId) {
+        return;
+      }
+
+      if (
+        currentRunIdRef.current === normalizedRunId ||
+        resumingRunIdRef.current === normalizedRunId
+      ) {
+        return;
+      }
+
+      resumingRunIdRef.current = normalizedRunId;
+
+      try {
+        const resumeTarget = await loadResumeTargetForRun(normalizedRunId);
+
+        if (resumingRunIdRef.current !== normalizedRunId) {
+          return;
+        }
+
+        stopStream();
+        setState(resumeTarget.state);
+
+        if (resumeTarget.shouldStartStream) {
+          startStream(normalizedRunId);
+        }
+      } catch (err) {
+        if (resumingRunIdRef.current !== normalizedRunId) {
+          return;
+        }
+
+        stopStream();
+        setState({
+          phase: "error",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        if (resumingRunIdRef.current === normalizedRunId) {
+          resumingRunIdRef.current = null;
+        }
+      }
+    },
+    [startStream, stopStream],
+  );
+
   const reset = useCallback(() => {
     stopStream();
     setState({ phase: "idle" });
   }, [stopStream]);
 
-  return { state, upload, reset };
+  return { state, upload, reset, resume };
 }

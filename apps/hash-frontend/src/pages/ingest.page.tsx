@@ -24,7 +24,16 @@ const normalizeQueryParam = (
 
 const IngestPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { state, upload, reset } = useIngestRun();
+  const { state, upload, reset, resume } = useIngestRun();
+  const runId = normalizeQueryParam(router.query.runId);
+
+  useEffect(() => {
+    if (!router.isReady || !runId) {
+      return;
+    }
+
+    void resume(runId);
+  }, [resume, router.isReady, runId]);
 
   useEffect(() => {
     const navigationAction = getIngestNavigationAction(state);
@@ -34,8 +43,7 @@ const IngestPage: NextPageWithLayout = () => {
     }
 
     if (navigationAction.kind === "replace" && state.phase === "streaming") {
-      const currentRunId = normalizeQueryParam(router.query.runId);
-      if (currentRunId === state.runStatus.runId) {
+      if (runId === state.runStatus.runId) {
         return;
       }
 
@@ -44,7 +52,7 @@ const IngestPage: NextPageWithLayout = () => {
     }
 
     void router.push(navigationAction.path);
-  }, [router, state]);
+  }, [router, runId, state]);
 
   return (
     <>
