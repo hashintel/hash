@@ -38,7 +38,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "7.65.0",
     "storybook": "9.1.19",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",

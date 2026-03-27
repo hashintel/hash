@@ -106,7 +106,7 @@
     "sanitize-html": "2.17.0",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.20.6",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "ws": "8.18.3"
   },
   "devDependencies": {
@@ -131,7 +131,7 @@
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "vitest": "3.2.4",
     "wait-on": "9.0.1"
   }
