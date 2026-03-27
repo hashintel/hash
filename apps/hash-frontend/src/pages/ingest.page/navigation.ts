@@ -1,5 +1,9 @@
 import { getIngestResultsPath } from "./routing";
-import type { IngestResumeOutcome, IngestRunState } from "./use-ingest-run";
+import type {
+  DoneIngestRunState,
+  IngestResumeOutcome,
+  IngestRunState,
+} from "./use-ingest-run";
 
 export type IngestNavigationAction =
   | { kind: "replace"; path: string }
@@ -37,6 +41,14 @@ export function getIngestNavigationAction(
   return null;
 }
 
+function isFailedDoneState(
+  state: IngestRunState,
+): state is DoneIngestRunState & {
+  runStatus: DoneIngestRunState["runStatus"] & { status: "failed" };
+} {
+  return state.phase === "done" && state.runStatus.status === "failed";
+}
+
 export function getIngestResetNavigationAction(
   state: IngestRunState,
   query?: { runId?: string },
@@ -47,10 +59,7 @@ export function getIngestResetNavigationAction(
     return null;
   }
 
-  if (
-    state.phase === "error" ||
-    (state.phase === "done" && state.runStatus.status === "failed")
-  ) {
+  if (state.phase === "error" || isFailedDoneState(state)) {
     return {
       kind: "replace",
       path: getIngestPath(),
