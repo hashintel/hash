@@ -1,5 +1,11 @@
 # @hashintel/petrinaut
 
+## 0.0.12
+
+### Patch Changes
+
+- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - better scoping of styles, font loading
+
 ## 0.0.11
 
 ### Patch Changes
