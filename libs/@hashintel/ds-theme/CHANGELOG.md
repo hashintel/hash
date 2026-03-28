@@ -1,5 +1,11 @@
 # @hashintel/ds-theme
 
+## 0.1.2
+
+### Patch Changes
+
+- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - provide theme scoping utility function
+
 ## 0.1.1
 
 ### Patch Changes
