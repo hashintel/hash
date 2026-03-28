@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { IconButton } from "../../../../../../../components/icon-button";
@@ -8,6 +9,8 @@ import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { generateDefaultTransitionKernelCode } from "../../../../../../../core/default-codes";
+import { ExpressionOutputPanel } from "../../../../../../../expression/expression-output-panel";
+import { useExpressionOutput } from "../../../../../../../expression/use-expression-ir-output";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../../../state/editor-context";
@@ -28,6 +31,29 @@ const contentStyle = css({
   flexDirection: "column",
   flex: "[1]",
   minHeight: "[0]",
+});
+
+const panelGroupStyle = css({
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+const panelStyle = css({
+  height: "full",
+});
+
+const resizeHandleStyle = css({
+  borderLeftWidth: "thin",
+  borderLeftColor: "neutral.a20",
+  cursor: "ew-resize",
+  backgroundColor: "[transparent]",
+  transition: "[background-color 0.15s ease]",
+  "&[data-separator=hover]": {
+    backgroundColor: "neutral.a40",
+  },
+  "&[data-separator=active]": {
+    backgroundColor: "blue.s60",
+  },
 });
 
 const messageStyle = css({
@@ -136,6 +162,7 @@ const ResultsHeaderAction: React.FC = () => {
 const TransitionResultsContent: React.FC = () => {
   const { transition, places, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
+  const expressionOutput = useExpressionOutput(transition, "TransitionKernel");
 
   const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
     const place = places.find((p) => p.id === arc.placeId);
@@ -154,19 +181,43 @@ const TransitionResultsContent: React.FC = () => {
 
   return (
     <div className={contentStyle}>
-      <CodeEditor
-        path={getDocumentUri("transition-kernel", transition.id)}
-        language="typescript"
-        value={transition.transitionKernelCode || ""}
-        height="100%"
-        onChange={(value) => {
-          updateTransition(transition.id, (existingTransition) => {
-            existingTransition.transitionKernelCode = value ?? "";
-          });
-        }}
-        options={{ readOnly: isReadOnly }}
-        tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-      />
+      {expressionOutput !== null ? (
+        <Group orientation="vertical" className={panelGroupStyle}>
+          <Panel defaultSize={60} minSize={30} className={panelStyle}>
+            <CodeEditor
+              path={getDocumentUri("transition-kernel", transition.id)}
+              language="typescript"
+              value={transition.transitionKernelCode || ""}
+              height="100%"
+              onChange={(value) => {
+                updateTransition(transition.id, (existingTransition) => {
+                  existingTransition.transitionKernelCode = value ?? "";
+                });
+              }}
+              options={{ readOnly: isReadOnly }}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            />
+          </Panel>
+          <Separator className={resizeHandleStyle} />
+          <Panel minSize={20} className={panelStyle}>
+            <ExpressionOutputPanel output={expressionOutput} />
+          </Panel>
+        </Group>
+      ) : (
+        <CodeEditor
+          path={getDocumentUri("transition-kernel", transition.id)}
+          language="typescript"
+          value={transition.transitionKernelCode || ""}
+          height="100%"
+          onChange={(value) => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.transitionKernelCode = value ?? "";
+            });
+          }}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+      )}
     </div>
   );
 };

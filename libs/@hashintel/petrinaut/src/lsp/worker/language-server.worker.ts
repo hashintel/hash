@@ -60,20 +60,22 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
   }
 
   const result = checkSDCPN(sdcpn, server);
-  const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
-    (item) => {
-      const uri = filePathToUri(item.filePath);
-      // Use user content (without prefix) because diagnostic offsets have
-      // already been adjusted to be relative to user content by adjustDiagnostics.
-      const userContent = server!.getUserContent(item.filePath) ?? "";
-      return {
-        uri: uri ?? item.filePath,
-        diagnostics: item.diagnostics.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      };
-    },
-  );
+  const allDiagnostics = [
+    ...result.itemDiagnostics,
+    ...result.expressionDiagnostics,
+  ];
+  const params: PublishDiagnosticsParams[] = allDiagnostics.map((item) => {
+    const uri = filePathToUri(item.filePath);
+    // Use user content (without prefix) because diagnostic offsets have
+    // already been adjusted to be relative to user content by adjustDiagnostics.
+    const userContent = server!.getUserContent(item.filePath) ?? "";
+    return {
+      uri: uri ?? item.filePath,
+      diagnostics: item.diagnostics.map((diag) =>
+        serializeDiagnostic(diag, userContent),
+      ),
+    };
+  });
 
   self.postMessage({
     jsonrpc: "2.0",

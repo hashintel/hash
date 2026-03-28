@@ -42,6 +42,7 @@ export type UserSettings = {
   snapToGrid: boolean;
   partialSelection: boolean;
   useEntitiesTreeView: boolean;
+  showExpressionOutput: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -62,6 +63,7 @@ export type UserSettingsActions = {
   setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
+  setShowExpressionOutput: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -88,6 +90,7 @@ export const defaultUserSettings: UserSettings = {
   snapToGrid: true,
   partialSelection: true,
   useEntitiesTreeView: false,
+  showExpressionOutput: false,
   subViewPanels: {},
 };
 
@@ -109,6 +112,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setSnapToGrid: () => {},
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
+  setShowExpressionOutput: () => {},
   updateSubViewSection: () => {},
 };
 
