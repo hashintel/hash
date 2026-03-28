@@ -153,7 +153,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let operand = self.operand(expr);
 
         RValue::Unary(Unary {
-            op: op.value,
+            op: op.value.into(),
             operand,
         })
     }
