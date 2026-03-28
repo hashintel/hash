@@ -35,7 +35,7 @@ pub use self::{
         Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
         FromItemSubqueryBuilder, FromItemTableBuilder, Function, Identifier, JoinType,
         PostgresType, SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
-        VariadicExpression, WhereExpression, WithExpression,
+        VariadicExpression, VariadicOperator, WhereExpression, WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
