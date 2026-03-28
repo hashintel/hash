@@ -6,9 +6,10 @@ use hashql_core::{
     r#type::{
         TypeId,
         environment::Environment,
-        kind::{Apply, Generic, OpaqueType, TypeKind},
+        kind::{Apply, Generic, OpaqueType, PrimitiveType, TypeKind},
     },
 };
+use hashql_mir::body::{Body, operand::Operand};
 
 /// Recursively navigates a type structure following a sequence of struct field names.
 ///
@@ -114,5 +115,42 @@ pub(crate) fn traverse_struct(
 
             None
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum IntegerType {
+    Boolean,
+    Integer,
+}
+
+pub(crate) fn integer_type<'heap>(
+    env: &Environment<'heap>,
+    body: &Body<'heap>,
+    operand: &Operand<'heap>,
+) -> Option<IntegerType> {
+    match operand {
+        Operand::Place(place) => {
+            let r#type = place.type_id(&body.local_decls);
+            match env.r#type(r#type).kind.primitive()? {
+                PrimitiveType::Boolean => Some(IntegerType::Boolean),
+                PrimitiveType::Integer => Some(IntegerType::Integer),
+                _ => None,
+            }
+        }
+        Operand::Constant(hashql_mir::body::constant::Constant::Int(value)) => {
+            if value.is_bool() {
+                Some(IntegerType::Boolean)
+            } else {
+                Some(IntegerType::Integer)
+            }
+        }
+        Operand::Constant(hashql_mir::body::constant::Constant::Primitive(
+            hashql_core::value::Primitive::Boolean(_),
+        )) => Some(IntegerType::Boolean),
+        Operand::Constant(hashql_mir::body::constant::Constant::Primitive(
+            hashql_core::value::Primitive::Integer(_),
+        )) => Some(IntegerType::Integer),
+        _ => None,
     }
 }

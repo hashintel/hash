@@ -43,7 +43,7 @@ use alloc::{alloc::Global, borrow::Cow};
 use core::{alloc::Allocator, debug_assert_matches, hint::cold_path, ops::ControlFlow};
 
 use hashql_core::span::SpanId;
-use hashql_hir::node::operation::{InputOp, UnOp};
+use hashql_hir::node::operation::InputOp;
 
 use super::{
     Inputs,
@@ -57,7 +57,7 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
-        rvalue::{Apply, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Apply, BinOp, Binary, Input, RValue, UnOp, Unary},
         statement::{Assign, StatementKind},
         terminator::{Goto, GraphReadHead, Return, SwitchInt, Target, TerminatorKind},
     },
@@ -600,31 +600,6 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         let operand = frame.locals.operand(operand)?;
 
         match op {
-            UnOp::Not => match operand.as_ref() {
-                Value::Integer(int) if let Some(bool) = int.as_bool() => {
-                    Ok(Value::Integer((!bool).into()))
-                }
-                Value::Unit
-                | Value::Integer(_)
-                | Value::Number(_)
-                | Value::String(_)
-                | Value::Pointer(_)
-                | Value::Opaque(_)
-                | Value::Struct(_)
-                | Value::Tuple(_)
-                | Value::List(_)
-                | Value::Dict(_) => {
-                    cold_path();
-
-                    Err(RuntimeError::UnaryTypeMismatch(Box::new(
-                        UnaryTypeMismatch {
-                            op: *op,
-                            expected: TypeName::terse("Boolean"),
-                            value: operand.into_owned(),
-                        },
-                    )))
-                }
-            },
             UnOp::BitNot => match operand.as_ref() {
                 Value::Integer(int) => Ok(Value::Integer(!int)),
                 Value::Unit
@@ -641,7 +616,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                     Err(RuntimeError::UnaryTypeMismatch(Box::new(
                         UnaryTypeMismatch {
                             op: *op,
-                            expected: TypeName::terse("Integer"),
+                            expected: TypeName::terse("Integer | Boolean"),
                             value: operand.into_owned(),
                         },
                     )))
