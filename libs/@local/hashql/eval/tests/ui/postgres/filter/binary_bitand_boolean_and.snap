@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+==================== Island (entry: bb0, target: postgres) =====================
+
+(
+    ROW(
+        COALESCE(
+            (
+                (
+                    (((($1::jsonb))::boolean))
+                    AND (((($2::jsonb))::boolean))
+                )::boolean
+            ),
+            FALSE
+        ),
+        NULL,
+        NULL,
+        NULL
+    )::continuation
+)

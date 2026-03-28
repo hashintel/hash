@@ -2,19 +2,6 @@
 source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
 expression: report.to_string()
 ---
-===================================== MIR ======================================
-
-fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
-    let %2: (Integer, Integer)
-    let %3: Integer
-
-    bb0(): {
-        %2 = (10, 20)
-        %3 = %2.0
-
-        return %3
-    }
-}
 ==================== Island (entry: bb0, target: postgres) =====================
 
 (
@@ -22,8 +9,9 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
         COALESCE(
             (
                 (
-                    JSONB_EXTRACT_PATH(
-                        JSONB_BUILD_ARRAY(10, 20), ((0)::text)
+                    (
+                        (((($1::jsonb))::boolean))
+                        OR (((($2::jsonb))::boolean))
                     )
                 )::boolean
             ),

@@ -28,4 +28,4 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(NULL, 1, ARRAY[]::int[], ARRAY[]::jsonb[])::continuation)
+(NULL, 1, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation)

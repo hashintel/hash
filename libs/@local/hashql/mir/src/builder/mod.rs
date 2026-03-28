@@ -143,9 +143,8 @@ macro_rules! op {
     [|] => { $crate::body::rvalue::BinOp::BitOr };
 
     // Unary operators
-    [!] => { hashql_hir::node::operation::UnOp::Not };
-    [neg] => { hashql_hir::node::operation::UnOp::Neg };
-    [~] => { hashql_hir::node::operation::UnOp::BitNot };
+    [neg] => { $crate::body::rvalue::UnOp::Neg };
+    [~] => { $crate::body::rvalue::UnOp::BitNot };
 }
 
 #[doc(hidden)]

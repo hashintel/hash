@@ -17,6 +17,10 @@
     impl_trait_in_assoc_type,
     try_blocks
 )]
+#![cfg_attr(test, feature(
+    // Library Features
+    iter_intersperse
+))]
 
 extern crate alloc;
 pub mod context;
