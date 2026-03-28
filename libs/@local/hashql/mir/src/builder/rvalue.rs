@@ -6,7 +6,7 @@ use hashql_core::{
     symbol::Symbol,
     r#type::builder::IntoSymbol,
 };
-use hashql_hir::node::operation::{InputOp, UnOp};
+use hashql_hir::node::operation::InputOp;
 
 use super::base::BaseBuilder;
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
         constant::Constant,
         operand::Operand,
         place::Place,
-        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, UnOp, Unary},
     },
     def::DefId,
 };

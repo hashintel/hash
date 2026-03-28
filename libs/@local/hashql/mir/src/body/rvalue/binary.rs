@@ -12,7 +12,7 @@ use crate::body::operand::Operand;
 ///
 /// Represents the various operations that can be performed with two operands,
 /// including arithmetic, comparison, logical, and bitwise operations.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BinOp {
     /// The `+` operator (addition).
     Add,
