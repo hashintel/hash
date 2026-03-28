@@ -7792,9 +7792,12 @@ __metadata:
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
     "@babel/standalone": "npm:7.28.5"
+    "@fontsource-variable/inter": "npm:5.2.8"
+    "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-theme": "workspace:*"
     "@hashintel/refractive": "workspace:^"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@pandacss/dev": "npm:1.4.3"

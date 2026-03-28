@@ -203,11 +203,15 @@ export const EditorView = ({
   }
 
   const menuItems = [
-    {
-      id: "new",
-      label: "New",
-      onClick: handleNew,
-    },
+    ...(!hideNetManagementControls
+      ? [
+          {
+            id: "new",
+            label: "New",
+            onClick: handleNew,
+          },
+        ]
+      : []),
     ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
       ? [
           {
@@ -246,70 +250,78 @@ export const EditorView = ({
         },
       ],
     },
-    {
-      id: "import",
-      label: "Import",
-      onClick: handleImport,
-    },
+    ...(!hideNetManagementControls
+      ? [
+          {
+            id: "import",
+            label: "Import",
+            onClick: handleImport,
+          },
+        ]
+      : []),
     {
       id: "layout",
       label: "Layout",
       onClick: layoutGraph,
     },
-    {
-      id: "load-example",
-      label: "Load example",
-      submenu: [
-        {
-          id: "load-example-supply-chain",
-          label: "Supply Chain",
-          onClick: () => {
-            createNewNet(supplyChainSDCPN);
-            clearSelection();
+    ...(!hideNetManagementControls
+      ? [
+          {
+            id: "load-example",
+            label: "Load example",
+            submenu: [
+              {
+                id: "load-example-supply-chain",
+                label: "Supply Chain",
+                onClick: () => {
+                  createNewNet(supplyChainSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-supply-chain-stochastic",
+                label: "Probabilistic Supply Chain",
+                onClick: () => {
+                  createNewNet(supplyChainStochasticSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-satellites",
+                label: "Satellites",
+                onClick: () => {
+                  createNewNet(satellitesSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-probabilistic-satellites",
+                label: "Probabilistic Satellites Launcher",
+                onClick: () => {
+                  createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-production-machines",
+                label: "Production Machines",
+                onClick: () => {
+                  createNewNet(productionMachines);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-sir-model",
+                label: "SIR Model",
+                onClick: () => {
+                  createNewNet(sirModel);
+                  clearSelection();
+                },
+              },
+            ],
           },
-        },
-        {
-          id: "load-example-supply-chain-stochastic",
-          label: "Probabilistic Supply Chain",
-          onClick: () => {
-            createNewNet(supplyChainStochasticSDCPN);
-            clearSelection();
-          },
-        },
-        {
-          id: "load-example-satellites",
-          label: "Satellites",
-          onClick: () => {
-            createNewNet(satellitesSDCPN);
-            clearSelection();
-          },
-        },
-        {
-          id: "load-example-probabilistic-satellites",
-          label: "Probabilistic Satellites Launcher",
-          onClick: () => {
-            createNewNet(probabilisticSatellitesSDCPN);
-            clearSelection();
-          },
-        },
-        {
-          id: "load-example-production-machines",
-          label: "Production Machines",
-          onClick: () => {
-            createNewNet(productionMachines);
-            clearSelection();
-          },
-        },
-        {
-          id: "load-example-sir-model",
-          label: "SIR Model",
-          onClick: () => {
-            createNewNet(sirModel);
-            clearSelection();
-          },
-        },
-      ],
-    },
+        ]
+      : []),
   ];
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
