@@ -9,10 +9,8 @@ expression: report.to_string()
         COALESCE(
             (
                 (
-                    TO_JSONB(
-                        "entity_has_left_entity_0_0_1"."left_entity_uuid"
-                    )
-                    = TO_JSONB(($1::jsonb))
+                    (((($1::jsonb))::boolean))
+                    AND (((($2::jsonb))::boolean))
                 )::boolean
             ),
             FALSE

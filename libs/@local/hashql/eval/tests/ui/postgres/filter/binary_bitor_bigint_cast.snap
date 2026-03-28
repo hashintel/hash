@@ -7,14 +7,7 @@ expression: report.to_string()
 (
     ROW(
         COALESCE(
-            (
-                (
-                    TO_JSONB(
-                        "entity_has_left_entity_0_0_1"."left_entity_uuid"
-                    )
-                    = TO_JSONB(($1::jsonb))
-                )::boolean
-            ),
+            ((((($1::jsonb))::bigint) | ((($2::jsonb))::bigint))::boolean),
             FALSE
         ),
         NULL,
