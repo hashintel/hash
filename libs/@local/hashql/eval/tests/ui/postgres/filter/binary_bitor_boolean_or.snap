@@ -4,15 +4,15 @@ expression: report.to_string()
 ---
 ===================================== MIR ======================================
 
-fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
-    let %2: Integer
-    let %3: Integer
-    let %4: Integer
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
 
     bb0(): {
         %2 = input LOAD a
         %3 = input LOAD b
-        %4 = %2 & %3
+        %4 = %2 | %3
 
         return %4
     }
@@ -22,7 +22,14 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
 (
     ROW(
         COALESCE(
-            ((((($1::jsonb))::bigint) & ((($2::jsonb))::bigint))::boolean),
+            (
+                (
+                    (
+                        (((($1::jsonb))::boolean))
+                        OR (((($2::jsonb))::boolean))
+                    )
+                )::boolean
+            ),
             FALSE
         ),
         NULL,

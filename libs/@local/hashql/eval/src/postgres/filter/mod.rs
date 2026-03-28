@@ -448,8 +448,8 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         impl Operands {
             fn cast(self, r#type: PostgresType) -> Self {
                 Self {
-                    left: self.left.cast(r#type.clone()),
-                    right: self.right.cast(r#type),
+                    left: self.left.grouped().cast(r#type.clone()),
+                    right: self.right.grouped().cast(r#type),
                 }
             }
 
@@ -476,9 +476,9 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
             }
         }
 
-        let mut left = self.compile_operand(db, span, left);
-        let mut right = self.compile_operand(db, span, right);
-        let mut operands = Operands { left, right };
+        let left = self.compile_operand(db, span, left);
+        let right = self.compile_operand(db, span, right);
+        let operands = Operands { left, right };
 
         // Operands coming from jsonb extraction are untyped from Postgres' perspective.
         // Arithmetic and bitwise operators need explicit casts; comparisons work on jsonb
