@@ -75,6 +75,7 @@ runs:
         tags: |
           hash-graph
           hash-graph:test
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-graph
@@ -99,6 +100,7 @@ runs:
         tags: |
           hash-graph
           hash-graph:test
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph
         secrets: |
@@ -114,6 +116,7 @@ runs:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
         tags: hash-ai-worker-ts
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
@@ -135,6 +138,7 @@ runs:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
         tags: hash-ai-worker-ts
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
         secrets: |
@@ -149,6 +153,7 @@ runs:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
         tags: hash-integration-worker
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker
@@ -168,6 +173,7 @@ runs:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
         tags: hash-integration-worker
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker
         secrets: |
@@ -180,6 +186,7 @@ runs:
         context: .
         file: infra/docker/api/prod/Dockerfile
         tags: hash-api
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-api${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-api
@@ -199,6 +206,7 @@ runs:
         context: .
         file: infra/docker/api/prod/Dockerfile
         tags: hash-api
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-api
         secrets: |
@@ -211,6 +219,7 @@ runs:
         context: .
         file: infra/docker/frontend/prod/Dockerfile
         tags: hash-frontend
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-frontend${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-frontend
@@ -233,6 +242,7 @@ runs:
         context: .
         file: infra/docker/frontend/prod/Dockerfile
         tags: hash-frontend
+        provenance: false
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-frontend
         secrets: |
