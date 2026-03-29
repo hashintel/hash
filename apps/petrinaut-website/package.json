@@ -23,7 +23,7 @@
     "@rolldown/plugin-babel": "0.2.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260315.1",
+    "@typescript/native-preview": "7.0.0-dev.20260326.1",
     "@vitejs/plugin-react": "6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.55.0",
