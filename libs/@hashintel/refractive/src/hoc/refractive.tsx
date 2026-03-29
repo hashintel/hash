@@ -12,8 +12,6 @@ type RefractionProps = {
     glassThickness?: number;
     bezelWidth?: number;
     refractiveIndex?: number;
-    specularOpacity?: number;
-    specularAngle?: number;
     bezelHeightFn?: (x: number) => number;
   };
 };
@@ -88,8 +86,6 @@ function createRefractiveComponent<
           glassThickness={refraction.glassThickness ?? 70}
           bezelWidth={refraction.bezelWidth ?? 0}
           refractiveIndex={refraction.refractiveIndex ?? 1.5}
-          specularOpacity={refraction.specularOpacity ?? 0}
-          specularAngle={refraction.specularAngle ?? 0}
           bezelHeightFn={refraction.bezelHeightFn ?? convex}
         />
 

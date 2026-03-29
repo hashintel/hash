@@ -2,14 +2,12 @@ import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
 } from "../maps/displacement-map";
-import { CompositeParts } from "./composite-parts";
+import { CompositeImage } from "./composite-image";
 
-type FilterProps = {
+type FilterOBBProps = {
   id: string;
   scaleRatio: number;
   blur: number;
-  width: number;
-  height: number;
   radius: number;
   glassThickness: number;
   bezelWidth: number;
@@ -24,25 +22,26 @@ type FilterProps = {
 
 /**
  * @private
- * Creates an SVG containing a filter that can be used as `backdrop-filter`to create a refractive effect.
+ * Alternative filter that uses `objectBoundingBox` to automatically size itself.
  *
- * At the moment, width and height need to be explicitly provided to match the size of element it will be applied to.
+ * Instead of requiring explicit width/height and a ResizeObserver, this filter:
+ * - Sets the filter region to exactly match the element's bounding box (`x="0" y="0" width="1" height="1"`)
+ * - Uses a single feImage per map (displacement) referencing SVG data URLs
+ * - The SVG data URLs contain all 9 image parts composited via nested SVGs with percentage positioning
  *
  * Usage:
  * ```tsx
  * const filterId = "my-refractive-filter";
  *
- * <Filter id={filterId} {...otherProps} />
+ * <FilterOBB id={filterId} {...otherProps} />
  * <div style={{ backdropFilter: `url(#${filterId})` }} />
  * ```
  *
- * @param props - The properties for the Filter component.
+ * @param props - The properties for the FilterOBB component.
  * @returns An SVG element containing the filter definition.
  */
-export const Filter: React.FC<FilterProps> = ({
+export const FilterOBB: React.FC<FilterOBBProps> = ({
   id,
-  width,
-  height,
   radius,
   blur,
   glassThickness,
@@ -87,17 +86,15 @@ export const Filter: React.FC<FilterProps> = ({
   const scale = maximumDisplacement * scaleRatio;
 
   const content = (
-    <filter id={id}>
+    <filter id={id} x="0" y="0" width="1" height="1">
       <feGaussianBlur
         in="SourceGraphic"
         stdDeviation={blur}
         result="blurred_source"
       />
 
-      <CompositeParts
+      <CompositeImage
         imageData={displacementMap}
-        width={width}
-        height={height}
         cornerWidth={cornerWidth}
         pixelRatio={pixelRatio}
         result="displacement_map"
