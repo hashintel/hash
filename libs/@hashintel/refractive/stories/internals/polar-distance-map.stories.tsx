@@ -7,7 +7,7 @@ type Props = {
   radius: number;
 };
 
-const GeometricPolarMapVis = ({ radius }: Props) => {
+const PolarDistanceToBorderMapVis = ({ radius }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -43,15 +43,15 @@ const GeometricPolarMapVis = ({ radius }: Props) => {
 };
 
 const meta = {
-  title: "Internals/Geometric Polar Map",
-  component: GeometricPolarMapVis,
+  title: "Internals/Polar DistanceToBorder Map",
+  component: PolarDistanceToBorderMapVis,
   argTypes: {
     radius: { control: { type: "range", min: 5, max: 100, step: 1 } },
   },
   args: {
     radius: 30,
   },
-} satisfies Meta<typeof GeometricPolarMapVis>;
+} satisfies Meta<typeof PolarDistanceToBorderMapVis>;
 
 export default meta;
 
