@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef } from "react";
 
-import { calculateGeometricPolarMap } from "../../src/maps/geometric-polar-map";
+import { calculatePolarDistanceToBorderMap } from "../../src/maps/polar-distance-to-border-map";
 
 type Props = {
   radius: number;
@@ -16,7 +16,7 @@ const GeometricPolarMapVis = ({ radius }: Props) => {
       return;
     }
 
-    const imageData = calculateGeometricPolarMap(radius);
+    const imageData = calculatePolarDistanceToBorderMap(radius);
 
     canvas.width = imageData.width;
     canvas.height = imageData.height;

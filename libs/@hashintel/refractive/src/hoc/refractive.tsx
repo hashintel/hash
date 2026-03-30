@@ -8,7 +8,7 @@ import { generateMagnitudeTable } from "../helpers/generate-table-values";
 import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 import { convex } from "../helpers/surface-equations";
 import { calculateDisplacementMapRadius } from "../maps/displacement-radius";
-import { calculateGeometricPolarMap } from "../maps/geometric-polar-map";
+import { calculatePolarDistanceToBorderMap } from "../maps/polar-distance-to-border-map";
 
 /**
  * Reference radius used to generate the hi-res polar field.
@@ -22,7 +22,7 @@ const REFERENCE_RADIUS = 256;
  * Since the map encodes normalized values (border distance ratio + angle),
  * the same image works for any actual radius.
  */
-const hiResPolarMap = calculateGeometricPolarMap(REFERENCE_RADIUS);
+const hiResPolarMap = calculatePolarDistanceToBorderMap(REFERENCE_RADIUS);
 
 /**
  * Pre-split 9-patch parts from the hi-res polar map.

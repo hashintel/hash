@@ -67,12 +67,12 @@ export function calculateCircleMap(props: {
       // Process pixels that are in bezel or near bezel edge for anti-aliasing
       if (isInBezel) {
         const distanceFromCenter = Math.sqrt(distanceToCenterSquared);
-        const distanceFromBorder = radius - distanceFromCenter;
-        const distanceFromBorderRatio = distanceFromBorder / radius;
+        const distanceToBorder = radius - distanceFromCenter;
+        const distanceToBorderRatio = distanceToBorder / radius;
         const angle = Math.atan2(y, x);
         // H-5525: Fix antialiasing calculation
         const opacity =
-          distanceToCenterSquared > radiusSquared ? 1 - distanceFromBorder : 1;
+          distanceToCenterSquared > radiusSquared ? 1 - distanceToBorder : 1;
 
         processPixel(
           x,
@@ -80,8 +80,8 @@ export function calculateCircleMap(props: {
           imageData.data,
           idx,
           distanceFromCenter,
-          distanceFromBorder,
-          distanceFromBorderRatio,
+          distanceToBorder,
+          distanceToBorderRatio,
           angle,
           opacity,
         );

@@ -19,7 +19,7 @@ import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
  * - B: 0
  * - A: 255
  */
-export function calculateGeometricPolarMap(radius: number) {
+export function calculatePolarDistanceToBorderMap(radius: number) {
   const side = radius * 2 + 1;
 
   return calculateRoundedSquareMap({
@@ -35,15 +35,15 @@ export function calculateGeometricPolarMap(radius: number) {
       buffer,
       offset,
       _distanceFromCenter,
-      _distanceFromBorder,
-      distanceFromBorderRatio,
+      _distanceToBorder,
+      distanceToBorderRatio,
       angle,
       opacity,
     ) {
       // R: border distance ratio, scaled by opacity for anti-aliasing.
       // At opacity < 1 (anti-aliased edges), ratio trends toward 0,
       // which the magnitude lookup table maps to "no displacement".
-      buffer[offset] = Math.round(distanceFromBorderRatio * 255 * opacity);
+      buffer[offset] = Math.round(distanceToBorderRatio * 255 * opacity);
 
       // G: angle toward center (displacement direction)
       const displacementAngle = (angle + Math.PI) % (2 * Math.PI);
