@@ -5,12 +5,12 @@ import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
  * Computes a geometry-only polar field encoding (distance-to-border ratio, angle)
  * for each pixel of a rounded rectangle.
  *
- * The output image is (radius * 2 + 1) pixels per side, with the bezel filling
- * the entire corner area. The actual bezel-to-radius ratio is handled later
+ * The output image is (radius * 2 + 1) pixels per side, with the edge filling
+ * the entire corner area. The actual edge-to-radius ratio is handled later
  * by the magnitude lookup table's `ratioScale` parameter.
  *
  * This map depends only on shape geometry, NOT on optical parameters
- * (glassThickness, refractiveIndex, bezelHeightFn). The optical transfer
+ * (thickness, refractiveIndex, edgeProfile). The optical transfer
  * function is applied later via SVG feComponentTransfer lookup tables.
  *
  * Channel encoding:

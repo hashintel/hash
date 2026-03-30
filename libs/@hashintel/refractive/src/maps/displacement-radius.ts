@@ -1,20 +1,20 @@
 /**
  * Pre-computes per-sample ray deviation using Snell's law.
  *
- * Given glass parameters, returns an array of displacement values
- * (one per sample across the bezel width) encoding how far a vertical
- * ray is deflected horizontally after passing through the glass surface.
+ * Given optical parameters, returns an array of displacement values
+ * (one per sample across the edge size) encoding how far a vertical
+ * ray is deflected horizontally after passing through the surface.
  */
 export function calculateDisplacementMapRadius(
-  glassThickness: number = 200,
-  bezelWidth: number = 50,
-  bezelHeightFn: (x: number) => number = (x) => x,
+  thickness: number = 200,
+  edgeSize: number = 50,
+  edgeProfile: (x: number) => number = (x) => x,
   refractiveIndex: number = 1.5,
   samples: number = 128,
 ): number[] {
   // Pre-calculate the distance the ray will be deviated
-  // given the distance to border (ratio of bezel)
-  // and height of the glass
+  // given the distance to border (ratio of edge)
+  // and thickness of the material
   const eta = 1 / refractiveIndex;
 
   // Simplified refraction, which only handles fully vertical incident ray [0, 1]
@@ -34,11 +34,11 @@ export function calculateDisplacementMapRadius(
 
   return Array.from({ length: samples }, (_, i) => {
     const x = i / samples;
-    const y = bezelHeightFn(x);
+    const y = edgeProfile(x);
 
     // Calculate derivative in x
     const dx = x < 1 ? 0.0001 : -0.0001;
-    const y2 = bezelHeightFn(x + dx);
+    const y2 = edgeProfile(x + dx);
     const derivative = (y2 - y) / dx;
     const magnitude = Math.sqrt(derivative * derivative + 1);
     const normal = [-derivative / magnitude, -1 / magnitude] as const;
@@ -47,10 +47,10 @@ export function calculateDisplacementMapRadius(
     if (!refracted) {
       return 0;
     } else {
-      const remainingHeightOnBezel = y * bezelWidth;
-      const remainingHeight = remainingHeightOnBezel + glassThickness;
+      const remainingHeightOnEdge = y * edgeSize;
+      const remainingHeight = remainingHeightOnEdge + thickness;
 
-      // Return displacement (rest of travel on x-axis, depends on remaining height to hit bottom of glass)
+      // Return displacement (rest of travel on x-axis, depends on remaining height to hit bottom)
       return refracted[0] * (remainingHeight / refracted[1]);
     }
   });

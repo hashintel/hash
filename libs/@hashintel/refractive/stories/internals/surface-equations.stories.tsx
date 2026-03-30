@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef } from "react";
 
-import type { SurfaceFnDef } from "../../src/helpers/surface-equations";
+import type { EdgeProfile } from "../../src/helpers/surface-equations";
 import {
   concave,
   convex,
@@ -14,7 +14,7 @@ const PLOT_WIDTH = 400;
 const PLOT_HEIGHT = 300;
 const PADDING = 40;
 
-const equations: { name: string; fn: SurfaceFnDef; color: string }[] = [
+const equations: { name: string; fn: EdgeProfile; color: string }[] = [
   { name: "convex", fn: convex, color: "#4fc3f7" },
   { name: "convexCircle", fn: convexCircle, color: "#81c784" },
   { name: "concave", fn: concave, color: "#ff8a65" },
@@ -22,8 +22,8 @@ const equations: { name: string; fn: SurfaceFnDef; color: string }[] = [
 ];
 
 type Props = {
-  glassThickness: number;
-  bezelWidth: number;
+  thickness: number;
+  edgeSize: number;
   refractiveIndex: number;
   samples: number;
 };
@@ -44,7 +44,7 @@ class PlotRenderer {
 
   draw(
     title: string,
-    getPoints: (fn: SurfaceFnDef) => [number, number][],
+    getPoints: (fn: EdgeProfile) => [number, number][],
     centered = false,
   ) {
     const w = PLOT_WIDTH + PADDING * 2;
@@ -127,8 +127,8 @@ class PlotRenderer {
 }
 
 const SurfaceEquationsVis = ({
-  glassThickness,
-  bezelWidth,
+  thickness,
+  edgeSize,
   refractiveIndex,
   samples,
 }: Props) => {
@@ -155,8 +155,8 @@ const SurfaceEquationsVis = ({
       "Displacement Radius (px)",
       (fn) => {
         const map = calculateDisplacementMapRadius(
-          glassThickness,
-          bezelWidth,
+          thickness,
+          edgeSize,
           fn,
           refractiveIndex,
           samples,
@@ -168,7 +168,7 @@ const SurfaceEquationsVis = ({
       },
       true,
     );
-  }, [glassThickness, bezelWidth, refractiveIndex, samples]);
+  }, [thickness, edgeSize, refractiveIndex, samples]);
 
   return (
     <div
@@ -204,10 +204,10 @@ const meta = {
   title: "Internals/Surface Equations",
   component: SurfaceEquationsVis,
   argTypes: {
-    glassThickness: {
+    thickness: {
       control: { type: "range" as const, min: 0, max: 300, step: 1 },
     },
-    bezelWidth: {
+    edgeSize: {
       control: { type: "range" as const, min: 0, max: 100, step: 1 },
     },
     refractiveIndex: {
@@ -218,8 +218,8 @@ const meta = {
     },
   },
   args: {
-    glassThickness: 70,
-    bezelWidth: 30,
+    thickness: 70,
+    edgeSize: 30,
     refractiveIndex: 1.5,
     samples: 128,
   },

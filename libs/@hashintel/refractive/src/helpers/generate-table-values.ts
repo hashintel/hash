@@ -15,8 +15,8 @@ export function generateTableValues(
  *
  * @param displacementRadius - Pre-computed displacement samples from Snell's law.
  * @param maximumDisplacement - Max absolute displacement value.
- * @param ratioScale - Multiplier to remap the input ratio (e.g. radius/bezelWidth
- *   when bezelWidth < radius, compressing the bezel into a narrower band).
+ * @param ratioScale - Multiplier to remap the input ratio (e.g. radius/edgeSize
+ *   when edgeSize < radius, compressing the bezel into a narrower band).
  */
 export function generateMagnitudeTable(
   displacementRadius: number[],

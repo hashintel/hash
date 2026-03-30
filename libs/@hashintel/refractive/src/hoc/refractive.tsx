@@ -39,10 +39,10 @@ type RefractionProps = {
   refraction: {
     radius: number;
     blur?: number;
-    glassThickness?: number;
-    bezelWidth?: number;
+    thickness?: number;
+    edgeSize?: number;
     refractiveIndex?: number;
-    bezelHeightFn?: (x: number) => number;
+    edgeProfile?: (x: number) => number;
     /**
      * Compositing strategy for the polar map:
      * - `"image"` (default): Single composite SVG, auto-sizes via objectBoundingBox.
@@ -110,19 +110,19 @@ function createRefractiveComponent<
       };
     }, [elementRef, compositing]);
 
-    const bezelWidth = refraction.bezelWidth ?? 0;
+    const edgeSize = refraction.edgeSize ?? 0;
     const radius = refraction.radius;
-    const clampedBezelWidth = Math.min(bezelWidth, radius);
+    const clampedEdgeSize = Math.min(edgeSize, radius);
 
     const displacementRadius = calculateDisplacementMapRadius(
-      refraction.glassThickness ?? 70,
-      clampedBezelWidth,
-      refraction.bezelHeightFn ?? convex,
+      refraction.thickness ?? 70,
+      clampedEdgeSize,
+      refraction.edgeProfile ?? convex,
       refraction.refractiveIndex ?? 1.5,
     );
 
     const maximumDisplacement = Math.max(...displacementRadius.map(Math.abs));
-    const ratioScale = clampedBezelWidth > 0 ? radius / clampedBezelWidth : 1;
+    const ratioScale = clampedEdgeSize > 0 ? radius / clampedEdgeSize : 1;
     const magnitudeTable = generateMagnitudeTable(
       displacementRadius,
       maximumDisplacement,

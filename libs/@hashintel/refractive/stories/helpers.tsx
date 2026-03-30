@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-import type { SurfaceFnDef } from "../src/helpers/surface-equations";
+import type { EdgeProfile } from "../src/helpers/surface-equations";
 import { convex } from "../src/helpers/surface-equations";
 import { ExampleArticle } from "./example-article";
 
@@ -9,36 +9,36 @@ export type BackgroundType = "article" | "checkerboard";
 export type SharedFilterProps = {
   blur: number;
   radius: number;
-  glassThickness: number;
-  bezelWidth: number;
+  thickness: number;
+  edgeSize: number;
   refractiveIndex: number;
-  bezelHeightFn: SurfaceFnDef;
+  edgeProfile: EdgeProfile;
   background: BackgroundType;
 };
 
 export const defaultFilterArgs: SharedFilterProps = {
   blur: 2,
   radius: 20,
-  glassThickness: 70,
-  bezelWidth: 30,
+  thickness: 70,
+  edgeSize: 30,
   refractiveIndex: 1.5,
-  bezelHeightFn: convex,
+  edgeProfile: convex,
   background: "article",
 };
 
 export const filterArgTypes = {
   blur: { control: { type: "range" as const, min: 0, max: 20, step: 0.5 } },
   radius: { control: { type: "range" as const, min: 0, max: 100, step: 1 } },
-  glassThickness: {
+  thickness: {
     control: { type: "range" as const, min: 0, max: 300, step: 1 },
   },
-  bezelWidth: {
+  edgeSize: {
     control: { type: "range" as const, min: 0, max: 100, step: 1 },
   },
   refractiveIndex: {
     control: { type: "range" as const, min: 1, max: 3, step: 0.01 },
   },
-  bezelHeightFn: { table: { disable: true } },
+  edgeProfile: { table: { disable: true } },
   background: {
     control: { type: "inline-radio" as const },
     options: ["article", "checkerboard"],

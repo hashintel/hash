@@ -7,10 +7,10 @@ import { ExampleArticle } from "./example-article";
 const refraction = {
   blur: 2,
   radius: 20,
-  bezelWidth: 30,
-  glassThickness: 70,
+  edgeSize: 30,
+  thickness: 70,
   refractiveIndex: 1.5,
-  bezelHeightFn: convex,
+  edgeProfile: convex,
 };
 
 const GlassOverArticle = () => (
