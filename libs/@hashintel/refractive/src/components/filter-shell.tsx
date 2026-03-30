@@ -1,49 +1,114 @@
+import type { Parts } from "../helpers/split-imagedata-to-parts";
+import { buildCompositeSvgUrl } from "./composite/image";
+import { CompositeParts } from "./composite/parts";
+import { PolarToCartesian } from "./polar-to-cartesian";
+
+export type CompositeMode = "image" | "parts";
+
 type FilterShellProps = {
   id: string;
   blur: number;
   scale: number;
-  /** Use objectBoundingBox filter units (auto-sizing, no ResizeObserver). */
-  obb?: boolean;
-  /** Filter primitives that produce a result named "displacement_map". */
-  children: React.ReactNode;
+  magnitudeTable: string;
+  parts: Parts;
+  cornerWidth: number;
+  /**
+   * Compositing strategy for the polar map:
+   * - `"image"` (default): Builds a single composite SVG data URL.
+   *   Uses objectBoundingBox — auto-sizes with the element, no ResizeObserver needed.
+   * - `"parts"`: Renders 9 feImage + 8 feComposite filter primitives.
+   *   Requires explicit width/height (needs ResizeObserver in the HOC).
+   */
+  compositing?: CompositeMode;
+  /** Required when compositing is "parts". */
+  width?: number;
+  /** Required when compositing is "parts". */
+  height?: number;
+  hideTop?: boolean;
+  hideBottom?: boolean;
+  hideLeft?: boolean;
+  hideRight?: boolean;
 };
 
 /**
  * @private
- * Shared SVG filter wrapper. Renders blur → children → feDisplacementMap.
+ * Full SVG filter pipeline: blur → polar map compositing → polar-to-cartesian → displacement.
  *
- * Children must render SVG filter primitives that produce a result
- * named `"displacement_map"` (the R/G encoded displacement field).
+ * The `compositing` prop controls how the 9-patch polar map is assembled
+ * inside the SVG filter graph.
  */
 export const FilterShell: React.FC<FilterShellProps> = ({
   id,
   blur,
   scale,
-  obb,
-  children,
-}) => (
-  <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
-    <defs>
-      <filter
-        id={id}
-        {...(obb ? { x: "0", y: "0", width: "1", height: "1" } : {})}
-      >
-        <feGaussianBlur
-          in="SourceGraphic"
-          stdDeviation={blur}
-          result="blurred_source"
-        />
+  magnitudeTable,
+  parts,
+  cornerWidth,
+  compositing = "image",
+  width,
+  height,
+  hideTop,
+  hideBottom,
+  hideLeft,
+  hideRight,
+}) => {
+  const isImage = compositing === "image";
 
-        {children}
+  return (
+    <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
+      <defs>
+        <filter
+          id={id}
+          {...(isImage ? { x: "0", y: "0", width: "1", height: "1" } : {})}
+        >
+          <feGaussianBlur
+            in="SourceGraphic"
+            stdDeviation={blur}
+            result="blurred_source"
+          />
 
-        <feDisplacementMap
-          in="blurred_source"
-          in2="displacement_map"
-          scale={scale}
-          xChannelSelector="R"
-          yChannelSelector="G"
-        />
-      </filter>
-    </defs>
-  </svg>
-);
+          {isImage ? (
+            <feImage
+              href={buildCompositeSvgUrl(
+                parts,
+                cornerWidth,
+                hideTop,
+                hideBottom,
+                hideLeft,
+                hideRight,
+              )}
+              result="polar_map"
+              preserveAspectRatio="none"
+            />
+          ) : (
+            <CompositeParts
+              parts={parts}
+              width={width!}
+              height={height!}
+              cornerWidth={cornerWidth}
+              result="polar_map"
+              hideTop={hideTop}
+              hideBottom={hideBottom}
+              hideLeft={hideLeft}
+              hideRight={hideRight}
+            />
+          )}
+
+          <PolarToCartesian
+            magnitudeTable={magnitudeTable}
+            in="polar_map"
+            result="displacement_map"
+          />
+
+          <feDisplacementMap
+            in="blurred_source"
+            in2="displacement_map"
+            scale={scale}
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </defs>
+    </svg>
+  );
+};

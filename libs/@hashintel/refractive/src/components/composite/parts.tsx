@@ -1,9 +1,8 @@
-import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
+import type { Parts } from "../../helpers/split-imagedata-to-parts";
 
 type CompositePartsProps = {
-  imageData: ImageData;
+  parts: Parts;
   cornerWidth: number;
-  pixelRatio: number;
   width: number;
   height: number;
   result: string;
@@ -15,30 +14,22 @@ type CompositePartsProps = {
 
 /**
  * @private
- * Component that renders the 8 parts of an image and composites them together.
+ * Renders pre-split 9-patch parts as feImage primitives and composites them together.
  *
- * Used internally by the Filter component, for DisplacementMap and SpecularMap.
- *
- * @return {JSX.Element} Fragment containing all image parts for the refractive effect, along with compositing.
+ * Unlike the "image" compositing strategy (which builds a single SVG data URL),
+ * this uses explicit pixel positions and requires width/height from a ResizeObserver.
  */
 export const CompositeParts: React.FC<CompositePartsProps> = ({
-  imageData,
+  parts,
   cornerWidth,
   width,
   height,
-  pixelRatio,
   result,
   hideTop,
   hideBottom,
   hideLeft,
   hideRight,
 }) => {
-  const parts = splitImageDataToParts({
-    imageData,
-    cornerWidth,
-    pixelRatio,
-  });
-
   const widthMinusCorner = width - cornerWidth;
   const heightMinusCorner = height - cornerWidth;
 

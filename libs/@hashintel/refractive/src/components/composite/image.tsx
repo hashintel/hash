@@ -1,18 +1,4 @@
-import type { ImageData } from "canvas";
-
-import type { Parts } from "../helpers/split-imagedata-to-parts";
-import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
-
-type CompositeImageProps = {
-  imageData: ImageData;
-  cornerWidth: number;
-  pixelRatio: number;
-  result: string;
-  hideTop?: boolean;
-  hideBottom?: boolean;
-  hideLeft?: boolean;
-  hideRight?: boolean;
-};
+import type { Parts } from "../../helpers/split-imagedata-to-parts";
 
 /**
  * Builds an SVG string containing all 9 image parts composited together,
@@ -95,44 +81,3 @@ export function buildCompositeSvgUrl(
   const svg = `<svg xmlns="http://www.w3.org/2000/svg">${elements.join("")}</svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
-
-/**
- * @private
- * Component that builds a composite SVG from 9 image parts and returns a single feImage.
- *
- * Unlike CompositeParts which uses 9 feImage + 8 feComposite filter primitives and requires
- * explicit width/height, this component generates a single SVG data URL that adapts to
- * whatever size the feImage renders it at. Corners have fixed pixel sizes and are positioned
- * via percentage-based nested SVGs with overflow="visible".
- *
- * Used internally by the FilterOBB component, for DisplacementMap and SpecularMap.
- *
- * @return {JSX.Element} A single feImage element referencing the composite SVG data URL.
- */
-export const CompositeImage: React.FC<CompositeImageProps> = ({
-  imageData,
-  cornerWidth,
-  pixelRatio,
-  result,
-  hideTop,
-  hideBottom,
-  hideLeft,
-  hideRight,
-}) => {
-  const parts = splitImageDataToParts({
-    imageData,
-    cornerWidth,
-    pixelRatio,
-  });
-
-  const svgUrl = buildCompositeSvgUrl(
-    parts,
-    cornerWidth,
-    hideTop,
-    hideBottom,
-    hideLeft,
-    hideRight,
-  );
-
-  return <feImage href={svgUrl} result={result} preserveAspectRatio="none" />;
-};

@@ -2,8 +2,38 @@ import type { ComponentType } from "react";
 import { createElement, useEffect, useId, useRef, useState } from "react";
 import type { JSX } from "react/jsx-runtime";
 
-import { Filter } from "../components/filter";
+import type { CompositeMode } from "../components/filter-shell";
+import { FilterShell } from "../components/filter-shell";
+import { generateMagnitudeTable } from "../helpers/generate-table-values";
+import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 import { convex } from "../helpers/surface-equations";
+import { calculateDisplacementMapRadius } from "../maps/displacement-radius";
+import { calculateGeometricPolarMap } from "../maps/geometric-polar-map";
+
+/**
+ * Reference radius used to generate the hi-res polar field.
+ * The image is (REFERENCE_RADIUS * 2 + 1) = 513 pixels per side.
+ * This is computed once and reused for any actual radius.
+ */
+const REFERENCE_RADIUS = 256;
+
+/**
+ * Pre-computed hi-res geometric polar field at 513×513 pixels.
+ * Since the map encodes normalized values (border distance ratio + angle),
+ * the same image works for any actual radius.
+ */
+const hiResPolarMap = calculateGeometricPolarMap(REFERENCE_RADIUS);
+
+/**
+ * Pre-split 9-patch parts from the hi-res polar map.
+ * These are sliced at the reference resolution (256px corners)
+ * and can be positioned at any target radius in the SVG.
+ */
+const hiResParts = splitImageDataToParts({
+  imageData: hiResPolarMap,
+  cornerWidth: REFERENCE_RADIUS,
+  pixelRatio: 1,
+});
 
 type RefractionProps = {
   refraction: {
@@ -13,6 +43,12 @@ type RefractionProps = {
     bezelWidth?: number;
     refractiveIndex?: number;
     bezelHeightFn?: (x: number) => number;
+    /**
+     * Compositing strategy for the polar map:
+     * - `"image"` (default): Single composite SVG, auto-sizes via objectBoundingBox.
+     * - `"parts"`: 9-patch feImage primitives, requires explicit sizing.
+     */
+    compositing?: CompositeMode;
   };
 };
 
@@ -40,13 +76,14 @@ function createRefractiveComponent<
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
 
-    // If a ref is passed in props, use it; otherwise, use internalRef.
-    // If the passed ref is updated later, it will trigger a re-render.
     const elementRef = externalRef ?? internalRef;
+    const compositing = refraction.compositing ?? "image";
 
-    // TODO: (FE-43) Remove ResizeObserver and rely on `objectBoundingBox` to automatically size the filter.
-    // This will removed the need of `useState` here.
     useEffect(() => {
+      if (compositing === "image") {
+        return;
+      }
+
       const element = elementRef.current;
       if (!element) {
         return;
@@ -71,22 +108,39 @@ function createRefractiveComponent<
       return () => {
         resizeObserver.disconnect();
       };
-    }, [elementRef]);
+    }, [elementRef, compositing]);
+
+    const bezelWidth = refraction.bezelWidth ?? 0;
+    const radius = refraction.radius;
+    const clampedBezelWidth = Math.min(bezelWidth, radius);
+
+    const displacementRadius = calculateDisplacementMapRadius(
+      refraction.glassThickness ?? 70,
+      clampedBezelWidth,
+      refraction.bezelHeightFn ?? convex,
+      refraction.refractiveIndex ?? 1.5,
+    );
+
+    const maximumDisplacement = Math.max(...displacementRadius.map(Math.abs));
+    const ratioScale = clampedBezelWidth > 0 ? radius / clampedBezelWidth : 1;
+    const magnitudeTable = generateMagnitudeTable(
+      displacementRadius,
+      maximumDisplacement,
+      ratioScale,
+    );
 
     return (
       <>
-        <Filter
+        <FilterShell
           id={filterId}
-          scaleRatio={1} // Always 1 for now, could be animatable in the future
-          pixelRatio={6} // Always 6 for now, could be configurable in the future
+          blur={refraction.blur ?? 0}
+          scale={2 * maximumDisplacement}
+          magnitudeTable={magnitudeTable}
+          parts={hiResParts}
+          cornerWidth={radius}
+          compositing={compositing}
           width={width}
           height={height}
-          radius={refraction.radius}
-          blur={refraction.blur ?? 0}
-          glassThickness={refraction.glassThickness ?? 70}
-          bezelWidth={refraction.bezelWidth ?? 0}
-          refractiveIndex={refraction.refractiveIndex ?? 1.5}
-          bezelHeightFn={refraction.bezelHeightFn ?? convex}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}

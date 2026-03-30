@@ -5,8 +5,12 @@ import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
  * Computes a geometry-only polar field encoding (distance-to-border ratio, angle)
  * for each pixel of a rounded rectangle.
  *
- * This map depends only on shape parameters (radius, bezelWidth), NOT on optical
- * parameters (glassThickness, refractiveIndex, bezelHeightFn). The optical transfer
+ * The output image is (radius * 2 + 1) pixels per side, with the bezel filling
+ * the entire corner area. The actual bezel-to-radius ratio is handled later
+ * by the magnitude lookup table's `ratioScale` parameter.
+ *
+ * This map depends only on shape geometry, NOT on optical parameters
+ * (glassThickness, refractiveIndex, bezelHeightFn). The optical transfer
  * function is applied later via SVG feComponentTransfer lookup tables.
  *
  * Channel encoding:
@@ -15,26 +19,14 @@ import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
  * - B: 0
  * - A: 255
  */
-export function calculateGeometricPolarMap(props: {
-  width: number;
-  height: number;
-  radius: number;
-  bezelWidth: number;
-  pixelRatio: number;
-}) {
-  const { pixelRatio } = props;
-
-  const width = Math.round(props.width * pixelRatio);
-  const height = Math.round(props.height * pixelRatio);
-
-  const radius = Math.min(props.radius * pixelRatio, width / 2, height / 2);
-  const bezel = Math.min(props.bezelWidth * pixelRatio, width / 2, height / 2);
+export function calculateGeometricPolarMap(radius: number) {
+  const side = radius * 2 + 1;
 
   return calculateRoundedSquareMap({
-    width,
-    height,
+    width: side,
+    height: side,
     radius,
-    maximumDistanceToBorder: bezel,
+    maximumDistanceToBorder: radius,
     // R=0 (at border), G=0, B=0, A=255
     fillColor: 0xff000000,
     processPixel(
@@ -43,18 +35,15 @@ export function calculateGeometricPolarMap(props: {
       buffer,
       offset,
       _distanceFromCenter,
-      distanceFromBorder,
+      _distanceFromBorder,
       distanceFromBorderRatio,
       angle,
       opacity,
     ) {
-      const ratio =
-        bezel > radius ? distanceFromBorderRatio : distanceFromBorder / bezel;
-
       // R: border distance ratio, scaled by opacity for anti-aliasing.
       // At opacity < 1 (anti-aliased edges), ratio trends toward 0,
       // which the magnitude lookup table maps to "no displacement".
-      buffer[offset] = Math.round(ratio * 255 * opacity);
+      buffer[offset] = Math.round(distanceFromBorderRatio * 255 * opacity);
 
       // G: angle toward center (displacement direction)
       const displacementAngle = (angle + Math.PI) % (2 * Math.PI);

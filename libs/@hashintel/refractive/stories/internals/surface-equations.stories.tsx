@@ -8,7 +8,7 @@ import {
   convexCircle,
   lip,
 } from "../../src/helpers/surface-equations";
-import { calculateDisplacementMapRadius } from "../../src/maps/displacement-map";
+import { calculateDisplacementMapRadius } from "../../src/maps/displacement-radius";
 
 const PLOT_WIDTH = 400;
 const PLOT_HEIGHT = 300;
