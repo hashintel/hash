@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
+
 import type { Parts } from "../../helpers/split-imagedata-to-parts";
 
 type CompositePartsProps = {
   parts: Parts;
   cornerWidth: number;
-  width: number;
-  height: number;
+  /** Ref to the element whose dimensions drive the filter layout. */
+  elementRef: React.RefObject<HTMLElement | null>;
   result: string;
   hideTop?: boolean;
   hideBottom?: boolean;
@@ -16,20 +18,49 @@ type CompositePartsProps = {
  * @private
  * Renders pre-split 9-patch parts as feImage primitives and composites them together.
  *
- * Unlike the "image" compositing strategy (which builds a single SVG data URL),
- * this uses explicit pixel positions and requires width/height from a ResizeObserver.
+ * Observes the referenced element's size via ResizeObserver to position
+ * parts at the correct pixel coordinates.
  */
 export const CompositeParts: React.FC<CompositePartsProps> = ({
   parts,
   cornerWidth,
-  width,
-  height,
+  elementRef,
   result,
   hideTop,
   hideBottom,
   hideLeft,
   hideRight,
 }) => {
+  const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const borderBox = entry.borderBoxSize[0];
+
+        if (borderBox) {
+          setWidth(borderBox.inlineSize);
+          setHeight(borderBox.blockSize);
+        } else {
+          setWidth(entry.contentRect.width);
+          setHeight(entry.contentRect.height);
+        }
+      }
+    });
+
+    resizeObserver.observe(element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [elementRef]);
+
   const widthMinusCorner = width - cornerWidth;
   const heightMinusCorner = height - cornerWidth;
 

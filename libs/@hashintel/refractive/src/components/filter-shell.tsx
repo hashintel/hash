@@ -17,13 +17,11 @@ type FilterShellProps = {
    * - `"image"` (default): Builds a single composite SVG data URL.
    *   Uses objectBoundingBox — auto-sizes with the element, no ResizeObserver needed.
    * - `"parts"`: Renders 9 feImage + 8 feComposite filter primitives.
-   *   Requires explicit width/height (needs ResizeObserver in the HOC).
+   *   Observes the element via `elementRef` to get pixel dimensions.
    */
   compositing?: CompositeMode;
-  /** Required when compositing is "parts". */
-  width?: number;
-  /** Required when compositing is "parts". */
-  height?: number;
+  /** Ref to the element whose dimensions drive the "parts" layout. Required when compositing is "parts". */
+  elementRef?: React.RefObject<HTMLElement | null>;
   hideTop?: boolean;
   hideBottom?: boolean;
   hideLeft?: boolean;
@@ -45,8 +43,7 @@ export const FilterShell: React.FC<FilterShellProps> = ({
   parts,
   cornerWidth,
   compositing = "image",
-  width,
-  height,
+  elementRef,
   hideTop,
   hideBottom,
   hideLeft,
@@ -83,8 +80,7 @@ export const FilterShell: React.FC<FilterShellProps> = ({
           ) : (
             <CompositeParts
               parts={parts}
-              width={width!}
-              height={height!}
+              elementRef={elementRef!}
               cornerWidth={cornerWidth}
               result="polar_map"
               hideTop={hideTop}

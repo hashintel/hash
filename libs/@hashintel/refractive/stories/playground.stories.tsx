@@ -1,19 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import type { CompositeMode } from "../src/components/filter-shell";
 import { convex } from "../src/helpers/surface-equations";
 import { refractive } from "../src/hoc/refractive";
 import { ExampleArticle } from "./example-article";
 
-const refraction = {
-  blur: 2,
-  radius: 20,
-  edgeSize: 30,
-  thickness: 70,
-  refractiveIndex: 1.5,
-  edgeProfile: convex,
+type Props = {
+  compositing: CompositeMode;
 };
 
-const GlassOverArticle = () => (
+const GlassOverArticle = ({ compositing }: Props) => (
   <div style={{ position: "relative" }}>
     <refractive.div
       style={{
@@ -30,7 +26,15 @@ const GlassOverArticle = () => (
         justifyContent: "center",
         zIndex: 1,
       }}
-      refraction={refraction}
+      refraction={{
+        blur: 2,
+        radius: 20,
+        edgeSize: 30,
+        thickness: 70,
+        refractiveIndex: 1.5,
+        edgeProfile: convex,
+        compositing,
+      }}
     >
       Refractive Glass
     </refractive.div>
@@ -42,6 +46,15 @@ const GlassOverArticle = () => (
 const meta = {
   title: "Playground",
   component: GlassOverArticle,
+  argTypes: {
+    compositing: {
+      control: { type: "inline-radio" as const },
+      options: ["image", "parts"],
+    },
+  },
+  args: {
+    compositing: "image",
+  },
 } satisfies Meta<typeof GlassOverArticle>;
 
 export default meta;

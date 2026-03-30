@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { createElement, useEffect, useId, useRef, useState } from "react";
+import { createElement, useId, useRef } from "react";
 import type { JSX } from "react/jsx-runtime";
 
 import type { CompositeMode } from "../components/filter-shell";
@@ -73,42 +73,8 @@ function createRefractiveComponent<
     } = props as P & RefractionProps & { ref?: React.Ref<HTMLElement> };
     const filterId = useId();
     const internalRef = useRef<HTMLElement>(null);
-    const [width, setWidth] = useState(0);
-    const [height, setHeight] = useState(0);
 
     const elementRef = externalRef ?? internalRef;
-    const compositing = refraction.compositing ?? "image";
-
-    useEffect(() => {
-      if (compositing === "image") {
-        return;
-      }
-
-      const element = elementRef.current;
-      if (!element) {
-        return;
-      }
-
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const borderBox = entry.borderBoxSize[0];
-
-          if (borderBox) {
-            setWidth(borderBox.inlineSize);
-            setHeight(borderBox.blockSize);
-          } else {
-            setWidth(entry.contentRect.width);
-            setHeight(entry.contentRect.height);
-          }
-        }
-      });
-
-      resizeObserver.observe(element);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }, [elementRef, compositing]);
 
     const edgeSize = refraction.edgeSize ?? 0;
     const radius = refraction.radius;
@@ -138,9 +104,8 @@ function createRefractiveComponent<
           magnitudeTable={magnitudeTable}
           parts={hiResParts}
           cornerWidth={radius}
-          compositing={compositing}
-          width={width}
-          height={height}
+          compositing={refraction.compositing}
+          elementRef={elementRef}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}
