@@ -14,4 +14,4 @@ permissions:
 jobs:
   dependency-review:
     name: Dependency Review
-    uses: hashintel/.github/.github/workflows/dependency-review.yml@8f5593ef032fa7797bc4d70b6c7b5c02549fc862
+    uses: hashintel/.github/.github/workflows/dependency-review.yml@5ba4cedb756d32b66f2c628967e57fad88aeb717
