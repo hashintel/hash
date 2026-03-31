@@ -49,6 +49,8 @@ type RefractionProps = {
      * - `"parts"`: 9-patch feImage primitives, requires explicit sizing.
      */
     compositing?: CompositeMode;
+    /** Specular rim light angle in radians. Undefined disables the effect. */
+    specularRimAngle?: number;
   };
 };
 
@@ -106,6 +108,7 @@ function createRefractiveComponent<
           cornerWidth={radius}
           compositing={refraction.compositing}
           elementRef={elementRef}
+          specularRimAngle={refraction.specularRimAngle}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}

@@ -1,7 +1,8 @@
 import type { Parts } from "../helpers/split-imagedata-to-parts";
 import { buildCompositeSvgUrl } from "./composite/image";
 import { CompositeParts } from "./composite/parts";
-import { Refraction } from "./refraction";
+import { Refraction } from "./effects/refraction";
+import { SpecularRim } from "./effects/specular-rim";
 
 export type CompositeMode = "image" | "parts";
 
@@ -22,6 +23,8 @@ type FilterShellProps = {
   compositing?: CompositeMode;
   /** Ref to the element whose dimensions drive the "parts" layout. Required when compositing is "parts". */
   elementRef?: React.RefObject<HTMLElement | null>;
+  /** Specular rim light angle in radians. Undefined disables the effect. */
+  specularRimAngle?: number;
   hideTop?: boolean;
   hideBottom?: boolean;
   hideLeft?: boolean;
@@ -30,11 +33,11 @@ type FilterShellProps = {
 
 /**
  * @private
- * Full SVG filter pipeline: blur → polar map compositing → refraction effect.
+ * Full SVG filter pipeline: blur → polar map compositing → effects.
  *
  * The `compositing` prop controls how the 9-patch polar map is assembled
- * inside the SVG filter graph. The polar map is then consumed by the
- * Refraction effect (and in the future, other effects like specular).
+ * inside the SVG filter graph. The polar map is then consumed by composable
+ * effects (refraction, specular rim, etc.).
  */
 export const FilterShell: React.FC<FilterShellProps> = ({
   id,
@@ -45,6 +48,7 @@ export const FilterShell: React.FC<FilterShellProps> = ({
   cornerWidth,
   compositing = "image",
   elementRef,
+  specularRimAngle,
   hideTop,
   hideBottom,
   hideLeft,
@@ -98,6 +102,16 @@ export const FilterShell: React.FC<FilterShellProps> = ({
             source="blurred_source"
             result="refracted"
           />
+
+          {specularRimAngle !== undefined && (
+            <SpecularRim
+              in="polar_map"
+              source="refracted"
+              radius={cornerWidth}
+              lightAngle={specularRimAngle}
+              result="with_specular"
+            />
+          )}
         </filter>
       </defs>
     </svg>

@@ -1,4 +1,4 @@
-import { generateTableValues } from "../helpers/generate-table-values";
+import { generateTableValues } from "../../helpers/generate-table-values";
 
 // Trig tables are constant — computed once at module level.
 const cosTable = generateTableValues(256, (i) => {

@@ -6,10 +6,12 @@ import { refractive } from "../src/hoc/refractive";
 import { ExampleArticle } from "./example-article";
 
 type Props = {
+  radius: number;
   compositing: CompositeMode;
+  specularRimAngle: number | undefined;
 };
 
-const GlassOverArticle = ({ compositing }: Props) => (
+const GlassOverArticle = ({ radius, compositing, specularRimAngle }: Props) => (
   <div style={{ position: "relative" }}>
     <refractive.div
       style={{
@@ -28,12 +30,13 @@ const GlassOverArticle = ({ compositing }: Props) => (
       }}
       refraction={{
         blur: 2,
-        radius: 20,
+        radius,
         edgeSize: 30,
         thickness: 70,
         refractiveIndex: 1.5,
         edgeProfile: convex,
         compositing,
+        specularRimAngle,
       }}
     >
       Refractive Glass
@@ -47,13 +50,21 @@ const meta = {
   title: "Playground",
   component: GlassOverArticle,
   argTypes: {
+    radius: {
+      control: { type: "range", min: 0, max: 100, step: 1 },
+    },
     compositing: {
       control: { type: "inline-radio" as const },
       options: ["image", "parts"],
     },
+    specularRimAngle: {
+      control: { type: "range", min: 0, max: 6.28, step: 0.01 },
+    },
   },
   args: {
+    radius: 20,
     compositing: "image",
+    specularRimAngle: Math.PI / 4,
   },
 } satisfies Meta<typeof GlassOverArticle>;
 
@@ -62,3 +73,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const NoSpecular: Story = {
+  args: { specularRimAngle: undefined },
+};
