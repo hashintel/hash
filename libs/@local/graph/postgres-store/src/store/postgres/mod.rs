@@ -3936,7 +3936,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _actor_id: ActorEntityUuid,
         shortname: &str,
     ) -> Result<Option<Web>, Report<WebRetrievalError>> {
-        let normalized_shortname = shortname.to_lowercase();
         Ok(self
             .as_client()
             .query_opt(
@@ -3946,10 +3945,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     array_remove(array_agg(role.id), NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
-                WHERE web.shortname = $1
+                WHERE web.shortname = LOWER($1)
                 GROUP BY web.id
                 ",
-                &[&normalized_shortname],
+                &[&shortname],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
