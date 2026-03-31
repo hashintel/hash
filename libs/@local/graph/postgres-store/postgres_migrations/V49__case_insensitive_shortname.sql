@@ -1,9 +1,23 @@
--- Make shortname lookups case-insensitive
--- This fixes a critical bug where @Timd and @timd could be two different users
+-- Normalize existing shortnames to lowercase
+UPDATE web SET shortname = LOWER(shortname) WHERE shortname IS NOT NULL AND shortname <> LOWER(shortname);
 
 -- Drop the existing case-sensitive unique index
 DROP INDEX IF EXISTS idx_web_shortname;
 
--- Create a case-insensitive unique index using LOWER()
--- This ensures that 'Timd', 'timd', and 'TIMD' all conflict with each other
+-- Create a case-insensitive unique index
 CREATE UNIQUE INDEX idx_web_shortname ON web (LOWER(shortname)) WHERE shortname IS NOT NULL;
+
+-- Trigger to normalize shortnames to lowercase on insert/update
+CREATE FUNCTION normalize_web_shortname()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.shortname IS NOT NULL THEN
+        NEW.shortname := LOWER(NEW.shortname);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER web_normalize_shortname_trigger
+BEFORE INSERT OR UPDATE OF shortname ON web
+FOR EACH ROW EXECUTE FUNCTION normalize_web_shortname();

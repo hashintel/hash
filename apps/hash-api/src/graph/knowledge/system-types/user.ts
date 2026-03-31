@@ -361,14 +361,11 @@ export const createUser: ImpureGraphFunction<
   const {
     emails,
     kratosIdentityId,
-    shortname: rawShortname,
+    shortname,
     enabledFeatureFlags,
     displayName,
     isInstanceAdmin = false,
   } = params;
-
-  // Normalize shortname to lowercase for case-insensitive uniqueness
-  const shortname = rawShortname?.toLowerCase();
 
   const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
     kratosIdentityId,
