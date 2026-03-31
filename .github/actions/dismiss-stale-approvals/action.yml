@@ -1,0 +1,195 @@
+name: Dismiss stale approvals
+description: Dismiss approvals on a pull request if the diff has changed
+
+inputs:
+  github-token:
+    description: A GITHUB_TOKEN secret or PAT that has write access to the repository
+    required: true
+  fetch-depth:
+    default: 250
+    description: The maximum length of a branch from head to base that will be compared to the previous run
+    required: false
+  dry-run:
+    description: Comment on the PR instead of dismissing approvals
+    required: false
+    default: false
+
+outputs:
+  stale:
+    description: Whether approvals should be dismissed
+    value: ${{ steps.decision.outputs.stale }}
+  reason:
+    description: The dismissal reason
+    value: ${{ steps.decision.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set workflow run URL
+      id: run-url
+      shell: bash
+      run: |
+        repo_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        run_url="$repo_url/actions/runs/${GITHUB_RUN_ID}"
+        echo "workflow_run_url=$run_url" >> "$GITHUB_OUTPUT"
+
+    - name: Download SHAs from last run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ACTION_PATH: ${{ github.action_path }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        HEAD_REF: ${{ github.head_ref }}
+        REPOSITORY: ${{ github.repository }}
+        WORKFLOW_NAME: ${{ github.workflow }}
+      run: |
+        "$ACTION_PATH/latest-artifact.sh" \
+          "$REPOSITORY" \
+          "$PR_NUMBER" \
+          "$HEAD_REF" \
+          "$WORKFLOW_NAME" \
+          "dismiss-stale-approvals-shas" || true
+
+        if [[ -f shas.txt ]]; then
+          echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> "$GITHUB_ENV"
+          echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> "$GITHUB_ENV"
+        else
+          echo "NO_PREV_SHAS=1" >> "$GITHUB_ENV"
+        fi
+
+    - name: Read SHAs
+      shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+        echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+
+    - name: Write SHAs to file
+      shell: bash
+      run: |
+        echo "$HEAD_SHA" > shas.txt
+        echo "$BASE_SHA" >> shas.txt
+
+    - name: Upload SHAs
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      continue-on-error: true
+      with:
+        name: dismiss-stale-approvals-shas
+        path: shas.txt
+
+    - name: Check if diff has changed
+      id: range-diff
+      continue-on-error: true
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        FETCH_DEPTH: ${{ inputs.fetch-depth }}
+        FETCHED_REPOSITORY_PATH: bare.git
+        GH_TOKEN: ${{ inputs.github-token }}
+        PREV_BASE_SHA: ${{ env.PREV_BASE_SHA }}
+        PREV_HEAD_SHA: ${{ env.PREV_HEAD_SHA }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        if [[ "${NO_PREV_SHAS:-0}" == "1" ]]; then
+          echo "stale=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        git init -q --bare "$FETCHED_REPOSITORY_PATH"
+        git -C "$FETCHED_REPOSITORY_PATH" remote add origin "https://oauth2:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+        git -C "$FETCHED_REPOSITORY_PATH" fetch -q origin --depth="$FETCH_DEPTH" \
+          "$PREV_BASE_SHA" \
+          "$PREV_HEAD_SHA" \
+          "$BASE_SHA" \
+          "$HEAD_SHA"
+
+        prev_merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$PREV_BASE_SHA" "$PREV_HEAD_SHA")"
+        merge_base="$(git -C "$FETCHED_REPOSITORY_PATH" merge-base "$BASE_SHA" "$HEAD_SHA")"
+        range_diff="$(git -C "$FETCHED_REPOSITORY_PATH" range-diff "$prev_merge_base..$PREV_HEAD_SHA" "$merge_base..$HEAD_SHA")"
+
+        printf '%s\n' "$range_diff" | "$ACTION_PATH/range-diff-stale.sh" >> "$GITHUB_OUTPUT"
+
+    - name: Read latest approval SHA
+      id: approval
+      continue-on-error: true
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        approval_sha="$("$ACTION_PATH/latest-approval-sha.sh" "$REPOSITORY" "$PR_NUMBER")"
+        echo "sha=$approval_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Check for manual merge resolutions after approval
+      id: merge-tree
+      continue-on-error: true
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        APPROVAL_SHA: ${{ steps.approval.outputs.sha }}
+        FETCH_DEPTH: ${{ inputs.fetch-depth }}
+        FETCHED_REPOSITORY_PATH: bare.git
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        if [[ ! -d "$FETCHED_REPOSITORY_PATH" ]]; then
+          git init -q --bare "$FETCHED_REPOSITORY_PATH"
+          git -C "$FETCHED_REPOSITORY_PATH" remote add origin "https://oauth2:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+        fi
+
+        fetch_refs=("$HEAD_SHA")
+        if [[ -n "$APPROVAL_SHA" ]]; then
+          fetch_refs+=("$APPROVAL_SHA")
+        fi
+
+        git -C "$FETCHED_REPOSITORY_PATH" fetch -q origin --depth="$FETCH_DEPTH" "${fetch_refs[@]}"
+
+        "$ACTION_PATH/check-manual-merge-resolutions.sh" \
+          --repository-path "$FETCHED_REPOSITORY_PATH" \
+          --approval-sha "$APPROVAL_SHA" \
+          --head-sha "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Decide whether approvals are stale
+      id: decision
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        APPROVAL_OUTCOME: ${{ steps.approval.outcome }}
+        MERGE_TREE_OUTCOME: ${{ steps.merge-tree.outcome }}
+        MERGE_TREE_REASON: ${{ steps.merge-tree.outputs.reason }}
+        MERGE_TREE_STALE: ${{ steps.merge-tree.outputs.stale }}
+        NO_PREV_SHAS: ${{ env.NO_PREV_SHAS }}
+        RANGE_DIFF_OUTCOME: ${{ steps.range-diff.outcome }}
+        RANGE_DIFF_STALE: ${{ steps.range-diff.outputs.stale }}
+        WORKFLOW_RUN_URL: ${{ steps.run-url.outputs.workflow_run_url }}
+      run: |
+        "$ACTION_PATH/decide-stale-approvals.sh" \
+          --approval-outcome "$APPROVAL_OUTCOME" \
+          --merge-tree-outcome "$MERGE_TREE_OUTCOME" \
+          --merge-tree-stale "$MERGE_TREE_STALE" \
+          --merge-tree-reason "$MERGE_TREE_REASON" \
+          --range-diff-outcome "$RANGE_DIFF_OUTCOME" \
+          --range-diff-stale "$RANGE_DIFF_STALE" \
+          --no-prev-shas "${NO_PREV_SHAS:-0}" \
+          --workflow-run-url "$WORKFLOW_RUN_URL" >> "$GITHUB_OUTPUT"
+
+    - name: Dismiss approvals
+      if: steps.decision.outputs.stale == 'true'
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REASON: ${{ steps.decision.outputs.reason }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        "$ACTION_PATH/dismiss-reviews.sh" \
+          --repository "$REPOSITORY" \
+          --pr-number "$PR_NUMBER" \
+          --reason "$REASON" \
+          --dry-run "$DRY_RUN"

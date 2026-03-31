@@ -1,6 +1,11 @@
 name: Dismiss stale pull request approvals
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/dismiss-stale-approvals.yml"
+      - ".github/actions/dismiss-stale-approvals/*"
   pull_request_target:
     types: [opened, synchronize, reopened]
   merge_group:
@@ -14,9 +19,27 @@ jobs:
   dismiss_stale_approvals:
     runs-on: ubuntu-24.04
     steps:
+      - name: Checkout trusted action from main
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/heads/main
+          sparse-checkout: |
+            .github/actions/dismiss-stale-approvals
+
+      - name: Checkout pull request revision
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
       - name: Dismiss stale pull request approvals
         if: github.event_name == 'pull_request_target'
-        # see: https://github.com/withgraphite/dismiss-stale-approvals/pull/8#issuecomment-3386592574
-        uses: turnage/dismiss-stale-approvals@ff3fc67f2978497c420e446f704b9502dd911fd8 # fork
+        uses: ./.github/actions/dismiss-stale-approvals
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry-run stale approval check on pull_request
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/dismiss-stale-approvals
+        with:
+          dry-run: true
           github-token: ${{ secrets.GITHUB_TOKEN }}

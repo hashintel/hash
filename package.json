@@ -71,6 +71,7 @@
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --",
     "test:playwright": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --filter @tests/hash-playwright --",
+    "test:stale-approvals": "bash .github/actions/dismiss-stale-approvals/self-test.sh",
     "test:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:unit --env-mode=loose --"
   },
   "devDependencies": {
