@@ -95,8 +95,24 @@ impl From<Continuation> for Expression {
         // (filter, block, locals, values)
         let row = match continuation {
             Continuation::Return { filter } => {
+                // Normalize SQL three-valued logic to two-valued filter semantics:
+                // `NULL` from predicate evaluation should behave like `FALSE`, not
+                // like continuation passthrough.
+                let filter = filter.grouped().cast(PostgresType::Boolean);
+                let filter_is_not_false = Self::Unary(UnaryExpression {
+                    op: UnaryOperator::IsNotFalse,
+                    expr: Box::new(filter.clone()),
+                });
+                let filter_is_not_null = Self::Unary(UnaryExpression {
+                    op: UnaryOperator::Not,
+                    expr: Box::new(Self::Unary(UnaryExpression {
+                        op: UnaryOperator::IsNull,
+                        expr: Box::new(filter),
+                    })),
+                });
+
                 vec![
-                    filter.grouped().cast(PostgresType::Boolean),
+                    Self::all(vec![filter_is_not_false, filter_is_not_null]),
                     null.clone(),
                     null.clone(),
                     null,
@@ -177,11 +193,18 @@ fn finish_switch_int<A: Allocator>(
 
     debug_assert_eq!(branch_results.len(), targets.values().len());
 
-    // SwitchInt compares the discriminant against integer values. If the
-    // discriminant is a boolean expression (e.g. `IS NOT NULL`), PostgreSQL
-    // rejects `boolean = integer`. Casting to `::int` is safe for all types
-    // and a no-op when the discriminant is already integral.
-    let discriminant = Box::new(discriminant.grouped().cast(PostgresType::Int));
+    // Preserve the existing boolean-switch behavior (`::int`) for 0/1 cases,
+    // but avoid 32-bit narrowing for wider SwitchInt values.
+    let cast = if targets
+        .values()
+        .iter()
+        .all(|&value| i32::try_from(value).is_ok())
+    {
+        PostgresType::Int
+    } else {
+        PostgresType::Numeric
+    };
+    let discriminant = Box::new(discriminant.grouped().cast(cast.clone()));
 
     let mut discriminant = Some(discriminant);
     let mut conditions = Vec::with_capacity(targets.values().len());
@@ -197,7 +220,7 @@ fn finish_switch_int<A: Allocator>(
         let when = Expression::Binary(BinaryExpression {
             op: BinaryOperator::Equal,
             left: discriminant,
-            right: Box::new(Expression::Constant(query::Constant::U128(value))),
+            right: Box::new(Expression::Constant(query::Constant::U128(value)).cast(cast.clone())),
         });
 
         conditions.push((when, then));
@@ -605,6 +628,48 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         unreachable!("The postgres island always has an entry block (BasicBlockId::START)")
     }
 
+    fn find_external_entry_target(
+        &self,
+        island: &IslandNode,
+        entry_block: BasicBlockId,
+    ) -> Option<(BasicBlockId, Target<'heap>)> {
+        let mut incoming = None;
+
+        for predecessor in self.body.basic_blocks.predecessors(entry_block) {
+            if island.contains(predecessor) {
+                continue;
+            }
+
+            let terminator = &self.body.basic_blocks[predecessor].terminator.kind;
+
+            if let TerminatorKind::GraphRead(read) = terminator
+                && read.target == entry_block
+            {
+                let target = Target::block(entry_block);
+
+                if let Some((_, existing)) = incoming {
+                    debug_assert_eq!(existing, target);
+                } else {
+                    incoming = Some((predecessor, target));
+                }
+            }
+
+            for &target in terminator.successor_targets() {
+                if target.block != entry_block {
+                    continue;
+                }
+
+                if let Some((_, existing)) = incoming {
+                    debug_assert_eq!(existing, target);
+                } else {
+                    incoming = Some((predecessor, target));
+                }
+            }
+        }
+
+        incoming
+    }
+
     fn compile_island_exit(
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
@@ -631,6 +696,12 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         }
 
         for local in live_out {
+            // The environment local is immutable and available independently from
+            // the local expression map, so it does not need to be serialized here.
+            if local == Local::ENV {
+                continue;
+            }
+
             let value = self
                 .locals
                 .lookup(local)
@@ -739,8 +810,17 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
     {
         debug_assert_eq!(island.target(), TargetId::Postgres);
 
+        let entry_block = self.find_entry_block(island);
+
+        // Non-start islands may receive block arguments from predecessors outside
+        // the island. Seed entry parameters once before starting compilation.
+        if let Some((from, target)) = self.find_external_entry_target(island, entry_block) {
+            let span = self.body.basic_blocks[from].terminator.span;
+            self.assign_params(db, span, &target);
+        }
+
         let mut stack = Vec::new_in(self.scratch.clone());
-        stack.push(Frame::Compile(self.find_entry_block(island)));
+        stack.push(Frame::Compile(entry_block));
 
         let mut results = Vec::new_in(self.scratch.clone());
 
