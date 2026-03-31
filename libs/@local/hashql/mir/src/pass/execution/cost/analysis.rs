@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use super::{ApproxCost, StatementCostVec};
+use super::{ApproxCost, Cost, StatementCostVec};
 use crate::{
     body::basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
     pass::{
@@ -124,7 +124,7 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
         let load = range
             .saturating_mul(config.target_multiplier[target].get())
             .midpoint()
-            .map_or(ApproxCost::INF, From::from);
+            .map_or_else(|| ApproxCost::from(Cost::MAX), ApproxCost::from);
 
         BasicBlockTargetCost { base, load }
     }
@@ -509,6 +509,45 @@ mod tests {
         let interpreter_cost = result.cost(bb0, TargetId::Interpreter);
         let interpreter_base = costs[TargetId::Interpreter].sum_approx(bb0);
         assert!(interpreter_cost > interpreter_base);
+    }
+
+    /// Unbounded transfer-size estimates should stay expensive but finite, so they remain
+    /// valid candidates for solver search.
+    #[test]
+    fn unbounded_path_premium_stays_finite() {
+        let heap = Heap::new();
+        let interner = Interner::new(&heap);
+        let env = Environment::new(&heap);
+
+        let body = body!(interner, env; [graph::read::filter]@0/2 -> ? {
+            decl env: (), vertex: [Opaque sym::path::Entity; ?], val: ?;
+            @proj properties = vertex.properties: ?;
+
+            bb0() {
+                val = load properties;
+                return val;
+            }
+        });
+
+        let targets = make_targets(&body, all_targets());
+        let targets = BasicBlockSlice::from_raw(&targets);
+
+        let costs: TargetArray<StatementCostVec<Global>> =
+            TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
+
+        let analysis = BasicBlockCostAnalysis {
+            vertex: VertexType::Entity,
+            assignments: targets,
+            costs: &costs,
+        };
+
+        let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
+        let bb0 = BasicBlockId::new(0);
+
+        let interpreter_cost = result.cost(bb0, TargetId::Interpreter);
+        let interpreter_base = costs[TargetId::Interpreter].sum_approx(bb0);
+        assert!(interpreter_cost > interpreter_base);
+        assert!(interpreter_cost.is_finite());
     }
 
     /// Paths across multiple blocks are analyzed independently per block.

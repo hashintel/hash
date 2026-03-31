@@ -230,6 +230,8 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         I: [const] Id,
         T: [const] FiniteBitSetIntegral,
     {
+        assert!(domain_size <= T::MAX_DOMAIN_SIZE as usize);
+
         let Some((start, end)) = inclusive_start_end(bounds, domain_size) else {
             return;
         };
@@ -617,6 +619,13 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed")]
+    fn insert_range_domain_size_exceeds_capacity_panics() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert_range(.., 9);
     }
 
     #[test]
