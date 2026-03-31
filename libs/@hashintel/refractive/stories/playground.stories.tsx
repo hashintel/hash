@@ -8,10 +8,20 @@ import { ExampleArticle } from "./example-article";
 type Props = {
   radius: number;
   compositing: CompositeMode;
-  specularRimAngle: number | undefined;
+  lightAngle: number | undefined;
+  diffuseIntensity: number;
+  specular: boolean;
+  shadowOpacity: number;
 };
 
-const GlassOverArticle = ({ radius, compositing, specularRimAngle }: Props) => (
+const GlassOverArticle = ({
+  radius,
+  compositing,
+  lightAngle,
+  diffuseIntensity,
+  specular,
+  shadowOpacity,
+}: Props) => (
   <div style={{ position: "relative" }}>
     <refractive.div
       style={{
@@ -22,11 +32,12 @@ const GlassOverArticle = ({ radius, compositing, specularRimAngle }: Props) => (
         height: 200,
         resize: "both",
         overflow: "auto",
-        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        // backgroundColor: "rgba(255, 255, 255, 0.6)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1,
+        boxShadow: `0 8px 24px rgba(0, 0, 0, ${shadowOpacity})`,
       }}
       refraction={{
         blur: 2,
@@ -36,7 +47,9 @@ const GlassOverArticle = ({ radius, compositing, specularRimAngle }: Props) => (
         refractiveIndex: 1.5,
         edgeProfile: convex,
         compositing,
-        specularRimAngle,
+        lightAngle,
+        diffuseIntensity,
+        specular,
       }}
     >
       Refractive Glass
@@ -57,14 +70,26 @@ const meta = {
       control: { type: "inline-radio" as const },
       options: ["image", "parts"],
     },
-    specularRimAngle: {
+    lightAngle: {
       control: { type: "range", min: 0, max: 6.28, step: 0.01 },
+    },
+    diffuseIntensity: {
+      control: { type: "range", min: 0, max: 1, step: 0.01 },
+    },
+    specular: {
+      control: { type: "boolean" },
+    },
+    shadowOpacity: {
+      control: { type: "range", min: 0, max: 1, step: 0.01 },
     },
   },
   args: {
     radius: 20,
     compositing: "image",
-    specularRimAngle: Math.PI / 4,
+    lightAngle: Math.PI / 4,
+    diffuseIntensity: 0.3,
+    specular: true,
+    shadowOpacity: 0.15,
   },
 } satisfies Meta<typeof GlassOverArticle>;
 
@@ -74,6 +99,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const NoSpecular: Story = {
-  args: { specularRimAngle: undefined },
+export const NoLighting: Story = {
+  args: { lightAngle: undefined, diffuseIntensity: 0 },
 };

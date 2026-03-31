@@ -22,16 +22,17 @@ function generateRimTable(radius: number): string {
  * Generates a directional highlight lookup table.
  *
  * Maps the polar map angle channel [0,255] → [0,2π] to a cosine
- * lobe centered on `lightAngle`. The lobe width is controlled by
- * `spread`: 1 = normal cosine, higher = tighter highlight.
+ * lobe along the `lightAngle` axis. The light direction is treated
+ * as an axis — both the light-facing and opposite sides receive
+ * the highlight. The lobe width is controlled by `spread`.
  */
 function generateDirectionalTable(lightAngle: number, spread: number): string {
   return generateTableValues(256, (i) => {
     // The polar map G channel encodes the displacement angle (toward center).
     const angle = (i / 255) * 2 * Math.PI;
     const dot = Math.cos(angle - lightAngle);
-    // Raise to power for tighter highlights, clamp negative
-    return Math.pow(Math.max(0, dot), spread);
+    // Use |cos| so both sides of the axis get the highlight
+    return Math.pow(Math.abs(dot), spread);
   });
 }
 

@@ -1,6 +1,7 @@
 import type { Parts } from "../helpers/split-imagedata-to-parts";
 import { buildCompositeSvgUrl } from "./composite/image";
 import { CompositeParts } from "./composite/parts";
+import { DiffuseReflection } from "./effects/diffuse-reflection";
 import { Refraction } from "./effects/refraction";
 import { SpecularRim } from "./effects/specular-rim";
 
@@ -11,6 +12,7 @@ type FilterShellProps = {
   blur: number;
   scale: number;
   magnitudeTable: string;
+  surfaceTiltTable: string;
   parts: Parts;
   cornerWidth: number;
   /**
@@ -23,8 +25,12 @@ type FilterShellProps = {
   compositing?: CompositeMode;
   /** Ref to the element whose dimensions drive the "parts" layout. Required when compositing is "parts". */
   elementRef?: React.RefObject<HTMLElement | null>;
-  /** Specular rim light angle in radians. Undefined disables the effect. */
-  specularRimAngle?: number;
+  /** Light direction in radians. Enables diffuse and specular effects. */
+  lightAngle?: number;
+  /** Strength of diffuse reflection shading [0,1]. 0 or undefined disables. */
+  diffuseIntensity?: number;
+  /** Whether to enable the specular rim highlight. Requires lightAngle. */
+  specular?: boolean;
   hideTop?: boolean;
   hideBottom?: boolean;
   hideLeft?: boolean;
@@ -35,26 +41,42 @@ type FilterShellProps = {
  * @private
  * Full SVG filter pipeline: blur → polar map compositing → effects.
  *
- * The `compositing` prop controls how the 9-patch polar map is assembled
- * inside the SVG filter graph. The polar map is then consumed by composable
- * effects (refraction, specular rim, etc.).
+ * Effect chain: refraction → diffuse reflection → specular rim.
+ * Each effect consumes the shared polar map independently.
  */
 export const FilterShell: React.FC<FilterShellProps> = ({
   id,
   blur,
   scale,
   magnitudeTable,
+  surfaceTiltTable,
   parts,
   cornerWidth,
   compositing = "image",
   elementRef,
-  specularRimAngle,
+  lightAngle,
+  diffuseIntensity,
+  specular,
   hideTop,
   hideBottom,
   hideLeft,
   hideRight,
 }) => {
   const isImage = compositing === "image";
+  const hasDiffuse =
+    lightAngle !== undefined &&
+    diffuseIntensity !== undefined &&
+    diffuseIntensity > 0;
+  const hasSpecular = specular !== false && lightAngle !== undefined;
+
+  // Build the effect chain: refraction → diffuse → specular
+  // Each effect reads "polar_map" and takes the previous result as source.
+  const refractionResult = "refracted";
+  const diffuseResult = hasDiffuse ? "with_diffuse" : refractionResult;
+  const specularResult = hasSpecular ? "with_specular" : diffuseResult;
+  // The last enabled effect's result is used as the filter output.
+  // SVG uses the last result in the filter chain automatically.
+  void specularResult; // referenced implicitly by the filter
 
   return (
     <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
@@ -100,16 +122,27 @@ export const FilterShell: React.FC<FilterShellProps> = ({
             scale={scale}
             in="polar_map"
             source="blurred_source"
-            result="refracted"
+            result={refractionResult}
           />
 
-          {specularRimAngle !== undefined && (
+          {hasDiffuse && (
+            <DiffuseReflection
+              in="polar_map"
+              source={refractionResult}
+              lightAngle={lightAngle}
+              surfaceTiltTable={surfaceTiltTable}
+              intensity={diffuseIntensity}
+              result={diffuseResult}
+            />
+          )}
+
+          {hasSpecular && (
             <SpecularRim
               in="polar_map"
-              source="refracted"
+              source={diffuseResult}
               radius={cornerWidth}
-              lightAngle={specularRimAngle}
-              result="with_specular"
+              lightAngle={lightAngle}
+              result={specularResult}
             />
           )}
         </filter>

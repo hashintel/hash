@@ -4,7 +4,10 @@ import type { JSX } from "react/jsx-runtime";
 
 import type { CompositeMode } from "../components/filter-shell";
 import { FilterShell } from "../components/filter-shell";
-import { generateMagnitudeTable } from "../helpers/generate-table-values";
+import {
+  generateMagnitudeTable,
+  generateSurfaceTiltTable,
+} from "../helpers/generate-table-values";
 import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 import { convex } from "../helpers/surface-equations";
 import { calculateDisplacementMapRadius } from "../maps/displacement-radius";
@@ -49,8 +52,12 @@ type RefractionProps = {
      * - `"parts"`: 9-patch feImage primitives, requires explicit sizing.
      */
     compositing?: CompositeMode;
-    /** Specular rim light angle in radians. Undefined disables the effect. */
-    specularRimAngle?: number;
+    /** Light direction in radians (0 = right, π/2 = down). Used by diffuse and specular effects. */
+    lightAngle?: number;
+    /** Strength of diffuse reflection shading [0,1]. 0 disables. */
+    diffuseIntensity?: number;
+    /** Whether to enable the specular rim highlight. Default true when lightAngle is set. */
+    specular?: boolean;
   };
 };
 
@@ -97,6 +104,9 @@ function createRefractiveComponent<
       ratioScale,
     );
 
+    const edgeProfile = refraction.edgeProfile ?? convex;
+    const surfaceTiltTable = generateSurfaceTiltTable(edgeProfile, ratioScale);
+
     return (
       <>
         <FilterShell
@@ -104,11 +114,14 @@ function createRefractiveComponent<
           blur={refraction.blur ?? 0}
           scale={2 * maximumDisplacement}
           magnitudeTable={magnitudeTable}
+          surfaceTiltTable={surfaceTiltTable}
           parts={hiResParts}
           cornerWidth={radius}
           compositing={refraction.compositing}
           elementRef={elementRef}
-          specularRimAngle={refraction.specularRimAngle}
+          lightAngle={refraction.lightAngle}
+          diffuseIntensity={refraction.diffuseIntensity}
+          specular={refraction.specular}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}
