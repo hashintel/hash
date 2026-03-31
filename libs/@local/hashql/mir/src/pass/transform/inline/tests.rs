@@ -6,7 +6,9 @@ use std::path::PathBuf;
 
 use bstr::ByteVec as _;
 use hashql_core::{
+    graph::algorithms::{Tarjan, TriColorDepthFirstSearch, tarjan::SccId},
     heap::Heap,
+    id::bit_vec::DenseBitSet,
     pretty::Formatter,
     symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
@@ -16,6 +18,7 @@ use insta::{Settings, assert_snapshot};
 
 use super::{
     BodyAnalysis, Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig,
+    InlineLoopBreakerConfig, loop_breaker::LoopBreaker,
 };
 use crate::{
     body::{Body, Source, basic_block::BasicBlockId, location::Location},
@@ -1112,4 +1115,548 @@ fn heuristics_no_unique_callsite_bonus_multiple_calls() {
     // No unique_callsite_bonus because 2 callsites
     // 10 + 5 - 30 * 0.875 = 15.0 - 26.25 = -11.25
     assert!((heuristics.score(default_callsite()) - (-11.25)).abs() < f32::EPSILON);
+}
+
+/// Two mutually recursive functions A and B, with a caller C.
+///
+/// A is large (many statements), B is small (single return). The loop breaker
+/// should select A (high cost = good breaker), leaving B as a non-breaker.
+/// When the inliner processes the SCC:
+/// - B's call to A (the breaker) is skipped.
+/// - A's call to B (non-breaker) is inlined into A.
+/// - C's call to either is cross-SCC and inlined normally.
+#[test]
+fn loop_breaker_mutual_recursion() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+    let c_id = DefId::new(2);
+
+    // A: large function that calls B
+    let a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, cond: Bool, tmp1: Int, tmp2: Int, tmp3: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() { goto bb3(n); },
+        bb2() {
+            tmp1 = bin.+ n 1;
+            tmp2 = bin.+ tmp1 2;
+            tmp3 = apply (b_id), tmp2;
+            goto bb3(tmp3);
+        },
+        bb3(result) { return result; }
+    });
+
+    // B: small function that calls A
+    let b = body!(interner, env; fn@b_id/1 -> Int {
+        decl x: Int, result: Int;
+        bb0() {
+            result = apply (a_id), x;
+            return result;
+        }
+    });
+
+    // C: external caller
+    let c = simple_caller(&interner, &env, c_id, b_id);
+
+    let mut bodies = [a, b, c];
+
+    assert_inline_pass(
+        "loop_breaker_mutual_recursion",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        InlineConfig::default(),
+    );
+}
+
+/// Verifies breaker selection picks the highest-cost member.
+///
+/// Given SCC {A, B} where A has high cost and B has low cost,
+/// A should be selected as the breaker (high cost = good breaker).
+#[test]
+fn loop_breaker_selects_highest_cost() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+
+    // A: expensive, calls B
+    let a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, t3: Int, t4: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() { goto bb3(n); },
+        bb2() {
+            t1 = bin.+ n 1;
+            t2 = bin.+ t1 2;
+            t3 = bin.- t2 3;
+            t4 = apply (b_id), t3;
+            goto bb3(t4);
+        },
+        bb3(result) { return result; }
+    });
+
+    // B: cheap, calls A
+    let b = body!(interner, env; fn@b_id/1 -> Int {
+        decl x: Int, result: Int;
+        bb0() {
+            result = apply (a_id), x;
+            return result;
+        }
+    });
+
+    let bodies = [a, b];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+    for body in &bodies {
+        analysis.run(body);
+    }
+    let costs = analysis.finish();
+
+    let tarjan: Tarjan<_, _, SccId, _, _> = Tarjan::new_in(&graph, &heap);
+    let components = tarjan.run();
+    let mut members = components.members_in(&heap);
+
+    let mut breaker = LoopBreaker {
+        config: InlineLoopBreakerConfig::default(),
+        graph: &graph,
+        properties: &costs.properties,
+        search: TriColorDepthFirstSearch::new_in(&graph, &heap),
+    };
+    let breakers = breaker.run_in(&mut members, &heap);
+
+    // A has higher cost, so A should be the breaker.
+    assert!(
+        breakers.contains(a_id),
+        "expected A (high cost) to be selected as breaker"
+    );
+    assert!(
+        !breakers.contains(b_id),
+        "expected B (low cost) to not be a breaker"
+    );
+}
+
+/// Three-way mutual recursion: A -> B -> C -> A.
+///
+/// One breaker should be sufficient to break the single cycle.
+/// The member with highest cost should be selected.
+#[test]
+fn loop_breaker_three_way_cycle() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+    let c_id = DefId::new(2);
+
+    // A: expensive
+    let a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, t3: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() { goto bb3(n); },
+        bb2() {
+            t1 = bin.+ n 1;
+            t2 = bin.+ t1 2;
+            t3 = apply (b_id), t2;
+            goto bb3(t3);
+        },
+        bb3(result) { return result; }
+    });
+
+    // B: medium
+    let b = body!(interner, env; fn@b_id/1 -> Int {
+        decl x: Int, t1: Int, result: Int;
+        bb0() {
+            t1 = bin.- x 1;
+            result = apply (c_id), t1;
+            return result;
+        }
+    });
+
+    // C: cheap, calls A
+    let c = body!(interner, env; fn@c_id/1 -> Int {
+        decl x: Int, result: Int;
+        bb0() {
+            result = apply (a_id), x;
+            return result;
+        }
+    });
+
+    let bodies = [a, b, c];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+    for body in &bodies {
+        analysis.run(body);
+    }
+    let costs = analysis.finish();
+
+    let tarjan: Tarjan<_, _, SccId, _, _> = Tarjan::new_in(&graph, &heap);
+    let components = tarjan.run();
+    let mut members = components.members_in(&heap);
+
+    let mut breaker = LoopBreaker {
+        config: InlineLoopBreakerConfig::default(),
+        graph: &graph,
+        properties: &costs.properties,
+        search: TriColorDepthFirstSearch::new_in(&graph, &heap),
+    };
+    let breakers = breaker.run_in(&mut members, &heap);
+
+    // Exactly one breaker should suffice for a single cycle.
+    assert_eq!(
+        breakers.count(),
+        1,
+        "expected exactly 1 breaker for a 3-node cycle, got {}",
+        breakers.count()
+    );
+
+    // A has the highest cost.
+    assert!(
+        breakers.contains(a_id),
+        "expected A (highest cost) to be the breaker"
+    );
+}
+
+/// Helper: run loop-breaker selection on a set of bodies and return the breaker bitset
+/// and the reordered members.
+fn run_loop_breaker<'heap>(
+    bodies: &[Body<'heap>],
+    heap: &'heap Heap,
+) -> (DenseBitSet<DefId>, Vec<Vec<DefId>>) {
+    let bodies_slice = DefIdSlice::from_raw(bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, heap);
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        heap,
+    );
+    for body in bodies {
+        analysis.run(body);
+    }
+    let costs = analysis.finish();
+
+    let tarjan: Tarjan<_, _, SccId, _, _> = Tarjan::new_in(&graph, heap);
+    let components = tarjan.run();
+    let mut members = components.members_in(heap);
+
+    let mut breaker = LoopBreaker {
+        config: InlineLoopBreakerConfig::default(),
+        graph: &graph,
+        properties: &costs.properties,
+        search: TriColorDepthFirstSearch::new_in(&graph, heap),
+    };
+    let breakers = breaker.run_in(&mut members, heap);
+
+    let scc_orders: Vec<Vec<DefId>> = members
+        .iter()
+        .filter(|(_, m)| m.len() > 1)
+        .map(|(_, m)| m.to_vec())
+        .collect();
+
+    (breakers, scc_orders)
+}
+
+/// SCC with two independent 2-cycles joined into one component.
+/// Requires at least two breakers.
+///
+/// Structure: A <-> B, C <-> D, with B -> C and D -> A connecting them.
+#[test]
+fn loop_breaker_multi_breaker_scc() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+    let c_id = DefId::new(2);
+    let d_id = DefId::new(3);
+
+    // A: calls B
+    let a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (b_id), n;
+            return result;
+        }
+    });
+
+    // B: calls A and C
+    let b = body!(interner, env; fn@b_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            t1 = apply (a_id), n;
+            goto bb3(t1);
+        },
+        bb2() {
+            t2 = apply (c_id), n;
+            goto bb3(t2);
+        },
+        bb3(result) { return result; }
+    });
+
+    // C: calls D
+    let c = body!(interner, env; fn@c_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (d_id), n;
+            return result;
+        }
+    });
+
+    // D: calls C and A (completing both sub-cycles)
+    let d = body!(interner, env; fn@d_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            t1 = apply (c_id), n;
+            goto bb3(t1);
+        },
+        bb2() {
+            t2 = apply (a_id), n;
+            goto bb3(t2);
+        },
+        bb3(result) { return result; }
+    });
+
+    let bodies = [a, b, c, d];
+    let (breakers, _) = run_loop_breaker(&bodies, &heap);
+
+    // Two overlapping sub-cycles (A<->B and C<->D) need exactly 2 breakers:
+    // no single node participates in both cycles.
+    assert_eq!(
+        breakers.count(),
+        2,
+        "expected exactly 2 breakers, got {}",
+        breakers.count()
+    );
+
+    // Verify the remainder is actually acyclic.
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let mut search = TriColorDepthFirstSearch::new_in(&graph, &heap);
+    let mut cycle_found = false;
+
+    use core::ops::ControlFlow;
+
+    use hashql_core::graph::algorithms::color::NodeColor;
+
+    struct RemainderCycleDetector<'a> {
+        members: &'a [DefId],
+        breakers: &'a DenseBitSet<DefId>,
+    }
+
+    impl<G: hashql_core::graph::DirectedGraph<NodeId = DefId>>
+        hashql_core::graph::algorithms::TriColorVisitor<G> for RemainderCycleDetector<'_>
+    {
+        type Result = ControlFlow<()>;
+
+        fn node_examined(&mut self, _: DefId, before: Option<NodeColor>) -> Self::Result {
+            match before {
+                Some(NodeColor::Gray) => ControlFlow::Break(()),
+                _ => ControlFlow::Continue(()),
+            }
+        }
+
+        fn ignore_edge(&mut self, source: DefId, target: DefId) -> bool {
+            self.breakers.contains(source)
+                || self.breakers.contains(target)
+                || !self.members.contains(&source)
+                || !self.members.contains(&target)
+        }
+    }
+
+    let all_members: Vec<DefId> = (0..bodies.len()).map(|i| DefId::new(i as u32)).collect();
+    let mut detector = RemainderCycleDetector {
+        members: &all_members,
+        breakers: &breakers,
+    };
+
+    search.reset();
+    for &member in &all_members {
+        if !breakers.contains(member) {
+            if search.run_from(member, &mut detector).is_break() {
+                cycle_found = true;
+                break;
+            }
+        }
+    }
+
+    assert!(
+        !cycle_found,
+        "remainder after breaker selection must be acyclic"
+    );
+}
+
+/// Ordering test with 3 non-breakers forming a chain.
+///
+/// SCC: {breaker, X, Y, W} where breaker removal leaves X -> Y -> W.
+/// Postorder must satisfy: W before Y, Y before X.
+#[test]
+fn loop_breaker_ordering_chain() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let breaker_id = DefId::new(0);
+    let x_id = DefId::new(1);
+    let y_id = DefId::new(2);
+    let w_id = DefId::new(3);
+
+    // breaker: expensive, calls X, completes the cycle from W
+    let breaker_fn = body!(interner, env; fn@breaker_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, t3: Int, t4: Int, t5: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() { goto bb3(n); },
+        bb2() {
+            t1 = bin.+ n 1;
+            t2 = bin.+ t1 2;
+            t3 = bin.- t2 3;
+            t4 = bin.+ t3 4;
+            t5 = apply (x_id), t4;
+            goto bb3(t5);
+        },
+        bb3(result) { return result; }
+    });
+
+    // X: calls Y
+    let x = body!(interner, env; fn@x_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (y_id), n;
+            return result;
+        }
+    });
+
+    // Y: calls W
+    let y = body!(interner, env; fn@y_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (w_id), n;
+            return result;
+        }
+    });
+
+    // W: calls breaker (closing the cycle)
+    let w = body!(interner, env; fn@w_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (breaker_id), n;
+            return result;
+        }
+    });
+
+    let bodies = [breaker_fn, x, y, w];
+    let (breakers, scc_orders) = run_loop_breaker(&bodies, &heap);
+
+    assert_eq!(breakers.count(), 1);
+    assert!(breakers.contains(breaker_id));
+
+    // There should be exactly one non-trivial SCC.
+    assert_eq!(scc_orders.len(), 1);
+    let order = &scc_orders[0];
+    assert_eq!(order.len(), 4);
+
+    // Non-breakers in postorder: W before Y before X.
+    let pos = |id: DefId| order.iter().position(|&n| n == id).unwrap();
+    assert!(
+        pos(w_id) < pos(y_id),
+        "W (leaf) must come before Y in postorder"
+    );
+    assert!(pos(y_id) < pos(x_id), "Y must come before X in postorder");
+    // Breaker is last.
+    assert!(
+        pos(x_id) < pos(breaker_id),
+        "all non-breakers must come before the breaker"
+    );
+}
+
+/// All members have `Always` directive. The algorithm must still select a breaker
+/// to break the cycle, even though all candidates score `-inf`.
+#[test]
+fn loop_breaker_all_always_directive() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+
+    // Both are constructors (Always directive)
+    let mut a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (b_id), n;
+            return result;
+        }
+    });
+    a.source = Source::Ctor(hashql_core::symbol::sym::Some);
+
+    let mut b = body!(interner, env; fn@b_id/1 -> Int {
+        decl n: Int, result: Int;
+        bb0() {
+            result = apply (a_id), n;
+            return result;
+        }
+    });
+    b.source = Source::Ctor(hashql_core::symbol::sym::None);
+
+    let bodies = [a, b];
+    let (breakers, _) = run_loop_breaker(&bodies, &heap);
+
+    // A 2-node cycle needs exactly 1 breaker, even when both score -inf.
+    assert_eq!(
+        breakers.count(),
+        1,
+        "expected exactly 1 breaker for a 2-node cycle, got {}",
+        breakers.count()
+    );
+    // Both are Always with equal cost, so either is a valid choice.
+    assert!(
+        breakers.contains(a_id) || breakers.contains(b_id),
+        "the selected breaker must be one of the SCC members"
+    );
 }

@@ -56,7 +56,7 @@ impl TriColorVisitor<TestGraph> for PostOrderCollector {
 fn postorder(graph: &TestGraph, root: usize) -> Vec<NodeId> {
     let mut search = TriColorDepthFirstSearch::new(graph);
     let mut collector = PostOrderCollector { order: Vec::new() };
-    let _ = search.run(n!(root), &mut collector);
+    let _: ControlFlow<()> = search.run(n!(root), &mut collector);
     collector.order
 }
 
@@ -135,9 +135,9 @@ fn postorder_diamond() {
 
     // 3 must come before both 1 and 2; 1 and 2 must come before 0.
     assert_eq!(order.len(), 4);
-    assert_eq!(*order.last().unwrap(), n!(0));
+    assert_eq!(*order.last().expect("non-empty"), n!(0));
 
-    let pos = |id: usize| order.iter().position(|&n| n == n!(id)).unwrap();
+    let pos = |id: usize| order.iter().position(|&n| n == n!(id)).expect("non-empty");
     assert!(pos(3) < pos(1));
     assert!(pos(3) < pos(2));
     assert!(pos(1) < pos(0));
@@ -225,8 +225,8 @@ fn run_from_accumulates_state() {
     let mut collector = PostOrderCollector { order: Vec::new() };
 
     search.reset();
-    let _ = search.run_from(n!(0), &mut collector);
-    let _ = search.run_from(n!(3), &mut collector);
+    let _: ControlFlow<()> = search.run_from(n!(0), &mut collector);
+    let _: ControlFlow<()> = search.run_from(n!(3), &mut collector);
 
     // Nodes 1 and 2 finished during first run_from; second run_from only finishes 3.
     assert_eq!(collector.order, [n!(2), n!(1), n!(0), n!(3)]);
@@ -240,8 +240,8 @@ fn run_from_skips_already_finished_nodes() {
     let mut collector = PostOrderCollector { order: Vec::new() };
 
     search.reset();
-    let _ = search.run_from(n!(0), &mut collector);
-    let _ = search.run_from(n!(3), &mut collector);
+    let _: ControlFlow<()> = search.run_from(n!(0), &mut collector);
+    let _: ControlFlow<()> = search.run_from(n!(3), &mut collector);
 
     // Node 2 should appear exactly once (finished during first run_from),
     // not re-emitted when reached from node 3.
