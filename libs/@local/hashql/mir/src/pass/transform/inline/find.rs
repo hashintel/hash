@@ -23,10 +23,8 @@ use crate::{
 ///
 /// A callsite is eligible if:
 /// - It's a direct call (function is a constant `FnPtr`).
-/// - Its target SCC has not already been inlined into this caller.
-///
-/// The SCC check prevents cycles: once we've inlined a function (or any function
-/// in its SCC) into a filter, we won't inline it again.
+/// - It's not a self-call.
+/// - Its target is not a loop breaker.
 pub(crate) struct FindCallsiteVisitor<'ctx, 'state, 'env, 'heap, A: Allocator> {
     /// The filter function we're finding callsites in.
     pub caller: DefId,
@@ -53,10 +51,10 @@ impl<'heap, A: Allocator> Visitor<'heap> for FindCallsiteVisitor<'_, '_, '_, 'he
             return Ok(());
         };
 
-        let target_component = self.state.components.scc(ptr);
-
-        // Skip if we've already inlined this SCC into this caller.
-        if self.state.inlined.contains(self.caller, target_component) {
+        // Skip self-calls and calls to loop breakers. Breakers are the cycle
+        // cut points: inlining them would reintroduce the recursion that
+        // breaker selection removed.
+        if ptr == self.caller || self.state.loop_breakers.contains(ptr) {
             return Ok(());
         }
 

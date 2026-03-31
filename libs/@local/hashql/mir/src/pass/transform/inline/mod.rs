@@ -33,7 +33,7 @@
 //! aggressive inlining to fully flatten the filter logic. The aggressive phase:
 //! 1. Iterates up to `aggressive_inline_cutoff` times per filter.
 //! 2. On each iteration, inlines all eligible callsites found in the filter.
-//! 3. Tracks which SCCs have been inlined to prevent cycles.
+//! 3. Calls to loop breakers and self-calls are skipped to prevent cycles.
 //! 4. Emits a diagnostic if the cutoff is reached.
 //!
 //! # Budget System
@@ -53,18 +53,12 @@ use alloc::collections::BinaryHeap;
 use core::{alloc::Allocator, cmp, mem};
 
 use hashql_core::{
-    graph::{
-        DirectedGraph as _,
-        algorithms::{
-            Tarjan, TriColorDepthFirstSearch,
-            tarjan::{Members, SccId, StronglyConnectedComponents},
-        },
+    graph::algorithms::{
+        Tarjan, TriColorDepthFirstSearch,
+        tarjan::{Members, SccId, StronglyConnectedComponents},
     },
     heap::{BumpAllocator, Heap},
-    id::{
-        Id as _, IdSlice,
-        bit_vec::{DenseBitSet, SparseBitMatrix},
-    },
+    id::{Id as _, IdSlice, bit_vec::DenseBitSet},
     span::SpanId,
 };
 
@@ -214,11 +208,6 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
     /// Calls to a breaker within its SCC are skipped during inlining.
     /// Calls from a breaker to non-breakers are still inlined.
     loop_breakers: DenseBitSet<DefId>,
-    /// Tracks which SCCs have been inlined into each function.
-    ///
-    /// Used to prevent cycles during aggressive inlining: once an SCC
-    /// has been inlined into a filter, it won't be inlined again.
-    inlined: SparseBitMatrix<DefId, SccId, A>,
 
     // cost estimation properties
     costs: CostEstimationResidual<'heap, A>,
@@ -231,23 +220,15 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
-    /// Collect all non-recursive callsites for aggressive inlining.
+    /// Collect all callsites for aggressive inlining.
     ///
     /// Used for filter functions which bypass normal heuristics.
-    /// Records inlined SCCs to prevent cycles in subsequent iterations.
-    fn collect_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
-        let component = self.components.scc(body);
-
+    /// Self-calls are excluded to prevent panics in `get_disjoint_mut`.
+    fn collect_all_callsites(&self, body: DefId, mem: &mut InlineStateMemory<A>) {
         self.graph
             .apply_callsites(body)
-            .filter(|callsite| self.components.scc(callsite.target) != component)
+            .filter(|callsite| callsite.target != body)
             .collect_into(&mut mem.callsites);
-
-        self.inlined.insert(body, component);
-        for callsite in &mem.callsites {
-            self.inlined
-                .insert(body, self.components.scc(callsite.target));
-        }
     }
 
     /// Collect callsites using heuristic scoring and budget.
@@ -573,7 +554,6 @@ impl<A: BumpAllocator> Inline<A> {
             config: self.config,
             filters,
             loop_breakers,
-            inlined: SparseBitMatrix::new_in(components.node_count(), &self.alloc),
             interner,
             graph,
             costs,
@@ -643,9 +623,6 @@ impl<A: BumpAllocator> Inline<A> {
                 mem.callsites
                     .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
                 for callsite in mem.callsites.drain(..) {
-                    let target_component = state.components.scc(callsite.target);
-                    state.inlined.insert(filter, target_component);
-
                     state.inline(bodies, callsite);
                 }
 
