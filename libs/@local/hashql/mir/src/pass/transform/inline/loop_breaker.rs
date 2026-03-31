@@ -6,24 +6,58 @@
 //! are still inlined. This flattens most of the call chain without infinite expansion.
 //!
 //! The approach follows GHC's loop-breaker strategy (Peyton Jones & Marlow 2002): select
-//! which nodes to mark as non-inlineable rather than which edges to cut. All edges targeting
-//! a loop breaker become non-inlineable, reducing the problem to feedback vertex set selection
-//! on small SCCs.
+//! which *nodes* to mark as non-inlineable rather than which *edges* to cut. All edges
+//! targeting a loop breaker become non-inlineable. This reduces the problem from feedback
+//! arc set (NP-hard) to feedback vertex set, which is tractable for the small SCCs (at most
+//! ~12 nodes) that appear in practice.
 //!
 //! # Algorithm
 //!
-//! For each non-trivial SCC (size > 1):
+//! [`LoopBreaker::run_in`] processes every non-trivial SCC (size > 1) in the call graph:
 //!
-//! 1. Score each member by inverse inlining value. Functions that are least valuable to inline make
-//!    the best breakers.
-//! 2. Pick the highest-scoring member as the loop breaker.
-//! 3. Check if the remaining members still form a cycle. If yes, pick another breaker.
-//! 4. The remaining non-breaker members form a DAG and are processed in postorder.
+//! 1. **Score** each member by inverse inlining value via [`LoopBreaker::score`]. Functions that
+//!    are least valuable to inline make the best breakers.
+//! 2. **Select** breakers greedily: pick the lowest-scored member, mark it as a breaker, then check
+//!    if the remaining members still contain a cycle ([`LoopBreaker::has_cycle`]). Repeat until the
+//!    remaining subgraph is acyclic.
+//! 3. **Reorder** the SCC members via [`LoopBreaker::order`]: non-breakers appear in DFS postorder
+//!    (callees before callers), followed by breakers. This ordering ensures that when a function is
+//!    processed, its non-breaker callees within the same SCC have already been optimized.
+//!
+//! The members slice is mutated in place so the caller can iterate it directly.
 //!
 //! # Scoring
 //!
-//! The breaker score combines body cost, caller count, unique callsite status, leaf status,
-//! and inline directive into a single scalar. See [`LoopBreakerConfig`] for details.
+//! The breaker score (see [`InlineLoopBreakerConfig`]) combines:
+//!
+//! - **Body cost** (positive contribution): large functions are expensive to duplicate.
+//! - **Caller count** (negative): functions with many call sites lose more inlining opportunities
+//!   when chosen as breakers.
+//! - **Unique callsite** (negative): a single call site means zero duplication on inline.
+//! - **Leaf status** (negative): leaves are safe, cheap inlining targets.
+//! - **Inline directive**: `Never` maps to `+inf` (ideal breaker), `Always` to `-inf` (never
+//!   selected).
+//!
+//! Candidates are sorted best-first and consumed from the *worst* end, so the
+//! least-valuable-to-inline function is chosen as the first breaker.
+//!
+//! # Cycle detection
+//!
+//! After each breaker is selected, the remaining non-breaker subgraph is checked
+//! for cycles using three-color DFS ([`TriColorDepthFirstSearch`]). The DFS runs
+//! on the full [`CallGraph`] with an [`ignore_edge`] filter that restricts traversal
+//! to non-breaker SCC members. State is accumulated across roots via
+//! [`run_from`](TriColorDepthFirstSearch::run_from) so disconnected components
+//! (which appear when breaker removal splits the subgraph) are all covered.
+//!
+//! # Postorder computation
+//!
+//! Once breakers are selected, the non-breaker members form a DAG. Their processing
+//! order is computed as DFS postorder over a [`CallSubgraph`] that filters the
+//! call graph to non-breaker members. Breaker members are appended after the
+//! non-breakers.
+//!
+//! [`ignore_edge`]: TriColorVisitor::ignore_edge
 
 use core::{alloc::Allocator, iter, ops::ControlFlow};
 
@@ -31,7 +65,7 @@ use hashql_core::{
     graph::{
         DirectedGraph, Successors,
         algorithms::{
-            DepthFirstForestPostOrder, TriColorDepthFirstSearch, TriColorVisitor,
+            DepthFirstTraversalPostOrder, TriColorDepthFirstSearch, TriColorVisitor,
             color::NodeColor,
             tarjan::{Members, SccId},
         },
@@ -109,6 +143,14 @@ impl Default for InlineLoopBreakerConfig {
     }
 }
 
+/// A view of the [`CallGraph`] restricted to non-breaker members of a single SCC.
+///
+/// Used by [`LoopBreaker::order`] to compute DFS postorder over the DAG that remains
+/// after breaker removal. Delegates to the inner call graph for successor iteration,
+/// filtering out edges to nodes that are either not in `members` or are in `breakers`.
+///
+/// [`node_count`](DirectedGraph::node_count) returns the full call graph domain so
+/// that traversal algorithms size their bitsets correctly for the global `DefId` space.
 struct CallSubgraph<'ctx, 'heap, A: Allocator> {
     inner: &'ctx CallGraph<'heap, A>,
     members: &'ctx [DefId],
@@ -128,7 +170,9 @@ impl<A: Allocator> DirectedGraph for CallSubgraph<'_, '_, A> {
     type NodeId = DefId;
 
     fn node_count(&self) -> usize {
-        self.members.len() - self.breakers.count()
+        // Must match the full DefId domain so that DenseBitSet/MixedBitSet
+        // in traversal algorithms are sized correctly for any DefId index.
+        self.inner.node_count()
     }
 
     fn edge_count(&self) -> usize {
@@ -161,12 +205,11 @@ impl<A: Allocator> Successors for CallSubgraph<'_, '_, A> {
     }
 }
 
-/// Selects loop breakers for all non-trivial SCCs.
+/// Entry point for loop-breaker selection and SCC reordering.
 ///
-/// Returns a bitset of functions marked as loop breakers. During inlining:
-/// - Calls to a breaker within its SCC are skipped.
-/// - Calls from a breaker to non-breakers within its SCC are still inlined.
-/// - Calls across SCCs are unaffected.
+/// Holds references to the call graph, body properties, and a reusable
+/// [`TriColorDepthFirstSearch`] instance for cycle detection. Constructed
+/// once per inline pass invocation and used across all non-trivial SCCs.
 pub(crate) struct LoopBreaker<'ctx, 'heap, A: Allocator> {
     pub config: InlineLoopBreakerConfig,
     pub graph: &'ctx CallGraph<'heap, A>,
@@ -175,6 +218,14 @@ pub(crate) struct LoopBreaker<'ctx, 'heap, A: Allocator> {
 }
 
 impl<A: Allocator> LoopBreaker<'_, '_, A> {
+    /// Select loop breakers and reorder members for every non-trivial SCC.
+    ///
+    /// For each SCC with more than one member:
+    /// 1. Selects the minimum set of breakers needed to make the remainder acyclic.
+    /// 2. Rewrites the SCC's member slice in-place: non-breakers in DFS postorder first, then
+    ///    breakers.
+    ///
+    /// Returns a bitset of all selected breakers across every SCC.
     pub(crate) fn run_in<S: BumpAllocator>(
         &mut self,
         members: &mut Members<DefId, SccId, A>,
@@ -196,13 +247,18 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
         breakers
     }
 
+    /// Greedily select breakers for a single non-trivial SCC.
+    ///
+    /// Candidates are sorted by breaker score (best first). The loop consumes
+    /// them from the worst end: the least-valuable-to-inline member is selected
+    /// first. After each selection, the remaining subgraph is checked for cycles.
+    /// Selection stops as soon as no cycle remains.
     fn select_in<B: BumpAllocator>(
         &mut self,
         members: &[DefId],
         breakers: &mut DenseBitSet<DefId>,
         scratch: &B,
     ) {
-        // Score all members and sort by breaker quality (best breaker first).
         let scored = scratch
             .allocate_slice_uninit(members.len())
             .write_with(|index| (members[index], self.score(members[index])));
@@ -218,13 +274,20 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
         }
     }
 
+    /// Checks whether the non-breaker members still contain a cycle.
+    ///
+    /// Runs DFS from each non-breaker root, accumulating visited state across
+    /// roots via [`run_from`](TriColorDepthFirstSearch::run_from). Removing
+    /// breakers may disconnect the subgraph, and a cycle in an unreachable
+    /// component would be missed by a single-root search. Nodes finished by an
+    /// earlier root are skipped automatically (they are already black).
     fn has_cycle(&mut self, members: &[DefId], breakers: &DenseBitSet<DefId>) -> bool {
-        struct CycleDetector<'ctx> {
+        struct SubgraphCycleDetector<'ctx> {
             members: &'ctx [DefId],
             breakers: &'ctx DenseBitSet<DefId>,
         }
 
-        impl<G> TriColorVisitor<G> for CycleDetector<'_>
+        impl<G> TriColorVisitor<G> for SubgraphCycleDetector<'_>
         where
             G: DirectedGraph<NodeId = DefId>,
         {
@@ -245,17 +308,26 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
             }
         }
 
-        let root = *members
-            .iter()
-            .find(|&&id| !breakers.contains(id))
-            .unwrap_or_else(|| unreachable!());
+        let mut detector = SubgraphCycleDetector { members, breakers };
 
-        let result = self
-            .search
-            .run(root, &mut CycleDetector { members, breakers });
-        result.is_break()
+        self.search.reset();
+        for &member in members {
+            if breakers.contains(member) {
+                continue;
+            }
+
+            if self.search.run_from(member, &mut detector).is_break() {
+                return true;
+            }
+        }
+
+        false
     }
 
+    /// Compute the breaker score for a single function.
+    ///
+    /// Higher score = better breaker candidate (less valuable to inline).
+    /// See [`InlineLoopBreakerConfig`] for the formula and weight descriptions.
     #[expect(clippy::cast_precision_loss)]
     fn score(&self, body: DefId) -> f32 {
         let props = &self.properties[body];
@@ -286,6 +358,13 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
         score
     }
 
+    /// Compute the processing order for a non-trivial SCC.
+    ///
+    /// Non-breaker members are placed in DFS postorder of the call subgraph
+    /// (callees before callers). Breaker members follow in their original order.
+    /// This ensures non-breaker callees are optimized before being inlined into
+    /// their callers, and breakers are processed last so their bodies benefit
+    /// from already-optimized callees.
     #[expect(unsafe_code)]
     fn order<'alloc, S: BumpAllocator>(
         &self,
@@ -299,14 +378,21 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
             breakers,
         };
 
+        // Seed all non-breaker members as roots so disconnected components
+        // (which can appear after breaker removal) are all visited.
+        let mut traversal = DepthFirstTraversalPostOrder::new(&subgraph);
+        for &member in members {
+            if !breakers.contains(member) {
+                traversal.push_start_node(member);
+            }
+        }
+
         let mut index = 0;
         let order = alloc.allocate_slice_uninit(members.len());
 
-        for node in DepthFirstForestPostOrder::new(&subgraph) {
-            if !breakers.contains(node) {
-                order[index].write(node);
-                index += 1;
-            }
+        for node in traversal {
+            order[index].write(node);
+            index += 1;
         }
 
         // Breakers last, in original order.
@@ -319,7 +405,10 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
 
         debug_assert_eq!(index, members.len());
 
-        // SAFETY: We've initialized all elements up to `index` (exclusive).
+        // SAFETY: All `members.len()` elements are initialized:
+        // - The traversal yields exactly the non-breaker members (seeded as roots, successors
+        //   filtered to non-breaker members by CallSubgraph).
+        // - The final loop writes all breaker members.
         unsafe { order.assume_init_mut() }
     }
 }

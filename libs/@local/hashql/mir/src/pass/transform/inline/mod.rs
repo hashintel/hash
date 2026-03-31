@@ -280,7 +280,10 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
             // Within an SCC, only skip calls to loop breakers (they break the cycle).
             // Calls to non-breakers within the SCC are eligible because we're now inside of a DAG.
             let same_scc = self.components.scc(callsite.target) == component;
-            if same_scc && self.loop_breakers.contains(callsite.target) {
+            if same_scc && (self.loop_breakers.contains(callsite.target)) {
+                continue;
+            }
+            if callsite.target == body {
                 continue;
             }
 
