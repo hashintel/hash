@@ -6,7 +6,7 @@ use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::{Deref, DerefMut, RangeBounds},
+    ops::{Bound, Deref, DerefMut, RangeBounds},
     slice,
 };
 
@@ -510,8 +510,16 @@ where
     where
         T: Copy,
     {
-        let start = src.start_bound().copied().map(Id::as_usize);
-        let end = src.end_bound().copied().map(Id::as_usize);
+        let start = match src.start_bound() {
+            Bound::Included(&bound) => Bound::Included(bound.as_usize()),
+            Bound::Excluded(&bound) => Bound::Excluded(bound.as_usize()),
+            Bound::Unbounded => Bound::Unbounded,
+        };
+        let end = match src.end_bound() {
+            Bound::Included(&bound) => Bound::Included(bound.as_usize()),
+            Bound::Excluded(&bound) => Bound::Excluded(bound.as_usize()),
+            Bound::Unbounded => Bound::Unbounded,
+        };
 
         self.raw.copy_within((start, end), dst.as_usize());
     }
@@ -794,5 +802,25 @@ where
         U: IntoIterator<Item = T>,
     {
         Self::from_raw(Vec::from_iter_in(iter, alloc))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::IdVec;
+    use crate::id::{Id as _, newtype};
+
+    newtype!(#[id(crate = crate)] struct TestId(u32 is 0..=32));
+
+    #[test]
+    fn copy_within_preserves_inclusive_end_bound() {
+        let mut vec = IdVec::<TestId, i32>::from_raw(alloc::vec![10, 20, 30]);
+
+        vec.copy_within(
+            TestId::from_usize(1)..=TestId::from_usize(1),
+            TestId::from_usize(0),
+        );
+
+        assert_eq!(vec.as_slice().as_raw(), &[20, 20, 30]);
     }
 }

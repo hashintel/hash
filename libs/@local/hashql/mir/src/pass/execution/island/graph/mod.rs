@@ -20,7 +20,7 @@
 #[cfg(test)]
 pub(crate) mod tests;
 
-use alloc::alloc::Global;
+use alloc::{alloc::Global, collections::VecDeque};
 use core::{
     alloc::Allocator,
     ops::{Index, IndexMut},
@@ -29,11 +29,10 @@ use core::{
 use hashql_core::{
     debug_panic,
     graph::{
-        DirectedGraph, EdgeId, LinkedGraph, NodeId, Predecessors, Successors, Traverse as _,
+        DirectedGraph, EdgeId, LinkedGraph, NodeId, Predecessors, Successors,
         algorithms::{Dominators, dominators},
         linked::Edge,
     },
-    heap::CollectIn as _,
     id::{
         HasId as _, Id as _,
         bit_vec::{BitMatrix, DenseBitSet},
@@ -243,12 +242,38 @@ impl<A: Allocator> IslandGraph<A> {
     where
         S: Allocator + Clone,
     {
-        let mut topo: Vec<IslandId, _> = self
-            .inner
-            .depth_first_forest_post_order()
-            .map(|node| IslandId::new(node.as_u32()))
-            .collect_in(scratch.clone());
-        topo.reverse();
+        #[expect(clippy::cast_possible_truncation)]
+        let node_count = self.node_count();
+        let mut in_degree = IslandVec::from_elem_in(0_u32, node_count, scratch.clone());
+        for (island_id, _) in self.iter_nodes() {
+            in_degree[island_id] = self.predecessors(island_id).count() as u32;
+        }
+
+        let mut queue: VecDeque<IslandId, _> = VecDeque::new_in(scratch.clone());
+        for (island_id, _) in self.iter_nodes() {
+            if in_degree[island_id] == 0 {
+                queue.push_back(island_id);
+            }
+        }
+
+        let mut topo = Vec::with_capacity_in(node_count, scratch.clone());
+        while let Some(island_id) = queue.pop_front() {
+            topo.push(island_id);
+
+            for successor in self.successors(island_id) {
+                in_degree[successor] -= 1;
+
+                if in_degree[successor] == 0 {
+                    queue.push_back(successor);
+                }
+            }
+        }
+
+        assert_eq!(
+            topo.len(),
+            node_count,
+            "island requirement resolution requires acyclic control flow",
+        );
 
         let start = self.lookup[BasicBlockId::START];
 
@@ -379,7 +404,7 @@ impl<'graph, A: Allocator, S: Allocator + Clone> RequirementResolver<'graph, A, 
     }
 
     fn resolve(mut self, topo: &[IslandId]) {
-        // Iterate in reverse for topological order
+        // Iterate in topological order so dominators are processed before dependents.
         for &island_id in topo {
             let island = &self.graph[island_id];
             let IslandKind::Exec(_) = &island.kind else {

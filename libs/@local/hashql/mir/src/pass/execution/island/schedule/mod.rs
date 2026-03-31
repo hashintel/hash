@@ -122,6 +122,12 @@ impl<A: Allocator> IslandGraph<A> {
             }
         }
 
+        assert_eq!(
+            entries.len(),
+            node_count,
+            "island schedule requires acyclic control flow",
+        );
+
         entries.sort_by_key(|entry| entry.level);
         IslandSchedule { entries }
     }
