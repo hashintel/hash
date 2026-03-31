@@ -22,15 +22,17 @@
     iter_array_chunks,
     iter_collect_into,
     likely_unlikely,
-    maybe_uninit_array_assume_init,
     maybe_uninit_fill,
-    option_into_flat_iter,
     step_trait,
-    string_from_utf8_lossy_owned,
     temporary_niche_types,
     try_trait_v2,
     variant_count,
 )]
+#![cfg_attr(test, feature(
+    // Library Features
+    maybe_uninit_array_assume_init,
+    string_from_utf8_lossy_owned,
+))]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
 
