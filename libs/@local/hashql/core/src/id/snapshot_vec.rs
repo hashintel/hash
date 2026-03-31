@@ -37,9 +37,18 @@ use core::{
     hash::{Hash, Hasher},
     mem,
     ops::Deref,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use super::{Id, IdVec, slice::IdSlice};
+
+static NEXT_SNAPSHOT_OWNER_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_snapshot_owner_id() -> u64 {
+    let owner_id = NEXT_SNAPSHOT_OWNER_ID.fetch_add(1, Ordering::Relaxed);
+    assert!(owner_id != 0, "snapshot owner id exhausted");
+    owner_id
+}
 
 /// Defines how custom mutations are undone during rollback.
 ///
@@ -77,34 +86,56 @@ enum LogEntry<I, T, S: UndoStrategy<I, T>, A: Allocator = Global> {
 
 struct Log<I, T, S: UndoStrategy<I, T>, A: Allocator = Global> {
     tape: Vec<LogEntry<I, T, S, A>, A>,
-    open: usize,
+    open_snapshots: Vec<u64, A>,
+    owner_id: u64,
+    next_snapshot_id: u64,
 }
 
 impl<I, T, S: UndoStrategy<I, T>> Log<I, T, S> {
     const fn new() -> Self {
         Self {
             tape: Vec::new(),
-            open: 0,
+            open_snapshots: Vec::new(),
+            owner_id: 0,
+            next_snapshot_id: 1,
         }
     }
 }
 
 impl<I, T, S: UndoStrategy<I, T>, A: Allocator> Log<I, T, S, A> {
-    const fn new_in(alloc: A) -> Self {
+    fn new_in(alloc: A) -> Self
+    where
+        A: Clone,
+    {
         Self {
-            tape: Vec::new_in(alloc),
-            open: 0,
+            tape: Vec::new_in(alloc.clone()),
+            open_snapshots: Vec::new_in(alloc),
+            owner_id: 0,
+            next_snapshot_id: 1,
         }
     }
 
     const fn recording(&self) -> bool {
-        self.open > 0
+        !self.open_snapshots.is_empty()
     }
 
-    const fn start(&mut self) -> Snapshot {
-        self.open += 1;
+    fn start(&mut self) -> Snapshot {
+        if self.owner_id == 0 {
+            self.owner_id = next_snapshot_owner_id();
+        }
+
+        let tape_len = self.tape.len();
+        let snapshot_id = self.next_snapshot_id;
+        self.next_snapshot_id = self
+            .next_snapshot_id
+            .checked_add(1)
+            .expect("snapshot id exhausted");
+        self.open_snapshots.push(snapshot_id);
+
         Snapshot {
-            tape_len: self.tape.len(),
+            tape_len,
+            owner_id: self.owner_id,
+            snapshot_id,
         }
     }
 
@@ -114,7 +145,9 @@ impl<I, T, S: UndoStrategy<I, T>, A: Allocator> Log<I, T, S, A> {
         I: Id,
     {
         self.assert(&snapshot);
-        self.open -= 1;
+        self.open_snapshots
+            .pop()
+            .expect("snapshot presence verified by assert");
 
         while self.tape.len() > snapshot.tape_len {
             let entry = self.tape.pop().expect("tape length verified by loop guard");
@@ -144,29 +177,49 @@ impl<I, T, S: UndoStrategy<I, T>, A: Allocator> Log<I, T, S, A> {
     #[expect(clippy::needless_pass_by_value)]
     fn commit(&mut self, snapshot: Snapshot) {
         self.assert(&snapshot);
-        self.open -= 1;
+        self.open_snapshots
+            .pop()
+            .expect("snapshot presence verified by assert");
 
-        if self.open == 0 {
+        if self.open_snapshots.is_empty() {
             self.tape.clear();
         }
     }
 
     fn assert(&self, snapshot: &Snapshot) {
         assert!(
-            self.tape.len() >= snapshot.tape_len,
+            !self.open_snapshots.is_empty(),
+            "no open snapshot to commit or rollback"
+        );
+        assert!(
+            snapshot.owner_id == self.owner_id,
+            "snapshot does not belong to this IdSnapshotVec"
+        );
+        assert!(
+            snapshot.tape_len
+                <= self.tape.len(),
             "snapshot tape_len exceeds current tape length"
         );
-        assert!(self.open > 0, "no open snapshot to commit or rollback");
+        assert!(
+            snapshot.snapshot_id
+                == *self
+                    .open_snapshots
+                    .last()
+                    .expect("snapshot presence verified by previous assert"),
+            "snapshot consumed out of stack order"
+        );
     }
 }
 
 /// Opaque snapshot token for [`IdSnapshotVec`].
 ///
-/// Must be consumed by [`IdSnapshotVec::rollback_to`] or [`IdSnapshotVec::commit`] in stack
-/// (LIFO) order. Dropping a `Snapshot` without consuming it will not undo changes, but
-/// subsequent snapshot operations may panic.
+/// Must be consumed by [`IdSnapshotVec::rollback_to`] or [`IdSnapshotVec::commit`] on the same
+/// vector instance and in stack (LIFO) order. Dropping a `Snapshot` without consuming it will not
+/// undo changes, but subsequent snapshot operations may panic.
 pub struct Snapshot {
     tape_len: usize,
+    owner_id: u64,
+    snapshot_id: u64,
 }
 
 /// A snapshot-capable vector that uses typed IDs for indexing.
@@ -497,7 +550,7 @@ where
     /// assert_eq!(vec.len(), 1);
     /// ```
     #[inline]
-    pub const fn snapshot(&mut self) -> Snapshot {
+    pub fn snapshot(&mut self) -> Snapshot {
         self.log.start()
     }
 
@@ -782,7 +835,33 @@ mod tests {
         let snap = vec.snapshot();
         vec.commit(snap);
 
-        vec.commit(Snapshot { tape_len: 0 });
+        vec.commit(Snapshot {
+            tape_len: 0,
+            owner_id: vec.log.owner_id,
+            snapshot_id: vec.log.next_snapshot_id,
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "snapshot consumed out of stack order")]
+    fn out_of_order_snapshot_consumption_panics() {
+        let mut vec = IdSnapshotVec::<TestId, i32>::new();
+        vec.push(1);
+        let outer = vec.snapshot();
+        let _inner = vec.snapshot();
+
+        vec.commit(outer);
+    }
+
+    #[test]
+    #[should_panic(expected = "snapshot does not belong to this IdSnapshotVec")]
+    fn foreign_snapshot_panics() {
+        let mut first = IdSnapshotVec::<TestId, i32>::new();
+        let mut second = IdSnapshotVec::<TestId, i32>::new();
+        let foreign = first.snapshot();
+        let _local = second.snapshot();
+
+        second.commit(foreign);
     }
 
     #[test]

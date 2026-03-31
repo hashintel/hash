@@ -123,6 +123,10 @@ impl Transpile for Function {
                 fmt.write_char(')')
             }
             Self::Unnest(expression) => {
+                assert!(
+                    !expression.is_empty(),
+                    "UNNEST requires at least one argument"
+                );
                 fmt.write_str("UNNEST(")?;
 
                 for (index, element) in expression.iter().enumerate() {
@@ -838,6 +842,12 @@ mod tests {
             .transpile_to_string(),
             "UNNEST($1, $2, $3)"
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "UNNEST requires at least one argument")]
+    fn transpile_unnest_empty_panics() {
+        let _ = Expression::Function(Function::Unnest(vec![])).transpile_to_string();
     }
 
     #[test]
