@@ -4,7 +4,7 @@ UPDATE web SET shortname = LOWER(shortname) WHERE shortname IS NOT NULL AND shor
 -- Drop the existing case-sensitive unique index
 DROP INDEX IF EXISTS idx_web_shortname;
 
--- Create a case-insensitive unique index
+-- Case-insensitive unique index for shortnames
 CREATE UNIQUE INDEX idx_web_shortname ON web (LOWER(shortname)) WHERE shortname IS NOT NULL;
 
 -- Trigger to normalize shortnames to lowercase on insert/update
