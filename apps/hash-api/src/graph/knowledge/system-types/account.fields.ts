@@ -107,7 +107,8 @@ export const shortnameIsRestricted: PureGraphFunction<
   { shortname: string },
   boolean
 > = ({ shortname }): boolean => {
-  return RESTRICTED_SHORTNAMES.includes(shortname);
+  // Case-insensitive check: restricted shortnames are all lowercase
+  return RESTRICTED_SHORTNAMES.includes(shortname.toLowerCase());
 };
 
 // TODO: Depending on the approached chosen outlined in `get*ByShortname` functions, this function may be changed
@@ -123,9 +124,11 @@ export const shortnameIsTaken: ImpureGraphFunction<
    *
    * @see https://linear.app/hash/issue/H-2989
    */
+  // Normalize shortname to lowercase for case-insensitive check
+  const normalizedParams = { shortname: params.shortname.toLowerCase() };
   return (
-    (await getUser(ctx, authentication, params)) !== null ||
-    (await getOrgByShortname(ctx, authentication, params)) !== null
+    (await getUser(ctx, authentication, normalizedParams)) !== null ||
+    (await getOrgByShortname(ctx, authentication, normalizedParams)) !== null
   );
 };
 

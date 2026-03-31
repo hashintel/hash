@@ -792,11 +792,13 @@ impl OldPolicyStore for MemoryPolicyStore {
 
     fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>> {
         let web_id = WebId::new(Uuid::new_v4());
+        // Normalize shortname to lowercase for case-insensitive uniqueness
+        let normalized_shortname = shortname.map(|s| s.to_lowercase());
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {
                 id: web_id,
-                shortname,
+                shortname: normalized_shortname,
                 roles: HashSet::new(),
             }),
         );

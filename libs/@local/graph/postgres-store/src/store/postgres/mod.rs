@@ -852,11 +852,13 @@ where
             .await
             .change_context(WebCreationError::StoreError)?;
 
+        // Normalize shortname to lowercase for case-insensitive uniqueness
+        let normalized_shortname = parameter.shortname.as_ref().map(|s| s.to_lowercase());
         transaction
             .as_client()
             .execute(
                 "INSERT INTO web (id, shortname) VALUES ($1, $2)",
-                &[&web_id, &parameter.shortname],
+                &[&web_id, &normalized_shortname],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -3898,6 +3900,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         id: WebId,
         shortname: &str,
     ) -> Result<(), Report<WebUpdateError>> {
+        // Normalize shortname to lowercase for case-insensitive uniqueness
+        let normalized_shortname = shortname.to_lowercase();
         let rows_affected = self
             .as_client()
             .execute(
@@ -3906,7 +3910,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 SET shortname = $2
                 WHERE id = $1
                 ",
-                &[&id, &shortname],
+                &[&id, &normalized_shortname],
             )
             .instrument(tracing::info_span!(
                 "UPDATE",
@@ -3936,6 +3940,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _actor_id: ActorEntityUuid,
         shortname: &str,
     ) -> Result<Option<Web>, Report<WebRetrievalError>> {
+        // Normalize shortname to lowercase for case-insensitive lookup
+        let normalized_shortname = shortname.to_lowercase();
         Ok(self
             .as_client()
             .query_opt(
@@ -3948,7 +3954,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 WHERE web.shortname = $1
                 GROUP BY web.id
                 ",
-                &[&shortname],
+                &[&normalized_shortname],
             )
             .instrument(tracing::info_span!(
                 "SELECT",

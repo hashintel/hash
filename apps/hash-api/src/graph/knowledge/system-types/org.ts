@@ -119,12 +119,15 @@ export const createOrg: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const {
     bypassShortnameValidation,
-    shortname,
+    shortname: rawShortname,
     name,
     websiteUrl,
     machineEntityTypeVersion,
     orgEntityTypeVersion,
   } = params;
+
+  // Normalize shortname to lowercase for case-insensitive uniqueness
+  const shortname = rawShortname.toLowerCase();
 
   if (!bypassShortnameValidation && shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);

@@ -163,7 +163,14 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     );
 
     if (updatedShortname) {
-      if (currentShortname && currentShortname !== updatedShortname) {
+      // Normalize shortnames to lowercase for case-insensitive comparison
+      const normalizedUpdatedShortname = updatedShortname.toLowerCase();
+      const normalizedCurrentShortname = currentShortname?.toLowerCase();
+
+      if (
+        normalizedCurrentShortname &&
+        normalizedCurrentShortname !== normalizedUpdatedShortname
+      ) {
         throw Error.badUserInput("Cannot change shortname");
       }
 
@@ -171,7 +178,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         await validateAccountShortname(
           context,
           { actorId: user.accountId },
-          updatedShortname,
+          normalizedUpdatedShortname,
         );
       }
     }
@@ -225,7 +232,8 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       await updateWebShortname(
         context.graphApi,
         { actorId: systemAccountId },
-        { webId: user.accountId as WebId, shortname: updatedShortname },
+        // Normalize shortname to lowercase for case-insensitive uniqueness
+        { webId: user.accountId as WebId, shortname: updatedShortname.toLowerCase() },
       );
     }
   };
