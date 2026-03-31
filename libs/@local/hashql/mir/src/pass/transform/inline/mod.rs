@@ -225,9 +225,15 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
     /// Used for filter functions which bypass normal heuristics.
     /// Self-calls are excluded to prevent panics in `get_disjoint_mut`.
     fn collect_all_callsites(&self, body: DefId, mem: &mut InlineStateMemory<A>) {
+        let component = self.components.scc(body);
+
         self.graph
             .apply_callsites(body)
-            .filter(|callsite| callsite.target != body)
+            .filter(|callsite| {
+                callsite.target != body
+                    && (self.components.scc(callsite.target) != component
+                        || !self.loop_breakers.contains(callsite.target))
+            })
             .collect_into(&mut mem.callsites);
     }
 
@@ -261,7 +267,7 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
             // Within an SCC, only skip calls to loop breakers (they break the cycle).
             // Calls to non-breakers within the SCC are eligible because we're now inside of a DAG.
             let same_scc = self.components.scc(callsite.target) == component;
-            if same_scc && (self.loop_breakers.contains(callsite.target)) {
+            if same_scc && self.loop_breakers.contains(callsite.target) {
                 continue;
             }
             if callsite.target == body {
