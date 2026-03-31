@@ -2,6 +2,9 @@ name: Dependency Review
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/dependency-review.yml"
+  pull_request_target:
   merge_group:
 
 permissions:
