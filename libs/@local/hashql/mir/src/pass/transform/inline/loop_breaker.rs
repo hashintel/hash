@@ -347,7 +347,10 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
             .count();
 
         let mut score = self.config.cost_weight * props.cost;
-        score -= self.config.caller_penalty * (caller_count as f32);
+        score = self
+            .config
+            .caller_penalty
+            .mul_add(-(caller_count as f32), score);
 
         if self.graph.unique_caller(body).is_some() {
             score -= self.config.unique_callsite_penalty;
