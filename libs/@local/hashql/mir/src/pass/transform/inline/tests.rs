@@ -1660,3 +1660,69 @@ fn loop_breaker_all_always_directive() {
         "the selected breaker must be one of the SCC members"
     );
 }
+
+/// A filter function that calls into a mutually recursive SCC.
+///
+/// The aggressive phase should inline non-breaker B into the filter, but the
+/// breaker A (visible after B's inlining) must not be expanded. Without the
+/// unconditional breaker check in `FindCallsiteVisitor`, the aggressive phase
+/// would re-expand A on each iteration until the cutoff.
+#[test]
+fn loop_breaker_aggressive_filter_with_recursive_scc() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let a_id = DefId::new(0);
+    let b_id = DefId::new(1);
+    let filter_id = DefId::new(2);
+
+    // A: expensive, calls B (will be selected as breaker)
+    let a = body!(interner, env; fn@a_id/1 -> Int {
+        decl n: Int, cond: Bool, t1: Int, t2: Int, t3: Int, result: Int;
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() { goto bb3(n); },
+        bb2() {
+            t1 = bin.+ n 1;
+            t2 = bin.+ t1 2;
+            t3 = apply (b_id), t2;
+            goto bb3(t3);
+        },
+        bb3(result) { return result; }
+    });
+
+    // B: cheap, calls A
+    let b = body!(interner, env; fn@b_id/1 -> Int {
+        decl x: Int, result: Int;
+        bb0() {
+            result = apply (a_id), x;
+            return result;
+        }
+    });
+
+    // Filter: calls B
+    let filter = body!(interner, env; [graph::read::filter]@filter_id/1 -> Int {
+        decl x: Int, result: Int;
+        bb0() {
+            result = apply (b_id), x;
+            return result;
+        }
+    });
+
+    let mut bodies = [a, b, filter];
+
+    assert_inline_pass(
+        "loop_breaker_aggressive_filter",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        InlineConfig::default(),
+    );
+}
