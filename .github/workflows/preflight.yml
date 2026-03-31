@@ -1,0 +1,27 @@
+name: Preflight
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/preflight.yml"
+  pull_request_target:
+  merge_group:
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  stale-approvals:
+    name: Stale approvals
+    uses: hashintel/.github/.github/workflows/dismiss-stale-approvals.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
+
+  dependencies:
+    name: Dependencies
+    uses: hashintel/.github/.github/workflows/dependencies.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
+
+  todo-comments:
+    name: Todo comments
+    uses: hashintel/.github/.github/workflows/todo-comments.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
