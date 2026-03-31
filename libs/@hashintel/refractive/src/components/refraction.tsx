@@ -11,32 +11,38 @@ const sinTable = generateTableValues(256, (i) => {
   return (Math.sin(angle) + 1) / 2;
 });
 
-type PolarToCartesianProps = {
+type RefractionProps = {
   /** Magnitude lookup table (from generateMagnitudeTable). */
   magnitudeTable: string;
+  /** Displacement scale factor. */
+  scale: number;
   /** Input result name containing the polar map (R=ratio, G=angle). */
   in: string;
-  /** Output result name for the cartesian displacement map. */
+  /** Input result name for the source to be displaced. */
+  source: string;
+  /** Output result name for the displaced image. */
   result: string;
 };
 
 /**
  * @private
- * SVG filter primitives that convert a polar distance map (R = border distance
- * ratio, G = displacement angle) into a cartesian displacement map (R = dx,
- * G = dy, centered at 0.5).
+ * Refraction effect: converts a polar distance map into a cartesian displacement
+ * field and applies it to a source image via feDisplacementMap.
  *
  * Pipeline:
  * 1. Extract angle (G) → apply cos/sin lookup tables via feComponentTransfer
- * 2. Extract distance ratio (R) → apply magnitude lookup table
+ * 2. Extract distance ratio (R) → apply magnitude lookup table (Snell's law)
  * 3. Signed multiplication via feComposite arithmetic: magnitude × trig
+ * 4. Apply displacement to source
  *
  * The signed multiplication formula `result = 2·A·B − A − B + 1` correctly
  * multiplies two values encoded in [0,1] centered at 0.5.
  */
-export const PolarToCartesian: React.FC<PolarToCartesianProps> = ({
+export const Refraction: React.FC<RefractionProps> = ({
   magnitudeTable,
+  scale,
   in: inResult,
+  source,
   result,
 }) => (
   <>
@@ -77,6 +83,16 @@ export const PolarToCartesian: React.FC<PolarToCartesianProps> = ({
       k2={-1}
       k3={-1}
       k4={1}
+      result={`${result}_displacement`}
+    />
+
+    {/* Apply displacement to source */}
+    <feDisplacementMap
+      in={source}
+      in2={`${result}_displacement`}
+      scale={scale}
+      xChannelSelector="R"
+      yChannelSelector="G"
       result={result}
     />
   </>

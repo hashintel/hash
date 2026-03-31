@@ -1,7 +1,7 @@
 import type { Parts } from "../helpers/split-imagedata-to-parts";
 import { buildCompositeSvgUrl } from "./composite/image";
 import { CompositeParts } from "./composite/parts";
-import { PolarToCartesian } from "./polar-to-cartesian";
+import { Refraction } from "./refraction";
 
 export type CompositeMode = "image" | "parts";
 
@@ -30,10 +30,11 @@ type FilterShellProps = {
 
 /**
  * @private
- * Full SVG filter pipeline: blur → polar map compositing → polar-to-cartesian → displacement.
+ * Full SVG filter pipeline: blur → polar map compositing → refraction effect.
  *
  * The `compositing` prop controls how the 9-patch polar map is assembled
- * inside the SVG filter graph.
+ * inside the SVG filter graph. The polar map is then consumed by the
+ * Refraction effect (and in the future, other effects like specular).
  */
 export const FilterShell: React.FC<FilterShellProps> = ({
   id,
@@ -74,34 +75,28 @@ export const FilterShell: React.FC<FilterShellProps> = ({
                 hideLeft,
                 hideRight,
               )}
-              result="polar_map"
               preserveAspectRatio="none"
+              result="polar_map"
             />
           ) : (
             <CompositeParts
               parts={parts}
               elementRef={elementRef!}
               cornerWidth={cornerWidth}
-              result="polar_map"
               hideTop={hideTop}
               hideBottom={hideBottom}
               hideLeft={hideLeft}
               hideRight={hideRight}
+              result="polar_map"
             />
           )}
 
-          <PolarToCartesian
+          <Refraction
             magnitudeTable={magnitudeTable}
-            in="polar_map"
-            result="displacement_map"
-          />
-
-          <feDisplacementMap
-            in="blurred_source"
-            in2="displacement_map"
             scale={scale}
-            xChannelSelector="R"
-            yChannelSelector="G"
+            in="polar_map"
+            source="blurred_source"
+            result="refracted"
           />
         </filter>
       </defs>
