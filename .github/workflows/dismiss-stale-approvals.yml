@@ -3,6 +3,9 @@ name: Dismiss stale pull request approvals
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/dismiss-stale-approvals.yml"
+      - ".github/actions/dismiss-stale-approvals/*"
   pull_request_target:
     types: [opened, synchronize, reopened]
   merge_group:
