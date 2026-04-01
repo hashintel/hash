@@ -258,8 +258,7 @@ CREATE TABLE web (
     shortname TEXT
 );
 
--- Case-insensitive unique index for shortnames
-CREATE UNIQUE INDEX idx_web_shortname ON web (lower(shortname)) WHERE shortname IS NOT NULL;
+CREATE UNIQUE INDEX idx_web_shortname ON web (shortname) WHERE shortname IS NOT NULL;
 
 -- Trigger to normalize shortnames to lowercase on insert/update
 CREATE FUNCTION normalize_web_shortname()
