@@ -32,8 +32,7 @@ jobs:
 
   labeler:
     name: Labeler
-    # TODO: re-enable after testing
-    # if: github.event_name == 'pull_request_target'
+    if: github.event_name != 'merge_group'
     permissions:
       contents: read
       pull-requests: write
