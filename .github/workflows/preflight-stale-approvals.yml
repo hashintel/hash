@@ -1,0 +1,24 @@
+name: Preflight
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/preflight-stale-approvals.yml"
+  pull_request_target:
+  merge_group:
+
+permissions:
+  actions: read
+  contents: read
+  # Required by the reusable workflow to extract job_workflow_ref from the
+  # OIDC token to resolve the correct checkout ref for the composite action.
+  # see: https://github.com/actions/toolkit/issues/1264
+  # TODO: Remove once $/ syntax is available
+  # see: https://github.com/orgs/community/discussions/26245#discussioncomment-15601440
+  id-token: write
+  pull-requests: write
+
+jobs:
+  stale-approvals:
+    name: Stale approvals
+    uses: hashintel/.github/.github/workflows/dismiss-stale-approvals.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
