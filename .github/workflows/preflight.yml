@@ -30,6 +30,18 @@ jobs:
       pull-requests: write
     uses: hashintel/.github/.github/workflows/dependencies.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
 
+  labeler:
+    name: Labeler
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        with:
+          sync-labels: true
+
   todo-comments:
     name: Todo comments
     permissions:
