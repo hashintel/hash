@@ -264,7 +264,7 @@ export const getUser: ImpureGraphFunction<
               systemPropertyTypes.shortname.propertyTypeBaseUrl,
             ],
           },
-          { parameter: knownShortname },
+          { parameter: knownShortname?.trim().toLowerCase() },
         ],
       };
     }
@@ -430,7 +430,7 @@ export const createUser: ImpureGraphFunction<
       ...(shortname !== undefined
         ? {
             "https://hash.ai/@h/types/property-type/shortname/": {
-              value: shortname,
+              value: shortname.trim().toLowerCase(),
               metadata: {
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
