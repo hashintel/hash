@@ -1228,6 +1228,18 @@ export class HashEntity<
               }
             }
           }
+
+          if (targetBaseUrl === shortnamePropertyBaseUrl) {
+            if (patch.op === "remove") {
+              throw new Error("Cannot remove the shortname of a user");
+            }
+
+            if (typeof patch.property.value !== "string") {
+              throw new Error("Shortname must be a string");
+            }
+
+            patch.property.value = patch.property.value.trim().toLowerCase();
+          }
         }
       }
 

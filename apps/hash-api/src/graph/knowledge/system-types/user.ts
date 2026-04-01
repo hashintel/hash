@@ -264,7 +264,7 @@ export const getUser: ImpureGraphFunction<
               systemPropertyTypes.shortname.propertyTypeBaseUrl,
             ],
           },
-          { parameter: knownShortname },
+          { parameter: knownShortname?.trim().toLowerCase() },
         ],
       };
     }

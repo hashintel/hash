@@ -190,7 +190,7 @@ export const createOrg: ImpureGraphFunction<
   const properties: OrganizationPropertiesWithMetadata = {
     value: {
       "https://hash.ai/@h/types/property-type/shortname/": {
-        value: shortname,
+        value: shortname.trim().toLowerCase(),
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -319,7 +319,7 @@ export const getOrgByShortname: ImpureGraphFunction<
                 systemPropertyTypes.shortname.propertyTypeBaseUrl,
               ],
             },
-            { parameter: params.shortname },
+            { parameter: params.shortname.trim().toLowerCase() },
           ],
         },
       ],
