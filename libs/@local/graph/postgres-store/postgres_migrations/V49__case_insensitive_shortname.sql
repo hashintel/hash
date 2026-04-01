@@ -1,7 +1,4 @@
--- Normalize existing shortnames to lowercase and trimmed
-UPDATE web SET shortname = lower(trim(shortname)) WHERE shortname IS NOT NULL AND shortname <> lower(trim(shortname));
-
--- Trigger to normalize shortnames to lowercase on insert/update
+-- Trigger to normalize shortnames to lowercase and trimmed on insert/update
 CREATE FUNCTION normalize_web_shortname()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -15,3 +12,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER web_normalize_shortname_trigger
 BEFORE INSERT OR UPDATE OF shortname ON web
 FOR EACH ROW EXECUTE FUNCTION normalize_web_shortname();
+
+-- Normalize existing shortnames
+UPDATE web SET shortname = lower(trim(shortname)) WHERE shortname IS NOT NULL AND shortname <> lower(trim(shortname));
