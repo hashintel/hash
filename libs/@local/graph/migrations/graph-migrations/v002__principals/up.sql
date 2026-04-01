@@ -266,7 +266,7 @@ CREATE FUNCTION normalize_web_shortname()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.shortname IS NOT NULL THEN
-        NEW.shortname := LOWER(TRIM(NEW.shortname));
+        NEW.shortname := lower(trim(NEW.shortname));
     END IF;
     RETURN NEW;
 END;

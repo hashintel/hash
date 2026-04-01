@@ -1,18 +1,18 @@
 -- Normalize existing shortnames to lowercase
-UPDATE web SET shortname = LOWER(TRIM(shortname)) WHERE shortname IS NOT NULL AND shortname <> LOWER(TRIM(shortname));
+UPDATE web SET shortname = lower(trim(shortname)) WHERE shortname IS NOT NULL AND shortname <> lower(trim(shortname));
 
 -- Drop the existing case-sensitive unique index
 DROP INDEX IF EXISTS idx_web_shortname;
 
 -- Case-insensitive unique index for shortnames
-CREATE UNIQUE INDEX idx_web_shortname ON web (LOWER(shortname)) WHERE shortname IS NOT NULL;
+CREATE UNIQUE INDEX idx_web_shortname ON web (lower(shortname)) WHERE shortname IS NOT NULL;
 
 -- Trigger to normalize shortnames to lowercase on insert/update
 CREATE FUNCTION normalize_web_shortname()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.shortname IS NOT NULL THEN
-        NEW.shortname := LOWER(TRIM(NEW.shortname));
+        NEW.shortname := lower(trim(NEW.shortname));
     END IF;
     RETURN NEW;
 END;
