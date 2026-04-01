@@ -32,7 +32,8 @@ jobs:
 
   labeler:
     name: Labeler
-    if: github.event_name == 'pull_request_target'
+    # TODO: re-enable after testing
+    # if: github.event_name == 'pull_request_target'
     permissions:
       contents: read
       pull-requests: write
