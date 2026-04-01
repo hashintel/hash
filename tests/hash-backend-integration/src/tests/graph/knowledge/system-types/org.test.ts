@@ -90,6 +90,16 @@ describe("Org", () => {
     ).rejects.toThrowError("already exists");
   });
 
+  it("can get an org by its shortname with leading/trailing whitespace", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
+      shortname: `  ${shortname}  `,
+    });
+
+    expect(fetchedOrg).toEqual(createdOrg);
+  });
+
   it("can read the org roles", async () => {
     const authentication = { actorId: systemAccountId };
 

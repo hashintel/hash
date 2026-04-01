@@ -174,6 +174,17 @@ describe("User model class", () => {
     ).rejects.toThrowError("already exists");
   });
 
+  it("can get a user by its shortname with leading/trailing whitespace", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const fetchedUser = await getUser(graphContext, authentication, {
+      shortname: `  ${shortname}  `,
+    });
+
+    expect(fetchedUser).not.toBeNull();
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
   it("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 
