@@ -21,17 +21,17 @@ jobs:
       # see: https://github.com/orgs/community/discussions/26245#discussioncomment-15601440
       id-token: write
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/dismiss-stale-approvals.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
+    uses: hashintel/.github/.github/workflows/dismiss-stale-approvals.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
 
   dependencies:
     name: Dependencies
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/dependencies.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
+    uses: hashintel/.github/.github/workflows/dependencies.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
 
   todo-comments:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/todo-comments.yml@178dfcde6c67af354901ab4f38330bdc114d0d38
+    uses: hashintel/.github/.github/workflows/todo-comments.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
