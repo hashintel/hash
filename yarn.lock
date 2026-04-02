@@ -382,7 +382,7 @@ __metadata:
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
     llamaindex: "npm:0.12.1"
-    lodash: "npm:4.17.23"
+    lodash: "npm:4.18.1"
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:6.0.7"
@@ -497,7 +497,7 @@ __metadata:
     js-yaml: "npm:4.1.1"
     jsonpath: "npm:1.3.0"
     keyv: "npm:5.5.3"
-    lodash: "npm:4.17.23"
+    lodash: "npm:4.18.1"
     long: "npm:5.3.2"
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
@@ -617,7 +617,7 @@ __metadata:
     iframe-resizer: "npm:4.4.5"
     immer: "npm:10.1.3"
     jsonpath: "npm:1.3.0"
-    lodash: "npm:4.17.23"
+    lodash: "npm:4.18.1"
     marked: "npm:4.3.0"
     material-ui-popup-state: "npm:4.1.0"
     millify: "npm:6.1.0"
@@ -6623,9 +6623,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@figma/code-connect@npm:1.3.13":
-  version: 1.3.13
-  resolution: "@figma/code-connect@npm:1.3.13"
+"@figma/code-connect@npm:1.4.3":
+  version: 1.4.3
+  resolution: "@figma/code-connect@npm:1.4.3"
   dependencies:
     boxen: "npm:5.1.1"
     chalk: "npm:^4.1.2"
@@ -6651,7 +6651,7 @@ __metadata:
     zod-validation-error: "npm:^3.2.0"
   bin:
     figma: bin/figma
-  checksum: 10c0/3d7c20eb02f5a361eca4af493f9f018755a9ae1c1eb16638c75df258c52f62f9486a0e7fc51b5be02ae786e5d39baffb65d53eeeee22c08d64233d03180a3161
+  checksum: 10c0/0b42a4f3bfdfe2049e6af04979114016c5270974eb5c34331af8f9e6cade27a5884554b34be3c8ecb7ebd9b3dc10cfd71cac6ebf8c19c85aeb6d492ccc8d9d50
   languageName: node
   linkType: hard
 
@@ -7695,7 +7695,7 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
-    "@figma/code-connect": "npm:1.3.13"
+    "@figma/code-connect": "npm:1.4.3"
     "@hashintel/ds-helpers": "workspace:^"
     "@hashintel/ds-theme": "workspace:*"
     "@hashintel/refractive": "workspace:^"
@@ -9443,7 +9443,7 @@ __metadata:
     graphql-tag: "npm:2.12.6"
     immer: "npm:10.1.3"
     jsonschema: "npm:1.5.0"
-    lodash-es: "npm:4.17.23"
+    lodash-es: "npm:4.18.1"
     next: "npm:15.5.14"
     pluralize: "npm:8.0.0"
     prosemirror-commands: "npm:1.3.1"
@@ -9518,7 +9518,7 @@ __metadata:
     "@types/yargs": "npm:17.0.34"
     eslint: "npm:9.39.4"
     execa: "npm:9.6.0"
-    lodash-es: "npm:4.17.23"
+    lodash-es: "npm:4.18.1"
     quicktype: "npm:16.0.43"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
@@ -34207,10 +34207,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash-es@npm:4.17.23, lodash-es@npm:^4.17.21":
-  version: 4.17.23
-  resolution: "lodash-es@npm:4.17.23"
-  checksum: 10c0/3150fb6660c14c7a6b5f23bd11597d884b140c0e862a17fdb415aaa5ef7741523182904a6b7929f04e5f60a11edb5a79499eb448734381c99ffb3c4734beeddd
+"lodash-es@npm:4.18.1, lodash-es@npm:^4.17.21":
+  version: 4.18.1
+  resolution: "lodash-es@npm:4.18.1"
+  checksum: 10c0/35d4dcf87ef07f8d090f409447575800108057e360b445f590d0d25d09e3d1e33a163d2fc100d4d072b0f901d5e2fc533cd7c4bfd8eeb38a06abec693823c8b8
   languageName: node
   linkType: hard
 
@@ -34368,10 +34368,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.23, lodash@npm:^4, lodash@npm:^4.17.14, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:~4.17.0, lodash@npm:~4.17.23":
+"lodash@npm:4.17.23, lodash@npm:~4.17.0, lodash@npm:~4.17.23":
   version: 4.17.23
   resolution: "lodash@npm:4.17.23"
   checksum: 10c0/1264a90469f5bb95d4739c43eb6277d15b6d9e186df4ac68c3620443160fc669e2f14c11e7d8b2ccf078b81d06147c01a8ccced9aab9f9f63d50dcf8cace6bf6
+  languageName: node
+  linkType: hard
+
+"lodash@npm:4.18.1, lodash@npm:^4, lodash@npm:^4.17.14, lodash@npm:^4.17.20, lodash@npm:^4.17.21":
+  version: 4.18.1
+  resolution: "lodash@npm:4.18.1"
+  checksum: 10c0/757228fc68805c59789e82185135cf85f05d0b2d3d54631d680ca79ec21944ec8314d4533639a14b8bcfbd97a517e78960933041a5af17ecb693ec6eecb99a27
   languageName: node
   linkType: hard
 
