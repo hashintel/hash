@@ -31,6 +31,7 @@ import { exportTikZ } from "./lib/export-tikz";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
+import { SimulateView } from "./panels/SimulateView/simulate-view";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -111,6 +112,7 @@ export const EditorView = ({
   // Get editor context
   const {
     globalMode: mode,
+    setGlobalMode,
     editionMode,
     setEditionMode,
     cursorMode,
@@ -360,33 +362,35 @@ export const EditorView = ({
           onTitleChange={setTitle}
           hideNetManagementControls={hideNetManagementControls}
           mode={mode}
-          onModeChange={() => {
-            // Mode change handled by TopBar; currently only "edit" is enabled
-          }}
+          onModeChange={setGlobalMode}
         />
 
         <Stack direction="row" className={rowContainerStyle}>
-          <Box className={canvasContainerStyle}>
-            {/* Left Sidebar - Tools and content panels */}
-            <LeftSideBar />
+          {mode === "simulate" ? (
+            <SimulateView />
+          ) : (
+            <Box className={canvasContainerStyle}>
+              {/* Left Sidebar - Tools and content panels */}
+              <LeftSideBar />
 
-            {/* Properties Panel - Right Side */}
-            <PropertiesPanel />
+              {/* Properties Panel - Right Side */}
+              <PropertiesPanel />
 
-            {/* SDCPN Visualization */}
-            <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization */}
+              <SDCPNView viewportActions={viewportActions} />
 
-            {/* Bottom Panel - Diagnostics, Simulation Settings */}
-            <BottomPanel />
+              {/* Bottom Panel - Diagnostics, Simulation Settings */}
+              <BottomPanel />
 
-            <BottomBar
-              mode={mode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-            />
-          </Box>
+              <BottomBar
+                mode={mode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+              />
+            </Box>
+          )}
         </Stack>
       </Stack>
     </PortalContainerContext>
