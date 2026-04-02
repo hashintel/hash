@@ -7,7 +7,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import type { FormEventHandler } from "react";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
@@ -20,7 +20,9 @@ import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
+import { formatKratosMessage } from "./shared/format-kratos-message";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
@@ -166,6 +168,26 @@ const SigninPage: NextPageWithLayout = () => {
       isUiNodeInputAttributes(attributes) &&
       attributes.name === "traits.emails",
   );
+
+  const identifierNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
+  );
+
+  // Pre-fill email from Kratos flow (e.g., during account linking).
+  // Keyed on flow.id so it only runs once per flow, not on every re-render.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (identifierNode && isUiNodeInputAttributes(identifierNode.attributes)) {
+      const prefilled = identifierNode.attributes.value;
+      if (typeof prefilled === "string" && prefilled) {
+        setEmail(prefilled);
+        // Focus password field since email is already filled
+        requestAnimationFrame(() => passwordRef.current?.focus());
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only on flow change
+  }, [flow?.id]);
 
   const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
@@ -362,6 +384,35 @@ const SigninPage: NextPageWithLayout = () => {
               gap: 1,
             }}
           >
+            {flow?.ui.messages && flow.ui.messages.length > 0 && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 1,
+                  backgroundColor: ({ palette }) =>
+                    flow.ui.messages?.some((msg) => msg.type === "error")
+                      ? palette.red[10]
+                      : palette.blue[10],
+                  border: ({ palette }) =>
+                    `1px solid ${flow.ui.messages?.some((msg) => msg.type === "error") ? palette.red[30] : palette.blue[30]}`,
+                }}
+              >
+                {flow.ui.messages.map((message) => (
+                  <Typography
+                    key={message.id}
+                    variant="smallTextParagraphs"
+                    sx={{
+                      color: ({ palette }) =>
+                        message.type === "error"
+                          ? palette.red[80]
+                          : palette.blue[80],
+                    }}
+                  >
+                    {formatKratosMessage(message)}
+                  </Typography>
+                ))}
+              </Box>
+            )}
             {isAal2Flow ? (
               <>
                 <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
@@ -457,6 +508,7 @@ const SigninPage: NextPageWithLayout = () => {
                   label="Password"
                   type="password"
                   autoComplete="current-password"
+                  inputRef={passwordRef}
                   placeholder="Enter your password"
                   value={password}
                   onChange={({ target }) => setPassword(target.value)}
@@ -516,18 +568,18 @@ const SigninPage: NextPageWithLayout = () => {
                 {errorMessage}
               </Typography>
             ) : null}
-            {flow?.ui.messages?.map(({ text, id }) => (
-              <Typography key={id}>{text}</Typography>
-            ))}
           </Box>
         </AuthPaper>
-        <Box>
+        <Box sx={{ maxWidth: 350 }}>
           <Typography gutterBottom>
             <strong>No account?</strong> No problem.
           </Typography>
           <Button href="/signup" disabled={!userSelfRegistrationIsEnabled}>
             Create a free account
           </Button>
+          {flow ? (
+            <SsoProviderButtons flow={flow} onFlowError={handleFlowError} />
+          ) : null}
         </Box>
       </Box>
     </AuthLayout>
