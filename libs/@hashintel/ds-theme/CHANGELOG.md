@@ -1,5 +1,17 @@
 # @hashintel/ds-theme
 
+## 0.1.2
+
+### Patch Changes
+
+- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - provide theme scoping utility function
+
+## 0.1.1
+
+### Patch Changes
+
+- [#8570](https://github.com/hashintel/hash/pull/8570) [`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix dependency references
+
 ## 0.1.0
 
 ### Minor Changes

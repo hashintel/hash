@@ -1,5 +1,30 @@
 # @hashintel/petrinaut
 
+## 0.0.12
+
+### Patch Changes
+
+- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - better scoping of styles, font loading
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [[`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d), [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d)]:
+  - @hashintel/refractive@0.0.3
+  - @hashintel/ds-helpers@0.1.2
+  - @hashintel/ds-components@0.1.2
+
+## 0.0.10
+
+### Patch Changes
+
+- [#8570](https://github.com/hashintel/hash/pull/8570) [`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix dependency references
+
+- Updated dependencies [[`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236)]:
+  - @hashintel/ds-components@0.1.1
+  - @hashintel/ds-helpers@0.1.1
+
 ## 0.0.9
 
 ### Patch Changes

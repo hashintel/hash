@@ -1,6 +1,6 @@
 {
   "name": "@rust/error-stack",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "A context-aware error-handling library that supports arbitrary attached user data",
   "license": "MIT OR Apache-2.0",

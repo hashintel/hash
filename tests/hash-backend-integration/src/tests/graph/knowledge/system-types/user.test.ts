@@ -143,6 +143,48 @@ describe("User model class", () => {
     expect(fetchedUser).toEqual(createdUser);
   });
 
+  it("can get a user by its shortname with different casing", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const fetchedUser = await getUser(graphContext, authentication, {
+      shortname: shortname.toUpperCase(),
+    });
+
+    expect(fetchedUser).not.toBeNull();
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("cannot create a user with a shortname differing only in case", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: ["case-test-user@example.com"],
+      },
+      verifyEmails: true,
+    });
+
+    await expect(
+      createUser(graphContext, authentication, {
+        emails: ["case-test-user@example.com"],
+        kratosIdentityId: identity.id,
+        shortname: shortname.toUpperCase(),
+        displayName: "Case Test",
+      }),
+    ).rejects.toThrowError("already exists");
+  });
+
+  it("can get a user by its shortname with leading/trailing whitespace", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const fetchedUser = await getUser(graphContext, authentication, {
+      shortname: `  ${shortname}  `,
+    });
+
+    expect(fetchedUser).not.toBeNull();
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
   it("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 

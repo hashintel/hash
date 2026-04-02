@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.9",
+  "version": "0.0.12",
   "description": "A visual editor for Petri nets",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -36,6 +36,8 @@
   "dependencies": {
     "@ark-ui/react": "5.26.2",
     "@babel/standalone": "7.28.5",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource-variable/inter-tight": "5.2.7",
     "@fontsource-variable/jetbrains-mono": "5.2.8",
     "@hashintel/ds-components": "workspace:^",
     "@hashintel/ds-helpers": "workspace:^",
@@ -56,6 +58,7 @@
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/ds-theme": "workspace:*",
     "@pandacss/dev": "1.4.3",
     "@rolldown/plugin-babel": "0.2.1",
     "@storybook/react-vite": "10.2.19",

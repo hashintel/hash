@@ -24,7 +24,7 @@
     "bench:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:integration --env-mode=loose --",
     "bench:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:unit --env-mode=loose --",
     "changeset:resolve-workspace-ranges": "node scripts/resolve-workspace-ranges.mjs",
-    "changeset:publish": "yarn changeset:resolve-workspace-ranges && yarn changeset publish",
+    "changeset:publish": "yarn changeset:resolve-workspace-ranges && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn && yarn changeset publish",
     "changeset:version": "yarn changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn",
     "codegen": "CARGO_TERM_PROGRESS_WHEN=never turbo codegen",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
@@ -71,6 +71,7 @@
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --",
     "test:playwright": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --filter @tests/hash-playwright --",
+    "test:stale-approvals": "bash .github/actions/dismiss-stale-approvals/self-test.sh",
     "test:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:unit --env-mode=loose --"
   },
   "devDependencies": {

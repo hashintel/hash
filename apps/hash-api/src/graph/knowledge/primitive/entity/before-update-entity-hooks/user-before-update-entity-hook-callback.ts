@@ -163,7 +163,10 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     );
 
     if (updatedShortname) {
-      if (currentShortname && currentShortname !== updatedShortname) {
+      if (
+        currentShortname &&
+        currentShortname.toLowerCase() !== updatedShortname.toLowerCase()
+      ) {
         throw Error.badUserInput("Cannot change shortname");
       }
 

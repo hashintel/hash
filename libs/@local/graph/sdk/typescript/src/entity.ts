@@ -1228,6 +1228,18 @@ export class HashEntity<
               }
             }
           }
+
+          if (targetBaseUrl === shortnamePropertyBaseUrl) {
+            if (patch.op === "remove") {
+              throw new Error("Cannot remove the shortname of a user");
+            }
+
+            if (typeof patch.property.value !== "string") {
+              throw new Error("Shortname must be a string");
+            }
+
+            patch.property.value = patch.property.value.trim().toLowerCase();
+          }
         }
       }
 
@@ -1249,11 +1261,17 @@ export class HashEntity<
               throw new Error("Cannot remove the organization shortname");
             }
 
-            if (
-              patch.property.value !== this.properties[shortnamePropertyBaseUrl]
-            ) {
+            if (typeof patch.property.value !== "string") {
+              throw new Error("Shortname must be a string");
+            }
+
+            const normalizedPatch = patch.property.value.trim().toLowerCase();
+            const stored = this.properties[shortnamePropertyBaseUrl];
+            if (normalizedPatch !== stored) {
               throw new Error("Cannot change the shortname of an organization");
             }
+
+            patch.property.value = normalizedPatch;
           }
 
           if (patch.path[0] === organizationNamePropertyBaseUrl) {

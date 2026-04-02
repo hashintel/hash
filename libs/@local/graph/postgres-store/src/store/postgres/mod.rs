@@ -3942,11 +3942,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 "
                 SELECT
                     web.id,
+                    web.shortname,
                     array_remove(array_agg(role.id), NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
-                WHERE web.shortname = $1
-                GROUP BY web.id
+                WHERE web.shortname = LOWER(TRIM($1))
+                GROUP BY web.id, web.shortname
                 ",
                 &[&shortname],
             )
@@ -3959,10 +3960,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
-                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
+                let role_ids = row.get::<_, Vec<WebRoleId>>(2);
                 Web {
                     id: row.get(0),
-                    shortname: Some(shortname.to_owned()),
+                    shortname: row.get(1),
                     roles: role_ids.into_iter().collect(),
                 }
             }))

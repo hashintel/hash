@@ -27,8 +27,10 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
   // Expand the entities list in the sidebar
   await page.locator("text=Entities").first().click();
 
-  // Click on 'Document' in the entities list
-  await page.locator("text=Document").first().click();
+  // Wait for 'Document' to be visible before clicking (sidebar expand animation)
+  const documentItem = page.locator("text=Document").first();
+  await expect(documentItem).toBeVisible();
+  await documentItem.click();
 
   // Check if we are on the 'Document' entities page
   await page.waitForURL((url) => {

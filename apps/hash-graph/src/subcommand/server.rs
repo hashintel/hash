@@ -193,6 +193,9 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false, env = "HASH_GRAPH_EMBED_ADMIN")]
     pub embed_admin: bool,
 
+    // Ideally this would be `Option<AdminConfig>` and required if `embed_admin` is true, but clap
+    // does not support optional flattened structs with required fields.
+    // See <https://github.com/clap-rs/clap/issues/5092>.
     #[clap(flatten)]
     pub admin: AdminConfig,
 

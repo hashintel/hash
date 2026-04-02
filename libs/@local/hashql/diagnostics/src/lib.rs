@@ -4,7 +4,6 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
-    trait_alias,
     const_trait_impl,
     const_convert,
     const_default,
@@ -12,8 +11,11 @@
 
     // Library Features
     variant_count,
-    int_from_ascii,
 )]
+#![cfg_attr(feature = "serde", feature(
+    // Library Features
+    int_from_ascii,
+))]
 
 extern crate alloc;
 

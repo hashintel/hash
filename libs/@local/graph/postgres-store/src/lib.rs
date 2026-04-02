@@ -4,16 +4,12 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
-    doc_cfg,
     impl_trait_in_assoc_type,
     never_type,
-    trait_alias,
-    type_alias_impl_trait,
 
     // Library Features
     extend_one,
     iter_intersperse,
-    try_find,
 )]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(

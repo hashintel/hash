@@ -1,4 +1,4 @@
-#![feature(proc_macro_diagnostic, proc_macro_totokens)]
+#![feature(proc_macro_diagnostic)]
 
 extern crate alloc;
 extern crate proc_macro;

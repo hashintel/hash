@@ -57,10 +57,10 @@ fn parse_jwt_algorithm(name: &str) -> Result<Algorithm, String> {
 ///
 /// Operational parameters (cache TTL, refresh cooldown, HTTP timeout, algorithms) have sensible
 /// defaults and only take effect when JWT authentication is enabled.
-///
-/// Ideally this would be `Option<JwtConfig>` with required fields in `AdminConfig`, but clap does
-/// not support optional flattened structs with required fields. See
-/// <https://github.com/clap-rs/clap/issues/5092>.
+//
+// Ideally this would have required fields and be used as `Option<JwtConfig>` in `AdminConfig`, but
+// clap does not support optional flattened structs with required fields.
+// See <https://github.com/clap-rs/clap/issues/5092>.
 #[derive(Debug, Clone, Parser)]
 pub struct JwtConfig {
     /// JWKS endpoint URL for JWT signature validation.
@@ -139,18 +139,23 @@ pub struct JwtConfig {
 
 /// Configuration for external identity services (Kratos, Hydra, Mailchimp).
 ///
-/// Kratos and Hydra URLs are required — the admin server cannot function correctly without access
-/// to both identity and OAuth2 services. Mailchimp settings are optional and only needed when
-/// email subscription cleanup is desired during user deletion.
+/// All fields are optional at the CLI/env level so that `AdminConfig` can be flattened into
+/// `ServerArgs` without forcing callers to provide Kratos/Hydra URLs when `--embed-admin` is not
+/// set. When the admin server actually starts, [`run_admin_server`] validates that the required
+/// URLs are present.
+//
+// Ideally these would be required fields and `AdminConfig` would be used as
+// `Option<AdminConfig>` in `ServerArgs`, but clap does not support optional flattened structs
+// with required fields. See <https://github.com/clap-rs/clap/issues/5092>.
 #[derive(Debug, Clone, Parser)]
 pub struct ExternalServicesConfig {
     /// Kratos admin API URL for identity management.
     #[clap(long, env = "HASH_KRATOS_ADMIN_URL")]
-    pub kratos_admin_url: Url,
+    pub kratos_admin_url: Option<Url>,
 
     /// Hydra admin API URL for OAuth2 session management.
     #[clap(long, env = "HASH_HYDRA_ADMIN_URL")]
-    pub hydra_admin_url: Url,
+    pub hydra_admin_url: Option<Url>,
 
     /// Mailchimp API key for email subscription management.
     ///
@@ -263,12 +268,23 @@ pub(crate) async fn run_admin_server(
         }
     };
 
+    let kratos_admin_url = config.external_services.kratos_admin_url.ok_or_else(|| {
+        Report::new(GraphError).attach(
+            "--kratos-admin-url (HASH_KRATOS_ADMIN_URL) is required when running the admin server",
+        )
+    })?;
+    let hydra_admin_url = config.external_services.hydra_admin_url.ok_or_else(|| {
+        Report::new(GraphError).attach(
+            "--hydra-admin-url (HASH_HYDRA_ADMIN_URL) is required when running the admin server",
+        )
+    })?;
+
     let router = hash_graph_api::rest::admin::routes(
         pool,
         jwt_validator,
         hash_graph_api::rest::admin::ExternalServicesConfig {
-            kratos_admin_url: config.external_services.kratos_admin_url,
-            hydra_admin_url: config.external_services.hydra_admin_url,
+            kratos_admin_url,
+            hydra_admin_url,
             mailchimp_api_key: config.external_services.mailchimp_api_key,
             mailchimp_list_id: config.external_services.mailchimp_list_id,
         },

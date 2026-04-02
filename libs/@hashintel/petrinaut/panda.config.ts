@@ -1,37 +1,19 @@
 import { defineConfig } from "@pandacss/dev";
+import { scopedThemeConfig } from "@hashintel/ds-theme";
 
 import { CODE_FONT_FAMILY } from "./src/constants/ui";
 
 export default defineConfig({
-  // Whether to use css reset
-  preflight: { scope: ".petrinaut-root" },
+  ...scopedThemeConfig(".petrinaut-root"),
 
-  // Prefix all utility classes (e.g. `.d_flex` → `.pn_d_flex`)
-  // prefix: "pn",
-
-  // Scope CSS variables to petrinaut root instead of :root
-  cssVarRoot: ".petrinaut-root",
-
-  // Override light/dark conditions from ds-theme preset so that
-  // conditional tokens (colors) are scoped to .petrinaut-root instead of :root.
-  conditions: {
-    extend: {
-      light: ".petrinaut-root &",
-      dark: ".dark .petrinaut-root &, [data-theme='dark'] .petrinaut-root &",
-    },
-  },
-
-  // Where to look for css declarations
   include: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "../ds-components/src/**/*.{ts,tsx}",
     "./.storybook/**/*.{js,jsx,ts,tsx}",
   ],
 
-  // Files to exclude
   exclude: [],
 
-  // Useful for theme customization
   theme: {
     extend: {
       tokens: {
@@ -91,5 +73,4 @@ export default defineConfig({
   polyfill: true,
 
   importMap: "@hashintel/ds-helpers",
-  presets: ["@hashintel/ds-theme"],
 });
