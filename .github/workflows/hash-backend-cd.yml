@@ -1,5 +1,4 @@
 on:
-  # We could allow configuring environment here.
   workflow_dispatch: {}
   push:
     branches:
@@ -21,22 +20,6 @@ env:
   ARTIFACTS_ECR_ROLE_ARN: arn:aws:iam::469596578827:role/h-artifacts-euc1-ecr-push
   ARTIFACTS_AWS_REGION: eu-central-1
 
-  AWS_REGION: eu-central-1
-  APP_CLUSTER_NAME: h-stage-euc1-app
-  APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
-  APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
-  APP_GRAPH_ADMIN_SERVICE_NAME: h-stage-euc1-app-graph-admin
-  APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
-  APP_API_SERVICE_NAME: h-stage-euc1-app-api
-  WORKER_CLUSTER_NAME: h-stage-euc1-worker
-  WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-worker-deploy
-  WORKER_AI_TS_SERVICE_NAME: h-stage-euc1-worker-ai-ts
-  WORKER_INTEGRATION_SERVICE_NAME: h-stage-euc1-worker-integration
-  AUTH_CLUSTER_NAME: h-stage-euc1-auth
-  AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-auth-deploy
-  AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
-  AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
-
 name: HASH backend deployment
 jobs:
   build-graph:
@@ -56,8 +39,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -96,8 +77,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -136,8 +115,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -176,8 +153,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -218,8 +193,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -260,8 +233,6 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -283,193 +254,99 @@ jobs:
           IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
 
-  deploy-graph:
-    name: Deploy HASH graph images
+  promote-staging:
+    name: Trigger staging promotion
     runs-on: ubuntu-latest
     needs:
       - build-graph
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          exportToken: true
-          url: ${{ secrets.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy graph staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy graph-admin staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_ADMIN_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy type-fetcher staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_TYPE_FETCHER_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
-
-  deploy-app:
-    name: Deploy HASH app images
-    runs-on: ubuntu-latest
-    needs:
       - build-api
       - build-kratos
       - build-hydra
-      # Technically not needed but it's good if the graph has been finished already
-      - deploy-graph
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          exportToken: true
-          url: ${{ secrets.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Redeploy API staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_API_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy kratos staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.AUTH_KRATOS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.AUTH_DEPLOY_ROLE_ARN }}
-
-      - name: Redeploy hydra staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.AUTH_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.AUTH_HYDRA_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.AUTH_DEPLOY_ROLE_ARN }}
-
-  deploy-workers:
-    name: Deploy HASH worker images
-    runs-on: ubuntu-latest
-    needs:
       - build-ts-worker
       - build-integration-worker
-      # Technically not needed but it's good if the graph has been finished already
-      - deploy-graph
     permissions:
       id-token: write
-      contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          exportToken: true
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
+          role: dev
           secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+            automation/data/pipelines/hash/dev github_worker_app_id | GITHUB_WORKER_APP_ID ;
+            automation/data/pipelines/hash/dev github_worker_app_private_key | GITHUB_WORKER_APP_PRIVATE_KEY ;
 
-      - name: Redeploy AI-TS staging service
-        uses: ./.github/actions/redeploy-ecs-service
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.WORKER_AI_TS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.WORKER_DEPLOY_ROLE_ARN }}
+          app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}
+          owner: hashintel
+          repositories: internal-infra
 
-      - name: Redeploy Integration staging service
-        uses: ./.github/actions/redeploy-ecs-service
-        with:
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECS_CLUSTER_NAME: ${{ env.WORKER_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.WORKER_INTEGRATION_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.WORKER_DEPLOY_ROLE_ARN }}
+      - name: Trigger promote workflow
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          HTTP_CODE=$(curl -s -o /tmp/dispatch-response.json -w "%{http_code}" -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/hashintel/internal-infra/actions/workflows/promote.yml/dispatches" \
+            -d "{
+              \"ref\": \"main\",
+              \"inputs\": {
+                \"target_environment\": \"staging\",
+                \"image_tag\": \"${{ github.sha }}\",
+                \"dry_run\": \"false\",
+                \"services\": \"all\"
+              }
+            }")
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Dispatch failed (HTTP ${HTTP_CODE}): $(cat /tmp/dispatch-response.json)"
+            exit 1
+          fi
+          echo "Triggered staging promotion for sha-${GITHUB_SHA:0:12} (HTTP ${HTTP_CODE})"
 
   notify-slack:
     name: Notify Slack on failure
     needs:
-      - deploy-app
-      - deploy-graph
-      - deploy-workers
+      - promote-staging
     runs-on: ubuntu-latest
-    if: ${{ failure() }}
+    if: failure()
+    permissions:
+      id-token: write
     steps:
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          secrets: |
+            infrastructure/data/slack hash_bot_oauth_token | SLACK_BOT_TOKEN ;
+
+      - name: Notify Slack
         env:
-          SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @devops
-          SLACK_TITLE: Backend deployment failed
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_USERNAME: GitHub
+          SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg channel "C02TWBTT3ED" \
+            --arg url "$WORKFLOW_URL" \
+            --arg sha "${GITHUB_SHA:0:12}" \
+            '{
+              channel: $channel,
+              text: "Backend build failed",
+              blocks: [
+                { type: "section", text: { type: "mrkdwn", text: ("*<\($url)|Staging backend build failed>*  <!subteam^S09KH99698T>\nCommit: `\($sha)`") } }
+              ],
+              attachments: [{ color: "#dc3545", blocks: [] }]
+            }')
+          curl -s --max-time 10 -o /dev/null -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$PAYLOAD" || true
