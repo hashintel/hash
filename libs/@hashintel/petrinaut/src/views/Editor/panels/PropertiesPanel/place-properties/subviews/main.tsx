@@ -313,6 +313,28 @@ const PlaceMainContent: React.FC = () => {
             )
           )}
         </Section>
+        <Section
+          title="Initial state"
+          tooltip="When enabled, this place will appear by default in the Initial State section when creating a new scenario."
+          renderHeaderAction={() => (
+            <Switch
+              checked={!!place.showAsInitialState}
+              disabled={isReadOnly}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              onCheckedChange={(checked) => {
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.showAsInitialState = checked;
+                });
+              }}
+            />
+          )}
+        >
+          <div className={hintTextStyle}>
+            {place.showAsInitialState
+              ? "This place will be listed by default when creating scenarios."
+              : "Enable to show this place in the scenario initial state by default."}
+          </div>
+        </Section>
       </SectionList>
     </div>
   );

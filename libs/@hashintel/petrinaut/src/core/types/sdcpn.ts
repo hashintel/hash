@@ -31,6 +31,7 @@ export type Place = {
   dynamicsEnabled: boolean;
   differentialEquationId: null | ID;
   visualizerCode?: string;
+  showAsInitialState?: boolean;
   // UI positioning
   x: number;
   y: number;

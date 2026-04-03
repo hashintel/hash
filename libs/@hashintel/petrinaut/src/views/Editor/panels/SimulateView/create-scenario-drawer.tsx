@@ -8,6 +8,7 @@ import { IconButton } from "../../../../components/icon-button";
 import { Input } from "../../../../components/input";
 import { Section, SectionList } from "../../../../components/section";
 import { Select } from "../../../../components/select";
+import { Switch } from "../../../../components/switch";
 import type { ScenarioParameter } from "../../../../core/types/sdcpn";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 
@@ -178,6 +179,16 @@ const emptyStyle = css({
   paddingY: "[4px]",
 });
 
+const switchLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s80",
+  cursor: "pointer",
+});
+
 const selectStyle = css({
   width: "[100px]",
   flexShrink: 0,
@@ -217,6 +228,7 @@ export const CreateScenarioDrawer = ({
 
   // Initial state per place: placeId → value string
   const [initialState, setInitialState] = useState<Record<string, string>>({});
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
 
   const addScenarioParam = () => {
     setScenarioParams((prev) => [
@@ -418,26 +430,46 @@ export const CreateScenarioDrawer = ({
             </Section>
 
             {/* -- Initial State -------------------------------------------- */}
-            <Section title="Initial State" collapsible defaultOpen>
+            <Section
+              title="Initial State"
+              collapsible
+              defaultOpen
+              renderHeaderAction={() => (
+                <div className={switchLabelStyle}>
+                  <span>Show all</span>
+                  <Switch
+                    checked={showAllPlaces}
+                    onCheckedChange={setShowAllPlaces}
+                  />
+                </div>
+              )}
+            >
               {petriNetDefinition.places.length === 0 ? (
                 <span className={emptyStyle}>No places defined in the net</span>
               ) : (
-                petriNetDefinition.places.map((place) => (
-                  <div key={place.id} className={placeRowStyle}>
-                    <span className={placeNameStyle}>{place.name}</span>
-                    <Input
-                      size="sm"
-                      value={initialState[place.id] ?? ""}
-                      onChange={(e) =>
-                        setInitialState((prev) => ({
-                          ...prev,
-                          [place.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                ))
+                [...petriNetDefinition.places]
+                  .filter((place) => showAllPlaces || place.showAsInitialState)
+                  .sort((a, b) => {
+                    const aP = a.showAsInitialState ? 0 : 1;
+                    const bP = b.showAsInitialState ? 0 : 1;
+                    return aP - bP;
+                  })
+                  .map((place) => (
+                    <div key={place.id} className={placeRowStyle}>
+                      <span className={placeNameStyle}>{place.name}</span>
+                      <Input
+                        size="sm"
+                        value={initialState[place.id] ?? ""}
+                        onChange={(e) =>
+                          setInitialState((prev) => ({
+                            ...prev,
+                            [place.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                  ))
               )}
             </Section>
           </SectionList>

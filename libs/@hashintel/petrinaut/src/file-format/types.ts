@@ -20,6 +20,7 @@ const placeSchema = z.object({
   dynamicsEnabled: z.boolean(),
   differentialEquationId: z.string().nullable(),
   visualizerCode: z.string().optional(),
+  showAsInitialState: z.boolean().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
 });
