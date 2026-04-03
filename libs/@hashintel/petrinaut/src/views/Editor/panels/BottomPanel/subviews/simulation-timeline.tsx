@@ -640,7 +640,6 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
   const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
@@ -658,174 +657,142 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   const activeHoveredPlaceId = localHoveredPlaceId ?? hoveredPlaceId;
 
   // Calculate chart dimensions and scales
-  const chartMetrics = useMemo(() => {
-    if (compartmentData.length === 0 || totalFrames === 0) {
+  const chartMetrics =
+    compartmentData.length === 0 || totalFrames === 0
+      ? null
+      : {
+          totalFrames,
+          xScale: (frameIndex: number, width: number) =>
+            (frameIndex / Math.max(1, totalFrames - 1)) * width,
+          yScale: (value: number, height: number) =>
+            height - (value / yAxisScale.yMax) * height,
+        };
+
+  // Calculate frame index from mouse position
+  const getFrameFromEvent = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!chartRef.current || !chartMetrics) {
       return null;
     }
 
-    return {
-      totalFrames,
-      xScale: (frameIndex: number, width: number) =>
-        (frameIndex / Math.max(1, totalFrames - 1)) * width,
-      yScale: (value: number, height: number) =>
-        height - (value / yAxisScale.yMax) * height,
-    };
-  }, [compartmentData, totalFrames, yAxisScale.yMax]);
+    const rect = chartRef.current.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
 
-  // Calculate frame index from mouse position
-  const getFrameFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!chartRef.current || !chartMetrics) {
-        return null;
-      }
-
-      const rect = chartRef.current.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const width = rect.width;
-
-      const progress = Math.max(0, Math.min(1, x / width));
-      return Math.round(progress * (chartMetrics.totalFrames - 1));
-    },
-    [chartMetrics],
-  );
+    const progress = Math.max(0, Math.min(1, x / width));
+    return Math.round(progress * (chartMetrics.totalFrames - 1));
+  };
 
   // Handle mouse interaction for scrubbing
-  const handleScrub = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex !== null) {
-        setCurrentViewedFrame(frameIndex);
-      }
-    },
-    [getFrameFromEvent, setCurrentViewedFrame],
-  );
+  const handleScrub = (event: React.MouseEvent<SVGSVGElement>) => {
+    const frameIndex = getFrameFromEvent(event);
+    if (frameIndex !== null) {
+      setCurrentViewedFrame(frameIndex);
+    }
+  };
 
   // Update tooltip based on mouse position and hovered place
-  const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
-      if (!hoveredId || frameTimes.length === 0) {
-        onTooltipChange(null);
-        return;
-      }
+  const updateTooltip = (
+    event: React.MouseEvent<SVGSVGElement>,
+    hoveredId: string | null,
+  ) => {
+    if (!hoveredId || frameTimes.length === 0) {
+      onTooltipChange(null);
+      return;
+    }
 
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex === null) {
-        onTooltipChange(null);
-        return;
-      }
+    const frameIndex = getFrameFromEvent(event);
+    if (frameIndex === null) {
+      onTooltipChange(null);
+      return;
+    }
 
-      const placeData = compartmentData.find(
-        (data) => data.placeId === hoveredId,
-      );
-      if (!placeData || hiddenPlaces.has(hoveredId)) {
-        onTooltipChange(null);
-        return;
-      }
+    const placeData = compartmentData.find(
+      (data) => data.placeId === hoveredId,
+    );
+    if (!placeData || hiddenPlaces.has(hoveredId)) {
+      onTooltipChange(null);
+      return;
+    }
 
-      const value = placeData.values[frameIndex] ?? 0;
-      const time = frameTimes[frameIndex] ?? 0;
+    const value = placeData.values[frameIndex] ?? 0;
+    const time = frameTimes[frameIndex] ?? 0;
 
-      onTooltipChange({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        placeName: placeData.placeName,
-        color: placeData.color,
-        value,
-        frameIndex,
-        time,
-      });
-    },
-    [
-      compartmentData,
-      hiddenPlaces,
-      frameTimes,
-      getFrameFromEvent,
-      onTooltipChange,
-    ],
-  );
+    onTooltipChange({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      placeName: placeData.placeName,
+      color: placeData.color,
+      value,
+      frameIndex,
+      time,
+    });
+  };
 
   /**
    * Extract placeId from an event target using event delegation.
    * Walks up the DOM to find the nearest element with data-place-id.
    */
-  const getPlaceIdFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>): string | null => {
-      const target = event.target as SVGElement;
-      const placeGroup = target.closest("[data-place-id]");
-      return placeGroup?.getAttribute("data-place-id") ?? null;
-    },
-    [],
-  );
+  const getPlaceIdFromEvent = (
+    event: React.MouseEvent<SVGSVGElement>,
+  ): string | null => {
+    const target = event.target as SVGElement;
+    const placeGroup = target.closest("[data-place-id]");
+    return placeGroup?.getAttribute("data-place-id") ?? null;
+  };
 
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      isDraggingRef.current = true;
-      handleScrub(event);
-    },
-    [handleScrub],
-  );
+  const handleMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
+    isDraggingRef.current = true;
+    handleScrub(event);
+  };
 
   /**
    * Event delegation handler for mouse movement.
    * Detects which place is being hovered by walking up the DOM tree.
    */
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (isDraggingRef.current) {
-        handleScrub(event);
-      }
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (isDraggingRef.current) {
+      handleScrub(event);
+    }
 
-      // Event delegation: extract placeId from the event target
-      const placeId = getPlaceIdFromEvent(event);
+    // Event delegation: extract placeId from the event target
+    const placeId = getPlaceIdFromEvent(event);
 
-      // Only update state if hover target changed
-      if (placeId !== localHoveredPlaceId) {
-        setLocalHoveredPlaceId(placeId);
-        onPlaceHover(placeId);
-      }
+    // Only update state if hover target changed
+    if (placeId !== localHoveredPlaceId) {
+      setLocalHoveredPlaceId(placeId);
+      onPlaceHover(placeId);
+    }
 
-      // Update tooltip with current hover state
-      updateTooltip(event, placeId ?? hoveredPlaceId);
-    },
-    [
-      handleScrub,
-      getPlaceIdFromEvent,
-      localHoveredPlaceId,
-      onPlaceHover,
-      updateTooltip,
-      hoveredPlaceId,
-    ],
-  );
+    // Update tooltip with current hover state
+    updateTooltip(event, placeId ?? hoveredPlaceId);
+  };
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     isDraggingRef.current = false;
-  }, []);
+  };
 
-  const handleMouseLeave = useCallback(() => {
+  const handleMouseLeave = () => {
     isDraggingRef.current = false;
     setLocalHoveredPlaceId(null);
     onPlaceHover(null);
     onTooltipChange(null);
-  }, [onPlaceHover, onTooltipChange]);
+  };
 
   // Generate SVG path for a data series
-  const generatePath = useCallback(
-    (values: number[], width: number, height: number) => {
-      if (!chartMetrics || values.length === 0) {
-        return "";
-      }
+  const generatePath = (values: number[], width: number, height: number) => {
+    if (!chartMetrics || values.length === 0) {
+      return "";
+    }
 
-      const points = values.map((value, index) => {
-        const x = chartMetrics.xScale(index, width);
-        const y = chartMetrics.yScale(value, height);
-        return `${x},${y}`;
-      });
+    const points = values.map((value, index) => {
+      const x = chartMetrics.xScale(index, width);
+      const y = chartMetrics.yScale(value, height);
+      return `${x},${y}`;
+    });
 
-      return `M ${points.join(" L ")}`;
-    },
-    [chartMetrics],
-  );
+    return `M ${points.join(" L ")}`;
+  };
 
   if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
     return null;
@@ -964,7 +931,6 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
   const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
@@ -982,18 +948,26 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   const activeHoveredPlaceId = localHoveredPlaceId ?? hoveredPlaceId;
 
   // Filter visible compartment data
-  const visibleCompartmentData = useMemo(() => {
-    return compartmentData.filter((data) => !hiddenPlaces.has(data.placeId));
-  }, [compartmentData, hiddenPlaces]);
+  const visibleCompartmentData = compartmentData.filter(
+    (data) => !hiddenPlaces.has(data.placeId),
+  );
 
   // Calculate stacked values and chart metrics
-  const { stackedData, chartMetrics } = useMemo(() => {
+  const { stackedData, chartMetrics } = (() => {
     if (visibleCompartmentData.length === 0 || totalFrames === 0) {
-      return { stackedData: [], chartMetrics: null };
+      return {
+        stackedData: [] as Array<{
+          placeId: string;
+          placeName: string;
+          color: string;
+          baseValues: number[];
+          topValues: number[];
+        }>,
+        chartMetrics: null,
+      };
     }
 
     // Calculate stacked values: for each frame, accumulate the values
-    // stackedData[i] contains { placeId, color, baseValues[], topValues[] }
     const stacked: Array<{
       placeId: string;
       placeName: string;
@@ -1032,182 +1006,153 @@ const StackedAreaChart: React.FC<ChartProps> = ({
           height - (value / yAxisScale.yMax) * height,
       },
     };
-  }, [visibleCompartmentData, totalFrames, yAxisScale.yMax]);
+  })();
 
   // Calculate frame index from mouse position
-  const getFrameFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!chartRef.current || !chartMetrics) {
-        return null;
-      }
+  const getFrameFromEvent = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!chartRef.current || !chartMetrics) {
+      return null;
+    }
 
-      const rect = chartRef.current.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const width = rect.width;
+    const rect = chartRef.current.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
 
-      const progress = Math.max(0, Math.min(1, x / width));
-      return Math.round(progress * (chartMetrics.totalFrames - 1));
-    },
-    [chartMetrics],
-  );
+    const progress = Math.max(0, Math.min(1, x / width));
+    return Math.round(progress * (chartMetrics.totalFrames - 1));
+  };
 
   // Handle mouse interaction for scrubbing
-  const handleScrub = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex !== null) {
-        setCurrentViewedFrame(frameIndex);
-      }
-    },
-    [getFrameFromEvent, setCurrentViewedFrame],
-  );
+  const handleScrub = (event: React.MouseEvent<SVGSVGElement>) => {
+    const frameIndex = getFrameFromEvent(event);
+    if (frameIndex !== null) {
+      setCurrentViewedFrame(frameIndex);
+    }
+  };
 
   // Update tooltip based on mouse position and hovered place
-  const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
-      if (!hoveredId || frameTimes.length === 0) {
-        onTooltipChange(null);
-        return;
-      }
+  const updateTooltip = (
+    event: React.MouseEvent<SVGSVGElement>,
+    hoveredId: string | null,
+  ) => {
+    if (!hoveredId || frameTimes.length === 0) {
+      onTooltipChange(null);
+      return;
+    }
 
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex === null) {
-        onTooltipChange(null);
-        return;
-      }
+    const frameIndex = getFrameFromEvent(event);
+    if (frameIndex === null) {
+      onTooltipChange(null);
+      return;
+    }
 
-      // For stacked chart, get the original (non-stacked) value
-      const placeData = compartmentData.find(
-        (data) => data.placeId === hoveredId,
-      );
-      if (!placeData || hiddenPlaces.has(hoveredId)) {
-        onTooltipChange(null);
-        return;
-      }
+    // For stacked chart, get the original (non-stacked) value
+    const placeData = compartmentData.find(
+      (data) => data.placeId === hoveredId,
+    );
+    if (!placeData || hiddenPlaces.has(hoveredId)) {
+      onTooltipChange(null);
+      return;
+    }
 
-      const value = placeData.values[frameIndex] ?? 0;
-      const time = frameTimes[frameIndex] ?? 0;
+    const value = placeData.values[frameIndex] ?? 0;
+    const time = frameTimes[frameIndex] ?? 0;
 
-      onTooltipChange({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        placeName: placeData.placeName,
-        color: placeData.color,
-        value,
-        frameIndex,
-        time,
-      });
-    },
-    [
-      compartmentData,
-      hiddenPlaces,
-      frameTimes,
-      getFrameFromEvent,
-      onTooltipChange,
-    ],
-  );
+    onTooltipChange({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      placeName: placeData.placeName,
+      color: placeData.color,
+      value,
+      frameIndex,
+      time,
+    });
+  };
 
   /**
    * Extract placeId from an event target using event delegation.
    * For stacked chart, paths have data-place-id directly on them.
    */
-  const getPlaceIdFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>): string | null => {
-      const target = event.target as SVGElement;
-      // First check if the target itself has data-place-id (for path elements)
-      if (target.hasAttribute("data-place-id")) {
-        return target.getAttribute("data-place-id");
-      }
-      // Fall back to walking up the DOM
-      const placeElement = target.closest("[data-place-id]");
-      return placeElement?.getAttribute("data-place-id") ?? null;
-    },
-    [],
-  );
+  const getPlaceIdFromEvent = (
+    event: React.MouseEvent<SVGSVGElement>,
+  ): string | null => {
+    const target = event.target as SVGElement;
+    // First check if the target itself has data-place-id (for path elements)
+    if (target.hasAttribute("data-place-id")) {
+      return target.getAttribute("data-place-id");
+    }
+    // Fall back to walking up the DOM
+    const placeElement = target.closest("[data-place-id]");
+    return placeElement?.getAttribute("data-place-id") ?? null;
+  };
 
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      isDraggingRef.current = true;
-      handleScrub(event);
-    },
-    [handleScrub],
-  );
+  const handleMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
+    isDraggingRef.current = true;
+    handleScrub(event);
+  };
 
   /**
    * Event delegation handler for mouse movement.
    * Detects which place is being hovered by checking data-place-id attributes.
    */
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (isDraggingRef.current) {
-        handleScrub(event);
-      }
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (isDraggingRef.current) {
+      handleScrub(event);
+    }
 
-      // Event delegation: extract placeId from the event target
-      const placeId = getPlaceIdFromEvent(event);
+    // Event delegation: extract placeId from the event target
+    const placeId = getPlaceIdFromEvent(event);
 
-      // Only update state if hover target changed
-      if (placeId !== localHoveredPlaceId) {
-        setLocalHoveredPlaceId(placeId);
-        onPlaceHover(placeId);
-      }
+    // Only update state if hover target changed
+    if (placeId !== localHoveredPlaceId) {
+      setLocalHoveredPlaceId(placeId);
+      onPlaceHover(placeId);
+    }
 
-      // Update tooltip with current hover state
-      updateTooltip(event, placeId ?? hoveredPlaceId);
-    },
-    [
-      handleScrub,
-      getPlaceIdFromEvent,
-      localHoveredPlaceId,
-      onPlaceHover,
-      updateTooltip,
-      hoveredPlaceId,
-    ],
-  );
+    // Update tooltip with current hover state
+    updateTooltip(event, placeId ?? hoveredPlaceId);
+  };
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     isDraggingRef.current = false;
-  }, []);
+  };
 
-  const handleMouseLeave = useCallback(() => {
+  const handleMouseLeave = () => {
     isDraggingRef.current = false;
     setLocalHoveredPlaceId(null);
     onPlaceHover(null);
     onTooltipChange(null);
-  }, [onPlaceHover, onTooltipChange]);
+  };
 
   // Generate SVG path for a stacked area
-  const generateAreaPath = useCallback(
-    (
-      baseValues: number[],
-      topValues: number[],
-      width: number,
-      height: number,
-    ) => {
-      if (!chartMetrics || topValues.length === 0) {
-        return "";
-      }
+  const generateAreaPath = (
+    baseValues: number[],
+    topValues: number[],
+    width: number,
+    height: number,
+  ) => {
+    if (!chartMetrics || topValues.length === 0) {
+      return "";
+    }
 
-      // Build the path: top line forward, then bottom line backward
-      const topPoints = topValues.map((value, index) => {
+    // Build the path: top line forward, then bottom line backward
+    const topPoints = topValues.map((value, index) => {
+      const x = chartMetrics.xScale(index, width);
+      const y = chartMetrics.yScale(value, height);
+      return `${x},${y}`;
+    });
+
+    const basePoints = baseValues
+      .map((value, index) => {
         const x = chartMetrics.xScale(index, width);
         const y = chartMetrics.yScale(value, height);
         return `${x},${y}`;
-      });
+      })
+      .reverse();
 
-      const basePoints = baseValues
-        .map((value, index) => {
-          const x = chartMetrics.xScale(index, width);
-          const y = chartMetrics.yScale(value, height);
-          return `${x},${y}`;
-        })
-        .reverse();
-
-      return `M ${topPoints.join(" L ")} L ${basePoints.join(" L ")} Z`;
-    },
-    [chartMetrics],
-  );
+    return `M ${topPoints.join(" L ")} L ${basePoints.join(" L ")} Z`;
+  };
 
   if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
     return null;
