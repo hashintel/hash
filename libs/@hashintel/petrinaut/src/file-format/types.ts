@@ -65,12 +65,30 @@ const parameterSchema = z.object({
   defaultValue: z.string(),
 });
 
+const scenarioParameterSchema = z.object({
+  type: z.enum(["real", "integer", "boolean"]),
+  identifier: z.string(),
+  min: z.number(),
+  max: z.number(),
+  default: z.number(),
+});
+
+const scenarioSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  scenarioParameters: z.array(scenarioParameterSchema).default([]),
+  parameterOverrides: z.record(z.string(), z.string()).default({}),
+  initialState: z.record(z.string(), z.string()).default({}),
+});
+
 const sdcpnSchema = z.object({
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
+  scenarios: z.array(scenarioSchema).default([]),
 });
 
 const fileMetaSchema = z.object({

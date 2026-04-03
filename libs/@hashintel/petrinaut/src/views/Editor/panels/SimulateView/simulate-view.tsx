@@ -1,13 +1,21 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { use, useState } from "react";
 import { LuLayers2 } from "react-icons/lu";
 import { PiFlaskBold } from "react-icons/pi";
+import { TbPlus } from "react-icons/tb";
 
+import { Button } from "../../../../components/button";
+import { Drawer } from "../../../../components/drawer";
 import type { SegmentOption } from "../../../../components/segment-group";
+import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { Stack } from "../../../../components/stack";
+import type { Scenario } from "../../../../core/types/sdcpn";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 
-type SimulateMode = "experiments" | "results";
+type SimulateMode = "scenarios" | "experiments";
+
+// -- Layout styles -------------------------------------------------------------
 
 const containerStyle = css({
   display: "flex",
@@ -59,33 +67,186 @@ const headerTitleStyle = css({
 const contentStyle = css({
   flex: "1",
   display: "flex",
+  flexDirection: "column",
+  minHeight: "[0]",
+  overflowY: "auto",
+});
+
+// -- Scenario list styles ------------------------------------------------------
+
+const tableStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  width: "full",
+});
+
+const tableHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  paddingX: "[20px]",
+  paddingY: "[8px]",
+  borderBottomWidth: "[1px]",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.a10",
+  flexShrink: 0,
+});
+
+const tableHeaderCellStyle = css({
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s80",
+  textTransform: "uppercase",
+  letterSpacing: "[0.05em]",
+});
+
+const nameColumnStyle = css({
+  width: "[200px]",
+  flexShrink: 0,
+});
+
+const descriptionColumnStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+});
+
+const tableRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  paddingX: "[20px]",
+  paddingY: "[12px]",
+  borderBottomWidth: "[1px]",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.a10",
+  cursor: "pointer",
+  transition: "[background-color 0.1s ease]",
+  background: "[none]",
+  border: "[none]",
+  width: "full",
+  textAlign: "left",
+  _hover: {
+    backgroundColor: "neutral.bg.subtle.hover",
+  },
+});
+
+const selectedRowStyle = css({
+  backgroundColor: "neutral.bg.subtle.hover",
+});
+
+const scenarioNameStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const scenarioDescriptionStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const emptyStateStyle = css({
+  flex: "1",
+  display: "flex",
   alignItems: "center",
   justifyContent: "center",
   color: "neutral.s80",
   fontSize: "sm",
 });
 
+// -- Mode options --------------------------------------------------------------
+
 const modeOptions: SegmentOption[] = [
+  {
+    value: "scenarios",
+    label: "Scenarios",
+    icon: <LuLayers2 size={16} />,
+    hideLabel: true,
+    tooltip: "Scenarios",
+  },
   {
     value: "experiments",
     label: "Experiments",
-    icon: <LuLayers2 size={16} />,
+    icon: <PiFlaskBold size={16} />,
     hideLabel: true,
     tooltip: "Experiments",
   },
-  {
-    value: "results",
-    label: "Results",
-    icon: <PiFlaskBold size={16} />,
-    hideLabel: true,
-    tooltip: "Results",
-  },
 ];
 
-export const SimulateView = () => {
-  const [mode, setMode] = useState<SimulateMode>("experiments");
+// -- Scenario list component ---------------------------------------------------
 
-  const title = mode === "experiments" ? "Experiments" : "Results";
+const ScenarioList = ({
+  scenarios,
+  selectedId,
+  onSelect,
+}: {
+  scenarios: Scenario[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) => {
+  if (scenarios.length === 0) {
+    return <div className={emptyStateStyle}>No scenarios yet</div>;
+  }
+
+  return (
+    <div className={tableStyle} role="table">
+      <div className={tableHeaderStyle} role="row">
+        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
+          Name
+        </span>
+        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
+          Description
+        </span>
+      </div>
+
+      {scenarios.map((scenario) => (
+        <button
+          key={scenario.id}
+          type="button"
+          className={`${tableRowStyle}${scenario.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
+          onClick={() => onSelect(scenario.id)}
+        >
+          <div className={nameColumnStyle}>
+            <span className={scenarioNameStyle}>{scenario.name}</span>
+          </div>
+          <div className={descriptionColumnStyle}>
+            <span className={scenarioDescriptionStyle}>
+              {scenario.description ?? ""}
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// -- Component -----------------------------------------------------------------
+
+type DrawerState =
+  | { type: "closed" }
+  | { type: "view"; scenarioId: string }
+  | { type: "create" };
+
+export const SimulateView = () => {
+  const [mode, setMode] = useState<SimulateMode>("scenarios");
+  const [drawer, setDrawer] = useState<DrawerState>({ type: "closed" });
+
+  const { petriNetDefinition } = use(SDCPNContext);
+  const scenarios = petriNetDefinition.scenarios ?? [];
+
+  const selectedScenario =
+    drawer.type === "view"
+      ? scenarios.find((s) => s.id === drawer.scenarioId)
+      : undefined;
+
+  const closeDrawer = () => setDrawer({ type: "closed" });
+
+  const title = mode === "scenarios" ? "Scenarios" : "Experiments";
 
   return (
     <div className={containerStyle}>
@@ -102,12 +263,47 @@ export const SimulateView = () => {
       <Stack className={mainContainerStyle}>
         <div className={headerStyle}>
           <span className={headerTitleStyle}>{title}</span>
+          {mode === "scenarios" && (
+            <Button
+              variant="ghost"
+              colorScheme="neutral"
+              size="xs"
+              iconLeft={<TbPlus size={14} />}
+              onClick={() => setDrawer({ type: "create" })}
+            >
+              Create scenario
+            </Button>
+          )}
         </div>
-        <div className={contentStyle}>
-          {mode === "experiments"
-            ? "Experiments view coming soon"
-            : "Results view coming soon"}
-        </div>
+
+        {mode === "scenarios" ? (
+          <>
+            <div className={contentStyle}>
+              <ScenarioList
+                scenarios={scenarios}
+                selectedId={drawer.type === "view" ? drawer.scenarioId : null}
+                onSelect={(id) => setDrawer({ type: "view", scenarioId: id })}
+              />
+            </div>
+
+            <CreateScenarioDrawer
+              open={drawer.type === "create"}
+              onClose={closeDrawer}
+            />
+
+            <Drawer.Root open={!!selectedScenario} onClose={closeDrawer}>
+              <Drawer.Card onClose={closeDrawer}>
+                <Drawer.Header>{selectedScenario?.name ?? ""}</Drawer.Header>
+                <Drawer.Body>
+                  {/* Scenario detail content will go here */}
+                  <div />
+                </Drawer.Body>
+              </Drawer.Card>
+            </Drawer.Root>
+          </>
+        ) : (
+          <div className={emptyStateStyle}>Experiments view coming soon</div>
+        )}
       </Stack>
     </div>
   );

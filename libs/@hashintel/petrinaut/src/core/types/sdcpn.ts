@@ -63,12 +63,50 @@ export type DifferentialEquation = {
   code: string;
 };
 
+/**
+ * A parameter scoped to a specific scenario (distinct from net-level Parameters).
+ */
+export type ScenarioParameter = {
+  type: "real" | "integer" | "boolean";
+  identifier: string;
+  min: number;
+  max: number;
+  default: number;
+};
+
+/**
+ * A scenario defines a reusable configuration for simulating an SDCPN.
+ *
+ * It can introduce its own parameters, override values of existing net-level
+ * parameters, and specify the initial token state for each place.
+ */
+export type Scenario = {
+  id: ID;
+  name: string;
+  description?: string;
+  /** Parameters that only exist within this scenario. */
+  scenarioParameters: ScenarioParameter[];
+  /**
+   * Overrides for existing net-level parameters.
+   * Keys are parameter IDs from the SDCPN; values are concrete values or
+   * expressions (expression support will be added later).
+   */
+  parameterOverrides: Record<ID, string>;
+  /**
+   * Initial token state per place.
+   * Keys are place IDs; values are concrete values or code that may reference
+   * scenario/net parameters to generate an array of tokens.
+   */
+  initialState: Record<ID, string>;
+};
+
 export type SDCPN = {
   places: Place[];
   transitions: Transition[];
   types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
+  scenarios?: Scenario[];
 };
 
 export type MinimalNetMetadata = {
