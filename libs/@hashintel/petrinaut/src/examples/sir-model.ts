@@ -106,5 +106,39 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         defaultValue: "1",
       },
     ],
+    scenarios: [
+      {
+        id: "scenario__seasonal_flu",
+        name: "Seasonal Flu",
+        description:
+          "Moderate outbreak with R₀ ≈ 1.5. Models a typical seasonal influenza wave in a small community.",
+        scenarioParameters: [],
+        parameterOverrides: {
+          param__infection_rate: "1.5",
+          param__recovery_rate: "0.8",
+        },
+        initialState: {
+          place__susceptible: "990",
+          place__infected: "10",
+          place__recovered: "0",
+        },
+      },
+      {
+        id: "scenario__high_virulence",
+        name: "High Virulence Outbreak",
+        description:
+          "Aggressive pathogen with R₀ ≈ 6 and slow recovery, modelling rapid spread before interventions.",
+        scenarioParameters: [],
+        parameterOverrides: {
+          param__infection_rate: "6",
+          param__recovery_rate: "0.5",
+        },
+        initialState: {
+          place__susceptible: "9999",
+          place__infected: "1",
+          place__recovered: "0",
+        },
+      },
+    ],
   },
 };

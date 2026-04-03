@@ -5,13 +5,13 @@ import { PiFlaskBold } from "react-icons/pi";
 import { TbPlus } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
-import { Drawer } from "../../../../components/drawer";
 import type { SegmentOption } from "../../../../components/segment-group";
-import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { Stack } from "../../../../components/stack";
 import type { Scenario } from "../../../../core/types/sdcpn";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { CreateScenarioDrawer } from "./create-scenario-drawer";
+import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
 type SimulateMode = "scenarios" | "experiments";
 
@@ -291,15 +291,11 @@ export const SimulateView = () => {
               onClose={closeDrawer}
             />
 
-            <Drawer.Root open={!!selectedScenario} onClose={closeDrawer}>
-              <Drawer.Card onClose={closeDrawer}>
-                <Drawer.Header>{selectedScenario?.name ?? ""}</Drawer.Header>
-                <Drawer.Body>
-                  {/* Scenario detail content will go here */}
-                  <div />
-                </Drawer.Body>
-              </Drawer.Card>
-            </Drawer.Root>
+            <ViewScenarioDrawer
+              open={!!selectedScenario}
+              onClose={closeDrawer}
+              scenario={selectedScenario}
+            />
           </>
         ) : (
           <div className={emptyStateStyle}>Experiments view coming soon</div>

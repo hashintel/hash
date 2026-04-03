@@ -1,80 +1,46 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useMemo, useState } from "react";
 
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
-import type { Color } from "../../../../core/types/sdcpn";
+import type { Color, Scenario } from "../../../../core/types/sdcpn";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import type { ScenarioParameterDraft } from "./scenario-form";
 import { ScenarioFormSections } from "./scenario-form";
 
-// -- Step indicator styles -----------------------------------------------------
-
-const stepIndicatorStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[0]",
-  paddingY: "[12px]",
-});
-
-const stepCircleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  borderRadius: "full",
-  fontSize: "xs",
-  fontWeight: "semibold",
-  flexShrink: 0,
-});
-
-const activeStepStyle = css({
-  backgroundColor: "neutral.s120",
-  color: "neutral.s00",
-});
-
-const inactiveStepStyle = css({
-  backgroundColor: "[transparent]",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.a20",
-  color: "neutral.s80",
-});
-
-const stepConnectorStyle = css({
-  width: "[24px]",
-  height: "[0]",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "dashed",
-  borderTopColor: "neutral.a30",
-  marginX: "[4px]",
-});
-
 // -- Component ----------------------------------------------------------------
 
-interface CreateScenarioDrawerProps {
+interface ViewScenarioDrawerProps {
   open: boolean;
   onClose: () => void;
+  scenario: Scenario | undefined;
 }
 
-export const CreateScenarioDrawer = ({
+let nextKey = 0;
+
+export const ViewScenarioDrawer = ({
   open,
   onClose,
-}: CreateScenarioDrawerProps) => {
+  scenario,
+}: ViewScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  // Initialize form state from scenario data
+  const [name, setName] = useState(scenario?.name ?? "");
+  const [description, setDescription] = useState(scenario?.description ?? "");
   const [scenarioParams, setScenarioParams] = useState<
     ScenarioParameterDraft[]
-  >([]);
+  >(() =>
+    (scenario?.scenarioParameters ?? []).map((p) => ({
+      ...p,
+      _key: nextKey++,
+    })),
+  );
   const [parameterOverrides, setParameterOverrides] = useState<
     Record<string, string>
-  >({});
+  >(scenario?.parameterOverrides ?? {});
   const [initialTokenCounts, setInitialTokenCounts] = useState<
     Record<string, string>
-  >({});
+  >(scenario?.initialState ?? {});
   const [initialTokenData, setInitialTokenData] = useState<
     Record<string, number[][]>
   >({});
@@ -91,18 +57,8 @@ export const CreateScenarioDrawer = ({
   return (
     <Drawer.Root open={open} onClose={onClose}>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode">
-          Create a scenario
-        </Drawer.Header>
+        <Drawer.Header>{scenario?.name ?? ""}</Drawer.Header>
         <Drawer.Body>
-          <div className={stepIndicatorStyle}>
-            <div className={`${stepCircleStyle} ${activeStepStyle}`}>1</div>
-            <div className={stepConnectorStyle} />
-            <div className={`${stepCircleStyle} ${inactiveStepStyle}`}>2</div>
-            <div className={stepConnectorStyle} />
-            <div className={`${stepCircleStyle} ${inactiveStepStyle}`}>3</div>
-          </div>
-
           <ScenarioFormSections
             state={{
               name,
@@ -125,7 +81,7 @@ export const CreateScenarioDrawer = ({
             parameters={petriNetDefinition.parameters}
             places={petriNetDefinition.places}
             typesById={typesById}
-            idPrefix="create-"
+            idPrefix="view-"
           />
         </Drawer.Body>
       </Drawer.Card>
@@ -136,10 +92,10 @@ export const CreateScenarioDrawer = ({
           size="sm"
           onClick={onClose}
         >
-          Cancel
+          Close
         </Button>
         <Button variant="primary" colorScheme="neutral" size="sm">
-          Next
+          Save
         </Button>
       </Drawer.Footer>
     </Drawer.Root>
