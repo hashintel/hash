@@ -185,12 +185,13 @@ fn traverse<'heap, A: Allocator + Clone>(
 ///
 /// A block parameter may receive values from multiple predecessor blocks, either as
 /// graph edges (when arguments are places) or constant bindings (when arguments are
-/// constants). This function checks whether all predecessors, from both sources,
-/// resolve to the same value.
+/// constants). This function checks whether all non-cyclic predecessors, from both
+/// sources, resolve to the same value.
 ///
-/// Handles cycle detection: if we encounter a local already in the `visited` set,
-/// we return [`Backtrack`] to unwind. The cycle root (where `visited` was first
-/// initialized) catches the backtrack and returns [`Incomplete`].
+/// Cyclic predecessors ([`Backtrack`]) are filtered out before consensus checking.
+/// Since [`Param`] edges are identity transfers, the value is fully determined by
+/// the non-cyclic init edges. If only cyclic predecessors exist (no external source),
+/// the cycle root returns [`Incomplete`] and non-root nodes propagate [`Backtrack`].
 ///
 /// [`Param`]: EdgeKind::Param
 /// [`Backtrack`]: ResolutionResult::Backtrack
@@ -234,7 +235,10 @@ fn resolve_params<'heap, A: Allocator + Clone>(
         visited: visited_ref,
     };
 
-    // Graph Param edges (when a local has Param edges, all its outgoing edges are Param).
+    // Resolve all predecessor candidates and check consensus.
+    // Cyclic predecessors (Backtrack) are skipped: since Param edges are identity transfers,
+    // the value is fully determined by the non-cyclic init edges. If only cyclic predecessors
+    // exist, we cannot resolve (the value has no external source).
     let graph_edges = graph
         .outgoing_edges(place.local)
         .map(|edge| traverse(rec_state.cloned(), place, edge));
@@ -249,22 +253,22 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     //   `Some(Some(v))` when all predecessors agree on `v`
     //   `Some(None)` when the iterator is empty (unreachable: caller guarantees predecessors)
     //   `None` when the closure short-circuits (predecessors disagree)
-    let consensus = match graph_edges
+    let mut backtrack_occurred = false;
+    let consensus = graph_edges
         .chain(constant_edges)
-        .try_reduce(|lhs, rhs| (lhs == rhs).then_some(lhs))
-    {
-        Some(None) => unreachable!("caller must guarantee at least one Param predecessor exists"),
-        Some(consensus) => consensus,
-        None => None,
-    };
+        .filter(|candidate| {
+            if matches!(candidate, ControlFlow::Break(ResolutionResult::Backtrack)) {
+                backtrack_occurred = true;
+                return false;
+            }
 
-    if let Some(consensus) = consensus {
-        // If we initiated backtracking (owned_visited is Some) and got Backtrack,
-        // we are the cycle root and should treat this as incomplete.
-        let is_cycle_root =
-            consensus == ControlFlow::Break(ResolutionResult::Backtrack) && owned_visited.is_some();
+            true
+        })
+        .try_reduce(|lhs, rhs| (lhs == rhs).then_some(lhs));
 
-        if !is_cycle_root {
+    match consensus {
+        // Predecessors agree on a value.
+        Some(Some(consensus)) => {
             // Clean up visited state before returning.
             if let Some(visited) = state.visited {
                 visited.remove(place.local);
@@ -272,6 +276,21 @@ fn resolve_params<'heap, A: Allocator + Clone>(
 
             return consensus;
         }
+
+        // All candidates were cyclic (no non-cyclic predecessors to determine the value).
+        // If we're not the cycle root, propagate Backtrack so the root can handle it.
+        Some(None) if backtrack_occurred && owned_visited.is_none() => {
+            if let Some(visited) = &mut state.visited {
+                visited.remove(place.local);
+            }
+
+            return ControlFlow::Break(ResolutionResult::Backtrack);
+        }
+        // Pure cycle at root: fall through to Incomplete.
+        Some(None) if backtrack_occurred => {}
+        Some(None) => unreachable!("caller must guarantee at least one Param predecessor exists"),
+        // Predecessors disagree.
+        None => {}
     }
 
     // Clean up visited state before returning incomplete.
@@ -279,7 +298,7 @@ fn resolve_params<'heap, A: Allocator + Clone>(
         visited.remove(place.local);
     }
 
-    // Predecessors diverge or a cycle was detected; cannot resolve through this param.
+    // Non-cyclic predecessors diverge, or pure cycle at root.
     let mut projections = VecDeque::new_in(state.alloc.clone());
     projections.extend(place.projections);
 
