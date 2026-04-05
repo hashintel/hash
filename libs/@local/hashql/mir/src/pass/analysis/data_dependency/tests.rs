@@ -544,3 +544,46 @@ fn projection_prepending_opaque_source() {
         },
     );
 }
+
+/// Tests mixed Param resolution through nested tuple wrapping where predecessors provide
+/// a mix of constants and projections that all resolve to the same value.
+#[test]
+fn load_param_mixed() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl _1: (Int), _3: Int, _4: (Int), _5: Int;
+        @proj _1_0 = _1.0: Int, _4_0 = _4.0: Int;
+
+        bb0() {
+            goto bb2(42);
+        },
+        bb1() {
+            _1 = tuple 42;
+            goto bb2(_1_0);
+        },
+        bb2(_3) {
+            _4 = tuple _3;
+            goto bb4(_4_0);
+        },
+        bb3() {
+            goto bb4(42);
+        },
+        bb4(_5) {
+            return _5;
+        }
+    });
+
+    assert_data_dependency(
+        "load_param_mixed",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}

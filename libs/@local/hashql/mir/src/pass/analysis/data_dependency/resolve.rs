@@ -181,11 +181,12 @@ fn traverse<'heap, A: Allocator + Clone>(
     }
 }
 
-/// Attempts to resolve a block parameter by checking all predecessor edges.
+/// Attempts to resolve a block parameter by checking all predecessor values.
 ///
-/// A block parameter may receive values from multiple predecessor blocks. This function
-/// traverses all [`Param`] edges and checks whether they resolve to the same source.
-/// If all predecessors agree, resolution continues through that common source.
+/// A block parameter may receive values from multiple predecessor blocks, either as
+/// graph edges (when arguments are places) or constant bindings (when arguments are
+/// constants). This function checks whether all predecessors, from both sources,
+/// resolve to the same value.
 ///
 /// Handles cycle detection: if we encounter a local already in the `visited` set,
 /// we return [`Backtrack`] to unwind. The cycle root (where `visited` was first
@@ -198,45 +199,70 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     mut state: ResolutionState<'_, '_, 'heap, A>,
     place: PlaceRef<'_, 'heap>,
 ) -> ControlFlow<ResolutionResult<'heap, A>, Local> {
-    let mut edges = state.graph.outgoing_edges(place.local);
-    let Some(head) = edges.next() else {
-        unreachable!("caller must guarantee that at least one Param edge exists")
-    };
+    let graph = state.graph;
+
+    // Check whether graph Param edges exist (cycle detection is only relevant for graph edges,
+    // which are the only source of back-edges).
+    let has_graph_edges = graph.outgoing_edges(place.local).next().is_some();
 
     // Cycle detection: if we've already visited this local, backtrack.
-    if let Some(visited) = &mut state.visited
+    if has_graph_edges
+        && let Some(visited) = &mut state.visited
         && !visited.insert(place.local)
     {
         return ControlFlow::Break(ResolutionResult::Backtrack);
     }
 
-    // Initialize cycle tracking if this is the first Param traversal.
+    // Initialize cycle tracking if this is the first Param traversal with graph edges.
     let mut owned_visited = None;
-    let visited_ref = state.visited.as_deref_mut().or_else(|| {
-        let mut set = DenseBitSet::new_empty(state.graph.graph.node_count());
-        set.insert(place.local);
+    let visited_ref = if has_graph_edges {
+        state.visited.as_deref_mut().or_else(|| {
+            let mut set = DenseBitSet::new_empty(graph.graph.node_count());
+            set.insert(place.local);
 
-        owned_visited = Some(set);
-        owned_visited.as_mut()
-    });
+            owned_visited = Some(set);
+            owned_visited.as_mut()
+        })
+    } else {
+        state.visited.as_deref_mut()
+    };
 
     let mut rec_state = ResolutionState {
-        graph: state.graph,
+        graph,
         interner: state.interner,
         alloc: state.alloc.clone(),
         visited: visited_ref,
     };
 
-    let first = traverse(rec_state.cloned(), place, head);
+    // Graph Param edges (when a local has Param edges, all its outgoing edges are Param).
+    let graph_edges = graph
+        .outgoing_edges(place.local)
+        .map(|edge| traverse(rec_state.cloned(), place, edge));
+    let constant_edges = graph
+        .constant_bindings
+        .iter_by_kind(place.local, EdgeKind::Param)
+        .map(|constant| {
+            ControlFlow::Break(ResolutionResult::Resolved(Operand::Constant(constant)))
+        });
 
-    // Check consensus: all predecessors must resolve to the same result.
-    let all_agree = edges.all(|edge| traverse(rec_state.cloned(), place, edge) == first);
+    // `try_reduce` returns:
+    //   `Some(Some(v))` when all predecessors agree on `v`
+    //   `Some(None)` when the iterator is empty (unreachable: caller guarantees predecessors)
+    //   `None` when the closure short-circuits (predecessors disagree)
+    let consensus = match graph_edges
+        .chain(constant_edges)
+        .try_reduce(|lhs, rhs| (lhs == rhs).then_some(lhs))
+    {
+        Some(None) => unreachable!("caller must guarantee at least one Param predecessor exists"),
+        Some(consensus) => consensus,
+        None => None,
+    };
 
-    if all_agree {
+    if let Some(consensus) = consensus {
         // If we initiated backtracking (owned_visited is Some) and got Backtrack,
         // we are the cycle root and should treat this as incomplete.
         let is_cycle_root =
-            first == ControlFlow::Break(ResolutionResult::Backtrack) && owned_visited.is_some();
+            consensus == ControlFlow::Break(ResolutionResult::Backtrack) && owned_visited.is_some();
 
         if !is_cycle_root {
             // Clean up visited state before returning.
@@ -244,7 +270,7 @@ fn resolve_params<'heap, A: Allocator + Clone>(
                 visited.remove(place.local);
             }
 
-            return first;
+            return consensus;
         }
     }
 
@@ -261,46 +287,6 @@ fn resolve_params<'heap, A: Allocator + Clone>(
         local: place.local,
         projections,
     }))
-}
-
-/// Attempts to resolve a block parameter by checking constant bindings from all predecessors.
-///
-/// This handles the case where a block parameter receives constant values from predecessor
-/// blocks, but has no graph edges (only constant bindings with [`Param`] kind). The function
-/// checks whether all predecessors provide the same constant value.
-///
-/// Unlike [`resolve_params`], this function does not need cycle detection because it only
-/// examines constant bindings, not graph edges that could form back-edges.
-///
-/// # Returns
-///
-/// - [`Resolved(Constant)`] if all predecessor constants agree on the same value
-/// - [`Resolved(Place)`] if predecessors diverge (the place remains valid but has no constant)
-///
-/// [`Param`]: EdgeKind::Param
-/// [`Resolved(Constant)`]: ResolutionResult::Resolved
-/// [`Resolved(Place)`]: ResolutionResult::Resolved
-fn resolve_params_const<'heap, A: Allocator + Clone>(
-    state: &ResolutionState<'_, '_, 'heap, A>,
-    place: PlaceRef<'_, 'heap>,
-) -> ResolutionResult<'heap, A> {
-    debug_assert!(place.projections.is_empty());
-    let mut constants = state
-        .graph
-        .constant_bindings
-        .iter_by_kind(place.local, EdgeKind::Param);
-    let Some(head) = constants.next() else {
-        unreachable!("caller must guarantee that at least one Param edge exists")
-    };
-
-    let all_agree = constants.all(|constant| constant == head);
-    if all_agree {
-        ResolutionResult::Resolved(Operand::Constant(head))
-    } else {
-        // We have finished (we have terminated on a param, which is divergent, therefore the place
-        // is still valid, just doesn't have a constant value)
-        ResolutionResult::Resolved(Operand::Place(Place::local(place.local)))
-    }
 }
 
 /// Resolves a place to its ultimate data source by traversing the dependency graph.
@@ -332,13 +318,10 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     mut place: PlaceRef<'_, 'heap>,
 ) -> ResolutionResult<'heap, A> {
     // Scan outgoing edges to find Load and count Param edges.
-    let mut edges = 0_usize;
     let mut params = 0_usize;
     let mut load_edge = None;
 
     for edge in state.graph.outgoing_edges(place.local) {
-        edges += 1;
-
         match edge.data.kind {
             EdgeKind::Load => load_edge = Some(edge),
             EdgeKind::Param => params += 1,
@@ -355,26 +338,15 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     }
 
     // Attempt to resolve through Param edges, if all predecessors agree.
-    // There are fundamentally two cases:
-    // - Either all graph edges are Param edges, or
-    // - all constant bindings are Param edges
-    if edges == 0
-        && state
-            .graph
-            .constant_bindings
-            .find_by_kind(place.local, EdgeKind::Param)
-            .is_some()
-    {
-        return resolve_params_const(&state, place);
-    }
+    // Predecessors may arrive as graph edges (place arguments), constant bindings
+    // (constant arguments), or a mix of both. All sources are checked for consensus.
+    let has_param_constants = state
+        .graph
+        .constant_bindings
+        .find_by_kind(place.local, EdgeKind::Param)
+        .is_some();
 
-    if params > 0
-        && state
-            .graph
-            .constant_bindings
-            .find_by_kind(place.local, EdgeKind::Param)
-            .is_none()
-    {
+    if params > 0 || has_param_constants {
         place.local = tri!(resolve_params(state.cloned(), place));
     }
 
