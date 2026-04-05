@@ -300,6 +300,137 @@ fn param_cycle_detection() {
     );
 }
 
+/// Tests that a loop-carried parameter resolves through the non-cyclic init edge
+/// when the back-edge just passes the value through unchanged.
+///
+/// The init edge provides constant 42, the back-edge creates a cycle (x depends on x).
+/// Since cyclic predecessors are identity transfers, the non-cyclic init edge determines
+/// the value: x should resolve to 42.
+#[test]
+fn param_cycle_with_const_init() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Int;
+
+        bb0() {
+            cond = input.load! "cond";
+            goto bb1(42);
+        },
+        bb1(x) {
+            if cond then bb1(x) else bb2(x);
+        },
+        bb2(x) {
+            return x;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_with_const_init",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that a multi-node cycle with a constant init edge resolves correctly,
+/// even when the node with the init edge is not the cycle root.
+///
+/// The cycle is x -> y -> x (through bb1 -> bb2 -> bb1). The init edge provides
+/// constant 42 to x from bb0. During resolution of y, x is encountered as a non-root
+/// participant in the cycle. x must skip the cyclic Backtrack from y and use its
+/// non-cyclic constant init edge to resolve to 42, which then propagates through y
+/// and out to the consumer (result).
+#[test]
+fn param_cycle_multi_node_with_const_init() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int, cond: Int, result: Int;
+
+        bb0() {
+            cond = input.load! "cond";
+            goto bb1(42);
+        },
+        bb1(x) {
+            goto bb2(x);
+        },
+        bb2(y) {
+            if cond then bb1(y) else bb3(y);
+        },
+        bb3(result) {
+            return result;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_multi_node_with_const_init",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that the visited set is cleaned up when non-cyclic predecessors disagree
+/// inside another node's cycle resolution.
+///
+/// y has a self-loop (creating a cycle). When resolving y, the cycle root tracks
+/// visited locals. x is resolved inside y's resolution and has disagreeing predecessors
+/// (constant 42 from bb0, opaque `input` from bb1). x must remove itself from the
+/// visited set before returning Incomplete, otherwise later resolutions would see
+/// false cycle detections.
+#[test]
+fn param_cycle_visited_cleanup_on_diverge() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl input: Int, x: Int, y: Int, cond: Int;
+
+        bb0() {
+            input = input.load! "x";
+            cond = input.load! "cond";
+            goto bb3(42);
+        },
+        bb1() {
+            goto bb3(input);
+        },
+        bb3(x) {
+            goto bb4(x);
+        },
+        bb4(y) {
+            if cond then bb4(y) else bb5(y);
+        },
+        bb5(y) {
+            return y;
+        }
+    });
+
+    assert_data_dependency(
+        "param_cycle_visited_cleanup_on_diverge",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests constant propagation through edges.
 #[test]
 fn constant_propagation() {
