@@ -188,6 +188,20 @@ fn traverse<'heap, A: Allocator + Clone>(
 /// constants). This function checks whether all non-cyclic predecessors, from both
 /// sources, resolve to the same value.
 ///
+/// # Projection-aware consensus
+///
+/// When the queried place has a projection suffix (e.g., resolving `x.0` where `x` is a
+/// block parameter), consensus is checked on the *fully resolved* result per predecessor,
+/// not on the partially resolved predecessor bases. This is necessary because different
+/// predecessor locals can still agree on a projected field.
+///
+/// For example, if predecessor A passes `(42, u)` and predecessor B passes `(42, v)`,
+/// the bases disagree but `A.0 == B.0 == 42`. The algorithm resolves each predecessor
+/// through the full projection suffix before comparing, so this case correctly yields
+/// `Resolved(42)` rather than `Incomplete(x.0)`.
+///
+/// # Cycle handling
+///
 /// Cyclic predecessors ([`Backtrack`]) are filtered out before consensus checking.
 /// Since [`Param`] edges are identity transfers, the value is fully determined by
 /// the non-cyclic init edges. If only cyclic predecessors exist (no external source),
@@ -236,12 +250,35 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     };
 
     // Resolve all predecessor candidates and check consensus.
+    //
+    // When the queried place has projections (e.g., `x.field`), each predecessor is resolved
+    // through the full projection suffix before consensus comparison. If `traverse` returns
+    // `Continue(local)` (predecessor base resolved to a bare local), we call `resolve` on
+    // `local.projections` to complete the resolution. This ensures consensus is checked on
+    // the final value, not intermediate bases that may differ structurally but agree on the
+    // projected component.
+    //
     // Cyclic predecessors (Backtrack) are skipped: since Param edges are identity transfers,
     // the value is fully determined by the non-cyclic init edges. If only cyclic predecessors
     // exist, we cannot resolve (the value has no external source).
-    let graph_edges = graph
-        .outgoing_edges(place.local)
-        .map(|edge| traverse(rec_state.cloned(), place, edge));
+    let graph_edges = graph.outgoing_edges(place.local).map(|edge| {
+        let result = traverse(rec_state.cloned(), place, edge);
+
+        match result {
+            // Predecessor resolved to a bare local, but the query has remaining projections.
+            // Finish resolving through the projection suffix so consensus compares final values.
+            ControlFlow::Continue(local) if !place.projections.is_empty() => {
+                ControlFlow::Break(resolve(
+                    rec_state.cloned(),
+                    PlaceRef {
+                        local,
+                        projections: place.projections,
+                    },
+                ))
+            }
+            ControlFlow::Continue(_) | ControlFlow::Break(_) => result,
+        }
+    });
     let constant_edges = graph
         .constant_bindings
         .iter_by_kind(place.local, EdgeKind::Param)
@@ -314,7 +351,11 @@ fn resolve_params<'heap, A: Allocator + Clone>(
 /// the data ultimately originates. The algorithm handles three types of edges:
 ///
 /// - **[`Load`]**: Always followed transitively (a load has exactly one source)
-/// - **[`Param`]**: Followed only if all predecessors agree on the same source (consensus)
+/// - **[`Param`]**: Followed only if all predecessors agree on the same source (consensus).
+///   Consensus is checked on fully resolved results: when the queried place has projections, each
+///   predecessor is resolved through the complete projection suffix before comparison. This allows
+///   resolution through φ-nodes where predecessor bases differ but the projected component agrees
+///   (e.g., `(42, a)` and `(42, b)` agree on field `.0`).
 /// - **[`Index`]/[`Field`]**: Matched against projections to trace through aggregates
 ///
 /// Resolution terminates with:
