@@ -1,6 +1,7 @@
 import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { debounce } from "lodash-es";
 import type { Connection } from "@xyflow/react";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +44,35 @@ const REACTFLOW_EDGE_TYPES = {
   default: Arc,
 };
 
+const ZOOM_PADDING = 0.5;
+// This sets the min zoom (ie the max you can zoom out to) to be slightly larger than the total size of the current net.
+// We also avoid shrinking the zoom to be lower than the current zoom level to avoid changing the zoom without user input
+const fitZoomToNodes = debounce(
+  (
+    instance: PetrinautReactFlowInstance | null,
+    canvasContainer: React.RefObject<HTMLDivElement | null>,
+    setMinZoom: (minZoom: number) => void,
+  ) => {
+    const minMaxCoords = instance?.getNodesBounds(instance.getNodes());
+    const viewportSize = canvasContainer.current?.getBoundingClientRect();
+
+    if (viewportSize && minMaxCoords) {
+      const newZoom = Math.min(
+        viewportSize.height / minMaxCoords.height,
+        viewportSize.width / minMaxCoords.width,
+      );
+      const currentZoom = instance?.getViewport().zoom;
+      // Don't reduce the zoom level below the users current zoom
+      const safeZoom = currentZoom
+        ? Math.min(currentZoom, newZoom * ZOOM_PADDING)
+        : newZoom * ZOOM_PADDING;
+
+      setMinZoom(safeZoom);
+    }
+  },
+  100,
+);
+
 const canvasContainerStyle = css({
   width: "[100%]",
   height: "[100%]",
@@ -69,6 +99,9 @@ export const SDCPNView: React.FC<{
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
     [compactNodes],
   );
+  // min-zoom 0 allows a user to zoom out infinitely. We later constrain this to be slightly larger than the nodes present
+  // in the net, but default to 0 until we can measure the viewport height
+  const [minZoom, setMinZoom] = useState(0);
 
   // SDCPN store
   const { petriNetId } = use(SDCPNContext);
@@ -91,11 +124,26 @@ export const SDCPNView: React.FC<{
   // Center viewport on SDCPN load
   useEffect(() => {
     void reactFlowInstance?.fitView({
-      padding: 0.4,
-      minZoom: 0.4,
+      padding: ZOOM_PADDING,
+      minZoom: minZoom,
       maxZoom: 1.1,
     });
   }, [reactFlowInstance, petriNetId]);
+
+  // Setup a resizeObserver to recalculate the min zoom when the canvas container changes sizes
+  useEffect(() => {
+    if (canvasContainer.current) {
+      const resizeObserver = new ResizeObserver(() => {
+        fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+      });
+
+      resizeObserver.observe(canvasContainer.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [canvasContainer, reactFlowInstance]);
 
   const isReadonly = useIsReadOnly();
 
@@ -141,6 +189,7 @@ export const SDCPNView: React.FC<{
 
   function onInit(instance: PetrinautReactFlowInstance) {
     setReactFlowInstance(instance);
+    fitZoomToNodes(instance, canvasContainer, setMinZoom);
   }
 
   // Shared function to create a node at a given position
@@ -314,7 +363,10 @@ export const SDCPNView: React.FC<{
         edges={arcs}
         nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
-        onNodesChange={applyNodeChanges}
+        onNodesChange={(n) => {
+          applyNodeChanges(n);
+          fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+        }}
         onEdgesChange={applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
@@ -322,6 +374,9 @@ export const SDCPNView: React.FC<{
         onPaneClick={onPaneClick}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
+        onViewportChange={() => {
+          fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+        }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
         panOnDrag={isPanMode ? true : isAddMode ? false : [1, 2]}
@@ -337,6 +392,7 @@ export const SDCPNView: React.FC<{
         deleteKeyCode={null}
         panOnScroll={false}
         zoomOnScroll
+        minZoom={minZoom}
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
         {showMinimap && <MiniMap pannable zoomable />}
