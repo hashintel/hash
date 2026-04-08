@@ -19,6 +19,12 @@ async function initMonaco(): Promise<MonacoContextValue> {
     import(
       "monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js"
     ),
+    import(
+      "monaco-editor/esm/vs/basic-languages/python/python.contribution.js"
+    ),
+    import(
+      "monaco-editor/esm/vs/basic-languages/fsharp/fsharp.contribution.js"
+    ),
   ]);
 
   window.MonacoEnvironment = {

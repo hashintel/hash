@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
@@ -16,6 +17,8 @@ import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
 } from "../../../../../../core/default-codes";
+import { ExpressionOutputPanel } from "../../../../../../expression/expression-output-panel";
+import { useDiffEqExpressionOutput } from "../../../../../../expression/use-expression-ir-output";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
@@ -90,12 +93,36 @@ const aiIconStyle = css({
   fontSize: "base",
 });
 
+const panelGroupStyle = css({
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+const panelStyle = css({
+  height: "full",
+});
+
+const resizeHandleStyle = css({
+  borderTopWidth: "thin",
+  borderTopColor: "neutral.a20",
+  cursor: "ns-resize",
+  backgroundColor: "[transparent]",
+  transition: "[background-color 0.15s ease]",
+  "&[data-separator=hover]": {
+    backgroundColor: "neutral.a40",
+  },
+  "&[data-separator=active]": {
+    backgroundColor: "blue.s60",
+  },
+});
+
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
+  const expressionOutput = useDiffEqExpressionOutput(differentialEquation);
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -258,25 +285,55 @@ const DiffEqMainContent: React.FC = () => {
       )}
 
       <Section title="Code" fillHeight>
-        <CodeEditor
-          path={getDocumentUri(
-            "differential-equation",
-            differentialEquation.id,
-          )}
-          language="typescript"
-          value={differentialEquation.code}
-          height="100%"
-          onChange={(newCode) => {
-            updateDifferentialEquation(
+        {expressionOutput !== null ? (
+          <Group orientation="vertical" className={panelGroupStyle}>
+            <Panel defaultSize={60} minSize={30} className={panelStyle}>
+              <CodeEditor
+                path={getDocumentUri(
+                  "differential-equation",
+                  differentialEquation.id,
+                )}
+                language="typescript"
+                value={differentialEquation.code}
+                height="100%"
+                onChange={(newCode) => {
+                  updateDifferentialEquation(
+                    differentialEquation.id,
+                    (existingEquation) => {
+                      existingEquation.code = newCode ?? "";
+                    },
+                  );
+                }}
+                options={{ readOnly: isReadOnly }}
+                tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              />
+            </Panel>
+            <Separator className={resizeHandleStyle} />
+            <Panel minSize={20} className={panelStyle}>
+              <ExpressionOutputPanel output={expressionOutput} />
+            </Panel>
+          </Group>
+        ) : (
+          <CodeEditor
+            path={getDocumentUri(
+              "differential-equation",
               differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = newCode ?? "";
-              },
-            );
-          }}
-          options={{ readOnly: isReadOnly }}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
+            )}
+            language="typescript"
+            value={differentialEquation.code}
+            height="100%"
+            onChange={(newCode) => {
+              updateDifferentialEquation(
+                differentialEquation.id,
+                (existingEquation) => {
+                  existingEquation.code = newCode ?? "";
+                },
+              );
+            }}
+            options={{ readOnly: isReadOnly }}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        )}
       </Section>
     </SectionList>
   );
