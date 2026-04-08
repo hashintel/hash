@@ -1,7 +1,8 @@
 import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { debounce } from "lodash-es";
+import { useResizeObserver } from "./hooks/util/useResizeObserver";
+import { useDebounceCallback } from "./hooks/util/useDebounceCallback";
 import type { Connection } from "@xyflow/react";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
@@ -105,52 +106,39 @@ export const SDCPNView: React.FC<{
 
   // This sets the min zoom (ie the max you can zoom out to) to be slightly larger than the total size of the current net.
   // We also avoid shrinking the zoom to be lower than the current zoom level to avoid changing the zoom without user input
-  const fitZoomToNodes = useMemo(
-    () =>
-      debounce(
-        (
-          instance: PetrinautReactFlowInstance | null,
-          canvasContainer: React.RefObject<HTMLDivElement | null>,
-          setMinZoom: (minZoom: number) => void,
-        ) => {
-          const nodesSize = instance?.getNodesBounds(instance.getNodes());
-          const viewportSize = canvasContainer.current?.getBoundingClientRect();
+  const fitZoomToNodes = useDebounceCallback(
+    (
+      instance: PetrinautReactFlowInstance | null,
+      canvasContainer: React.RefObject<HTMLDivElement | null>,
+      setMinZoom: (minZoom: number) => void,
+    ) => {
+      const nodesSize = instance?.getNodesBounds(instance.getNodes());
+      const viewportSize = canvasContainer.current?.getBoundingClientRect();
 
-          // Specifically check that the height and width are not 0. If the net is empty/size 0, just keep using the previous
-          // min-zoom until we have a new value.
-          if (viewportSize && nodesSize?.height && nodesSize?.width) {
-            const newZoom = Math.min(
-              viewportSize.height / nodesSize.height,
-              viewportSize.width / nodesSize.width,
-            );
-            const currentZoom = instance?.getViewport().zoom;
-            // Don't reduce the zoom level below the users current zoom
-            const safeZoom = currentZoom
-              ? Math.min(currentZoom, newZoom * ZOOM_PADDING)
-              : newZoom * ZOOM_PADDING;
+      if (viewportSize && nodesSize) {
+        // Specifically check that the height and width are not 0. If the net is empty/size 0, use a default minZoom of 0.5
+        // otherwise, set the minZoom to the size of the net with some extra padding
+        const newZoom =
+          nodesSize.height && nodesSize.width
+            ? Math.min(
+                viewportSize.height / nodesSize.height,
+                viewportSize.width / nodesSize.width,
+              ) * ZOOM_PADDING
+            : 0.5;
 
-            setMinZoom(safeZoom);
-          }
-        },
-        100,
-      ),
-    [],
+        // Don't reduce the zoom level below the users current zoom
+        const currentZoom = instance?.getViewport().zoom;
+        const safeZoom = currentZoom ? Math.min(currentZoom, newZoom) : newZoom;
+
+        setMinZoom(safeZoom);
+      }
+    },
+    100,
   );
 
-  // Setup a resizeObserver to recalculate the min zoom when the canvas container changes sizes
-  useEffect(() => {
-    if (canvasContainer.current) {
-      const resizeObserver = new ResizeObserver(() => {
-        fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
-      });
-
-      resizeObserver.observe(canvasContainer.current);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  }, [canvasContainer, reactFlowInstance]);
+  useResizeObserver(canvasContainer, () => {
+    fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+  });
 
   const isReadonly = useIsReadOnly();
 
