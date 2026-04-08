@@ -1,8 +1,8 @@
 import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { useResizeObserver } from "./hooks/util/useResizeObserver";
-import { useDebounceCallback } from "./hooks/util/useDebounceCallback";
+import { useResizeObserver } from "./hooks/util/use-resize-observer";
+import { useDebounceCallback } from "./hooks/util/use-debounce-callback";
 import type { Connection } from "@xyflow/react";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
@@ -109,11 +109,10 @@ export const SDCPNView: React.FC<{
   const fitZoomToNodes = useDebounceCallback(
     (
       instance: PetrinautReactFlowInstance | null,
-      canvasContainer: React.RefObject<HTMLDivElement | null>,
-      setMinZoom: (minZoom: number) => void,
+      canvasEl: React.RefObject<HTMLDivElement | null>,
     ) => {
       const nodesSize = instance?.getNodesBounds(instance.getNodes());
-      const viewportSize = canvasContainer.current?.getBoundingClientRect();
+      const viewportSize = canvasEl.current?.getBoundingClientRect();
 
       if (viewportSize && nodesSize) {
         // Specifically check that the height and width are not 0. If the net is empty/size 0, use a default minZoom of 0.5
@@ -137,7 +136,7 @@ export const SDCPNView: React.FC<{
   );
 
   useResizeObserver(canvasContainer, () => {
-    fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+    fitZoomToNodes(reactFlowInstance, canvasContainer);
   });
 
   const isReadonly = useIsReadOnly();
@@ -184,7 +183,7 @@ export const SDCPNView: React.FC<{
 
   function onInit(instance: PetrinautReactFlowInstance) {
     setReactFlowInstance(instance);
-    fitZoomToNodes(instance, canvasContainer, setMinZoom);
+    fitZoomToNodes(instance, canvasContainer);
   }
 
   // Shared function to create a node at a given position
@@ -360,7 +359,7 @@ export const SDCPNView: React.FC<{
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={(n) => {
           applyNodeChanges(n);
-          fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+          fitZoomToNodes(reactFlowInstance, canvasContainer);
         }}
         onEdgesChange={applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
@@ -370,7 +369,7 @@ export const SDCPNView: React.FC<{
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         onViewportChange={() => {
-          fitZoomToNodes(reactFlowInstance, canvasContainer, setMinZoom);
+          fitZoomToNodes(reactFlowInstance, canvasContainer);
         }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
