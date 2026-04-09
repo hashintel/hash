@@ -14,11 +14,24 @@ async function initMonaco(): Promise<MonacoContextValue> {
   const [monaco, monacoReact] = await Promise.all([
     import("monaco-editor/esm/vs/editor/editor.api.js"),
     import("@monaco-editor/react"),
-    // Import the TypeScript contribution to enable TypeScript language features. (side-effect)
-    // This does not import the TypeScript worker, unnecessary given our custom LSP provides the same functionality.
+    // Language contribution (side-effect) — enables TypeScript syntax highlighting.
+    // Does not import the TS worker; our custom LSP provides language features.
     import(
       "monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js"
     ),
+    // Editor feature contributions (side-effects) — without these explicit
+    // imports the production bundler tree-shakes them out, since `editor.api.js`
+    // is the tree-shakeable ESM entry point.
+    import(
+      "monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js"
+    ),
+    import(
+      "monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController.js"
+    ),
+    import(
+      "monaco-editor/esm/vs/editor/contrib/parameterHints/browser/parameterHints.js"
+    ),
+    import("monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js"),
   ]);
 
   window.MonacoEnvironment = {
