@@ -35,7 +35,7 @@ describe("computePossibleTransition", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 2 }], // Requires 2 tokens
+            inputArcs: [{ placeId: "p1", weight: 2, type: "standard" }], // Requires 2 tokens
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -140,8 +140,8 @@ describe("computePossibleTransition", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
-            outputArcs: [{ placeId: "p2", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }], // Requires 1 token
+            outputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
             transitionKernelCode: "return [[[2.0]]];",

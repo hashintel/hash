@@ -22,7 +22,7 @@ describe("isTransitionStructurallyEnabled", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -56,7 +56,7 @@ describe("isTransitionStructurallyEnabled", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -90,7 +90,7 @@ describe("isTransitionStructurallyEnabled", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 3 }], // Requires 3 tokens
+            inputArcs: [{ placeId: "p1", weight: 3, type: "standard" }], // Requires 3 tokens
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -131,8 +131,8 @@ describe("isTransitionStructurallyEnabled", () => {
             id: "t1",
             name: "Transition 1",
             inputArcs: [
-              { placeId: "p1", weight: 1 },
-              { placeId: "p2", weight: 1 },
+              { placeId: "p1", weight: 1, type: "standard" },
+              { placeId: "p2", weight: 1, type: "standard" },
             ],
             outputArcs: [],
             lambdaType: "stochastic",
@@ -163,7 +163,7 @@ describe("isTransitionStructurallyEnabled", () => {
             id: "t1",
             name: "Transition 1",
             inputArcs: [], // No input arcs
-            outputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
             transitionKernelCode: "return {};",
@@ -203,7 +203,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -219,7 +219,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p2", weight: 1 }],
+            inputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -262,7 +262,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -278,7 +278,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p2", weight: 1 }],
+            inputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -333,7 +333,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -349,7 +349,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p1", weight: 2 }],
+            inputArcs: [{ placeId: "p1", weight: 2, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -365,7 +365,7 @@ describe("checkTransitionEnablement", () => {
           instance: {
             id: "t3",
             name: "Transition 3",
-            inputArcs: [{ placeId: "p1", weight: 5 }],
+            inputArcs: [{ placeId: "p1", weight: 5, type: "standard" }],
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",

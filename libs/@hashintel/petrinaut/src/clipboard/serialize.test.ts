@@ -46,8 +46,8 @@ const fullNet: SDCPN = {
     {
       id: "t1",
       name: "Transition1",
-      inputArcs: [{ placeId: "p1", weight: 1 }],
-      outputArcs: [{ placeId: "p2", weight: 2 }],
+      inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p2", weight: 2, type: "standard" }],
       lambdaType: "predicate",
       lambdaCode: "return true;",
       transitionKernelCode: "return input;",
@@ -466,7 +466,7 @@ describe("parseClipboardPayload", () => {
           {
             id: "t1",
             name: "T",
-            inputArcs: [{ placeId: "p1", weight: "heavy" }],
+            inputArcs: [{ placeId: "p1", weight: "heavy", type: "standard" }],
             outputArcs: [],
             lambdaType: "predicate",
             lambdaCode: "",

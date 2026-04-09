@@ -127,6 +127,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
             transition[arcType === "input" ? "inputArcs" : "outputArcs"].push({
+              type: "standard",
               placeId,
               weight,
             });

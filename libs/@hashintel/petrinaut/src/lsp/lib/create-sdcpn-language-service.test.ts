@@ -110,8 +110,12 @@ describe("SDCPNLanguageServer completions", () => {
       {
         id: "t1",
         lambdaType: "predicate" as const,
-        inputArcs: [{ placeId: "place1", weight: 1 }],
-        outputArcs: [{ placeId: "place2", weight: 1 }],
+        inputArcs: [
+          { placeId: "place1", weight: 1, type: "standard" as const },
+        ],
+        outputArcs: [
+          { placeId: "place2", weight: 1, type: "standard" as const },
+        ],
         lambdaCode: "",
         transitionKernelCode: "",
       },
@@ -290,7 +294,9 @@ describe("SDCPNLanguageServer completions", () => {
           {
             id: "t1",
             lambdaType: "predicate" as const,
-            inputArcs: [{ placeId: "place1", weight: 1 }],
+            inputArcs: [
+              { placeId: "place1", weight: 1, type: "standard" as const },
+            ],
             outputArcs: [],
             lambdaCode: "",
           },
@@ -314,7 +320,9 @@ describe("SDCPNLanguageServer completions", () => {
           {
             id: "t1",
             lambdaType: "predicate" as const,
-            inputArcs: [{ placeId: "place1", weight: 1 }],
+            inputArcs: [
+              { placeId: "place1", weight: 1, type: "standard" as const },
+            ],
             outputArcs: [],
             lambdaCode: `export default Lambda((input) => {\n  const t = input.Source[0];\n  return t.`,
           },

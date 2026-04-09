@@ -106,10 +106,10 @@ const TRANSITION: Transition = {
   id: "transition-1",
   name: "ProcessOrder",
   inputArcs: [
-    { placeId: "place-1", weight: 1 },
-    { placeId: "place-2", weight: 2 },
+    { placeId: "place-1", weight: 1, type: "standard" },
+    { placeId: "place-2", weight: 2, type: "standard" },
   ],
-  outputArcs: [{ placeId: "place-3", weight: 1 }],
+  outputArcs: [{ placeId: "place-3", weight: 1, type: "standard" }],
   lambdaType: "predicate",
   lambdaCode: "function predicate(inputs) {\n  return true;\n}",
   transitionKernelCode: "function kernel(inputs) {\n  return inputs;\n}",

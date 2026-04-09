@@ -27,8 +27,8 @@ const sampleNet: SDCPN = {
     {
       id: "t1",
       name: "Transition 1",
-      inputArcs: [{ placeId: "p1", weight: 1 }],
-      outputArcs: [{ placeId: "p1", weight: 2 }],
+      inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p1", weight: 2, type: "standard" }],
       lambdaType: "predicate",
       lambdaCode: "return true;",
       transitionKernelCode: "return input;",

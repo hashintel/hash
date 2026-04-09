@@ -420,8 +420,12 @@ describe("paste — arc remapping", () => {
         {
           id: "transition__old-t1",
           name: "T1",
-          inputArcs: [{ placeId: "place__old-p1", weight: 3 }],
-          outputArcs: [{ placeId: "place__old-p1", weight: 1 }],
+          inputArcs: [
+            { placeId: "place__old-p1", weight: 3, type: "standard" },
+          ],
+          outputArcs: [
+            { placeId: "place__old-p1", weight: 1, type: "standard" },
+          ],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",
@@ -449,8 +453,12 @@ describe("paste — arc remapping", () => {
         {
           id: "transition__old",
           name: "T1",
-          inputArcs: [{ placeId: "place__missing", weight: 1 }],
-          outputArcs: [{ placeId: "place__missing", weight: 1 }],
+          inputArcs: [
+            { placeId: "place__missing", weight: 1, type: "standard" },
+          ],
+          outputArcs: [
+            { placeId: "place__missing", weight: 1, type: "standard" },
+          ],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",
@@ -485,10 +493,12 @@ describe("paste — arc remapping", () => {
           id: "transition__t1",
           name: "T1",
           inputArcs: [
-            { placeId: "place__included", weight: 1 },
-            { placeId: "place__excluded", weight: 2 },
+            { placeId: "place__included", weight: 1, type: "standard" },
+            { placeId: "place__excluded", weight: 2, type: "standard" },
           ],
-          outputArcs: [{ placeId: "place__excluded", weight: 1 }],
+          outputArcs: [
+            { placeId: "place__excluded", weight: 1, type: "standard" },
+          ],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",

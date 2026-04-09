@@ -158,8 +158,8 @@ describe("buildSimulation", () => {
           {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
-            outputArcs: [{ placeId: "p2", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
             lambdaType: "stochastic",
             lambdaCode: "export default Lambda((tokens) => { return 1.0; });",
             transitionKernelCode:
@@ -170,8 +170,8 @@ describe("buildSimulation", () => {
           {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p2", weight: 1 }],
-            outputArcs: [{ placeId: "p3", weight: 1 }],
+            inputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "p3", weight: 1, type: "standard" }],
             lambdaType: "stochastic",
             lambdaCode: "export default Lambda((tokens) => { return 2.0; });",
             transitionKernelCode:

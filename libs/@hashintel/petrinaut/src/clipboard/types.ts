@@ -5,6 +5,7 @@ export const CLIPBOARD_FORMAT_VERSION = 1;
 const arcSchema = z.object({
   placeId: z.string(),
   weight: z.number(),
+  type: z.enum(["standard", "inhibitor"]).optional().default("standard"),
 });
 
 const placeSchema = z.object({
