@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "preview": "vite preview",
     "lint:tsc": "tsgo --noEmit",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error ."
