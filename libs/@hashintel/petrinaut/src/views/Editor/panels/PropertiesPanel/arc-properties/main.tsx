@@ -6,6 +6,8 @@ import { TbTrash } from "react-icons/tb";
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
+import { Switch } from "../../../../../components/switch";
+import { Select, type SelectOption } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -35,11 +37,18 @@ interface ArcPropertiesData {
   sourceName: string;
   targetName: string;
   weight: number;
+  type: "standard" | "inhibitor";
   updateArcWeight: (
     transitionId: string,
     arcDirection: "input" | "output",
     placeId: string,
     weight: number,
+  ) => void;
+  updateArcType: (
+    transitionId: string,
+    arcDirection: "input" | "output",
+    placeId: string,
+    type: "standard" | "inhibitor",
   ) => void;
   removeArc: (
     transitionId: string,
@@ -68,7 +77,9 @@ const ArcMainContent: React.FC = () => {
     sourceName,
     targetName,
     weight,
+    type,
     updateArcWeight,
+    updateArcType,
   } = useArcPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
@@ -79,6 +90,25 @@ const ArcMainContent: React.FC = () => {
       </Section>
       <Section title="Target">
         <div className={readOnlyFieldStyle}>{targetName}</div>
+      </Section>
+      <Section title="Type">
+        <Select
+          value={type}
+          onValueChange={(value) => {
+            updateArcType(
+              transitionId,
+              arcDirection,
+              placeId,
+              value as "inhibitor" | "standard",
+            );
+          }}
+          options={[
+            { value: "standard", label: "Standard" },
+            { value: "inhibitor", label: "Inhibitor" },
+          ]}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </Section>
       <Section title="Weight">
         <NumberInput
@@ -146,6 +176,12 @@ interface ArcPropertiesProps {
     placeId: string,
     weight: number,
   ) => void;
+  updateArcType: (
+    transitionId: string,
+    arcDirection: "input" | "output",
+    placeId: string,
+    type: "standard" | "inhibitor",
+  ) => void;
   removeArc: (
     transitionId: string,
     arcDirection: "input" | "output",
@@ -157,6 +193,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   arcId,
   petriNetDefinition,
   updateArcWeight,
+  updateArcType,
   removeArc,
 }) => {
   const parsed = parseArcId(arcId);
@@ -193,7 +230,9 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       sourceName: sourcePlace.name,
       targetName: targetTransition.name,
       weight: arc?.weight ?? 1,
+      type: arc?.type ?? "standard",
       updateArcWeight,
+      updateArcType,
       removeArc,
     };
   } else if (sourceTransition && targetPlace) {
@@ -208,7 +247,9 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       sourceName: sourceTransition.name,
       targetName: targetPlace.name,
       weight: arc?.weight ?? 1,
+      type: arc?.type ?? "standard",
       updateArcWeight,
+      updateArcType,
       removeArc,
     };
   } else {
