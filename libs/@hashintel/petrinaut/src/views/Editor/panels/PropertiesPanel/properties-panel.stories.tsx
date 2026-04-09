@@ -246,9 +246,10 @@ const TransitionPanelStory = () => {
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}
-        onArcWeightUpdate={(transitionId, arcType, placeId, weight) => {
+        onArcWeightUpdate={(transitionId, arcDirection, placeId, weight) => {
           updateTransition(transitionId, (tr) => {
-            const arcs = arcType === "input" ? tr.inputArcs : tr.outputArcs;
+            const arcs =
+              arcDirection === "input" ? tr.inputArcs : tr.outputArcs;
             const arc = arcs.find((a) => a.placeId === placeId);
             if (arc) {
               arc.weight = weight;

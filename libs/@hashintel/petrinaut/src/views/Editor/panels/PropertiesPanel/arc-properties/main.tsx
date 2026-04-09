@@ -31,19 +31,19 @@ interface ArcPropertiesData {
   arcId: string;
   transitionId: string;
   placeId: string;
-  arcType: "input" | "output";
+  arcDirection: "input" | "output";
   sourceName: string;
   targetName: string;
   weight: number;
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
 }
@@ -64,7 +64,7 @@ const ArcMainContent: React.FC = () => {
   const {
     transitionId,
     placeId,
-    arcType,
+    arcDirection,
     sourceName,
     targetName,
     weight,
@@ -92,7 +92,7 @@ const ArcMainContent: React.FC = () => {
               10,
             );
             if (value > 0) {
-              updateArcWeight(transitionId, arcType, placeId, value);
+              updateArcWeight(transitionId, arcDirection, placeId, value);
             }
           }}
           disabled={isReadOnly}
@@ -103,7 +103,7 @@ const ArcMainContent: React.FC = () => {
 };
 
 const DeleteArcAction: React.FC = () => {
-  const { transitionId, placeId, arcType, removeArc } =
+  const { transitionId, placeId, arcDirection, removeArc } =
     useArcPropertiesContext();
   const { clearSelection } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
@@ -114,7 +114,7 @@ const DeleteArcAction: React.FC = () => {
       size="xs"
       colorScheme="red"
       onClick={() => {
-        removeArc(transitionId, arcType, placeId);
+        removeArc(transitionId, arcDirection, placeId);
         clearSelection();
       }}
       disabled={isReadOnly}
@@ -142,13 +142,13 @@ interface ArcPropertiesProps {
   petriNetDefinition: SDCPN;
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
 }
@@ -189,7 +189,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcId,
       transitionId: targetTransition.id,
       placeId: sourcePlace.id,
-      arcType: "input",
+      arcDirection: "input",
       sourceName: sourcePlace.name,
       targetName: targetTransition.name,
       weight: arc?.weight ?? 1,
@@ -204,7 +204,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcId,
       transitionId: sourceTransition.id,
       placeId: targetPlace.id,
-      arcType: "output",
+      arcDirection: "output",
       sourceName: sourceTransition.name,
       targetName: targetPlace.name,
       weight: arc?.weight ?? 1,
