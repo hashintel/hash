@@ -169,6 +169,12 @@ export const getUserAndSession = async ({
     });
 
     if (!user) {
+      const hashInstance = await getHashInstance(context, authentication);
+
+      if (!hashInstance.userSelfRegistrationIsEnabled) {
+        throw new Error("User registration is disabled.");
+      }
+
       try {
         user = await createUser(context, authentication, {
           emails: traits.emails,
