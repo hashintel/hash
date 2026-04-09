@@ -12,6 +12,11 @@ export default defineConfig(() => {
       __ENVIRONMENT__: JSON.stringify(environment),
       __SENTRY_DSN__: JSON.stringify(sentryDsn),
     },
+    build: {
+      // Vite 8 defaults to LightningCSS which is still unstable.
+      // e.g. https://github.com/parcel-bundler/lightningcss/issues/695
+      cssMinify: "esbuild" as const,
+    },
 
     plugins: [
       react(),

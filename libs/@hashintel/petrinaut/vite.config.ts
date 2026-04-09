@@ -32,11 +32,9 @@ export default defineConfig(({ command }) => ({
     },
     sourcemap: true,
     minify: true,
-    // Use esbuild for CSS minification. Vite 8 defaults to LightningCSS which
-    // strips the standard `backdrop-filter` in favour of `-webkit-backdrop-filter`
-    // based on its browser-target heuristics.
-    // https://github.com/parcel-bundler/lightningcss/issues/695
-    cssMinify: false,
+    // Vite 8 defaults to LightningCSS which is still unstable.
+    // e.g. https://github.com/parcel-bundler/lightningcss/issues/695
+    cssMinify: "esbuild",
   },
 
   define: {
