@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";
+import { formatKratosMessage } from "../shared/format-kratos-message";
 import {
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
@@ -89,6 +90,8 @@ const SecurityPage: NextPageWithLayout = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
+
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [currentPasswordError, setCurrentPasswordError] = useState<string>();
   const [totpCode, setTotpCode] = useState("");
   const [disableTotpCode, setDisableTotpCode] = useState("");
@@ -155,17 +158,24 @@ const SecurityPage: NextPageWithLayout = () => {
       return;
     }
 
+    const initFlow = (data: SettingsFlow) => {
+      setFlow(data);
+      if (data.ui.messages?.some(({ id }) => id === 1060001)) {
+        setIsRecoveryFlow(true);
+      }
+    };
+
     if (flowId) {
       oryKratosClient
         .getSettingsFlow({ id: String(flowId) })
-        .then(({ data }) => setFlow(data))
+        .then(({ data }) => initFlow(data))
         .catch(handleFlowError);
       return;
     }
 
     oryKratosClient
       .createBrowserSettingsFlow()
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => initFlow(data))
       .catch(handleFlowError);
   }, [flow, flowId, handleFlowError, router.isReady]);
 
@@ -247,7 +257,7 @@ const SecurityPage: NextPageWithLayout = () => {
   const handlePasswordSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
-    if (!flow || !currentPassword || !password) {
+    if (!flow || !password || (!isRecoveryFlow && !currentPassword)) {
       return;
     }
 
@@ -255,37 +265,40 @@ const SecurityPage: NextPageWithLayout = () => {
     setCurrentPasswordError(undefined);
     persistFlowIdInUrl(flow);
 
-    // Step 1: Verify the current password by creating and submitting a
-    //         refresh login flow. This also refreshes the session to
-    //         "privileged", ensuring the settings update won't be rejected.
-    void oryKratosClient
-      .createBrowserLoginFlow({ refresh: true })
-      .then(({ data: loginFlow }) =>
-        oryKratosClient.updateLoginFlow({
-          flow: loginFlow.id,
-          updateLoginFlowBody: {
-            method: "password",
-            identifier: usernameForPasswordManagers,
-            password: currentPassword,
-            csrf_token: mustGetCsrfTokenFromFlow(loginFlow),
-          },
-        }),
-      )
-      .then(
-        // Step 2: Current password verified, now update to the new password
-        async () => {
-          const nextFlow = await submitSettingsUpdate(flow, {
-            method: "password",
-            password,
-            csrf_token: mustGetCsrfTokenFromFlow(flow),
-          });
+    const updatePassword = async () => {
+      if (!isRecoveryFlow) {
+        // Verify the current password by creating and submitting a refresh
+        // login flow. This also refreshes the session to "privileged",
+        // ensuring the settings update won't be rejected.
+        // Recovery flows are already privileged, so we don't need to refresh them.
+        await oryKratosClient
+          .createBrowserLoginFlow({ refresh: true })
+          .then(({ data: loginFlow }) =>
+            oryKratosClient.updateLoginFlow({
+              flow: loginFlow.id,
+              updateLoginFlowBody: {
+                method: "password",
+                identifier: usernameForPasswordManagers,
+                password: currentPassword,
+                csrf_token: mustGetCsrfTokenFromFlow(loginFlow),
+              },
+            }),
+          );
+      }
 
-          if (nextFlow) {
-            setCurrentPassword("");
-            setPassword("");
-          }
-        },
-      )
+      const nextFlow = await submitSettingsUpdate(flow, {
+        method: "password",
+        password,
+        csrf_token: mustGetCsrfTokenFromFlow(flow),
+      });
+
+      if (nextFlow) {
+        setCurrentPassword("");
+        setPassword("");
+      }
+    };
+
+    void updatePassword()
       .catch((error: AxiosError) => {
         if (error.response?.status === 400) {
           setCurrentPasswordError("Current password is incorrect.");
@@ -470,24 +483,26 @@ const SecurityPage: NextPageWithLayout = () => {
               Password
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <TextField
-                label="Current password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="Enter your current password"
-                value={currentPassword}
-                onChange={({ target }) => {
-                  setCurrentPassword(target.value);
-                  setCurrentPasswordError(undefined);
-                }}
-                error={!!currentPasswordError}
-                helperText={
-                  currentPasswordError ? (
-                    <Typography>{currentPasswordError}</Typography>
-                  ) : undefined
-                }
-                required
-              />
+              {!isRecoveryFlow && (
+                <TextField
+                  label="Current password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter your current password"
+                  value={currentPassword}
+                  onChange={({ target }) => {
+                    setCurrentPassword(target.value);
+                    setCurrentPasswordError(undefined);
+                  }}
+                  error={!!currentPasswordError}
+                  helperText={
+                    currentPasswordError ? (
+                      <Typography>{currentPasswordError}</Typography>
+                    ) : undefined
+                  }
+                  required
+                />
+              )}
               <TextField
                 label="New password"
                 type="password"
@@ -509,7 +524,11 @@ const SecurityPage: NextPageWithLayout = () => {
             <Box mt={1.5}>
               <Button
                 type="submit"
-                disabled={!currentPassword || !password || updatingPassword}
+                disabled={
+                  (!isRecoveryFlow && !currentPassword) ||
+                  !password ||
+                  updatingPassword
+                }
               >
                 {updatingPassword ? "Updating password..." : "Update password"}
               </Button>
@@ -735,8 +754,10 @@ const SecurityPage: NextPageWithLayout = () => {
             </Box>
           )}
 
-          {flow?.ui.messages?.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
+          {flow?.ui.messages?.map((message) => (
+            <Typography key={message.id}>
+              {formatKratosMessage(message)}
+            </Typography>
           ))}
           {errorMessage ? <Typography>{errorMessage}</Typography> : null}
         </Box>

@@ -541,7 +541,11 @@ const main = async () => {
   );
 
   // Set up authentication related middleware and routes
-  addKratosAfterRegistrationHandler({ app, context: machineActorContext });
+  addKratosAfterRegistrationHandler({
+    app,
+    context: machineActorContext,
+    logger,
+  });
   const authMiddleware = createAuthMiddleware({
     logger,
     context: machineActorContext,
