@@ -153,6 +153,232 @@ describe("isTransitionStructurallyEnabled", () => {
     expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(false);
   });
 
+  it("returns true for inhibitor arc when place has fewer tokens than weight", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 1,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // 1 token < weight 2, so inhibitor condition is satisfied
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(true);
+  });
+
+  it("returns false for inhibitor arc when place has enough tokens", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 3,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // 3 tokens >= weight 2, so inhibitor condition is NOT satisfied
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(false);
+  });
+
+  it("returns false for inhibitor arc when place has exactly the weight in tokens", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // 2 tokens is NOT < weight 2, so inhibitor condition is NOT satisfied
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(false);
+  });
+
+  it("returns true for inhibitor arc when place is empty", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1, type: "inhibitor" }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // 0 tokens < weight 1, inhibitor condition satisfied
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(true);
+  });
+
+  it("checks mixed standard and inhibitor arcs together", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+        p2: {
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [
+              { placeId: "p1", weight: 1, type: "standard" },
+              { placeId: "p2", weight: 1, type: "inhibitor" },
+            ],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // p1 has 2 >= 1 (standard satisfied), p2 has 0 < 1 (inhibitor satisfied)
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(true);
+  });
+
+  it("returns false when standard arc is satisfied but inhibitor arc is not", () => {
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+        p2: {
+          offset: 0,
+          count: 3,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [
+              { placeId: "p1", weight: 1, type: "standard" },
+              { placeId: "p2", weight: 1, type: "inhibitor" },
+            ],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // p1 has 2 >= 1 (standard satisfied), but p2 has 3 >= 1 (inhibitor NOT satisfied)
+    expect(isTransitionStructurallyEnabled(frame, "t1")).toBe(false);
+  });
+
   it("returns true for transitions with no input arcs", () => {
     const frame: SimulationFrame = {
       time: 0,
