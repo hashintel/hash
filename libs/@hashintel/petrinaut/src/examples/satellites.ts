@@ -123,7 +123,6 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
             weight: 2,
-            type: "standard",
           },
         ],
         lambdaType: "predicate",
@@ -178,7 +177,6 @@ export default TransitionKernel((tokens) => {
           {
             placeId: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
             weight: 1,
-            type: "standard",
           },
         ],
         lambdaType: "predicate",

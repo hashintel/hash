@@ -40,7 +40,7 @@ describe("checkSDCPN", () => {
             id: "t1",
             lambdaType: "predicate",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
             lambdaCode: `export default Lambda((input, parameters) => {
               return input.Source[0].value > 0;
             });`,
@@ -343,7 +343,7 @@ describe("checkSDCPN", () => {
           {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               return { Target: [input.Source[0]] };
             });`,
@@ -371,7 +371,7 @@ describe("checkSDCPN", () => {
           {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               return { WrongPlace: [input.Source[0]] };
             });`,
@@ -402,7 +402,7 @@ describe("checkSDCPN", () => {
           {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 2, type: "standard" }], // expects 2 tokens
+            outputArcs: [{ placeId: "place2", weight: 2 }], // expects 2 tokens
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               return { Target: [input.Source[0]] };
             });`,
@@ -436,7 +436,7 @@ describe("checkSDCPN", () => {
           {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               const newX = input.Source[0].x * parameters.multiplier;
               return { Target: [{ x: newX }] };
@@ -469,7 +469,7 @@ describe("checkSDCPN", () => {
               { placeId: "place1", weight: 1, type: "standard" },
               { placeId: "place2", weight: 1, type: "standard" },
             ],
-            outputArcs: [{ placeId: "place3", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place3", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               // Accessing Untyped should fail since it has no color
               const token = input.Untyped[0];
@@ -507,8 +507,8 @@ describe("checkSDCPN", () => {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
             outputArcs: [
-              { placeId: "place2", weight: 1, type: "standard" },
-              { placeId: "place3", weight: 1, type: "standard" },
+              { placeId: "place2", weight: 1 },
+              { placeId: "place3", weight: 1 },
             ],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               // Missing Target which is required - should fail
@@ -541,7 +541,7 @@ describe("checkSDCPN", () => {
           {
             id: "t1",
             inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "place2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
               // Accessing 'nonExistentProperty' should fail since color1 only has 'x'
               const value = input.Source[0].nonExistentProperty;
@@ -674,7 +674,7 @@ describe("checkSDCPN", () => {
             id: "transitionA",
             lambdaType: "predicate",
             inputArcs: [{ placeId: "placeIn", weight: 1, type: "standard" }],
-            outputArcs: [{ placeId: "placeOut", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "placeOut", weight: 1 }],
             lambdaCode: `export default Lambda((input, parameters) => {
               return input.PlaceIn[0].x > 0;
             });`,

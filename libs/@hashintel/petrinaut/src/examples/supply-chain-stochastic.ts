@@ -80,7 +80,7 @@ export const supplyChainStochasticSDCPN: {
           { placeId: "place__0", weight: 1, type: "standard" },
           { placeId: "place__1", weight: 1, type: "standard" },
         ],
-        outputArcs: [{ placeId: "place__2", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "place__2", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
         transitionKernelCode: "",
@@ -91,7 +91,7 @@ export const supplyChainStochasticSDCPN: {
         id: "transition__1",
         name: "Manufacture",
         inputArcs: [{ placeId: "place__2", weight: 1, type: "standard" }],
-        outputArcs: [{ placeId: "place__3", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "place__3", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
         transitionKernelCode: `// Produce a product with random quality
@@ -109,7 +109,7 @@ export default TransitionKernel(() => {
         id: "transition__2",
         name: "Dispatch",
         inputArcs: [{ placeId: "place__3", weight: 1, type: "standard" }],
-        outputArcs: [{ placeId: "place__5", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "place__5", weight: 1 }],
         lambdaType: "predicate",
         lambdaCode: `// Dispatch if product quality exceeds the quality threshold
 export default Lambda((tokens, parameters) => {
@@ -124,7 +124,7 @@ export default Lambda((tokens, parameters) => {
         id: "transition__3",
         name: "Dispose",
         inputArcs: [{ placeId: "place__3", weight: 1, type: "standard" }],
-        outputArcs: [{ placeId: "place__4", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "place__4", weight: 1 }],
         lambdaType: "predicate",
         lambdaCode: `// Dispose if product quality is below the quality threshold
 export default Lambda((tokens, parameters) => {
@@ -139,7 +139,7 @@ export default Lambda((tokens, parameters) => {
         id: "transition__4",
         name: "Ship",
         inputArcs: [{ placeId: "place__5", weight: 1, type: "standard" }],
-        outputArcs: [{ placeId: "place__6", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "place__6", weight: 1 }],
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1 / 3);",
         transitionKernelCode: "",

@@ -423,9 +423,7 @@ describe("paste — arc remapping", () => {
           inputArcs: [
             { placeId: "place__old-p1", weight: 3, type: "standard" },
           ],
-          outputArcs: [
-            { placeId: "place__old-p1", weight: 1, type: "standard" },
-          ],
+          outputArcs: [{ placeId: "place__old-p1", weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",
@@ -456,9 +454,7 @@ describe("paste — arc remapping", () => {
           inputArcs: [
             { placeId: "place__missing", weight: 1, type: "standard" },
           ],
-          outputArcs: [
-            { placeId: "place__missing", weight: 1, type: "standard" },
-          ],
+          outputArcs: [{ placeId: "place__missing", weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",
@@ -496,9 +492,7 @@ describe("paste — arc remapping", () => {
             { placeId: "place__included", weight: 1, type: "standard" },
             { placeId: "place__excluded", weight: 2, type: "standard" },
           ],
-          outputArcs: [
-            { placeId: "place__excluded", weight: 1, type: "standard" },
-          ],
+          outputArcs: [{ placeId: "place__excluded", weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",

@@ -46,7 +46,6 @@ export type MutationHelperFunctions = {
   ) => void;
   updateArcType: (
     transitionId: string,
-    arcDirection: "input" | "output",
     placeId: string,
     type: "standard" | "inhibitor",
   ) => void;

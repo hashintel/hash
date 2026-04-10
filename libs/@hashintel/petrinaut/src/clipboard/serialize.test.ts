@@ -47,7 +47,7 @@ const fullNet: SDCPN = {
       id: "t1",
       name: "Transition1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
-      outputArcs: [{ placeId: "p2", weight: 2, type: "standard" }],
+      outputArcs: [{ placeId: "p2", weight: 2 }],
       lambdaType: "predicate",
       lambdaCode: "return true;",
       transitionKernelCode: "return input;",

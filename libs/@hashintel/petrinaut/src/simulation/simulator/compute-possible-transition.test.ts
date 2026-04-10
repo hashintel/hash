@@ -141,7 +141,7 @@ describe("computePossibleTransition", () => {
             id: "t1",
             name: "Transition 1",
             inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }], // Requires 1 token
-            outputArcs: [{ placeId: "p2", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
             transitionKernelCode: "return [[[2.0]]];",

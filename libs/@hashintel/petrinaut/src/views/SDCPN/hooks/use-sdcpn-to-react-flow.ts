@@ -167,7 +167,6 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         source: transition.id,
         target: outputArc.placeId,
         type: "default" as const,
-        arcType: outputArc.type,
         selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,

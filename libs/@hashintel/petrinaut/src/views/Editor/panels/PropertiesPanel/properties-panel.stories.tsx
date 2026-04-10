@@ -109,7 +109,7 @@ const TRANSITION: Transition = {
     { placeId: "place-1", weight: 1, type: "standard" },
     { placeId: "place-2", weight: 2, type: "standard" },
   ],
-  outputArcs: [{ placeId: "place-3", weight: 1, type: "standard" }],
+  outputArcs: [{ placeId: "place-3", weight: 1 }],
   lambdaType: "predicate",
   lambdaCode: "function predicate(inputs) {\n  return true;\n}",
   transitionKernelCode: "function kernel(inputs) {\n  return inputs;\n}",

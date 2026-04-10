@@ -53,7 +53,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__infected",
             weight: 2,
-            type: "standard",
           },
         ],
         lambdaType: "stochastic",
@@ -78,7 +77,6 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__recovered",
             weight: 1,
-            type: "standard",
           },
         ],
         lambdaType: "stochastic",

@@ -163,7 +163,7 @@ describe("isTransitionStructurallyEnabled", () => {
             id: "t1",
             name: "Transition 1",
             inputArcs: [], // No input arcs
-            outputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "p1", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
             transitionKernelCode: "return {};",

@@ -6,8 +6,7 @@ import { TbTrash } from "react-icons/tb";
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
-import { Switch } from "../../../../../components/switch";
-import { Select, type SelectOption } from "../../../../../components/select";
+import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -46,7 +45,6 @@ interface ArcPropertiesData {
   ) => void;
   updateArcType: (
     transitionId: string,
-    arcDirection: "input" | "output",
     placeId: string,
     type: "standard" | "inhibitor",
   ) => void;
@@ -97,7 +95,6 @@ const ArcMainContent: React.FC = () => {
           onValueChange={(value) => {
             updateArcType(
               transitionId,
-              arcDirection,
               placeId,
               value as "inhibitor" | "standard",
             );
@@ -178,7 +175,6 @@ interface ArcPropertiesProps {
   ) => void;
   updateArcType: (
     transitionId: string,
-    arcDirection: "input" | "output",
     placeId: string,
     type: "standard" | "inhibitor",
   ) => void;
@@ -247,7 +243,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       sourceName: sourceTransition.name,
       targetName: targetPlace.name,
       weight: arc?.weight ?? 1,
-      type: arc?.type ?? "standard",
+      type: "standard",
       updateArcWeight,
       updateArcType,
       removeArc,
