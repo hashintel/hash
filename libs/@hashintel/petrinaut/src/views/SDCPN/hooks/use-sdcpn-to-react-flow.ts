@@ -139,6 +139,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: inputArc.weight,
+          arcType: inputArc.type,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
