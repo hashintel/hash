@@ -28,7 +28,11 @@ const overlayStyle = css({
 });
 
 const enteringStyle = css({
-  animation: "drawer-in 150ms ease-out forwards",
+  // No `forwards` — after the animation, the element returns to its base CSS
+  // state (no transform). This avoids creating a permanent stacking context
+  // that breaks `position: fixed` widgets inside the drawer (e.g., Monaco
+  // suggest/hover popups). The natural flex position matches translateX(0).
+  animation: "drawer-in 150ms ease-out",
 });
 
 const exitingStyle = css({

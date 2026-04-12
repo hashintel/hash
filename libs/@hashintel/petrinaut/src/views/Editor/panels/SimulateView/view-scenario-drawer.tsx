@@ -5,7 +5,7 @@ import { Drawer } from "../../../../components/drawer";
 import type { Color, Scenario } from "../../../../core/types/sdcpn";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import type { ScenarioParameterDraft } from "./scenario-form";
-import { ScenarioFormSections } from "./scenario-form";
+import { ScenarioFormSections, useScenarioLspSession } from "./scenario-form";
 
 // -- Component ----------------------------------------------------------------
 
@@ -24,27 +24,43 @@ export const ViewScenarioDrawer = ({
 }: ViewScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
 
-  // Initialize form state from scenario data
-  const [name, setName] = useState(scenario?.name ?? "");
-  const [description, setDescription] = useState(scenario?.description ?? "");
+  // Re-key state whenever the scenario changes so form values reset
+  const scenarioId = scenario?.id ?? null;
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [scenarioParams, setScenarioParams] = useState<
     ScenarioParameterDraft[]
-  >(() =>
-    (scenario?.scenarioParameters ?? []).map((p) => ({
-      ...p,
-      _key: nextKey++,
-    })),
-  );
+  >([]);
   const [parameterOverrides, setParameterOverrides] = useState<
     Record<string, string>
-  >(scenario?.parameterOverrides ?? {});
+  >({});
   const [initialTokenCounts, setInitialTokenCounts] = useState<
     Record<string, string>
-  >(scenario?.initialState ?? {});
+  >({});
   const [initialTokenData, setInitialTokenData] = useState<
     Record<string, number[][]>
   >({});
   const [showAllPlaces, setShowAllPlaces] = useState(false);
+  const [initialStateAsCode, setInitialStateAsCode] = useState(false);
+  const [initialStateCode, setInitialStateCode] = useState("");
+  const [loadedScenarioId, setLoadedScenarioId] = useState<string | null>(null);
+
+  // Reset form state when a different scenario is opened
+  if (scenarioId !== loadedScenarioId && scenario) {
+    setLoadedScenarioId(scenarioId);
+    setName(scenario.name);
+    setDescription(scenario.description ?? "");
+    setScenarioParams(
+      scenario.scenarioParameters.map((p) => ({ ...p, _key: nextKey++ })),
+    );
+    setParameterOverrides(scenario.parameterOverrides);
+    setInitialTokenCounts(scenario.initialState);
+    setInitialTokenData({});
+    setShowAllPlaces(false);
+    setInitialStateAsCode(false);
+    setInitialStateCode("");
+  }
 
   const typesById = useMemo(() => {
     const map = new Map<string, Color>();
@@ -53,6 +69,16 @@ export const ViewScenarioDrawer = ({
     }
     return map;
   }, [petriNetDefinition.types]);
+
+  const scenarioSessionId = useScenarioLspSession({
+    scenarioParams,
+    parameterOverrides,
+    initialTokenCounts,
+    initialStateCode,
+    parameters: petriNetDefinition.parameters,
+    places: petriNetDefinition.places,
+    typesById,
+  });
 
   return (
     <Drawer.Root open={open} onClose={onClose}>
@@ -68,6 +94,8 @@ export const ViewScenarioDrawer = ({
               initialTokenCounts,
               initialTokenData,
               showAllPlaces,
+              initialStateAsCode,
+              initialStateCode,
             }}
             callbacks={{
               onNameChange: setName,
@@ -77,11 +105,14 @@ export const ViewScenarioDrawer = ({
               onInitialTokenCountsChange: setInitialTokenCounts,
               onInitialTokenDataChange: setInitialTokenData,
               onShowAllPlacesChange: setShowAllPlaces,
+              onInitialStateAsCodeChange: setInitialStateAsCode,
+              onInitialStateCodeChange: setInitialStateCode,
             }}
             parameters={petriNetDefinition.parameters}
             places={petriNetDefinition.places}
             typesById={typesById}
             idPrefix="view-"
+            scenarioSessionId={scenarioSessionId}
           />
         </Drawer.Body>
       </Drawer.Card>

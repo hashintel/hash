@@ -70,8 +70,6 @@ export type DifferentialEquation = {
 export type ScenarioParameter = {
   type: "real" | "integer" | "boolean";
   identifier: string;
-  min: number;
-  max: number;
   default: number;
 };
 

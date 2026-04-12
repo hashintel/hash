@@ -10,6 +10,7 @@ import { SegmentGroup } from "../../../../components/segment-group";
 import { Stack } from "../../../../components/stack";
 import type { Scenario } from "../../../../core/types/sdcpn";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
@@ -230,7 +231,8 @@ const ScenarioList = ({
 type DrawerState =
   | { type: "closed" }
   | { type: "view"; scenarioId: string }
-  | { type: "create" };
+  | { type: "create" }
+  | { type: "create-experiment" };
 
 export const SimulateView = () => {
   const [mode, setMode] = useState<SimulateMode>("scenarios");
@@ -274,6 +276,17 @@ export const SimulateView = () => {
               Create scenario
             </Button>
           )}
+          {mode === "experiments" && (
+            <Button
+              variant="ghost"
+              colorScheme="neutral"
+              size="xs"
+              iconLeft={<TbPlus size={14} />}
+              onClick={() => setDrawer({ type: "create-experiment" })}
+            >
+              Create experiment
+            </Button>
+          )}
         </div>
 
         {mode === "scenarios" ? (
@@ -298,7 +311,14 @@ export const SimulateView = () => {
             />
           </>
         ) : (
-          <div className={emptyStateStyle}>Experiments view coming soon</div>
+          <>
+            <div className={emptyStateStyle}>No experiments yet</div>
+
+            <CreateExperimentDrawer
+              open={drawer.type === "create-experiment"}
+              onClose={closeDrawer}
+            />
+          </>
         )}
       </Stack>
     </div>

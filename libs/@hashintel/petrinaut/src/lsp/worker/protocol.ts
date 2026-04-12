@@ -19,7 +19,7 @@ import type {
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN, ScenarioParameter } from "../../core/types/sdcpn";
 
 // Re-export LSP types used by consumers
 export type {
@@ -40,6 +40,20 @@ export type {
 export type PublishDiagnosticsParams = {
   uri: DocumentUri;
   diagnostics: Diagnostic[];
+};
+
+/**
+ * Data describing a scenario editing session for the language server.
+ */
+export type ScenarioSessionParams = {
+  sessionId: string;
+  scenarioParameters: ScenarioParameter[];
+  /** Parameter ID → expression string */
+  parameterOverrides: Record<string, string>;
+  /** Place ID → expression string */
+  initialState: Record<string, string>;
+  /** Full code for "Define as code" initial state mode */
+  initialStateCode?: string;
 };
 
 /** Position in a text document (LSP standard: line/character based). */
@@ -71,6 +85,21 @@ type ClientNotification =
         textDocument: TextDocumentIdentifier;
         text: string;
       };
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/scenario/initialize";
+      params: ScenarioSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/scenario/didChange";
+      params: ScenarioSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/scenario/kill";
+      params: { sessionId: string };
     };
 
 /** Requests (expect a response with matching `id`). */

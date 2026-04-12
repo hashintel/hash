@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useMemo } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
@@ -15,6 +15,9 @@ import type {
   Place,
   ScenarioParameter,
 } from "../../../../core/types/sdcpn";
+import { LanguageClientContext } from "../../../../lsp/context";
+import { CodeEditor } from "../../../../monaco/code-editor";
+import { getScenarioDocumentUri } from "../../../../monaco/editor-paths";
 
 // -- Form styles --------------------------------------------------------------
 
@@ -140,6 +143,12 @@ const placeBlockStyle = css({
   gap: "[6px]",
 });
 
+const hintStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  lineHeight: "[1.4]",
+});
+
 const emptyStyle = css({
   fontSize: "sm",
   color: "neutral.s80",
@@ -174,6 +183,7 @@ const PlaceInitialStateRow = ({
   onTokenCountChange,
   tokenData,
   onTokenDataChange,
+  documentUri,
 }: {
   place: Place;
   placeType: Color | undefined;
@@ -181,6 +191,7 @@ const PlaceInitialStateRow = ({
   onTokenCountChange: (value: string) => void;
   tokenData: number[][];
   onTokenDataChange: (data: number[][]) => void;
+  documentUri?: string;
 }) => {
   const columns: SpreadsheetColumn[] = useMemo(
     () =>
@@ -209,10 +220,12 @@ const PlaceInitialStateRow = ({
   return (
     <div className={placeRowStyle}>
       <span className={placeNameStyle}>{place.name}</span>
-      <Input
-        size="sm"
+      <CodeEditor
+        singleLine
+        language="typescript"
+        path={documentUri}
         value={tokenCount}
-        onChange={(e) => onTokenCountChange(e.target.value)}
+        onChange={(v) => onTokenCountChange(v ?? "")}
         placeholder="0"
       />
     </div>
@@ -229,6 +242,8 @@ export interface ScenarioFormState {
   initialTokenCounts: Record<string, string>;
   initialTokenData: Record<string, number[][]>;
   showAllPlaces: boolean;
+  initialStateAsCode: boolean;
+  initialStateCode: string;
 }
 
 export interface ScenarioFormCallbacks {
@@ -247,6 +262,97 @@ export interface ScenarioFormCallbacks {
     updater: (prev: Record<string, number[][]>) => Record<string, number[][]>,
   ) => void;
   onShowAllPlacesChange: (value: boolean) => void;
+  onInitialStateAsCodeChange: (value: boolean) => void;
+  onInitialStateCodeChange: (value: string) => void;
+}
+
+// -- LSP session hook ---------------------------------------------------------
+
+/**
+ * Manages a temporary LSP session for scenario expression type-checking.
+ * Generates a unique session ID, initializes on mount, updates on structural
+ * changes, and kills on unmount.
+ */
+export function useScenarioLspSession({
+  scenarioParams,
+  parameterOverrides,
+  initialTokenCounts,
+  initialStateCode,
+  parameters,
+  places,
+  typesById,
+}: {
+  scenarioParams: ScenarioParameterDraft[];
+  parameterOverrides: Record<string, string>;
+  initialTokenCounts: Record<string, string>;
+  initialStateCode: string;
+  parameters: Parameter[];
+  places: Place[];
+  typesById: Map<string, Color>;
+}): string {
+  const {
+    initializeScenarioSession,
+    updateScenarioSession,
+    killScenarioSession,
+  } = use(LanguageClientContext);
+  // Use state (not ref) because the session ID is read during render (returned + used in JSX)
+  const [sessionId] = useState(() => crypto.randomUUID());
+  const initializedRef = useRef(false);
+
+  // Build session data for all parameters and places that use code editors
+  const sessionData = useMemo(() => {
+    // Include entries for ALL net-level parameters (even empty) so files exist from the start
+    const allOverrides: Record<string, string> = {};
+    for (const param of parameters) {
+      allOverrides[param.id] = parameterOverrides[param.id] ?? "";
+    }
+
+    // Include entries for places that use code editors (not spreadsheets)
+    const allInitialState: Record<string, string> = {};
+    for (const place of places) {
+      const placeType = place.colorId
+        ? typesById.get(place.colorId)
+        : undefined;
+      // Only create files for places with code editors (not multi-element spreadsheets)
+      if (!placeType || placeType.elements.length === 0) {
+        allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
+      }
+    }
+
+    return {
+      sessionId,
+      scenarioParameters: scenarioParams.map(({ _key: _, ...rest }) => rest),
+      parameterOverrides: allOverrides,
+      initialState: allInitialState,
+      initialStateCode,
+    };
+  }, [
+    sessionId,
+    scenarioParams,
+    parameterOverrides,
+    initialTokenCounts,
+    initialStateCode,
+    parameters,
+    places,
+    typesById,
+  ]);
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initializeScenarioSession(sessionData);
+      initializedRef.current = true;
+    } else {
+      updateScenarioSession(sessionData);
+    }
+  }, [sessionData, initializeScenarioSession, updateScenarioSession]);
+
+  useEffect(() => {
+    return () => {
+      killScenarioSession(sessionId);
+    };
+  }, [sessionId, killScenarioSession]);
+
+  return sessionId;
 }
 
 interface ScenarioFormSectionsProps {
@@ -260,6 +366,8 @@ interface ScenarioFormSectionsProps {
   typesById: Map<string, Color>;
   /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
   idPrefix?: string;
+  /** LSP session ID for scenario expression type-checking */
+  scenarioSessionId?: string;
 }
 
 let nextKey = 0;
@@ -271,6 +379,7 @@ export const ScenarioFormSections = ({
   places,
   typesById,
   idPrefix = "",
+  scenarioSessionId,
 }: ScenarioFormSectionsProps) => {
   const addScenarioParam = () => {
     callbacks.onScenarioParamsChange((prev) => [
@@ -279,8 +388,6 @@ export const ScenarioFormSections = ({
         _key: nextKey++,
         identifier: "",
         type: "real",
-        min: 0,
-        max: 100,
         default: 0,
       },
     ]);
@@ -349,6 +456,10 @@ export const ScenarioFormSections = ({
           </IconButton>
         )}
       >
+        <span className={hintStyle}>
+          Variables specific to this scenario that can be adjusted when creating
+          an experiment.
+        </span>
         {state.scenarioParams.length === 0 ? (
           <span className={emptyStyle}>No scenario parameters</span>
         ) : (
@@ -386,30 +497,6 @@ export const ScenarioFormSections = ({
                 />
               </div>
               <div className={paramFieldSmStyle}>
-                <span className={paramLabelStyle}>Min</span>
-                <Input
-                  size="sm"
-                  value={String(param.min)}
-                  onChange={(e) =>
-                    updateScenarioParam(param._key, {
-                      min: Number(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
-              <div className={paramFieldSmStyle}>
-                <span className={paramLabelStyle}>Max</span>
-                <Input
-                  size="sm"
-                  value={String(param.max)}
-                  onChange={(e) =>
-                    updateScenarioParam(param._key, {
-                      max: Number(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
-              <div className={paramFieldSmStyle}>
                 <span className={paramLabelStyle}>Default</span>
                 <Input
                   size="sm"
@@ -436,7 +523,10 @@ export const ScenarioFormSections = ({
       </Section>
 
       {/* -- Parameters (net-level overrides) ------------------------- */}
-      <Section title="SDCPN Parameters Values" collapsible defaultOpen>
+      <Section title="Parameter Bindings" collapsible defaultOpen>
+        <span className={hintStyle}>
+          Override the default values of net-level parameters for this scenario.
+        </span>
         {parameters.length === 0 ? (
           <span className={emptyStyle}>No parameters defined in the net</span>
         ) : (
@@ -444,13 +534,23 @@ export const ScenarioFormSections = ({
             <div key={param.id} className={overrideRowStyle}>
               <span className={overrideNameStyle}>{param.name}</span>
               <span className={overrideTypeStyle}>{param.type}</span>
-              <Input
-                size="sm"
+              <CodeEditor
+                singleLine
+                language="typescript"
+                path={
+                  scenarioSessionId
+                    ? getScenarioDocumentUri(
+                        "scenario-param-override",
+                        scenarioSessionId,
+                        param.id,
+                      )
+                    : undefined
+                }
                 value={state.parameterOverrides[param.id] ?? ""}
-                onChange={(e) =>
+                onChange={(v) =>
                   callbacks.onParameterOverridesChange((prev) => ({
                     ...prev,
-                    [param.id]: e.target.value,
+                    [param.id]: v ?? "",
                   }))
                 }
                 placeholder={param.defaultValue}
@@ -467,15 +567,40 @@ export const ScenarioFormSections = ({
         defaultOpen
         renderHeaderAction={() => (
           <div className={switchLabelStyle}>
-            <span>Show all</span>
+            {!state.initialStateAsCode && (
+              <>
+                <span>Show all</span>
+                <Switch
+                  checked={state.showAllPlaces}
+                  onCheckedChange={callbacks.onShowAllPlacesChange}
+                />
+              </>
+            )}
+            <span>Define as code</span>
             <Switch
-              checked={state.showAllPlaces}
-              onCheckedChange={callbacks.onShowAllPlacesChange}
+              checked={state.initialStateAsCode}
+              onCheckedChange={callbacks.onInitialStateAsCodeChange}
             />
           </div>
         )}
       >
-        {places.length === 0 ? (
+        {state.initialStateAsCode ? (
+          <CodeEditor
+            language="typescript"
+            path={
+              scenarioSessionId
+                ? getScenarioDocumentUri(
+                    "scenario-initial-state-full-code",
+                    scenarioSessionId,
+                    "",
+                  )
+                : undefined
+            }
+            value={state.initialStateCode}
+            onChange={(v) => callbacks.onInitialStateCodeChange(v ?? "")}
+            height="300px"
+          />
+        ) : places.length === 0 ? (
           <span className={emptyStyle}>No places defined in the net</span>
         ) : (
           [...places]
@@ -505,6 +630,15 @@ export const ScenarioFormSections = ({
                     ...prev,
                     [place.id]: data,
                   }))
+                }
+                documentUri={
+                  scenarioSessionId
+                    ? getScenarioDocumentUri(
+                        "scenario-initial-state",
+                        scenarioSessionId,
+                        place.id,
+                      )
+                    : undefined
                 }
               />
             ))

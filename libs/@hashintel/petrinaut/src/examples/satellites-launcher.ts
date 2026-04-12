@@ -225,10 +225,10 @@ export default TransitionKernel((tokens) => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `export default Lambda((tokensByPlace, parameters) => {
-  return 1;
+  return parameters.launch_rate;
 });`,
         transitionKernelCode: `export default TransitionKernel((tokensByPlace, parameters) => {
-  const distance = 80;
+  const distance = parameters.orbit_altitude;
   const angle = Distribution.Uniform(0, Math.PI * 2);
 
   return {
@@ -237,7 +237,7 @@ export default TransitionKernel((tokens) => {
         x: angle.map(a => Math.cos(a) * distance),
         y: angle.map(a => Math.sin(a) * distance),
         direction: Distribution.Uniform(0, Math.PI * 2),
-        velocity: Distribution.Gaussian(60, 20)
+        velocity: Distribution.Gaussian(parameters.mean_velocity, parameters.velocity_spread)
       }
     ],
   };
@@ -341,6 +341,128 @@ export default Dynamics((tokens, parameters) => {
         variableName: "gravitational_constant",
         type: "real",
         defaultValue: "400000.0",
+      },
+      {
+        id: "param__launch_rate",
+        name: "Launch Rate",
+        variableName: "launch_rate",
+        type: "real",
+        defaultValue: "1.0",
+      },
+      {
+        id: "param__orbit_altitude",
+        name: "Orbit Altitude",
+        variableName: "orbit_altitude",
+        type: "real",
+        defaultValue: "80",
+      },
+      {
+        id: "param__mean_velocity",
+        name: "Mean Velocity",
+        variableName: "mean_velocity",
+        type: "real",
+        defaultValue: "60",
+      },
+      {
+        id: "param__velocity_spread",
+        name: "Velocity Spread",
+        variableName: "velocity_spread",
+        type: "real",
+        defaultValue: "20",
+      },
+    ],
+    scenarios: [
+      {
+        id: "scenario__moon_orbit",
+        name: "Moon Orbit",
+        description:
+          "Low gravity, small body. Satellites drift in gentle arcs around a lunar-mass body.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.5 },
+          { type: "real", identifier: "orbit_altitude", default: 35 },
+          { type: "real", identifier: "velocity_spread", default: 4 },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "14",
+          "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d": "2",
+          "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e": "6",
+          "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f": "3",
+          param__launch_rate: "launch_rate",
+          param__orbit_altitude: "orbit_altitude",
+          param__mean_velocity: "Math.sqrt(5000 / orbit_altitude)",
+          param__velocity_spread: "velocity_spread",
+        },
+        initialState: {},
+      },
+      {
+        id: "scenario__earth_orbit",
+        name: "Earth Orbit",
+        description:
+          "Standard Earth gravity. High orbital velocities with frequent launches into low orbit.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 1 },
+          { type: "real", identifier: "orbit_altitude", default: 80 },
+          { type: "real", identifier: "velocity_spread", default: 20 },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "400000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "50",
+          "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d": "4",
+          "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e": "10",
+          "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f": "5",
+          param__launch_rate: "launch_rate",
+          param__orbit_altitude: "orbit_altitude",
+          param__mean_velocity: "Math.sqrt(400000 / orbit_altitude)",
+          param__velocity_spread: "velocity_spread",
+        },
+        initialState: {},
+      },
+      {
+        id: "scenario__mars_orbit",
+        name: "Mars Orbit",
+        description:
+          "Intermediate gravity between Moon and Earth. Moderate orbital speeds with a thin atmosphere margin.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.8 },
+          { type: "real", identifier: "orbit_altitude", default: 55 },
+          { type: "real", identifier: "velocity_spread", default: 8 },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "43000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "27",
+          "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d": "3",
+          "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e": "8",
+          "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f": "4",
+          param__launch_rate: "launch_rate",
+          param__orbit_altitude: "orbit_altitude",
+          param__mean_velocity: "Math.sqrt(43000 / orbit_altitude)",
+          param__velocity_spread: "velocity_spread",
+        },
+        initialState: {},
+      },
+      {
+        id: "scenario__solar_orbit",
+        name: "Solar Orbit",
+        description:
+          "Massive central body with extreme gravity. Satellites need very high velocities to maintain distant orbits.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.3 },
+          { type: "real", identifier: "orbit_altitude", default: 160 },
+          { type: "real", identifier: "velocity_spread", default: 30 },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "80",
+          "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d": "3",
+          "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e": "12",
+          "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f": "8",
+          param__launch_rate: "launch_rate",
+          param__orbit_altitude: "orbit_altitude",
+          param__mean_velocity: "Math.sqrt(5000000 / orbit_altitude)",
+          param__velocity_spread: "velocity_spread",
+        },
+        initialState: {},
       },
     ],
   },
