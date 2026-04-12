@@ -1,13 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbArrowRight } from "react-icons/tb";
 
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
-import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 
 const containerStyle = css({
@@ -99,61 +97,16 @@ const emptyMessageStyle = css({
   fontStyle: "italic",
 });
 
-const errorContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  paddingY: "2",
-  paddingX: "3",
-  backgroundColor: "red.bg.min",
-  borderRadius: "sm",
-  marginTop: "2",
-});
-
-const errorTextStyle = css({
-  fontSize: "[11px]",
-  color: "red.s60",
-  maxWidth: "[400px]",
-  wordWrap: "break-word",
-  userSelect: "text",
-  cursor: "text",
-  textWrap: "wrap",
-});
-
-const editButtonStyle = css({
-  fontSize: "[11px]",
-  paddingY: "1",
-  paddingX: "2",
-  border: "[1px solid rgba(211, 47, 47, 0.3)]",
-  borderRadius: "sm",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "red.s60",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  marginTop: "1",
-  alignSelf: "flex-start",
-});
-
-const editButtonIconStyle = css({
-  fontSize: "xs",
-});
-
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel.
  * Split into two sections: Computation and Parameters.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const { setGlobalMode, selectItem } = use(EditorContext);
   const {
-    getItemType,
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
   const {
     state: simulationState,
-    error: simulationError,
-    errorItemId,
     dt,
     setDt,
     parameterValues,
@@ -250,29 +203,6 @@ const SimulationSettingsContent: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Error Display */}
-      {simulationState === "Error" && simulationError && (
-        <div className={errorContainerStyle}>
-          <pre className={errorTextStyle}>{simulationError}</pre>
-          {errorItemId && (
-            <button
-              type="button"
-              onClick={() => {
-                setGlobalMode("edit");
-                const itemType = getItemType(errorItemId);
-                if (itemType) {
-                  selectItem({ type: itemType, id: errorItemId });
-                }
-              }}
-              className={editButtonStyle}
-            >
-              Edit Item
-              <TbArrowRight className={editButtonIconStyle} />
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 };
