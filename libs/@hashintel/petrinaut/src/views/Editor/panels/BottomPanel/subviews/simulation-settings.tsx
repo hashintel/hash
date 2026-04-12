@@ -9,23 +9,25 @@ import { SimulationContext } from "../../../../../simulation/context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 
 const containerStyle = css({
-  display: "flex",
-  flexDirection: "row",
+  display: "grid",
+  gridTemplateColumns: "[1fr 1fr]",
   gap: "8",
+  height: "full",
+  minHeight: "[0]",
 });
 
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  flex: "[1]",
+  minHeight: "[0]",
 });
 
 const sectionTitleStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[10px]",
   fontWeight: "semibold",
   textTransform: "uppercase",
-  color: "neutral.a80",
+  color: "neutral.a100",
   letterSpacing: "[0.5px]",
   marginBottom: "1",
 });
@@ -63,6 +65,8 @@ const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
+  overflowY: "auto",
+  minHeight: "[0]",
 });
 
 const parameterRowStyle = css({
@@ -120,86 +124,84 @@ const SimulationSettingsContent: React.FC = () => {
     simulationState === "Running" || simulationState === "Paused";
 
   return (
-    <div>
-      <div className={containerStyle}>
-        {/* Parameters Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Parameters</div>
-          {parameters.length > 0 ? (
-            <div className={parametersListStyle}>
-              {parameters.map((param) => (
-                <div key={param.id} className={parameterRowStyle}>
-                  <div>
-                    <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
+    <div className={containerStyle}>
+      {/* Parameters Section */}
+      <div className={sectionStyle}>
+        <div className={sectionTitleStyle}>Parameters</div>
+        {parameters.length > 0 ? (
+          <div className={parametersListStyle}>
+            {parameters.map((param) => (
+              <div key={param.id} className={parameterRowStyle}>
+                <div>
+                  <div className={parameterNameStyle}>{param.name}</div>
+                  <div className={parameterVarNameStyle}>
+                    {param.variableName}
                   </div>
-                  <NumberInput
-                    size="xs"
-                    value={
-                      parameterValues[param.variableName] ?? param.defaultValue
-                    }
-                    onChange={(event) =>
-                      setParameterValue(
-                        param.variableName,
-                        (event.target as HTMLInputElement).value,
-                      )
-                    }
-                    placeholder={param.defaultValue}
-                    disabled={isSimulationActive}
-                    className={parameterInputStyle}
-                  />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className={emptyMessageStyle}>No parameters defined</div>
-          )}
-        </div>
-
-        {/* Computation Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Computation</div>
-          <div className={settingsRowStyle}>
-            {/* Time Step Input */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="time-step-input" className={labelStyle}>
-                Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-              </label>
-              <NumberInput
-                id="time-step-input"
-                size="xs"
-                min={0.01}
-                step={0.01}
-                value={dt}
-                onChange={(event) => {
-                  const value = Number.parseFloat(
-                    (event.target as HTMLInputElement).value,
-                  );
-                  if (value > 0) {
-                    setDt(value);
+                <NumberInput
+                  size="xs"
+                  value={
+                    parameterValues[param.variableName] ?? param.defaultValue
                   }
-                }}
-                disabled={isSimulationActive}
-                className={settingInputStyle}
-              />
-            </div>
-            {/* ODE Solver Method Select */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="ode-solver-select" className={labelStyle}>
-                ODE Solver
-              </label>
-              <Select
-                value={odeSolver}
-                onValueChange={(value) => setOdeSolver(value)}
-                options={[{ value: "euler", label: "Euler" }]}
-                size="xs"
-                disabled={isSimulationActive}
-                className={settingInputStyle}
-              />
-            </div>
+                  onChange={(event) =>
+                    setParameterValue(
+                      param.variableName,
+                      (event.target as HTMLInputElement).value,
+                    )
+                  }
+                  placeholder={param.defaultValue}
+                  disabled={isSimulationActive}
+                  className={parameterInputStyle}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={emptyMessageStyle}>No parameters defined</div>
+        )}
+      </div>
+
+      {/* Computation Section */}
+      <div className={sectionStyle}>
+        <div className={sectionTitleStyle}>Computation</div>
+        <div className={settingsRowStyle}>
+          {/* Time Step Input */}
+          <div className={settingGroupStyle}>
+            <label htmlFor="time-step-input" className={labelStyle}>
+              Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+              <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
+            </label>
+            <NumberInput
+              id="time-step-input"
+              size="xs"
+              min={0.001}
+              step={0.001}
+              value={dt}
+              onChange={(event) => {
+                const value = Number.parseFloat(
+                  (event.target as HTMLInputElement).value,
+                );
+                if (value > 0) {
+                  setDt(value);
+                }
+              }}
+              disabled={isSimulationActive}
+              className={settingInputStyle}
+            />
+          </div>
+          {/* ODE Solver Method Select */}
+          <div className={settingGroupStyle}>
+            <label htmlFor="ode-solver-select" className={labelStyle}>
+              ODE Solver
+            </label>
+            <Select
+              value={odeSolver}
+              onValueChange={(value) => setOdeSolver(value)}
+              options={[{ value: "euler", label: "Euler" }]}
+              size="xs"
+              disabled={isSimulationActive}
+              className={settingInputStyle}
+            />
           </div>
         </div>
       </div>
