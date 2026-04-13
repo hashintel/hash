@@ -33,13 +33,12 @@ A type defines the structure of tokens in a place: what dimensions they have and
 1. Open the **Types** tab in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
-4. Add **dimensions** -- each has a name and a type (`real`, `integer`, or `boolean`). // TODO BEFORE ADDING DOCS: does this actually do anything?
 
 <!-- screenshot: type properties panel with dimensions -->
 
 **To assign a type to a place:** select the place, then choose the type from the **Accepted token type** dropdown in the properties panel.
 
-Once a place has a type, its tokens are accessible in code as structured objects. For example, a type with dimensions `x` (real) and `y` (real) means each token is `{ x: number, y: number }`.
+Once a place has a type, its tokens are accessible in code as structured objects. For example, a type with dimensions `x` and `y` means each token is `{ x: number, y: number }`.
 
 ## Differential equations (dynamics)
 
