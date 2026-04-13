@@ -16,6 +16,29 @@ export const providerDisplayNames: Record<string, string> = {
 export const formatKratosMessage = (message: UiText): ReactNode => {
   const context = message.context as Record<string, unknown> | undefined;
 
+  // Recovery success (Kratos message 1060001):
+  // Original: 'You successfully recovered your account. Please change your
+  // password or set up an alternative login method (e.g. social sign in)
+  // within the next X.XX minutes.'
+  if (message.id === 1060001) {
+    const expiresAt = (context?.privilegedSessionExpiresAt ??
+      context?.privileged_session_expires_at) as string | undefined;
+
+    let remainingMinutes: number | undefined;
+    if (expiresAt) {
+      remainingMinutes = Math.max(
+        1,
+        Math.round((new Date(expiresAt).getTime() - Date.now()) / 60_000),
+      );
+    }
+
+    const timeWindow = remainingMinutes
+      ? `${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"}`
+      : "a few minutes";
+
+    return `You successfully recovered your account. Please change your password within the next ${timeWindow}.`;
+  }
+
   // Account linking (Kratos message 1010016):
   // Original: 'You tried to sign in with "email", but that email is already
   // used by another account...'
