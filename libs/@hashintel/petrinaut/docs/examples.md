@@ -64,10 +64,10 @@ A manufacturing system where machines produce goods, accumulate damage, break do
 
 **Suggested initial state:**
 
-| Place | Tokens | Values |
-|-------|--------|--------|
-| RawMaterial | 100 | (untyped) |
-| AvailableMachines | 3 | `machine_damage_ratio: 0` each |
+| Place             | Tokens | Values                         |
+| ----------------- | ------ | ------------------------------ |
+| RawMaterial       | 100    | (untyped)                      |
+| AvailableMachines | 3      | `machine_damage_ratio: 0` each |
 
 All other places start empty. "Start Production" will immediately consume a raw material and an available machine to begin.
 
@@ -89,11 +89,11 @@ An orbital mechanics simulation with satellites orbiting Earth, subject to colli
 
 **Suggested initial state:** add 3--5 satellite tokens to the Space place. Position them in a rough orbit around the origin (Earth is at 0,0). For example:
 
-| x | y | direction | velocity |
-|---|---|-----------|----------|
-| 80 | 0 | 1.57 | 70 |
-| 0 | 100 | 3.14 | 55 |
-| -60 | -60 | 0.78 | 80 |
+| x   | y    | direction | velocity |
+| --- | ---- | --------- | -------- |
+| 80  | 0    | 1.57      | 70       |
+| 0   | 100  | 3.14      | 55       |
+| -60 | -60  | 0.78      | 80       |
 
 The velocity needed for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`. With the default `gravitational_constant` of 400000, that's about 71 at radius 80. Select the Space place and open the visualizer preview to watch the orbits.
 

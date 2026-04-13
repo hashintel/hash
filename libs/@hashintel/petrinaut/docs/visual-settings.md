@@ -44,8 +44,8 @@ Replaces the tabbed left sidebar with a unified **tree view** showing all entiti
 
 Choose how arcs are drawn between nodes:
 
-| Style | Description |
-|-------|-------------|
-| **Square** | Right-angle paths (smoothstep routing). |
-| **Bezier** | Smooth curved paths. |
-| **Adaptive Bezier** | Curved paths that adjust based on node positions. |
+| Style               | Description                                        |
+| ------------------- | -------------------------------------------------- |
+| **Square**          | Right-angle paths (smoothstep routing).            |
+| **Bezier**          | Smooth curved paths.                               |
+| **Adaptive Bezier** | Curved paths that adjust based on node positions.  |

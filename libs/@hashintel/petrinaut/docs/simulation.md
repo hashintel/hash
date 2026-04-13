@@ -75,10 +75,10 @@ If transitions are structurally enabled but their lambdas prevent firing, the si
 
 The bottom toolbar provides playback controls:
 
-| Control | Description |
-|---------|-------------|
-| **Play** | Start or resume playback. |
-| **Pause** | Pause at the current frame. |
+| Control          | Description                         |
+| ---------------- | ----------------------------------- |
+| **Play**         | Start or resume playback.           |
+| **Pause**        | Pause at the current frame.         |
 | **Stop / Reset** | Stop playback and reset to frame 0. |
 
 The frame counter shows the current frame number, total frames, and elapsed simulation time.
@@ -93,11 +93,11 @@ Choose a playback speed multiplier: **1x**, **2x**, **5x**, **10x**, **30x**, **
 
 Controls how computation and playback interact:
 
-| Mode | Behavior |
-|------|----------|
+| Mode                         | Behavior                                                    |
+| ---------------------------- | ----------------------------------------------------------- |
 | **Play computed steps only** | Replay already-computed frames without further computation. |
-| **Play + compute buffer** | Compute only a small buffer ahead of the playhead. |
-| **Play + compute max** | Compute frames as fast as possible while playing. |
+| **Play + compute buffer**    | Compute only a small buffer ahead of the playhead.          |
+| **Play + compute max**       | Compute frames as fast as possible while playing.           |
 
 ### Stopping condition
 

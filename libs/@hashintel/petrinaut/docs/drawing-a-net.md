@@ -48,10 +48,10 @@ See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-
 
 The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 
-| Mode | Shortcut | Behavior |
-|------|----------|----------|
-| **Pan** | H | Click and drag to pan the canvas. This is the default. |
-| **Select** | V | Click and drag to draw a selection box around nodes. |
+| Mode       | Shortcut | Behavior                                               |
+| ---------- | -------- | ------------------------------------------------------ |
+| **Pan**    | H        | Click and drag to pan the canvas. This is the default. |
+| **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
 With a selection, you can:
 
@@ -68,12 +68,12 @@ Whether a node must be fully inside or only partially inside the selection box i
 
 The left sidebar has four tabs for creating and managing entities:
 
-| Tab | Contents |
-|-----|----------|
-| **Nodes** | All places and transitions. Click to select and open properties. |
-| **Types** | Token types (colours). Click **+** to create a new type. |
-| **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create. |
-| **Parameters** | Global parameters available in all user code. Click **+** to create. |
+| Tab                        | Contents                                                              |
+| -------------------------- | --------------------------------------------------------------------- |
+| **Nodes**                  | All places and transitions. Click to select and open properties.      |
+| **Types**                  | Token types (colours). Click **+** to create a new type.              |
+| **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.       |
+| **Parameters**             | Global parameters available in all user code. Click **+** to create.  |
 
 Toggle the sidebar with the button in the top-left corner.
 
@@ -89,20 +89,20 @@ The recent history is displayed in the top-right corner. Click on a history entr
 
 ## Keyboard shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| N | Add Place mode |
-| T | Add Transition mode |
-| H | Pan mode |
-| V | Select mode |
-| Escape | Clear selection, return to cursor mode |
-| Cmd+A | Select all places and transitions |
-| Cmd+C | Copy selection |
-| Cmd+V | Paste |
-| Cmd+Z | Undo |
-| Cmd+Shift+Z | Redo |
-| Cmd+F | Search |
-| Delete / Backspace | Delete selection |
+| Shortcut             | Action                                  |
+| -------------------- | --------------------------------------- |
+| N                    | Add Place mode                          |
+| T                    | Add Transition mode                     |
+| H                    | Pan mode                                |
+| V                    | Select mode                             |
+| Escape               | Clear selection, return to cursor mode  |
+| Cmd+A                | Select all places and transitions       |
+| Cmd+C                | Copy selection                          |
+| Cmd+V                | Paste                                   |
+| Cmd+Z                | Undo                                    |
+| Cmd+Shift+Z          | Redo                                    |
+| Cmd+F                | Search                                  |
+| Delete / Backspace   | Delete selection                        |
 
 ## Snap to grid
 

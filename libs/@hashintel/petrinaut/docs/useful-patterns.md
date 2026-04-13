@@ -56,7 +56,7 @@ Use a place as a **pool** of tokens representing limited resources (machines, wo
 
 **Structure:**
 
-```
+```text
 [Available] ---> (StartWork) ---> [InUse] ---> (FinishWork) ---> [Available]
 ```
 
@@ -70,7 +70,7 @@ Use an [inhibitor arc](petri-net-extensions.md#inhibitor-arcs) from a "busy" or 
 
 **Structure:**
 
-```
+```text
 [Busy] ---o (StartNew)    (inhibitor arc, weight 1)
 ```
 
@@ -111,7 +111,7 @@ Multiple transitions consuming from the **same place** with **complementary pred
 
 **Structure:**
 
-```
+```text
               /--> (Pass)  ---> [Dispatched]
 [QAQueue] --<
               \--> (Fail)  ---> [Disposed]
