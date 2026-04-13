@@ -50,10 +50,12 @@ export type ScenarioSessionParams = {
   scenarioParameters: ScenarioParameter[];
   /** Parameter ID → expression string */
   parameterOverrides: Record<string, string>;
-  /** Place ID → expression string */
+  /** Place ID → expression string (used when initialStateAsCode is false) */
   initialState: Record<string, string>;
-  /** Full code for "Define as code" initial state mode */
+  /** Full code for "Define as code" initial state mode (used when initialStateAsCode is true) */
   initialStateCode?: string;
+  /** Which initial state mode is active. Only the active mode's files are linted. */
+  initialStateAsCode: boolean;
 };
 
 /** Position in a text document (LSP standard: line/character based). */

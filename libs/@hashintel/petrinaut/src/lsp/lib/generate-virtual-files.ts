@@ -248,10 +248,12 @@ export type ScenarioSessionData = {
   scenarioParameters: ScenarioParameter[];
   /** Parameter ID → expression string */
   parameterOverrides: Record<string, string>;
-  /** Place ID → expression string */
+  /** Place ID → expression string (used when initialStateAsCode is false) */
   initialState: Record<string, string>;
-  /** Full code for "Define as code" initial state mode */
+  /** Full code for "Define as code" initial state mode (used when initialStateAsCode is true) */
   initialStateCode?: string;
+  /** Which initial state mode is active. Only the active mode's files are generated. */
+  initialStateAsCode: boolean;
 };
 
 /**
@@ -301,6 +303,11 @@ export function generateScenarioSessionFiles(
     if (!param) {
       continue;
     }
+    // Skip empty expressions — they fall back to the parameter's default value
+    // at runtime, so there's nothing for the LSP to lint.
+    if (expression.trim() === "") {
+      continue;
+    }
     const returnType = toTsType(param.type);
     const filePath = getItemFilePath("scenario-param-override-code", {
       sessionId,
@@ -313,8 +320,9 @@ export function generateScenarioSessionFiles(
     });
   }
 
-  // Generate full code file for "Define as code" initial state
-  if (session.initialStateCode !== undefined) {
+  // Generate full code file for "Define as code" initial state — only when
+  // that mode is active so we don't lint stale code from the inactive mode.
+  if (session.initialStateAsCode && session.initialStateCode !== undefined) {
     // Build return type: { "PlaceName"?: TokenType[], ... }
     const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
     const initialStateTypeImports: string[] = [];
@@ -365,18 +373,25 @@ export function generateScenarioSessionFiles(
     });
   }
 
-  // Generate code files for initial state expressions
-  for (const [placeId, expression] of Object.entries(session.initialState)) {
-    const filePath = getItemFilePath("scenario-initial-state-code", {
-      sessionId,
-      placeId,
-    });
-    // Initial state expressions for simple places return a number (token count)
-    files.set(filePath, {
-      prefix: `${commonPrefix}\nfunction __check(): number { return (\n`,
-      content: expression,
-      suffix: `\n); }`,
-    });
+  // Generate code files for per-place initial state expressions — only when
+  // that mode is active.
+  if (!session.initialStateAsCode) {
+    for (const [placeId, expression] of Object.entries(session.initialState)) {
+      // Skip empty expressions — they fall back to 0 tokens at runtime.
+      if (expression.trim() === "") {
+        continue;
+      }
+      const filePath = getItemFilePath("scenario-initial-state-code", {
+        sessionId,
+        placeId,
+      });
+      // Initial state expressions for simple places return a number (token count)
+      files.set(filePath, {
+        prefix: `${commonPrefix}\nfunction __check(): number { return (\n`,
+        content: expression,
+        suffix: `\n); }`,
+      });
+    }
   }
 
   return files;

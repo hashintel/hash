@@ -120,6 +120,7 @@ function toSessionData(params: ScenarioSessionParams): ScenarioSessionData {
     parameterOverrides: params.parameterOverrides,
     initialState: params.initialState,
     initialStateCode: params.initialStateCode,
+    initialStateAsCode: params.initialStateAsCode,
   };
 }
 

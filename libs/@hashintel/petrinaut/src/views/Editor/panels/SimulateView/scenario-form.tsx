@@ -300,6 +300,7 @@ export function useScenarioLspSession({
   parameterOverrides,
   initialTokenCounts,
   initialStateCode,
+  initialStateAsCode,
   parameters,
   places,
   typesById,
@@ -308,6 +309,7 @@ export function useScenarioLspSession({
   parameterOverrides: Record<string, string>;
   initialTokenCounts: Record<string, string>;
   initialStateCode: string;
+  initialStateAsCode: boolean;
   parameters: Parameter[];
   places: Place[];
   typesById: Map<string, Color>;
@@ -344,6 +346,7 @@ export function useScenarioLspSession({
     parameterOverrides: allOverrides,
     initialState: allInitialState,
     initialStateCode,
+    initialStateAsCode,
   };
 
   useEffect(() => {
@@ -692,6 +695,7 @@ export const ScenarioFormBody = ({
     parameterOverrides: values.parameterOverrides,
     initialTokenCounts: values.initialTokenCounts,
     initialStateCode: values.initialStateCode,
+    initialStateAsCode: values.initialStateAsCode,
     parameters,
     places,
     typesById,
