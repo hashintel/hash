@@ -4,7 +4,7 @@ import { use } from "react";
 import { TbMathFunction } from "react-icons/tb";
 
 import { hexToHsl } from "../../../lib/hsl-color";
-import { addPascalCaseBreakPoints } from "../../../lib/split-pascal-case";
+import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
@@ -89,7 +89,6 @@ const labelContainerStyle = css({
 });
 
 const labelSegmentStyle = css({
-  display: "inline-block",
   overflowWrap: "break-word",
   lineClamp: "3",
   maxWidth: "[100%]",
@@ -133,8 +132,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
-  // Add breakpoints to labels to split on pascal case
-  const label = addPascalCaseBreakPoints(data.label);
+  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
+  const label = splitPascalCase(data.label).join("\u200B");
 
   // Determine selection state
   const isInSelection = isSelected(id);
