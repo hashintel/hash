@@ -272,6 +272,12 @@ const SecurityPage: NextPageWithLayout = () => {
     setCurrentPasswordError(undefined);
     persistFlowIdInUrl(flow);
 
+    // @todo H-6417 the password-reentry step below only works for users
+    //   who actually have a password credential — SSO-only users can't
+    //   change their password today. The SSO-compatible forced session
+    //   refresh being designed under H-6417 is the path to fixing this
+    //   (tracked separately as H-6418 for the password-setup UI itself).
+
     const updatePassword = async () => {
       if (!isRecoveryFlow) {
         // Verify the current password by creating and submitting a refresh
