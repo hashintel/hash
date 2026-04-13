@@ -75,6 +75,8 @@ const contentWrapperStyle = css({
   flexDirection: "column",
   alignItems: "center",
   gap: "3",
+  overflowWrap: "break-word",
+  lineClamp: "2",
 });
 
 const labelStyle = css({

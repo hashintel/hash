@@ -74,6 +74,8 @@ const contentWrapperStyle = css({
   flexDirection: "column",
   alignItems: "center",
   gap: "3",
+  overflowWrap: "break-word",
+  minWidth: "0",
 });
 
 const labelContainerStyle = css({
@@ -81,13 +83,17 @@ const labelContainerStyle = css({
   display: "flex",
   flexWrap: "wrap",
   justifyContent: "center",
-  padding: "[12px]",
+  padding: "[12px 0]",
   lineHeight: "[1.1]",
+  maxWidth: "[100%]",
 });
 
 const labelSegmentStyle = css({
   display: "inline-block",
   whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "[100%]",
 });
 
 const tokenCountBadgeStyle = css({
