@@ -120,6 +120,11 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
     const inputTypeProperties: string[] = [];
 
     for (const arc of transition.inputArcs) {
+      // Inhibitor arcs never deliver tokens to the transition, so they should
+      // not contribute to the input type.
+      if (arc.type === "inhibitor") {
+        continue;
+      }
       const place = placeById.get(arc.placeId);
       if (!place?.colorId) {
         continue;
