@@ -102,7 +102,6 @@ const SecurityPage: NextPageWithLayout = () => {
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [currentPasswordError, setCurrentPasswordError] = useState<string>();
   const [totpCode, setTotpCode] = useState("");
-  const [disableTotpCode, setDisableTotpCode] = useState("");
   const [showTotpSetupForm, setShowTotpSetupForm] = useState(false);
   const [showTotpDisableForm, setShowTotpDisableForm] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -384,7 +383,7 @@ const SecurityPage: NextPageWithLayout = () => {
   ) => {
     event.preventDefault();
 
-    if (!flow || !disableTotpCode) {
+    if (!flow) {
       return;
     }
 
@@ -399,53 +398,43 @@ const SecurityPage: NextPageWithLayout = () => {
     //   SSO, passkey), then resume the change on return. Must work for
     //   SSO-only users, so a password-reentry shim alone is not enough.
 
-    // Step 1: Validate the TOTP code to prove the user has authenticator access
-    void submitSettingsUpdate(flow, {
-      method: "totp",
-      totp_code: disableTotpCode,
-      csrf_token: mustGetCsrfTokenFromFlow(flow),
-    })
-      .then(async (verifiedFlow) => {
-        if (!verifiedFlow) {
-          return;
-        }
+    const disableSequence = async () => {
+      // Step 1: Unlink TOTP.
+      const unlinkedFlow = await submitSettingsUpdate(flow, {
+        method: "totp",
+        totp_unlink: true,
+        csrf_token: mustGetCsrfTokenFromFlow(flow),
+      });
 
-        // Step 2: Code was valid, now unlink TOTP
-        const unlinkedFlow = await submitSettingsUpdate(verifiedFlow, {
-          method: "totp",
-          totp_unlink: true,
-          csrf_token: mustGetCsrfTokenFromFlow(verifiedFlow),
-        });
+      if (!unlinkedFlow) {
+        return;
+      }
 
-        if (!unlinkedFlow) {
-          return;
-        }
+      // Step 2: Unlink the `lookup_secret` credential.
+      // `required_aal: highest_available` treats any enrolled second
+      // factor (including backup codes) as enforcing AAL2, so leaving
+      // them behind after removing TOTP would force the user through an
+      // AAL2 prompt with no TOTP to answer it. If this step fails, TOTP
+      // is already gone — surface an error so the user can retry rather
+      // than silently landing in the orphan-AAL2 state.
+      const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
+        method: "lookup_secret",
+        lookup_secret_disable: true,
+        csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
+      });
 
-        // Step 3: Unlink the `lookup_secret` credential.
-        // `required_aal: highest_available` treats any enrolled second
-        // factor (including backup codes) as enforcing AAL2, so leaving
-        // them behind after removing TOTP would force the user through an
-        // AAL2 prompt with no TOTP to answer it. If this step fails, TOTP
-        // is already gone — surface an error so the user can retry rather
-        // than silently landing in the orphan-AAL2 state.
-        const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
-          method: "lookup_secret",
-          lookup_secret_disable: true,
-          csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
-        });
+      if (!clearedFlow) {
+        setErrorMessage(
+          "TOTP was disabled, but backup codes could not be removed. " +
+            "Please reload the page and try again to avoid being locked out.",
+        );
+        return;
+      }
 
-        if (!clearedFlow) {
-          setErrorMessage(
-            "TOTP was disabled, but backup codes could not be removed. " +
-              "Please reload the page and try again to avoid being locked out.",
-          );
-          return;
-        }
+      setShowTotpDisableForm(false);
+    };
 
-        setDisableTotpCode("");
-        setShowTotpDisableForm(false);
-      })
-      .finally(() => setDisablingTotp(false));
+    void disableSequence().finally(() => setDisablingTotp(false));
   };
 
   const handleRegenerateBackupCodes = () => {
@@ -614,43 +603,29 @@ const SecurityPage: NextPageWithLayout = () => {
                       gap: 1.5,
                     }}
                   >
-                    <TextField
-                      label="Authentication code"
-                      type="text"
-                      autoComplete="one-time-code"
-                      placeholder="Enter a current code to disable"
-                      value={disableTotpCode}
-                      onChange={({ target }) =>
-                        setDisableTotpCode(target.value)
-                      }
-                      error={
-                        !!totpCodeUiNode?.messages.find(
-                          ({ type }) => type === "error",
-                        )
-                      }
-                      helperText={totpCodeUiNode?.messages.map(
-                        ({ id, text }) => (
-                          <Typography key={id}>{text}</Typography>
-                        ),
-                      )}
-                      required
-                      inputProps={{ inputMode: "numeric" }}
-                    />
+                    <Typography
+                      sx={{ color: ({ palette }) => palette.gray[80] }}
+                    >
+                      Disabling TOTP will also remove your backup codes. You
+                      will sign in with just your password until you enable a
+                      second factor again.
+                    </Typography>
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                       <Button
                         type="submit"
                         variant="secondary"
                         data-testid="confirm-disable-totp-button"
-                        disabled={!disableTotpCode || disablingTotp}
+                        disabled={disablingTotp}
                       >
-                        {disablingTotp ? "Disabling..." : "Confirm disable"}
+                        {disablingTotp
+                          ? "Disabling..."
+                          : "Yes, disable two-factor authentication"}
                       </Button>
                       <Button
                         type="button"
                         variant="tertiary"
                         data-testid="cancel-disable-totp-button"
                         onClick={() => {
-                          setDisableTotpCode("");
                           setShowTotpDisableForm(false);
                           setErrorMessage(undefined);
                         }}

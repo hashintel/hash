@@ -120,15 +120,10 @@ test("user can disable TOTP", async ({ page }) => {
     email: "mfa-disable-totp@example.com",
     shortname: "mfa-disable-totp",
   });
-  const { secret } = await enableTotpForCurrentUser(page);
+  await enableTotpForCurrentUser(page);
 
   await page.goto("/settings/security");
   await page.click('[data-testid="disable-totp-button"]');
-  await waitForFreshTotpWindow();
-  await page.fill(
-    '[placeholder="Enter a current code to disable"]',
-    generateTotpCode(secret),
-  );
   await page.click('[data-testid="confirm-disable-totp-button"]');
 
   await expect(
