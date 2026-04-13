@@ -295,15 +295,15 @@ export function computePossibleTransition(
             .map((inputPlace) => {
               return [inputPlace.placeId, inputPlace.weight];
             }),
-          ...tokenCombinationIndices
-            .filter((_, placeIndex) => {
+          ...tokenCombinationIndices.reduce<Array<[string, Set<number>]>>(
+            (acc, placeTokenIndices, placeIndex) => {
               const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
-              return inputArc.type !== "inhibitor";
-            })
-            .map((placeTokenIndices, placeIndex) => {
-              const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
-              return [inputArc.placeId, new Set(placeTokenIndices)];
-            }),
+              if (inputArc.type !== "inhibitor")
+                acc.push([inputArc.placeId, new Set(placeTokenIndices)]);
+              return acc;
+            },
+            [],
+          ),
         ]),
         // Map from place ID to array of token values to
         // create as per transition kernel output
