@@ -61,7 +61,15 @@ const extractBackupCodesFromFlow = (flow: SettingsFlow): string[] => {
   // Extract backup codes directly by pattern rather than stripping HTML first.
   // Kratos may return codes in an HTML-formatted string (with <br> tags, etc.),
   // but we only care about the alphanumeric code values themselves.
-  const regexMatches = codesText.match(/[A-Z0-9]{4}(?:-[A-Z0-9]{4})+/gi);
+  //
+  // Two formats have been observed across Kratos versions:
+  // - Older releases: groups of four alphanumeric characters separated by
+  //   hyphens, e.g. `ABCD-EFGH`.
+  // - v26+: a single run of eight alphanumeric characters with no separator,
+  //   e.g. `5ne3l4ll`.
+  //
+  // The optional hyphen makes the pattern match both variants.
+  const regexMatches = codesText.match(/[A-Z0-9]{4}(?:-?[A-Z0-9]{4})+/gi);
   if (regexMatches?.length) {
     return regexMatches;
   }
@@ -369,6 +377,11 @@ const SecurityPage: NextPageWithLayout = () => {
     setDisablingTotp(true);
     persistFlowIdInUrl(flow);
 
+    // @todo H-6417 forcibly refresh the session before a sensitive change
+    //   like this, rather than relying solely on Kratos's
+    //   `privileged_session_max_age`. Needs to work for SSO-only users —
+    //   see the ticket for the redirect-to-refresh-login design.
+
     // Step 1: Validate the TOTP code to prove the user has authenticator access
     void submitSettingsUpdate(flow, {
       method: "totp",
@@ -387,10 +400,23 @@ const SecurityPage: NextPageWithLayout = () => {
           csrf_token: mustGetCsrfTokenFromFlow(verifiedFlow),
         });
 
-        if (unlinkedFlow) {
-          setDisableTotpCode("");
-          setShowTotpDisableForm(false);
+        if (!unlinkedFlow) {
+          return;
         }
+
+        // Step 3: Clear backup codes. `required_aal: highest_available`
+        // treats any second-factor credential (including lookup secrets)
+        // as enforcing AAL2 — leaving orphan backup codes behind after
+        // removing TOTP would force the user through an AAL2 prompt with
+        // no TOTP to answer it.
+        await submitSettingsUpdate(unlinkedFlow, {
+          method: "lookup_secret",
+          lookup_secret_disable: true,
+          csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
+        });
+
+        setDisableTotpCode("");
+        setShowTotpDisableForm(false);
       })
       .finally(() => setDisablingTotp(false));
   };
@@ -537,222 +563,214 @@ const SecurityPage: NextPageWithLayout = () => {
 
           <Divider />
 
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo H-6219 restore this */}
-          {false && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Typography variant="regularTextLabels" sx={{ display: "block" }}>
-                Two-factor authentication
-              </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Typography variant="regularTextLabels" sx={{ display: "block" }}>
+              Two-factor authentication
+            </Typography>
 
-              {isTotpEnabled ? (
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
-                >
-                  <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
-                    TOTP is enabled for your account.
-                  </Typography>
-                  {showTotpDisableForm ? (
-                    <Box
-                      component="form"
-                      onSubmit={handleDisableTotpSubmit}
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1.5,
-                      }}
-                    >
-                      <TextField
-                        label="Authentication code"
-                        type="text"
-                        autoComplete="one-time-code"
-                        placeholder="Enter a current code to disable"
-                        value={disableTotpCode}
-                        onChange={({ target }) =>
-                          setDisableTotpCode(target.value)
-                        }
-                        error={
-                          !!totpCodeUiNode?.messages.find(
-                            ({ type }) => type === "error",
-                          )
-                        }
-                        helperText={totpCodeUiNode?.messages.map(
-                          ({ id, text }) => (
-                            <Typography key={id}>{text}</Typography>
-                          ),
-                        )}
-                        required
-                        inputProps={{ inputMode: "numeric" }}
-                      />
-                      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-                        <Button
-                          type="submit"
-                          variant="secondary"
-                          data-testid="confirm-disable-totp-button"
-                          disabled={!disableTotpCode || disablingTotp}
-                        >
-                          {disablingTotp ? "Disabling..." : "Confirm disable"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="tertiary"
-                          data-testid="cancel-disable-totp-button"
-                          onClick={() => {
-                            setDisableTotpCode("");
-                            setShowTotpDisableForm(false);
-                            setErrorMessage(undefined);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </Box>
-                    </Box>
-                  ) : (
+            {isTotpEnabled ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
+                  TOTP is enabled for your account.
+                </Typography>
+                {showTotpDisableForm ? (
+                  <Box
+                    component="form"
+                    onSubmit={handleDisableTotpSubmit}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1.5,
+                    }}
+                  >
+                    <TextField
+                      label="Authentication code"
+                      type="text"
+                      autoComplete="one-time-code"
+                      placeholder="Enter a current code to disable"
+                      value={disableTotpCode}
+                      onChange={({ target }) =>
+                        setDisableTotpCode(target.value)
+                      }
+                      error={
+                        !!totpCodeUiNode?.messages.find(
+                          ({ type }) => type === "error",
+                        )
+                      }
+                      helperText={totpCodeUiNode?.messages.map(
+                        ({ id, text }) => (
+                          <Typography key={id}>{text}</Typography>
+                        ),
+                      )}
+                      required
+                      inputProps={{ inputMode: "numeric" }}
+                    />
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                       <Button
-                        type="button"
+                        type="submit"
                         variant="secondary"
-                        data-testid="disable-totp-button"
+                        data-testid="confirm-disable-totp-button"
+                        disabled={!disableTotpCode || disablingTotp}
+                      >
+                        {disablingTotp ? "Disabling..." : "Confirm disable"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="tertiary"
+                        data-testid="cancel-disable-totp-button"
                         onClick={() => {
-                          setShowTotpDisableForm(true);
+                          setDisableTotpCode("");
+                          setShowTotpDisableForm(false);
                           setErrorMessage(undefined);
                         }}
                       >
-                        Disable TOTP
-                      </Button>
-                      <Button
-                        type="button"
-                        data-testid="regenerate-backup-codes-button"
-                        onClick={handleRegenerateBackupCodes}
-                        disabled={regeneratingBackupCodes}
-                      >
-                        {regeneratingBackupCodes
-                          ? "Regenerating backup codes..."
-                          : "Regenerate backup codes"}
+                        Cancel
                       </Button>
                     </Box>
-                  )}
-                </Box>
-              ) : showTotpSetupForm ? (
-                <Box
-                  component="form"
-                  onSubmit={handleEnableTotpSubmit}
-                  sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                >
-                  <Typography
-                    variant="smallTextParagraphs"
-                    sx={{ color: ({ palette }) => palette.gray[80] }}
-                  >
-                    Scan the QR code with your authenticator app, then enter the
-                    6-digit code to enable TOTP.
-                  </Typography>
-                  {totpQrCodeDataUri ? (
-                    <Box
-                      component="img"
-                      src={totpQrCodeDataUri}
-                      alt="TOTP QR code"
-                      data-testid="totp-qr-code"
-                      sx={{
-                        width: 180,
-                        height: 180,
-                        borderRadius: 1,
-                        border: ({ palette }) =>
-                          `1px solid ${palette.gray[30]}`,
-                      }}
-                    />
-                  ) : null}
-                  {totpSecretKey ? (
-                    <Box>
-                      <Typography
-                        variant="smallTextParagraphs"
-                        sx={({ palette }) => ({
-                          color: palette.gray[80],
-                          mb: 0.75,
-                          display: "block",
-                        })}
-                      >
-                        {totpQrCodeDataUri
-                          ? "Alternatively, use the secret key below for manual setup."
-                          : "QR code unavailable. Use the secret key below for manual setup."}
-                      </Typography>
-                      <Typography
-                        component="code"
-                        data-testid="totp-secret-key"
-                        sx={{
-                          display: "inline-block",
-                          py: 1,
-                          px: 2,
-                          borderRadius: 1,
-                          background: ({ palette }) => palette.gray[20],
-                          fontFamily: "monospace",
-                        }}
-                      >
-                        {totpSecretKey}
-                      </Typography>
-                    </Box>
-                  ) : null}
-                  <TextField
-                    label="Authenticator code"
-                    type="text"
-                    autoComplete="one-time-code"
-                    placeholder="Enter your 6-digit code"
-                    value={totpCode}
-                    onChange={({ target }) => setTotpCode(target.value)}
-                    error={
-                      !!totpCodeUiNode?.messages.find(
-                        ({ type }) => type === "error",
-                      )
-                    }
-                    helperText={totpCodeUiNode?.messages.map(({ id, text }) => (
-                      <Typography key={id}>{text}</Typography>
-                    ))}
-                    required
-                    inputProps={{ inputMode: "numeric" }}
-                  />
+                  </Box>
+                ) : (
                   <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                     <Button
-                      type="submit"
-                      data-testid="enable-totp-button"
-                      disabled={!totpCode || enablingTotp}
-                    >
-                      {enablingTotp ? "Enabling..." : "Confirm and enable TOTP"}
-                    </Button>
-                    <Button
                       type="button"
-                      variant="tertiary"
-                      data-testid="cancel-enable-totp-button"
+                      variant="secondary"
+                      data-testid="disable-totp-button"
                       onClick={() => {
-                        setTotpCode("");
-                        setShowTotpSetupForm(false);
+                        setShowTotpDisableForm(true);
                         setErrorMessage(undefined);
                       }}
                     >
-                      Cancel
+                      Disable TOTP
+                    </Button>
+                    <Button
+                      type="button"
+                      data-testid="regenerate-backup-codes-button"
+                      onClick={handleRegenerateBackupCodes}
+                      disabled={regeneratingBackupCodes}
+                    >
+                      {regeneratingBackupCodes
+                        ? "Regenerating backup codes..."
+                        : "Regenerate backup codes"}
                     </Button>
                   </Box>
-                </Box>
-              ) : (
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                )}
+              </Box>
+            ) : showTotpSetupForm ? (
+              <Box
+                component="form"
+                onSubmit={handleEnableTotpSubmit}
+                sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+              >
+                <Typography
+                  variant="smallTextParagraphs"
+                  sx={{ color: ({ palette }) => palette.gray[80] }}
                 >
-                  <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
-                    TOTP is currently disabled for your account.
-                  </Typography>
+                  Scan the QR code with your authenticator app, then enter the
+                  6-digit code to enable TOTP.
+                </Typography>
+                {totpQrCodeDataUri ? (
+                  <Box
+                    component="img"
+                    src={totpQrCodeDataUri}
+                    alt="TOTP QR code"
+                    data-testid="totp-qr-code"
+                    sx={{
+                      width: 180,
+                      height: 180,
+                      borderRadius: 1,
+                      border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+                    }}
+                  />
+                ) : null}
+                {totpSecretKey ? (
                   <Box>
-                    <Button
-                      type="button"
-                      data-testid="show-enable-totp-form-button"
-                      onClick={() => {
-                        setShowTotpSetupForm(true);
-                        setErrorMessage(undefined);
+                    <Typography
+                      variant="smallTextParagraphs"
+                      sx={({ palette }) => ({
+                        color: palette.gray[80],
+                        mb: 0.75,
+                        display: "block",
+                      })}
+                    >
+                      {totpQrCodeDataUri
+                        ? "Alternatively, use the secret key below for manual setup."
+                        : "QR code unavailable. Use the secret key below for manual setup."}
+                    </Typography>
+                    <Typography
+                      component="code"
+                      data-testid="totp-secret-key"
+                      sx={{
+                        display: "inline-block",
+                        py: 1,
+                        px: 2,
+                        borderRadius: 1,
+                        background: ({ palette }) => palette.gray[20],
+                        fontFamily: "monospace",
                       }}
                     >
-                      Enable TOTP
-                    </Button>
+                      {totpSecretKey}
+                    </Typography>
                   </Box>
+                ) : null}
+                <TextField
+                  label="Authenticator code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  placeholder="Enter your 6-digit code"
+                  value={totpCode}
+                  onChange={({ target }) => setTotpCode(target.value)}
+                  error={
+                    !!totpCodeUiNode?.messages.find(
+                      ({ type }) => type === "error",
+                    )
+                  }
+                  helperText={totpCodeUiNode?.messages.map(({ id, text }) => (
+                    <Typography key={id}>{text}</Typography>
+                  ))}
+                  required
+                  inputProps={{ inputMode: "numeric" }}
+                />
+                <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                  <Button
+                    type="submit"
+                    data-testid="enable-totp-button"
+                    disabled={!totpCode || enablingTotp}
+                  >
+                    {enablingTotp ? "Enabling..." : "Confirm and enable TOTP"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="tertiary"
+                    data-testid="cancel-enable-totp-button"
+                    onClick={() => {
+                      setTotpCode("");
+                      setShowTotpSetupForm(false);
+                      setErrorMessage(undefined);
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </Box>
-              )}
-            </Box>
-          )}
+              </Box>
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
+                  TOTP is currently disabled for your account.
+                </Typography>
+                <Box>
+                  <Button
+                    type="button"
+                    data-testid="show-enable-totp-form-button"
+                    onClick={() => {
+                      setShowTotpSetupForm(true);
+                      setErrorMessage(undefined);
+                    }}
+                  >
+                    Enable TOTP
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
 
           {flow?.ui.messages?.map((message) => (
             <Typography key={message.id}>

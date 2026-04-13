@@ -119,13 +119,24 @@ const SigninPage: NextPageWithLayout = () => {
   });
 
   useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady) {
       return;
     }
 
-    // If ?flow=.. was in the URL, we fetch it
-    if (flowId) {
+    // Keep the current flow as long as it matches the AAL requested via the
+    // URL. After Kratos prompts for an AAL upgrade we navigate from `/signin`
+    // to `/signin?aal=aal2` without remounting — the loaded AAL1 flow would
+    // otherwise persist and the AAL2 form would never render.
+    const expectedAal = aal === "aal2" ? "aal2" : "aal1";
+    if (flow && flow.requested_aal === expectedAal) {
+      return;
+    }
+
+    // Fetch by `?flow=…` only on the first attempt (no flow loaded yet).
+    // Once we've loaded a flow and it turned out to be at the wrong AAL,
+    // the stale flow id must not be re-fetched in a loop — we fall through
+    // to creating a fresh flow at the correct AAL.
+    if (flowId && !flow) {
       oryKratosClient
         .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => setFlow(data))
@@ -133,7 +144,6 @@ const SigninPage: NextPageWithLayout = () => {
       return;
     }
 
-    // Otherwise we initialize it
     oryKratosClient
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),

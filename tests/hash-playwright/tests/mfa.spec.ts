@@ -56,10 +56,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-/**
- * @todo H-6219 restore these tests when restoring TOTP functionality
- */
-test.skip("user can enable TOTP", async ({ page }) => {
+test("user can enable TOTP", async ({ page }) => {
   await createUserAndCompleteSignup(page, {
     email: "mfa-enable-totp@example.com",
     shortname: "mfa-enable-totp",
@@ -70,7 +67,7 @@ test.skip("user can enable TOTP", async ({ page }) => {
   expect(backupCodes.length).toBeGreaterThan(0);
 });
 
-test.skip("user with TOTP is prompted for code at login", async ({ page }) => {
+test("user with TOTP is prompted for code at login", async ({ page }) => {
   const credentials = await createUserAndCompleteSignup(page, {
     email: "mfa-totp-login@example.com",
     shortname: "mfa-totp-login",
@@ -95,7 +92,7 @@ test.skip("user with TOTP is prompted for code at login", async ({ page }) => {
   await expect(page.locator("text=Get support")).toBeVisible();
 });
 
-test.skip("user can use backup code instead of TOTP", async ({ page }) => {
+test("user can use backup code instead of TOTP", async ({ page }) => {
   const credentials = await createUserAndCompleteSignup(page, {
     email: "mfa-backup-code@example.com",
     shortname: "mfa-backup-code",
@@ -118,7 +115,7 @@ test.skip("user can use backup code instead of TOTP", async ({ page }) => {
   await expect(page.locator("text=Get support")).toBeVisible();
 });
 
-test.skip("user can disable TOTP", async ({ page }) => {
+test("user can disable TOTP", async ({ page }) => {
   const credentials = await createUserAndCompleteSignup(page, {
     email: "mfa-disable-totp@example.com",
     shortname: "mfa-disable-totp",
@@ -148,7 +145,7 @@ test.skip("user can disable TOTP", async ({ page }) => {
   ).not.toBeVisible();
 });
 
-test.skip("wrong TOTP code shows error at login", async ({ page }) => {
+test("wrong TOTP code shows error at login", async ({ page }) => {
   const credentials = await createUserAndCompleteSignup(page, {
     email: "mfa-wrong-code@example.com",
     shortname: "mfa-wrong-code",

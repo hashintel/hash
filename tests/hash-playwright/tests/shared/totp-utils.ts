@@ -2,15 +2,22 @@ import { createHmac } from "node:crypto";
 
 const base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+/**
+ * RFC 4648 base32 decoder. The accumulator is reduced to the remaining
+ * low bits after every emitted byte so it never exceeds 13 bits — this
+ * matters because a naive `value = value * 32 + index` accumulator loses
+ * precision past 53 bits (JavaScript `Number`) and produces a truncated
+ * key whose trailing bytes collapse to zero.
+ */
 const decodeBase32 = (encodedSecret: string): Buffer => {
   const normalizedSecret = encodedSecret
     .replace(/\s/g, "")
     .replace(/=+$/, "")
     .toUpperCase();
 
-  let bits = 0;
-  let value = 0;
   const bytes: number[] = [];
+  let accumulator = 0;
+  let bits = 0;
 
   for (const character of normalizedSecret) {
     const index = base32Alphabet.indexOf(character);
@@ -19,12 +26,13 @@ const decodeBase32 = (encodedSecret: string): Buffer => {
       continue;
     }
 
-    value = value * 32 + index;
+    accumulator = (accumulator << 5) | index;
     bits += 5;
 
     if (bits >= 8) {
-      bytes.push(Math.floor(value / 2 ** (bits - 8)) % 256);
       bits -= 8;
+      bytes.push((accumulator >> bits) & 0xff);
+      accumulator &= (1 << bits) - 1;
     }
   }
 
