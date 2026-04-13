@@ -271,6 +271,59 @@ export interface ScenarioFormCallbacks {
 
 // -- TanStack Form integration -----------------------------------------------
 
+const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
+
+/**
+ * Validate scenario parameters: identifiers must be snake_case and unique.
+ * Returns a human-readable error string or `undefined` when all valid.
+ */
+function validateScenarioParams(
+  params: ScenarioParameterDraft[],
+): string | undefined {
+  const seen = new Set<string>();
+  for (const param of params) {
+    const id = param.identifier;
+    if (id === "") {
+      return "Scenario parameter identifiers cannot be empty.";
+    }
+    if (!SNAKE_CASE_RE.test(id)) {
+      return `Scenario parameter "${id}" must be snake_case (lowercase letters, digits, underscores; must start with a letter).`;
+    }
+    if (seen.has(id)) {
+      return `Scenario parameter "${id}" is duplicated. Identifiers must be unique.`;
+    }
+    seen.add(id);
+  }
+  return undefined;
+}
+
+/**
+ * Validate the scenario name: must be non-empty and unique among existing
+ * scenarios (excluding the one being edited, when `editingScenarioId` is set).
+ */
+function validateScenarioName(
+  name: string,
+  existingNames: ReadonlySet<string>,
+): string | undefined {
+  const trimmed = name.trim();
+  if (trimmed === "") {
+    return "Scenario name is required.";
+  }
+  if (existingNames.has(trimmed)) {
+    return `A scenario named "${trimmed}" already exists. Choose a unique name.`;
+  }
+  return undefined;
+}
+
+export interface UseScenarioFormOptions {
+  /**
+   * Names of other existing scenarios. The form's `name` field must not match
+   * any of these. When editing, the current scenario's own name should be
+   * excluded by the caller.
+   */
+  existingScenarioNames?: ReadonlySet<string>;
+}
+
 /**
  * Concrete hook that creates a TanStack form for scenario editing.
  * Returning a typed instance avoids the 12+ explicit type arguments
@@ -279,10 +332,17 @@ export interface ScenarioFormCallbacks {
 export function useScenarioForm(
   defaultValues: ScenarioFormState,
   onSubmit: (values: ScenarioFormState) => void,
+  options: UseScenarioFormOptions = {},
 ) {
+  const existingNames = options.existingScenarioNames ?? new Set<string>();
   return useForm({
     defaultValues,
     onSubmit: ({ value }) => onSubmit(value),
+    validators: {
+      onChange: ({ value }) =>
+        validateScenarioName(value.name, existingNames) ??
+        validateScenarioParams(value.scenarioParams),
+    },
   });
 }
 

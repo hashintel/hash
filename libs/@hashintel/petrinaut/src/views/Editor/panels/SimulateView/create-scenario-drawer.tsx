@@ -36,12 +36,16 @@ const CreateScenarioFooter = ({
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const formErrors = useStore(form.store, (state) => state.errors);
 
   const { diagnosticsByUri } = use(LanguageClientContext);
   // Derive `hasLspErrors` during render — no useEffect needed.
-  const hasErrors = hasScenarioLspErrors(diagnosticsByUri);
+  const hasLspErrors = hasScenarioLspErrors(diagnosticsByUri);
 
-  const canSave = canSubmit && !hasErrors && !isSubmitting;
+  const formError = formErrors.find((e) => typeof e === "string") as
+    | string
+    | undefined;
+  const canSave = canSubmit && !hasLspErrors && !isSubmitting;
 
   return (
     <Drawer.Footer>
@@ -59,9 +63,10 @@ const CreateScenarioFooter = ({
         size="sm"
         disabled={!canSave}
         tooltip={
-          hasErrors
+          formError ??
+          (hasLspErrors
             ? "Fix the errors in the scenario expressions before saving."
-            : undefined
+            : undefined)
         }
         onClick={() => {
           void form.handleSubmit();
@@ -107,11 +112,20 @@ export const CreateScenarioDrawer = ({
   open,
   onClose,
 }: CreateScenarioDrawerProps) => {
-  const form = useScenarioForm(EMPTY_SCENARIO_FORM_STATE, (value) => {
-    // TODO: persist the scenario — placeholder for next step
-    // eslint-disable-next-line no-console
-    console.log("submit scenario", value);
-  });
+  const { petriNetDefinition } = use(SDCPNContext);
+  const existingScenarioNames = new Set(
+    (petriNetDefinition.scenarios ?? []).map((s) => s.name),
+  );
+
+  const form = useScenarioForm(
+    EMPTY_SCENARIO_FORM_STATE,
+    (value) => {
+      // TODO: persist the scenario — placeholder for next step
+      // eslint-disable-next-line no-console
+      console.log("submit scenario", value);
+    },
+    { existingScenarioNames },
+  );
 
   return (
     <Drawer.Root open={open} onClose={onClose}>
@@ -129,10 +143,19 @@ export const CreateScenarioDrawer = ({
 // -- Standalone form (for stories / other consumers) --------------------------
 
 export const CreateScenarioForm = () => {
-  const form = useScenarioForm(EMPTY_SCENARIO_FORM_STATE, (value) => {
-    // eslint-disable-next-line no-console
-    console.log("submit scenario", value);
-  });
+  const { petriNetDefinition } = use(SDCPNContext);
+  const existingScenarioNames = new Set(
+    (petriNetDefinition.scenarios ?? []).map((s) => s.name),
+  );
+
+  const form = useScenarioForm(
+    EMPTY_SCENARIO_FORM_STATE,
+    (value) => {
+      // eslint-disable-next-line no-console
+      console.log("submit scenario", value);
+    },
+    { existingScenarioNames },
+  );
 
   return <CreateScenarioBody form={form} />;
 };

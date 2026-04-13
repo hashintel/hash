@@ -53,11 +53,15 @@ const ViewScenarioFooter = ({
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const formErrors = useStore(form.store, (state) => state.errors);
 
   const { diagnosticsByUri } = use(LanguageClientContext);
-  const hasErrors = hasScenarioLspErrors(diagnosticsByUri);
+  const hasLspErrors = hasScenarioLspErrors(diagnosticsByUri);
 
-  const canSave = canSubmit && !hasErrors && !isSubmitting;
+  const formError = formErrors.find((e) => typeof e === "string") as
+    | string
+    | undefined;
+  const canSave = canSubmit && !hasLspErrors && !isSubmitting;
 
   return (
     <Drawer.Footer>
@@ -75,9 +79,10 @@ const ViewScenarioFooter = ({
         size="sm"
         disabled={!canSave}
         tooltip={
-          hasErrors
+          formError ??
+          (hasLspErrors
             ? "Fix the errors in the scenario expressions before saving."
-            : undefined
+            : undefined)
         }
         onClick={() => {
           void form.handleSubmit();
@@ -105,13 +110,25 @@ const ViewScenarioContent = ({
     typesById.set(type.id, type);
   }
 
+  // Names of OTHER scenarios — exclude the one being edited so it can keep
+  // its current name without triggering the "already exists" error.
+  const existingScenarioNames = new Set(
+    (petriNetDefinition.scenarios ?? [])
+      .filter((s) => s.id !== scenario.id)
+      .map((s) => s.name),
+  );
+
   // Build defaults once from the scenario prop (component remounts via `key`
   // when scenario.id changes, so this is effectively re-evaluated on switch).
-  const form = useScenarioForm(buildDefaultsFromScenario(scenario), (value) => {
-    // TODO: persist scenario edits
-    // eslint-disable-next-line no-console
-    console.log("save scenario", scenario.id, value);
-  });
+  const form = useScenarioForm(
+    buildDefaultsFromScenario(scenario),
+    (value) => {
+      // TODO: persist scenario edits
+      // eslint-disable-next-line no-console
+      console.log("save scenario", scenario.id, value);
+    },
+    { existingScenarioNames },
+  );
 
   return (
     <>
