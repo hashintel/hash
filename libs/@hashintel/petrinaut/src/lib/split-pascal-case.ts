@@ -31,3 +31,7 @@ export const splitPascalCase = (pascalCaseString: string): string[] => {
 
   return segments;
 };
+
+export const addPascalCaseBreakPoints = (str: string) => {
+  return str.slice(0, 1) + str.slice(1).replaceAll(/[A-Z]/g, "\u200B$&");
+};
