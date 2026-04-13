@@ -113,9 +113,7 @@ describe("SDCPNLanguageServer completions", () => {
         inputArcs: [
           { placeId: "place1", weight: 1, type: "standard" as const },
         ],
-        outputArcs: [
-          { placeId: "place2", weight: 1, type: "standard" as const },
-        ],
+        outputArcs: [{ placeId: "place2", weight: 1 }],
         lambdaCode: "",
         transitionKernelCode: "",
       },
