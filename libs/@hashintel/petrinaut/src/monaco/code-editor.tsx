@@ -142,6 +142,14 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
             onSubmit?.();
           }
         });
+
+        // Force vertical scroll to stay at 0 — prevents scrolling when
+        // the cursor moves or text is selected past the visible area.
+        editorInstance.onDidScrollChange((e) => {
+          if (e.scrollTop !== 0) {
+            editorInstance.setScrollTop(0);
+          }
+        });
       }
 
       onMount?.(editorInstance, monacoInstance);
@@ -168,10 +176,11 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         fixedOverflowWidgets: true,
         scrollbar: {
           vertical: "hidden",
-          horizontal: "auto",
-          horizontalScrollbarSize: 4,
+          horizontal: "hidden",
+          handleMouseWheel: false,
           alwaysConsumeMouseWheel: false,
         },
+        scrollBeyondLastColumn: 0,
         overviewRulerLanes: 0,
         overviewRulerBorder: false,
         hideCursorInOverviewRuler: true,
