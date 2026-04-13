@@ -331,6 +331,17 @@ export const EditorView = ({
           },
         ]
       : []),
+    {
+      id: "docs",
+      label: "Docs",
+      onClick: () => {
+        window.open(
+          "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs",
+          "_blank",
+          "noopener,noreferrer",
+        );
+      },
+    },
   ];
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
