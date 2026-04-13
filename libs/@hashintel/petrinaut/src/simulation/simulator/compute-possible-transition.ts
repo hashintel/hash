@@ -88,10 +88,10 @@ export function computePossibleTransition(
   // (just multiply by time since last transition)
 
   const inputPlacesWithAtLeastOneDimension = inputPlaces.filter(
-    (place) => place.dimensions > 0,
+    (place) => place.dimensions > 0 && place.type !== "inhibitor",
   );
   const inputPlacesWithZeroDimensions = inputPlaces.filter(
-    (place) => place.dimensions === 0,
+    (place) => place.dimensions === 0 && place.type !== "inhibitor",
   );
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
@@ -290,20 +290,14 @@ export function computePossibleTransition(
         // TODO: Need to provide better typing here, to not let TS infer to any[]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
-          ...inputPlacesWithZeroDimensions
-            .filter((inputPlace) => inputPlace.type !== "inhibitor")
-            .map((inputPlace) => {
-              return [inputPlace.placeId, inputPlace.weight];
-            }),
-          ...tokenCombinationIndices.reduce<Array<[string, Set<number>]>>(
-            (acc, placeTokenIndices, placeIndex) => {
-              const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
-              if (inputArc.type !== "inhibitor")
-                acc.push([inputArc.placeId, new Set(placeTokenIndices)]);
-              return acc;
-            },
-            [],
-          ),
+          ...inputPlacesWithZeroDimensions.map((inputPlace) => [
+            inputPlace.placeId,
+            inputPlace.weight,
+          ]),
+          ...tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
+            const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
+            return [inputArc.placeId, new Set(placeTokenIndices)];
+          }),
         ]),
         // Map from place ID to array of token values to
         // create as per transition kernel output
