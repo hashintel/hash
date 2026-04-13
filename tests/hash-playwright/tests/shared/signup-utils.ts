@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
@@ -7,31 +5,12 @@ import { getKratosVerificationCode } from "./get-kratos-verification-code";
 
 const defaultPassword = "some-complex-pw-1ab2";
 
-/**
- * Suffix applied to test emails and shortnames so identifiers don't collide
- * across test runs.
- *
- * `POST /users/delete` is a soft-delete — the user's web principal (which
- * owns the shortname) survives by design so entity types created under it
- * remain referenceable. That means re-running a test with a shortname from
- * a prior run fails with `Shortname X is already taken`. Scoping every
- * identifier to a unique per-process id makes signup idempotent without
- * requiring a hard reset of the graph.
- */
-const TEST_RUN_ID = randomBytes(3).toString("hex");
-
-const scopeEmail = (email: string): string => {
-  const atIndex = email.lastIndexOf("@");
-  if (atIndex === -1) {
-    throw new Error(`Test email "${email}" is missing an @-segment`);
-  }
-  const local = email.slice(0, atIndex);
-  const domain = email.slice(atIndex);
-  return `${local}-${TEST_RUN_ID}${domain}`;
-};
-
-const scopeShortname = (shortname: string): string =>
-  `${shortname}-${TEST_RUN_ID}`;
+// NOTE: re-running these tests twice against the same persistent dev stack
+// will fail with `Shortname X is already taken` because `POST /users/delete`
+// is a soft-delete that preserves the user's web principal (intentional — so
+// entity types created under the web stay referenceable). CI starts with a
+// fresh database and isn't affected; locally, re-seed the stack between runs
+// (`docker compose down -v` + restart).
 
 /**
  * Fill in the signup form and submit it.
@@ -119,7 +98,7 @@ export const createUserAndCompleteSignup = async (
   {
     email,
     shortname,
-    displayName,
+    displayName = shortname,
     password = defaultPassword,
   }: {
     email: string;
@@ -128,24 +107,17 @@ export const createUserAndCompleteSignup = async (
     password?: string;
   },
 ) => {
-  const scopedEmail = scopeEmail(email);
-  const scopedShortname = scopeShortname(shortname);
-  const scopedDisplayName = displayName ?? scopedShortname;
-
   const { emailDispatchTimestamp } = await registerUser(page, {
-    email: scopedEmail,
+    email,
     password,
   });
 
   await verifyEmailOnPage(page, {
-    email: scopedEmail,
+    email,
     afterTimestamp: emailDispatchTimestamp,
   });
 
-  await completeSignup(page, {
-    shortname: scopedShortname,
-    displayName: scopedDisplayName,
-  });
+  await completeSignup(page, { shortname, displayName });
 
-  return { email: scopedEmail, password };
+  return { email, password };
 };
