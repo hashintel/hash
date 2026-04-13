@@ -70,6 +70,7 @@ export const PropertiesPanel: React.FC = () => {
     updatePlace,
     updateTransition,
     updateArcWeight,
+    updateArcType,
     removeArc,
     updateType,
     updateDifferentialEquation,
@@ -145,6 +146,7 @@ export const PropertiesPanel: React.FC = () => {
             arcId={item.id}
             petriNetDefinition={petriNetDefinition}
             updateArcWeight={updateArcWeight}
+            updateArcType={updateArcType}
             removeArc={removeArc}
           />
         );

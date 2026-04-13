@@ -35,7 +35,7 @@ describe("computePossibleTransition", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 2 }], // Requires 2 tokens
+            inputArcs: [{ placeId: "p1", weight: 2, type: "standard" }], // Requires 2 tokens
             outputArcs: [],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -56,6 +56,181 @@ describe("computePossibleTransition", () => {
 
     // THEN it should return null (transition not enabled)
     expect(result).toBeNull();
+  });
+
+  it("returns null when inhibitor arc condition is not met (place has enough tokens)", () => {
+    // GIVEN a frame where the inhibitor place has enough tokens to block the transition
+    const simulation: SimulationInstance = {
+      places: new Map(),
+      transitions: new Map(),
+      types: new Map(),
+      differentialEquationFns: new Map(),
+      lambdaFns: new Map([["t1", () => 1.0]]),
+      transitionKernelFns: new Map([["t1", () => ({})]]),
+      parameterValues: {},
+      dt: 0.1,
+      maxTime: null,
+      rngState: 42,
+      frames: [],
+      currentFrameNumber: 0,
+    };
+
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 2, // 2 tokens present
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }], // Inhibitor: needs count < 2
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([]),
+    };
+
+    // WHEN computing possible transition
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+    // THEN it should return null (inhibitor condition not met: 2 is not < 2)
+    expect(result).toBeNull();
+  });
+
+  it("does not consume tokens from inhibitor arc when transition fires", () => {
+    // GIVEN a frame with a standard arc and an inhibitor arc, both conditions met
+    const simulation: SimulationInstance = {
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Source",
+            colorId: "type1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Guard",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p3",
+          {
+            id: "p3",
+            name: "Target",
+            colorId: "type1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
+      transitions: new Map(),
+      types: new Map([
+        [
+          "type1",
+          {
+            id: "type1",
+            name: "Type1",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
+            elements: [{ elementId: "e1", name: "x", type: "real" }],
+          },
+        ],
+      ]),
+      differentialEquationFns: new Map(),
+      lambdaFns: new Map([["t1", () => 10.0]]),
+      transitionKernelFns: new Map([["t1", () => ({ Target: [{ x: 5.0 }] })]]),
+      parameterValues: {},
+      dt: 0.1,
+      maxTime: null,
+      rngState: 42,
+      frames: [],
+      currentFrameNumber: 0,
+    };
+
+    const frame: SimulationFrame = {
+      time: 0,
+      places: {
+        p1: {
+          offset: 0,
+          count: 1,
+          dimensions: 1,
+        },
+        p2: {
+          offset: 1,
+          count: 0, // Empty — inhibitor condition satisfied (0 < 1)
+          dimensions: 0,
+        },
+        p3: {
+          offset: 1,
+          count: 0,
+          dimensions: 1,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [
+              { placeId: "p1", weight: 1, type: "standard" },
+              { placeId: "p2", weight: 1, type: "inhibitor" },
+            ],
+            outputArcs: [{ placeId: "p3", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 10.0;",
+            transitionKernelCode: "return { Target: [{ x: 5.0 }] };",
+            x: 0,
+            y: 0,
+          },
+          timeSinceLastFiringMs: 1.0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
+      buffer: new Float64Array([3.0]),
+    };
+
+    // WHEN computing possible transition
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+    // THEN it should fire
+    expect(result).not.toBeNull();
+    // Standard arc's place (p1) should have tokens removed
+    expect(result!.remove).toHaveProperty("p1");
+    // Inhibitor arc's place (p2) should NOT be in the remove map
+    expect(result!.remove).not.toHaveProperty("p2");
+    // Output tokens should be added to p3
+    expect(result!.add).toMatchObject({ p3: [[5.0]] });
   });
 
   it("returns token combinations when transition is enabled and fires", () => {
@@ -140,7 +315,7 @@ describe("computePossibleTransition", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }], // Requires 1 token
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",

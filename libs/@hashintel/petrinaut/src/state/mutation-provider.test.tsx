@@ -435,7 +435,7 @@ describe("MutationProvider", () => {
           {
             id: "t1",
             name: "T1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "predicate",
             lambdaCode: "",
@@ -555,7 +555,7 @@ describe("MutationProvider", () => {
           {
             id: "t1",
             name: "T1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "predicate",
             lambdaCode: "",

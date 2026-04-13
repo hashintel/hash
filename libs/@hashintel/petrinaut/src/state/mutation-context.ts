@@ -29,20 +29,25 @@ export type MutationHelperFunctions = {
   removeTransition: (transitionId: string) => void;
   addArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
+  ) => void;
+  updateArcType: (
+    transitionId: string,
+    placeId: string,
+    type: "standard" | "inhibitor",
   ) => void;
   addType: (type: Color) => void;
   updateType: (typeId: string, updateFn: (type: Color) => void) => void;
@@ -85,6 +90,7 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addArc: () => {},
   removeArc: () => {},
   updateArcWeight: () => {},
+  updateArcType: () => {},
   addType: () => {},
   updateType: () => {},
   removeType: () => {},
