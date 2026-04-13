@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Added inhibitor arcs to petrinaut
+Add support for inhibitor arcs

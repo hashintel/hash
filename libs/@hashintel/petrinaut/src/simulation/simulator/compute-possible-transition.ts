@@ -50,9 +50,9 @@ export function computePossibleTransition(
 
   // Transition is enabled if all input places have more tokens than the arc weight.
   const isTransitionEnabled = inputPlaces.every((inputPlace) =>
-    inputPlace.type === "standard"
-      ? inputPlace.count >= inputPlace.weight
-      : inputPlace.count < inputPlace.weight,
+    inputPlace.type === "inhibitor"
+      ? inputPlace.count < inputPlace.weight
+      : inputPlace.count >= inputPlace.weight,
   );
 
   // Return null if not enabled
@@ -291,14 +291,14 @@ export function computePossibleTransition(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
           ...inputPlacesWithZeroDimensions
-            .filter((inputPlace) => inputPlace.type === "standard")
+            .filter((inputPlace) => inputPlace.type !== "inhibitor")
             .map((inputPlace) => {
               return [inputPlace.placeId, inputPlace.weight];
             }),
           ...tokenCombinationIndices
             .filter((_, placeIndex) => {
               const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
-              return inputArc.type === "standard";
+              return inputArc.type !== "inhibitor";
             })
             .map((placeTokenIndices, placeIndex) => {
               const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;

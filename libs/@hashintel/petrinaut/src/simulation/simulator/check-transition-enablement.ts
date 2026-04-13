@@ -47,9 +47,9 @@ export const isTransitionStructurallyEnabled = (
       );
     }
 
-    return arc.type === "standard"
-      ? placeState.count >= arc.weight
-      : placeState.count < arc.weight;
+    return arc.type === "inhibitor"
+      ? placeState.count < arc.weight
+      : placeState.count >= arc.weight;
   });
 };
 

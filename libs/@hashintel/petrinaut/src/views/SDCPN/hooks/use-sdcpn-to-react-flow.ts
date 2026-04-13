@@ -125,7 +125,6 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         source: inputArc.placeId,
         target: transition.id,
         type: "default" as const,
-        arcType: inputArc.type,
         selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -181,6 +180,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
+          arcType: "standard" as const,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });

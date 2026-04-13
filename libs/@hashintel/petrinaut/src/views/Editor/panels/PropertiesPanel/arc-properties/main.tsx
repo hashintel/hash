@@ -89,24 +89,26 @@ const ArcMainContent: React.FC = () => {
       <Section title="Target">
         <div className={readOnlyFieldStyle}>{targetName}</div>
       </Section>
-      <Section title="Type">
-        <Select
-          value={type}
-          onValueChange={(value) => {
-            updateArcType(
-              transitionId,
-              placeId,
-              value as "inhibitor" | "standard",
-            );
-          }}
-          options={[
-            { value: "standard", label: "Standard" },
-            { value: "inhibitor", label: "Inhibitor" },
-          ]}
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </Section>
+      {arcDirection === "input" && (
+        <Section title="Type">
+          <Select
+            value={type}
+            onValueChange={(value) => {
+              updateArcType(
+                transitionId,
+                placeId,
+                value as "inhibitor" | "standard",
+              );
+            }}
+            options={[
+              { value: "standard", label: "Standard" },
+              { value: "inhibitor", label: "Inhibitor" },
+            ]}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </Section>
+      )}
       <Section title="Weight">
         <NumberInput
           size="sm"
