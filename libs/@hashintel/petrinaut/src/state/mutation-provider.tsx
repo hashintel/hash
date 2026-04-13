@@ -126,13 +126,15 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
-            transition[
-              arcDirection === "input" ? "inputArcs" : "outputArcs"
-            ].push({
-              type: "standard",
-              placeId,
-              weight,
-            });
+            if (arcDirection === "input") {
+              transition["inputArcs"].push({
+                type: "standard",
+                placeId,
+                weight,
+              });
+            } else {
+              transition["outputArcs"].push({ placeId, weight });
+            }
             break;
           }
         }
