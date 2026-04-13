@@ -351,16 +351,30 @@ const SecurityPage: NextPageWithLayout = () => {
         );
 
         if (!flowWithBackupCodes) {
+          // Step 2 of enrolment failed. TOTP is active but there are no
+          // backup codes. Don't leave the user thinking everything is
+          // fine — without codes they have no recovery path if they lose
+          // their authenticator device.
+          setErrorMessage(
+            "TOTP was enabled, but backup codes could not be generated. " +
+              "Please use the “Regenerate backup codes” button to try again.",
+          );
           return;
         }
 
         const regeneratedCodes =
           extractBackupCodesFromFlow(flowWithBackupCodes);
 
-        if (regeneratedCodes.length > 0) {
-          setBackupCodes(regeneratedCodes);
-          setShowBackupCodesModal(true);
+        if (regeneratedCodes.length === 0) {
+          setErrorMessage(
+            "TOTP was enabled, but no backup codes were returned. " +
+              "Please use the “Regenerate backup codes” button to try again.",
+          );
+          return;
         }
+
+        setBackupCodes(regeneratedCodes);
+        setShowBackupCodesModal(true);
       })
       .finally(() => setEnablingTotp(false));
   };
@@ -377,10 +391,13 @@ const SecurityPage: NextPageWithLayout = () => {
     setDisablingTotp(true);
     persistFlowIdInUrl(flow);
 
-    // @todo H-6417 forcibly refresh the session before a sensitive change
-    //   like this, rather than relying solely on Kratos's
-    //   `privileged_session_max_age`. Needs to work for SSO-only users —
-    //   see the ticket for the redirect-to-refresh-login design.
+    // @todo H-6417 force a session refresh before a security-sensitive
+    //   change like this, rather than relying solely on Kratos's
+    //   `privileged_session_max_age` window. The shape: queue the pending
+    //   change, redirect to `/signin?refresh=true&return_to=…`, let the
+    //   user reauthenticate via whichever credential they have (password,
+    //   SSO, passkey), then resume the change on return. Must work for
+    //   SSO-only users, so a password-reentry shim alone is not enough.
 
     // Step 1: Validate the TOTP code to prove the user has authenticator access
     void submitSettingsUpdate(flow, {
@@ -404,16 +421,26 @@ const SecurityPage: NextPageWithLayout = () => {
           return;
         }
 
-        // Step 3: Clear backup codes. `required_aal: highest_available`
-        // treats any second-factor credential (including lookup secrets)
-        // as enforcing AAL2 — leaving orphan backup codes behind after
-        // removing TOTP would force the user through an AAL2 prompt with
-        // no TOTP to answer it.
-        await submitSettingsUpdate(unlinkedFlow, {
+        // Step 3: Unlink the `lookup_secret` credential.
+        // `required_aal: highest_available` treats any enrolled second
+        // factor (including backup codes) as enforcing AAL2, so leaving
+        // them behind after removing TOTP would force the user through an
+        // AAL2 prompt with no TOTP to answer it. If this step fails, TOTP
+        // is already gone — surface an error so the user can retry rather
+        // than silently landing in the orphan-AAL2 state.
+        const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
           method: "lookup_secret",
           lookup_secret_disable: true,
           csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
         });
+
+        if (!clearedFlow) {
+          setErrorMessage(
+            "TOTP was disabled, but backup codes could not be removed. " +
+              "Please reload the page and try again to avoid being locked out.",
+          );
+          return;
+        }
 
         setDisableTotpCode("");
         setShowTotpDisableForm(false);
@@ -465,6 +492,10 @@ const SecurityPage: NextPageWithLayout = () => {
       .then((nextFlow) => {
         if (nextFlow) {
           setShowBackupCodesModal(false);
+        } else {
+          setErrorMessage(
+            "We couldn't record that you've saved your backup codes. Please try again.",
+          );
         }
       })
       .finally(() => setConfirmingBackupCodes(false));
@@ -819,7 +850,15 @@ const SecurityPage: NextPageWithLayout = () => {
               onClick={() => {
                 navigator.clipboard
                   .writeText(backupCodes.join("\n"))
-                  .catch(() => undefined);
+                  .catch(() => {
+                    // Surface the failure rather than silently swallowing
+                    // it — losing backup codes leads to account lockout if
+                    // the user later loses their authenticator.
+                    setErrorMessage(
+                      "We couldn't copy your backup codes to the clipboard. " +
+                        "Please copy them manually before closing this dialog.",
+                    );
+                  });
               }}
               disabled={backupCodes.length === 0}
             >

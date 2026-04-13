@@ -22,8 +22,9 @@ const tolerableConsoleMessageMatches: RegExp[] = [
 const tolerableResponseErrors: Array<{ status: number; urlPattern: RegExp }> = [
   // Whoami check before the user is authenticated.
   { status: 401, urlPattern: /\/auth\/sessions\/whoami$/ },
-  // Kratos signals an AAL upgrade via `browser_location_change_required`
-  // when a TOTP-enabled user submits password-only login.
+  // Kratos returns 422 with `browser_location_change_required` to signal
+  // that the current login flow needs to upgrade (e.g. AAL2 required for
+  // a TOTP-enabled user submitting password-only login).
   { status: 422, urlPattern: /\/auth\/self-service\/login(\?|$)/ },
   // Kratos rejects expected self-service conditions: invalid TOTP/backup
   // codes, `session_already_available` when hitting the login browser
@@ -53,8 +54,7 @@ export const test = base.extend<Page>({
         return;
       }
       const ok = tolerableResponseErrors.some(
-        ({ status: s, urlPattern }) =>
-          s === status && urlPattern.test(res.url()),
+        (entry) => entry.status === status && entry.urlPattern.test(res.url()),
       );
       if (ok) {
         toleratedFailuresByStatus.set(

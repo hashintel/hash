@@ -8,6 +8,10 @@ const base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
  * matters because a naive `value = value * 32 + index` accumulator loses
  * precision past 53 bits (JavaScript `Number`) and produces a truncated
  * key whose trailing bytes collapse to zero.
+ *
+ * Implementation uses arithmetic rather than bitwise operators to match
+ * the rest of this module's style (and the project ESLint config which
+ * forbids bitwise operators).
  */
 const decodeBase32 = (encodedSecret: string): Buffer => {
   const normalizedSecret = encodedSecret
@@ -26,13 +30,14 @@ const decodeBase32 = (encodedSecret: string): Buffer => {
       continue;
     }
 
-    accumulator = (accumulator << 5) | index;
+    accumulator = accumulator * 32 + index;
     bits += 5;
 
     if (bits >= 8) {
       bits -= 8;
-      bytes.push((accumulator >> bits) & 0xff);
-      accumulator &= (1 << bits) - 1;
+      const divisor = 2 ** bits;
+      bytes.push(Math.floor(accumulator / divisor) % 256);
+      accumulator %= divisor;
     }
   }
 

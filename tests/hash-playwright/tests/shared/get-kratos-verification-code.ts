@@ -30,7 +30,7 @@ const extractVerificationCode = (emailBody: string): string | undefined =>
 
 /**
  * Mailslurper returns `dateSent` in its local time (UTC in our container) but
- * without any timezone indicator, e.g. `"2026-04-13 09:53:47"`. Parsing that
+ * without any timezone indicator (format: `YYYY-MM-DD HH:MM:SS`). Parsing that
  * with `new Date(...)` treats it as *host* local time, which breaks the
  * timestamp filter on any developer machine not running in UTC. Normalise to
  * UTC by appending `Z` when no timezone is present.

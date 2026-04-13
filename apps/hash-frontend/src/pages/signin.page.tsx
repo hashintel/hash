@@ -21,7 +21,11 @@ import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
 import { formatKratosMessage } from "./shared/format-kratos-message";
-import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import {
+  mustGetCsrfTokenFromFlow,
+  oryKratosClient,
+  uiPathForKratosBrowserRedirect,
+} from "./shared/ory-kratos";
 import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
@@ -315,7 +319,16 @@ const SigninPage: NextPageWithLayout = () => {
               );
 
               if (redirectAction?.redirect_browser_to) {
-                void router.push(redirectAction.redirect_browser_to);
+                // Kratos's `redirect_browser_to` is built from
+                // `SERVE_PUBLIC_BASE_URL` and can point at a
+                // `/self-service/*/browser` path that no frontend route
+                // serves. Rewrite to the matching UI route when possible,
+                // otherwise fall through to whatever Kratos asked for.
+                const redirectTo =
+                  uiPathForKratosBrowserRedirect(
+                    redirectAction.redirect_browser_to,
+                  ) ?? redirectAction.redirect_browser_to;
+                void router.push(redirectTo);
                 return;
               }
 
@@ -327,9 +340,12 @@ const SigninPage: NextPageWithLayout = () => {
                 }>;
 
                 if (maybeAal2Error.response?.status === 403) {
-                  const redirectTo =
-                    maybeAal2Error.response.data.redirect_browser_to ??
-                    "/signin?aal=aal2";
+                  const kratosRedirect =
+                    maybeAal2Error.response.data.redirect_browser_to;
+                  const redirectTo = kratosRedirect
+                    ? (uiPathForKratosBrowserRedirect(kratosRedirect) ??
+                      kratosRedirect)
+                    : "/signin?aal=aal2";
 
                   void router.push(redirectTo);
                   return;

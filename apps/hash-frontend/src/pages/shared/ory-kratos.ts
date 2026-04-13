@@ -74,6 +74,9 @@ export const flowMetadata = {
     uiPath: "/settings/security",
     kratosBrowserPath: "/self-service/settings/browser",
   },
+  // `settingsWithPassword` shares its UI route and Kratos endpoint with
+  // `settings`. The split is purely a TypeScript-level distinction over the
+  // submit-body shape (see `Flows[settingsWithPassword]`), not over routing.
   settingsWithPassword: {
     uiPath: "/settings/security",
     kratosBrowserPath: "/self-service/settings/browser",
@@ -92,6 +95,9 @@ export const flowMetadata = {
  * Kratos self-service browser endpoint. Returns `undefined` if the URL is
  * not a known Kratos browser path, letting the caller fall through to
  * following the redirect as-is.
+ *
+ * Query parameters are forwarded to the UI route; URL fragments are not
+ * (Kratos doesn't use them, and the frontend routes don't read them).
  */
 export const uiPathForKratosBrowserRedirect = (
   redirectUrl: string,
@@ -100,6 +106,7 @@ export const uiPathForKratosBrowserRedirect = (
   try {
     parsed = new URL(redirectUrl);
   } catch {
+    // Malformed URL — caller will fall back to the raw redirect string.
     return undefined;
   }
 

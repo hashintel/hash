@@ -135,6 +135,19 @@ test("user can disable TOTP", async ({ page }) => {
     page.locator('[data-testid="show-enable-totp-form-button"]'),
   ).toBeVisible();
 
+  // Backup codes should also be cleared as part of the disable flow.
+  // Without `lookup_secret_disable: true` the user would be left at a
+  // permanently-required AAL2 with only orphan backup codes — so re-loading
+  // the security page should not surface the "Regenerate backup codes"
+  // button (which only appears while a `lookup_secret` credential exists).
+  await page.reload();
+  await expect(
+    page.locator('[data-testid="show-enable-totp-form-button"]'),
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-testid="regenerate-backup-codes-button"]'),
+  ).not.toBeVisible();
+
   await page.context().clearCookies();
 
   await signInWithPassword(page, credentials);

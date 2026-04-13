@@ -109,9 +109,10 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 
 /**
  * Key the rate limiter by remote IP. Mirrors the default `express-rate-limit`
- * behaviour but falls back to a literal "unknown" bucket when `req.ip` is
- * undefined (which can happen behind certain proxy configurations) so the
- * default keyGenerator's IP-undefined validation doesn't reject the request.
+ * behaviour but falls back to a literal `"ip-unavailable"` bucket when
+ * `req.ip` is undefined (which can happen behind certain proxy configurations)
+ * so the default keyGenerator's IP-undefined validation doesn't reject the
+ * request.
  */
 const ipKey: RateLimitOptions["keyGenerator"] = (req) =>
   req.ip ? ipKeyGenerator(req.ip) : "ip-unavailable";
@@ -136,7 +137,10 @@ const kratosProxyMutationRateLimiter = rateLimit({
   ...baseRateLimitOptions,
   limit: 30,
   keyGenerator: ipKey,
-  skip: (req) => req.method !== "POST",
+  // Apply to anything that isn't a GET — POST is the credential-bearing
+  // method on the Kratos self-service endpoints, but PUT/PATCH/DELETE
+  // would also count as state-changing if they ever appear.
+  skip: (req) => req.method === "GET",
 });
 
 /**
