@@ -40,7 +40,8 @@ const exitingStyle = css({
 });
 
 const drawerOuterStyle = css({
-  width: "[540px]",
+  width: "[640px]",
+  maxWidth: "[calc(90vw - 20px)]",
   height: "full",
 });
 
