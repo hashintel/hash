@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { useForm, useStore } from "@tanstack/react-form";
+import { use, useEffect, useRef, useState } from "react";
 import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
@@ -100,22 +101,28 @@ const overrideRowStyle = css({
   gap: "[8px]",
 });
 
+const overrideLabelStyle = css({
+  width: "[140px]",
+  flexShrink: 0,
+  overflow: "hidden",
+});
+
 const overrideNameStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
-  width: "[140px]",
-  flexShrink: 0,
-  overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  overflow: "hidden",
 });
 
-const overrideTypeStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  width: "[60px]",
-  flexShrink: 0,
+const overrideVarNameStyle = css({
+  fontSize: "[11px]",
+  color: "neutral.s100",
+  fontFamily: "mono",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
 });
 
 // -- Place row styles ----------------------------------------------------------
@@ -193,16 +200,12 @@ const PlaceInitialStateRow = ({
   onTokenDataChange: (data: number[][]) => void;
   documentUri?: string;
 }) => {
-  const columns: SpreadsheetColumn[] = useMemo(
-    () =>
-      placeType
-        ? placeType.elements.map((element) => ({
-            id: element.elementId,
-            name: element.name,
-          }))
-        : [],
-    [placeType],
-  );
+  const columns: SpreadsheetColumn[] = placeType
+    ? placeType.elements.map((element) => ({
+        id: element.elementId,
+        name: element.name,
+      }))
+    : [];
 
   if (placeType && placeType.elements.length > 0) {
     return (
@@ -266,6 +269,25 @@ export interface ScenarioFormCallbacks {
   onInitialStateCodeChange: (value: string) => void;
 }
 
+// -- TanStack Form integration -----------------------------------------------
+
+/**
+ * Concrete hook that creates a TanStack form for scenario editing.
+ * Returning a typed instance avoids the 12+ explicit type arguments
+ * required to use `ReturnType<typeof useForm>` directly.
+ */
+export function useScenarioForm(
+  defaultValues: ScenarioFormState,
+  onSubmit: (values: ScenarioFormState) => void,
+) {
+  return useForm({
+    defaultValues,
+    onSubmit: ({ value }) => onSubmit(value),
+  });
+}
+
+export type ScenarioFormInstance = ReturnType<typeof useScenarioForm>;
+
 // -- LSP session hook ---------------------------------------------------------
 
 /**
@@ -295,47 +317,34 @@ export function useScenarioLspSession({
     updateScenarioSession,
     killScenarioSession,
   } = use(LanguageClientContext);
-  // Use state (not ref) because the session ID is read during render (returned + used in JSX)
+  // useState (not useRef/useMemo) — needed for a stable per-mount value.
+  // React Compiler doesn't replace useState; it only memoizes derived values.
   const [sessionId] = useState(() => crypto.randomUUID());
   const initializedRef = useRef(false);
 
-  // Build session data for all parameters and places that use code editors
-  const sessionData = useMemo(() => {
-    // Include entries for ALL net-level parameters (even empty) so files exist from the start
-    const allOverrides: Record<string, string> = {};
-    for (const param of parameters) {
-      allOverrides[param.id] = parameterOverrides[param.id] ?? "";
-    }
+  // Build session data for all parameters and places that use code editors.
+  // Computed during render — React Compiler handles memoization.
+  const allOverrides: Record<string, string> = {};
+  for (const param of parameters) {
+    allOverrides[param.id] = parameterOverrides[param.id] ?? "";
+  }
 
-    // Include entries for places that use code editors (not spreadsheets)
-    const allInitialState: Record<string, string> = {};
-    for (const place of places) {
-      const placeType = place.colorId
-        ? typesById.get(place.colorId)
-        : undefined;
-      // Only create files for places with code editors (not multi-element spreadsheets)
-      if (!placeType || placeType.elements.length === 0) {
-        allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
-      }
+  // Include entries for places that use code editors (not spreadsheets)
+  const allInitialState: Record<string, string> = {};
+  for (const place of places) {
+    const placeType = place.colorId ? typesById.get(place.colorId) : undefined;
+    if (!placeType || placeType.elements.length === 0) {
+      allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
     }
+  }
 
-    return {
-      sessionId,
-      scenarioParameters: scenarioParams.map(({ _key: _, ...rest }) => rest),
-      parameterOverrides: allOverrides,
-      initialState: allInitialState,
-      initialStateCode,
-    };
-  }, [
+  const sessionData = {
     sessionId,
-    scenarioParams,
-    parameterOverrides,
-    initialTokenCounts,
+    scenarioParameters: scenarioParams.map(({ _key: _, ...rest }) => rest),
+    parameterOverrides: allOverrides,
+    initialState: allInitialState,
     initialStateCode,
-    parameters,
-    places,
-    typesById,
-  ]);
+  };
 
   useEffect(() => {
     if (!initializedRef.current) {
@@ -469,6 +478,7 @@ export const ScenarioFormSections = ({
                 <span className={paramLabelStyle}>Identifier</span>
                 <Input
                   size="sm"
+                  monospace
                   value={param.identifier}
                   onChange={(e) =>
                     updateScenarioParam(param._key, {
@@ -493,7 +503,6 @@ export const ScenarioFormSections = ({
                     { value: "integer", label: "Int" },
                     { value: "boolean", label: "Bool" },
                   ]}
-                  portal={false}
                 />
               </div>
               <div className={paramFieldSmStyle}>
@@ -532,8 +541,10 @@ export const ScenarioFormSections = ({
         ) : (
           parameters.map((param) => (
             <div key={param.id} className={overrideRowStyle}>
-              <span className={overrideNameStyle}>{param.name}</span>
-              <span className={overrideTypeStyle}>{param.type}</span>
+              <div className={overrideLabelStyle}>
+                <div className={overrideNameStyle}>{param.name}</div>
+                <div className={overrideVarNameStyle}>{param.variableName}</div>
+              </div>
               <CodeEditor
                 singleLine
                 language="typescript"
@@ -645,5 +656,74 @@ export const ScenarioFormSections = ({
         )}
       </Section>
     </SectionList>
+  );
+};
+
+// -- Form body wired to a TanStack form instance ------------------------------
+
+export interface ScenarioFormBodyProps {
+  form: ScenarioFormInstance;
+  /** Map of type ID → Color */
+  typesById: Map<string, Color>;
+  /** The net-level parameters */
+  parameters: Parameter[];
+  /** The net-level places */
+  places: Place[];
+  /** Unique prefix for element IDs */
+  idPrefix?: string;
+}
+
+/**
+ * Renders the scenario form sections backed by a TanStack form.
+ * Subscribes to form values reactively (no useEffect) and wires
+ * setters to setFieldValue.
+ */
+export const ScenarioFormBody = ({
+  form,
+  typesById,
+  parameters,
+  places,
+  idPrefix,
+}: ScenarioFormBodyProps) => {
+  const values = useStore(form.store, (state) => state.values);
+
+  const scenarioSessionId = useScenarioLspSession({
+    scenarioParams: values.scenarioParams,
+    parameterOverrides: values.parameterOverrides,
+    initialTokenCounts: values.initialTokenCounts,
+    initialStateCode: values.initialStateCode,
+    parameters,
+    places,
+    typesById,
+  });
+
+  return (
+    <ScenarioFormSections
+      state={values}
+      callbacks={{
+        onNameChange: (value) => form.setFieldValue("name", value),
+        onDescriptionChange: (value) =>
+          form.setFieldValue("description", value),
+        onScenarioParamsChange: (updater) =>
+          form.setFieldValue("scenarioParams", updater),
+        onParameterOverridesChange: (updater) =>
+          form.setFieldValue("parameterOverrides", updater),
+        onInitialTokenCountsChange: (updater) =>
+          form.setFieldValue("initialTokenCounts", updater),
+        onInitialTokenDataChange: (updater) =>
+          form.setFieldValue("initialTokenData", updater),
+        onShowAllPlacesChange: (value) =>
+          form.setFieldValue("showAllPlaces", value),
+        onInitialStateAsCodeChange: (value) =>
+          form.setFieldValue("initialStateAsCode", value),
+        onInitialStateCodeChange: (value) =>
+          form.setFieldValue("initialStateCode", value),
+      }}
+      parameters={parameters}
+      places={places}
+      typesById={typesById}
+      idPrefix={idPrefix}
+      scenarioSessionId={scenarioSessionId}
+    />
   );
 };

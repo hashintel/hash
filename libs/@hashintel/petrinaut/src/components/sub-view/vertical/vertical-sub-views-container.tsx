@@ -74,8 +74,10 @@ const panelContentStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
-  p: "4",
-  pt: "2",
+  // No vertical padding on the scroll container — it would create a gap above
+  // sticky section headers (which would pin below the gap). The first sticky
+  // header owns its own top spacing.
+  px: "4",
 });
 
 const SHADOW_HEIGHT = 7;

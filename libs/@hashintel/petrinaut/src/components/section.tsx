@@ -34,7 +34,8 @@ export const SectionList = ({ children }: SectionListProps) => (
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  py: "3",
+  // No vertical padding here — the sticky header owns its own padding so it
+  // can fully cover scrolling content underneath it.
 });
 
 const sectionGapStyle = css({
@@ -50,6 +51,31 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  position: "sticky",
+  top: "[0]",
+  zIndex: "[2]",
+  backgroundColor: "neutral.s00",
+  // Extend padding so the opaque background fully covers content scrolling
+  // underneath the sticky header (incl. the section's own border-bottom).
+  paddingTop: "3",
+  paddingBottom: "2",
+  // Soft fade below the header so content scrolling under it disappears
+  // smoothly instead of being cut off by a hard edge.
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: "[100%]",
+    left: "[0]",
+    right: "[0]",
+    height: "[12px]",
+    background:
+      "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
+    pointerEvents: "none",
+  },
+});
+
+const contentPaddingStyle = css({
+  paddingBottom: "3",
 });
 
 const headerLeftStyle = css({
@@ -165,7 +191,10 @@ export const Section = ({
           </Collapsible.Trigger>
         </div>
         <Collapsible.Content
-          className={showAnimations ? collapsibleContentStyle : undefined}
+          className={cx(
+            showAnimations ? collapsibleContentStyle : undefined,
+            contentPaddingStyle,
+          )}
         >
           <div className={collapsibleContentInnerStyle}>{children}</div>
         </Collapsible.Content>
@@ -186,7 +215,13 @@ export const Section = ({
         {headerLeft}
         {renderHeaderAction && <div>{renderHeaderAction()}</div>}
       </div>
-      <div className={cx(contentStyle, fillHeight && fillHeightContentStyle)}>
+      <div
+        className={cx(
+          contentStyle,
+          contentPaddingStyle,
+          fillHeight && fillHeightContentStyle,
+        )}
+      >
         {children}
       </div>
     </div>

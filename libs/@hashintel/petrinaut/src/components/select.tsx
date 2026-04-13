@@ -127,6 +127,13 @@ const chevronStyle = css({
   alignItems: "center",
 });
 
+const positionerStyle = css({
+  // The shared portal container has `pointer-events: none` so the canvas
+  // behind floating panels stays interactive. Re-enable here so dropdown
+  // items receive clicks/hover.
+  pointerEvents: "auto",
+});
+
 const contentStyle = css({
   backgroundColor: "neutral.s00",
   borderRadius: "lg",
@@ -275,7 +282,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
         )}
       </ArkSelect.Trigger>
       <ConditionalPortal enabled={portal} container={portalContainerRef}>
-        <ArkSelect.Positioner>
+        <ArkSelect.Positioner className={positionerStyle}>
           <ArkSelect.Content className={contentStyle}>
             {collection.items.map((item) => (
               <ArkSelect.Item
