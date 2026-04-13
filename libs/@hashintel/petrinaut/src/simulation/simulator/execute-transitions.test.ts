@@ -34,7 +34,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 1.0;",
@@ -134,7 +134,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
@@ -270,7 +270,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
@@ -286,7 +286,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p3", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
@@ -406,7 +406,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
@@ -518,7 +518,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t1",
             name: "Transition 1",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 10.0;",
@@ -534,7 +534,7 @@ describe("executeTransitions", () => {
           instance: {
             id: "t2",
             name: "Transition 2",
-            inputArcs: [{ placeId: "p1", weight: 1 }],
+            inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
             lambdaType: "stochastic",
             lambdaCode: "return 0.001;",

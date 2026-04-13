@@ -116,6 +116,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 2,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -169,6 +170,7 @@ export default TransitionKernel((tokens) => {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [

@@ -2,7 +2,13 @@ import { z } from "zod";
 
 export const CLIPBOARD_FORMAT_VERSION = 1;
 
-const arcSchema = z.object({
+const inputArcSchema = z.object({
+  placeId: z.string(),
+  weight: z.number(),
+  type: z.enum(["standard", "inhibitor"]).optional().default("standard"),
+});
+
+const outputArcSchema = z.object({
   placeId: z.string(),
   weight: z.number(),
 });
@@ -21,8 +27,8 @@ const placeSchema = z.object({
 const transitionSchema = z.object({
   id: z.string(),
   name: z.string(),
-  inputArcs: z.array(arcSchema),
-  outputArcs: z.array(arcSchema),
+  inputArcs: z.array(inputArcSchema),
+  outputArcs: z.array(outputArcSchema),
   lambdaType: z.enum(["predicate", "stochastic"]),
   lambdaCode: z.string(),
   transitionKernelCode: z.string(),

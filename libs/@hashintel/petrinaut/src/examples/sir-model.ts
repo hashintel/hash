@@ -41,10 +41,12 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__susceptible",
             weight: 1,
+            type: "standard",
           },
           {
             placeId: "place__infected",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -68,6 +70,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__infected",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [

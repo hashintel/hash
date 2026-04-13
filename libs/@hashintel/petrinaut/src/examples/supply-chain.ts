@@ -74,8 +74,8 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         id: "transition__0",
         name: "Deliver to Plant",
         inputArcs: [
-          { placeId: "place__0", weight: 1 },
-          { placeId: "place__1", weight: 1 },
+          { placeId: "place__0", weight: 1, type: "standard" },
+          { placeId: "place__1", weight: 1, type: "standard" },
         ],
         outputArcs: [{ placeId: "place__2", weight: 1 }],
         lambdaType: "predicate",
@@ -87,7 +87,7 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "transition__1",
         name: "Manufacture",
-        inputArcs: [{ placeId: "place__2", weight: 1 }],
+        inputArcs: [{ placeId: "place__2", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "place__3", weight: 1 }],
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",
@@ -98,7 +98,7 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "transition__2",
         name: "Quality Check",
-        inputArcs: [{ placeId: "place__3", weight: 1 }],
+        inputArcs: [{ placeId: "place__3", weight: 1, type: "standard" }],
         outputArcs: [
           { placeId: "place__5", weight: 1 },
           { placeId: "place__4", weight: 1 },
@@ -112,7 +112,7 @@ export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "transition__3",
         name: "Ship",
-        inputArcs: [{ placeId: "place__5", weight: 1 }],
+        inputArcs: [{ placeId: "place__5", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "place__6", weight: 1 }],
         lambdaType: "predicate",
         lambdaCode: "export default Lambda(() => true);",

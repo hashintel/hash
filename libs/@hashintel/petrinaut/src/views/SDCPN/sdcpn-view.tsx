@@ -45,7 +45,7 @@ const REACTFLOW_EDGE_TYPES = {
   default: Arc,
 };
 
-const ZOOM_PADDING = 0.5;
+const ZOOM_PADDING = 0.4;
 
 const canvasContainerStyle = css({
   width: "[100%]",

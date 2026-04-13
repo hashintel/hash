@@ -105,6 +105,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -132,6 +133,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -159,10 +161,12 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__d662407f-c56d-4a96-bcbb-ead785a9c594",
               weight: 1,
+              type: "standard",
             },
             {
               placeId: "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -185,6 +189,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -208,6 +213,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -234,6 +240,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -257,10 +264,12 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
               weight: 1,
+              type: "standard",
             },
             {
               placeId: "place__9cb073fb-f1d7-4613-8b10-8d1b08796f24",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [

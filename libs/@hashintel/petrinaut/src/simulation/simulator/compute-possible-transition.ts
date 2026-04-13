@@ -40,12 +40,19 @@ export function computePossibleTransition(
       );
     }
 
-    return { ...placeState, placeId: arc.placeId, weight: arc.weight };
+    return {
+      ...placeState,
+      placeId: arc.placeId,
+      weight: arc.weight,
+      type: arc.type,
+    };
   });
 
   // Transition is enabled if all input places have more tokens than the arc weight.
-  const isTransitionEnabled = inputPlaces.every(
-    (inputPlace) => inputPlace.count >= inputPlace.weight,
+  const isTransitionEnabled = inputPlaces.every((inputPlace) =>
+    inputPlace.type === "inhibitor"
+      ? inputPlace.count < inputPlace.weight
+      : inputPlace.count >= inputPlace.weight,
   );
 
   // Return null if not enabled
@@ -81,10 +88,10 @@ export function computePossibleTransition(
   // (just multiply by time since last transition)
 
   const inputPlacesWithAtLeastOneDimension = inputPlaces.filter(
-    (place) => place.dimensions > 0,
+    (place) => place.dimensions > 0 && place.type !== "inhibitor",
   );
   const inputPlacesWithZeroDimensions = inputPlaces.filter(
-    (place) => place.dimensions === 0,
+    (place) => place.dimensions === 0 && place.type !== "inhibitor",
   );
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
@@ -283,9 +290,10 @@ export function computePossibleTransition(
         // TODO: Need to provide better typing here, to not let TS infer to any[]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
-          ...inputPlacesWithZeroDimensions.map((inputPlace) => {
-            return [inputPlace.placeId, inputPlace.weight];
-          }),
+          ...inputPlacesWithZeroDimensions.map((inputPlace) => [
+            inputPlace.placeId,
+            inputPlace.weight,
+          ]),
           ...tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
             const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
             return [inputArc.placeId, new Set(placeTokenIndices)];

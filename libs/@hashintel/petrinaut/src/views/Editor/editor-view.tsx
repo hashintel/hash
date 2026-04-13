@@ -4,6 +4,7 @@ import { use, useRef, useState } from "react";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
+import { deploymentPipelineSDCPN } from "../../examples/deployment-pipeline";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
@@ -315,6 +316,14 @@ export const EditorView = ({
                 label: "SIR Model",
                 onClick: () => {
                   createNewNet(sirModel);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-deployment-pipeline",
+                label: "Deployment Pipeline",
+                onClick: () => {
+                  createNewNet(deploymentPipelineSDCPN);
                   clearSelection();
                 },
               },

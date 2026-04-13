@@ -15,6 +15,9 @@ import type { ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
+const INHIBITOR_DASH_PATTERN = "10 5 3 3 3 5";
+const INHIBITOR_MARKER_RADIUS = 10;
+const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 
 type AnimationState = {
   animation: Animation;
@@ -185,6 +188,8 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // Check if this arc is selected by its ID
   const selected = isSelected(id);
 
+  const inhibitorMarkerId = `inhibitor-circle-${id}`;
+
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
 
@@ -228,8 +233,35 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
     });
   }
 
+  const strokeColor = style?.stroke ?? "#b1b1b7";
+
   return (
     <>
+      {/* Custom SVG marker definition for inhibitor arcs (empty circle) */}
+      {data?.arcType === "inhibitor" && (
+        <defs>
+          <marker
+            id={inhibitorMarkerId}
+            markerWidth={INHIBITOR_MARKER_SIZE}
+            markerHeight={INHIBITOR_MARKER_SIZE}
+            refX={INHIBITOR_MARKER_RADIUS * 2}
+            refY={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+            orient="auto"
+            markerUnits="userSpaceOnUse"
+            style={{ zIndex: 1 }}
+          >
+            <circle
+              cx={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              cy={INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH}
+              r={INHIBITOR_MARKER_RADIUS}
+              fill="white"
+              stroke={strokeColor}
+              strokeWidth={BASE_STROKE_WIDTH}
+            />
+          </marker>
+        </defs>
+      )}
+
       {/* Selection indicator: thick orange background stroke */}
       {selected && (
         <BaseEdge
@@ -239,17 +271,33 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         />
       )}
 
-      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
-      <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
-
-      {/* Animated overlay path for firing visualization (no marker) */}
+      {/* Animated overlay path for firing visualization (no marker). */}
       <path
         ref={arcPathRef}
         d={arcPath}
         fill="none"
-        stroke={style?.stroke ?? "#b1b1b7"}
+        stroke={strokeColor}
         strokeWidth={BASE_STROKE_WIDTH}
+        strokeDasharray={
+          data?.arcType === "inhibitor" ? INHIBITOR_DASH_PATTERN : undefined
+        }
         style={{ pointerEvents: "none" }}
+      />
+
+      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
+      <BaseEdge
+        id={id}
+        path={arcPath}
+        markerEnd={
+          data?.arcType === "inhibitor"
+            ? `url(#${inhibitorMarkerId})`
+            : markerEnd
+        }
+        style={
+          data?.arcType === "inhibitor"
+            ? { ...style, strokeDasharray: INHIBITOR_DASH_PATTERN }
+            : style
+        }
       />
 
       {/* Labels container */}

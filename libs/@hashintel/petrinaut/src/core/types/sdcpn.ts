@@ -1,10 +1,21 @@
 export type ID = string;
 
+export type InputArc = {
+  placeId: string;
+  weight: number;
+  type: "standard" | "inhibitor";
+};
+
+export type OutputArc = {
+  placeId: string;
+  weight: number;
+};
+
 export type Transition = {
   id: ID;
   name: string;
-  inputArcs: { placeId: string; weight: number }[];
-  outputArcs: { placeId: string; weight: number }[];
+  inputArcs: InputArc[];
+  outputArcs: OutputArc[];
   lambdaType: "predicate" | "stochastic";
   lambdaCode: string;
   transitionKernelCode: string;

@@ -9,6 +9,7 @@ import type { SimulationFrameState_Transition } from "../../simulation/context";
 
 export type ArcData = {
   weight: number;
+  arcType: "standard" | "inhibitor";
   /**
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.

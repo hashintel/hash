@@ -122,29 +122,34 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
-    addArc(transitionId, arcType, placeId, weight) {
+    addArc(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
-            transition[arcType === "input" ? "inputArcs" : "outputArcs"].push({
-              placeId,
-              weight,
-            });
+            if (arcDirection === "input") {
+              transition["inputArcs"].push({
+                type: "standard",
+                placeId,
+                weight,
+              });
+            } else {
+              transition["outputArcs"].push({ placeId, weight });
+            }
             break;
           }
         }
       });
     },
-    removeArc(transitionId, arcType, placeId) {
+    removeArc(transitionId, arcDirection, placeId) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
             for (const [index, arc] of transition[
-              arcType === "input" ? "inputArcs" : "outputArcs"
+              arcDirection === "input" ? "inputArcs" : "outputArcs"
             ].entries()) {
               if (arc.placeId === placeId) {
                 transition[
-                  arcType === "input" ? "inputArcs" : "outputArcs"
+                  arcDirection === "input" ? "inputArcs" : "outputArcs"
                 ].splice(index, 1);
                 break;
               }
@@ -154,15 +159,30 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
-    updateArcWeight(transitionId, arcType, placeId, weight) {
+    updateArcWeight(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
             for (const arc of transition[
-              arcType === "input" ? "inputArcs" : "outputArcs"
+              arcDirection === "input" ? "inputArcs" : "outputArcs"
             ]) {
               if (arc.placeId === placeId) {
                 arc.weight = weight;
+                break;
+              }
+            }
+            break;
+          }
+        }
+      });
+    },
+    updateArcType(transitionId, placeId, type) {
+      guardedMutate((sdcpn) => {
+        for (const transition of sdcpn.transitions) {
+          if (transition.id === transitionId) {
+            for (const arc of transition["inputArcs"]) {
+              if (arc.placeId === placeId) {
+                arc.type = type;
                 break;
               }
             }
