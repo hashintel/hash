@@ -17,7 +17,8 @@ const containerStyle = css({
 
 const placeCircleStyle = cva({
   base: {
-    padding: "4",
+    paddingY: "4",
+    paddingX: "2",
     borderRadius: "[50%]",
     width: "[130px]",
     height: "[130px]",
@@ -74,6 +75,7 @@ const contentWrapperStyle = css({
   flexDirection: "column",
   alignItems: "center",
   gap: "3",
+  minWidth: "0",
 });
 
 const labelContainerStyle = css({
@@ -81,13 +83,15 @@ const labelContainerStyle = css({
   display: "flex",
   flexWrap: "wrap",
   justifyContent: "center",
-  padding: "[12px]",
+  padding: "[12px 0]",
   lineHeight: "[1.1]",
+  maxWidth: "[100%]",
 });
 
 const labelSegmentStyle = css({
-  display: "inline-block",
-  whiteSpace: "nowrap",
+  overflowWrap: "break-word",
+  lineClamp: "3",
+  maxWidth: "[100%]",
 });
 
 const tokenCountBadgeStyle = css({
@@ -128,17 +132,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
-  // Split label into segments with unique keys (handles duplicate segments)
-  const labelSegments = splitPascalCase(data.label).reduce<
-    { key: string; text: string }[]
-  >((acc, segment) => {
-    const count = acc.filter((entry) => entry.text === segment).length;
-    acc.push({
-      key: count > 0 ? `${segment}-${String(count)}` : segment,
-      text: segment,
-    });
-    return acc;
-  }, []);
+  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
+  const label = splitPascalCase(data.label).join("\u200B");
 
   // Determine selection state
   const isInSelection = isSelected(id);
@@ -174,11 +169,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         )}
         <div className={contentWrapperStyle}>
           <div className={labelContainerStyle}>
-            {labelSegments.map(({ key, text }) => (
-              <span key={key} className={labelSegmentStyle}>
-                {text}
-              </span>
-            ))}
+            <span className={labelSegmentStyle}>{label}</span>
           </div>
 
           {tokenCount !== null && (

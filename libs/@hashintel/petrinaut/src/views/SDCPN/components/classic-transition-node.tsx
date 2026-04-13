@@ -71,10 +71,9 @@ const stochasticIconStyle = css({
 });
 
 const contentWrapperStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
   gap: "3",
+  overflowWrap: "break-word",
+  lineClamp: "2",
 });
 
 const labelStyle = css({
