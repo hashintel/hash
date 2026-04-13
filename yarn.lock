@@ -7830,6 +7830,7 @@ __metadata:
     rolldown-plugin-dts: "npm:0.22.5"
     storybook: "npm:10.2.19"
     typescript: "npm:5.9.3"
+    uplot: "npm:1.6.32"
     uuid: "npm:13.0.0"
     vite: "npm:8.0.5"
     vitest: "npm:4.1.0"
@@ -45227,6 +45228,13 @@ __metadata:
   bin:
     update-browserslist-db: cli.js
   checksum: 10c0/13a00355ea822388f68af57410ce3255941d5fb9b7c49342c4709a07c9f230bbef7f7499ae0ca7e0de532e79a82cc0c4edbd125f1a323a1845bf914efddf8bec
+  languageName: node
+  linkType: hard
+
+"uplot@npm:1.6.32":
+  version: 1.6.32
+  resolution: "uplot@npm:1.6.32"
+  checksum: 10c0/4d9cdd5f53371656cfc178ea4ae0d8c9bdbe4c98c99df847926d7e5f5a5bcb8043561219da2979fee7616aabe3619d80fee093befdfe39aae65e6621284c39b1
   languageName: node
   linkType: hard
 
