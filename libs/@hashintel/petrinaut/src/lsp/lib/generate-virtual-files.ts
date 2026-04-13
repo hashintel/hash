@@ -269,16 +269,21 @@ export function generateScenarioSessionFiles(
 
   const parametersDefsPath = getItemFilePath("parameters-defs");
 
-  // Build scenario parameter declarations
-  const scenarioParamDecls = session.scenarioParameters
+  // Build scenario object type: { hello: number; world: boolean; ... }
+  const scenarioProps = session.scenarioParameters
     .filter((p) => p.identifier.trim() !== "")
-    .map((p) => `declare const ${p.identifier}: ${toTsType(p.type)};`)
+    .map((p) => `  "${p.identifier}": ${toTsType(p.type)};`)
     .join("\n");
+
+  const scenarioTypeDecl =
+    scenarioProps.length > 0
+      ? `declare const scenario: {\n${scenarioProps}\n};`
+      : `declare const scenario: Record<string, never>;`;
 
   const commonPrefix = [
     `import type { Parameters } from "${parametersDefsPath}";`,
     `declare const parameters: Parameters;`,
-    ...(scenarioParamDecls ? [scenarioParamDecls] : []),
+    scenarioTypeDecl,
   ].join("\n");
 
   // Generate defs file (shared declarations for this session)
