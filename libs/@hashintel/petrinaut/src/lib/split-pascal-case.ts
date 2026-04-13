@@ -33,5 +33,5 @@ export const splitPascalCase = (pascalCaseString: string): string[] => {
 };
 
 export const addPascalCaseBreakPoints = (str: string) => {
-  return str.slice(0, 1) + str.slice(1).replaceAll(/[A-Z]/g, "\u200B$&");
+  return splitPascalCase(str).join("\u200B");
 };
