@@ -1,0 +1,205 @@
+import type { Parameter, Scenario } from "../core/types/sdcpn";
+
+// -- Result types -------------------------------------------------------------
+
+export interface CompiledScenarioResult {
+  /**
+   * Resolved parameter values keyed by variableName (matches the format
+   * expected by the simulation worker and SimulationContext).
+   */
+  parameterValues: Record<string, string>;
+  /**
+   * Resolved initial token counts keyed by place ID.
+   */
+  initialState: Record<string, number>;
+}
+
+export interface ScenarioCompilationError {
+  /** Which field failed: "parameterOverride", "initialState", or "scenarioParameter" */
+  source: "parameterOverride" | "initialState" | "scenarioParameter";
+  /** ID of the parameter or place that failed */
+  itemId: string;
+  /** Human-readable error message */
+  message: string;
+}
+
+export type CompileScenarioOutcome =
+  | { ok: true; result: CompiledScenarioResult }
+  | { ok: false; errors: ScenarioCompilationError[] };
+
+// -- Hardened expression evaluator --------------------------------------------
+
+/**
+ * Wrap a plain object in a prototype-less, frozen copy.
+ * Severs the prototype chain so `obj.constructor.constructor("return globalThis")()`
+ * cannot escape to globals.
+ */
+function createSafeObject(obj: Record<string, number>): Record<string, number> {
+  return Object.freeze(Object.assign(Object.create(null), obj));
+}
+
+/**
+ * Globals to shadow inside the expression function body.
+ * Declared as `var` so they become `undefined` in scope, preventing
+ * the expression from accessing browser/environment APIs.
+ */
+const SHADOWED_GLOBALS = [
+  "window",
+  "document",
+  "globalThis",
+  "self",
+  "fetch",
+  "XMLHttpRequest",
+  "importScripts",
+  // Note: `eval` cannot be shadowed via `var` in strict mode (SyntaxError).
+  // It's mitigated by shadowing `Function` (blocks eval construction) and
+  // `globalThis` (blocks globalThis.eval). Direct `eval()` in strict mode
+  // cannot leak scope, and without access to globals it has limited power.
+  "Function",
+  "setTimeout",
+  "setInterval",
+  "queueMicrotask",
+].join(",");
+
+/**
+ * Evaluate a single JavaScript expression with `parameters` and `scenario`
+ * in scope. Returns the result or throws with a descriptive message.
+ *
+ * Hardening:
+ * - Strict mode (`this === undefined`)
+ * - Prototype-less frozen objects (blocks `.constructor` chain walk)
+ * - Dangerous globals shadowed with `var` declarations
+ */
+function evaluateExpression(
+  expression: string,
+  parameters: Record<string, number>,
+  scenario: Record<string, number>,
+): unknown {
+  // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions
+  const fn = new Function(
+    "parameters",
+    "scenario",
+    `"use strict"; var ${SHADOWED_GLOBALS}; return (${expression});`,
+  ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
+  return fn(createSafeObject(parameters), createSafeObject(scenario));
+}
+
+// -- Compiler -----------------------------------------------------------------
+
+/**
+ * Compile a scenario into concrete parameter values and initial token counts.
+ *
+ * Evaluation order (dependencies flow top-down):
+ * 1. Scenario parameter defaults → builds the `scenario` object
+ * 2. Parameter overrides → each expression evaluated with `{ parameters, scenario }`
+ *    → produces the final `parameters` object
+ * 3. Initial state expressions → each evaluated with the resolved `{ parameters, scenario }`
+ *    → produces per-place token counts
+ *
+ * @param scenario - The scenario to compile
+ * @param netParameters - The net-level parameter definitions (for defaults and variable names)
+ */
+export function compileScenario(
+  scenario: Scenario,
+  netParameters: Parameter[],
+): CompileScenarioOutcome {
+  const errors: ScenarioCompilationError[] = [];
+
+  // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
+
+  const scenarioObj: Record<string, number> = {};
+  for (const sp of scenario.scenarioParameters) {
+    if (sp.identifier.trim() === "") {
+      continue;
+    }
+    scenarioObj[sp.identifier] = sp.default;
+  }
+
+  // ── Step 2: Evaluate parameter overrides ──
+  //
+  // Start with net-level defaults, then apply each override expression.
+  // Expressions have access to the base `parameters` and `scenario`.
+
+  const parametersObj: Record<string, number> = {};
+  for (const param of netParameters) {
+    parametersObj[param.variableName] = Number(param.defaultValue) || 0;
+  }
+
+  // Build a lookup: paramId → Parameter
+  const paramById = new Map(netParameters.map((p) => [p.id, p]));
+
+  for (const [paramId, expression] of Object.entries(
+    scenario.parameterOverrides,
+  )) {
+    const param = paramById.get(paramId);
+    if (!param) {
+      continue;
+    }
+    const trimmed = expression.trim();
+    if (trimmed === "") {
+      // No override — keep the default
+      continue;
+    }
+    try {
+      const value = evaluateExpression(trimmed, parametersObj, scenarioObj);
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        errors.push({
+          source: "parameterOverride",
+          itemId: paramId,
+          message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a number.`,
+        });
+        continue;
+      }
+      parametersObj[param.variableName] = value;
+    } catch (err) {
+      errors.push({
+        source: "parameterOverride",
+        itemId: paramId,
+        message: `Parameter "${param.name}": ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
+  // ── Step 3: Evaluate initial state expressions ──
+
+  const initialState: Record<string, number> = {};
+
+  for (const [placeId, expression] of Object.entries(scenario.initialState)) {
+    const trimmed = expression.trim();
+    if (trimmed === "") {
+      // Empty expression → 0 tokens (default)
+      initialState[placeId] = 0;
+      continue;
+    }
+    try {
+      const value = evaluateExpression(trimmed, parametersObj, scenarioObj);
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        errors.push({
+          source: "initialState",
+          itemId: placeId,
+          message: `Initial state for place "${placeId}" evaluated to ${String(value)}, expected a number.`,
+        });
+        continue;
+      }
+      initialState[placeId] = Math.max(0, Math.round(value));
+    } catch (err) {
+      errors.push({
+        source: "initialState",
+        itemId: placeId,
+        message: `Initial state for place "${placeId}": ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  // Convert parameters to string values (SimulationContext format)
+  const parameterValues: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parametersObj)) {
+    parameterValues[key] = String(value);
+  }
+
+  return { ok: true, result: { parameterValues, initialState } };
+}

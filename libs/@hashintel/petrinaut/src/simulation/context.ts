@@ -1,5 +1,6 @@
 import { createContext } from "react";
 
+import type { CompiledScenarioResult } from "./compile-scenario";
 import type { ID, Transition } from "../core/types/sdcpn";
 
 /**
@@ -197,9 +198,21 @@ export type SimulationContextValue = {
    * When set, initial state and parameter values are defined by the scenario.
    */
   selectedScenarioId: string | null;
+  /**
+   * Current values for scenario-specific parameters (editable by the user).
+   * Keyed by scenario parameter identifier.
+   */
+  scenarioParameterValues: Record<string, string>;
+  /**
+   * Compiled scenario result — resolved parameter values and initial state
+   * produced by evaluating scenario expressions with current parameter values.
+   * Null when no scenario is selected or compilation failed.
+   */
+  compiledScenarioResult: CompiledScenarioResult | null;
 
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
+  setScenarioParameterValue: (identifier: string, value: string) => void;
   setInitialMarking: (
     placeId: string,
     marking: { values: Float64Array; count: number },
@@ -253,6 +266,8 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   parameterValues: {},
   initialMarking: new Map(),
   selectedScenarioId: null,
+  scenarioParameterValues: {},
+  compiledScenarioResult: null,
   dt: 0.01,
   maxTime: null,
   totalFrames: 0,
@@ -260,6 +275,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
+  setScenarioParameterValue: () => {},
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},

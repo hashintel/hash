@@ -160,6 +160,8 @@ const SimulationSettingsContent: React.FC = () => {
     setParameterValue,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
+    scenarioParameterValues,
+    setScenarioParameterValue,
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
@@ -228,14 +230,20 @@ const SimulationSettingsContent: React.FC = () => {
                   <NumberInput
                     size="xs"
                     value={
-                      parameterValues[param.variableName] ?? param.defaultValue
+                      selectedScenario
+                        ? (scenarioParameterValues[param.variableName] ??
+                          param.defaultValue)
+                        : (parameterValues[param.variableName] ??
+                          param.defaultValue)
                     }
-                    onChange={(event) =>
-                      setParameterValue(
-                        param.variableName,
-                        (event.target as HTMLInputElement).value,
-                      )
-                    }
+                    onChange={(event) => {
+                      const val = (event.target as HTMLInputElement).value;
+                      if (selectedScenario) {
+                        setScenarioParameterValue(param.variableName, val);
+                      } else {
+                        setParameterValue(param.variableName, val);
+                      }
+                    }}
                     placeholder={param.defaultValue}
                     disabled={isSimulationActive}
                     className={parameterInputStyle}

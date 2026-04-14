@@ -1,5 +1,9 @@
 import { use, useEffect, useRef, useState } from "react";
 
+import {
+  compileScenario,
+  type CompiledScenarioResult,
+} from "./compile-scenario";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
@@ -25,6 +29,8 @@ type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
   selectedScenarioId: string | null;
+  /** User-editable scenario parameter values (identifier → string value). */
+  scenarioParameterValues: Record<string, string>;
   dt: number;
   maxTime: number | null;
 };
@@ -33,6 +39,7 @@ const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
   initialMarking: new Map(),
   selectedScenarioId: null,
+  scenarioParameterValues: {},
   dt: 0.01,
   maxTime: null,
 };
@@ -113,7 +120,36 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
     (scenarioId) => {
-      setStateValues((prev) => ({ ...prev, selectedScenarioId: scenarioId }));
+      setStateValues((prev) => {
+        // Initialize scenario parameter values from the scenario's defaults
+        const scenarioParameterValues: Record<string, string> = {};
+        if (scenarioId) {
+          const sc = petriNetDefinition.scenarios?.find(
+            (s) => s.id === scenarioId,
+          );
+          if (sc) {
+            for (const sp of sc.scenarioParameters) {
+              scenarioParameterValues[sp.identifier] = String(sp.default);
+            }
+          }
+        }
+        return {
+          ...prev,
+          selectedScenarioId: scenarioId,
+          scenarioParameterValues,
+        };
+      });
+    };
+
+  const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
+    (identifier, value) => {
+      setStateValues((prev) => ({
+        ...prev,
+        scenarioParameterValues: {
+          ...prev.scenarioParameterValues,
+          [identifier]: value,
+        },
+      }));
     };
 
   const setInitialMarking: SimulationContextValue["setInitialMarking"] = (
@@ -245,6 +281,39 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const simulationState = mapWorkerStatusToSimulationState(workerState.status);
   const totalFrames = workerState.frames.length;
 
+  // Compile scenario when one is selected — computed during render.
+  // React Compiler will memoize based on inputs.
+  let compiledScenarioResult: CompiledScenarioResult | null = null;
+  if (stateValues.selectedScenarioId) {
+    const selectedScenario = petriNetDefinition.scenarios?.find(
+      (s) => s.id === stateValues.selectedScenarioId,
+    );
+    if (selectedScenario) {
+      // Build a scenario with user-tweaked parameter values
+      const tweakedScenario = {
+        ...selectedScenario,
+        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
+          ...sp,
+          default: Number(
+            stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
+          ),
+        })),
+      };
+      const outcome = compileScenario(
+        tweakedScenario,
+        petriNetDefinition.parameters,
+      );
+      if (outcome.ok) {
+        compiledScenarioResult = outcome.result;
+        // eslint-disable-next-line no-console
+        console.log("[Scenario] compiled", compiledScenarioResult);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn("[Scenario] compilation errors", outcome.errors);
+      }
+    }
+  }
+
   const contextValue: SimulationContextValue = {
     state: simulationState,
     error: workerState.error,
@@ -252,6 +321,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     parameterValues: stateValues.parameterValues,
     initialMarking: stateValues.initialMarking,
     selectedScenarioId: stateValues.selectedScenarioId,
+    scenarioParameterValues: stateValues.scenarioParameterValues,
+    compiledScenarioResult,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
@@ -259,6 +330,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
     setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
+    setScenarioParameterValue: useStableCallback(setScenarioParameterValue),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
