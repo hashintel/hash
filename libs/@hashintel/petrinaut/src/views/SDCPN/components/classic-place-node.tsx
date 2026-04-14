@@ -158,8 +158,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
           backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(30).css(0.8)
-            : "#FCFCFACC",
+            ? hexToHsl(data.typeColor).lighten(35).css(1)
+            : "#FCFCFA",
         }}
       >
         {data.dynamicsEnabled && (
