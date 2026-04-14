@@ -136,13 +136,6 @@ const emptyMessageStyle = css({
   fontStyle: "italic",
 });
 
-const sectionTitleRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "1",
-});
-
 // -- Component ----------------------------------------------------------------
 
 const NO_SCENARIO = "__none__";
@@ -357,15 +350,6 @@ const SimulationSettingsContent: React.FC = () => {
               />
             </div>
           </div>
-
-          {/* Metrics Section */}
-          <div className={sectionTitleRowStyle}>
-            <div className={sectionTitleStyle}>Metrics</div>
-            <IconButton size="xs" variant="ghost" aria-label="Add metric">
-              <TbPlus size={12} />
-            </IconButton>
-          </div>
-          <div className={emptyMessageStyle}>No metrics defined</div>
         </div>
       </div>
     </div>
