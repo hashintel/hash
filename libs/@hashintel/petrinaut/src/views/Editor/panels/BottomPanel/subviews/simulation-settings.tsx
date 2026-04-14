@@ -9,6 +9,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -166,6 +167,7 @@ const SimulationSettingsContent: React.FC = () => {
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [odeSolver, setOdeSolver] = useState("euler");
+  const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
@@ -209,7 +211,20 @@ const SimulationSettingsContent: React.FC = () => {
           size="xs"
           className={scenarioSelectStyle}
         />
+        <IconButton
+          size="xs"
+          variant="ghost"
+          aria-label="Create scenario"
+          tooltip="Create Scenario"
+          onClick={() => setIsCreateScenarioOpen(true)}
+        >
+          <TbPlus size={14} />
+        </IconButton>
       </div>
+      <CreateScenarioDrawer
+        open={isCreateScenarioOpen}
+        onClose={() => setIsCreateScenarioOpen(false)}
+      />
 
       <div className={containerStyle}>
         {/* Parameters Section */}
