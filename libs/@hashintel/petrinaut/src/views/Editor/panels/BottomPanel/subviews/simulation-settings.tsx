@@ -158,9 +158,11 @@ const SimulationSettingsContent: React.FC = () => {
     setDt,
     parameterValues,
     setParameterValue,
+    selectedScenarioId: contextScenarioId,
+    setSelectedScenarioId: setContextScenarioId,
   } = use(SimulationContext);
 
-  const [selectedScenarioId, setSelectedScenarioId] = useState(NO_SCENARIO);
+  const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [odeSolver, setOdeSolver] = useState("euler");
 
   const isSimulationActive =
@@ -198,7 +200,9 @@ const SimulationSettingsContent: React.FC = () => {
         <span className={scenarioLabelStyle}>Scenario</span>
         <Select
           value={selectedScenarioId}
-          onValueChange={setSelectedScenarioId}
+          onValueChange={(value) =>
+            setContextScenarioId(value === NO_SCENARIO ? null : value)
+          }
           options={scenarioOptions}
           size="xs"
           className={scenarioSelectStyle}

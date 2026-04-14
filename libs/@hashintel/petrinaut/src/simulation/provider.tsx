@@ -24,6 +24,7 @@ import {
 type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
+  selectedScenarioId: string | null;
   dt: number;
   maxTime: number | null;
 };
@@ -31,6 +32,7 @@ type SimulationStateValues = {
 const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
   initialMarking: new Map(),
+  selectedScenarioId: null,
   dt: 0.01,
   maxTime: null,
 };
@@ -108,6 +110,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   //
   // Actions
   //
+
+  const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
+    (scenarioId) => {
+      setStateValues((prev) => ({ ...prev, selectedScenarioId: scenarioId }));
+    };
 
   const setInitialMarking: SimulationContextValue["setInitialMarking"] = (
     placeId,
@@ -244,12 +251,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     errorItemId: workerState.errorItemId,
     parameterValues: stateValues.parameterValues,
     initialMarking: stateValues.initialMarking,
+    selectedScenarioId: stateValues.selectedScenarioId,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
+    setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),

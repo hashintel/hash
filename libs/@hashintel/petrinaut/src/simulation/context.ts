@@ -192,7 +192,14 @@ export type SimulationContextValue = {
     endIndex?: number,
   ) => Promise<SimulationFrame[]>;
 
+  /**
+   * ID of the currently selected scenario, or `null` for no scenario.
+   * When set, initial state and parameter values are defined by the scenario.
+   */
+  selectedScenarioId: string | null;
+
   // Actions
+  setSelectedScenarioId: (scenarioId: string | null) => void;
   setInitialMarking: (
     placeId: string,
     marking: { values: Float64Array; count: number },
@@ -245,12 +252,14 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
+  selectedScenarioId: null,
   dt: 0.01,
   maxTime: null,
   totalFrames: 0,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
+  setSelectedScenarioId: () => {},
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},

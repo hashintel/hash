@@ -71,6 +71,13 @@ const ClearStateHeaderAction: React.FC = () => {
   );
 };
 
+const scenarioInfoStyle = css({
+  fontSize: "xs",
+  color: "neutral.s100",
+  fontStyle: "italic",
+  paddingY: "2",
+});
+
 /**
  * PlaceInitialStateContent - Renders the initial state editor for a place.
  * Uses PlacePropertiesContext to access the current place data.
@@ -78,8 +85,18 @@ const ClearStateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { initialMarking, setInitialMarking } = use(SimulationContext);
+  const { initialMarking, setInitialMarking, selectedScenarioId } =
+    use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
+
+  // When a scenario is selected, initial state is defined by the scenario.
+  if (selectedScenarioId) {
+    return (
+      <div className={scenarioInfoStyle}>
+        Initial state is defined by the selected scenario.
+      </div>
+    );
+  }
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames = totalFrames > 0;
