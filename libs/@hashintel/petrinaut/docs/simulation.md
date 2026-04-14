@@ -9,7 +9,7 @@ Select a place and open the **State** sub-view in its properties:
 - **Untyped places** -- set a token count (integer).
 - **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor.
 
-<!-- screenshot: initial state editor for a typed place -->
+<img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
 
 If no initial marking is set, a place starts empty (zero tokens).
 
@@ -46,7 +46,7 @@ Press **Play** in the bottom toolbar. The simulation:
 
 If there are unresolved [diagnostics](petri-net-extensions.md#diagnostics) (code errors), pressing Play opens the Diagnostics tab instead of starting the simulation. Fix all errors first.
 
-<!-- screenshot: simulation controls in the bottom toolbar -->
+<img width="1018" height="354" alt="simulation-settings" src="https://github.com/user-attachments/assets/8736a52e-6455-40fd-bede-51e0439a3e5b" />
 
 ## How a frame is computed
 
@@ -83,7 +83,7 @@ The bottom toolbar provides playback controls:
 
 The frame counter shows the current frame number, total frames, and elapsed simulation time.
 
-<!-- screenshot: playback controls -->
+<img width="717" height="62" alt="simulation-toolbar" src="https://github.com/user-attachments/assets/fc39afbe-8603-4be5-88b1-83d5b09d5367" />
 
 ### Speed
 
@@ -110,7 +110,7 @@ Stopping conditions are **locked after the simulation starts**. Reset the simula
 
 The **Timeline** tab appears in the bottom panel during and after simulation. It shows token counts per place over time as a chart.
 
-<!-- screenshot: timeline with multiple places -->
+<img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
@@ -122,7 +122,7 @@ Select a place during simulation to see its current token values in the properti
 
 If the place has a [visualizer](petri-net-extensions.md#visualizer) defined, it renders live in the properties panel, updating as the simulation progresses.
 
-<!-- screenshot: place visualizer during simulation -->
+![visualiser](https://github.com/user-attachments/assets/9324bb5b-4912-499e-8a5d-f2bc6a7754c2)
 
 ## Locked editing
 
