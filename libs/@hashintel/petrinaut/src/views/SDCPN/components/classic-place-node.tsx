@@ -23,8 +23,11 @@ const placeCircleStyle = cva({
     width: "[130px]",
     height: "[130px]",
     display: "flex",
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+    gap: "3",
+    minWidth: "0",
     border: "2px solid",
     fontSize: "[15px]",
     boxSizing: "border-box",
@@ -70,14 +73,6 @@ const dynamicsIconStyle = css({
   fontSize: "lg",
 });
 
-const contentWrapperStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "3",
-  minWidth: "0",
-});
-
 const labelContainerStyle = css({
   textAlign: "center",
   display: "flex",
@@ -86,12 +81,8 @@ const labelContainerStyle = css({
   padding: "[12px 0]",
   lineHeight: "[1.1]",
   maxWidth: "[100%]",
-});
-
-const labelSegmentStyle = css({
   overflowWrap: "break-word",
   lineClamp: "3",
-  maxWidth: "[100%]",
 });
 
 const tokenCountBadgeStyle = css({
@@ -167,15 +158,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             <TbMathFunction />
           </div>
         )}
-        <div className={contentWrapperStyle}>
-          <div className={labelContainerStyle}>
-            <span className={labelSegmentStyle}>{label}</span>
-          </div>
-
-          {tokenCount !== null && (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          )}
-        </div>
+        <div className={labelContainerStyle}>{label}</div>
+        {tokenCount !== null && (
+          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+        )}
       </div>
       <Handle
         type="source"
