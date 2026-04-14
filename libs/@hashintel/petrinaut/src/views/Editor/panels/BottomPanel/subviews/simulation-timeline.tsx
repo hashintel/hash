@@ -381,113 +381,204 @@ function hitTestStackedBand(
   return null;
 }
 
-// -- uPlot options builder ----------------------------------------------------
+// -- Hover target resolution (shared by tooltip) -----------------------------
 
-function buildUPlotOptions(
+interface HoverHit {
+  place: PlaceMeta;
+  value: number;
+  idx: number;
+  time: number;
+}
+
+/**
+ * Resolve the place + value under the cursor. Returns null when there's
+ * nothing to show (cursor outside data, no focused series, hidden place).
+ */
+function resolveHoverTarget(
+  u: uPlot,
   store: StreamingStore,
   chartType: TimelineChartType,
   hiddenPlaces: Set<string>,
-  width: number,
-  height: number,
-  onScrub: (frameIndex: number) => void,
-  getPlayheadFrame: () => number,
-  tooltip: TooltipNodes,
-): uPlot.Options {
-  // Tracks the focused series index for run-mode tooltip (set via setSeries hook).
-  // For stacked mode we hit-test the y position instead.
-  const focused = { current: -1 };
+  focusedSeriesIdx: number,
+): HoverHit | null {
+  const idx = u.cursor.idx;
+  if (idx == null || idx < 0 || store.length === 0) {
+    return null;
+  }
 
-  // Local alias so the no-param-reassign rule doesn't fire on every mutation.
-  const t = tooltip;
-
-  const updateTooltip = (u: uPlot) => {
-    const idx = u.cursor.idx;
-    if (idx == null || idx < 0 || store.length === 0) {
-      t.root.style.display = "none";
-      return;
-    }
-
-    let placeIdx: number;
-    let value: number;
-
-    if (chartType === "stacked") {
-      const top = u.cursor.top;
-      if (top == null || top < 0) {
-        t.root.style.display = "none";
-        return;
-      }
-      const yVal = u.posToVal(top, "y");
-      const hit = hitTestStackedBand(store, hiddenPlaces, idx, yVal);
-      if (!hit) {
-        t.root.style.display = "none";
-        return;
-      }
-      placeIdx = hit.placeIdx;
-      value = hit.value;
-    } else {
-      // Run chart: rely on uPlot's nearest-series focus (cursor.focus.prox).
-      // series 0 is the x axis, so place index = focused - 1.
-      if (focused.current < 1) {
-        t.root.style.display = "none";
-        return;
-      }
-      placeIdx = focused.current - 1;
-      if (hiddenPlaces.has(store.places[placeIdx]?.placeId ?? "")) {
-        t.root.style.display = "none";
-        return;
-      }
-      value = store.columns[focused.current]?.[idx] ?? 0;
-    }
-
-    const place = store.places[placeIdx];
-    if (!place) {
-      t.root.style.display = "none";
-      return;
-    }
-
-    const time = store.columns[0]![idx] ?? 0;
-
-    t.dot.style.background = place.color;
-    t.name.textContent = place.placeName;
-    t.value.textContent = String(value);
-    t.time.textContent = `${time.toFixed(3)}s`;
-    t.frame.textContent = `Frame ${idx}`;
-
-    // Position inside u.over (overflow:hidden — tooltip can't escape the
-    // chart). Center horizontally on cursor and prefer above; clamp/flip so
-    // the tooltip stays fully visible inside the plot area.
-    t.root.style.display = "block"; // measure with current content
-    const cx = u.cursor.left ?? 0;
-    const cy = u.cursor.top ?? 0;
-    const ow = u.over.clientWidth;
-    const oh = u.over.clientHeight;
-    const tw = t.root.offsetWidth;
-    const th = t.root.offsetHeight;
-    const margin = 10;
-
-    let left = cx - tw / 2;
-    if (left < 0) {
-      left = 0;
-    } else if (left + tw > ow) {
-      left = ow - tw;
-    }
-
-    let top = cy - th - margin;
-    if (top < 0) {
-      // Not enough room above — flip below cursor.
-      top = Math.min(cy + margin, oh - th);
-    }
-
-    t.root.style.left = `${left}px`;
-    t.root.style.top = `${top}px`;
-  };
-
-  const series: uPlot.Series[] = [{ label: "Time" }];
+  let placeIdx: number;
+  let value: number;
 
   if (chartType === "stacked") {
-    const visible = store.places.filter((p) => !hiddenPlaces.has(p.placeId));
-    const reversed = [...visible].reverse();
-    for (const p of reversed) {
+    const top = u.cursor.top;
+    if (top == null || top < 0) {
+      return null;
+    }
+    const hit = hitTestStackedBand(
+      store,
+      hiddenPlaces,
+      idx,
+      u.posToVal(top, "y"),
+    );
+    if (!hit) {
+      return null;
+    }
+    placeIdx = hit.placeIdx;
+    value = hit.value;
+  } else {
+    if (focusedSeriesIdx < 1) {
+      return null;
+    }
+    placeIdx = focusedSeriesIdx - 1;
+    if (hiddenPlaces.has(store.places[placeIdx]?.placeId ?? "")) {
+      return null;
+    }
+    value = store.columns[focusedSeriesIdx]?.[idx] ?? 0;
+  }
+
+  const place = store.places[placeIdx];
+  if (!place) {
+    return null;
+  }
+
+  return { place, value, idx, time: store.columns[0]![idx] ?? 0 };
+}
+
+// -- Tooltip positioning (edge-clamped inside u.over) -------------------------
+
+function positionTooltip(tooltip: TooltipNodes, u: uPlot, hit: HoverHit): void {
+  // Local alias to satisfy no-param-reassign rule on DOM mutations.
+  const t = tooltip;
+  t.dot.style.background = hit.place.color;
+  t.name.textContent = hit.place.placeName;
+  t.value.textContent = String(hit.value);
+  t.time.textContent = `${hit.time.toFixed(3)}s`;
+  t.frame.textContent = `Frame ${hit.idx}`;
+
+  // Measure after content update
+  t.root.style.display = "block";
+  const cx = u.cursor.left ?? 0;
+  const cy = u.cursor.top ?? 0;
+  const ow = u.over.clientWidth;
+  const oh = u.over.clientHeight;
+  const tw = t.root.offsetWidth;
+  const th = t.root.offsetHeight;
+  const margin = 10;
+
+  let left = cx - tw / 2;
+  if (left < 0) {
+    left = 0;
+  } else if (left + tw > ow) {
+    left = ow - tw;
+  }
+
+  let top = cy - th - margin;
+  if (top < 0) {
+    top = Math.min(cy + margin, oh - th);
+  }
+
+  t.root.style.left = `${left}px`;
+  t.root.style.top = `${top}px`;
+}
+
+// -- Playhead drawing (Logic Pro-style pin) -----------------------------------
+
+/** Draw the playhead pin in the ruler and a vertical guide line into the chart. */
+function drawPlayhead(u: uPlot, frameIdx: number): void {
+  const times = u.data[0]!;
+  if (times.length === 0) {
+    return;
+  }
+
+  const dpr = devicePixelRatio;
+  const time = times[Math.min(frameIdx, times.length - 1)]!;
+  const cx = u.valToPos(time, "x", true);
+  const plotTop = u.bbox.top;
+  const plotHeight = u.bbox.height;
+  const ctx = u.ctx;
+
+  // Pin dimensions (all in physical pixels for HiDPI correctness)
+  const headW = 12 * dpr;
+  const rectH = 6 * dpr;
+  const tipH = 6 * dpr;
+  const radius = 3 * dpr;
+  const tipY = plotTop;
+  const baseY = tipY - tipH;
+  const topY = baseY - rectH;
+  const leftX = cx - headW / 2;
+  const rightX = cx + headW / 2;
+
+  ctx.save();
+
+  // Pin head: rounded-top rectangle tapering to a triangular tip
+  ctx.fillStyle = "#1e293b";
+  ctx.beginPath();
+  ctx.moveTo(leftX, topY + radius);
+  ctx.arcTo(leftX, topY, leftX + radius, topY, radius);
+  ctx.lineTo(rightX - radius, topY);
+  ctx.arcTo(rightX, topY, rightX, topY + radius, radius);
+  ctx.lineTo(rightX, baseY);
+  ctx.lineTo(cx, tipY);
+  ctx.lineTo(leftX, baseY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 1 * dpr;
+  ctx.stroke();
+
+  // Vertical guide line
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(cx, tipY - 4 * dpr);
+  ctx.lineTo(cx, tipY + plotHeight);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// -- uPlot options builder ----------------------------------------------------
+
+interface ChartOptions {
+  store: StreamingStore;
+  chartType: TimelineChartType;
+  hiddenPlaces: Set<string>;
+  size: { width: number; height: number };
+  onScrub: (frameIndex: number) => void;
+  getPlayheadFrame: () => number;
+  tooltip: TooltipNodes;
+}
+
+function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
+  const {
+    store,
+    chartType,
+    hiddenPlaces,
+    size,
+    onScrub,
+    getPlayheadFrame,
+    tooltip: t,
+  } = opts;
+
+  // Mutable focus index — updated by setSeries hook, read by tooltip
+  let focused = -1;
+
+  const updateTooltip = (u: uPlot) => {
+    const hit = resolveHoverTarget(u, store, chartType, hiddenPlaces, focused);
+    if (!hit) {
+      t.root.style.display = "none";
+      return;
+    }
+    positionTooltip(t, u, hit);
+  };
+
+  // Build series config
+  const series: uPlot.Series[] = [{ label: "Time" }];
+  if (chartType === "stacked") {
+    const visible = store.places
+      .filter((p) => !hiddenPlaces.has(p.placeId))
+      .reverse();
+    for (const p of visible) {
       series.push({
         label: p.placeName,
         stroke: p.color,
@@ -507,19 +598,14 @@ function buildUPlotOptions(
   }
 
   return {
-    width,
-    height,
+    width: size.width,
+    height: size.height,
     series,
     pxAlign: false,
-    // Disable uPlot's auto right padding (reserved for the rightmost x-axis
-    // label overhang). The label may overhang the right edge slightly — fine
-    // for our full-bleed layout. Other sides keep auto padding (null).
     padding: [4, 0, 0, null],
     cursor: {
       lock: false,
       drag: { x: false, y: false, setScale: false },
-      // For run mode: dim non-focused series and snap focus to nearest line
-      // within `prox` pixels. Stacked mode ignores this (we hit-test bands).
       focus: { prox: 16 },
       bind: {
         mousedown: (u, _targ, handler) => (e: MouseEvent) => {
@@ -539,15 +625,14 @@ function buildUPlotOptions(
       },
     },
     legend: { show: false },
-    // Dim non-focused series in run mode (canvas alpha — no DOM cost)
     focus: { alpha: chartType === "stacked" ? 1 : 0.3 },
     axes: [
       {
         show: true,
-        side: 0, // top — drawn as a Logic-Pro-style ruler (see drawClear hook)
+        side: 0,
         size: 26,
         font: "10px system-ui",
-        stroke: "#475569", // slate-600 on the ruler tint
+        stroke: "#475569",
         grid: { stroke: "#f3f4f6", width: 1 },
         ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
         values: (_u, vals) => vals.map((v) => `${v}s`),
@@ -562,24 +647,19 @@ function buildUPlotOptions(
       },
     ],
     scales: {
-      x: {
-        time: false,
-        // Pin range exactly to data min/max — no auto padding on the right
-        range: (_u, min, max) => [min, max],
-      },
+      x: { time: false, range: (_u, min, max) => [min, max] },
       y: {
         auto: true,
         range: (_u, min, max) => [Math.min(0, min), Math.max(1, max * 1.05)],
       },
     },
     hooks: {
-      // Draw a thin separator line between the top axis area and the plot.
       drawClear: [
         (u) => {
-          const ctx = u.ctx;
-          const { left: bx, width: bw, top: by } = u.bbox; // physical pixels
+          const { ctx } = u;
+          const { left: bx, width: bw, top: by } = u.bbox;
           ctx.save();
-          ctx.strokeStyle = "#cbd5e1"; // slate-300
+          ctx.strokeStyle = "#cbd5e1";
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(bx, by - 0.5);
@@ -590,70 +670,12 @@ function buildUPlotOptions(
       ],
       setSeries: [
         (u, sIdx) => {
-          focused.current = sIdx ?? -1;
-          // Also refresh tooltip — setSeries may fire after setCursor for the
-          // same mousemove, so the cursor-only update would have stale focus.
+          focused = sIdx ?? -1;
           updateTooltip(u);
         },
       ],
-      setCursor: [
-        (u) => {
-          updateTooltip(u);
-        },
-      ],
-      draw: [
-        (u) => {
-          const frameIdx = getPlayheadFrame();
-          const times = u.data[0]!;
-          if (times.length === 0) {
-            return;
-          }
-          const time = times[Math.min(frameIdx, times.length - 1)]!;
-          // All coords in physical (canvas) pixels — match valToPos(_, _, true)
-          // and u.bbox. Multiply visual sizes by dpr so they look right on hidpi.
-          const dpr = devicePixelRatio;
-          const cx = u.valToPos(time, "x", true);
-          const plotTop = u.bbox.top;
-          const plotHeight = u.bbox.height;
-          const ctx = u.ctx;
-
-          // Logic Pro-style playhead: rounded-top "pin" — rectangular body
-          // whose bottom corners taper diagonally to a single point at plotTop.
-          const headW = 12 * dpr;
-          const rectH = 6 * dpr;
-          const tipH = 6 * dpr;
-          const radius = 3 * dpr;
-          const tipY = plotTop;
-          const baseY = tipY - tipH; // where the taper begins
-          const topY = baseY - rectH;
-          const leftX = cx - headW / 2;
-          const rightX = cx + headW / 2;
-
-          ctx.save();
-          ctx.fillStyle = "#1e293b"; // slate-800
-          ctx.beginPath();
-          ctx.moveTo(leftX, topY + radius);
-          ctx.arcTo(leftX, topY, leftX + radius, topY, radius); // top-left
-          ctx.lineTo(rightX - radius, topY);
-          ctx.arcTo(rightX, topY, rightX, topY + radius, radius); // top-right
-          ctx.lineTo(rightX, baseY); // right side down
-          ctx.lineTo(cx, tipY); // diagonal to tip
-          ctx.lineTo(leftX, baseY); // diagonal back to left side
-          ctx.closePath(); // left side up
-          ctx.fill();
-          ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 1 * dpr;
-          ctx.stroke();
-          // Vertical line into the chart
-          ctx.strokeStyle = "#1e293b";
-          ctx.lineWidth = 1.5 * dpr;
-          ctx.beginPath();
-          ctx.moveTo(cx, tipY - 4 * dpr);
-          ctx.lineTo(cx, tipY + plotHeight);
-          ctx.stroke();
-          ctx.restore();
-        },
-      ],
+      setCursor: [(u) => updateTooltip(u)],
+      draw: [(u) => drawPlayhead(u, getPlayheadFrame())],
     },
   };
 }
@@ -768,16 +790,15 @@ const UPlotChart: React.FC<{
 
     const tooltip = createTooltip();
 
-    const opts = buildUPlotOptions(
+    const opts = buildUPlotOptions({
       store,
       chartType,
       hiddenPlaces,
-      size.width,
-      size.height,
+      size,
       onScrub,
-      () => playheadFrameRef.current,
+      getPlayheadFrame: () => playheadFrameRef.current,
       tooltip,
-    );
+    });
 
     chartRef.current?.destroy();
 
