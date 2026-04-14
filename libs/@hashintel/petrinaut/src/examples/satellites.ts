@@ -308,5 +308,36 @@ export default Dynamics((tokens, parameters) => {
         defaultValue: "400000.0",
       },
     ],
+    scenarios: [
+      {
+        id: "af3ad9e9-fd8f-4e3d-a01e-66cecafe2ca6",
+        name: "All Around the World",
+        scenarioParameters: [
+          { type: "integer", identifier: "number_of_satellites", default: 8 },
+          { type: "real", identifier: "distance_from_surface", default: 30 },
+        ],
+        parameterOverrides: {},
+        initialState: {
+          type: "code",
+          content: [
+            "const distanceFromCenter =",
+            "  parameters.planet_radius + scenario.distance_from_surface;",
+            "",
+            "return {",
+            "  Space: Array.from({ length: scenario.number_of_satellites }, (_, i) => {",
+            "    const angle = (Math.PI * 2 * i) / scenario.number_of_satellites;",
+            "",
+            "    return {",
+            "      x: Math.cos(angle) * distanceFromCenter,",
+            "      y: Math.sin(angle) * distanceFromCenter,",
+            "      direction: angle,",
+            "      velocity: Math.sqrt(parameters.gravitational_constant / distanceFromCenter),",
+            "    };",
+            "  }),",
+            "};",
+          ].join("\n"),
+        },
+      },
+    ],
   },
 };
