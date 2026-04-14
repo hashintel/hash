@@ -109,8 +109,8 @@ const overrideLabelStyle = css({
 
 const overrideNameStyle = css({
   fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
+  fontWeight: "normal",
+  color: "neutral.s115",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   overflow: "hidden",
