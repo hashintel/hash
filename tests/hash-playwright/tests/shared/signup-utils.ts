@@ -14,7 +14,8 @@ const defaultPassword = "some-complex-pw-1ab2";
  */
 const uniqueShortname = (base: string): string => {
   const suffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
-  return `${base}${suffix}`.slice(0, 24);
+  const maxBaseLength = 24 - suffix.length;
+  return `${base.slice(0, maxBaseLength)}${suffix}`;
 };
 
 /**
