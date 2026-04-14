@@ -222,7 +222,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
   triggerClassName,
   className,
   positioning,
-  portal = true,
+  portal = false,
 }) => {
   const portalContainerRef = usePortalContainerRef();
 
@@ -282,7 +282,11 @@ const SelectBase: React.FC<SelectBaseProps> = ({
         )}
       </ArkSelect.Trigger>
       <ConditionalPortal enabled={portal} container={portalContainerRef}>
-        <ArkSelect.Positioner className={positionerStyle}>
+        <ArkSelect.Positioner
+          className={positionerStyle}
+          // Manual override because z-index is relying on a CSS variable by default here
+          style={{ zIndex: 999 }}
+        >
           <ArkSelect.Content className={contentStyle}>
             {collection.items.map((item) => (
               <ArkSelect.Item
