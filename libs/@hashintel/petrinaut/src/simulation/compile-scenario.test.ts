@@ -22,7 +22,7 @@ const scenario = (overrides: Partial<Scenario> = {}): Scenario => ({
   name: "Test",
   scenarioParameters: [],
   parameterOverrides: {},
-  initialState: {},
+  initialState: { type: "per_place", content: {} },
   ...overrides,
 });
 
@@ -37,7 +37,7 @@ describe("compileScenario", () => {
         ok: true,
         result: {
           parameterValues: { x: "10" },
-          initialState: {},
+          initialState: expect.any(Object),
         },
       });
     });
@@ -56,13 +56,15 @@ describe("compileScenario", () => {
 
     it("evaluates an initial state expression", () => {
       const result = compileScenario(
-        scenario({ initialState: { place1: "100" } }),
+        scenario({
+          initialState: { type: "per_place", content: { place1: "100" } },
+        }),
         [],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toBe(100);
+        expect(result.result.initialState.place1?.count).toBe(100);
       }
     });
 
@@ -70,7 +72,7 @@ describe("compileScenario", () => {
       const result = compileScenario(
         scenario({
           parameterOverrides: { p1: "", p2: "  " },
-          initialState: { place1: "" },
+          initialState: { type: "per_place", content: { place1: "" } },
         }),
         [param("p1", "x", "5"), param("p2", "y", "7")],
       );
@@ -78,7 +80,7 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.result.parameterValues).toEqual({ x: "5", y: "7" });
-        expect(result.result.initialState.place1).toBe(0);
+        expect(result.result.initialState.place1?.count).toBe(0);
       }
     });
   });
@@ -107,14 +109,17 @@ describe("compileScenario", () => {
           scenarioParameters: [
             { type: "integer", identifier: "count", default: 50 },
           ],
-          initialState: { place1: "scenario.count" },
+          initialState: {
+            type: "per_place",
+            content: { place1: "scenario.count" },
+          },
         }),
         [],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toBe(50);
+        expect(result.result.initialState.place1?.count).toBe(50);
       }
     });
   });
@@ -159,38 +164,122 @@ describe("compileScenario", () => {
           scenarioParameters: [
             { type: "boolean", identifier: "large", default: 1 },
           ],
-          initialState: { place1: "scenario.large ? 1000 : 10" },
+          initialState: {
+            type: "per_place",
+            content: { place1: "scenario.large ? 1000 : 10" },
+          },
         }),
         [],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toBe(1000);
+        expect(result.result.initialState.place1?.count).toBe(1000);
       }
     });
 
     it("rounds initial state to integers", () => {
       const result = compileScenario(
-        scenario({ initialState: { place1: "3.7" } }),
+        scenario({
+          initialState: { type: "per_place", content: { place1: "3.7" } },
+        }),
         [],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toBe(4);
+        expect(result.result.initialState.place1?.count).toBe(4);
       }
     });
 
     it("clamps negative initial state to 0", () => {
       const result = compileScenario(
-        scenario({ initialState: { place1: "-5" } }),
+        scenario({
+          initialState: { type: "per_place", content: { place1: "-5" } },
+        }),
         [],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toBe(0);
+        expect(result.result.initialState.place1?.count).toBe(0);
+      }
+    });
+  });
+
+  describe("colored places (number[][] data)", () => {
+    it("passes through number[][] as flattened values", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              place1: [
+                [1, 2, 3],
+                [4, 5, 6],
+              ],
+            },
+          },
+        }),
+        [],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual({
+          values: [1, 2, 3, 4, 5, 6],
+          count: 2,
+        });
+      }
+    });
+
+    it("handles empty token array", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: { place1: [] },
+          },
+        }),
+        [],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual({
+          values: [],
+          count: 0,
+        });
+      }
+    });
+
+    it("handles mixed colored and uncolored places", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              uncolored: "42",
+              colored: [
+                [10, 20],
+                [30, 40],
+              ],
+            },
+          },
+        }),
+        [],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.uncolored).toEqual({
+          values: [],
+          count: 42,
+        });
+        expect(result.result.initialState.colored).toEqual({
+          values: [10, 20, 30, 40],
+          count: 2,
+        });
       }
     });
   });
@@ -200,7 +289,10 @@ describe("compileScenario", () => {
       const result = compileScenario(
         scenario({
           parameterOverrides: { p1: "99" },
-          initialState: { place1: "parameters.x" },
+          initialState: {
+            type: "per_place",
+            content: { place1: "parameters.x" },
+          },
         }),
         [param("p1", "x", "1")],
       );
@@ -208,7 +300,7 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         // parameters.x should be the overridden 99, not the default 1
-        expect(result.result.initialState.place1).toBe(99);
+        expect(result.result.initialState.place1?.count).toBe(99);
       }
     });
   });
@@ -242,7 +334,9 @@ describe("compileScenario", () => {
 
     it("reports NaN results", () => {
       const result = compileScenario(
-        scenario({ initialState: { place1: "0 / 0" } }),
+        scenario({
+          initialState: { type: "per_place", content: { place1: "0 / 0" } },
+        }),
         [],
       );
 
@@ -268,7 +362,10 @@ describe("compileScenario", () => {
       const result = compileScenario(
         scenario({
           parameterOverrides: { p1: "bad +", p2: '"string"' },
-          initialState: { place1: "also bad +" },
+          initialState: {
+            type: "per_place",
+            content: { place1: "also bad +" },
+          },
         }),
         [param("p1", "x", "0"), param("p2", "y", "0")],
       );

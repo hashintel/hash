@@ -21,6 +21,16 @@ export function buildScenarioFromFormState(
       ({ _key: _, ...rest }) => rest,
     ),
     parameterOverrides: state.parameterOverrides,
-    initialState: state.initialTokenCounts,
+    initialState: state.initialStateAsCode
+      ? { type: "code", content: state.initialStateCode }
+      : {
+          type: "per_place",
+          content: {
+            // Uncolored places: expression strings (token count)
+            ...state.initialTokenCounts,
+            // Colored places: number[][] (rows × elements), stored directly
+            ...state.initialTokenData,
+          },
+        },
   };
 }

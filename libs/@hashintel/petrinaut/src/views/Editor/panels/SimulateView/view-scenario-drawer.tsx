@@ -38,11 +38,29 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
       _key: nextKey++,
     })),
     parameterOverrides: scenario.parameterOverrides,
-    initialTokenCounts: scenario.initialState,
-    initialTokenData: {},
+    initialTokenCounts:
+      scenario.initialState.type === "per_place"
+        ? (Object.fromEntries(
+            Object.entries(scenario.initialState.content).filter(
+              (entry): entry is [string, string] =>
+                typeof entry[1] === "string",
+            ),
+          ) as Record<string, string>)
+        : {},
+    initialTokenData:
+      scenario.initialState.type === "per_place"
+        ? (Object.fromEntries(
+            Object.entries(scenario.initialState.content).filter(
+              (entry): entry is [string, number[][]] => Array.isArray(entry[1]),
+            ),
+          ) as Record<string, number[][]>)
+        : {},
     showAllPlaces: false,
-    initialStateAsCode: false,
-    initialStateCode: "",
+    initialStateAsCode: scenario.initialState.type === "code",
+    initialStateCode:
+      scenario.initialState.type === "code"
+        ? scenario.initialState.content
+        : "",
   };
 }
 

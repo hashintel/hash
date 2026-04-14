@@ -5,6 +5,7 @@ import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
+import { Switch } from "../../../../../components/switch";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
@@ -274,27 +275,43 @@ const SimulationSettingsContent: React.FC = () => {
                       {param.variableName}
                     </div>
                   </div>
-                  <NumberInput
-                    size="xs"
-                    value={
-                      selectedScenario
-                        ? (scenarioParameterValues[param.variableName] ??
-                          param.defaultValue)
-                        : (parameterValues[param.variableName] ??
-                          param.defaultValue)
-                    }
-                    onChange={(event) => {
-                      const val = (event.target as HTMLInputElement).value;
-                      if (selectedScenario) {
-                        setScenarioParameterValue(param.variableName, val);
-                      } else {
-                        setParameterValue(param.variableName, val);
+                  {param.type === "boolean" && selectedScenario ? (
+                    <Switch
+                      checked={
+                        (scenarioParameterValues[param.variableName] ??
+                          param.defaultValue) !== "0"
                       }
-                    }}
-                    placeholder={param.defaultValue}
-                    disabled={isSimulationActive}
-                    className={parameterInputStyle}
-                  />
+                      onCheckedChange={(checked) =>
+                        setScenarioParameterValue(
+                          param.variableName,
+                          checked ? "1" : "0",
+                        )
+                      }
+                      disabled={isSimulationActive}
+                    />
+                  ) : (
+                    <NumberInput
+                      size="xs"
+                      value={
+                        selectedScenario
+                          ? (scenarioParameterValues[param.variableName] ??
+                            param.defaultValue)
+                          : (parameterValues[param.variableName] ??
+                            param.defaultValue)
+                      }
+                      onChange={(event) => {
+                        const val = (event.target as HTMLInputElement).value;
+                        if (selectedScenario) {
+                          setScenarioParameterValue(param.variableName, val);
+                        } else {
+                          setParameterValue(param.variableName, val);
+                        }
+                      }}
+                      placeholder={param.defaultValue}
+                      disabled={isSimulationActive}
+                      className={parameterInputStyle}
+                    />
+                  )}
                 </div>
               ))}
             </div>

@@ -196,12 +196,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // Update local dt
     setStateValues((prev) => ({ ...prev, dt }));
 
-    // Delegate to worker (maxTime is immutable once set at initialization)
-    // Returns a promise that resolves when initialization is complete
+    // Use effective values (scenario-overridden when a scenario is active)
+    // instead of raw stateValues which don't include the compiled output.
     return workerActions.initialize({
       sdcpn,
-      initialMarking: currentState.initialMarking,
-      parameterValues: currentState.parameterValues,
+      initialMarking: effectiveInitialMarkingRef.current,
+      parameterValues: effectiveParameterValuesRef.current,
       seed,
       dt,
       maxTime: currentState.maxTime,
@@ -322,18 +322,23 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   if (compiledScenarioResult) {
     effectiveParameterValues = compiledScenarioResult.parameterValues;
 
-    // Convert compiled initialState (placeId → token count) to InitialMarking
+    // Convert compiled initialState to InitialMarking (Map<string, { values, count }>)
     const scenarioMarking: InitialMarking = new Map();
-    for (const [placeId, count] of Object.entries(
+    for (const [placeId, marking] of Object.entries(
       compiledScenarioResult.initialState,
     )) {
       scenarioMarking.set(placeId, {
-        values: new Float64Array(0),
-        count,
+        values: new Float64Array(marking.values),
+        count: marking.count,
       });
     }
     effectiveInitialMarking = scenarioMarking;
   }
+
+  // Keep refs to effective values so `initialize` uses scenario-overridden
+  // values instead of raw stateValues (which don't include compiled output).
+  const effectiveParameterValuesRef = useLatest(effectiveParameterValues);
+  const effectiveInitialMarkingRef = useLatest(effectiveInitialMarking);
 
   const contextValue: SimulationContextValue = {
     state: simulationState,

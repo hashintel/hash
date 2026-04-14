@@ -33,7 +33,19 @@ export const scenarioSchema = z.object({
       }
     }),
   parameterOverrides: z.record(z.string(), z.string()),
-  initialState: z.record(z.string(), z.string()),
+  initialState: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("per_place"),
+      content: z.record(
+        z.string(),
+        z.union([z.string(), z.array(z.array(z.number()))]),
+      ),
+    }),
+    z.object({
+      type: z.literal("code"),
+      content: z.string(),
+    }),
+  ]),
 }) satisfies z.ZodType<Scenario>;
 
 export type ScenarioSchema = typeof scenarioSchema;

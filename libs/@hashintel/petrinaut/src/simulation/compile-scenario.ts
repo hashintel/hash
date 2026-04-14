@@ -2,6 +2,17 @@ import type { Parameter, Scenario } from "../core/types/sdcpn";
 
 // -- Result types -------------------------------------------------------------
 
+/**
+ * Compiled initial state entry for a single place.
+ * - Uncolored places: `values` is empty, `count` is the token count.
+ * - Colored places: `values` is the flattened element data, `count` is the
+ *   number of tokens (rows).
+ */
+export interface CompiledPlaceMarking {
+  values: number[];
+  count: number;
+}
+
 export interface CompiledScenarioResult {
   /**
    * Resolved parameter values keyed by variableName (matches the format
@@ -9,9 +20,9 @@ export interface CompiledScenarioResult {
    */
   parameterValues: Record<string, string>;
   /**
-   * Resolved initial token counts keyed by place ID.
+   * Resolved initial marking keyed by place ID.
    */
-  initialState: Record<string, number>;
+  initialState: Record<string, CompiledPlaceMarking>;
 }
 
 export interface ScenarioCompilationError {
@@ -160,28 +171,48 @@ export function compileScenario(
     }
   }
 
-  // ── Step 3: Evaluate initial state expressions ──
+  // ── Step 3: Evaluate initial state ──
 
-  const initialState: Record<string, number> = {};
+  const initialState: Record<string, CompiledPlaceMarking> = {};
 
-  for (const [placeId, expression] of Object.entries(scenario.initialState)) {
-    const trimmed = expression.trim();
+  const initialStateEntries =
+    scenario.initialState.type === "per_place"
+      ? Object.entries(scenario.initialState.content)
+      : [];
+
+  for (const [placeId, value] of initialStateEntries) {
+    // Colored places: number[][] stored directly — flatten to values + count
+    if (Array.isArray(value)) {
+      const flat: number[] = [];
+      for (const row of value) {
+        for (const v of row) {
+          flat.push(v);
+        }
+      }
+      initialState[placeId] = { values: flat, count: value.length };
+      continue;
+    }
+
+    // Uncolored places: expression string → evaluate to token count
+    const trimmed = value.trim();
     if (trimmed === "") {
-      // Empty expression → 0 tokens (default)
-      initialState[placeId] = 0;
+      initialState[placeId] = { values: [], count: 0 };
       continue;
     }
     try {
-      const value = evaluateExpression(trimmed, parametersObj, scenarioObj);
-      if (typeof value !== "number" || Number.isNaN(value)) {
+      const result = evaluateExpression(trimmed, parametersObj, scenarioObj);
+      if (typeof result !== "number" || Number.isNaN(result)) {
         errors.push({
           source: "initialState",
           itemId: placeId,
-          message: `Initial state for place "${placeId}" evaluated to ${String(value)}, expected a number.`,
+          message: `Initial state for place "${placeId}" evaluated to ${String(result)}, expected a number.`,
         });
         continue;
       }
-      initialState[placeId] = Math.max(0, Math.round(value));
+      initialState[placeId] = {
+        values: [],
+        count: Math.max(0, Math.round(result)),
+      };
     } catch (err) {
       errors.push({
         source: "initialState",

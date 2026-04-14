@@ -92,11 +92,24 @@ export type Scenario = {
    */
   parameterOverrides: Record<ID, string>;
   /**
-   * Initial token state per place.
-   * Keys are place IDs; values are concrete values or code that may reference
-   * scenario/net parameters to generate an array of tokens.
+   * Initial token state definition. Either per-place expressions or a single
+   * code block that returns an object mapping place names to token arrays.
    */
-  initialState: Record<ID, string>;
+  initialState:
+    | {
+        /**
+         * Per-place initial state. Values are either:
+         * - `string`: expression for uncolored places (evaluates to token count)
+         * - `number[][]`: token data for colored places (rows × elements)
+         */
+        type: "per_place";
+        content: Record<ID, string | number[][]>;
+      }
+    | {
+        /** Single code block that returns the full initial state object. */
+        type: "code";
+        content: string;
+      };
 };
 
 export type SDCPN = {

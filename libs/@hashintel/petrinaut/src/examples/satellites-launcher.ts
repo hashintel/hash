@@ -393,7 +393,7 @@ export default Dynamics((tokens, parameters) => {
           param__mean_velocity: "Math.sqrt(5000 / scenario.orbit_altitude)",
           param__velocity_spread: "scenario.velocity_spread",
         },
-        initialState: {},
+        initialState: { type: "per_place", content: {} },
       },
       {
         id: "scenario__earth_orbit",
@@ -416,7 +416,7 @@ export default Dynamics((tokens, parameters) => {
           param__mean_velocity: "Math.sqrt(400000 / scenario.orbit_altitude)",
           param__velocity_spread: "scenario.velocity_spread",
         },
-        initialState: {},
+        initialState: { type: "per_place", content: {} },
       },
       {
         id: "scenario__mars_orbit",
@@ -439,7 +439,7 @@ export default Dynamics((tokens, parameters) => {
           param__mean_velocity: "Math.sqrt(43000 / scenario.orbit_altitude)",
           param__velocity_spread: "scenario.velocity_spread",
         },
-        initialState: {},
+        initialState: { type: "per_place", content: {} },
       },
       {
         id: "scenario__solar_orbit",
@@ -462,7 +462,7 @@ export default Dynamics((tokens, parameters) => {
           param__mean_velocity: "Math.sqrt(5000000 / scenario.orbit_altitude)",
           param__velocity_spread: "scenario.velocity_spread",
         },
-        initialState: {},
+        initialState: { type: "per_place", content: {} },
       },
     ],
   },
