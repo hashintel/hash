@@ -75,9 +75,6 @@ const dynamicsIconStyle = css({
 
 const labelContainerStyle = css({
   textAlign: "center",
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "center",
   padding: "[12px 0]",
   lineHeight: "[1.1]",
   maxWidth: "[100%]",
