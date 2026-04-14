@@ -850,7 +850,6 @@ const UPlotChart: React.FC<{
     // Recreate only when chart type, visible series, or size availability changes.
     // onScrub is stable (useStableCallback). Subsequent size changes trigger
     // setSize (Effect 2), not recreation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: see comment above
   }, [chartType, hiddenPlaces, store.places.length, hasSize]);
 
   // -- Effect 2: sync container size to existing chart ------------------------
