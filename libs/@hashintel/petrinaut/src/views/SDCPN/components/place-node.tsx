@@ -52,7 +52,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const { globalMode } = use(EditorContext);
+  const { globalMode, isSelected } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -67,7 +67,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
-  const selectionVariant: SelectionVariant = selected
+  // Determine selection state
+  const isInSelection = isSelected(id);
+  const selectionVariant: SelectionVariant = isInSelection
     ? "resource"
     : selected
       ? "reactflow"

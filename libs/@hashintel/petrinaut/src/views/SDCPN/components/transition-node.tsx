@@ -1,8 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import type { NodeProps } from "@xyflow/react";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 import { TbBolt, TbLambda, TbSquareFilled } from "react-icons/tb";
 
+import { EditorContext } from "../../../state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { TransitionNodeType } from "../reactflow-types";
 import {
@@ -99,11 +100,14 @@ function useFiringAnimation(
 }
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
+  id,
   data,
   isConnectable,
   selected,
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
+
+  const { isSelected } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -115,7 +119,9 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   // Animate when firing occurs
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
-  const selectionVariant: SelectionVariant = selected
+  // Determine selection state
+  const isInSelection = isSelected(id);
+  const selectionVariant: SelectionVariant = isInSelection
     ? "resource"
     : selected
       ? "reactflow"
