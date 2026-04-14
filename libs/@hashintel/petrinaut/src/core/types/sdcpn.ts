@@ -68,7 +68,7 @@ export type DifferentialEquation = {
  * A parameter scoped to a specific scenario (distinct from net-level Parameters).
  */
 export type ScenarioParameter = {
-  type: "real" | "integer" | "boolean";
+  type: "real" | "integer" | "boolean" | "ratio";
   identifier: string;
   default: number;
 };

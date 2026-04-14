@@ -302,6 +302,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       const outcome = compileScenario(
         tweakedScenario,
         petriNetDefinition.parameters,
+        petriNetDefinition.places,
+        petriNetDefinition.types,
       );
       if (outcome.ok) {
         compiledScenarioResult = outcome.result;
@@ -322,17 +324,20 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   if (compiledScenarioResult) {
     effectiveParameterValues = compiledScenarioResult.parameterValues;
 
-    // Convert compiled initialState to InitialMarking (Map<string, { values, count }>)
-    const scenarioMarking: InitialMarking = new Map();
+    // Merge compiled scenario initial state on top of manual markings.
+    // Places defined in the scenario override manual state; places not
+    // mentioned keep their existing manual markings (e.g. colored places
+    // configured via the spreadsheet).
+    const mergedMarking: InitialMarking = new Map(stateValues.initialMarking);
     for (const [placeId, marking] of Object.entries(
       compiledScenarioResult.initialState,
     )) {
-      scenarioMarking.set(placeId, {
+      mergedMarking.set(placeId, {
         values: new Float64Array(marking.values),
         count: marking.count,
       });
     }
-    effectiveInitialMarking = scenarioMarking;
+    effectiveInitialMarking = mergedMarking;
   }
 
   // Keep refs to effective values so `initialize` uses scenario-overridden

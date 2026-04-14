@@ -67,12 +67,24 @@ const parameterSchema = z.object({
 });
 
 const scenarioParameterSchema = z.object({
-  type: z.enum(["real", "integer", "boolean"]),
+  type: z.enum(["real", "integer", "boolean", "ratio"]),
   identifier: z.string(),
-  min: z.number(),
-  max: z.number(),
   default: z.number(),
 });
+
+const initialStateSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("per_place"),
+    content: z.record(
+      z.string(),
+      z.union([z.string(), z.array(z.array(z.number()))]),
+    ),
+  }),
+  z.object({
+    type: z.literal("code"),
+    content: z.string(),
+  }),
+]);
 
 const scenarioSchema = z.object({
   id: z.string(),
@@ -80,7 +92,7 @@ const scenarioSchema = z.object({
   description: z.string().optional(),
   scenarioParameters: z.array(scenarioParameterSchema).default([]),
   parameterOverrides: z.record(z.string(), z.string()).default({}),
-  initialState: z.record(z.string(), z.string()).default({}),
+  initialState: initialStateSchema.default({ type: "per_place", content: {} }),
 });
 
 const sdcpnSchema = z.object({

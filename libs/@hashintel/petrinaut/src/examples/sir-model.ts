@@ -116,7 +116,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "Moderate outbreak with R₀ ≈ 1.5. Models a typical seasonal influenza wave in a small community.",
         scenarioParameters: [
           { type: "integer", identifier: "population", default: 1000 },
-          { type: "real", identifier: "infected_ratio", default: 0.01 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.01 },
         ],
         parameterOverrides: {
           param__infection_rate: "1.5",
@@ -139,7 +139,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "Aggressive pathogen with R₀ ≈ 6 and slow recovery, modelling rapid spread before interventions.",
         scenarioParameters: [
           { type: "integer", identifier: "population", default: 10000 },
-          { type: "real", identifier: "infected_ratio", default: 0.0001 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.0001 },
         ],
         parameterOverrides: {
           param__infection_rate: "6",

@@ -1,4 +1,4 @@
-import type { Parameter, Scenario } from "../core/types/sdcpn";
+import type { Color, Parameter, Place, Scenario } from "../core/types/sdcpn";
 
 // -- Result types -------------------------------------------------------------
 
@@ -109,10 +109,14 @@ function evaluateExpression(
  *
  * @param scenario - The scenario to compile
  * @param netParameters - The net-level parameter definitions (for defaults and variable names)
+ * @param places - All places in the SDCPN (needed for code-mode name→ID mapping)
+ * @param types - All color types (needed for code-mode token flattening)
  */
 export function compileScenario(
   scenario: Scenario,
   netParameters: Parameter[],
+  places: Place[] = [],
+  types: Color[] = [],
 ): CompileScenarioOutcome {
   const errors: ScenarioCompilationError[] = [];
 
@@ -175,50 +179,124 @@ export function compileScenario(
 
   const initialState: Record<string, CompiledPlaceMarking> = {};
 
-  const initialStateEntries =
-    scenario.initialState.type === "per_place"
-      ? Object.entries(scenario.initialState.content)
-      : [];
+  if (scenario.initialState.type === "code") {
+    // Code mode: evaluate the full code block as a function body.
+    // It returns an object keyed by place NAME (not ID) → array of token objects.
+    const code = scenario.initialState.content.trim();
+    if (code !== "") {
+      try {
+        // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored code
+        const fn = new Function(
+          "parameters",
+          "scenario",
+          `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
+        ) as (
+          p: Record<string, number>,
+          s: Record<string, number>,
+        ) => Record<string, unknown>;
+        const result = fn(
+          createSafeObject(parametersObj),
+          createSafeObject(scenarioObj),
+        );
 
-  for (const [placeId, value] of initialStateEntries) {
-    // Colored places: number[][] stored directly — flatten to values + count
-    if (Array.isArray(value)) {
-      const flat: number[] = [];
-      for (const row of value) {
-        for (const v of row) {
-          flat.push(v);
+        if (typeof result !== "object" || result === null) {
+          errors.push({
+            source: "initialState",
+            itemId: "__code__",
+            message: `Initial state code must return an object, got ${typeof result}.`,
+          });
+        } else {
+          // Build lookups: placeName → placeId, placeId → color elements
+          const placeByName = new Map(places.map((p) => [p.name, p]));
+          const typeById = new Map(types.map((t) => [t.id, t]));
+
+          for (const [placeName, tokens] of Object.entries(result)) {
+            const place = placeByName.get(placeName);
+            if (!place) {
+              continue; // Unknown place name — skip silently
+            }
+
+            if (typeof tokens === "number") {
+              // Uncolored place: just a token count
+              initialState[place.id] = {
+                values: [],
+                count: Math.max(0, Math.round(tokens)),
+              };
+            } else if (Array.isArray(tokens)) {
+              // Colored place: array of token objects → flatten
+              const color = place.colorId
+                ? typeById.get(place.colorId)
+                : undefined;
+              const elements = color?.elements ?? [];
+              const flat: number[] = [];
+              for (const token of tokens) {
+                if (typeof token === "object" && token !== null) {
+                  for (const el of elements) {
+                    flat.push(
+                      Number((token as Record<string, unknown>)[el.name] ?? 0),
+                    );
+                  }
+                }
+              }
+              initialState[place.id] = {
+                values: flat,
+                count: tokens.length,
+              };
+            }
+          }
         }
+      } catch (err) {
+        errors.push({
+          source: "initialState",
+          itemId: "__code__",
+          message: `Initial state code: ${err instanceof Error ? err.message : String(err)}`,
+        });
       }
-      initialState[placeId] = { values: flat, count: value.length };
-      continue;
     }
+  } else {
+    // Per-place mode: evaluate each expression individually
+    for (const [placeId, value] of Object.entries(
+      scenario.initialState.content,
+    )) {
+      // Colored places: number[][] stored directly — flatten to values + count
+      if (Array.isArray(value)) {
+        const flat: number[] = [];
+        for (const row of value) {
+          for (const v of row) {
+            flat.push(v);
+          }
+        }
+        initialState[placeId] = { values: flat, count: value.length };
+        continue;
+      }
 
-    // Uncolored places: expression string → evaluate to token count
-    const trimmed = value.trim();
-    if (trimmed === "") {
-      initialState[placeId] = { values: [], count: 0 };
-      continue;
-    }
-    try {
-      const result = evaluateExpression(trimmed, parametersObj, scenarioObj);
-      if (typeof result !== "number" || Number.isNaN(result)) {
+      // Uncolored places: expression string → evaluate to token count
+      const trimmed = value.trim();
+      if (trimmed === "") {
+        initialState[placeId] = { values: [], count: 0 };
+        continue;
+      }
+      try {
+        const result = evaluateExpression(trimmed, parametersObj, scenarioObj);
+        if (typeof result !== "number" || Number.isNaN(result)) {
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message: `Initial state for place "${placeId}" evaluated to ${String(result)}, expected a number.`,
+          });
+          continue;
+        }
+        initialState[placeId] = {
+          values: [],
+          count: Math.max(0, Math.round(result)),
+        };
+      } catch (err) {
         errors.push({
           source: "initialState",
           itemId: placeId,
-          message: `Initial state for place "${placeId}" evaluated to ${String(result)}, expected a number.`,
+          message: `Initial state for place "${placeId}": ${err instanceof Error ? err.message : String(err)}`,
         });
-        continue;
       }
-      initialState[placeId] = {
-        values: [],
-        count: Math.max(0, Math.round(result)),
-      };
-    } catch (err) {
-      errors.push({
-        source: "initialState",
-        itemId: placeId,
-        message: `Initial state for place "${placeId}": ${err instanceof Error ? err.message : String(err)}`,
-      });
     }
   }
 

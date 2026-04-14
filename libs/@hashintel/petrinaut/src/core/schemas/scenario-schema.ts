@@ -5,7 +5,7 @@ import type { Scenario } from "../types/sdcpn";
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
 
 export const scenarioParameterSchema = z.object({
-  type: z.enum(["real", "integer", "boolean"]),
+  type: z.enum(["real", "integer", "boolean", "ratio"]),
   identifier: z
     .string()
     .min(1, "Identifier cannot be empty")

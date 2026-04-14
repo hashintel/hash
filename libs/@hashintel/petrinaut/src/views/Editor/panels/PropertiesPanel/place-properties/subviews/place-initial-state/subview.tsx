@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
+import { LuLayers2 } from "react-icons/lu";
 import { TbTrash } from "react-icons/tb";
 
 import { NumberInput } from "../../../../../../../components/number-input";
@@ -52,9 +53,18 @@ const ClearStateHeaderAction: React.FC = () => {
   const currentMarking = initialMarking.get(place.id);
   const hasData = currentMarking && currentMarking.count > 0;
 
-  // Hide when a scenario is selected (state is managed by scenario),
-  // when simulation has run, or when there's no data to clear.
-  if (selectedScenarioId || !isSimulationNotRun || !hasData) {
+  // When a scenario is selected, show a label instead of the clear button.
+  if (selectedScenarioId) {
+    return (
+      <div className={scenarioInfoStyle}>
+        <LuLayers2 size={12} />
+        Defined by scenario
+      </div>
+    );
+  }
+
+  // Hide when simulation has run or when there's no data to clear.
+  if (!isSimulationNotRun || !hasData) {
     return null;
   }
 
@@ -74,6 +84,9 @@ const ClearStateHeaderAction: React.FC = () => {
 };
 
 const scenarioInfoStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
   fontSize: "xs",
   color: "neutral.s100",
   fontStyle: "italic",
@@ -91,17 +104,35 @@ const PlaceInitialStateContent: React.FC = () => {
     use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
 
-  // When a scenario is selected, initial state is defined by the scenario.
+  // Determine if simulation is running (has frames)
+  const hasSimulationFrames = totalFrames > 0;
+
+  // When a scenario is selected, show the computed value (read-only).
+  // During simulation, show the actual current frame value.
   if (selectedScenarioId) {
+    let tokenCount = 0;
+    if (hasSimulationFrames && currentFrame) {
+      const placeState = currentFrame.places[place.id];
+      tokenCount = placeState?.count ?? 0;
+    } else {
+      const marking = initialMarking.get(place.id);
+      tokenCount = marking?.count ?? 0;
+    }
+
     return (
-      <div className={scenarioInfoStyle}>
-        Initial state is defined by the selected scenario.
+      <div className={simpleStateContainerStyle}>
+        <div className={fieldLabelStyle}>
+          {hasSimulationFrames ? "Current tokens" : "Initial tokens"}
+        </div>
+        <NumberInput
+          min={0}
+          value={tokenCount}
+          disabled
+          tooltip="Defined by the selected scenario"
+        />
       </div>
     );
   }
-
-  // Determine if simulation is running (has frames)
-  const hasSimulationFrames = totalFrames > 0;
 
   // If no type or type has 0 dimensions, show simple number input
   if (!placeType || placeType.elements.length === 0) {

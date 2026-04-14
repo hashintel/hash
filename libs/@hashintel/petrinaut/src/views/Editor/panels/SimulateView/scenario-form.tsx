@@ -578,6 +578,7 @@ export const ScenarioFormSections = ({
                     { value: "real", label: "Real" },
                     { value: "integer", label: "Int" },
                     { value: "boolean", label: "Bool" },
+                    { value: "ratio", label: "Ratio" },
                   ]}
                 />
               </div>
@@ -586,11 +587,13 @@ export const ScenarioFormSections = ({
                 <Input
                   size="sm"
                   value={String(param.default)}
-                  onChange={(e) =>
-                    updateScenarioParam(param._key, {
-                      default: Number(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => {
+                    let val = Number(e.target.value) || 0;
+                    if (param.type === "ratio") {
+                      val = Math.max(0, Math.min(1, val));
+                    }
+                    updateScenarioParam(param._key, { default: val });
+                  }}
                 />
               </div>
               <IconButton

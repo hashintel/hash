@@ -14,7 +14,7 @@ function sanitizeColorId(colorId: string): string {
 /**
  * Maps SDCPN element types to TypeScript types
  */
-function toTsType(type: "real" | "integer" | "boolean"): string {
+function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
   return type === "boolean" ? "boolean" : "number";
 }
 

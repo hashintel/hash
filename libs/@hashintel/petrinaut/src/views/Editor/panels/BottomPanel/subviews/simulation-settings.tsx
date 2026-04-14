@@ -5,6 +5,7 @@ import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
+import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
@@ -131,6 +132,23 @@ const parameterInputStyle = css({
   textAlign: "right",
 });
 
+const ratioRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: "2",
+});
+
+const ratioSliderStyle = css({
+  width: "[120px]",
+  opacity: "[1]",
+});
+
+const ratioInputStyle = css({
+  width: "[65px]",
+  textAlign: "right",
+});
+
 const emptyMessageStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
@@ -174,7 +192,13 @@ const SimulationSettingsContent: React.FC = () => {
 
   // When a scenario is selected, show its scenario parameters + overridden net params.
   // When no scenario, show net-level parameters.
-  const displayParams = selectedScenario
+  const displayParams: Array<{
+    key: string;
+    name: string;
+    variableName: string;
+    type: "real" | "integer" | "boolean" | "ratio";
+    defaultValue: string;
+  }> = selectedScenario
     ? selectedScenario.scenarioParameters.map((sp) => ({
         key: `sp-${sp.identifier}`,
         name: sp.identifier,
@@ -289,6 +313,44 @@ const SimulationSettingsContent: React.FC = () => {
                       }
                       disabled={isSimulationActive}
                     />
+                  ) : param.type === "ratio" && selectedScenario ? (
+                    <div className={ratioRowStyle}>
+                      <Slider
+                        className={ratioSliderStyle}
+                        min={0}
+                        max={1}
+                        step={0.00001}
+                        value={Number(
+                          scenarioParameterValues[param.variableName] ??
+                            param.defaultValue,
+                        )}
+                        onChange={(e) =>
+                          setScenarioParameterValue(
+                            param.variableName,
+                            e.target.value,
+                          )
+                        }
+                        disabled={isSimulationActive}
+                      />
+                      <NumberInput
+                        size="xs"
+                        min={0}
+                        max={1}
+                        step={0.00001}
+                        value={
+                          scenarioParameterValues[param.variableName] ??
+                          param.defaultValue
+                        }
+                        onChange={(e) =>
+                          setScenarioParameterValue(
+                            param.variableName,
+                            (e.target as HTMLInputElement).value,
+                          )
+                        }
+                        disabled={isSimulationActive}
+                        className={ratioInputStyle}
+                      />
+                    </div>
                   ) : (
                     <NumberInput
                       size="xs"
