@@ -131,8 +131,9 @@ const SigninPage: NextPageWithLayout = () => {
     // URL. After Kratos prompts for an AAL upgrade we navigate from `/signin`
     // to `/signin?aal=aal2` without remounting — the loaded AAL1 flow would
     // otherwise persist and the AAL2 form would never render.
-    const expectedAal = aal === "aal2" ? "aal2" : "aal1";
-    if (flow && flow.requested_aal === expectedAal) {
+    const wantsAal2 = aal === "aal2";
+    const flowIsAal2 = flow?.requested_aal === "aal2";
+    if (flow && wantsAal2 === flowIsAal2) {
       return;
     }
 
