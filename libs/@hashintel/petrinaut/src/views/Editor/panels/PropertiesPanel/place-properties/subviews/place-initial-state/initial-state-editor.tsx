@@ -13,11 +13,14 @@ import { SimulationContext } from "../../../../../../../simulation/context";
 interface InitialStateEditorProps {
   placeId: string;
   placeType: Color;
+  /** Force read-only mode (e.g. when state is defined by a scenario). */
+  readOnly?: boolean;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
+  readOnly = false,
 }) => {
   const { initialMarking, setInitialMarking } = use(SimulationContext);
   const { currentFrame, totalFrames } = use(PlaybackContext);
@@ -72,7 +75,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   // Convert number[][] back to Float64Array and save to simulation store
   const handleChange = useMemo(() => {
-    if (hasSimulation) {
+    if (hasSimulation || readOnly) {
       return undefined;
     }
 

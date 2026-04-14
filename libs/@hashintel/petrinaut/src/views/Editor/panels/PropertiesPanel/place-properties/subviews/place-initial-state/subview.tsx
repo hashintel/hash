@@ -39,6 +39,16 @@ const clearButtonStyle = css({
   },
 });
 
+const scenarioInfoStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  fontSize: "xs",
+  color: "neutral.s100",
+  fontStyle: "italic",
+  paddingY: "2",
+});
+
 /**
  * Header action component for the Clear State button.
  * Only shown when not in simulation mode and there's data to clear.
@@ -83,16 +93,6 @@ const ClearStateHeaderAction: React.FC = () => {
   );
 };
 
-const scenarioInfoStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  fontSize: "xs",
-  color: "neutral.s100",
-  fontStyle: "italic",
-  paddingY: "2",
-});
-
 /**
  * PlaceInitialStateContent - Renders the initial state editor for a place.
  * Uses PlacePropertiesContext to access the current place data.
@@ -110,6 +110,19 @@ const PlaceInitialStateContent: React.FC = () => {
   // When a scenario is selected, show the computed value (read-only).
   // During simulation, show the actual current frame value.
   if (selectedScenarioId) {
+    // Colored places: show the spreadsheet (read-only)
+    if (placeType && placeType.elements.length > 0) {
+      return (
+        <InitialStateEditor
+          key={place.id}
+          placeId={place.id}
+          placeType={placeType}
+          readOnly
+        />
+      );
+    }
+
+    // Uncolored places: show token count
     let tokenCount = 0;
     if (hasSimulationFrames && currentFrame) {
       const placeState = currentFrame.places[place.id];
