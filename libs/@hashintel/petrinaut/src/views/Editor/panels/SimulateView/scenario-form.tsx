@@ -329,17 +329,30 @@ export interface UseScenarioFormOptions {
  * Returning a typed instance avoids the 12+ explicit type arguments
  * required to use `ReturnType<typeof useForm>` directly.
  */
+export interface ScenarioFormSubmitContext {
+  /** Reset the form to its default values. */
+  reset: () => void;
+}
+
 export function useScenarioForm(
   defaultValues: ScenarioFormState,
-  onSubmit: (values: ScenarioFormState) => void,
+  onSubmit: (values: ScenarioFormState, ctx: ScenarioFormSubmitContext) => void,
   options: UseScenarioFormOptions = {},
 ) {
   const existingNames = options.existingScenarioNames ?? new Set<string>();
   return useForm({
     defaultValues,
-    onSubmit: ({ value }) => onSubmit(value),
+    onSubmit: ({ value, formApi }) =>
+      onSubmit(value, {
+        reset: () => formApi.reset(),
+      }),
     validators: {
       onChange: ({ value }) =>
+        validateScenarioName(value.name, existingNames) ??
+        validateScenarioParams(value.scenarioParams),
+      // Re-run on submit so validation also catches users who never edited
+      // any field (initial state may be invalid).
+      onSubmit: ({ value }) =>
         validateScenarioName(value.name, existingNames) ??
         validateScenarioParams(value.scenarioParams),
     },

@@ -4,16 +4,20 @@ import { use } from "react";
 
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
+import { scenarioSchema } from "../../../../core/schemas/scenario-schema";
 import type { Color } from "../../../../core/types/sdcpn";
 import { LanguageClientContext } from "../../../../lsp/context";
+import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
-import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
 import {
   ScenarioFormBody,
   type ScenarioFormInstance,
   useScenarioForm,
 } from "./scenario-form";
-import { hasScenarioLspErrors } from "./scenario-lsp";
+import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
+import { ScenarioErrorDisplay } from "./scenario-error-display";
+import { summarizeScenarioLspErrors } from "./scenario-lsp";
+import { buildScenarioFromFormState } from "./scenario-mapping";
 
 const bodyStyle = css({
   overflowY: "auto",
@@ -36,19 +40,25 @@ const CreateScenarioFooter = ({
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const isDefaultValue = useStore(form.store, (state) => state.isDefaultValue);
   const formErrors = useStore(form.store, (state) => state.errors);
 
   const { diagnosticsByUri } = use(LanguageClientContext);
-  // Derive `hasLspErrors` during render — no useEffect needed.
-  const hasLspErrors = hasScenarioLspErrors(diagnosticsByUri);
+  const { count: lspErrorCount, firstMessage: firstLspMessage } =
+    summarizeScenarioLspErrors(diagnosticsByUri);
+  const hasLspErrors = lspErrorCount > 0;
 
   const formError = formErrors.find((e) => typeof e === "string") as
     | string
     | undefined;
-  const canSave = canSubmit && !hasLspErrors && !isSubmitting;
+  const hasErrors = !!formError || hasLspErrors;
+  const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
+  const firstError = formError ?? firstLspMessage;
+  const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
     <Drawer.Footer>
+      <ScenarioErrorDisplay count={totalErrorCount} firstMessage={firstError} />
       <Button
         variant="secondary"
         colorScheme="neutral"
@@ -66,13 +76,15 @@ const CreateScenarioFooter = ({
           formError ??
           (hasLspErrors
             ? "Fix the errors in the scenario expressions before saving."
-            : undefined)
+            : isDefaultValue
+              ? "Make changes to enable creation."
+              : undefined)
         }
         onClick={() => {
           void form.handleSubmit();
         }}
       >
-        Next
+        Create
       </Button>
     </Drawer.Footer>
   );
@@ -113,16 +125,29 @@ export const CreateScenarioDrawer = ({
   onClose,
 }: CreateScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const { addScenario } = use(MutationContext);
+
   const existingScenarioNames = new Set(
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),
   );
 
   const form = useScenarioForm(
     EMPTY_SCENARIO_FORM_STATE,
-    (value) => {
-      // TODO: persist the scenario — placeholder for next step
-      // eslint-disable-next-line no-console
-      console.log("submit scenario", value);
+    (value, ctx) => {
+      const scenario = buildScenarioFromFormState(value, crypto.randomUUID());
+      // Final structural validation against the persistence schema.
+      const result = scenarioSchema.safeParse(scenario);
+      if (!result.success) {
+        // eslint-disable-next-line no-console
+        console.error("Scenario failed validation", result.error.issues);
+        return;
+      }
+      addScenario(result.data);
+      onClose();
+      // Reset to defaults so reopening the drawer starts empty.
+      // Use ctx.reset (formApi from TanStack) instead of the outer `form`
+      // reference — avoids a "use before declaration" closure capture.
+      ctx.reset();
     },
     { existingScenarioNames },
   );

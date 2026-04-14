@@ -4,8 +4,10 @@ import { use } from "react";
 
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
+import { scenarioSchema } from "../../../../core/schemas/scenario-schema";
 import type { Color, Scenario } from "../../../../core/types/sdcpn";
 import { LanguageClientContext } from "../../../../lsp/context";
+import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import {
   ScenarioFormBody,
@@ -13,7 +15,9 @@ import {
   type ScenarioFormState,
   useScenarioForm,
 } from "./scenario-form";
-import { hasScenarioLspErrors } from "./scenario-lsp";
+import { ScenarioErrorDisplay } from "./scenario-error-display";
+import { summarizeScenarioLspErrors } from "./scenario-lsp";
+import { buildScenarioFromFormState } from "./scenario-mapping";
 
 // Override default Drawer.Body padding — vertical padding on the scroll
 // container creates a gap above sticky section headers.
@@ -53,18 +57,25 @@ const ViewScenarioFooter = ({
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const isDefaultValue = useStore(form.store, (state) => state.isDefaultValue);
   const formErrors = useStore(form.store, (state) => state.errors);
 
   const { diagnosticsByUri } = use(LanguageClientContext);
-  const hasLspErrors = hasScenarioLspErrors(diagnosticsByUri);
+  const { count: lspErrorCount, firstMessage: firstLspMessage } =
+    summarizeScenarioLspErrors(diagnosticsByUri);
+  const hasLspErrors = lspErrorCount > 0;
 
   const formError = formErrors.find((e) => typeof e === "string") as
     | string
     | undefined;
-  const canSave = canSubmit && !hasLspErrors && !isSubmitting;
+  const hasErrors = !!formError || hasLspErrors;
+  const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
+  const firstError = formError ?? firstLspMessage;
+  const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
     <Drawer.Footer>
+      <ScenarioErrorDisplay count={totalErrorCount} firstMessage={firstError} />
       <Button
         variant="secondary"
         colorScheme="neutral"
@@ -82,7 +93,9 @@ const ViewScenarioFooter = ({
           formError ??
           (hasLspErrors
             ? "Fix the errors in the scenario expressions before saving."
-            : undefined)
+            : isDefaultValue
+              ? "No changes to save."
+              : undefined)
         }
         onClick={() => {
           void form.handleSubmit();
@@ -104,6 +117,7 @@ const ViewScenarioContent = ({
   onClose: () => void;
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const { updateScenario } = use(MutationContext);
 
   const typesById = new Map<string, Color>();
   for (const type of petriNetDefinition.types) {
@@ -123,9 +137,22 @@ const ViewScenarioContent = ({
   const form = useScenarioForm(
     buildDefaultsFromScenario(scenario),
     (value) => {
-      // TODO: persist scenario edits
-      // eslint-disable-next-line no-console
-      console.log("save scenario", scenario.id, value);
+      const updated = buildScenarioFromFormState(value, scenario.id);
+      const result = scenarioSchema.safeParse(updated);
+      if (!result.success) {
+        // eslint-disable-next-line no-console
+        console.error("Scenario failed validation", result.error.issues);
+        return;
+      }
+      updateScenario(scenario.id, (draft) => {
+        // Replace each field on the immer/structuredClone draft.
+        draft.name = result.data.name;
+        draft.description = result.data.description;
+        draft.scenarioParameters = result.data.scenarioParameters;
+        draft.parameterOverrides = result.data.parameterOverrides;
+        draft.initialState = result.data.initialState;
+      });
+      onClose();
     },
     { existingScenarioNames },
   );
