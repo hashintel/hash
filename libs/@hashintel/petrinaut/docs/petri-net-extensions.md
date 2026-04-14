@@ -18,7 +18,7 @@ Parameters are named values available in all user-authored code: dynamics, lambd
 2. Click **+** to add a new parameter.
 3. Set a **name** (display label), **variable name** (used in code), and **default value**.
 
-<img width="1709" height="1062" alt="parameters" src="https://github.com/user-attachments/assets/03c24aa7-3134-43a4-b992-40aa2f53d91b" />
+<img width="1697" height="847" alt="parameters-SIR" src="https://github.com/user-attachments/assets/1b1df756-1fac-4201-8262-187473f2aeb6" />
 
 Override parameter values before running a simulation in the **Simulation Settings** panel (see [Simulation](simulation.md#simulation-settings)). This lets you experiment with different values without editing code.
 
@@ -170,7 +170,7 @@ An inhibitor arc is a special input arc that **prevents** a transition from firi
 
 Inhibitor arcs **do not consume tokens** when the transition fires.
 
-<img width="236" height="41" alt="inhibitor-arc" src="https://github.com/user-attachments/assets/6b6b8eb6-056f-418c-b0ea-9656f2c39ae2" />
+<img width="479" height="401" alt="inhibitor-arc-deployment" src="https://github.com/user-attachments/assets/86e6995a-b7d3-4727-9d7f-2c0e0a63816c" />
 
 **Example:** in [Deployment Pipeline](examples.md#deployment-pipeline), inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress" block new deployments while an incident is open or a deployment is already running.
 
