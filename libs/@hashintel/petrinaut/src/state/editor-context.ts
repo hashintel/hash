@@ -60,6 +60,10 @@ export type EditorActions = {
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
+  /** Check whether a node/edge is connected to any selected item via an arc. */
+  isSelectedConnection: (id: string) => boolean;
+  /** Map of all items connected to the current selection, keyed by id. */
+  selectedConnections: SelectionMap;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
   ) => void;
@@ -115,6 +119,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   isSelected: () => false,
+  isSelectedConnection: () => false,
+  selectedConnections: new Map(),
   setSelection: () => {},
   selectItem: () => {},
   toggleItem: () => {},

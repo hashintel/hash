@@ -8,6 +8,8 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { getNodeConnections } from "../lib/get-connections";
+import { SDCPNContext } from "./sdcpn-context";
 import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
@@ -16,6 +18,7 @@ export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const { petriNetDefinition } = use(SDCPNContext);
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
@@ -79,7 +82,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     });
   };
 
-  const actions: Omit<EditorActions, "isSelected"> = {
+  const actions: Omit<
+    EditorActions,
+    "isSelected" | "isSelectedConnection" | "selectedConnections"
+  > = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
@@ -220,12 +226,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const { selection } = state;
   const isSelected = (id: string) => selection.has(id);
 
+  const selectedConnections = getNodeConnections(
+    petriNetDefinition.transitions,
+    new Set(selection.keys()),
+  );
+
+  const isSelectedConnection = (id: string) => selectedConnections.has(id);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
     isSelected,
+    isSelectedConnection,
+    selectedConnections,
     searchInputRef,
   };
 
