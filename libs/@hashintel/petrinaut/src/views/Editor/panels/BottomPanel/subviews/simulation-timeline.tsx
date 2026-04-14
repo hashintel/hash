@@ -6,6 +6,7 @@ import "uplot/dist/uPlot.min.css";
 import { SegmentGroup } from "../../../../../components/segment-group";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { useElementSize } from "../../../../../hooks/use-element-size";
+import { useLatest } from "../../../../../hooks/use-latest";
 import { useStableCallback } from "../../../../../hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../playback/context";
 import { SimulationContext } from "../../../../../simulation/context";
@@ -540,7 +541,11 @@ function drawPlayhead(u: uPlot, frameIdx: number): void {
 // -- uPlot options builder ----------------------------------------------------
 
 interface ChartOptions {
+  /** Store value for structural config (series, bands). */
   store: StreamingStore;
+  /** Ref to the latest store — tooltip hooks read this so they always
+   *  see fresh data even if the store is replaced after a restart. */
+  storeRef: React.RefObject<StreamingStore>;
   chartType: TimelineChartType;
   hiddenPlaces: Set<string>;
   size: { width: number; height: number };
@@ -552,6 +557,7 @@ interface ChartOptions {
 function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   const {
     store,
+    storeRef,
     chartType,
     hiddenPlaces,
     size,
@@ -564,7 +570,16 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   let focused = -1;
 
   const updateTooltip = (u: uPlot) => {
-    const hit = resolveHoverTarget(u, store, chartType, hiddenPlaces, focused);
+    // Read from ref so tooltip always sees the latest store, even after
+    // simulation restart where the store object is replaced.
+    const currentStore = storeRef.current;
+    const hit = resolveHoverTarget(
+      u,
+      currentStore,
+      chartType,
+      hiddenPlaces,
+      focused,
+    );
     if (!hit) {
       t.root.style.display = "none";
       return;
@@ -572,8 +587,10 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
     positionTooltip(t, u, hit);
   };
 
-  // Build series config
+  // Build series + bands config
   const series: uPlot.Series[] = [{ label: "Time" }];
+  let bands: uPlot.Band[] | undefined;
+
   if (chartType === "stacked") {
     const visible = store.places
       .filter((p) => !hiddenPlaces.has(p.placeId))
@@ -585,6 +602,15 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
         fill: `color-mix(in srgb, ${p.color} 53%, transparent)`,
         width: 2,
       });
+    }
+    // Bands clip each series' fill to the region between it and the series
+    // below, preventing overlapping semi-transparent layers from compositing
+    // into progressively darker/muddier colors.
+    if (visible.length > 1) {
+      bands = [];
+      for (let i = 1; i < visible.length; i++) {
+        bands.push({ series: [i, i + 1] as [number, number] });
+      }
     }
   } else {
     for (const p of store.places) {
@@ -601,6 +627,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
     width: size.width,
     height: size.height,
     series,
+    bands,
     pxAlign: false,
     padding: [4, 0, 0, null],
     cursor: {
@@ -759,6 +786,7 @@ const UPlotChart: React.FC<{
   const wrapperRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<uPlot | null>(null);
   const playheadFrameRef = useRef(currentFrameIndex);
+  const storeRef = useLatest(store);
 
   // -- Derived state ----------------------------------------------------------
 
@@ -792,6 +820,7 @@ const UPlotChart: React.FC<{
 
     const opts = buildUPlotOptions({
       store,
+      storeRef,
       chartType,
       hiddenPlaces,
       size,
@@ -835,8 +864,7 @@ const UPlotChart: React.FC<{
   // -- Effect 3: stream new data (no chart recreation) ------------------------
 
   useEffect(() => {
-    // resetScales=false: our range functions handle bounds; skip redundant recalc
-    chartRef.current?.setData(data, false);
+    chartRef.current?.setData(data);
   }, [revision]);
 
   // -- Effect 4: playhead redraw ---------------------------------------------
