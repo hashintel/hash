@@ -1,10 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
 import { SegmentGroup } from "../../../../../components/segment-group";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { useElementSize } from "../../../../../hooks/use-element-size";
+import { useStableCallback } from "../../../../../hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../playback/context";
 import { SimulationContext } from "../../../../../simulation/context";
 import {
@@ -261,7 +263,7 @@ function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames]);
+  }, [getFramesInRange, totalFrames, placeMeta]);
 
   return { store: storeRef.current, revision };
 }
@@ -489,7 +491,7 @@ function buildUPlotOptions(
       series.push({
         label: p.placeName,
         stroke: p.color,
-        fill: `${p.color}88`,
+        fill: `color-mix(in srgb, ${p.color} 53%, transparent)`,
         width: 2,
       });
     }
@@ -567,7 +569,7 @@ function buildUPlotOptions(
       },
       y: {
         auto: true,
-        range: (_u, min, max) => [Math.min(0, min), max * 1.05],
+        range: (_u, min, max) => [Math.min(0, min), Math.max(1, max * 1.05)],
       },
     },
     hooks: {
@@ -646,13 +648,70 @@ function buildUPlotOptions(
           ctx.strokeStyle = "#1e293b";
           ctx.lineWidth = 1.5 * dpr;
           ctx.beginPath();
-          ctx.moveTo(cx, tipY - 4);
+          ctx.moveTo(cx, tipY - 4 * dpr);
           ctx.lineTo(cx, tipY + plotHeight);
           ctx.stroke();
           ctx.restore();
         },
       ],
     },
+  };
+}
+
+// -- Ruler scrubbing (extracted from chart effect) ----------------------------
+
+/**
+ * Attaches pointer listeners on `u.root` to allow click/drag scrubbing on the
+ * top axis (ruler) area. Returns a cleanup function.
+ */
+function attachRulerScrubbing(
+  u: uPlot,
+  onScrub: (frameIndex: number) => void,
+): () => void {
+  let dragging = false;
+  let overRect: DOMRect | null = null;
+
+  const onDown = (e: PointerEvent) => {
+    overRect = u.over.getBoundingClientRect();
+    if (e.clientY >= overRect.top) {
+      return;
+    }
+    if (e.clientX < overRect.left || e.clientX > overRect.right) {
+      return;
+    }
+    dragging = true;
+    u.root.setPointerCapture(e.pointerId);
+    const x = Math.max(0, Math.min(e.clientX - overRect.left, overRect.width));
+    onScrub(u.posToIdx(x));
+  };
+
+  const onMove = (e: PointerEvent) => {
+    if (dragging && overRect) {
+      const x = Math.max(
+        0,
+        Math.min(e.clientX - overRect.left, overRect.width),
+      );
+      onScrub(u.posToIdx(x));
+    }
+  };
+
+  const onUp = (e: PointerEvent) => {
+    if (dragging) {
+      dragging = false;
+      u.root.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  u.root.addEventListener("pointerdown", onDown);
+  u.root.addEventListener("pointermove", onMove);
+  u.root.addEventListener("pointerup", onUp);
+  u.root.addEventListener("pointercancel", onUp);
+
+  return () => {
+    u.root.removeEventListener("pointerdown", onDown);
+    u.root.removeEventListener("pointermove", onMove);
+    u.root.removeEventListener("pointerup", onUp);
+    u.root.removeEventListener("pointercancel", onUp);
   };
 }
 
@@ -678,30 +737,32 @@ const UPlotChart: React.FC<{
   const wrapperRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<uPlot | null>(null);
   const playheadFrameRef = useRef(currentFrameIndex);
-  playheadFrameRef.current = currentFrameIndex;
 
-  const onScrub = useCallback(
-    (idx: number) => {
-      setCurrentViewedFrame(Math.max(0, Math.min(idx, totalFrames - 1)));
-    },
-    [setCurrentViewedFrame, totalFrames],
-  );
+  // -- Derived state ----------------------------------------------------------
 
-  // Build data from store
+  // Reactive container size — replaces getBoundingClientRect + inline ResizeObserver
+  const size = useElementSize(wrapperRef);
+  // Boolean flag for the creation effect — triggers when size first becomes
+  // available (null → non-null) without re-firing on every resize.
+  const hasSize = size != null;
+
+  // Stable identity: always calls the latest closure but never changes reference,
+  // so it doesn't trigger chart recreation when totalFrames changes.
+  const onScrub = useStableCallback((idx: number) => {
+    setCurrentViewedFrame(Math.max(0, Math.min(idx, totalFrames - 1)));
+  });
+
+  // Columnar data from the store (React Compiler memoizes)
   const data =
     chartType === "stacked"
       ? buildStackedData(store, hiddenPlaces)
       : buildRunData(store, hiddenPlaces);
 
-  // Create/recreate chart when structure changes
+  // -- Effect 1: create/destroy uPlot on structural changes -------------------
+
   useEffect(() => {
     const wrapper = wrapperRef.current;
-    if (!wrapper || store.length === 0) {
-      return;
-    }
-
-    const rect = wrapper.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
+    if (!wrapper || !size || store.length === 0) {
       return;
     }
 
@@ -711,8 +772,8 @@ const UPlotChart: React.FC<{
       store,
       chartType,
       hiddenPlaces,
-      rect.width,
-      rect.height,
+      size.width,
+      size.height,
       onScrub,
       () => playheadFrameRef.current,
       tooltip,
@@ -729,73 +790,38 @@ const UPlotChart: React.FC<{
     // matching the chart area. Cleaned up automatically by u.destroy().
     u.over.appendChild(tooltip.root);
 
-    // Ruler scrubbing: clicks/drags on the top axis area scrub the playhead.
-    // u.over already handles scrubbing inside the plot via cursor.bind; here
-    // we cover the area above u.over (the ruler) with native listeners on
-    // u.root, which is the parent that contains both the ruler and u.over.
-    let rulerDragging = false;
-    const scrubFromClientX = (clientX: number) => {
-      const overRect = u.over.getBoundingClientRect();
-      const x = Math.max(0, Math.min(clientX - overRect.left, overRect.width));
-      onScrub(u.posToIdx(x));
-    };
-    const onRulerDown = (e: PointerEvent) => {
-      const overRect = u.over.getBoundingClientRect();
-      // Only handle clicks above the plot area (in the ruler band)
-      if (e.clientY >= overRect.top) {
-        return;
-      }
-      if (e.clientX < overRect.left || e.clientX > overRect.right) {
-        return;
-      }
-      rulerDragging = true;
-      u.root.setPointerCapture(e.pointerId);
-      scrubFromClientX(e.clientX);
-    };
-    const onRulerMove = (e: PointerEvent) => {
-      if (rulerDragging) {
-        scrubFromClientX(e.clientX);
-      }
-    };
-    const onRulerUp = (e: PointerEvent) => {
-      if (rulerDragging) {
-        rulerDragging = false;
-        u.root.releasePointerCapture(e.pointerId);
-      }
-    };
-    u.root.addEventListener("pointerdown", onRulerDown);
-    u.root.addEventListener("pointermove", onRulerMove);
-    u.root.addEventListener("pointerup", onRulerUp);
-    u.root.addEventListener("pointercancel", onRulerUp);
-
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          u.setSize({ width, height });
-        }
-      }
-    });
-    ro.observe(wrapper);
+    const cleanupRuler = attachRulerScrubbing(u, onScrub);
 
     return () => {
-      ro.disconnect();
+      cleanupRuler();
       u.destroy();
       chartRef.current = null;
     };
-    // Recreate when chart type or visible series change
-  }, [chartType, hiddenPlaces, store.places.length, onScrub]);
+    // Recreate only when chart type, visible series, or size availability changes.
+    // onScrub is stable (useStableCallback). Subsequent size changes trigger
+    // setSize (Effect 2), not recreation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: see comment above
+  }, [chartType, hiddenPlaces, store.places.length, hasSize]);
 
-  // Stream update: just setData (no chart recreation)
+  // -- Effect 2: sync container size to existing chart ------------------------
+
   useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.setData(data);
+    if (chartRef.current && size && size.width > 0 && size.height > 0) {
+      chartRef.current.setSize(size);
     }
+  }, [size]);
+
+  // -- Effect 3: stream new data (no chart recreation) ------------------------
+
+  useEffect(() => {
+    // resetScales=false: our range functions handle bounds; skip redundant recalc
+    chartRef.current?.setData(data, false);
   }, [revision]);
 
-  // Redraw when playhead moves (triggers the draw hook)
+  // -- Effect 4: playhead redraw ---------------------------------------------
+
   useEffect(() => {
+    playheadFrameRef.current = currentFrameIndex;
     chartRef.current?.redraw(false, false);
   }, [currentFrameIndex]);
 
@@ -855,7 +881,7 @@ const SimulationTimelineContent: React.FC = () => {
 
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
 
-  const togglePlaceVisibility = useCallback((placeId: string) => {
+  const togglePlaceVisibility = (placeId: string) => {
     setHiddenPlaces((prev) => {
       const next = new Set(prev);
       if (next.has(placeId)) {
@@ -865,7 +891,7 @@ const SimulationTimelineContent: React.FC = () => {
       }
       return next;
     });
-  }, []);
+  };
 
   if (store.length === 0 || totalFrames === 0) {
     return (
