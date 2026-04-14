@@ -10,7 +10,7 @@ The editor is organized around a central canvas where you build your net:
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons and simulation controls.
 
-<!-- screenshot: full editor layout with labels -->
+<img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
 
 ## Adding places and transitions
 
@@ -21,7 +21,7 @@ Use the bottom toolbar to add nodes:
 
 New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename them by selecting the node and editing the name in the properties panel.
 
-<!-- screenshot: bottom toolbar with Add Place and Add Transition buttons -->
+<img width="160" height="58" alt="add-place-transition-toolbar" src="https://github.com/user-attachments/assets/9bb72c0b-6faa-4d17-a74d-ae6962087dab" />
 
 ## Connecting with arcs
 
@@ -32,7 +32,7 @@ Drag from a node's handle to connect it:
 
 Petri nets are bipartite: you cannot connect a place to another place or a transition to another transition. New arcs default to weight 1.
 
-<!-- screenshot: dragging an arc from a place to a transition -->
+![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
 ## Arc weight
 
@@ -62,7 +62,7 @@ With a selection, you can:
 
 Whether a node must be fully inside or only partially inside the selection box is configurable in [visual settings](visual-settings.md).
 
-<!-- screenshot: selection box around multiple nodes -->
+<img width="941" height="296" alt="selection" src="https://github.com/user-attachments/assets/174dd165-1be9-45a4-bccf-ffdd2e419d44" />
 
 ## Left sidebar
 
