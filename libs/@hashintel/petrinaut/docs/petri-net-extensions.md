@@ -18,7 +18,7 @@ Parameters are named values available in all user-authored code: dynamics, lambd
 2. Click **+** to add a new parameter.
 3. Set a **name** (display label), **variable name** (used in code), and **default value**.
 
-<!-- screenshot: parameters tab with a parameter selected -->
+<img width="1709" height="1062" alt="parameters" src="https://github.com/user-attachments/assets/03c24aa7-3134-43a4-b992-40aa2f53d91b" />
 
 Override parameter values before running a simulation in the **Simulation Settings** panel (see [Simulation](simulation.md#simulation-settings)). This lets you experiment with different values without editing code.
 
@@ -34,7 +34,7 @@ A type defines the structure of tokens in a place: what dimensions they have and
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
 
-<!-- screenshot: type properties panel with dimensions -->
+<img width="1707" height="1058" alt="token-type" src="https://github.com/user-attachments/assets/eb88fbc9-828e-4f12-842a-968fa86b2038" />
 
 **To assign a type to a place:** select the place, then choose the type from the **Accepted token type** dropdown in the properties panel.
 
@@ -62,7 +62,7 @@ export default Dynamics((tokens, parameters) => {
 
 The function receives the current token values and global parameters. It must return an array of derivative objects -- one per token, with the same dimension names.
 
-<!-- screenshot: differential equation code editor -->
+<img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
 **Example:** in [Satellites in Orbit](examples.md#satellites-in-orbit), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
 
@@ -84,7 +84,7 @@ export default Visualization(({ tokens, parameters }) => {
 
 The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
 
-<!-- screenshot: visualizer preview showing satellites -->
+<img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
@@ -170,7 +170,7 @@ An inhibitor arc is a special input arc that **prevents** a transition from firi
 
 Inhibitor arcs **do not consume tokens** when the transition fires.
 
-<!-- screenshot: inhibitor arc (dashed with circle marker) -->
+<img width="236" height="41" alt="inhibitor-arc" src="https://github.com/user-attachments/assets/6b6b8eb6-056f-418c-b0ea-9656f2c39ae2" />
 
 **Example:** in [Deployment Pipeline](examples.md#deployment-pipeline), inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress" block new deployments while an incident is open or a deployment is already running.
 
