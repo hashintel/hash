@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbPlus } from "react-icons/tb";
+import { TbPencil, TbPlus } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
@@ -10,6 +10,7 @@ import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
+import { ViewScenarioDrawer } from "../../SimulateView/view-scenario-drawer";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -168,6 +169,7 @@ const SimulationSettingsContent: React.FC = () => {
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [odeSolver, setOdeSolver] = useState("euler");
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
+  const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
@@ -211,19 +213,37 @@ const SimulationSettingsContent: React.FC = () => {
           size="xs"
           className={scenarioSelectStyle}
         />
-        <IconButton
-          size="xs"
-          variant="ghost"
-          aria-label="Create scenario"
-          tooltip="Create Scenario"
-          onClick={() => setIsCreateScenarioOpen(true)}
-        >
-          <TbPlus size={14} />
-        </IconButton>
+        <div style={{ display: "flex" }}>
+          {selectedScenario && (
+            <IconButton
+              size="xs"
+              variant="ghost"
+              aria-label="Edit scenario"
+              tooltip="Edit Scenario"
+              onClick={() => setIsViewScenarioOpen(true)}
+            >
+              <TbPencil size={14} />
+            </IconButton>
+          )}
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Create scenario"
+            tooltip="Create Scenario"
+            onClick={() => setIsCreateScenarioOpen(true)}
+          >
+            <TbPlus size={14} />
+          </IconButton>
+        </div>
       </div>
       <CreateScenarioDrawer
         open={isCreateScenarioOpen}
         onClose={() => setIsCreateScenarioOpen(false)}
+      />
+      <ViewScenarioDrawer
+        open={isViewScenarioOpen}
+        onClose={() => setIsViewScenarioOpen(false)}
+        scenario={selectedScenario}
       />
 
       <div className={containerStyle}>
