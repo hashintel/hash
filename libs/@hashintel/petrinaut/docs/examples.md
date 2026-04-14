@@ -99,7 +99,7 @@ The velocity needed for a roughly circular orbit at radius `r` is approximately 
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations).
 
-![visualiser](https://github.com/user-attachments/assets/46dd34df-6206-4966-9dbd-513afb339ae7)
+<img width="845" height="313" alt="satellites" src="https://github.com/user-attachments/assets/917b7300-9542-43ba-a07f-98f3e2885542" />
 
 ## Probabilistic Satellites Launcher
 
