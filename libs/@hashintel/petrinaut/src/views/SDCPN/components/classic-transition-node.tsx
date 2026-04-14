@@ -17,7 +17,7 @@ const containerStyle = css({
 
 const transitionBoxStyle = cva({
   base: {
-    padding: "4",
+    padding: "2",
     borderRadius: "xl",
     width: "[160px]",
     height: "[80px]",
@@ -70,14 +70,13 @@ const stochasticIconStyle = css({
   fontSize: "lg",
 });
 
-const contentWrapperStyle = css({
-  gap: "3",
-  overflowWrap: "break-word",
-  lineClamp: "2",
-});
-
 const labelStyle = css({
   textAlign: "center",
+  maxWidth: "[100%]",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  lineClamp: "2",
+  lineHeight: "[1.25]",
 });
 
 const firingIndicatorStyle = css({
@@ -197,9 +196,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
             <TbLambda />
           </div>
         )}
-        <div className={contentWrapperStyle}>
-          <div className={labelStyle}>{label}</div>
-        </div>
+        <div className={labelStyle}>{label}</div>
         <div ref={boltRef} className={firingIndicatorStyle}>
           <TbBolt />
         </div>

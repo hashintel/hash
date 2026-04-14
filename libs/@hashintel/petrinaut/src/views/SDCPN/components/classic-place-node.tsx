@@ -23,8 +23,11 @@ const placeCircleStyle = cva({
     width: "[130px]",
     height: "[130px]",
     display: "flex",
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+    gap: "3",
+    minWidth: "0",
     border: "2px solid",
     fontSize: "[15px]",
     boxSizing: "border-box",
@@ -70,28 +73,13 @@ const dynamicsIconStyle = css({
   fontSize: "lg",
 });
 
-const contentWrapperStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "3",
-  minWidth: "0",
-});
-
 const labelContainerStyle = css({
   textAlign: "center",
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "center",
   padding: "[12px 0]",
   lineHeight: "[1.1]",
   maxWidth: "[100%]",
-});
-
-const labelSegmentStyle = css({
   overflowWrap: "break-word",
   lineClamp: "3",
-  maxWidth: "[100%]",
 });
 
 const tokenCountBadgeStyle = css({
@@ -158,8 +146,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
           backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(30).css(0.8)
-            : "#FCFCFACC",
+            ? hexToHsl(data.typeColor).lighten(35).css(1)
+            : "#FCFCFA",
         }}
       >
         {data.dynamicsEnabled && (
@@ -167,15 +155,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             <TbMathFunction />
           </div>
         )}
-        <div className={contentWrapperStyle}>
-          <div className={labelContainerStyle}>
-            <span className={labelSegmentStyle}>{label}</span>
-          </div>
-
-          {tokenCount !== null && (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          )}
-        </div>
+        <div className={labelContainerStyle}>{label}</div>
+        {tokenCount !== null && (
+          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+        )}
       </div>
       <Handle
         type="source"
