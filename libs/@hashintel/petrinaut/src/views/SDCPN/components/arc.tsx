@@ -8,7 +8,6 @@ import {
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
-import { EditorContext } from "../../../state/editor-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { ArcEdgeType } from "../reactflow-types";
@@ -180,13 +179,9 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   data,
   style,
   markerEnd,
+  selected,
 }) => {
-  // Derive selected state from EditorContext
-  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
-
-  // Check if this arc is selected by its ID
-  const selected = isSelected(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
 
