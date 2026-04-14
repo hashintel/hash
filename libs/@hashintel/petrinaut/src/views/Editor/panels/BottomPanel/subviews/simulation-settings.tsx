@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbPencil, TbPlus } from "react-icons/tb";
+import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
@@ -8,6 +8,7 @@ import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
+import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/view-scenario-drawer";
@@ -151,6 +152,7 @@ const NO_SCENARIO = "__none__";
  * Includes a scenario picker, parameters section, and computation settings.
  */
 const SimulationSettingsContent: React.FC = () => {
+  const { setGlobalMode } = use(EditorContext);
   const {
     petriNetDefinition: { parameters, scenarios },
   } = use(SDCPNContext);
@@ -212,6 +214,14 @@ const SimulationSettingsContent: React.FC = () => {
           options={scenarioOptions}
           size="xs"
           className={scenarioSelectStyle}
+          renderItem={(option) => (
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {option.value === NO_SCENARIO && (
+                <TbMinus size={12} style={{ opacity: 0.4 }} />
+              )}
+              {option.label}
+            </span>
+          )}
         />
         <div style={{ display: "flex" }}>
           {selectedScenario && (
@@ -233,6 +243,15 @@ const SimulationSettingsContent: React.FC = () => {
             onClick={() => setIsCreateScenarioOpen(true)}
           >
             <TbPlus size={14} />
+          </IconButton>
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Manage scenarios"
+            tooltip="Manage Scenarios"
+            onClick={() => setGlobalMode("simulate")}
+          >
+            <TbList size={14} />
           </IconButton>
         </div>
       </div>

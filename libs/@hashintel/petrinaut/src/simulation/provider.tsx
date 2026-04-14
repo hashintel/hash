@@ -314,12 +314,33 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
   }
 
+  // When a scenario is compiled, override parameterValues and initialMarking
+  // with the scenario's resolved output.
+  let effectiveParameterValues = stateValues.parameterValues;
+  let effectiveInitialMarking = stateValues.initialMarking;
+
+  if (compiledScenarioResult) {
+    effectiveParameterValues = compiledScenarioResult.parameterValues;
+
+    // Convert compiled initialState (placeId → token count) to InitialMarking
+    const scenarioMarking: InitialMarking = new Map();
+    for (const [placeId, count] of Object.entries(
+      compiledScenarioResult.initialState,
+    )) {
+      scenarioMarking.set(placeId, {
+        values: new Float64Array(0),
+        count,
+      });
+    }
+    effectiveInitialMarking = scenarioMarking;
+  }
+
   const contextValue: SimulationContextValue = {
     state: simulationState,
     error: workerState.error,
     errorItemId: workerState.errorItemId,
-    parameterValues: stateValues.parameterValues,
-    initialMarking: stateValues.initialMarking,
+    parameterValues: effectiveParameterValues,
+    initialMarking: effectiveInitialMarking,
     selectedScenarioId: stateValues.selectedScenarioId,
     scenarioParameterValues: stateValues.scenarioParameterValues,
     compiledScenarioResult,
