@@ -25,7 +25,7 @@ const rootStyle = css({
 const scenarioRowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "3",
+  gap: "2",
   flexShrink: 0,
 });
 
