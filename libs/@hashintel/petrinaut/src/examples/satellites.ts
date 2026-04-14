@@ -12,7 +12,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         dynamicsEnabled: true,
         differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const { satellite_radius, earth_radius } = parameters;
+  const { satellite_radius, planet_radius } = parameters;
 
   const width = 800;
   const height = 600;
@@ -28,11 +28,11 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {/* Background */}
       <rect width={width} height={height} fill="#000014" />
 
-      {/* Earth at center */}
+      {/* Planet at center */}
       <circle
         cx={centerX}
         cy={centerY}
-        r={earth_radius}
+        r={planet_radius}
         fill="#2196f3"
         stroke="#1976d2"
         strokeWidth="2"
@@ -41,7 +41,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {/* Satellites */}
       {tokens.map(({ x, y, direction, velocity }, index) => {
         // Convert satellite coordinates to screen coordinates
-        // Assuming satellite coordinates are relative to Earth center
+        // Assuming satellite coordinates are relative to planet center
         const screenX = centerX + x;
         const screenY = centerY + y;
 
@@ -180,20 +180,20 @@ export default TransitionKernel((tokens) => {
           },
         ],
         lambdaType: "predicate",
-        lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
+        lambdaCode: `// Check if satellite crashes into planet (within crash threshold of origin)
 export default Lambda((tokens, parameters) => {
-  const { earth_radius, crash_threshold, satellite_radius } = parameters;
+  const { planet_radius, crash_threshold, satellite_radius } = parameters;
 
   // Get satellite position
   const { x, y } = tokens.Space[0];
 
-  // Calculate distance from Earth center (origin)
+  // Calculate distance from planet center (origin)
   const distance = Math.hypot(x, y);
 
-  // Crash occurs if satellite is too close to Earth
-  return distance < earth_radius + crash_threshold + satellite_radius;
+  // Crash occurs if satellite is too close to planet
+  return distance < planet_radius + crash_threshold + satellite_radius;
 })`,
-        transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
+        transitionKernelCode: `// When satellite crashes into planet, it becomes debris at crash site
 export default TransitionKernel((tokens) => {
   return {
     Debris: [
@@ -252,7 +252,7 @@ export default Dynamics((tokens, parameters) => {
 
   // Process each token (satellite)
   return tokens.map(({ x, y, direction, velocity }) => {
-    const r = Math.hypot(x, y); // Distance to Earth center
+    const r = Math.hypot(x, y); // Distance to planet center
 
     // Gravitational acceleration vector (points toward origin)
     const ax = (-mu * x) / (r * r * r);
@@ -274,8 +274,8 @@ export default Dynamics((tokens, parameters) => {
     parameters: [
       {
         id: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
-        name: "Earth Radius",
-        variableName: "earth_radius",
+        name: "Planet Radius",
+        variableName: "planet_radius",
         type: "real",
         defaultValue: "50.0",
       },

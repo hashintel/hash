@@ -44,15 +44,17 @@ const clearButtonStyle = css({
  */
 const ClearStateHeaderAction: React.FC = () => {
   const { place } = usePlacePropertiesContext();
-  const { state, initialMarking, setInitialMarking } = use(SimulationContext);
+  const { state, initialMarking, setInitialMarking, selectedScenarioId } =
+    use(SimulationContext);
   const isSimulationNotRun = state === "NotRun";
 
   // Check if there's data to clear
   const currentMarking = initialMarking.get(place.id);
   const hasData = currentMarking && currentMarking.count > 0;
 
-  // Only show when simulation hasn't run and there's data
-  if (!isSimulationNotRun || !hasData) {
+  // Hide when a scenario is selected (state is managed by scenario),
+  // when simulation has run, or when there's no data to clear.
+  if (selectedScenarioId || !isSimulationNotRun || !hasData) {
     return null;
   }
 
