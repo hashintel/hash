@@ -16,7 +16,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 **Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations).
 
-<!-- screenshot: SIR model net -->
+<img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
 ## Drug Production (Stochastic)
 
@@ -33,7 +33,7 @@ A manufacturing pipeline from raw material suppliers through manufacturing, qual
 
 **Key concepts:** [types](petri-net-extensions.md#types-colours), [distributions](petri-net-extensions.md#distributions), [competing transitions](useful-patterns.md#competing-transitions--routing).
 
-<!-- screenshot: stochastic supply chain net -->
+<img width="1264" height="267" alt="probabilitic-supply-chain" src="https://github.com/user-attachments/assets/3823a252-33ec-4d22-b220-c8aa337698bf" />
 
 ## Deployment Pipeline
 
@@ -49,7 +49,7 @@ A software deployment process with incident handling. Deployments are created at
 
 **Key concepts:** [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [mutual exclusion](useful-patterns.md#mutual-exclusion-with-inhibitor-arcs).
 
-<!-- screenshot: deployment pipeline net with inhibitor arcs -->
+<img width="1272" height="584" alt="deployment-pipeline" src="https://github.com/user-attachments/assets/9777d44c-75cf-4398-858d-f58952af9dd3" />
 
 ## Production Machines
 
@@ -73,7 +73,7 @@ All other places start empty. "Start Production" will immediately consume a raw 
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [resource pools](useful-patterns.md#resource-pools), predicate vs stochastic on competing transitions.
 
-<!-- screenshot: production machines net -->
+<img width="1223" height="611" alt="production-machines" src="https://github.com/user-attachments/assets/f9b058a2-6eef-4b0f-880b-09ae45921729" />
 
 ## Satellites in Orbit
 
@@ -99,7 +99,7 @@ The velocity needed for a roughly circular orbit at radius `r` is approximately 
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations).
 
-<!-- screenshot: satellites visualizer showing Earth and orbiting satellites -->
+![visualiser](https://github.com/user-attachments/assets/46dd34df-6206-4966-9dbd-513afb339ae7)
 
 ## Probabilistic Satellites Launcher
 
@@ -115,4 +115,4 @@ Extends the Satellites example with ongoing satellite launches at a stochastic r
 
 **Key concepts:** [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions).
 
-<!-- screenshot: satellites launcher net with LaunchSatellite source transition -->
+<img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />
