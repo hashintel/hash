@@ -58,12 +58,12 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
             />
 
             {/* Velocity vector indicator */}
-            {velocity > 0 && (
+            {Math.abs(velocity) > 0.01 && (
               <line
                 x1={screenX}
                 y1={screenY}
-                x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
-                y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
+                x2={screenX + Math.cos(direction) * Math.log(Math.abs(velocity)) * Math.sign(velocity) * 10}
+                y2={screenY + Math.sin(direction) * Math.log(Math.abs(velocity)) * Math.sign(velocity) * 10}
                 stroke="#ffc107"
                 strokeWidth="2"
                 markerEnd="url(#arrowhead)"
