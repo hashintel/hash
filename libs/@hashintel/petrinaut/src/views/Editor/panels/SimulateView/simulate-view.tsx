@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 import { LuLayers2 } from "react-icons/lu";
 import { PiFlaskBold } from "react-icons/pi";
-import { TbPlus } from "react-icons/tb";
+import { TbChartBar, TbPlus } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
 import type { SegmentOption } from "../../../../components/segment-group";
@@ -14,7 +14,7 @@ import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
-type SimulateMode = "scenarios" | "experiments";
+type SimulateMode = "scenarios" | "metrics" | "experiments";
 
 // -- Layout styles -------------------------------------------------------------
 
@@ -171,11 +171,20 @@ const modeOptions: SegmentOption[] = [
     tooltip: "Scenarios",
   },
   {
+    value: "metrics",
+    label: "Metrics",
+    icon: <TbChartBar size={16} />,
+    hideLabel: true,
+    tooltip: "Metrics not yet available",
+    disabled: true,
+  },
+  {
     value: "experiments",
     label: "Experiments",
     icon: <PiFlaskBold size={16} />,
     hideLabel: true,
-    tooltip: "Experiments",
+    tooltip: "Experiments not yet available",
+    disabled: true,
   },
 ];
 
@@ -248,7 +257,12 @@ export const SimulateView = () => {
 
   const closeDrawer = () => setDrawer({ type: "closed" });
 
-  const title = mode === "scenarios" ? "Scenarios" : "Experiments";
+  const title =
+    mode === "scenarios"
+      ? "Scenarios"
+      : mode === "metrics"
+        ? "Metrics"
+        : "Experiments";
 
   return (
     <div className={containerStyle}>
@@ -289,7 +303,7 @@ export const SimulateView = () => {
           )}
         </div>
 
-        {mode === "scenarios" ? (
+        {mode === "scenarios" && (
           <>
             <div className={contentStyle}>
               <ScenarioList
@@ -310,7 +324,11 @@ export const SimulateView = () => {
               scenario={selectedScenario}
             />
           </>
-        ) : (
+        )}
+        {mode === "metrics" && (
+          <div className={emptyStateStyle}>Metrics coming soon</div>
+        )}
+        {mode === "experiments" && (
           <>
             <div className={emptyStateStyle}>No experiments yet</div>
 
