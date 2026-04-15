@@ -35,7 +35,7 @@ const placeCircleStyle = cva({
     textAlign: "center",
     lineHeight: "[1.3]",
     cursor: "default",
-    transition: "[all 0.2s ease]",
+    transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
@@ -53,12 +53,13 @@ const placeCircleStyle = cva({
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
       notSelectedConnection: {
+        borderColor: "neutral.s80",
         _after: {
           content: '""',
           position: "absolute",
           pointerEvents: "none",
           borderRadius: "[inherit]",
-          background: "[rgba(255, 255, 255, 0.7)]",
+          background: "[rgba(255, 255, 255, 0.5)]",
           inset: "[-2px]", // override to cover border, since parent uses box-sizing border-box
         },
       },

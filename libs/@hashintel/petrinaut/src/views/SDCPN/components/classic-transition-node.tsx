@@ -32,7 +32,7 @@ const transitionBoxStyle = cva({
     boxSizing: "border-box",
     position: "relative",
     cursor: "default",
-    transition: "[outline 0.2s ease, border-color 0.2s ease]",
+    transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
       borderColor: "neutral.s100",
@@ -50,6 +50,9 @@ const transitionBoxStyle = cva({
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
+      selectedConnection: {
+        borderColor: "neutral.s100",
+      },
       notSelectedConnection: {
         _after: {
           content: '""',
@@ -57,7 +60,7 @@ const transitionBoxStyle = cva({
           inset: "0",
           pointerEvents: "none",
           borderRadius: "[inherit]",
-          background: "[rgba(255, 255, 255, 0.7)]",
+          background: "[rgba(255, 255, 255, 0.5)]",
         },
       },
       none: {},
@@ -167,7 +170,8 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected, isNotSelectedConnection } = use(EditorContext);
+  const { isSelected, isNotSelectedConnection, isSelectedConnection } =
+    use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -185,9 +189,11 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotSelectedConnection(id)
-        ? "notSelectedConnection"
-        : "none";
+      : isSelectedConnection(id)
+        ? "selectedConnection"
+        : isNotSelectedConnection(id)
+          ? "notSelectedConnection"
+          : "none";
 
   return (
     <div className={containerStyle}>

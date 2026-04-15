@@ -183,12 +183,14 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   markerEnd,
 }) => {
   // Derive selected state from EditorContext
-  const { isSelected, isNotSelectedConnection } = use(EditorContext);
+  const { isSelected, isNotSelectedConnection, isSelectedConnection } =
+    use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
   const selected = isSelected(id);
   const notSelectedConnection = isNotSelectedConnection(id);
+  const selectedConnection = isSelectedConnection(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
 
@@ -240,11 +242,15 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   return (
     <g
       style={
-        notSelectedConnection
+        selectedConnection
           ? {
-              filter: `brightness(${1 + NOT_SELECTED_CONNECTION_OVERLAY_OPACITY})`,
+              filter: `brightness(${0.8})`,
             }
-          : undefined
+          : notSelectedConnection
+            ? {
+                filter: `brightness(${1 + NOT_SELECTED_CONNECTION_OVERLAY_OPACITY})`,
+              }
+            : undefined
       }
     >
       {/* Custom SVG marker definition for inhibitor arcs (empty circle) */}

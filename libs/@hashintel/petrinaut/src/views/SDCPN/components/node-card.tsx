@@ -55,7 +55,7 @@ export const nodeCardStyle = cva({
           inset: "0",
           pointerEvents: "none",
           borderRadius: "[inherit]",
-          background: "[rgba(255, 255, 255, 0.7)]",
+          background: "[rgba(255, 255, 255, 0.5)]",
         },
       },
       none: {},
