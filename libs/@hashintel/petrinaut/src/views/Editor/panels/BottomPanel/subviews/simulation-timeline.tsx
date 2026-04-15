@@ -624,7 +624,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
     series,
     bands,
     pxAlign: false,
-    padding: [0, 0, 4, null],
+    padding: [0, 8, 4, null],
     cursor: {
       lock: false,
       drag: { x: false, y: false, setScale: false },
