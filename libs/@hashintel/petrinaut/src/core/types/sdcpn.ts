@@ -112,6 +112,22 @@ export type Scenario = {
       };
 };
 
+/**
+ * A metric is a user-authored function that takes the current simulation state
+ * (places with token counts and, for colored places, named token attributes)
+ * and returns a single number to be plotted over time on the timeline chart.
+ */
+export type Metric = {
+  id: ID;
+  name: string;
+  description?: string;
+  /**
+   * Function body invoked with `state` in scope. Must `return` a number.
+   * See `MetricState` (in `simulation/compile-metric.ts`) for the input shape.
+   */
+  code: string;
+};
+
 export type SDCPN = {
   places: Place[];
   transitions: Transition[];
@@ -119,6 +135,7 @@ export type SDCPN = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   scenarios?: Scenario[];
+  metrics?: Metric[];
 };
 
 export type MinimalNetMetadata = {

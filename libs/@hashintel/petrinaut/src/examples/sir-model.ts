@@ -156,5 +156,19 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         },
       },
     ],
+    metrics: [
+      {
+        id: "metric__infected_fraction",
+        name: "Infected Fraction",
+        description: "Share of the population currently infected.",
+        code: `
+          const s = state.places.Susceptible?.count ?? 0;
+          const i = state.places.Infected?.count ?? 0;
+          const r = state.places.Recovered?.count ?? 0;
+          const total = s + i + r;
+          return total === 0 ? 0 : i / total;
+        `,
+      },
+    ],
   },
 };

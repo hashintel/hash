@@ -1,20 +1,30 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useRef, useState } from "react";
+import { TbList, TbPencil, TbPlus } from "react-icons/tb";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
+import { IconButton } from "../../../../../components/icon-button";
 import { SegmentGroup } from "../../../../../components/segment-group";
+import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { useElementSize } from "../../../../../hooks/use-element-size";
 import { useLatest } from "../../../../../hooks/use-latest";
 import { useStableCallback } from "../../../../../hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../playback/context";
+import {
+  type CompiledMetric,
+  compileMetric,
+} from "../../../../../simulation/compile-metric";
 import { SimulationContext } from "../../../../../simulation/context";
+import { buildMetricState } from "../../../../../simulation/metric-state";
 import {
   EditorContext,
   type TimelineChartType,
 } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { CreateMetricDrawer } from "../../SimulateView/create-metric-drawer";
+import { ViewMetricDrawer } from "../../SimulateView/view-metric-drawer";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -121,6 +131,18 @@ interface PlaceMeta {
 
 // -- Header action ------------------------------------------------------------
 
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+});
+
+const metricPickerWrapperStyle = css({
+  width: "[130px]",
+});
+
+const DEFAULT_METRIC_VALUE = "__default__";
+
 const TimelineChartTypeSelector: React.FC = () => {
   const { timelineChartType: chartType, setTimelineChartType: setChartType } =
     use(EditorContext);
@@ -134,6 +156,95 @@ const TimelineChartTypeSelector: React.FC = () => {
     />
   );
 };
+
+const TimelineMetricPicker: React.FC = () => {
+  const {
+    timelineMetricId,
+    setTimelineMetricId,
+    setGlobalMode,
+    setSimulateViewMode,
+  } = use(EditorContext);
+  const {
+    petriNetDefinition: { metrics = [] },
+  } = use(SDCPNContext);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+
+  const selectedMetric = timelineMetricId
+    ? metrics.find((m) => m.id === timelineMetricId)
+    : undefined;
+
+  const options = [
+    { value: DEFAULT_METRIC_VALUE, label: "Default" },
+    ...metrics.map((m) => ({ value: m.id, label: m.name })),
+  ];
+
+  return (
+    <>
+      <div className={metricPickerWrapperStyle}>
+        <Select
+          size="xs"
+          value={timelineMetricId ?? DEFAULT_METRIC_VALUE}
+          options={options}
+          onValueChange={(value) =>
+            setTimelineMetricId(value === DEFAULT_METRIC_VALUE ? null : value)
+          }
+        />
+      </div>
+      <div style={{ display: "flex" }}>
+        {selectedMetric && (
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Edit metric"
+            tooltip="Edit Metric"
+            onClick={() => setIsViewOpen(true)}
+          >
+            <TbPencil size={14} />
+          </IconButton>
+        )}
+        <IconButton
+          size="xs"
+          variant="ghost"
+          aria-label="Create metric"
+          tooltip="Create Metric"
+          onClick={() => setIsCreateOpen(true)}
+        >
+          <TbPlus size={14} />
+        </IconButton>
+        <IconButton
+          size="xs"
+          variant="ghost"
+          aria-label="Manage metrics"
+          tooltip="Manage Metrics"
+          onClick={() => {
+            setSimulateViewMode("metrics");
+            setGlobalMode("simulate");
+          }}
+        >
+          <TbList size={14} />
+        </IconButton>
+      </div>
+      <CreateMetricDrawer
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+      />
+      <ViewMetricDrawer
+        open={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        metric={selectedMetric}
+      />
+    </>
+  );
+};
+
+const TimelineHeaderActions: React.FC = () => (
+  <div className={headerActionsStyle}>
+    <TimelineMetricPicker />
+    <TimelineChartTypeSelector />
+  </div>
+);
 
 // -- Streaming data hook (uPlot-native columnar format) -----------------------
 
@@ -164,38 +275,78 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
 /**
  * Hook that streams simulation frames directly into uPlot columnar arrays.
  * Returns a store ref (mutated in place) and a revision counter for React.
+ *
+ * When `timelineMetricId` selects a metric on the SDCPN, the store contains a
+ * single virtual "place" representing the metric — its column holds the metric
+ * value computed from each frame. Otherwise it streams per-place token counts
+ * (the default visualization).
  */
 function useStreamingData(): {
   store: StreamingStore;
   revision: number;
+  metricMode: boolean;
+  metricError: string | null;
 } {
   "use no memo"; // imperative streaming with refs
 
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
-    petriNetDefinition: { places, types },
+    petriNetDefinition: { places, types, metrics = [] },
   } = use(SDCPNContext);
+  const { timelineMetricId } = use(EditorContext);
 
-  const placeMeta: PlaceMeta[] = useMemo(
+  const selectedMetric = useMemo(
     () =>
-      places.map((place, index) => {
-        const tokenType = types.find((type) => type.id === place.colorId);
-        return {
-          placeId: place.id,
-          placeName: place.name,
-          color:
-            tokenType?.displayColor ??
-            DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
-        };
-      }),
-    [places, types],
+      timelineMetricId
+        ? (metrics.find((m) => m.id === timelineMetricId) ?? null)
+        : null,
+    [timelineMetricId, metrics],
   );
+
+  // Compile the selected metric. Recompiles only when its code changes.
+  const compiledMetric = useMemo<{
+    fn: CompiledMetric | null;
+    error: string | null;
+  }>(() => {
+    if (!selectedMetric) {
+      return { fn: null, error: null };
+    }
+    const outcome = compileMetric(selectedMetric);
+    if (outcome.ok) {
+      return { fn: outcome.fn, error: null };
+    }
+    return { fn: null, error: outcome.error };
+  }, [selectedMetric]);
+
+  const metricMode = selectedMetric !== null && compiledMetric.fn !== null;
+
+  const placeMeta: PlaceMeta[] = useMemo(() => {
+    if (selectedMetric && compiledMetric.fn) {
+      return [
+        {
+          placeId: selectedMetric.id,
+          placeName: selectedMetric.name,
+          color: DEFAULT_COLORS[0]!,
+        },
+      ];
+    }
+    return places.map((place, index) => {
+      const tokenType = types.find((type) => type.id === place.colorId);
+      return {
+        placeId: place.id,
+        placeName: place.name,
+        color:
+          tokenType?.displayColor ??
+          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+      };
+    });
+  }, [places, types, selectedMetric, compiledMetric.fn]);
 
   const storeRef = useRef<StreamingStore>(createEmptyStore(placeMeta));
   const processedRef = useRef(0);
   const [revision, setRevision] = useState(0);
 
-  // Reset store if place structure changes
+  // Reset store when the series structure changes (places or metric switch)
   useEffect(() => {
     storeRef.current = createEmptyStore(placeMeta);
     processedRef.current = 0;
@@ -239,12 +390,25 @@ function useStreamingData(): {
       const cols = storeRef.current.columns;
       const timeCol = cols[0]!;
       const placeList = storeRef.current.places;
+      const metricFn = compiledMetric.fn;
 
       for (const frame of newFrames) {
         timeCol.push(frame.time);
-        for (let p = 0; p < placeList.length; p++) {
-          const count = frame.places[placeList[p]!.placeId]?.count ?? 0;
-          cols[p + 1]!.push(count);
+        if (metricMode && metricFn) {
+          let value: number;
+          try {
+            value = metricFn(buildMetricState(frame, places, types));
+          } catch {
+            // Compiled metric threw at runtime (e.g. returned NaN). Leave a
+            // gap on the chart — uPlot skips NaN/null points.
+            value = Number.NaN;
+          }
+          cols[1]!.push(value);
+        } else {
+          for (let p = 0; p < placeList.length; p++) {
+            const count = frame.places[placeList[p]!.placeId]?.count ?? 0;
+            cols[p + 1]!.push(count);
+          }
         }
       }
 
@@ -260,9 +424,22 @@ function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, placeMeta]);
+  }, [
+    getFramesInRange,
+    totalFrames,
+    placeMeta,
+    metricMode,
+    compiledMetric.fn,
+    places,
+    types,
+  ]);
 
-  return { store: storeRef.current, revision };
+  return {
+    store: storeRef.current,
+    revision,
+    metricMode,
+    metricError: compiledMetric.error,
+  };
 }
 
 // -- uPlot data builders (from store, no copies for run chart) ----------------
@@ -933,7 +1110,7 @@ const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { totalFrames } = use(SimulationContext);
   const { currentFrameIndex } = use(PlaybackContext);
-  const { store, revision } = useStreamingData();
+  const { store, revision, metricMode, metricError } = useStreamingData();
 
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
 
@@ -948,6 +1125,14 @@ const SimulationTimelineContent: React.FC = () => {
       return next;
     });
   };
+
+  if (metricError) {
+    return (
+      <div className={containerStyle}>
+        <span style={{ fontSize: 12, color: "#b91c1c" }}>{metricError}</span>
+      </div>
+    );
+  }
 
   if (store.length === 0 || totalFrames === 0) {
     return (
@@ -970,11 +1155,13 @@ const SimulationTimelineContent: React.FC = () => {
         totalFrames={totalFrames}
         currentFrameIndex={currentFrameIndex}
       />
-      <TimelineLegend
-        places={store.places}
-        hiddenPlaces={hiddenPlaces}
-        onToggleVisibility={togglePlaceVisibility}
-      />
+      {!metricMode && (
+        <TimelineLegend
+          places={store.places}
+          hiddenPlaces={hiddenPlaces}
+          onToggleVisibility={togglePlaceVisibility}
+        />
+      )}
     </div>
   );
 };
@@ -988,6 +1175,6 @@ export const simulationTimelineSubView: SubView = {
   tooltip:
     "View the simulation timeline with compartment time-series. Click/drag to scrub through frames.",
   component: SimulationTimelineContent,
-  renderHeaderAction: () => <TimelineChartTypeSelector />,
+  renderHeaderAction: () => <TimelineHeaderActions />,
   noPadding: true,
 };

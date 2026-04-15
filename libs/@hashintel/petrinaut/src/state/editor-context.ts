@@ -22,6 +22,8 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
+export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+
 /**
  * The state values for the editor.
  */
@@ -44,6 +46,17 @@ export type EditorState = {
   hoveredItem: SelectionItem | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
+  /**
+   * ID of the metric currently selected for the simulation timeline chart,
+   * or `null` to use the default per-place visualization.
+   */
+  timelineMetricId: string | null;
+  /**
+   * Which tab is active in the SimulateView sidebar ("scenarios" | "metrics"
+   * | "experiments"). Lifted here so external actions (e.g. the "Manage"
+   * button in the timeline header) can switch it.
+   */
+  simulateViewMode: SimulateViewMode;
   isPanelAnimating: boolean;
   isSearchOpen: boolean;
 };
@@ -91,6 +104,8 @@ export type EditorActions = {
   resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
+  setTimelineMetricId: (metricId: string | null) => void;
+  setSimulateViewMode: (mode: SimulateViewMode) => void;
   setSearchOpen: (isOpen: boolean) => void;
   triggerPanelAnimation: () => void;
   __reinitialize: () => void;
@@ -118,6 +133,8 @@ export const initialEditorState: EditorState = {
   hoveredItem: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
+  timelineMetricId: null,
+  simulateViewMode: "scenarios",
   isPanelAnimating: false,
   isSearchOpen: false,
 };
@@ -152,6 +169,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
+  setTimelineMetricId: () => {},
+  setSimulateViewMode: () => {},
   setSearchOpen: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
   triggerPanelAnimation: () => {},
