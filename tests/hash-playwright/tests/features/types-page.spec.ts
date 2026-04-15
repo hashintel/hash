@@ -1,17 +1,11 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { expect, test } from "./shared/runtime";
+import { expect, test } from "../shared/runtime";
 
 const pathPrefix = `${frontendUrl}/types/`;
 
 test("/types page renders and loads types", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
+  await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto("/types");

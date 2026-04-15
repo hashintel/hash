@@ -1,12 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
 import { test as testTolerateConsoleErrors } from "@playwright/test";
 
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
+import { expect, test } from "../shared/runtime";
 
 test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");

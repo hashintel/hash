@@ -1,19 +1,8 @@
-import { changeSidebarListDisplay } from "./shared/change-sidebar-list-display";
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
+import { changeSidebarListDisplay } from "../shared/change-sidebar-list-display";
+import { expect, test } from "../shared/runtime";
 
 test("user can visit a page listing entities of a type", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
+  await page.goto("/");
   // Check if we are on the logged-in homepage
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -24,12 +13,11 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
     section: "Entities",
   });
 
-  // Expand the entities list in the sidebar
+  // Expand the entities list in the sidebar and wait for types to load
   await page.locator("text=Entities").first().click();
 
-  // Wait for 'Document' to be visible before clicking (sidebar expand animation)
   const documentItem = page.locator("text=Document").first();
-  await expect(documentItem).toBeVisible();
+  await expect(documentItem).toBeVisible({ timeout: 10_000 });
   await documentItem.click();
 
   // Check if we are on the 'Document' entities page

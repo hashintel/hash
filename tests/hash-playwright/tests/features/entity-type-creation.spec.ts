@@ -1,21 +1,10 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { changeSidebarListDisplay } from "./shared/change-sidebar-list-display";
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
+import { changeSidebarListDisplay } from "../shared/change-sidebar-list-display";
+import { expect, test } from "../shared/runtime";
 
 test("user can create entity type", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
+  await page.goto("/");
   // Check if we are on the user page
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -25,6 +14,11 @@ test("user can create entity type", async ({ page }) => {
     page,
     section: "Types",
   });
+
+  // Expand the Types section so the "create entity type" button is in the
+  // DOM — the button is only rendered as an end-adornment on the Types
+  // list header when the section is open.
+  await page.locator("text=Types").first().click();
 
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();

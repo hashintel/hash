@@ -1,15 +1,10 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { loginUsingUi } from "./shared/login-using-ui";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
+import { loginUsingUi } from "../shared/login-using-ui";
+import { expect, test } from "../shared/runtime";
 
 const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
 
 /**
  * @todo: Re-enable this playwright test when required backend functionality is fixed

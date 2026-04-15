@@ -7,10 +7,10 @@ import { getKratosVerificationCode } from "./get-kratos-verification-code";
 const defaultPassword = "some-complex-pw-1ab2";
 
 /**
- * Generate a unique shortname suffix per test run so that the web principal
- * left behind by a previous run (see `deleteUserByEmail`) doesn't cause a
- * "Shortname already taken" error. The suffix keeps the base name readable
- * while guaranteeing uniqueness.
+ * `deleteUserByEmail` intentionally preserves the user's web principal so
+ * entity types created under it remain valid for other webs that reference
+ * them. The orphan principal holds onto the old shortname, so re-runs must
+ * pick a fresh one to avoid a "shortname already taken" error.
  */
 const uniqueShortname = (base: string): string => {
   const suffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
@@ -26,15 +26,9 @@ export const registerUser = async (
   page: Page,
   { email, password = defaultPassword }: { email: string; password?: string },
 ) => {
-  const registrationFlowReady = page.waitForResponse(
-    (response) =>
-      response.request().method() === "GET" &&
-      response.url().includes("/auth/self-service/registration/browser"),
-    { timeout: 15_000 },
-  );
+  await page.goto("/signup", { waitUntil: "networkidle" });
 
-  await page.goto("/signup");
-  await registrationFlowReady;
+  await expect(page).toHaveURL(/\/signup/, { timeout: 5_000 });
 
   await page.fill('[placeholder="Enter your email address"]', email);
   await page.fill('[type="password"]', password);
@@ -97,12 +91,10 @@ export const completeSignup = async (
 };
 
 /**
- * Full flow: register a user, verify email, and complete signup.
+ * Full signup flow: register, verify email, and complete the account page.
  *
- * Before registering, deletes any Kratos identity left over from a previous
- * run via the Graph admin API. The shortname is randomised per call to avoid
- * colliding with the orphan web principal that `POST /users/delete`
- * intentionally preserves.
+ * Deletes any Kratos identity left over from a previous run before
+ * registering, and randomises the shortname via {@link uniqueShortname}.
  */
 export const createUserAndCompleteSignup = async (
   page: Page,
@@ -118,8 +110,6 @@ export const createUserAndCompleteSignup = async (
     password?: string;
   },
 ) => {
-  // Clean up any leftover Kratos identity from a previous run so the
-  // registration doesn't fail with "identifier already exists".
   await deleteUserByEmail(email);
 
   const runShortname = uniqueShortname(shortname);

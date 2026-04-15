@@ -1,23 +1,19 @@
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
+import { deleteUserByEmail } from "../shared/delete-user";
+import { expect, test } from "../shared/runtime";
 import {
   completeSignup,
   registerUser,
   verifyEmailOnPage,
-} from "./shared/signup-utils";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
-
-const allowlistedEmail = "charlie@example.com";
+} from "../shared/signup-utils";
+import { testUsers } from "../shared/test-users";
 
 test("allowlisted user can verify email and complete signup", async ({
   page,
 }) => {
-  const { email, emailDispatchTimestamp } = await registerUser(page, {
-    email: allowlistedEmail,
-  });
+  const { email } = testUsers.signupAllowlisted;
+  await deleteUserByEmail(email);
+
+  const { emailDispatchTimestamp } = await registerUser(page, { email });
 
   await verifyEmailOnPage(page, {
     email,
@@ -40,7 +36,6 @@ test("waitlisted user is redirected to waitlist after signup", async ({
     email: waitlistedEmail,
   });
 
-  // Waitlisted users must also verify their email before proceeding
   await verifyEmailOnPage(page, {
     email: waitlistedEmail,
     afterTimestamp: emailDispatchTimestamp,

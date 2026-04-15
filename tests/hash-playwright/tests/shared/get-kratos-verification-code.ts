@@ -49,10 +49,7 @@ const parseMailslurperDate = (dateSent?: string): number | undefined => {
   return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-/**
- * Matches the email subject for verification emails.
- * Handles both the Kratos default subject and the custom HASH template subject.
- */
+/** Accept either the Kratos default subject or HASH's custom template. */
 const isVerificationSubject = (subject?: string): boolean => {
   if (!subject) {
     return false;
@@ -62,6 +59,9 @@ const isVerificationSubject = (subject?: string): boolean => {
     subject.startsWith("Your HASH verification code:")
   );
 };
+
+const isRecoverySubject = (subject?: string): boolean =>
+  typeof subject === "string" && subject.startsWith("Your HASH recovery code:");
 
 export const getKratosVerificationCode = async (
   emailAddress: string,
@@ -130,7 +130,6 @@ export const getKratosVerificationCode = async (
   const lastErrorMessage =
     lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
 
-  // Build diagnostic summary from the last poll to help debug failures.
   const allItems = lastMailItems ?? [];
   const toTargetAddress = allItems.filter((item) =>
     extractToAddresses(item.toAddresses).includes(emailAddress),
@@ -165,5 +164,61 @@ export const getKratosVerificationCode = async (
 
   throw new Error(
     `No verification email found for ${emailAddress} within ${maxWaitMs}ms.${lastErrorMessage} [${diagnostics}]`,
+  );
+};
+
+export const getKratosRecoveryCode = async (
+  emailAddress: string,
+  afterTimestamp?: number,
+): Promise<string> => {
+  const maxWaitMs = 10_000;
+  const pollIntervalMs = 250;
+  const timestampBufferMs = 5_000;
+  let elapsed = 0;
+
+  while (elapsed < maxWaitMs) {
+    const response = await fetch("http://localhost:4437/mail");
+
+    if (!response.ok) {
+      throw new Error(
+        `Unable to fetch emails from mailslurper: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = (await response.json()) as {
+      mailItems?: MailslurperMailItem[];
+    };
+
+    const match = data.mailItems
+      ?.filter((mailItem) => {
+        const sentTimestamp = parseMailslurperDate(mailItem.dateSent);
+        return (
+          isRecoverySubject(mailItem.subject) &&
+          extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
+          (!afterTimestamp ||
+            (typeof sentTimestamp === "number" &&
+              sentTimestamp >= afterTimestamp - timestampBufferMs))
+        );
+      })
+      .sort((a, b) => {
+        const aTs = parseMailslurperDate(a.dateSent) ?? 0;
+        const bTs = parseMailslurperDate(b.dateSent) ?? 0;
+        return bTs - aTs;
+      })
+      .at(0);
+
+    if (match?.body) {
+      const code = match.body.match(/\b(\d{6})\b/)?.[1];
+      if (code) {
+        return code;
+      }
+    }
+
+    await sleep(pollIntervalMs);
+    elapsed += pollIntervalMs;
+  }
+
+  throw new Error(
+    `No recovery email found for ${emailAddress} within ${maxWaitMs}ms.`,
   );
 };

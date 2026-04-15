@@ -94,6 +94,7 @@ services:
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "http://localhost:3000/verification"
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: "http://localhost:3000/recovery"
       SELFSERVICE_FLOWS_SETTINGS_UI_URL: "http://localhost:3000/settings/security"
+      SELFSERVICE_FLOWS_SETTINGS_PRIVILEGED_SESSION_MAX_AGE: "${SELFSERVICE_FLOWS_SETTINGS_PRIVILEGED_SESSION_MAX_AGE:-5m}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       LOG_LEVEL: debug
       LOG_FORMAT: text

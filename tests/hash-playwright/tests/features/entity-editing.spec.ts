@@ -1,10 +1,8 @@
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import type { Locator, Page } from "./shared/runtime";
-import { expect, test } from "./shared/runtime";
+import type { Locator, Page } from "../shared/runtime";
+import { expect, test } from "../shared/runtime";
 
 /**
  * This gets the text for the requested cell in the hidden html table,
@@ -104,18 +102,9 @@ const clickOnValueCell = async (
   await page.mouse.click(cellX, cellY);
 };
 
-test.beforeEach(async () => {
-  await resetDb();
-});
-
 /** This is a temporary test to commit the progress made on testing `Grid` component. */
 test("user can update values on property table", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
+  await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto(`/new/entity`);
@@ -156,12 +145,7 @@ test("user can update values on property table", async ({ page }) => {
 test("both the link and properties tables renders some content", async ({
   page,
 }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
+  await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto(`/new/entity`);
