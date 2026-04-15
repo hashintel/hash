@@ -425,6 +425,41 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(false);
     });
 
+    it("blocks literal .constructor.constructor escape", () => {
+      // ({}).constructor is Object, Object.constructor is Function (real).
+      // Invoking it with a body would escape to globalThis. runSandboxed
+      // temporarily blocks `.constructor` on built-in prototypes so even this
+      // literal-based walk fails.
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "({}).constructor.constructor('return 1')()",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors.some((e) => /constructor/i.test(e.message))).toBe(
+          true,
+        );
+      }
+    });
+
+    it("restores .constructor after evaluation", () => {
+      // Sanity: the sandbox must revert its prototype patches even when the
+      // evaluation throws, so surrounding code keeps working.
+      compileScenario(
+        scenario({
+          parameterOverrides: { p1: "({}).constructor.constructor" },
+        }),
+        [param("p1", "x", "0")],
+      );
+      expect({}.constructor).toBe(Object);
+      expect(Object.constructor).toBe(Function);
+    });
+
     it("allows Math (safe global)", () => {
       const result = compileScenario(
         scenario({ parameterOverrides: { p1: "Math.PI" } }),

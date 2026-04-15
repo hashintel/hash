@@ -73,13 +73,66 @@ const SHADOWED_GLOBALS = [
 ].join(",");
 
 /**
+ * Run a synchronous action with the constructor-chain escape route blocked.
+ *
+ * User expressions run inside `new Function()` and therefore share the host
+ * realm. Shadowing `Function` as a local `var` only prevents identifier lookup;
+ * an attacker can still walk to the real `Function` via any literal's
+ * `.constructor.constructor` chain (e.g. `({}).constructor.constructor`), and
+ * `createSafeObject` only protects the `parameters`/`scenario` arguments, not
+ * freshly-created literals inside the expression body.
+ *
+ * To close that gap we temporarily replace the `.constructor` getter on every
+ * built-in prototype a literal could reach. JS is single-threaded so this is
+ * safe within a synchronous call: the descriptors are restored in `finally`
+ * before any queued microtasks or other code runs. The rightful fix is a
+ * Worker/iframe realm — this is defense-in-depth for the same-realm case.
+ */
+function runSandboxed<T>(action: () => T): T {
+  const prototypes: object[] = [
+    Object.prototype,
+    Array.prototype,
+    Function.prototype,
+    String.prototype,
+    Number.prototype,
+    Boolean.prototype,
+  ];
+  const saved = prototypes.map((p) =>
+    Object.getOwnPropertyDescriptor(p, "constructor"),
+  );
+  const blocked = () => {
+    throw new Error("Access to .constructor is blocked inside scenario code.");
+  };
+
+  for (const p of prototypes) {
+    Object.defineProperty(p, "constructor", {
+      get: blocked,
+      configurable: true,
+    });
+  }
+
+  try {
+    return action();
+  } finally {
+    for (const [i, p] of prototypes.entries()) {
+      const original = saved[i];
+      if (original) {
+        Object.defineProperty(p, "constructor", original);
+      }
+    }
+  }
+}
+
+/**
  * Evaluate a single JavaScript expression with `parameters` and `scenario`
  * in scope. Returns the result or throws with a descriptive message.
  *
  * Hardening:
  * - Strict mode (`this === undefined`)
- * - Prototype-less frozen objects (blocks `.constructor` chain walk)
+ * - Prototype-less frozen objects (blocks `.constructor` chain walk on args)
  * - Dangerous globals shadowed with `var` declarations
+ * - `.constructor` temporarily blocked on built-in prototypes (see
+ *   `runSandboxed`) so literal-based constructor walks also fail.
  */
 function evaluateExpression(
   expression: string,
@@ -92,7 +145,9 @@ function evaluateExpression(
     "scenario",
     `"use strict"; var ${SHADOWED_GLOBALS}; return (${expression});`,
   ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
-  return fn(createSafeObject(parameters), createSafeObject(scenario));
+  return runSandboxed(() =>
+    fn(createSafeObject(parameters), createSafeObject(scenario)),
+  );
 }
 
 // -- Compiler -----------------------------------------------------------------
@@ -191,9 +246,8 @@ export function compileScenario(
           "scenario",
           `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
         ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
-        const result = fn(
-          createSafeObject(parametersObj),
-          createSafeObject(scenarioObj),
+        const result = runSandboxed(() =>
+          fn(createSafeObject(parametersObj), createSafeObject(scenarioObj)),
         );
 
         if (typeof result !== "object" || result === null) {
