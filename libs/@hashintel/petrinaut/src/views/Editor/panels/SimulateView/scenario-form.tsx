@@ -319,6 +319,23 @@ export interface ScenarioFormCallbacks {
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
 
 /**
+ * Best-effort conversion to snake_case: split camelCase/PascalCase boundaries,
+ * lowercase, replace runs of non-alphanumerics with a single underscore, and
+ * trim leading/trailing underscores. Returns `""` for empty/invalid input —
+ * the caller should leave the field empty in that case so the existing
+ * validation surfaces the error.
+ */
+function snakify(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/**
  * Validate scenario parameters: identifiers must be snake_case and unique.
  * Returns a human-readable error string or `undefined` when all valid.
  */
@@ -634,6 +651,14 @@ export const ScenarioFormSections = ({
                       identifier: e.target.value,
                     })
                   }
+                  onBlur={(e) => {
+                    const snakified = snakify(e.target.value);
+                    if (snakified !== e.target.value) {
+                      updateScenarioParam(param._key, {
+                        identifier: snakified,
+                      });
+                    }
+                  }}
                   placeholder="name"
                   hasError={identifierHasError(param.identifier)}
                 />
