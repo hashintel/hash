@@ -330,8 +330,8 @@ const PlaceMainContent: React.FC = () => {
         >
           <div className={hintTextStyle}>
             {place.showAsInitialState
-              ? "This place will be pre-selected when setting up new scenarios."
-              : "Enable to pre-select this place when setting up new scenarios."}
+              ? "This place should have an initial marking defined to run the net, and will be pre-selected in new scenarios."
+              : "Enable if this place should have an initial marking defined to run the net. It will be pre-selected in new scenarios."}
           </div>
         </Section>
       </SectionList>
