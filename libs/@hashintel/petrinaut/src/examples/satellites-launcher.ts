@@ -225,12 +225,13 @@ export default TransitionKernel((tokens) => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `export default Lambda((tokensByPlace, parameters) => {
-  return 1;
+  return parameters.launch_rate;
 });`,
         transitionKernelCode: `export default TransitionKernel((tokensByPlace, parameters) => {
-  const distance = 80;
+  const { planet_radius, altitude, initial_velocity } = parameters;
+
+  const distance = planet_radius + altitude;
   const angle = Distribution.Uniform(0, Math.PI * 2);
-  const velocity = Math.sqrt(parameters.gravitational_constant / distance);
 
   return {
     Space: [
@@ -238,7 +239,7 @@ export default TransitionKernel((tokens) => {
         x: angle.map(a => Math.cos(a) * distance),
         y: angle.map(a => Math.sin(a) * distance),
         direction: Distribution.Uniform(0, Math.PI * 2),
-        velocity: Distribution.Gaussian(velocity, 20)
+        velocity: Distribution.Gaussian(initial_velocity, initial_velocity * 0.1)
       }
     ],
   };
@@ -343,6 +344,27 @@ export default Dynamics((tokens, parameters) => {
         type: "real",
         defaultValue: "400000.0",
       },
+      {
+        id: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+        name: "Altitude",
+        variableName: "altitude",
+        type: "real",
+        defaultValue: "40.0",
+      },
+      {
+        id: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+        name: "Launch Rate",
+        variableName: "launch_rate",
+        type: "real",
+        defaultValue: "0.5",
+      },
+      {
+        id: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+        name: "Initial Velocity",
+        variableName: "initial_velocity",
+        type: "real",
+        defaultValue: "67.0",
+      },
     ],
     scenarios: [
       {
@@ -351,12 +373,18 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Low gravity, small body. Satellites drift in gentle arcs around a lunar-mass body.",
         scenarioParameters: [
-          { type: "real", identifier: "gravity_force", default: 5000 },
-          { type: "real", identifier: "planet_radius", default: 14 },
+          { type: "real", identifier: "altitude", default: 20 },
+          { type: "real", identifier: "rate", default: 0.3 },
+          { type: "real", identifier: "velocity", default: 11 },
         ],
         parameterOverrides: {
-          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "scenario.gravity_force",
-          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "scenario.planet_radius",
+          // Planet-specific (hardcoded): gravitational_constant, planet_radius
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "14",
+          // Forwarded from scenario parameters
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.altitude",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.rate",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -366,12 +394,16 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Standard Earth gravity. High orbital velocities with frequent launches into low orbit.",
         scenarioParameters: [
-          { type: "real", identifier: "gravity_force", default: 400000 },
-          { type: "real", identifier: "planet_radius", default: 50 },
+          { type: "real", identifier: "altitude", default: 40 },
+          { type: "real", identifier: "rate", default: 0.5 },
+          { type: "real", identifier: "velocity", default: 67 },
         ],
         parameterOverrides: {
-          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "scenario.gravity_force",
-          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "scenario.planet_radius",
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "400000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "50",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.altitude",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.rate",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -381,12 +413,16 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Intermediate gravity between Moon and Earth. Moderate orbital speeds with a thin atmosphere margin.",
         scenarioParameters: [
-          { type: "real", identifier: "gravity_force", default: 43000 },
-          { type: "real", identifier: "planet_radius", default: 27 },
+          { type: "real", identifier: "altitude", default: 25 },
+          { type: "real", identifier: "rate", default: 0.4 },
+          { type: "real", identifier: "velocity", default: 29 },
         ],
         parameterOverrides: {
-          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "scenario.gravity_force",
-          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "scenario.planet_radius",
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "43000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "27",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.altitude",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.rate",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -396,12 +432,16 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Massive central body with extreme gravity. Satellites need very high velocities to maintain distant orbits.",
         scenarioParameters: [
-          { type: "real", identifier: "gravity_force", default: 5000000 },
-          { type: "real", identifier: "planet_radius", default: 80 },
+          { type: "real", identifier: "altitude", default: 50 },
+          { type: "real", identifier: "rate", default: 0.6 },
+          { type: "real", identifier: "velocity", default: 196 },
         ],
         parameterOverrides: {
-          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "scenario.gravity_force",
-          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "scenario.planet_radius",
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "80",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.altitude",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.rate",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
