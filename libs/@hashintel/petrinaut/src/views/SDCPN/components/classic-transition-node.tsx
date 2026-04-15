@@ -50,6 +50,16 @@ const transitionBoxStyle = cva({
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
+      notSelectedConnection: {
+        _after: {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          pointerEvents: "none",
+          borderRadius: "[inherit]",
+          background: "[rgba(255, 255, 255, 0.7)]",
+        },
+      },
       none: {},
     },
   },
@@ -157,7 +167,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected } = use(EditorContext);
+  const { isSelected, isNotSelectedConnection } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -175,7 +185,9 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : "none";
+      : isNotSelectedConnection(id)
+        ? "notSelectedConnection"
+        : "none";
 
   return (
     <div className={containerStyle}>

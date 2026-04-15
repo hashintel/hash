@@ -52,6 +52,16 @@ const placeCircleStyle = cva({
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
+      notSelectedConnection: {
+        _after: {
+          content: '""',
+          position: "absolute",
+          pointerEvents: "none",
+          borderRadius: "[inherit]",
+          background: "[rgba(255, 255, 255, 0.7)]",
+          inset: "[-2px]", // override to cover border, since parent uses box-sizing border-box
+        },
+      },
       none: {},
     },
   },
@@ -105,7 +115,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const { globalMode, isSelected } = use(EditorContext);
+  const { globalMode, isSelected, isNotSelectedConnection } =
+    use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -129,7 +140,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : "none";
+      : isNotSelectedConnection(id)
+        ? "notSelectedConnection"
+        : "none";
 
   return (
     <div className={containerStyle}>

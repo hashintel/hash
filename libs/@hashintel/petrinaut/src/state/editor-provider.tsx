@@ -236,7 +236,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
   const isNotSelectedConnection = (id: string) =>
-    !isSelected(id) && !selectedConnections.has(id);
+    selection.size > 0 && !isSelected(id) && !selectedConnections.has(id);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 

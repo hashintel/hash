@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 
 import { handleStyling } from "../styles/styling";
 
-export type SelectionVariant = "resource" | "reactflow" | "none";
+export type SelectionVariant =
+  | "resource"
+  | "reactflow"
+  | "notSelectedConnection"
+  | "none";
 
 const containerStyle = css({
   position: "relative",
@@ -43,6 +47,16 @@ export const nodeCardStyle = cva({
       },
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
+      },
+      notSelectedConnection: {
+        _after: {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          pointerEvents: "none",
+          borderRadius: "[inherit]",
+          background: "[rgba(255, 255, 255, 0.7)]",
+        },
       },
       none: {},
     },

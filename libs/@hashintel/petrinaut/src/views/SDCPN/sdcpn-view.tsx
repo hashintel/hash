@@ -57,6 +57,13 @@ const canvasContainerStyle = css({
   },
 });
 
+const fadeBgStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  background: "[rgba(255, 255, 255, 0.3)]",
+  pointerEvents: "none",
+});
+
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from SDCPNContext and EditorContext, and handles all ReactFlow interactions.
@@ -88,6 +95,7 @@ export const SDCPNView: React.FC<{
     cursorMode,
     selectItem,
     clearSelection,
+    hasSelection,
   } = use(EditorContext);
 
   // Hook for applying node changes
@@ -394,6 +402,7 @@ export const SDCPNView: React.FC<{
         minZoom={minZoom}
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
+        {hasSelection && <div className={fadeBgStyle} />}
         {showMinimap && <MiniMap pannable zoomable />}
         <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>
