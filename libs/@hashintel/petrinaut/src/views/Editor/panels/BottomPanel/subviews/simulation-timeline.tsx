@@ -806,7 +806,6 @@ const UPlotChart: React.FC<{
   // frames) per call. Without memoization it would recompute on every render
   // (e.g. every playback frame), and the result would be silently discarded
   // since Effect 3 only consumes it when `revision` changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- revision encodes store changes
   const data = useMemo(
     () =>
       chartType === "stacked"
