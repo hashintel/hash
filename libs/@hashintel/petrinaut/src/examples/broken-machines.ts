@@ -370,5 +370,31 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           defaultValue: "0.333",
         },
       ],
+      scenarios: [
+        {
+          id: "scenario__default_production",
+          name: "Default Production",
+          description:
+            "Configurable raw material, machine count, and initial machine damage.",
+          scenarioParameters: [
+            { type: "integer", identifier: "raw_material", default: 10 },
+            { type: "integer", identifier: "machines_count", default: 3 },
+            { type: "ratio", identifier: "initial_machine_damage", default: 0 },
+          ],
+          parameterOverrides: {},
+          initialState: {
+            type: "code",
+            content: [
+              "return {",
+              "  RawMaterial: scenario.raw_material,",
+              "  AvailableMachines: Array.from(",
+              "    { length: scenario.machines_count },",
+              "    () => ({ machine_damage_ratio: scenario.initial_machine_damage }),",
+              "  ),",
+              "};",
+            ].join("\n"),
+          },
+        },
+      ],
     },
   };
