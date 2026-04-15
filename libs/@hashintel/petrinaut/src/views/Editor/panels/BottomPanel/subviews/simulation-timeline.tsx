@@ -222,6 +222,7 @@ function useStreamingData(): {
       if (totalFrames < processedRef.current) {
         storeRef.current = createEmptyStore(store.places);
         processedRef.current = 0;
+        setRevision((r) => r + 1);
       }
 
       const startIndex = processedRef.current;
@@ -680,12 +681,13 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
         (u) => {
           const { ctx } = u;
           const { left: bx, width: bw, top: by } = u.bbox;
+          const dpr = devicePixelRatio;
           ctx.save();
           ctx.strokeStyle = "#cbd5e1";
-          ctx.lineWidth = 1;
+          ctx.lineWidth = dpr;
           ctx.beginPath();
-          ctx.moveTo(bx, by - 0.5);
-          ctx.lineTo(bx + bw, by - 0.5);
+          ctx.moveTo(bx, by - 0.5 * dpr);
+          ctx.lineTo(bx + bw, by - 0.5 * dpr);
           ctx.stroke();
           ctx.restore();
         },
