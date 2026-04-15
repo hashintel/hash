@@ -200,7 +200,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // instead of raw stateValues which don't include the compiled output.
     return workerActions.initialize({
       sdcpn,
+      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
       initialMarking: effectiveInitialMarkingRef.current,
+      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
       parameterValues: effectiveParameterValuesRef.current,
       seed,
       dt,

@@ -58,8 +58,8 @@ const LAMBDA_SDCPN: SDCPN = {
       id: "transition-1",
       name: "Infection",
       inputArcs: [
-        { placeId: "place-1", weight: 1 },
-        { placeId: "place-2", weight: 1 },
+        { placeId: "place-1", weight: 1, type: "standard" },
+        { placeId: "place-2", weight: 1, type: "standard" },
       ],
       outputArcs: [{ placeId: "place-2", weight: 2 }],
       lambdaType: "stochastic",

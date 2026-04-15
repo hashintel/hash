@@ -37,6 +37,7 @@ describe("compileScenario", () => {
         ok: true,
         result: {
           parameterValues: { x: "10" },
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any is typed as any
           initialState: expect.any(Object),
         },
       });

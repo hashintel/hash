@@ -190,10 +190,7 @@ export function compileScenario(
           "parameters",
           "scenario",
           `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
-        ) as (
-          p: Record<string, number>,
-          s: Record<string, number>,
-        ) => Record<string, unknown>;
+        ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
         const result = fn(
           createSafeObject(parametersObj),
           createSafeObject(scenarioObj),
