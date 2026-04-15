@@ -31,10 +31,10 @@ const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
 );
 
-const getCookieString = async () => {
+const getSessionCookies = async () => {
   const apiOrigin = await getFromLocalStorage("apiOrigin");
 
-  const cookies = await browser.cookies
+  return browser.cookies
     .getAll({
       url: apiOrigin ?? API_ORIGIN,
     })
@@ -45,6 +45,15 @@ const getCookieString = async () => {
           option.name === "ory_kratos_session",
       ),
     );
+};
+
+const hasSessionCookies = async (): Promise<boolean> => {
+  const cookies = await getSessionCookies();
+  return cookies.length >= 2;
+};
+
+const getCookieString = async () => {
+  const cookies = await getSessionCookies();
 
   if (cookies.length < 2) {
     throw new Error("No session cookies available to use in websocket request");
@@ -209,6 +218,13 @@ const reconnectWebSocket = async () => {
   reconnecting = true;
 
   try {
+    if (!(await hasSessionCookies())) {
+      // User isn't logged in — don't open a doomed connection that the
+      // server will kill after 5 s. Retry later; a user action like
+      // opening the popup will trigger getWebSocket() once cookies exist.
+      return;
+    }
+
     console.log("Reconnecting WebSocket...");
     ws = await createWebSocket({ onClose: reconnectWebSocket });
     console.log("WebSocket reconnected successfully.");
@@ -218,9 +234,7 @@ const reconnectWebSocket = async () => {
       void reconnectWebSocket();
     }, 3_000);
   } finally {
-    if (ws) {
-      reconnecting = false;
-    }
+    reconnecting = false;
   }
 };
 
@@ -383,10 +397,17 @@ export const inferEntities = async (
 };
 
 /**
- * Keep a persist websocket connection because we use it to get sent input requests from the API
+ * Keep a persistent websocket connection because we use it to get sent
+ * input requests from the API. If no session cookies are available yet
+ * (user not logged in), defer until they appear so we don't open
+ * connections that the server will immediately kill.
  */
-const init = () => {
-  void getWebSocket();
+const init = async () => {
+  if (await hasSessionCookies()) {
+    void getWebSocket();
+  }
+  // If no cookies, the WebSocket will be created on demand when
+  // getWebSocket() is called by a user action (e.g. inferEntities).
 };
 
-init();
+void init();
