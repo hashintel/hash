@@ -1,3 +1,4 @@
+import { Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import { TbArrowRight, TbTrash } from "react-icons/tb";
@@ -27,9 +28,8 @@ const jumpButtonContainerStyle = css({
 });
 
 const hintTextStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[12px]",
   color: "neutral.s95",
-  fontStyle: "italic",
 });
 
 const typeColorDotStyle = css({
@@ -314,16 +314,15 @@ const PlaceMainContent: React.FC = () => {
           )}
         </Section>
         <Section
-          title="Initial state"
-          tooltip="When enabled, this place will appear by default in the Initial State section when creating a new scenario."
-          renderHeaderAction={() => (
-            <Switch
+          title="Default starting place"
+          tooltip="Pre-selects this place when creating a new scenario."
+          renderHeaderLeading={() => (
+            <Checkbox
               checked={!!place.showAsInitialState}
               disabled={isReadOnly}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
               onCheckedChange={(checked) => {
                 updatePlace(place.id, (existingPlace) => {
-                  existingPlace.showAsInitialState = checked;
+                  existingPlace.showAsInitialState = checked === true;
                 });
               }}
             />
@@ -331,8 +330,8 @@ const PlaceMainContent: React.FC = () => {
         >
           <div className={hintTextStyle}>
             {place.showAsInitialState
-              ? "This place will be listed by default when creating scenarios."
-              : "Enable to show this place in the scenario initial state by default."}
+              ? "This place will be pre-selected when setting up new scenarios."
+              : "Enable to pre-select this place when setting up new scenarios."}
           </div>
         </Section>
       </SectionList>

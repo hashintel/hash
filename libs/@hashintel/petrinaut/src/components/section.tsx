@@ -151,6 +151,7 @@ interface SectionProps {
   collapsible?: boolean;
   defaultOpen?: boolean;
   fillHeight?: boolean;
+  renderHeaderLeading?: () => ReactNode;
   renderHeaderAction?: () => ReactNode;
   children: ReactNode;
   className?: string;
@@ -162,12 +163,14 @@ export const Section = ({
   collapsible = false,
   defaultOpen = true,
   fillHeight = false,
+  renderHeaderLeading,
   renderHeaderAction,
   children,
   className,
 }: SectionProps) => {
   const headerLeft = (
     <div className={headerLeftStyle}>
+      {renderHeaderLeading?.()}
       <span className={titleStyle}>{title}</span>
       {tooltip && <InfoIconTooltip tooltip={tooltip} />}
     </div>
