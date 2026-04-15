@@ -1,9 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { scaleLinear } from "d3-scale";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
+import uPlot from "uplot";
+import "uplot/dist/uPlot.min.css";
 
 import { SegmentGroup } from "../../../../../components/segment-group";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { useElementSize } from "../../../../../hooks/use-element-size";
+import { useLatest } from "../../../../../hooks/use-latest";
+import { useStableCallback } from "../../../../../hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../playback/context";
 import { SimulationContext } from "../../../../../simulation/context";
 import {
@@ -12,188 +16,19 @@ import {
 } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 
-/**
- * Computes the maximum value from an array using a selector function.
- * Performs a single pass over the array without creating intermediate copies.
- *
- * @param array - The array to iterate over
- * @param selector - A function that extracts values to compare from each element.
- *                   Can return a single number or an array of numbers.
- * @param initialValue - The initial maximum value (defaults to -Infinity)
- * @returns The maximum value found, or initialValue if array is empty
- */
-const max = <T,>(
-  array: readonly T[],
-  selector: (item: T) => number | readonly number[],
-  initialValue = Number.NEGATIVE_INFINITY,
-): number => {
-  let result = initialValue;
-
-  for (const item of array) {
-    const value = selector(item);
-
-    if (typeof value === "number") {
-      if (value > result) {
-        result = value;
-      }
-    } else {
-      for (const val of value) {
-        if (val > result) {
-          result = val;
-        }
-      }
-    }
-  }
-
-  return result;
-};
+// -- Styles -------------------------------------------------------------------
 
 const containerStyle = css({
   display: "flex",
   flexDirection: "column",
   height: "[100%]",
-  gap: "[8px]",
+  paddingTop: "[4px]",
 });
 
-const chartRowStyle = css({
-  display: "flex",
-  flex: "[1]",
-  minHeight: "[60px]",
-  gap: "[4px]",
-});
-
-const yAxisStyle = css({
+const chartAreaStyle = css({
   position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  fontSize: "[10px]",
-  color: "[#666]",
-  paddingRight: "[4px]",
-  minWidth: "[32px]",
-  userSelect: "none",
-});
-
-const yAxisTickStyle = css({
-  position: "absolute",
-  right: "[4px]",
-  lineHeight: "[1]",
-  transform: "translateY(-50%)",
-});
-
-const chartContainerStyle = css({
   flex: "[1]",
-  position: "relative",
-  cursor: "pointer",
-});
-
-const playheadStyle = css({
-  position: "absolute",
-  top: "[0]",
-  bottom: "[0]",
-  width: "[1px]",
-  pointerEvents: "none",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-});
-
-const playheadLineStyle = css({
-  flex: "[1]",
-  width: "[1.5px]",
-  background: "[#333]",
-});
-
-const playheadArrowStyle = css({
-  width: "[0]",
-  height: "[0]",
-  borderLeft: "[5px solid transparent]",
-  borderRight: "[5px solid transparent]",
-  borderTop: "[7px solid #333]",
-  marginBottom: "[-1px]",
-});
-
-const svgStyle = css({
-  width: "[100%]",
-  height: "[100%]",
-  display: "block",
-});
-
-/**
- * CSS-based hover dimming for run chart lines.
- * When hovering over any line, all other lines dim.
- * This is much faster than React re-renders because:
- * 1. Only CSS changes, no React reconciliation
- * 2. Browser optimizes opacity transitions natively
- * 3. PlaceLine components don't re-render on hover
- */
-const runChartHoveringStyle = css({
-  // When the chart has a hovered element, dim all place groups
-  '&[data-has-hover="true"] g[data-place-id]': {
-    opacity: "[0.2]",
-  },
-  // The hovered element stays fully visible
-  '&[data-has-hover="true"] g[data-place-id][data-hovered="true"]': {
-    opacity: "[1]",
-  },
-  // Transition for smooth dimming
-  "& g[data-place-id]": {
-    transition: "[opacity 0.15s ease]",
-  },
-});
-
-/**
- * CSS-based hover dimming for stacked area chart.
- * Similar to run chart but with different base opacities.
- */
-const stackedChartHoveringStyle = css({
-  // When hovering, dim all areas
-  '&[data-has-hover="true"] path[data-place-id]': {
-    opacity: "[0.3]",
-  },
-  // The hovered element gets full opacity
-  '&[data-has-hover="true"] path[data-place-id][data-hovered="true"]': {
-    opacity: "[1]",
-  },
-  // Base opacity for non-hover state
-  "& path[data-place-id]": {
-    opacity: "[0.7]",
-    transition: "[opacity 0.15s ease]",
-  },
-});
-
-const tooltipStyle = css({
-  position: "fixed",
-  pointerEvents: "none",
-  backgroundColor: "[rgba(0, 0, 0, 0.85)]",
-  color: "neutral.s00",
-  padding: "[6px 10px]",
-  borderRadius: "md",
-  fontSize: "[11px]",
-  lineHeight: "[1.4]",
-  zIndex: "[1000]",
-  whiteSpace: "nowrap",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.25)]",
-  transform: "translate(-50%, -100%)",
-  marginTop: "[-8px]",
-});
-
-const tooltipLabelStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
-const tooltipColorDotStyle = css({
-  width: "[8px]",
-  height: "[8px]",
-  borderRadius: "[50%]",
-  flexShrink: "[0]",
-});
-
-const tooltipValueStyle = css({
-  fontWeight: "semibold",
-  marginLeft: "[4px]",
+  minHeight: "[0]",
 });
 
 const legendContainerStyle = css({
@@ -202,7 +37,8 @@ const legendContainerStyle = css({
   gap: "[12px]",
   fontSize: "[11px]",
   color: "[#666]",
-  paddingTop: "[4px]",
+  paddingY: "3",
+  paddingX: "3",
 });
 
 const legendItemStyle = css({
@@ -223,7 +59,41 @@ const legendColorStyle = css({
   borderRadius: "[2px]",
 });
 
-// Default color palette for places without a specific color
+const tooltipStyle = css({
+  position: "absolute",
+  pointerEvents: "none",
+  backgroundColor: "[rgba(0, 0, 0, 0.85)]",
+  color: "neutral.s00",
+  padding: "[6px 10px]",
+  borderRadius: "md",
+  fontSize: "[11px]",
+  lineHeight: "[1.4]",
+  zIndex: "[1000]",
+  whiteSpace: "nowrap",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.25)]",
+  display: "none",
+});
+
+const tooltipLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const tooltipDotStyle = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "[50%]",
+  flexShrink: "[0]",
+});
+
+const tooltipValueStyle = css({
+  fontWeight: "semibold",
+  marginLeft: "[4px]",
+});
+
+// -- Constants ----------------------------------------------------------------
+
 const DEFAULT_COLORS = [
   "#3b82f6", // blue
   "#ef4444", // red
@@ -240,9 +110,17 @@ const CHART_TYPE_OPTIONS = [
   { value: "stacked", label: "Stacked" },
 ];
 
-/**
- * Header action component that renders a chart type selector.
- */
+// -- Types --------------------------------------------------------------------
+
+/** Metadata for each place (stable across streaming updates). */
+interface PlaceMeta {
+  placeId: string;
+  placeName: string;
+  color: string;
+}
+
+// -- Header action ------------------------------------------------------------
+
 const TimelineChartTypeSelector: React.FC = () => {
   const { timelineChartType: chartType, setTimelineChartType: setChartType } =
     use(EditorContext);
@@ -257,1051 +135,809 @@ const TimelineChartTypeSelector: React.FC = () => {
   );
 };
 
-interface CompartmentData {
-  placeId: string;
-  placeName: string;
-  color: string;
-  values: number[]; // token count at each frame
+// -- Streaming data hook (uPlot-native columnar format) -----------------------
+
+/**
+ * Streaming data store that builds uPlot columnar arrays directly.
+ * New frames are pushed in O(k) where k = new frames, no full-array copies.
+ */
+interface StreamingStore {
+  /** Place metadata (stable) */
+  places: PlaceMeta[];
+  /** Columnar arrays: [times, ...placeValues] — mutated in place */
+  columns: number[][];
+  /** Current frame count in the columns */
+  length: number;
+  /** Revision counter — incremented on every append to trigger React updates */
+  revision: number;
+}
+
+function createEmptyStore(places: PlaceMeta[]): StreamingStore {
+  return {
+    places,
+    columns: [[], ...places.map(() => [])],
+    length: 0,
+    revision: 0,
+  };
 }
 
 /**
- * Return type for useCompartmentData hook.
- * Includes both compartment data and frame times for tooltip display.
+ * Hook that streams simulation frames directly into uPlot columnar arrays.
+ * Returns a store ref (mutated in place) and a revision counter for React.
  */
-interface CompartmentDataResult {
-  compartmentData: CompartmentData[];
-  frameTimes: number[];
-}
+function useStreamingData(): {
+  store: StreamingStore;
+  revision: number;
+} {
+  "use no memo"; // imperative streaming with refs
 
-/**
- * Shared legend state interface for chart components.
- */
-interface LegendState {
-  hiddenPlaces: Set<string>;
-  hoveredPlaceId: string | null;
-}
-
-/**
- * Tooltip state for displaying token counts on hover.
- */
-interface TooltipState {
-  visible: boolean;
-  x: number;
-  y: number;
-  placeName: string;
-  color: string;
-  value: number;
-  frameIndex: number;
-  time: number;
-}
-
-/**
- * Hook to extract compartment data from simulation frames.
- * Uses incremental fetching via getFramesInRange() to only process new frames.
- */
-const useCompartmentData = (): CompartmentDataResult => {
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
   } = use(SDCPNContext);
 
-  const [result, setResult] = useState<CompartmentDataResult>({
-    compartmentData: [],
-    frameTimes: [],
-  });
+  const placeMeta: PlaceMeta[] = useMemo(
+    () =>
+      places.map((place, index) => {
+        const tokenType = types.find((type) => type.id === place.colorId);
+        return {
+          placeId: place.id,
+          placeName: place.name,
+          color:
+            tokenType?.displayColor ??
+            DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+        };
+      }),
+    [places, types],
+  );
 
-  // Track the number of frames we've already processed
-  const processedFrameCountRef = useRef(0);
+  const storeRef = useRef<StreamingStore>(createEmptyStore(placeMeta));
+  const processedRef = useRef(0);
+  const [revision, setRevision] = useState(0);
 
-  // Compute place colors once (memoized)
-  const placeColors = useMemo(() => {
-    const colors = new Map<string, string>();
-    for (const [index, place] of places.entries()) {
-      const tokenType = types.find((type) => type.id === place.colorId);
-      const color =
-        tokenType?.displayColor ??
-        DEFAULT_COLORS[index % DEFAULT_COLORS.length]!;
-      colors.set(place.id, color);
-    }
-    return colors;
-  }, [places, types]);
+  // Reset store if place structure changes
+  useEffect(() => {
+    storeRef.current = createEmptyStore(placeMeta);
+    processedRef.current = 0;
+    setRevision((r) => r + 1);
+  }, [placeMeta]);
 
+  // Stream new frames into the store
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
-      // Reset if simulation was reset (totalFrames dropped)
+      const store = storeRef.current;
+
       if (totalFrames === 0) {
-        processedFrameCountRef.current = 0;
-        setResult({ compartmentData: [], frameTimes: [] });
+        if (store.length > 0) {
+          storeRef.current = createEmptyStore(store.places);
+          processedRef.current = 0;
+          setRevision((r) => r + 1);
+        }
         return;
       }
 
-      // Check if we need to reset (e.g., simulation was restarted)
-      if (totalFrames < processedFrameCountRef.current) {
-        processedFrameCountRef.current = 0;
+      // Handle simulation restart
+      if (totalFrames < processedRef.current) {
+        storeRef.current = createEmptyStore(store.places);
+        processedRef.current = 0;
+        setRevision((r) => r + 1);
       }
 
-      const startIndex = processedFrameCountRef.current;
-
-      // Nothing new to process
+      const startIndex = processedRef.current;
       if (startIndex >= totalFrames) {
         return;
       }
 
-      // Fetch only new frames
       const newFrames = await getFramesInRange(startIndex);
       if (cancelled || newFrames.length === 0) {
         return;
       }
 
-      setResult((prev) => {
-        // Performance optimization: O(p + f) instead of O(p * f)
-        // First: set up place structure (iterate places once)
-        const placeStructure = places.map((place, placeIndex) => ({
-          placeId: place.id,
-          placeName: place.name,
-          color:
-            placeColors.get(place.id) ??
-            DEFAULT_COLORS[placeIndex % DEFAULT_COLORS.length]!,
-          existingValues: prev.compartmentData[placeIndex]?.values ?? [],
-          newValues: [] as number[],
-        }));
+      // Push new data directly into existing arrays — O(k) where k = new frames
+      const cols = storeRef.current.columns;
+      const timeCol = cols[0]!;
+      const placeList = storeRef.current.places;
 
-        // Second: iterate frames once, extracting token counts for all places per frame
-        const newFrameTimes: number[] = [];
-        for (const frame of newFrames) {
-          newFrameTimes.push(frame.time);
-          for (const placeData of placeStructure) {
-            const tokenCount = frame.places[placeData.placeId]?.count ?? 0;
-            placeData.newValues.push(tokenCount);
-          }
+      for (const frame of newFrames) {
+        timeCol.push(frame.time);
+        for (let p = 0; p < placeList.length; p++) {
+          const count = frame.places[placeList[p]!.placeId]?.count ?? 0;
+          cols[p + 1]!.push(count);
         }
+      }
 
-        // Third: build final compartmentData from accumulated values
-        const newCompartmentData = placeStructure.map((placeData) => ({
-          placeId: placeData.placeId,
-          placeName: placeData.placeName,
-          color: placeData.color,
-          values: [...placeData.existingValues, ...placeData.newValues],
-        }));
+      storeRef.current.length = timeCol.length;
+      storeRef.current.revision++;
+      processedRef.current = totalFrames;
 
-        return {
-          compartmentData: newCompartmentData,
-          frameTimes: [...prev.frameTimes, ...newFrameTimes],
-        };
-      });
-
-      processedFrameCountRef.current = totalFrames;
+      // Single state update to trigger React re-render
+      setRevision((r) => r + 1);
     };
 
     void fetchData();
-
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, places, placeColors]);
+  }, [getFramesInRange, totalFrames, placeMeta]);
 
-  return result;
-};
+  return { store: storeRef.current, revision };
+}
 
-/**
- * Represents the Y-axis scale configuration.
- */
-interface YAxisScale {
-  /** The maximum value for the Y-axis (after applying .nice()) */
-  yMax: number;
-  /** Tick values to display on the Y-axis */
-  ticks: number[];
-  /** Convert a data value to a percentage (0-100) for SVG positioning */
-  toPercent: (value: number) => number;
+// -- uPlot data builders (from store, no copies for run chart) ----------------
+
+function buildRunData(
+  store: StreamingStore,
+  hiddenPlaces: Set<string>,
+): uPlot.AlignedData {
+  const result: (number | null | undefined)[][] = [store.columns[0]!];
+  for (let i = 0; i < store.places.length; i++) {
+    if (hiddenPlaces.has(store.places[i]!.placeId)) {
+      // Hidden series: array of nulls (uPlot skips nulls)
+      result.push(new Array(store.length).fill(null));
+    } else {
+      // Visible series: direct reference to the column array (no copy!)
+      result.push(store.columns[i + 1]!);
+    }
+  }
+  return result as uPlot.AlignedData;
+}
+
+function buildStackedData(
+  store: StreamingStore,
+  hiddenPlaces: Set<string>,
+): uPlot.AlignedData {
+  const visible = store.places
+    .map((p, i) => ({ ...p, colIdx: i + 1 }))
+    .filter((p) => !hiddenPlaces.has(p.placeId));
+
+  const cumulative = new Float64Array(store.length);
+  const series: number[][] = [];
+
+  for (const p of visible) {
+    const col = store.columns[p.colIdx]!;
+    const stacked = new Array<number>(store.length);
+    for (let i = 0; i < store.length; i++) {
+      cumulative[i]! += col[i] ?? 0;
+      stacked[i] = cumulative[i]!;
+    }
+    series.push(stacked);
+  }
+
+  // Reverse so top band is first
+  series.reverse();
+
+  return [store.columns[0]!, ...series] as uPlot.AlignedData;
+}
+
+// -- Tooltip DOM (mutated imperatively in cursor hook — no React renders) -----
+
+interface TooltipNodes {
+  root: HTMLDivElement;
+  dot: HTMLDivElement;
+  name: HTMLSpanElement;
+  value: HTMLSpanElement;
+  time: HTMLDivElement;
+  frame: HTMLDivElement;
+}
+
+function createTooltip(): TooltipNodes {
+  const root = document.createElement("div");
+  root.className = tooltipStyle;
+
+  const label = document.createElement("div");
+  label.className = tooltipLabelStyle;
+
+  const dot = document.createElement("div");
+  dot.className = tooltipDotStyle;
+
+  const name = document.createElement("span");
+
+  const value = document.createElement("span");
+  value.className = tooltipValueStyle;
+
+  label.append(dot, name, value);
+
+  const time = document.createElement("div");
+  time.style.cssText = "font-size:10px;opacity:0.8;margin-top:2px";
+
+  const frame = document.createElement("div");
+  frame.style.cssText = "font-size:9px;opacity:0.6;margin-top:2px";
+
+  root.append(label, time, frame);
+
+  return { root, dot, name, value, time, frame };
 }
 
 /**
- * Computes a nice Y-axis scale using D3's scale utilities.
- * Returns tick values that are round numbers appropriate for the data range.
+ * Find which stacked band (place) contains the given y value at frame `idx`.
+ * Walks visible places in stacking order, accumulating values until we exceed
+ * the cursor's y. O(visible places) per call — trivial cost.
  */
-const useYAxisScale = (
-  compartmentData: CompartmentData[],
+function hitTestStackedBand(
+  store: StreamingStore,
+  hiddenPlaces: Set<string>,
+  idx: number,
+  yVal: number,
+): { placeIdx: number; value: number } | null {
+  if (yVal < 0) {
+    return null;
+  }
+  let cumul = 0;
+  for (let i = 0; i < store.places.length; i++) {
+    if (hiddenPlaces.has(store.places[i]!.placeId)) {
+      continue;
+    }
+    const v = store.columns[i + 1]![idx] ?? 0;
+    cumul += v;
+    if (yVal <= cumul) {
+      return { placeIdx: i, value: v };
+    }
+  }
+  return null;
+}
+
+// -- Hover target resolution (shared by tooltip) -----------------------------
+
+interface HoverHit {
+  place: PlaceMeta;
+  value: number;
+  idx: number;
+  time: number;
+}
+
+/**
+ * Resolve the place + value under the cursor. Returns null when there's
+ * nothing to show (cursor outside data, no focused series, hidden place).
+ */
+function resolveHoverTarget(
+  u: uPlot,
+  store: StreamingStore,
   chartType: TimelineChartType,
   hiddenPlaces: Set<string>,
-): YAxisScale => {
-  return useMemo(() => {
-    if (compartmentData.length === 0) {
-      return {
-        yMax: 10,
-        ticks: [0, 5, 10],
-        toPercent: (value: number) => 100 - (value / 10) * 100,
-      };
-    }
-
-    // Filter to visible data
-    const visibleData = compartmentData.filter(
-      (item) => !hiddenPlaces.has(item.placeId),
-    );
-
-    let maxValue: number;
-
-    if (chartType === "stacked") {
-      // For stacked chart, calculate the maximum cumulative value
-      if (visibleData.length === 0) {
-        maxValue = 1;
-      } else {
-        const frameCount = visibleData[0]?.values.length ?? 0;
-        let maxCumulative = 0;
-        for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
-          let cumulative = 0;
-          for (const data of visibleData) {
-            cumulative += data.values[frameIdx] ?? 0;
-          }
-          maxCumulative = Math.max(maxCumulative, cumulative);
-        }
-        maxValue = Math.max(1, maxCumulative);
-      }
-    } else {
-      // For run chart, find the maximum individual value
-      maxValue = max(visibleData, (item) => item.values, 1);
-    }
-
-    // Use D3 to create a nice scale
-    const scale = scaleLinear().domain([0, maxValue]).nice();
-    const niceDomain = scale.domain();
-    const yMax = niceDomain[1] ?? maxValue;
-
-    // Get tick values (aim for 3-5 ticks based on the range)
-    const ticks = scale.ticks(4);
-
-    return {
-      yMax,
-      ticks,
-      toPercent: (value: number) => 100 - (value / yMax) * 100,
-    };
-  }, [compartmentData, chartType, hiddenPlaces]);
-};
-
-/**
- * Y-axis component that displays tick labels.
- */
-const YAxis: React.FC<{ scale: YAxisScale }> = ({ scale }) => {
-  return (
-    <div className={yAxisStyle}>
-      {scale.ticks.map((tick) => (
-        <span
-          key={tick}
-          className={yAxisTickStyle}
-          style={{
-            top: `${scale.toPercent(tick)}%`,
-          }}
-        >
-          {tick}
-        </span>
-      ))}
-    </div>
-  );
-};
-
-/**
- * Tooltip component for displaying token count on hover.
- */
-const ChartTooltip: React.FC<{ tooltip: TooltipState | null }> = ({
-  tooltip,
-}) => {
-  if (!tooltip?.visible) {
+  focusedSeriesIdx: number,
+): HoverHit | null {
+  const idx = u.cursor.idx;
+  if (idx == null || idx < 0 || store.length === 0) {
     return null;
   }
 
-  return (
-    <div
-      className={tooltipStyle}
-      style={{
-        left: tooltip.x,
-        top: tooltip.y,
-      }}
-    >
-      <div className={tooltipLabelStyle}>
-        <div
-          className={tooltipColorDotStyle}
-          style={{ backgroundColor: tooltip.color }}
-        />
-        <span>{tooltip.placeName}</span>
-        <span className={tooltipValueStyle}>{tooltip.value}</span>
-      </div>
-      <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>
-        {tooltip.time.toFixed(3)}s
-      </div>
-      <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2 }}>
-        Frame {tooltip.frameIndex}
-      </div>
-    </div>
-  );
-};
+  let placeIdx: number;
+  let value: number;
 
-/**
- * Shared playhead indicator component for timeline charts.
- */
-const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
-  totalFrames,
-}) => {
-  const { currentFrameIndex } = use(PlaybackContext);
-  const frameIndex = currentFrameIndex;
+  if (chartType === "stacked") {
+    const top = u.cursor.top;
+    if (top == null || top < 0) {
+      return null;
+    }
+    const hit = hitTestStackedBand(
+      store,
+      hiddenPlaces,
+      idx,
+      u.posToVal(top, "y"),
+    );
+    if (!hit) {
+      return null;
+    }
+    placeIdx = hit.placeIdx;
+    value = hit.value;
+  } else {
+    if (focusedSeriesIdx < 1) {
+      return null;
+    }
+    placeIdx = focusedSeriesIdx - 1;
+    if (hiddenPlaces.has(store.places[placeIdx]?.placeId ?? "")) {
+      return null;
+    }
+    value = store.columns[focusedSeriesIdx]?.[idx] ?? 0;
+  }
 
-  return (
-    <div
-      className={playheadStyle}
-      style={{
-        left: `${(frameIndex / Math.max(1, totalFrames - 1)) * 100}%`,
-      }}
-    >
-      <div className={playheadArrowStyle} />
-      <div className={playheadLineStyle} />
-    </div>
-  );
-};
+  const place = store.places[placeIdx];
+  if (!place) {
+    return null;
+  }
 
-/**
- * Shared legend component for timeline charts.
- */
-const TimelineLegend: React.FC<{
-  compartmentData: CompartmentData[];
+  return { place, value, idx, time: store.columns[0]![idx] ?? 0 };
+}
+
+// -- Tooltip positioning (edge-clamped inside u.over) -------------------------
+
+function positionTooltip(tooltip: TooltipNodes, u: uPlot, hit: HoverHit): void {
+  // Local alias to satisfy no-param-reassign rule on DOM mutations.
+  const t = tooltip;
+  t.dot.style.background = hit.place.color;
+  t.name.textContent = hit.place.placeName;
+  t.value.textContent = String(hit.value);
+  t.time.textContent = `${hit.time.toFixed(3)}s`;
+  t.frame.textContent = `Frame ${hit.idx}`;
+
+  // Measure after content update
+  t.root.style.display = "block";
+  const cx = u.cursor.left ?? 0;
+  const cy = u.cursor.top ?? 0;
+  const ow = u.over.clientWidth;
+  const oh = u.over.clientHeight;
+  const tw = t.root.offsetWidth;
+  const th = t.root.offsetHeight;
+  const margin = 10;
+
+  let left = cx - tw / 2;
+  if (left < 0) {
+    left = 0;
+  } else if (left + tw > ow) {
+    left = ow - tw;
+  }
+
+  let top = cy - th - margin;
+  if (top < 0) {
+    top = Math.min(cy + margin, oh - th);
+  }
+
+  t.root.style.left = `${left}px`;
+  t.root.style.top = `${top}px`;
+}
+
+// -- Playhead drawing (Logic Pro-style pin) -----------------------------------
+
+/** Draw the playhead pin in the ruler and a vertical guide line into the chart. */
+function drawPlayhead(u: uPlot, frameIdx: number): void {
+  const times = u.data[0]!;
+  if (times.length === 0) {
+    return;
+  }
+
+  const dpr = devicePixelRatio;
+  const time = times[Math.min(frameIdx, times.length - 1)]!;
+  const cx = u.valToPos(time, "x", true);
+  const plotTop = u.bbox.top;
+  const plotHeight = u.bbox.height;
+  const ctx = u.ctx;
+
+  // Pin dimensions (all in physical pixels for HiDPI correctness)
+  const headW = 12 * dpr;
+  const rectH = 6 * dpr;
+  const tipH = 6 * dpr;
+  const radius = 3 * dpr;
+  const tipY = plotTop;
+  const baseY = tipY - tipH;
+  const topY = baseY - rectH;
+  const leftX = cx - headW / 2;
+  const rightX = cx + headW / 2;
+
+  ctx.save();
+
+  // Pin head: rounded-top rectangle tapering to a triangular tip
+  ctx.fillStyle = "#1e293b";
+  ctx.beginPath();
+  ctx.moveTo(leftX, topY + radius);
+  ctx.arcTo(leftX, topY, leftX + radius, topY, radius);
+  ctx.lineTo(rightX - radius, topY);
+  ctx.arcTo(rightX, topY, rightX, topY + radius, radius);
+  ctx.lineTo(rightX, baseY);
+  ctx.lineTo(cx, tipY);
+  ctx.lineTo(leftX, baseY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 1 * dpr;
+  ctx.stroke();
+
+  // Vertical guide line
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(cx, tipY - 4 * dpr);
+  ctx.lineTo(cx, tipY + plotHeight);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// -- uPlot options builder ----------------------------------------------------
+
+interface ChartOptions {
+  /** Store value for structural config (series, bands). */
+  store: StreamingStore;
+  /** Ref to the latest store — tooltip hooks read this so they always
+   *  see fresh data even if the store is replaced after a restart. */
+  storeRef: React.RefObject<StreamingStore>;
+  chartType: TimelineChartType;
   hiddenPlaces: Set<string>;
-  hoveredPlaceId: string | null;
-  onToggleVisibility: (placeId: string) => void;
-  onHover: (placeId: string | null) => void;
+  size: { width: number; height: number };
+  onScrub: (frameIndex: number) => void;
+  getPlayheadFrame: () => number;
+  tooltip: TooltipNodes;
+}
+
+function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
+  const {
+    store,
+    storeRef,
+    chartType,
+    hiddenPlaces,
+    size,
+    onScrub,
+    getPlayheadFrame,
+    tooltip: t,
+  } = opts;
+
+  // Mutable focus index — updated by setSeries hook, read by tooltip
+  let focused = -1;
+
+  const updateTooltip = (u: uPlot) => {
+    // Read from ref so tooltip always sees the latest store, even after
+    // simulation restart where the store object is replaced.
+    const currentStore = storeRef.current;
+    const hit = resolveHoverTarget(
+      u,
+      currentStore,
+      chartType,
+      hiddenPlaces,
+      focused,
+    );
+    if (!hit) {
+      t.root.style.display = "none";
+      return;
+    }
+    positionTooltip(t, u, hit);
+  };
+
+  // Build series + bands config
+  const series: uPlot.Series[] = [{ label: "Time" }];
+  let bands: uPlot.Band[] | undefined;
+
+  if (chartType === "stacked") {
+    const visible = store.places
+      .filter((p) => !hiddenPlaces.has(p.placeId))
+      .reverse();
+    for (const p of visible) {
+      series.push({
+        label: p.placeName,
+        stroke: p.color,
+        fill: `color-mix(in srgb, ${p.color} 53%, transparent)`,
+        width: 2,
+      });
+    }
+    // Bands clip each series' fill to the region between it and the series
+    // below, preventing overlapping semi-transparent layers from compositing
+    // into progressively darker/muddier colors.
+    if (visible.length > 1) {
+      bands = [];
+      for (let i = 1; i < visible.length; i++) {
+        bands.push({ series: [i, i + 1] as [number, number] });
+      }
+    }
+  } else {
+    for (const p of store.places) {
+      series.push({
+        label: p.placeName,
+        stroke: p.color,
+        width: 2,
+        show: !hiddenPlaces.has(p.placeId),
+      });
+    }
+  }
+
+  return {
+    width: size.width,
+    height: size.height,
+    series,
+    bands,
+    pxAlign: false,
+    padding: [0, 8, 4, null],
+    cursor: {
+      lock: false,
+      drag: { x: false, y: false, setScale: false },
+      focus: { prox: 16 },
+      bind: {
+        mousedown: (u, _targ, handler) => (e: MouseEvent) => {
+          handler(e);
+          if (u.cursor.left != null && u.cursor.left >= 0) {
+            onScrub(u.posToIdx(u.cursor.left));
+          }
+          return null;
+        },
+        mousemove: (u, _targ, handler) => (e: MouseEvent) => {
+          handler(e);
+          if (e.buttons === 1 && u.cursor.left != null && u.cursor.left >= 0) {
+            onScrub(u.posToIdx(u.cursor.left));
+          }
+          return null;
+        },
+      },
+    },
+    legend: { show: false },
+    focus: { alpha: chartType === "stacked" ? 1 : 0.3 },
+    axes: [
+      {
+        show: true,
+        side: 0,
+        size: 26,
+        font: "10px system-ui",
+        stroke: "#475569",
+        grid: { stroke: "#f3f4f6", width: 1 },
+        ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
+        values: (_u, vals) => vals.map((v) => `${v}s`),
+      },
+      {
+        show: true,
+        size: 54,
+        font: "10px system-ui",
+        stroke: "#999",
+        grid: { stroke: "#f3f4f6", width: 1, dash: [4, 4] },
+        ticks: { stroke: "#e5e7eb", width: 1 },
+      },
+    ],
+    scales: {
+      x: { time: false, range: (_u, min, max) => [min, max] },
+      y: {
+        auto: true,
+        range: (_u, min, max) => [Math.min(0, min), Math.max(1, max * 1.05)],
+      },
+    },
+    hooks: {
+      drawClear: [
+        (u) => {
+          const { ctx } = u;
+          const { left: bx, width: bw, top: by } = u.bbox;
+          const dpr = devicePixelRatio;
+          ctx.save();
+          ctx.strokeStyle = "#cbd5e1";
+          ctx.lineWidth = dpr;
+          ctx.beginPath();
+          ctx.moveTo(bx, by - 0.5 * dpr);
+          ctx.lineTo(bx + bw, by - 0.5 * dpr);
+          ctx.stroke();
+          ctx.restore();
+        },
+      ],
+      setSeries: [
+        (u, sIdx) => {
+          focused = sIdx ?? -1;
+          updateTooltip(u);
+        },
+      ],
+      setCursor: [(u) => updateTooltip(u)],
+      draw: [(u) => drawPlayhead(u, getPlayheadFrame())],
+    },
+  };
+}
+
+// -- Ruler scrubbing (extracted from chart effect) ----------------------------
+
+/**
+ * Attaches pointer listeners on `u.root` to allow click/drag scrubbing on the
+ * top axis (ruler) area. Returns a cleanup function.
+ */
+function attachRulerScrubbing(
+  u: uPlot,
+  onScrub: (frameIndex: number) => void,
+): () => void {
+  let dragging = false;
+  let overRect: DOMRect | null = null;
+
+  const onDown = (e: PointerEvent) => {
+    overRect = u.over.getBoundingClientRect();
+    if (e.clientY >= overRect.top) {
+      return;
+    }
+    if (e.clientX < overRect.left || e.clientX > overRect.right) {
+      return;
+    }
+    dragging = true;
+    u.root.setPointerCapture(e.pointerId);
+    const x = Math.max(0, Math.min(e.clientX - overRect.left, overRect.width));
+    onScrub(u.posToIdx(x));
+  };
+
+  const onMove = (e: PointerEvent) => {
+    if (dragging && overRect) {
+      const x = Math.max(
+        0,
+        Math.min(e.clientX - overRect.left, overRect.width),
+      );
+      onScrub(u.posToIdx(x));
+    }
+  };
+
+  const onUp = (e: PointerEvent) => {
+    if (dragging) {
+      dragging = false;
+      u.root.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  u.root.addEventListener("pointerdown", onDown);
+  u.root.addEventListener("pointermove", onMove);
+  u.root.addEventListener("pointerup", onUp);
+  u.root.addEventListener("pointercancel", onUp);
+
+  return () => {
+    u.root.removeEventListener("pointerdown", onDown);
+    u.root.removeEventListener("pointermove", onMove);
+    u.root.removeEventListener("pointerup", onUp);
+    u.root.removeEventListener("pointercancel", onUp);
+  };
+}
+
+// -- uPlot chart component ----------------------------------------------------
+
+const UPlotChart: React.FC<{
+  store: StreamingStore;
+  chartType: TimelineChartType;
+  hiddenPlaces: Set<string>;
+  revision: number;
+  totalFrames: number;
+  currentFrameIndex: number;
+  className?: string;
 }> = ({
-  compartmentData,
+  store,
+  chartType,
   hiddenPlaces,
-  hoveredPlaceId,
-  onToggleVisibility,
-  onHover,
-}) => (
+  revision,
+  totalFrames,
+  currentFrameIndex,
+  className,
+}) => {
+  "use no memo"; // imperative uPlot lifecycle
+  const { setCurrentViewedFrame } = use(PlaybackContext);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<uPlot | null>(null);
+  const playheadFrameRef = useRef(currentFrameIndex);
+  const storeRef = useLatest(store);
+
+  // -- Derived state ----------------------------------------------------------
+
+  // Reactive container size — replaces getBoundingClientRect + inline ResizeObserver
+  const size = useElementSize(wrapperRef);
+  // Boolean flag for the creation effect — triggers when size first becomes
+  // available (null → non-null) without re-firing on every resize.
+  const hasSize = size != null;
+
+  // Stable identity: always calls the latest closure but never changes reference,
+  // so it doesn't trigger chart recreation when totalFrames changes.
+  const onScrub = useStableCallback((idx: number) => {
+    setCurrentViewedFrame(Math.max(0, Math.min(idx, totalFrames - 1)));
+  });
+
+  // Columnar data from the store. Manual useMemo because we opted out of
+  // React Compiler ("use no memo"), and buildStackedData allocates O(places ×
+  // frames) per call. Without memoization it would recompute on every render
+  // (e.g. every playback frame), and the result would be silently discarded
+  // since Effect 3 only consumes it when `revision` changes.
+  const data = useMemo(
+    () =>
+      chartType === "stacked"
+        ? buildStackedData(store, hiddenPlaces)
+        : buildRunData(store, hiddenPlaces),
+    [revision, chartType, hiddenPlaces],
+  );
+
+  // -- Effect 1: create/destroy uPlot on structural changes -------------------
+
+  useEffect(() => {
+    // Note: parent (SimulationTimelineContent) gates on store.length === 0,
+    // so this component only mounts once data is available.
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !size) {
+      return;
+    }
+
+    const tooltip = createTooltip();
+
+    const opts = buildUPlotOptions({
+      store,
+      storeRef,
+      chartType,
+      hiddenPlaces,
+      size,
+      onScrub,
+      getPlayheadFrame: () => playheadFrameRef.current,
+      tooltip,
+    });
+
+    chartRef.current?.destroy();
+
+    // eslint-disable-next-line new-cap -- uPlot's constructor is lowercase by convention
+    const u = new uPlot(opts, data, wrapper);
+    chartRef.current = u;
+
+    // Mount tooltip inside u.over (the cursor overlay div). It positions
+    // relative to that div and is bounded by its overflow:hidden — exactly
+    // matching the chart area. Cleaned up automatically by u.destroy().
+    u.over.appendChild(tooltip.root);
+
+    const cleanupRuler = attachRulerScrubbing(u, onScrub);
+
+    return () => {
+      cleanupRuler();
+      u.destroy();
+      chartRef.current = null;
+    };
+    // Recreate only when chart type, visible series, or size availability changes.
+    // onScrub is stable (useStableCallback). Subsequent size changes trigger
+    // setSize (Effect 2), not recreation.
+  }, [chartType, hiddenPlaces, store.places.length, hasSize]);
+
+  // -- Effect 2: sync container size to existing chart ------------------------
+
+  useEffect(() => {
+    if (chartRef.current && size && size.width > 0 && size.height > 0) {
+      chartRef.current.setSize(size);
+    }
+  }, [size]);
+
+  // -- Effect 3: stream new data (no chart recreation) ------------------------
+
+  useEffect(() => {
+    chartRef.current?.setData(data);
+  }, [revision]);
+
+  // -- Effect 4: playhead redraw ---------------------------------------------
+
+  useEffect(() => {
+    playheadFrameRef.current = currentFrameIndex;
+    chartRef.current?.redraw(false, false);
+  }, [currentFrameIndex]);
+
+  return <div ref={wrapperRef} className={className} />;
+};
+
+// -- Legend --------------------------------------------------------------------
+
+const TimelineLegend: React.FC<{
+  places: PlaceMeta[];
+  hiddenPlaces: Set<string>;
+  onToggleVisibility: (placeId: string) => void;
+}> = ({ places, hiddenPlaces, onToggleVisibility }) => (
   <div className={legendContainerStyle}>
-    {compartmentData.map((data) => {
-      const isHidden = hiddenPlaces.has(data.placeId);
-      const isHovered = hoveredPlaceId === data.placeId;
-      const isDimmed = hoveredPlaceId && !isHovered;
+    {places.map((p) => {
+      const isHidden = hiddenPlaces.has(p.placeId);
 
       return (
         <div
-          key={data.placeId}
+          key={p.placeId}
           role="button"
           tabIndex={0}
           className={legendItemStyle}
-          onClick={() => onToggleVisibility(data.placeId)}
+          onClick={() => onToggleVisibility(p.placeId)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              onToggleVisibility(data.placeId);
+              onToggleVisibility(p.placeId);
             }
           }}
-          onMouseEnter={() => onHover(data.placeId)}
-          onMouseLeave={() => onHover(null)}
-          onFocus={() => onHover(data.placeId)}
-          onBlur={() => onHover(null)}
           style={{
-            opacity: isHidden ? 0.4 : isDimmed ? 0.6 : 1,
+            opacity: isHidden ? 0.4 : 1,
             textDecoration: isHidden ? "line-through" : "none",
           }}
         >
           <div
             className={legendColorStyle}
             style={{
-              backgroundColor: data.color,
+              backgroundColor: p.color,
               opacity: isHidden ? 0.5 : 1,
             }}
           />
-          <span>{data.placeName}</span>
+          <span>{p.placeName}</span>
         </div>
       );
     })}
   </div>
 );
 
-interface ChartProps {
-  compartmentData: CompartmentData[];
-  frameTimes: number[];
-  legendState: LegendState;
-  yAxisScale: YAxisScale;
-  onTooltipChange: (tooltip: TooltipState | null) => void;
-  onPlaceHover: (placeId: string | null) => void;
-}
+// -- Main component -----------------------------------------------------------
 
-/**
- * CompartmentTimeSeries displays a line chart showing token counts over time.
- * Clicking/dragging on the chart scrubs through frames.
- *
- * PERFORMANCE: Uses CSS-based hover dimming and event delegation to avoid
- * re-rendering PlaceLine components on hover state changes.
- */
-const CompartmentTimeSeries: React.FC<ChartProps> = ({
-  compartmentData,
-  frameTimes,
-  legendState,
-  yAxisScale,
-  onTooltipChange,
-  onPlaceHover,
-}) => {
-  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
-  const { totalFrames } = use(SimulationContext);
-  const { setCurrentViewedFrame } = use(PlaybackContext);
-
-  const chartRef = useRef<SVGSVGElement>(null);
-  const isDraggingRef = useRef(false);
-
-  // Track locally hovered place (from SVG path hover via event delegation)
-  const [localHoveredPlaceId, setLocalHoveredPlaceId] = useState<string | null>(
-    null,
-  );
-
-  const { hiddenPlaces, hoveredPlaceId } = legendState;
-
-  // Use local hover if available, otherwise fall back to legend hover
-  const activeHoveredPlaceId = localHoveredPlaceId ?? hoveredPlaceId;
-
-  // Calculate chart dimensions and scales
-  const chartMetrics = useMemo(() => {
-    if (compartmentData.length === 0 || totalFrames === 0) {
-      return null;
-    }
-
-    return {
-      totalFrames,
-      xScale: (frameIndex: number, width: number) =>
-        (frameIndex / Math.max(1, totalFrames - 1)) * width,
-      yScale: (value: number, height: number) =>
-        height - (value / yAxisScale.yMax) * height,
-    };
-  }, [compartmentData, totalFrames, yAxisScale.yMax]);
-
-  // Calculate frame index from mouse position
-  const getFrameFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!chartRef.current || !chartMetrics) {
-        return null;
-      }
-
-      const rect = chartRef.current.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const width = rect.width;
-
-      const progress = Math.max(0, Math.min(1, x / width));
-      return Math.round(progress * (chartMetrics.totalFrames - 1));
-    },
-    [chartMetrics],
-  );
-
-  // Handle mouse interaction for scrubbing
-  const handleScrub = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex !== null) {
-        setCurrentViewedFrame(frameIndex);
-      }
-    },
-    [getFrameFromEvent, setCurrentViewedFrame],
-  );
-
-  // Update tooltip based on mouse position and hovered place
-  const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
-      if (!hoveredId || frameTimes.length === 0) {
-        onTooltipChange(null);
-        return;
-      }
-
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex === null) {
-        onTooltipChange(null);
-        return;
-      }
-
-      const placeData = compartmentData.find(
-        (data) => data.placeId === hoveredId,
-      );
-      if (!placeData || hiddenPlaces.has(hoveredId)) {
-        onTooltipChange(null);
-        return;
-      }
-
-      const value = placeData.values[frameIndex] ?? 0;
-      const time = frameTimes[frameIndex] ?? 0;
-
-      onTooltipChange({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        placeName: placeData.placeName,
-        color: placeData.color,
-        value,
-        frameIndex,
-        time,
-      });
-    },
-    [
-      compartmentData,
-      hiddenPlaces,
-      frameTimes,
-      getFrameFromEvent,
-      onTooltipChange,
-    ],
-  );
-
-  /**
-   * Extract placeId from an event target using event delegation.
-   * Walks up the DOM to find the nearest element with data-place-id.
-   */
-  const getPlaceIdFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>): string | null => {
-      const target = event.target as SVGElement;
-      const placeGroup = target.closest("[data-place-id]");
-      return placeGroup?.getAttribute("data-place-id") ?? null;
-    },
-    [],
-  );
-
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      isDraggingRef.current = true;
-      handleScrub(event);
-    },
-    [handleScrub],
-  );
-
-  /**
-   * Event delegation handler for mouse movement.
-   * Detects which place is being hovered by walking up the DOM tree.
-   */
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (isDraggingRef.current) {
-        handleScrub(event);
-      }
-
-      // Event delegation: extract placeId from the event target
-      const placeId = getPlaceIdFromEvent(event);
-
-      // Only update state if hover target changed
-      if (placeId !== localHoveredPlaceId) {
-        setLocalHoveredPlaceId(placeId);
-        onPlaceHover(placeId);
-      }
-
-      // Update tooltip with current hover state
-      updateTooltip(event, placeId ?? hoveredPlaceId);
-    },
-    [
-      handleScrub,
-      getPlaceIdFromEvent,
-      localHoveredPlaceId,
-      onPlaceHover,
-      updateTooltip,
-      hoveredPlaceId,
-    ],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    isDraggingRef.current = false;
-    setLocalHoveredPlaceId(null);
-    onPlaceHover(null);
-    onTooltipChange(null);
-  }, [onPlaceHover, onTooltipChange]);
-
-  // Generate SVG path for a data series
-  const generatePath = useCallback(
-    (values: number[], width: number, height: number) => {
-      if (!chartMetrics || values.length === 0) {
-        return "";
-      }
-
-      const points = values.map((value, index) => {
-        const x = chartMetrics.xScale(index, width);
-        const y = chartMetrics.yScale(value, height);
-        return `${x},${y}`;
-      });
-
-      return `M ${points.join(" L ")}`;
-    },
-    [chartMetrics],
-  );
-
-  if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
-    return null;
-  }
-
-  // Filter visible data once
-  const visibleData = compartmentData.filter(
-    (data) => !hiddenPlaces.has(data.placeId),
-  );
-
-  return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- interactive chart SVG
-    <svg
-      ref={chartRef}
-      className={`${svgStyle} ${runChartHoveringStyle}`}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      preserveAspectRatio="none"
-      viewBox="0 0 100 100"
-      // CSS uses this to know when to apply dimming styles
-      data-has-hover={!!activeHoveredPlaceId || undefined}
-    >
-      {/* Background grid lines */}
-      <line
-        x1="0"
-        y1="100"
-        x2="100"
-        y2="100"
-        stroke="#e5e7eb"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-      />
-      <line
-        x1="0"
-        y1="50"
-        x2="100"
-        y2="50"
-        stroke="#f3f4f6"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-        strokeDasharray="2,2"
-      />
-      <line
-        x1="0"
-        y1="0"
-        x2="100"
-        y2="0"
-        stroke="#f3f4f6"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      {/* Data lines - render non-hovered first, then hovered on top */}
-      {/* CSS handles opacity/dimming via data-place-id and data-hovered attributes */}
-      {visibleData
-        .filter((data) => data.placeId !== activeHoveredPlaceId)
-        .map((data) => (
-          <g
-            key={data.placeId}
-            data-place-id={data.placeId}
-            data-hovered={undefined}
-          >
-            {/* Visible line */}
-            <path
-              d={generatePath(data.values, 100, 100)}
-              fill="none"
-              stroke={data.color}
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              style={{ pointerEvents: "none" }}
-            />
-            {/* Invisible hit area for easier hovering - events bubble to parent SVG */}
-            <path
-              d={generatePath(data.values, 100, 100)}
-              fill="none"
-              stroke="transparent"
-              strokeWidth="8"
-              vectorEffect="non-scaling-stroke"
-              style={{ cursor: "pointer" }}
-            />
-          </g>
-        ))}
-      {/* Render hovered line on top for z-ordering */}
-      {activeHoveredPlaceId &&
-        visibleData
-          .filter((data) => data.placeId === activeHoveredPlaceId)
-          .map((data) => (
-            <g
-              key={data.placeId}
-              data-place-id={data.placeId}
-              data-hovered="true"
-            >
-              {/* Visible line - thicker when hovered */}
-              <path
-                d={generatePath(data.values, 100, 100)}
-                fill="none"
-                stroke={data.color}
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                style={{ pointerEvents: "none" }}
-              />
-              {/* Invisible hit area - events bubble to parent SVG */}
-              <path
-                d={generatePath(data.values, 100, 100)}
-                fill="none"
-                stroke="transparent"
-                strokeWidth="8"
-                vectorEffect="non-scaling-stroke"
-                style={{ cursor: "pointer" }}
-              />
-            </g>
-          ))}
-    </svg>
-  );
-};
-
-/**
- * StackedAreaChart displays a stacked area chart showing token counts over time.
- * Each place's tokens are stacked on top of each other to show the total distribution.
- * Clicking/dragging on the chart scrubs through frames.
- *
- * PERFORMANCE: Uses CSS-based hover dimming and event delegation to avoid
- * re-rendering path elements on hover state changes.
- */
-const StackedAreaChart: React.FC<ChartProps> = ({
-  compartmentData,
-  frameTimes,
-  legendState,
-  yAxisScale,
-  onTooltipChange,
-  onPlaceHover,
-}) => {
-  "use no memo"; // Complex chart with manual memoization — compiler cannot preserve existing useMemo/useCallback patterns
-  const { totalFrames } = use(SimulationContext);
-  const { setCurrentViewedFrame } = use(PlaybackContext);
-
-  const chartRef = useRef<SVGSVGElement>(null);
-  const isDraggingRef = useRef(false);
-
-  // Track locally hovered place (from SVG path hover via event delegation)
-  const [localHoveredPlaceId, setLocalHoveredPlaceId] = useState<string | null>(
-    null,
-  );
-
-  const { hiddenPlaces, hoveredPlaceId } = legendState;
-
-  // Use local hover if available, otherwise fall back to legend hover
-  const activeHoveredPlaceId = localHoveredPlaceId ?? hoveredPlaceId;
-
-  // Filter visible compartment data
-  const visibleCompartmentData = useMemo(() => {
-    return compartmentData.filter((data) => !hiddenPlaces.has(data.placeId));
-  }, [compartmentData, hiddenPlaces]);
-
-  // Calculate stacked values and chart metrics
-  const { stackedData, chartMetrics } = useMemo(() => {
-    if (visibleCompartmentData.length === 0 || totalFrames === 0) {
-      return { stackedData: [], chartMetrics: null };
-    }
-
-    // Calculate stacked values: for each frame, accumulate the values
-    // stackedData[i] contains { placeId, color, baseValues[], topValues[] }
-    const stacked: Array<{
-      placeId: string;
-      placeName: string;
-      color: string;
-      baseValues: number[];
-      topValues: number[];
-    }> = [];
-
-    // Track cumulative values at each frame
-    const cumulativeAtFrame: number[] = new Array<number>(totalFrames).fill(0);
-
-    for (const data of visibleCompartmentData) {
-      const baseValues: number[] = [...cumulativeAtFrame];
-      const topValues: number[] = data.values.map((value, frameIdx) => {
-        const newCumulative = (cumulativeAtFrame[frameIdx] ?? 0) + value;
-        cumulativeAtFrame[frameIdx] = newCumulative;
-        return newCumulative;
-      });
-
-      stacked.push({
-        placeId: data.placeId,
-        placeName: data.placeName,
-        color: data.color,
-        baseValues,
-        topValues,
-      });
-    }
-
-    return {
-      stackedData: stacked,
-      chartMetrics: {
-        totalFrames,
-        xScale: (frameIndex: number, width: number) =>
-          (frameIndex / Math.max(1, totalFrames - 1)) * width,
-        yScale: (value: number, height: number) =>
-          height - (value / yAxisScale.yMax) * height,
-      },
-    };
-  }, [visibleCompartmentData, totalFrames, yAxisScale.yMax]);
-
-  // Calculate frame index from mouse position
-  const getFrameFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!chartRef.current || !chartMetrics) {
-        return null;
-      }
-
-      const rect = chartRef.current.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const width = rect.width;
-
-      const progress = Math.max(0, Math.min(1, x / width));
-      return Math.round(progress * (chartMetrics.totalFrames - 1));
-    },
-    [chartMetrics],
-  );
-
-  // Handle mouse interaction for scrubbing
-  const handleScrub = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex !== null) {
-        setCurrentViewedFrame(frameIndex);
-      }
-    },
-    [getFrameFromEvent, setCurrentViewedFrame],
-  );
-
-  // Update tooltip based on mouse position and hovered place
-  const updateTooltip = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>, hoveredId: string | null) => {
-      if (!hoveredId || frameTimes.length === 0) {
-        onTooltipChange(null);
-        return;
-      }
-
-      const frameIndex = getFrameFromEvent(event);
-      if (frameIndex === null) {
-        onTooltipChange(null);
-        return;
-      }
-
-      // For stacked chart, get the original (non-stacked) value
-      const placeData = compartmentData.find(
-        (data) => data.placeId === hoveredId,
-      );
-      if (!placeData || hiddenPlaces.has(hoveredId)) {
-        onTooltipChange(null);
-        return;
-      }
-
-      const value = placeData.values[frameIndex] ?? 0;
-      const time = frameTimes[frameIndex] ?? 0;
-
-      onTooltipChange({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        placeName: placeData.placeName,
-        color: placeData.color,
-        value,
-        frameIndex,
-        time,
-      });
-    },
-    [
-      compartmentData,
-      hiddenPlaces,
-      frameTimes,
-      getFrameFromEvent,
-      onTooltipChange,
-    ],
-  );
-
-  /**
-   * Extract placeId from an event target using event delegation.
-   * For stacked chart, paths have data-place-id directly on them.
-   */
-  const getPlaceIdFromEvent = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>): string | null => {
-      const target = event.target as SVGElement;
-      // First check if the target itself has data-place-id (for path elements)
-      if (target.hasAttribute("data-place-id")) {
-        return target.getAttribute("data-place-id");
-      }
-      // Fall back to walking up the DOM
-      const placeElement = target.closest("[data-place-id]");
-      return placeElement?.getAttribute("data-place-id") ?? null;
-    },
-    [],
-  );
-
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      isDraggingRef.current = true;
-      handleScrub(event);
-    },
-    [handleScrub],
-  );
-
-  /**
-   * Event delegation handler for mouse movement.
-   * Detects which place is being hovered by checking data-place-id attributes.
-   */
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<SVGSVGElement>) => {
-      if (isDraggingRef.current) {
-        handleScrub(event);
-      }
-
-      // Event delegation: extract placeId from the event target
-      const placeId = getPlaceIdFromEvent(event);
-
-      // Only update state if hover target changed
-      if (placeId !== localHoveredPlaceId) {
-        setLocalHoveredPlaceId(placeId);
-        onPlaceHover(placeId);
-      }
-
-      // Update tooltip with current hover state
-      updateTooltip(event, placeId ?? hoveredPlaceId);
-    },
-    [
-      handleScrub,
-      getPlaceIdFromEvent,
-      localHoveredPlaceId,
-      onPlaceHover,
-      updateTooltip,
-      hoveredPlaceId,
-    ],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    isDraggingRef.current = false;
-    setLocalHoveredPlaceId(null);
-    onPlaceHover(null);
-    onTooltipChange(null);
-  }, [onPlaceHover, onTooltipChange]);
-
-  // Generate SVG path for a stacked area
-  const generateAreaPath = useCallback(
-    (
-      baseValues: number[],
-      topValues: number[],
-      width: number,
-      height: number,
-    ) => {
-      if (!chartMetrics || topValues.length === 0) {
-        return "";
-      }
-
-      // Build the path: top line forward, then bottom line backward
-      const topPoints = topValues.map((value, index) => {
-        const x = chartMetrics.xScale(index, width);
-        const y = chartMetrics.yScale(value, height);
-        return `${x},${y}`;
-      });
-
-      const basePoints = baseValues
-        .map((value, index) => {
-          const x = chartMetrics.xScale(index, width);
-          const y = chartMetrics.yScale(value, height);
-          return `${x},${y}`;
-        })
-        .reverse();
-
-      return `M ${topPoints.join(" L ")} L ${basePoints.join(" L ")} Z`;
-    },
-    [chartMetrics],
-  );
-
-  if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
-    return null;
-  }
-
-  return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- interactive chart SVG
-    <svg
-      ref={chartRef}
-      className={`${svgStyle} ${stackedChartHoveringStyle}`}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      preserveAspectRatio="none"
-      viewBox="0 0 100 100"
-      // CSS uses this to know when to apply dimming styles
-      data-has-hover={!!activeHoveredPlaceId || undefined}
-    >
-      {/* Background grid lines */}
-      <line
-        x1="0"
-        y1="100"
-        x2="100"
-        y2="100"
-        stroke="#e5e7eb"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-      />
-      <line
-        x1="0"
-        y1="50"
-        x2="100"
-        y2="50"
-        stroke="#f3f4f6"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-        strokeDasharray="2,2"
-      />
-      <line
-        x1="0"
-        y1="0"
-        x2="100"
-        y2="0"
-        stroke="#f3f4f6"
-        strokeWidth="0.5"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      {/* Stacked areas - render from bottom to top */}
-      {/* CSS handles opacity/dimming via data-place-id and data-hovered attributes */}
-      {stackedData.map((data) => (
-        <path
-          key={data.placeId}
-          data-place-id={data.placeId}
-          data-hovered={activeHoveredPlaceId === data.placeId || undefined}
-          d={generateAreaPath(data.baseValues, data.topValues, 100, 100)}
-          fill={data.color}
-          stroke={data.color}
-          strokeWidth="0.5"
-          vectorEffect="non-scaling-stroke"
-          style={{ cursor: "pointer" }}
-        />
-      ))}
-    </svg>
-  );
-};
-
-/**
- * SimulationTimelineContent displays timeline information for the running simulation.
- * Shows a compartment time-series chart with interactive scrubbing.
- */
 const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { totalFrames } = use(SimulationContext);
-  const { compartmentData, frameTimes } = useCompartmentData();
+  const { currentFrameIndex } = use(PlaybackContext);
+  const { store, revision } = useStreamingData();
 
-  // Shared legend state - persists across chart type switches
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
-  const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
-  // Tooltip state
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-
-  const legendState: LegendState = useMemo(
-    () => ({ hiddenPlaces, hoveredPlaceId }),
-    [hiddenPlaces, hoveredPlaceId],
-  );
-
-  // Compute Y-axis scale based on data and chart type
-  const yAxisScale = useYAxisScale(compartmentData, chartType, hiddenPlaces);
-
-  // Toggle visibility handler
-  const togglePlaceVisibility = useCallback((placeId: string) => {
+  const togglePlaceVisibility = (placeId: string) => {
     setHiddenPlaces((prev) => {
       const next = new Set(prev);
       if (next.has(placeId)) {
@@ -1311,17 +947,9 @@ const SimulationTimelineContent: React.FC = () => {
       }
       return next;
     });
-  }, []);
+  };
 
-  const handleHover = useCallback((placeId: string | null) => {
-    setHoveredPlaceId(placeId);
-  }, []);
-
-  const handleTooltipChange = useCallback((newTooltip: TooltipState | null) => {
-    setTooltip(newTooltip);
-  }, []);
-
-  if (compartmentData.length === 0 || totalFrames === 0) {
+  if (store.length === 0 || totalFrames === 0) {
     return (
       <div className={containerStyle}>
         <span style={{ fontSize: 12, color: "#999" }}>
@@ -1333,46 +961,26 @@ const SimulationTimelineContent: React.FC = () => {
 
   return (
     <div className={containerStyle}>
-      <div className={chartRowStyle}>
-        <YAxis scale={yAxisScale} />
-        <div className={chartContainerStyle}>
-          {chartType === "stacked" ? (
-            <StackedAreaChart
-              compartmentData={compartmentData}
-              frameTimes={frameTimes}
-              legendState={legendState}
-              yAxisScale={yAxisScale}
-              onTooltipChange={handleTooltipChange}
-              onPlaceHover={handleHover}
-            />
-          ) : (
-            <CompartmentTimeSeries
-              compartmentData={compartmentData}
-              frameTimes={frameTimes}
-              legendState={legendState}
-              yAxisScale={yAxisScale}
-              onTooltipChange={handleTooltipChange}
-              onPlaceHover={handleHover}
-            />
-          )}
-          <PlayheadIndicator totalFrames={totalFrames} />
-        </div>
-      </div>
-      <TimelineLegend
-        compartmentData={compartmentData}
+      <UPlotChart
+        className={chartAreaStyle}
+        store={store}
+        chartType={chartType}
         hiddenPlaces={hiddenPlaces}
-        hoveredPlaceId={hoveredPlaceId}
-        onToggleVisibility={togglePlaceVisibility}
-        onHover={handleHover}
+        revision={revision}
+        totalFrames={totalFrames}
+        currentFrameIndex={currentFrameIndex}
       />
-      <ChartTooltip tooltip={tooltip} />
+      <TimelineLegend
+        places={store.places}
+        hiddenPlaces={hiddenPlaces}
+        onToggleVisibility={togglePlaceVisibility}
+      />
     </div>
   );
 };
 
 /**
  * SubView definition for Simulation Timeline tab.
- * This tab is visible when simulation is running, paused, or complete.
  */
 export const simulationTimelineSubView: SubView = {
   id: "simulation-timeline",
@@ -1381,4 +989,5 @@ export const simulationTimelineSubView: SubView = {
     "View the simulation timeline with compartment time-series. Click/drag to scrub through frames.",
   component: SimulationTimelineContent,
   renderHeaderAction: () => <TimelineChartTypeSelector />,
+  noPadding: true,
 };

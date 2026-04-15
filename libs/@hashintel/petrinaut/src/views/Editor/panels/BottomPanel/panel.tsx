@@ -52,7 +52,6 @@ const panelStyle = cva({
 });
 
 const panelContainerStyle = css({
-  padding: "[4px]",
   display: "flex",
   flexDirection: "column",
 });
@@ -61,7 +60,7 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "[2px]",
+  padding: "[6px]",
   flexShrink: 0,
 });
 

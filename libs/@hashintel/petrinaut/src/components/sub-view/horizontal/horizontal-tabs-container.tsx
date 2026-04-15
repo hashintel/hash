@@ -41,11 +41,21 @@ const tabButtonStyle = cva({
   },
 });
 
-const contentStyle = css({
-  fontSize: "xs",
-  padding: "3",
-  flex: "[1]",
-  overflowY: "auto",
+const contentStyle = cva({
+  base: {
+    fontSize: "xs",
+    flex: "[1]",
+    overflowY: "auto",
+  },
+  variants: {
+    padded: {
+      // Includes the 4px that previously came from the outer panel container,
+      // so padded subviews keep the same visual inset.
+      true: { padding: "[16px]" },
+      false: { padding: "0" },
+    },
+  },
+  defaultVariants: { padded: true },
 });
 
 interface TabButtonProps {
@@ -122,7 +132,7 @@ export const HorizontalTabsContainer: React.FC<
       {/* Content */}
       <div
         id={`tabpanel-${activeTabId}`}
-        className={contentStyle}
+        className={contentStyle({ padded: !activeSubView.noPadding })}
         role="tabpanel"
         aria-labelledby={`tab-${activeTabId}`}
       >
@@ -196,7 +206,7 @@ export const HorizontalTabsContent: React.FC<{
   return (
     <div
       id={tabpanelId}
-      className={contentStyle}
+      className={contentStyle({ padded: !activeSubView.noPadding })}
       role="tabpanel"
       aria-labelledby={tabId}
     >
