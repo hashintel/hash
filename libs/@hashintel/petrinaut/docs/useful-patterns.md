@@ -56,7 +56,9 @@ Use a place as a **pool** of tokens representing limited resources (machines, wo
 
 **Structure:**
 
-<img width="731" height="351" alt="competing-transition-screenshot" src="https://github.com/user-attachments/assets/b97ba9df-ee9c-4b53-b3ab-e26ea729041b" />
+```text
+[Available] ---> (StartWork) ---> [InUse] ---> (FinishWork) ---> [Available]
+```
 
 The number of initial tokens in "Available" determines the resource capacity. If no tokens are available, "StartWork" cannot fire -- work is naturally queued.
 
@@ -68,7 +70,9 @@ Use an [inhibitor arc](petri-net-extensions.md#inhibitor-arcs) from a "busy" or 
 
 **Structure:**
 
-<img width="566" height="218" alt="inhibitor-arc-screenshot" src="https://github.com/user-attachments/assets/08173f00-fd28-4752-b36a-fa3cc5197651" />
+```text
+[Busy] ---o (StartNew)    (inhibitor arc, weight 1)
+```
 
 "StartNew" can only fire when "Busy" has zero tokens. Once something enters the busy state, no new work can start until the token is removed.
 
@@ -107,7 +111,11 @@ Multiple transitions consuming from the **same place** with **complementary pred
 
 **Structure:**
 
-<img width="731" height="351" alt="competing-transition-screenshot" src="https://github.com/user-attachments/assets/810e8b4e-75ca-43c0-b64b-1d1bb481f893" />
+```text
+              /--> (Pass)  ---> [Dispatched]
+[QAQueue] --<
+              \--> (Fail)  ---> [Disposed]
+```
 
 ```ts
 // Pass transition
