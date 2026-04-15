@@ -84,7 +84,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const actions: Omit<
     EditorActions,
-    "isSelected" | "isSelectedConnection" | "selectedConnections"
+    | "isSelected"
+    | "isSelectedConnection"
+    | "isNotSelectedConnection"
+    | "selectedConnections"
   > = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
@@ -232,6 +235,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   );
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
+  const isNotSelectedConnection = (id: string) =>
+    !isSelected(id) && !selectedConnections.has(id);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -240,6 +245,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     ...actions,
     isSelected,
     isSelectedConnection,
+    isNotSelectedConnection,
     selectedConnections,
     searchInputRef,
   };

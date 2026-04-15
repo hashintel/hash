@@ -83,6 +83,7 @@ const DEFAULT_EDITOR: EditorContextValue = {
   setActiveBottomPanelTab: () => {},
   isSelected: () => false,
   isSelectedConnection: () => false,
+  isNotSelectedConnection: () => false,
   selectedConnections: new Map(),
   setSelection: () => {},
   selectItem: () => {},
