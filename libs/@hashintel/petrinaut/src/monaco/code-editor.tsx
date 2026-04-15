@@ -1,7 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { Suspense, use, useCallback, useRef } from "react";
+import { Suspense, use, useRef } from "react";
 
 import { Tooltip } from "../components/tooltip";
 import { CODE_FONT_FAMILY } from "../constants/ui";
@@ -61,6 +61,16 @@ const singleLineContainerStyle = cva({
       },
       false: {},
     },
+    hasError: {
+      true: {
+        borderColor: "red.s90",
+        _hover: { borderColor: "red.s90" },
+        _focusWithin: {
+          borderColor: "red.s90",
+          boxShadow: "[0px 0px 0px 2px {colors.red.a25}]",
+        },
+      },
+    },
   },
 });
 
@@ -106,12 +116,20 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
   placeholder?: string;
   /** Called when Enter is pressed (only used in singleLine mode) */
   onSubmit?: () => void;
+  /** Called when the editor gains focus */
+  onEditorFocus?: () => void;
+  /** Called when the editor loses focus */
+  onEditorBlur?: () => void;
+  /** Show error styling (red border) */
+  hasError?: boolean;
 };
 
 // -- Inner component ----------------------------------------------------------
 
 const CodeEditorInner: React.FC<CodeEditorProps> = ({
   options,
+  onEditorFocus,
+  onEditorBlur,
   onMount,
   singleLine = false,
   placeholder,
@@ -123,39 +141,46 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   const { Editor } = use(use(MonacoContext));
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  const handleMount = useCallback(
-    (editorInstance: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
-      editorRef.current = editorInstance;
+  const handleMount = (
+    editorInstance: editor.IStandaloneCodeEditor,
+    monacoInstance: Monaco,
+  ) => {
+    editorRef.current = editorInstance;
 
-      if (singleLine) {
-        // Reactively strip newlines — this handles Enter key, paste, and any
-        // other source of newlines without blocking Enter from being used by
-        // the suggest widget to accept completions.
-        editorInstance.onDidChangeModelContent(() => {
-          const model = editorInstance.getModel();
-          if (model && model.getLineCount() > 1) {
-            const fullText = model.getValue();
-            const flat = fullText.replace(/[\n\r]/g, " ");
-            model.setValue(flat);
-            const endCol = model.getLineMaxColumn(1);
-            editorInstance.setPosition({ lineNumber: 1, column: endCol });
-            onSubmit?.();
-          }
-        });
+    if (singleLine) {
+      // Reactively strip newlines — this handles Enter key, paste, and any
+      // other source of newlines without blocking Enter from being used by
+      // the suggest widget to accept completions.
+      editorInstance.onDidChangeModelContent(() => {
+        const model = editorInstance.getModel();
+        if (model && model.getLineCount() > 1) {
+          const fullText = model.getValue();
+          const flat = fullText.replace(/[\n\r]/g, " ");
+          model.setValue(flat);
+          const endCol = model.getLineMaxColumn(1);
+          editorInstance.setPosition({ lineNumber: 1, column: endCol });
+          onSubmit?.();
+        }
+      });
 
-        // Force vertical scroll to stay at 0 — prevents scrolling when
-        // the cursor moves or text is selected past the visible area.
-        editorInstance.onDidScrollChange((e) => {
-          if (e.scrollTop !== 0) {
-            editorInstance.setScrollTop(0);
-          }
-        });
-      }
+      // Force vertical scroll to stay at 0 — prevents scrolling when
+      // the cursor moves or text is selected past the visible area.
+      editorInstance.onDidScrollChange((e) => {
+        if (e.scrollTop !== 0) {
+          editorInstance.setScrollTop(0);
+        }
+      });
+    }
 
-      onMount?.(editorInstance, monacoInstance);
-    },
-    [singleLine, onSubmit, onMount],
-  );
+    if (onEditorFocus) {
+      editorInstance.onDidFocusEditorText(() => onEditorFocus());
+    }
+    if (onEditorBlur) {
+      editorInstance.onDidBlurEditorText(() => onEditorBlur());
+    }
+
+    onMount?.(editorInstance, monacoInstance);
+  };
 
   const editorOptions: EditorProps["options"] = singleLine
     ? {
@@ -230,12 +255,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   options,
   height,
   singleLine = false,
+  hasError = false,
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
 
   const containerClass = singleLine
-    ? singleLineContainerStyle({ isReadOnly })
+    ? singleLineContainerStyle({ isReadOnly, hasError })
     : multiLineContainerStyle({ isReadOnly });
 
   const fallback = singleLine ? (

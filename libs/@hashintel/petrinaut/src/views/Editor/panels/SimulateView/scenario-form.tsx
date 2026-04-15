@@ -90,7 +90,7 @@ const paramFieldSmStyle = css({
 const paramLabelStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "neutral.s80",
+  color: "neutral.s100",
 });
 
 // -- Override row styles -------------------------------------------------------
@@ -133,12 +133,26 @@ const placeRowStyle = css({
   gap: "[8px]",
 });
 
-const placeNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
+const placeLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
   width: "[140px]",
   flexShrink: 0,
+  overflow: "hidden",
+});
+
+const placeDotStyle = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "full",
+  flexShrink: 0,
+});
+
+const placeNameStyle = css({
+  fontSize: "sm",
+  fontWeight: "normal",
+  color: "neutral.s115",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -162,10 +176,16 @@ const emptyStyle = css({
   paddingY: "[4px]",
 });
 
-const switchLabelStyle = css({
+const switchGroupStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
+});
+
+const switchLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "4",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s80",
@@ -191,6 +211,9 @@ const PlaceInitialStateRow = ({
   tokenData,
   onTokenDataChange,
   documentUri,
+  error,
+  onFocus,
+  onBlur,
 }: {
   place: Place;
   placeType: Color | undefined;
@@ -199,6 +222,9 @@ const PlaceInitialStateRow = ({
   tokenData: number[][];
   onTokenDataChange: (data: number[][]) => void;
   documentUri?: string;
+  error?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) => {
   const columns: SpreadsheetColumn[] = placeType
     ? placeType.elements.map((element) => ({
@@ -207,10 +233,18 @@ const PlaceInitialStateRow = ({
       }))
     : [];
 
+  const dotColor = placeType?.displayColor ?? "#ccc";
+
   if (placeType && placeType.elements.length > 0) {
     return (
       <div className={placeBlockStyle}>
-        <span className={placeNameStyle}>{place.name}</span>
+        <div className={placeLabelStyle}>
+          <div
+            className={placeDotStyle}
+            style={{ backgroundColor: dotColor }}
+          />
+          <span className={placeNameStyle}>{place.name}</span>
+        </div>
         <Spreadsheet
           columns={columns}
           data={tokenData}
@@ -221,16 +255,27 @@ const PlaceInitialStateRow = ({
   }
 
   return (
-    <div className={placeRowStyle}>
-      <span className={placeNameStyle}>{place.name}</span>
-      <CodeEditor
-        singleLine
-        language="typescript"
-        path={documentUri}
-        value={tokenCount}
-        onChange={(v) => onTokenCountChange(v ?? "")}
-        placeholder="0"
-      />
+    <div>
+      <div className={placeRowStyle}>
+        <div className={placeLabelStyle}>
+          <div
+            className={placeDotStyle}
+            style={{ backgroundColor: dotColor }}
+          />
+          <span className={placeNameStyle}>{place.name}</span>
+        </div>
+        <CodeEditor
+          singleLine
+          language="typescript"
+          path={documentUri}
+          value={tokenCount}
+          onChange={(v) => onTokenCountChange(v ?? "")}
+          placeholder="0"
+          hasError={!!error}
+          onEditorFocus={onFocus}
+          onEditorBlur={onBlur}
+        />
+      </div>
     </div>
   );
 };
@@ -466,6 +511,33 @@ export const ScenarioFormSections = ({
   idPrefix = "",
   scenarioSessionId,
 }: ScenarioFormSectionsProps) => {
+  const { diagnosticsByUri } = use(LanguageClientContext);
+  const [focusedUri, setFocusedUri] = useState<string | null>(null);
+
+  /**
+   * Get the first diagnostic message for a URI, but only when the field
+   * is NOT focused (so errors don't flash while the user is typing).
+   */
+  const getError = (uri: string | undefined): string | undefined => {
+    if (!uri || uri === focusedUri) {
+      return undefined;
+    }
+    const diagnostics = diagnosticsByUri.get(uri);
+    return diagnostics?.[0]?.message;
+  };
+
+  // Inline validation for name and scenario parameter identifiers
+  const nameHasError = state.name.trim() === "";
+  const identifiersSeen = new Set<string>();
+  const identifierHasError = (id: string): boolean => {
+    if (id === "") {
+      return false; // Don't flag empty while user hasn't typed yet
+    }
+    const isDuplicate = identifiersSeen.has(id);
+    identifiersSeen.add(id);
+    return !SNAKE_CASE_RE.test(id) || isDuplicate;
+  };
+
   const addScenarioParam = () => {
     callbacks.onScenarioParamsChange((prev) => [
       ...prev,
@@ -506,6 +578,7 @@ export const ScenarioFormSections = ({
             size="md"
             value={state.name}
             onChange={(e) => callbacks.onNameChange(e.target.value)}
+            hasError={nameHasError && state.name !== ""}
           />
         </div>
 
@@ -562,6 +635,7 @@ export const ScenarioFormSections = ({
                     })
                   }
                   placeholder="name"
+                  hasError={identifierHasError(param.identifier)}
                 />
               </div>
               <div className={paramFieldSmStyle}>
@@ -618,35 +692,42 @@ export const ScenarioFormSections = ({
         {parameters.length === 0 ? (
           <span className={emptyStyle}>No parameters defined in the net</span>
         ) : (
-          parameters.map((param) => (
-            <div key={param.id} className={overrideRowStyle}>
-              <div className={overrideLabelStyle}>
-                <div className={overrideNameStyle}>{param.name}</div>
-                <div className={overrideVarNameStyle}>{param.variableName}</div>
+          parameters.map((param) => {
+            const uri = scenarioSessionId
+              ? getScenarioDocumentUri(
+                  "scenario-param-override",
+                  scenarioSessionId,
+                  param.id,
+                )
+              : undefined;
+            const error = getError(uri);
+            return (
+              <div key={param.id} className={overrideRowStyle}>
+                <div className={overrideLabelStyle}>
+                  <div className={overrideNameStyle}>{param.name}</div>
+                  <div className={overrideVarNameStyle}>
+                    {param.variableName}
+                  </div>
+                </div>
+                <CodeEditor
+                  singleLine
+                  language="typescript"
+                  path={uri}
+                  value={state.parameterOverrides[param.id] ?? ""}
+                  onChange={(v) =>
+                    callbacks.onParameterOverridesChange((prev) => ({
+                      ...prev,
+                      [param.id]: v ?? "",
+                    }))
+                  }
+                  placeholder={param.defaultValue}
+                  hasError={!!error}
+                  onEditorFocus={() => setFocusedUri(uri ?? null)}
+                  onEditorBlur={() => setFocusedUri(null)}
+                />
               </div>
-              <CodeEditor
-                singleLine
-                language="typescript"
-                path={
-                  scenarioSessionId
-                    ? getScenarioDocumentUri(
-                        "scenario-param-override",
-                        scenarioSessionId,
-                        param.id,
-                      )
-                    : undefined
-                }
-                value={state.parameterOverrides[param.id] ?? ""}
-                onChange={(v) =>
-                  callbacks.onParameterOverridesChange((prev) => ({
-                    ...prev,
-                    [param.id]: v ?? "",
-                  }))
-                }
-                placeholder={param.defaultValue}
-              />
-            </div>
-          ))
+            );
+          })
         )}
       </Section>
 
@@ -658,19 +739,21 @@ export const ScenarioFormSections = ({
         renderHeaderAction={() => (
           <div className={switchLabelStyle}>
             {!state.initialStateAsCode && (
-              <>
-                <span>Show all</span>
+              <div className={switchGroupStyle}>
+                <span>Show all places</span>
                 <Switch
                   checked={state.showAllPlaces}
                   onCheckedChange={callbacks.onShowAllPlacesChange}
                 />
-              </>
+              </div>
             )}
-            <span>Define as code</span>
-            <Switch
-              checked={state.initialStateAsCode}
-              onCheckedChange={callbacks.onInitialStateAsCodeChange}
-            />
+            <div className={switchGroupStyle}>
+              <span>Define as code</span>
+              <Switch
+                checked={state.initialStateAsCode}
+                onCheckedChange={callbacks.onInitialStateAsCodeChange}
+              />
+            </div>
           </div>
         )}
       >
@@ -692,6 +775,13 @@ export const ScenarioFormSections = ({
           />
         ) : places.length === 0 ? (
           <span className={emptyStyle}>No places defined in the net</span>
+        ) : !state.showAllPlaces &&
+          !places.some((place) => place.showAsInitialState) ? (
+          <span className={emptyStyle}>
+            No places marked as &ldquo;Default starting place&rdquo;. Enable
+            that flag on a place in the Properties panel, or toggle &ldquo;Show
+            all places&rdquo; above.
+          </span>
         ) : (
           [...places]
             .filter((place) => state.showAllPlaces || place.showAsInitialState)
@@ -700,38 +790,42 @@ export const ScenarioFormSections = ({
               const bP = b.showAsInitialState ? 0 : 1;
               return aP - bP;
             })
-            .map((place) => (
-              <PlaceInitialStateRow
-                key={place.id}
-                place={place}
-                placeType={
-                  place.colorId ? typesById.get(place.colorId) : undefined
-                }
-                tokenCount={state.initialTokenCounts[place.id] ?? ""}
-                onTokenCountChange={(value) =>
-                  callbacks.onInitialTokenCountsChange((prev) => ({
-                    ...prev,
-                    [place.id]: value,
-                  }))
-                }
-                tokenData={state.initialTokenData[place.id] ?? []}
-                onTokenDataChange={(data) =>
-                  callbacks.onInitialTokenDataChange((prev) => ({
-                    ...prev,
-                    [place.id]: data,
-                  }))
-                }
-                documentUri={
-                  scenarioSessionId
-                    ? getScenarioDocumentUri(
-                        "scenario-initial-state",
-                        scenarioSessionId,
-                        place.id,
-                      )
-                    : undefined
-                }
-              />
-            ))
+            .map((place) => {
+              const uri = scenarioSessionId
+                ? getScenarioDocumentUri(
+                    "scenario-initial-state",
+                    scenarioSessionId,
+                    place.id,
+                  )
+                : undefined;
+              return (
+                <PlaceInitialStateRow
+                  key={place.id}
+                  place={place}
+                  placeType={
+                    place.colorId ? typesById.get(place.colorId) : undefined
+                  }
+                  tokenCount={state.initialTokenCounts[place.id] ?? ""}
+                  onTokenCountChange={(value) =>
+                    callbacks.onInitialTokenCountsChange((prev) => ({
+                      ...prev,
+                      [place.id]: value,
+                    }))
+                  }
+                  tokenData={state.initialTokenData[place.id] ?? []}
+                  onTokenDataChange={(data) =>
+                    callbacks.onInitialTokenDataChange((prev) => ({
+                      ...prev,
+                      [place.id]: data,
+                    }))
+                  }
+                  documentUri={uri}
+                  error={getError(uri)}
+                  onFocus={() => setFocusedUri(uri ?? null)}
+                  onBlur={() => setFocusedUri(null)}
+                />
+              );
+            })
         )}
       </Section>
     </SectionList>
