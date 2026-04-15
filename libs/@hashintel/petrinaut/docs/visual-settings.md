@@ -48,4 +48,4 @@ Choose how arcs are drawn between nodes:
 | ------------------- | -------------------------------------------------- |
 | **Square**          | Right-angle paths (smoothstep routing).            |
 | **Bezier**          | Smooth curved paths.                               |
-| **Adaptive Bezier** | Curved paths that adjust based on node positions.  |
+| **Adaptive Bezier** | Curved paths that adjust based on node positions. (Default)  |

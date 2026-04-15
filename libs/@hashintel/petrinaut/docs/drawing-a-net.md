@@ -8,7 +8,7 @@ The editor is organized around a central canvas where you build your net:
 - **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
-- **Bottom toolbar** -- editing mode buttons and simulation controls.
+- **Bottom toolbar** -- editing mode buttons and simulation controls (+ show/hide toggle for bottom panel).
 
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
 
@@ -16,7 +16,7 @@ The editor is organized around a central canvas where you build your net:
 
 Use the bottom toolbar to add nodes:
 
-- **Add Place** (shortcut: **N**) -- click the canvas to drop a place, or drag the button onto the canvas.
+- **Add Place** (shortcut: **N**) -- click the canvas to drop a place, or click and drag the button onto the canvas.
 - **Add Transition** (shortcut: **T**) -- click the canvas to drop a transition, or drag the button onto the canvas.
 
 New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename them by selecting the node and editing the name in the properties panel.
@@ -37,8 +37,6 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 ## Arc weight
 
 Select an arc to open its properties. Set the **weight** to control how many tokens are consumed (input) or produced (output) per firing.
-
-When weight is greater than 1, a label is displayed on the arc (e.g. "x2").
 
 You can also edit an arc's weight via the properties panel for the transition it is connected to.
 

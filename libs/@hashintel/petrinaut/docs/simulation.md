@@ -7,7 +7,7 @@ Before running a simulation, set the **initial marking** -- the starting tokens 
 Select a place and open the **State** sub-view in its properties:
 
 - **Untyped places** -- set a token count (integer).
-- **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor.
+- **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token.
 
 <img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
 
@@ -30,7 +30,7 @@ The time step in seconds per frame. Controls the resolution of ODE integration a
 - **Smaller dt** -- finer approximation, but slower computation.
 - **Larger dt** -- faster, but less accurate for continuous dynamics.
 
-Default: `0.1` seconds.
+Default: `0.01` seconds.
 
 ### ODE solver
 
@@ -55,9 +55,9 @@ Each simulation step proceeds in two phases:
 1. **Continuous dynamics** -- for every place with dynamics enabled, the differential equation is integrated one step (Euler method, step size = dt). This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
-   - Check structural enablement (enough tokens in input places, inhibitor conditions met).
-   - Evaluate the lambda (predicate or stochastic rate).
-   - If the transition fires, remove input tokens **immediately** (subsequent transitions see the updated state).
+   - Checks structural enablement (enough tokens in input places, inhibitor conditions met).
+   - Evaluates the lambda (predicate or stochastic rate).
+   - If the transition fires, removes input tokens **immediately** (subsequent transitions see the updated state).
 
    All produced output tokens are added at the end of the step.
 
@@ -87,7 +87,7 @@ The frame counter shows the current frame number, total frames, and elapsed simu
 
 ### Speed
 
-Choose a playback speed multiplier: **1x**, **2x**, **5x**, **10x**, **30x**, **60x**, **120x**, or **Max** (as fast as possible).
+Choose a playback speed multiplier via playback settings: **1x**, **2x**, **5x**, **10x**, **30x**, **60x**, **120x**, or **Max** (as fast as possible).
 
 ### Play mode
 
@@ -114,7 +114,7 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
-- **Legend** -- click place names to show/hide individual traces. Hover to dim other traces.
+- **Legend** -- click place names to show/hide individual traces. Hover to dim other traces. Y axis is automatically scaled to the maximum value.
 
 ## Viewing state during simulation
 

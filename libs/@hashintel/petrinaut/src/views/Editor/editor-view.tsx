@@ -8,7 +8,6 @@ import { deploymentPipelineSDCPN } from "../../examples/deployment-pipeline";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
-import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
@@ -271,14 +270,6 @@ export const EditorView = ({
             id: "load-example",
             label: "Load example",
             submenu: [
-              {
-                id: "load-example-supply-chain",
-                label: "Supply Chain",
-                onClick: () => {
-                  createNewNet(supplyChainSDCPN);
-                  clearSelection();
-                },
-              },
               {
                 id: "load-example-supply-chain-stochastic",
                 label: "Probabilistic Supply Chain",

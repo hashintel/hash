@@ -8,29 +8,9 @@ By default, places hold **untyped tokens** -- they only track a count. Tokens ar
 
 To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
 
-## Global parameters
-
-Parameters are named values available in all user-authored code: dynamics, lambdas, kernels, and visualizers. They are accessed via the `parameters` argument.
-
-**To create a parameter:**
-
-1. Open the **Parameters** tab in the left sidebar.
-2. Click **+** to add a new parameter.
-3. Set a **name** (display label), **variable name** (used in code), and **default value**.
-
-<img width="1697" height="847" alt="parameters-SIR" src="https://github.com/user-attachments/assets/1b1df756-1fac-4201-8262-187473f2aeb6" />
-
-Override parameter values before running a simulation in the **Simulation Settings** panel (see [Simulation](simulation.md#simulation-settings)). This lets you experiment with different values without editing code.
-
-**Example:** the [SIR Epidemic Model](examples.md#sir-epidemic-model) defines `infection_rate` and `recovery_rate` as parameters, used in its transition lambdas.
-
-## Types (colours)
-
-A type defines the structure of tokens in a place: what dimensions they have and what data type each dimension holds.
-
 **To create a type:**
 
-1. Open the **Types** tab in the left sidebar.
+1. Open the **Token Types** tab in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
 
@@ -40,6 +20,22 @@ A type defines the structure of tokens in a place: what dimensions they have and
 
 Once a place has a type, its tokens are accessible in code as structured objects. For example, a type with dimensions `x` and `y` means each token is `{ x: number, y: number }`.
 
+## Global parameters
+
+Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, and visualizers. They are accessed via the `parameters` argument.
+
+**To create a parameter:**
+
+1. Open the **Parameters** tab in the left sidebar.
+2. Click **+** to add a new parameter.
+3. Set a **name** (display label), **variable name** (used in code), and **default value** (can be overridden in the simulation settings).
+
+<img width="1697" height="847" alt="parameters-SIR" src="https://github.com/user-attachments/assets/1b1df756-1fac-4201-8262-187473f2aeb6" />
+
+Override parameter values before running a simulation in the **Simulation Settings** panel (see [Simulation](simulation.md#simulation-settings)). This lets you experiment with different values without editing code.
+
+**Example:** the [SIR Epidemic Model](examples.md#sir-epidemic-model) defines `infection_rate` and `recovery_rate` as parameters, used in its transition lambdas.
+
 ## Differential equations (dynamics)
 
 Differential equations define how token data evolves continuously over time. They are integrated at each simulation step using the Euler method.
@@ -47,7 +43,7 @@ Differential equations define how token data evolves continuously over time. The
 **Setup:**
 
 1. Create a differential equation in the **Differential Equations** tab (left sidebar).
-2. Associate it with a **type** (the equation applies to tokens of that type).
+2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
 3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place.
 
 **Function signature:**
@@ -88,6 +84,8 @@ The component receives `tokens` (array of token objects) and `parameters` (globa
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
+You can also toggle between the code, a preview, and both at once.
+
 **Example:** the [Satellites in Orbit](examples.md#satellites-in-orbit) example includes a visualizer that renders Earth and orbiting satellites with velocity vectors.
 
 ## Transition kernel
@@ -103,6 +101,8 @@ export default TransitionKernel((tokensByPlace, parameters) => {
 ```
 
 `tokensByPlace` is keyed by **place name**. Each value is an array of token objects from that input place. The return value is keyed by **output place name**, each containing an array of token objects to produce.
+
+Use the menu in the code editor header to **Load default template** for a starting point.
 
 ### Distributions
 
@@ -132,7 +132,7 @@ For transitions where all output places are **untyped**, the kernel code can be 
 
 ## Firing rate / predicate
 
-Each transition has a **firing rule** that controls when it fires, once structurally enabled (sufficient tokens in input places). Choose between two modes in the transition properties:
+Each transition has a **firing rate** that controls when it fires, once structurally enabled (sufficient tokens in input places). Choose between two modes in the transition properties:
 
 ### Predicate
 
@@ -176,6 +176,6 @@ Inhibitor arcs **do not consume tokens** when the transition fires.
 
 ## Diagnostics
 
-The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, lambdas, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
+The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
 
 Diagnostics must be resolved before running a simulation -- pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation.

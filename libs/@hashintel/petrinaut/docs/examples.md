@@ -18,7 +18,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
-## Drug Production (Stochastic)
+## Supply Chain (Stochastic)
 
 A manufacturing pipeline from raw material suppliers through manufacturing, quality assurance, and shipping to a hospital. Products have a random `quality` attribute that determines whether they pass QA.
 
