@@ -108,9 +108,60 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 };
 
 /**
+ * Key the rate limiter by remote IP. Mirrors the default `express-rate-limit`
+ * behaviour but falls back to a literal `"ip-unavailable"` bucket when
+ * `req.ip` is undefined (which can happen behind certain proxy configurations)
+ * so the default keyGenerator's IP-undefined validation doesn't reject the
+ * request.
+ */
+const ipKey: RateLimitOptions["keyGenerator"] = (req) =>
+  req.ip ? ipKeyGenerator(req.ip) : "ip-unavailable";
+
+/**
  * A rate limiter for routes which grant authentication or authorization credentials
  */
 const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
+
+/**
+ * Rate limit for state-changing Kratos proxy requests (POST login/registration/
+ * settings/recovery/verification submissions).
+ *
+ * These are the endpoints where credential brute-force or stuffing attacks
+ * are meaningful, but the limit is loose enough to cover legitimate bursty
+ * interactions (fat-finger password retries, signup + verify + MFA-setup
+ * in quick succession). Per-identifier brute-force is additionally bounded
+ * by {@link userIdentifierRateLimiter}. GETs on the same proxy are handled
+ * separately by {@link kratosProxyReadRateLimiter}.
+ */
+const kratosProxyMutationRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  limit: 30,
+  keyGenerator: ipKey,
+  // Apply to anything that isn't a GET — POST is the credential-bearing
+  // method on the Kratos self-service endpoints, but PUT/PATCH/DELETE
+  // would also count as state-changing if they ever appear.
+  skip: (req) => req.method === "GET",
+});
+
+/**
+ * Rate limit for Kratos proxy GET reads other than `/sessions/whoami`.
+ *
+ * Flow-creation GETs such as `/self-service/settings/browser` persist a row
+ * in Kratos's DB, so we keep a bound to prevent trivial DB-bloat abuse. The
+ * budget is generous (relative to the credential limit) because a single
+ * user's interaction with an auth flow can legitimately involve several
+ * flow fetches in quick succession.
+ *
+ * `/sessions/whoami` is exempted entirely: it is a cheap session lookup with
+ * no brute-forceable value, and several components in the frontend call it
+ * independently during navigation.
+ */
+const kratosProxyReadRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  limit: 60,
+  keyGenerator: ipKey,
+  skip: (req) => req.method !== "GET" || req.path === "/sessions/whoami",
+});
 
 /**
  * A rate limiter for the GraphQL endpoint.
@@ -145,20 +196,17 @@ const graphqlRateLimiter = rateLimit({
 });
 
 /**
- * A rate limit which throttles requests based on the user identifier rather than the IP address.
+ * A rate limit which throttles signin attempts per user identifier rather than
+ * per IP address, to mitigate brute-force attempts spread across many IPs.
+ *
+ * Applied only when the request body carries an `identifier` field (i.e. an
+ * actual signin submission). Requests without an identifier are not limited
+ * here — the per-IP {@link kratosProxyMutationRateLimiter} handles those.
  */
 const userIdentifierRateLimiter = rateLimit({
   ...baseRateLimitOptions,
-  keyGenerator: (req) => {
-    if (req.body?.identifier) {
-      /**
-       * 'identifier' is the field which identifies the user on a signin attempt.
-       * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
-       */
-      return req.body.identifier as string;
-    }
-    return ipKeyGenerator(req.ip!);
-  },
+  keyGenerator: (req) => req.body?.identifier as string,
+  skip: (req) => typeof req.body?.identifier !== "string",
 });
 
 /**
@@ -534,7 +582,8 @@ const main = async () => {
    */
   app.use(
     "/auth",
-    authRouteRateLimiter,
+    kratosProxyMutationRateLimiter,
+    kratosProxyReadRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
     kratosProxy,
