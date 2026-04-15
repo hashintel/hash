@@ -102,6 +102,8 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+F                | Search                                  |
 | Delete / Backspace   | Delete selection                        |
 
+On Windows/Linux, use Ctrl instead of Cmd.
+
 ## Snap to grid
 
 When enabled, node positions snap to a grid when placing or dragging. Toggle this in [visual settings](visual-settings.md).

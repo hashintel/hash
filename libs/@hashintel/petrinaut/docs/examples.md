@@ -31,7 +31,7 @@ A manufacturing pipeline from raw material suppliers through manufacturing, qual
 
 **Suggested initial state:** set PlantASupply and PlantBSupply to **10** tokens each. Everything else starts empty. The stochastic "Deliver to Plant" transition will begin consuming from both suppliers once the simulation starts.
 
-**Key concepts:** [types](petri-net-extensions.md#types-colours), [distributions](petri-net-extensions.md#distributions), [competing transitions](useful-patterns.md#competing-transitions--routing).
+**Key concepts:** [types](petri-net-extensions.md#typed-vs-untyped-places), [distributions](petri-net-extensions.md#distributions), [competing transitions](useful-patterns.md#competing-transitions--routing).
 
 <img width="1264" height="267" alt="probabilitic-supply-chain" src="https://github.com/user-attachments/assets/3823a252-33ec-4d22-b220-c8aa337698bf" />
 

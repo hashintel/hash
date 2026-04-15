@@ -2,7 +2,7 @@
 
 Petrinaut is a visual editor for [Petri nets](https://en.wikipedia.org/wiki/Petri_net).
 
-It lets you build, configure, and simulate Petri nets. It has support for various extensions including types tokens (colours), continuous dynamics, and stochastic transitions.
+It lets you build, configure, and simulate Petri nets. It has support for various extensions including typed tokens (colours), continuous dynamics, and stochastic transitions.
 
 ## Live site
 

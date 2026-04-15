@@ -129,7 +129,7 @@ export default Lambda((tokensByPlace, parameters) => {
 });
 ```
 
-**Example:** the [Drug Production (Stochastic)](examples.md#drug-production-stochastic) example routes products to dispatch or disposal based on a quality threshold.
+**Example:** the [Supply Chain (Stochastic)](examples.md#supply-chain-stochastic) example routes products to dispatch or disposal based on a quality threshold.
 
 ## Arc weight for multi-token operations
 
