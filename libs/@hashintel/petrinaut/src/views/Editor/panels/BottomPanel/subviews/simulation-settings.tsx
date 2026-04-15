@@ -110,6 +110,8 @@ const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  gap: "4",
+  maxWidth: "[480px]",
   paddingY: "1.5",
   paddingX: "2.5",
   backgroundColor: "neutral.bg.min.active",
