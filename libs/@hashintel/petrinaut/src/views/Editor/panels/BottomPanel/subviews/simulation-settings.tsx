@@ -233,6 +233,7 @@ const SimulationSettingsContent: React.FC = () => {
           }
           options={scenarioOptions}
           size="xs"
+          disabled={isSimulationActive}
           className={scenarioSelectStyle}
           renderItem={(option) => (
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
