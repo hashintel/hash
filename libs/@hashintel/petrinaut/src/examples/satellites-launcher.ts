@@ -373,18 +373,28 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Low gravity, small body. Satellites drift in gentle arcs around a lunar-mass body.",
         scenarioParameters: [
-          { type: "real", identifier: "altitude", default: 20 },
-          { type: "real", identifier: "rate", default: 0.3 },
-          { type: "real", identifier: "velocity", default: 11 },
+          { type: "real", identifier: "launch_rate", default: 0.3 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 20,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 11,
+          },
         ],
         parameterOverrides: {
           // Planet-specific (hardcoded): gravitational_constant, planet_radius
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000",
           "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "14",
           // Forwarded from scenario parameters
-          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.altitude",
-          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.rate",
-          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.velocity",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
+            "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
+            "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -394,9 +404,17 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Standard Earth gravity. High orbital velocities with frequent launches into low orbit.",
         scenarioParameters: [
-          { type: "real", identifier: "altitude", default: 40 },
-          { type: "real", identifier: "rate", default: 0.5 },
-          { type: "real", identifier: "velocity", default: 67 },
+          { type: "real", identifier: "launch_rate", default: 0.5 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 40,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 67,
+          },
         ],
         parameterOverrides: {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "400000",
@@ -413,9 +431,17 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Intermediate gravity between Moon and Earth. Moderate orbital speeds with a thin atmosphere margin.",
         scenarioParameters: [
-          { type: "real", identifier: "altitude", default: 25 },
-          { type: "real", identifier: "rate", default: 0.4 },
-          { type: "real", identifier: "velocity", default: 29 },
+          { type: "real", identifier: "launch_rate", default: 0.4 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 25,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 29,
+          },
         ],
         parameterOverrides: {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "43000",
@@ -432,9 +458,17 @@ export default Dynamics((tokens, parameters) => {
         description:
           "Massive central body with extreme gravity. Satellites need very high velocities to maintain distant orbits.",
         scenarioParameters: [
-          { type: "real", identifier: "altitude", default: 50 },
-          { type: "real", identifier: "rate", default: 0.6 },
-          { type: "real", identifier: "velocity", default: 196 },
+          { type: "real", identifier: "launch_rate", default: 0.6 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 50,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 196,
+          },
         ],
         parameterOverrides: {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000000",
