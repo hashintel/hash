@@ -137,8 +137,17 @@ const headerActionsStyle = css({
   gap: "[8px]",
 });
 
+const metricPickerLabelStyle = css({
+  fontSize: "[10px]",
+  fontWeight: "semibold",
+  textTransform: "uppercase",
+  color: "neutral.a100",
+  letterSpacing: "[0.5px]",
+  flexShrink: 0,
+});
+
 const metricPickerWrapperStyle = css({
-  width: "[130px]",
+  width: "[200px]",
 });
 
 const DEFAULT_METRIC_VALUE = "__default__";
@@ -182,6 +191,7 @@ const TimelineMetricPicker: React.FC = () => {
 
   return (
     <>
+      <span className={metricPickerLabelStyle}>Metric</span>
       <div className={metricPickerWrapperStyle}>
         <Select
           size="xs"
