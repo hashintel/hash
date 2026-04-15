@@ -31,11 +31,6 @@ const chartAreaStyle = css({
   minHeight: "[0]",
 });
 
-const chartWrapperStyle = css({
-  position: "absolute",
-  inset: "[0]",
-});
-
 const legendContainerStyle = css({
   display: "flex",
   flexWrap: "wrap",
@@ -773,6 +768,7 @@ const UPlotChart: React.FC<{
   revision: number;
   totalFrames: number;
   currentFrameIndex: number;
+  className?: string;
 }> = ({
   store,
   chartType,
@@ -780,6 +776,7 @@ const UPlotChart: React.FC<{
   revision,
   totalFrames,
   currentFrameIndex,
+  className,
 }) => {
   "use no memo"; // imperative uPlot lifecycle
   const { setCurrentViewedFrame } = use(PlaybackContext);
@@ -883,7 +880,7 @@ const UPlotChart: React.FC<{
     chartRef.current?.redraw(false, false);
   }, [currentFrameIndex]);
 
-  return <div ref={wrapperRef} style={{ width: "100%", height: "100%" }} />;
+  return <div ref={wrapperRef} className={className} />;
 };
 
 // -- Legend --------------------------------------------------------------------
@@ -963,18 +960,15 @@ const SimulationTimelineContent: React.FC = () => {
 
   return (
     <div className={containerStyle}>
-      <div className={chartAreaStyle}>
-        <div className={chartWrapperStyle}>
-          <UPlotChart
-            store={store}
-            chartType={chartType}
-            hiddenPlaces={hiddenPlaces}
-            revision={revision}
-            totalFrames={totalFrames}
-            currentFrameIndex={currentFrameIndex}
-          />
-        </div>
-      </div>
+      <UPlotChart
+        className={chartAreaStyle}
+        store={store}
+        chartType={chartType}
+        hiddenPlaces={hiddenPlaces}
+        revision={revision}
+        totalFrames={totalFrames}
+        currentFrameIndex={currentFrameIndex}
+      />
       <TimelineLegend
         places={store.places}
         hiddenPlaces={hiddenPlaces}
