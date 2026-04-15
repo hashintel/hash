@@ -802,17 +802,27 @@ const UPlotChart: React.FC<{
     setCurrentViewedFrame(Math.max(0, Math.min(idx, totalFrames - 1)));
   });
 
-  // Columnar data from the store (React Compiler memoizes)
-  const data =
-    chartType === "stacked"
-      ? buildStackedData(store, hiddenPlaces)
-      : buildRunData(store, hiddenPlaces);
+  // Columnar data from the store. Manual useMemo because we opted out of
+  // React Compiler ("use no memo"), and buildStackedData allocates O(places ×
+  // frames) per call. Without memoization it would recompute on every render
+  // (e.g. every playback frame), and the result would be silently discarded
+  // since Effect 3 only consumes it when `revision` changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- revision encodes store changes
+  const data = useMemo(
+    () =>
+      chartType === "stacked"
+        ? buildStackedData(store, hiddenPlaces)
+        : buildRunData(store, hiddenPlaces),
+    [revision, chartType, hiddenPlaces],
+  );
 
   // -- Effect 1: create/destroy uPlot on structural changes -------------------
 
   useEffect(() => {
+    // Note: parent (SimulationTimelineContent) gates on store.length === 0,
+    // so this component only mounts once data is available.
     const wrapper = wrapperRef.current;
-    if (!wrapper || !size || store.length === 0) {
+    if (!wrapper || !size) {
       return;
     }
 
