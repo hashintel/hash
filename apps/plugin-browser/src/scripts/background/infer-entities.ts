@@ -97,8 +97,18 @@ const enqueueTask = (task: () => Promise<void>) => {
 };
 
 const waitForConnection = async (socket: WebSocket) => {
-  while (socket.readyState !== socket.OPEN) {
+  const timeout = 10_000;
+  const start = Date.now();
+  while (socket.readyState === socket.CONNECTING) {
+    if (Date.now() - start > timeout) {
+      throw new Error("WebSocket connection timed out");
+    }
     await sleep(200);
+  }
+  if (socket.readyState !== socket.OPEN) {
+    throw new Error(
+      `WebSocket is ${socket.readyState === socket.CLOSING ? "closing" : "closed"}`,
+    );
   }
 };
 
@@ -114,14 +124,18 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
   const newWs = new WebSocket(websocketUrl);
 
   const externalRequestPoll = setInterval(() => {
-    void getCookieString().then((cookie) =>
-      newWs.send(
-        JSON.stringify({
-          cookie,
-          type: "check-for-external-input-requests",
-        } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
-      ),
-    );
+    void getCookieString()
+      .then((cookie) =>
+        newWs.send(
+          JSON.stringify({
+            cookie,
+            type: "check-for-external-input-requests",
+          } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+        ),
+      )
+      .catch(() => {
+        // No session cookies — skip this poll tick.
+      });
   }, 20_000);
 
   newWs.addEventListener("open", () => {
@@ -136,9 +150,10 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
     onClose();
   });
 
-  newWs.addEventListener("error", () => {
+  newWs.addEventListener("error", (event) => {
     console.error(
       "WebSocket error encountered. Closing and attempting to reconnect...",
+      event,
     );
     newWs.close();
   });
@@ -148,7 +163,13 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event: MessageEvent<string>) => {
-      const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+      let message: InferenceWebsocketServerMessage;
+      try {
+        message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+      } catch {
+        console.error("Malformed WebSocket message:", event.data);
+        return;
+      }
 
       const { workflowId, payload } = message;
       if (payload.type === "get-urls-html-content") {

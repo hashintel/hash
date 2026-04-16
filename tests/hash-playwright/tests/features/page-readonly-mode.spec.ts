@@ -1,6 +1,5 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { loginUsingUi } from "../shared/login-using-ui";
 import { expect, test } from "../shared/runtime";
 
 const placeholderSelector =
@@ -13,11 +12,6 @@ const placeholderSelector =
 test.skip("user can view page in read-only mode but not update", async ({
   page,
 }) => {
-  await loginUsingUi({
-    page,
-    accountShortName: "alice",
-  });
-
   // TODO: investigate why delay is required for create page button to work
   await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();

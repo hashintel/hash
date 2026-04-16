@@ -4,8 +4,6 @@ import { expect } from "@playwright/test";
 import { deleteUserByEmail } from "./delete-user";
 import { getKratosVerificationCode } from "./get-kratos-verification-code";
 
-const defaultPassword = "some-complex-pw-1ab2";
-
 /**
  * `deleteUserByEmail` intentionally preserves the user's web principal so
  * entity types created under it remain valid for other webs that reference
@@ -24,7 +22,7 @@ const uniqueShortname = (base: string): string => {
  */
 export const registerUser = async (
   page: Page,
-  { email, password = defaultPassword }: { email: string; password?: string },
+  { email, password }: { email: string; password: string },
 ) => {
   await page.goto("/signup", { waitUntil: "networkidle" });
 
@@ -102,12 +100,12 @@ export const createUserAndCompleteSignup = async (
     email,
     shortname,
     displayName,
-    password = defaultPassword,
+    password,
   }: {
     email: string;
     shortname: string;
     displayName?: string;
-    password?: string;
+    password: string;
   },
 ) => {
   await deleteUserByEmail(email);

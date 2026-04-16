@@ -2,7 +2,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "../shared/browser-plugin-fixtures/fixtures";
-import { loginUsingTempForm } from "../shared/login-using-temp-form";
+import { expectSignedIn, signInWithPassword } from "../shared/signin-utils";
 
 const loggedOutHeaderLocator = "text=Connect to HASH";
 const createAccountButtonLocator = "text=Create a free account";
@@ -47,10 +47,33 @@ const waitForPopupStateLoaded = (page: Page) =>
       }),
   );
 
+type PopupTab = "one-off" | "automated" | "history";
+
+/**
+ * Navigate to the popup, wait for mount-time fetches to settle, then
+ * switch to the given tab. Pins `popupTab` in `chrome.storage.local`
+ * first so a late `getUser` write can't flip the tab back.
+ */
+const openPopupTab = async (page: Page, extensionId: string, tab: PopupTab) => {
+  await page.goto(`chrome-extension://${extensionId}/popup.html`);
+  await waitForPopupStateLoaded(page);
+  await page.evaluate(
+    async (targetTab) => chrome.storage.local.set({ popupTab: targetTab }),
+    tab,
+  );
+  const label =
+    tab === "one-off"
+      ? "One-off"
+      : tab === "automated"
+        ? "Automated"
+        : "History";
+  await page.click(`text=${label}`);
+  await waitForPopupStateLoaded(page);
+};
+
 /**
  * Type a name into an open entity-type autocomplete and select the
- * matching option. ArrowDown is required because the component doesn't
- * use MUI's `autoHighlight`.
+ * first matching option via ArrowDown + Enter.
  */
 const selectEntityTypeOption = async (
   page: Page,
@@ -131,7 +154,8 @@ const signOutAndReloadPopup = async ({
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(page.locator(loggedOutHeaderLocator)).toBeVisible();
 
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(page.locator("text=One-off")).toBeVisible();
 };
@@ -151,7 +175,8 @@ test("popup window loads with logged-in state", async ({
   page,
   extensionId,
 }) => {
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
 
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
@@ -173,7 +198,8 @@ test("options page loads with logged-in state", async ({
   page,
   extensionId,
 }) => {
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
 
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
@@ -184,59 +210,57 @@ test("user can type a quick note which persists across logouts", async ({
   page,
   extensionId,
 }) => {
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
 
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await waitForPopupStateLoaded(page);
-  await page.click("text=One-off");
-  await waitForPopupStateLoaded(page);
+  await openPopupTab(page, extensionId, "one-off");
 
   // Unique per-run value so the write is always observably different
-  // from persisted backend state. Dispatching a native `input` event
-  // triggers MUI's controlled `TextField` onChange more reliably than
-  // `page.fill`, which sometimes skips the handler when the prior
-  // value matches.
+  // from persisted backend state.
   const testQuickNote = `Hello, world! Here's a note ${Date.now()}`;
-  const settingsSaved = waitForSettingsSave(page);
-  await page.locator(quickNoteInputLocator).evaluate((element, value) => {
-    const descriptor = Object.getOwnPropertyDescriptor(
-      HTMLTextAreaElement.prototype,
-      "value",
-    );
-    descriptor?.set?.call(element, value);
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  }, testQuickNote);
-  await settingsSaved;
+  await page.fill(quickNoteInputLocator, testQuickNote);
+
+  // `setInLocalStorage` writes the draft to `chrome.storage.local`
+  // immediately, but the backend `updateEntity` mutation fires after a
+  // 1 s debounce. Playwright can't observe extension background
+  // traffic, so we poll storage until the value lands, then wait for
+  // the debounce + backend round-trip to complete before signing out.
+  await page.waitForFunction(
+    async (expected) => {
+      const { draftQuickNote } =
+        await chrome.storage.local.get("draftQuickNote");
+      return draftQuickNote === expected;
+    },
+    testQuickNote,
+    { timeout: 5_000 },
+  );
+  // The 1 s debounce must fire and the backend must respond before we
+  // sign out, otherwise the old value survives. Two idle windows
+  // (500 ms each) cover: debounce fires → storage write from the
+  // response → idle.
+  await waitForPopupStateLoaded(page);
+  await waitForPopupStateLoaded(page);
 
   await signOutAndReloadPopup({ extensionId, page });
-
-  // Backend-restored `popupTab` may land on "automated" after login.
-  await waitForPopupStateLoaded(page);
-  await page.click("text=One-off");
+  await openPopupTab(page, extensionId, "one-off");
 
   await expect(page.locator(quickNoteInputLocator)).toHaveValue(testQuickNote);
 });
 
-/**
- * Selecting a type also adds its linked types (see H-1721), so Actor +
- * Document yields four chips. Exact-regex matches avoid colliding with
- * e.g. `Document File`.
- *
- * @todo verify the correct WebSocket message is sent to the API when
- *   `Suggest entities` is clicked — see
- *   https://github.com/microsoft/playwright/issues/15684#issuecomment-1892644655
- */
+// Selecting a type also adds its linked types as targets, so Actor +
+// Document produces chips for [Actor, Block, Document, Has Indexed Content].
+//
+// @todo verify the correct WebSocket message is sent to the API when
+//   `Suggest entities` is clicked — see
+//   https://github.com/microsoft/playwright/issues/15684#issuecomment-1892644655
 test("user can configure a one-off inference, and the settings are persisted", async ({
   page,
   extensionId,
 }) => {
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
 
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await waitForPopupStateLoaded(page);
-  await page.click("text=One-off");
-  await waitForPopupStateLoaded(page);
-
+  await openPopupTab(page, extensionId, "one-off");
   await resetOneOffState(page);
 
   await page.click(entityTypeSelectorLocator);
@@ -249,14 +273,14 @@ test("user can configure a one-off inference, and the settings are persisted", a
   await waitForSettingsSave(page);
 
   await signOutAndReloadPopup({ extensionId, page });
-
-  await waitForPopupStateLoaded(page);
-  await page.click("text=One-off");
+  await openPopupTab(page, extensionId, "one-off");
 
   const chipLabel = (name: string) =>
     page.locator(".MuiChip-label").filter({ hasText: new RegExp(`^${name}$`) });
   await expect(chipLabel("Actor")).toHaveCount(1);
   await expect(chipLabel("Document")).toHaveCount(1);
+  await expect(chipLabel("Block")).toHaveCount(1);
+  await expect(chipLabel("Has Indexed Content")).toHaveCount(1);
 });
 
 /**
@@ -268,13 +292,10 @@ test("user can enable automatic inference, and the settings are persisted", asyn
   page,
   extensionId,
 }) => {
-  await loginUsingTempForm({ page });
+  await signInWithPassword(page);
+  await expectSignedIn(page);
 
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await waitForPopupStateLoaded(page);
-  await page.click("text=Automated");
-  await waitForPopupStateLoaded(page);
-
+  await openPopupTab(page, extensionId, "automated");
   await resetAutomatedState(page);
 
   // `SelectScope` initializes `showTable` and `draftRule` from
@@ -296,10 +317,7 @@ test("user can enable automatic inference, and the settings are persisted", asyn
   await settingsSaved;
 
   await signOutAndReloadPopup({ extensionId, page });
-
-  await waitForPopupStateLoaded(page);
-  await page.click("text=Automated");
-  await waitForPopupStateLoaded(page);
+  await openPopupTab(page, extensionId, "automated");
   await expect(page.locator("text=Enabled")).toBeVisible();
   await expect(page.locator("[value=Actor]")).toBeVisible();
 });

@@ -1,16 +1,16 @@
 import { expect, test } from "../shared/runtime";
 import {
+  clearSessionCookies,
   expectSignedIn,
   expectSignedOut,
   signInWithPassword,
-  signOut,
 } from "../shared/signin-utils";
 import { testUsers, withTestUser } from "../shared/test-users";
 
 test("user can sign in with password", async ({ page }) => {
   const credentials = await withTestUser(page, testUsers.signinTest);
 
-  await signOut(page);
+  await clearSessionCookies(page);
   await expectSignedOut(page);
 
   await signInWithPassword(page, credentials);

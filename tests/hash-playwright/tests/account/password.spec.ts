@@ -1,9 +1,9 @@
 import { getKratosRecoveryCode } from "../shared/get-kratos-verification-code";
 import { expect, test } from "../shared/runtime";
 import {
+  clearSessionCookies,
   expectSignedIn,
   signInWithPassword,
-  signOut,
 } from "../shared/signin-utils";
 import { testUsers, withTestUser } from "../shared/test-users";
 
@@ -20,7 +20,7 @@ test("user can change password from settings", async ({ page }) => {
     timeout: 5_000,
   });
 
-  await signOut(page);
+  await clearSessionCookies(page);
   await signInWithPassword(page, {
     email: credentials.email,
     password: newPassword,
@@ -32,7 +32,7 @@ test("user can recover account and set a new password", async ({ page }) => {
   const newPassword = "recovered-pw-3cd4";
   const credentials = await withTestUser(page, testUsers.pwRecovery);
 
-  await signOut(page);
+  await clearSessionCookies(page);
 
   // Start recovery flow
   const recoveryFlowReady = page.waitForResponse(
@@ -84,7 +84,7 @@ test("user can recover account and set a new password", async ({ page }) => {
     timeout: 5_000,
   });
 
-  await signOut(page);
+  await clearSessionCookies(page);
   await signInWithPassword(page, {
     email: credentials.email,
     password: newPassword,

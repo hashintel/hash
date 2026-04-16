@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "../shared/runtime";
-import { signInWithPassword, signOut } from "../shared/signin-utils";
+import {
+  clearSessionCookies,
+  signInWithPassword,
+} from "../shared/signin-utils";
 import { testUsers, withTestUser } from "../shared/test-users";
 import { generateTotpCode, waitForFreshTotpWindow } from "../shared/totp-utils";
 
@@ -54,7 +57,7 @@ test("user with TOTP is prompted for code at login", async ({ page }) => {
   const credentials = await withTestUser(page, testUsers.mfaLogin);
   const { secret } = await enableTotpForCurrentUser(page);
 
-  await signOut(page);
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
 
@@ -78,7 +81,7 @@ test("user can use backup code instead of TOTP", async ({ page }) => {
 
   expect(backupCodes.length).toBeGreaterThan(0);
 
-  await signOut(page);
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
   await expect(
@@ -113,7 +116,7 @@ test("user can disable TOTP", async ({ page }) => {
     page.locator('[data-testid="regenerate-backup-codes-button"]'),
   ).not.toBeVisible();
 
-  await signOut(page);
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
 
@@ -127,7 +130,7 @@ test("wrong TOTP code shows error at login", async ({ page }) => {
   const credentials = await withTestUser(page, testUsers.mfaWrongCode);
   await enableTotpForCurrentUser(page);
 
-  await signOut(page);
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
   await expect(

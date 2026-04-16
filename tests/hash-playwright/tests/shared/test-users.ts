@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { deleteUserByEmail } from "./delete-user";
 import { createUserAndCompleteSignup } from "./signup-utils";
 
-const defaultPassword = "test-pw-1ab2";
+export const defaultPassword = "test-pw-1ab2";
 
 interface TestUser {
   readonly email: string;

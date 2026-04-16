@@ -1,9 +1,15 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+/** Pre-seeded default user (see `seed-users.ts`). */
+const aliceCredentials = {
+  email: "alice@example.com",
+  password: "password",
+};
+
 export const signInWithPassword = async (
   page: Page,
-  { email, password }: { email: string; password: string },
+  { email, password }: { email: string; password: string } = aliceCredentials,
 ) => {
   await page.goto("/signin");
   await page.fill('[placeholder="Enter your email address"]', email);
@@ -15,7 +21,7 @@ export const signInWithPassword = async (
  * Drop the user's session cookies. Does not exercise the Kratos logout
  * flow — for that, see the dedicated sign-out test.
  */
-export const signOut = async (page: Page) => {
+export const clearSessionCookies = async (page: Page) => {
   await page.context().clearCookies();
 };
 

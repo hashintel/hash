@@ -5,7 +5,7 @@ import {
   registerUser,
   verifyEmailOnPage,
 } from "../shared/signup-utils";
-import { testUsers } from "../shared/test-users";
+import { defaultPassword, testUsers } from "../shared/test-users";
 
 test("allowlisted user can verify email and complete signup", async ({
   page,
@@ -13,7 +13,10 @@ test("allowlisted user can verify email and complete signup", async ({
   const { email } = testUsers.signupAllowlisted;
   await deleteUserByEmail(email);
 
-  const { emailDispatchTimestamp } = await registerUser(page, { email });
+  const { emailDispatchTimestamp } = await registerUser(page, {
+    email,
+    password: defaultPassword,
+  });
 
   await verifyEmailOnPage(page, {
     email,
@@ -34,6 +37,7 @@ test("waitlisted user is redirected to waitlist after signup", async ({
 
   const { emailDispatchTimestamp } = await registerUser(page, {
     email: waitlistedEmail,
+    password: defaultPassword,
   });
 
   await verifyEmailOnPage(page, {

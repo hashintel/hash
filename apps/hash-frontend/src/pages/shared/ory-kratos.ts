@@ -57,7 +57,7 @@ export type FlowValues = Flows[FlowNames][0];
  *   does not serve these paths, redirects need to be rewritten to the
  *   matching `uiPath` to avoid dead-ending on a 404.
  */
-export const flowMetadata = {
+const _flowMetadata = {
   login: {
     uiPath: "/signin",
     kratosBrowserPath: "/self-service/login/browser",
@@ -74,17 +74,17 @@ export const flowMetadata = {
     uiPath: "/settings/security",
     kratosBrowserPath: "/self-service/settings/browser",
   },
-  // `settingsWithPassword` shares its UI route and Kratos endpoint with
-  // `settings`. The split is purely a TypeScript-level distinction over the
-  // submit-body shape (see `Flows[settingsWithPassword]`), not over routing.
-  settingsWithPassword: {
-    uiPath: "/settings/security",
-    kratosBrowserPath: "/self-service/settings/browser",
-  },
   verification: {
     uiPath: "/verification",
     kratosBrowserPath: "/self-service/verification/browser",
   },
+} as const;
+
+// `settingsWithPassword` shares routes with `settings` — the split is
+// purely a TypeScript-level distinction over the submit-body shape.
+export const flowMetadata = {
+  ..._flowMetadata,
+  settingsWithPassword: _flowMetadata.settings,
 } as const satisfies Record<
   FlowNames,
   { uiPath: string; kratosBrowserPath: string }
@@ -106,7 +106,8 @@ export const uiPathForKratosBrowserRedirect = (
   try {
     parsed = new URL(redirectUrl);
   } catch {
-    // Malformed URL — caller will fall back to the raw redirect string.
+    // eslint-disable-next-line no-console
+    console.warn("Malformed Kratos redirect URL:", redirectUrl);
     return undefined;
   }
 
@@ -118,7 +119,7 @@ export const uiPathForKratosBrowserRedirect = (
 };
 
 export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
-  flow: FlowValues,
+  flow: Flows[T][0],
 ): Flows[T][1] =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)

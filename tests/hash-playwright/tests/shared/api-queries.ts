@@ -33,28 +33,37 @@ const callGraphQlApi = async <Response, Variables>(
     variables?: Variables;
   },
 ): Promise<{ data?: Response; errors?: GraphQLError[] }> => {
-  return requestContext
-    .post(`${apiOrigin}/graphql`, {
-      data: { query, variables },
-    })
-    .then(
-      (resp) =>
-        resp.json() as Promise<{ data?: Response; errors?: GraphQLError[] }>,
+  const resp = await requestContext.post(`${apiOrigin}/graphql`, {
+    data: { query, variables },
+  });
+  if (!resp.ok()) {
+    throw new Error(
+      `GraphQL request failed: ${resp.status()} ${resp.statusText()}`,
     );
+  }
+  const body = (await resp.json()) as {
+    data?: Response;
+    errors?: GraphQLError[];
+  };
+  if (body.errors?.length) {
+    throw new Error(
+      `GraphQL errors: ${body.errors.map((err) => err.message).join(", ")}`,
+    );
+  }
+  return body;
 };
 
 export const getUser = async (requestContext: APIRequestContext) => {
-  return callGraphQlApi<MeQuery, MeQueryVariables>(requestContext, {
-    query: meQuery,
-  }).then(({ data }) => {
-    return !data
-      ? undefined
-      : getRoots(
-          deserializeSubgraph<EntityRootType<HashEntity<User>>>(
-            data.me.subgraph,
-          ),
-        )[0];
-  });
+  const { data } = await callGraphQlApi<MeQuery, MeQueryVariables>(
+    requestContext,
+    { query: meQuery },
+  );
+  if (!data) {
+    throw new Error("meQuery returned no data");
+  }
+  return getRoots(
+    deserializeSubgraph<EntityRootType<HashEntity<User>>>(data.me.subgraph),
+  )[0];
 };
 
 export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
