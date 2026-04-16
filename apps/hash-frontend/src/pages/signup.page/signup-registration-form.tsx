@@ -18,6 +18,7 @@ import {
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";
+import { SsoProviderButtons } from "../shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
 
 export const SignupRegistrationForm: FunctionComponent = () => {
@@ -249,6 +250,13 @@ export const SignupRegistrationForm: FunctionComponent = () => {
           ))}
           {errorMessage ? <Typography>{errorMessage}</Typography> : null}
         </Box>
+        {flow ? (
+          <SsoProviderButtons
+            kind="registration"
+            flow={flow}
+            onFlowError={handleFlowError}
+          />
+        ) : null}
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
           <Typography
             sx={{

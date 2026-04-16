@@ -605,7 +605,11 @@ const SigninPage: NextPageWithLayout = () => {
             Create a free account
           </Button>
           {flow ? (
-            <SsoProviderButtons flow={flow} onFlowError={handleFlowError} />
+            <SsoProviderButtons
+              kind="login"
+              flow={flow}
+              onFlowError={handleFlowError}
+            />
           ) : null}
         </Box>
       </Box>
