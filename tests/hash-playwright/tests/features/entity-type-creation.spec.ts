@@ -1,5 +1,3 @@
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-
 import { changeSidebarListDisplay } from "../shared/change-sidebar-list-display";
 import { expect, test } from "../shared/runtime";
 
@@ -15,13 +13,17 @@ test("user can create entity type", async ({ page }) => {
     section: "Types",
   });
 
+  const sidebar = page.getByTestId("page-sidebar");
+
   // Expand the Types section so the "create entity type" button is in the
   // DOM — the button is only rendered as an end-adornment on the Types
   // list header when the section is open.
-  await page.locator("text=Types").first().click();
+  await sidebar.getByText("Types", { exact: true }).click();
 
-  // Go to Create Entity Type
-  await page.locator('[data-testid="create-entity-type-btn"]').click();
+  // Wait for the button to appear after the section expands, then click
+  const createBtn = sidebar.getByTestId("create-entity-type-btn");
+  await expect(createBtn).toBeVisible();
+  await createBtn.click();
   await page.waitForURL(
     (url) => !!url.pathname.match(/^\/new\/types\/entity-type/),
   );
@@ -75,8 +77,6 @@ test("user can create entity type", async ({ page }) => {
   // Publish the entity type
 
   await page.click('[data-testid="editbar-confirm"]');
-
-  await sleep(5_000);
 
   await page.waitForURL(
     (url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()),
