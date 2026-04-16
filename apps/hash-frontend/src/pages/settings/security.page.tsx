@@ -80,7 +80,7 @@ const extractBackupCodesFromFlow = (flow: SettingsFlow): string[] => {
   // The data comes from Kratos in any case.
   const withNewlines = codesText.replace(/<br\s*\/?>/gi, "\n");
   const parsed = new DOMParser().parseFromString(withNewlines, "text/html");
-  const plainText = parsed.body.textContent ?? "";
+  const plainText = parsed.body.textContent;
 
   return plainText
     .split("\n")
@@ -153,7 +153,7 @@ const SecurityPage: NextPageWithLayout = () => {
           }
 
           setErrorMessage(
-            error.response?.data?.ui?.messages?.[0]?.text ??
+            error.response?.data.ui.messages?.[0]?.text ??
               "Something went wrong. Please try again.",
           );
           return undefined;
