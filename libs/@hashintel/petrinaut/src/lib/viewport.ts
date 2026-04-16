@@ -7,13 +7,14 @@ type Viewport = {
   height: number;
 };
 
+// returns the amount offscreen as a postive integer for each direction
 const getOffscreenAmount = (viewport: Viewport, nodes: Node[]) => {
   const { x, y, width, height } = getNodesBounds(nodes);
   return {
-    left: Math.min(x - viewport.x, 0),
-    right: Math.min(x + width - (viewport.x + viewport.width), 0),
-    bottom: Math.min(y - viewport.y, 0),
-    top: Math.min(y + height - (viewport.y + viewport.height), 0),
+    left: Math.max(viewport.x - x, 0),
+    right: Math.max(x + width - (viewport.x + viewport.width), 0),
+    top: Math.max(viewport.y - y, 0),
+    bottom: Math.max(y + height - (viewport.y + viewport.height), 0),
   };
 };
 
@@ -35,5 +36,5 @@ export const recenterToFitViewport = (viewport: Viewport, nodes: Node[]) => {
   if (!canFitInViewport(viewport, nodes)) return;
 
   const { left, right, top, bottom } = getOffscreenAmount(viewport, nodes);
-  return { x: left < 0 ? left * -1 : right, y: top < 0 ? top : bottom * -1 };
+  return { x: left > 0 ? left * -1 : right, y: top > 0 ? top * -1 : bottom };
 };
