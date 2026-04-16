@@ -1,3 +1,4 @@
+import { Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import { TbArrowRight, TbTrash } from "react-icons/tb";
@@ -27,9 +28,8 @@ const jumpButtonContainerStyle = css({
 });
 
 const hintTextStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[12px]",
   color: "neutral.s95",
-  fontStyle: "italic",
 });
 
 const typeColorDotStyle = css({
@@ -312,6 +312,27 @@ const PlaceMainContent: React.FC = () => {
               </>
             )
           )}
+        </Section>
+        <Section
+          title="Default starting place"
+          tooltip="Pre-selects this place when creating a new scenario."
+          renderHeaderLeading={() => (
+            <Checkbox
+              checked={!!place.showAsInitialState}
+              disabled={isReadOnly}
+              onCheckedChange={(checked) => {
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.showAsInitialState = checked === true;
+                });
+              }}
+            />
+          )}
+        >
+          <div className={hintTextStyle}>
+            {place.showAsInitialState
+              ? "This place should have an initial marking defined to run the net, and will be pre-selected in new scenarios."
+              : "Enable if this place should have an initial marking defined to run the net. It will be pre-selected in new scenarios."}
+          </div>
         </Section>
       </SectionList>
     </div>

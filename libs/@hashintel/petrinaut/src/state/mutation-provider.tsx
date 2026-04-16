@@ -20,7 +20,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
   mutatePetriNetDefinition,
   children,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { petriNetDefinition, readonly } = use(SDCPNContext);
   const { compactNodes } = use(UserSettingsContext);
   const isReadOnly = useIsReadOnly();
 
@@ -30,6 +30,17 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
 
   function guardedMutate(fn: (sdcpn: SDCPN) => void): void {
     if (isReadOnly) {
+      return;
+    }
+    mutatePetriNetDefinition(fn);
+  }
+
+  /**
+   * Scenario CRUD is allowed even in simulate mode (the Simulate panel is
+   * where scenarios are managed). Only true `readonly` blocks them.
+   */
+  function scenarioMutate(fn: (sdcpn: SDCPN) => void): void {
+    if (readonly) {
       return;
     }
     mutatePetriNetDefinition(fn);
@@ -278,6 +289,38 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         for (const [index, parameter] of sdcpn.parameters.entries()) {
           if (parameter.id === parameterId) {
             sdcpn.parameters.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
+    addScenario(scenario) {
+      scenarioMutate((sdcpn) => {
+        const scenarios = sdcpn.scenarios ?? [];
+        scenarios.push(scenario);
+        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
+        sdcpn.scenarios = scenarios;
+      });
+    },
+    updateScenario(scenarioId, updateFn) {
+      scenarioMutate((sdcpn) => {
+        for (const scenario of sdcpn.scenarios ?? []) {
+          if (scenario.id === scenarioId) {
+            updateFn(scenario);
+            break;
+          }
+        }
+      });
+    },
+    removeScenario(scenarioId) {
+      scenarioMutate((sdcpn) => {
+        const scenarios = sdcpn.scenarios;
+        if (!scenarios) {
+          return;
+        }
+        for (const [index, scenario] of scenarios.entries()) {
+          if (scenario.id === scenarioId) {
+            scenarios.splice(index, 1);
             break;
           }
         }
