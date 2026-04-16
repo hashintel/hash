@@ -1,0 +1,89 @@
+import type { PetrinautReactFlowInstance, NodeType } from "../reactflow-types";
+import { use, useEffect, useRef } from "react";
+
+import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
+import { EditorContext } from "../../../state/editor-context";
+import { parseArcId } from "../../../state/selection";
+
+const RE_CENTER_PADDING = 20;
+
+/**
+ * When the bottom panel or properties panel opens with selected nodes,
+ * check whether those nodes are still visible in the reduced viewport
+ * and pan to bring them into view if needed.
+ */
+export function useRecenterOnPanelOpen(
+  canvasRef: React.RefObject<HTMLElement | null>,
+  reactFlowInstance: PetrinautReactFlowInstance | null,
+  nodes: NodeType[],
+) {
+  const {
+    isBottomPanelOpen,
+    bottomPanelHeight,
+    hasSelection,
+    selection,
+    propertiesPanelWidth,
+  } = use(EditorContext);
+
+  const prevBottomPanelOpen = useRef(isBottomPanelOpen);
+  const prevHasSelection = useRef(hasSelection);
+
+  useEffect(() => {
+    const bottomJustOpened = isBottomPanelOpen && !prevBottomPanelOpen.current;
+    const propertiesJustOpened = hasSelection && !prevHasSelection.current;
+
+    prevBottomPanelOpen.current = isBottomPanelOpen;
+    prevHasSelection.current = hasSelection;
+
+    if (!reactFlowInstance) return;
+    if (!canvasRef.current) return;
+    if (!bottomJustOpened && !propertiesJustOpened) return;
+    if (selection.size === 0) return;
+
+    const selectedNodeIds = new Set<string>();
+    for (const item of selection.values()) {
+      if (item.type === "arc") {
+        const parsed = parseArcId(item.id);
+        if (parsed) {
+          selectedNodeIds.add(parsed.sourceId);
+          selectedNodeIds.add(parsed.targetId);
+        }
+      } else if (item.type === "place" || item.type === "transition") {
+        selectedNodeIds.add(item.id);
+      }
+    }
+
+    const selectedNodes = nodes.filter((node) => selectedNodeIds.has(node.id));
+    if (selectedNodes.length === 0) return;
+
+    const originalViewport = reactFlowInstance.getViewport();
+    const viewport = getViewportRect(canvasRef.current, originalViewport);
+
+    if (hasSelection) viewport.width -= propertiesPanelWidth / viewport.zoom;
+    if (isBottomPanelOpen) viewport.height -= bottomPanelHeight / viewport.zoom;
+
+    const adjustment = recenterToFitViewport(
+      reactFlowInstance,
+      viewport,
+      selectedNodes,
+    );
+    if (adjustment && (adjustment.x !== 0 || adjustment.y !== 0)) {
+      // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
+      reactFlowInstance.setViewport({
+        x:
+          originalViewport.x - RE_CENTER_PADDING - adjustment.x * viewport.zoom,
+        y:
+          originalViewport.y - RE_CENTER_PADDING - adjustment.y * viewport.zoom,
+        zoom: viewport.zoom,
+      });
+    }
+  }, [
+    isBottomPanelOpen,
+    bottomPanelHeight,
+    hasSelection,
+    selection,
+    propertiesPanelWidth,
+    nodes,
+    reactFlowInstance,
+  ]);
+}
