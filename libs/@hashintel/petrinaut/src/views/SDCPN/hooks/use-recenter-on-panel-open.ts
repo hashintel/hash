@@ -69,13 +69,19 @@ export function useRecenterOnPanelOpen(
     );
     if (adjustment && (adjustment.x !== 0 || adjustment.y !== 0)) {
       // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
-      reactFlowInstance.setViewport({
-        x:
-          originalViewport.x - RE_CENTER_PADDING - adjustment.x * viewport.zoom,
-        y:
-          originalViewport.y - RE_CENTER_PADDING - adjustment.y * viewport.zoom,
-        zoom: viewport.zoom,
-      });
+      reactFlowInstance
+        .setViewport({
+          x:
+            originalViewport.x -
+            RE_CENTER_PADDING -
+            adjustment.x * viewport.zoom,
+          y:
+            originalViewport.y -
+            RE_CENTER_PADDING -
+            adjustment.y * viewport.zoom,
+          zoom: viewport.zoom,
+        })
+        .catch(() => {});
     }
   }, [
     isBottomPanelOpen,
