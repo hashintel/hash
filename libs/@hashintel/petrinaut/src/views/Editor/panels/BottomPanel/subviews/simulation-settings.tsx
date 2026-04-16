@@ -1,33 +1,70 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbArrowRight } from "react-icons/tb";
+import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 
+import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
+import { Slider } from "../../../../../components/slider";
+import { Switch } from "../../../../../components/switch";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
+import { ViewScenarioDrawer } from "../../SimulateView/view-scenario-drawer";
+
+// -- Styles -------------------------------------------------------------------
+
+const rootStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  height: "full",
+  minHeight: "[0]",
+  gap: "3",
+});
+
+const scenarioRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: 0,
+});
+
+const scenarioLabelStyle = css({
+  fontSize: "[10px]",
+  fontWeight: "semibold",
+  textTransform: "uppercase",
+  color: "neutral.a100",
+  letterSpacing: "[0.5px]",
+  flexShrink: 0,
+});
+
+const scenarioSelectStyle = css({
+  width: "[200px]",
+});
 
 const containerStyle = css({
-  display: "flex",
-  flexDirection: "row",
+  display: "grid",
+  gridTemplateColumns: "[1fr 1fr]",
   gap: "8",
+  flex: "[1]",
+  minHeight: "[0]",
 });
 
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  flex: "[1]",
+  minHeight: "[0]",
 });
 
 const sectionTitleStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[10px]",
   fontWeight: "semibold",
   textTransform: "uppercase",
-  color: "neutral.a80",
+  color: "neutral.a100",
   letterSpacing: "[0.5px]",
   marginBottom: "1",
 });
@@ -65,12 +102,16 @@ const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
+  overflowY: "auto",
+  minHeight: "[0]",
 });
 
 const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  gap: "4",
+  maxWidth: "[480px]",
   paddingY: "1.5",
   paddingX: "2.5",
   backgroundColor: "neutral.bg.min.active",
@@ -93,115 +134,258 @@ const parameterInputStyle = css({
   textAlign: "right",
 });
 
+const ratioRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: "2",
+});
+
+const ratioSliderStyle = css({
+  width: "[120px]",
+  opacity: "[1]",
+});
+
+const ratioInputStyle = css({
+  width: "[65px]",
+  textAlign: "right",
+});
+
 const emptyMessageStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
   fontStyle: "italic",
 });
 
-const errorContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  paddingY: "2",
-  paddingX: "3",
-  backgroundColor: "red.bg.min",
-  borderRadius: "sm",
-  marginTop: "2",
-});
+// -- Component ----------------------------------------------------------------
 
-const errorTextStyle = css({
-  fontSize: "[11px]",
-  color: "red.s60",
-  maxWidth: "[400px]",
-  wordWrap: "break-word",
-  userSelect: "text",
-  cursor: "text",
-  textWrap: "wrap",
-});
-
-const editButtonStyle = css({
-  fontSize: "[11px]",
-  paddingY: "1",
-  paddingX: "2",
-  border: "[1px solid rgba(211, 47, 47, 0.3)]",
-  borderRadius: "sm",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "red.s60",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  marginTop: "1",
-  alignSelf: "flex-start",
-});
-
-const editButtonIconStyle = css({
-  fontSize: "xs",
-});
+const NO_SCENARIO = "__none__";
 
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel.
- * Split into two sections: Computation and Parameters.
+ * Includes a scenario picker, parameters section, and computation settings.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const { setGlobalMode, selectItem } = use(EditorContext);
+  const { setGlobalMode } = use(EditorContext);
   const {
-    getItemType,
-    petriNetDefinition: { parameters },
+    petriNetDefinition: { parameters, scenarios },
   } = use(SDCPNContext);
   const {
     state: simulationState,
-    error: simulationError,
-    errorItemId,
     dt,
     setDt,
     parameterValues,
     setParameterValue,
+    selectedScenarioId: contextScenarioId,
+    setSelectedScenarioId: setContextScenarioId,
+    scenarioParameterValues,
+    setScenarioParameterValue,
   } = use(SimulationContext);
 
-  // Local state for ODE solver (not used in simulation yet, but UI is ready)
+  const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [odeSolver, setOdeSolver] = useState("euler");
+  const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
+  const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
+  const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
+
+  // When a scenario is selected, show its scenario parameters + overridden net params.
+  // When no scenario, show net-level parameters.
+  const displayParams: Array<{
+    key: string;
+    name: string;
+    variableName: string;
+    type: "real" | "integer" | "boolean" | "ratio";
+    defaultValue: string;
+  }> = selectedScenario
+    ? selectedScenario.scenarioParameters.map((sp) => ({
+        key: `sp-${sp.identifier}`,
+        name: sp.identifier,
+        variableName: sp.identifier,
+        type: sp.type,
+        defaultValue: String(sp.default),
+      }))
+    : parameters.map((p) => ({
+        key: p.id,
+        name: p.name,
+        variableName: p.variableName,
+        type: p.type,
+        defaultValue: p.defaultValue,
+      }));
+
+  const scenarioOptions = [
+    { value: NO_SCENARIO, label: "No scenario" },
+    ...(scenarios ?? []).map((s) => ({ value: s.id, label: s.name })),
+  ];
+
   return (
-    <div>
+    <div className={rootStyle}>
+      {/* Scenario Picker */}
+      <div className={scenarioRowStyle}>
+        <span className={scenarioLabelStyle}>Scenario</span>
+        <Select
+          value={selectedScenarioId}
+          onValueChange={(value) =>
+            setContextScenarioId(value === NO_SCENARIO ? null : value)
+          }
+          options={scenarioOptions}
+          size="xs"
+          disabled={isSimulationActive}
+          className={scenarioSelectStyle}
+          renderItem={(option) => (
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {option.value === NO_SCENARIO && (
+                <TbMinus size={12} style={{ opacity: 0.4 }} />
+              )}
+              {option.label}
+            </span>
+          )}
+        />
+        <div style={{ display: "flex" }}>
+          {selectedScenario && (
+            <IconButton
+              size="xs"
+              variant="ghost"
+              aria-label="Edit scenario"
+              tooltip="Edit Scenario"
+              onClick={() => setIsViewScenarioOpen(true)}
+            >
+              <TbPencil size={14} />
+            </IconButton>
+          )}
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Create scenario"
+            tooltip="Create Scenario"
+            onClick={() => setIsCreateScenarioOpen(true)}
+          >
+            <TbPlus size={14} />
+          </IconButton>
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Manage scenarios"
+            tooltip="Manage Scenarios"
+            onClick={() => setGlobalMode("simulate")}
+          >
+            <TbList size={14} />
+          </IconButton>
+        </div>
+      </div>
+      <CreateScenarioDrawer
+        open={isCreateScenarioOpen}
+        onClose={() => setIsCreateScenarioOpen(false)}
+      />
+      <ViewScenarioDrawer
+        open={isViewScenarioOpen}
+        onClose={() => setIsViewScenarioOpen(false)}
+        scenario={selectedScenario}
+      />
+
       <div className={containerStyle}>
         {/* Parameters Section */}
         <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Parameters</div>
-          {parameters.length > 0 ? (
+          <div className={sectionTitleStyle}>
+            {selectedScenario ? "Scenario Parameters" : "Parameters"}
+          </div>
+          {displayParams.length > 0 ? (
             <div className={parametersListStyle}>
-              {parameters.map((param) => (
-                <div key={param.id} className={parameterRowStyle}>
+              {displayParams.map((param) => (
+                <div key={param.key} className={parameterRowStyle}>
                   <div>
                     <div className={parameterNameStyle}>{param.name}</div>
                     <div className={parameterVarNameStyle}>
                       {param.variableName}
                     </div>
                   </div>
-                  <NumberInput
-                    size="xs"
-                    value={
-                      parameterValues[param.variableName] ?? param.defaultValue
-                    }
-                    onChange={(event) =>
-                      setParameterValue(
-                        param.variableName,
-                        (event.target as HTMLInputElement).value,
-                      )
-                    }
-                    placeholder={param.defaultValue}
-                    disabled={isSimulationActive}
-                    className={parameterInputStyle}
-                  />
+                  {param.type === "boolean" && selectedScenario ? (
+                    <Switch
+                      checked={
+                        (scenarioParameterValues[param.variableName] ??
+                          param.defaultValue) !== "0"
+                      }
+                      onCheckedChange={(checked) =>
+                        setScenarioParameterValue(
+                          param.variableName,
+                          checked ? "1" : "0",
+                        )
+                      }
+                      disabled={isSimulationActive}
+                    />
+                  ) : param.type === "ratio" && selectedScenario ? (
+                    <div className={ratioRowStyle}>
+                      <Slider
+                        className={ratioSliderStyle}
+                        min={0}
+                        max={1}
+                        step={0.00001}
+                        value={Number(
+                          scenarioParameterValues[param.variableName] ??
+                            param.defaultValue,
+                        )}
+                        onChange={(e) =>
+                          setScenarioParameterValue(
+                            param.variableName,
+                            e.target.value,
+                          )
+                        }
+                        disabled={isSimulationActive}
+                      />
+                      <NumberInput
+                        size="xs"
+                        min={0}
+                        max={1}
+                        step={0.00001}
+                        value={
+                          scenarioParameterValues[param.variableName] ??
+                          param.defaultValue
+                        }
+                        onChange={(e) =>
+                          setScenarioParameterValue(
+                            param.variableName,
+                            (e.target as HTMLInputElement).value,
+                          )
+                        }
+                        disabled={isSimulationActive}
+                        className={ratioInputStyle}
+                      />
+                    </div>
+                  ) : (
+                    <NumberInput
+                      size="xs"
+                      value={
+                        selectedScenario
+                          ? (scenarioParameterValues[param.variableName] ??
+                            param.defaultValue)
+                          : (parameterValues[param.variableName] ??
+                            param.defaultValue)
+                      }
+                      onChange={(event) => {
+                        const val = (event.target as HTMLInputElement).value;
+                        if (selectedScenario) {
+                          setScenarioParameterValue(param.variableName, val);
+                        } else {
+                          setParameterValue(param.variableName, val);
+                        }
+                      }}
+                      placeholder={param.defaultValue}
+                      disabled={isSimulationActive}
+                      className={parameterInputStyle}
+                    />
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            <div className={emptyMessageStyle}>No parameters defined</div>
+            <div className={emptyMessageStyle}>
+              {selectedScenario
+                ? "No scenario parameters defined"
+                : "No parameters defined"}
+            </div>
           )}
         </div>
 
@@ -218,8 +402,8 @@ const SimulationSettingsContent: React.FC = () => {
               <NumberInput
                 id="time-step-input"
                 size="xs"
-                min={0.01}
-                step={0.01}
+                min={0.001}
+                step={0.001}
                 value={dt}
                 onChange={(event) => {
                   const value = Number.parseFloat(
@@ -250,29 +434,6 @@ const SimulationSettingsContent: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Error Display */}
-      {simulationState === "Error" && simulationError && (
-        <div className={errorContainerStyle}>
-          <pre className={errorTextStyle}>{simulationError}</pre>
-          {errorItemId && (
-            <button
-              type="button"
-              onClick={() => {
-                setGlobalMode("edit");
-                const itemType = getItemType(errorItemId);
-                if (itemType) {
-                  selectItem({ type: itemType, id: errorItemId });
-                }
-              }}
-              className={editButtonStyle}
-            >
-              Edit Item
-              <TbArrowRight className={editButtonIconStyle} />
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 };

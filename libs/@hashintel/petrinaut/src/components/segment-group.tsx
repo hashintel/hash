@@ -10,7 +10,6 @@ const rootStyle = cva({
   base: {
     "--root-border-width": "1px",
     display: "flex",
-    alignItems: "center",
     gap: "0.5",
     backgroundColor: "neutral.s15",
     borderColor: "neutral.s25",
@@ -30,9 +29,25 @@ const rootStyle = cva({
         "--root-padding": "1px",
       },
     },
+    orientation: {
+      horizontal: {
+        flexDirection: "row",
+        alignItems: "center",
+      },
+      vertical: {
+        flexDirection: "column",
+        alignItems: "stretch",
+        "--root-border-radius": token("radii.md"),
+        "--root-border-width": "0px",
+        "--root-padding": "2px",
+        gap: "1",
+        borderWidth: "0",
+      },
+    },
   },
   defaultVariants: {
     size: "md",
+    orientation: "horizontal",
   },
 });
 
@@ -45,7 +60,6 @@ const indicatorStyle = css({
 
 const itemStyle = cva({
   base: {
-    flex: "1",
     position: "relative",
     zIndex: 1,
     display: "flex",
@@ -54,7 +68,7 @@ const itemStyle = cva({
     fontWeight: "medium",
     cursor: "pointer",
     transition: "[color 200ms]",
-    overflow: "hidden",
+    whiteSpace: "nowrap",
   },
   variants: {
     size: {
@@ -71,6 +85,18 @@ const itemStyle = cva({
         paddingX: "2",
         fontSize: "xs",
         borderRadius: "sm",
+      },
+    },
+    orientation: {
+      horizontal: {
+        flex: "1",
+      },
+      vertical: {
+        flex: "none",
+        padding: "1.5",
+        paddingX: "1.5",
+        height: "auto",
+        borderRadius: "md",
       },
     },
     disabled: {
@@ -90,7 +116,6 @@ const itemContentStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    gap: "4",
     transition: "[color 200ms]",
   },
   variants: {
@@ -102,12 +127,27 @@ const itemContentStyle = cva({
         color: "neutral.s100",
       },
     },
+    iconOnly: {
+      true: {
+        gap: "0",
+      },
+      false: {
+        gap: "1.5",
+      },
+    },
+  },
+  defaultVariants: {
+    iconOnly: false,
   },
 });
 
 const itemIconStyle = css({
   fontSize: "xs",
   flexShrink: 0,
+});
+
+const itemControlStyle = css({
+  display: "none",
 });
 
 const tooltipWrapperStyle = css({
@@ -118,6 +158,8 @@ export interface SegmentOption {
   value: string;
   label: string;
   icon?: ReactNode;
+  /** Hide the label text (icon-only mode). */
+  hideLabel?: boolean;
   disabled?: boolean;
   tooltip?: string;
 }
@@ -128,6 +170,8 @@ interface SegmentGroupProps {
   onChange: (value: string) => void;
   /** Size variant. Defaults to "md". */
   size?: "md" | "sm";
+  /** Orientation. Defaults to "horizontal". */
+  orientation?: "horizontal" | "vertical";
   disabled?: boolean;
 }
 
@@ -136,12 +180,14 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
   options,
   onChange,
   size = "md",
+  orientation = "horizontal",
   disabled = false,
 }) => {
   return (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
+      orientation={orientation}
       onValueChange={(details) => {
         if (details.value) {
           const selectedOption = options.find(
@@ -152,7 +198,7 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
           }
         }
       }}
-      className={rootStyle({ size })}
+      className={rootStyle({ size, orientation })}
     >
       <ArkSegmentGroup.Indicator
         className={indicatorStyle}
@@ -175,24 +221,29 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
             key={option.value}
             value={option.value}
             disabled={isItemDisabled}
-            className={itemStyle({ size, disabled: isItemDisabled })}
+            className={itemStyle({
+              size,
+              orientation,
+              disabled: isItemDisabled,
+            })}
           >
             <ArkSegmentGroup.ItemText
               className={itemContentStyle({
                 selected: value === option.value,
+                iconOnly: option.hideLabel ?? false,
               })}
             >
               {option.icon && (
                 <span className={itemIconStyle}>{option.icon}</span>
               )}
-              {option.label}
+              {option.hideLabel ? null : option.label}
             </ArkSegmentGroup.ItemText>
-            <ArkSegmentGroup.ItemControl />
+            <ArkSegmentGroup.ItemControl className={itemControlStyle} />
             <ArkSegmentGroup.ItemHiddenInput />
           </ArkSegmentGroup.Item>
         );
 
-        if (option.disabled && option.tooltip) {
+        if (option.tooltip) {
           return (
             <Tooltip
               key={option.value}

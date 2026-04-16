@@ -1,11 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
+import { TbArrowRight } from "react-icons/tb";
 import type { Diagnostic } from "vscode-languageserver-types";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import { LanguageClientContext } from "../../../../../lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+import { SimulationContext } from "../../../../../simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import type { SelectionItemType } from "../../../../../state/selection";
@@ -95,6 +97,46 @@ const positionStyle = css({
   marginLeft: "[8px]",
 });
 
+const simulationErrorStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  paddingY: "2",
+  paddingX: "3",
+  backgroundColor: "red.bg.min",
+  borderRadius: "sm",
+  marginBottom: "3",
+});
+
+const simulationErrorTextStyle = css({
+  fontSize: "[11px]",
+  color: "red.s60",
+  wordWrap: "break-word",
+  userSelect: "text",
+  cursor: "text",
+  textWrap: "wrap",
+});
+
+const editButtonStyle = css({
+  fontSize: "[11px]",
+  paddingY: "1",
+  paddingX: "2",
+  border: "[1px solid rgba(211, 47, 47, 0.3)]",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s00",
+  cursor: "pointer",
+  color: "red.s60",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  marginTop: "1",
+  alignSelf: "flex-start",
+});
+
+const editButtonIconStyle = css({
+  fontSize: "xs",
+});
+
 type EntityType = "transition" | "differential-equation";
 
 interface GroupedDiagnostics {
@@ -115,8 +157,13 @@ const DiagnosticsContent: React.FC = () => {
   const { diagnosticsByUri, totalDiagnosticsCount } = use(
     LanguageClientContext,
   );
-  const { petriNetDefinition } = use(SDCPNContext);
-  const { selectItem } = use(EditorContext);
+  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { selectItem, setGlobalMode } = use(EditorContext);
+  const {
+    state: simulationState,
+    error: simulationError,
+    errorItemId,
+  } = use(SimulationContext);
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set(),
@@ -199,7 +246,9 @@ const DiagnosticsContent: React.FC = () => {
     });
   }, []);
 
-  if (totalDiagnosticsCount === 0) {
+  const hasSimulationError = simulationState === "Error" && !!simulationError;
+
+  if (totalDiagnosticsCount === 0 && !hasSimulationError) {
     return (
       <div className={emptyMessageStyle}>No errors detected in your model</div>
     );
@@ -207,6 +256,29 @@ const DiagnosticsContent: React.FC = () => {
 
   return (
     <>
+      {/* Simulation runtime error */}
+      {hasSimulationError && (
+        <div className={simulationErrorStyle}>
+          <pre className={simulationErrorTextStyle}>{simulationError}</pre>
+          {errorItemId && (
+            <button
+              type="button"
+              onClick={() => {
+                setGlobalMode("edit");
+                const itemType = getItemType(errorItemId);
+                if (itemType) {
+                  selectItem({ type: itemType, id: errorItemId });
+                }
+              }}
+              className={editButtonStyle}
+            >
+              Edit Item
+              <TbArrowRight className={editButtonIconStyle} />
+            </button>
+          )}
+        </div>
+      )}
+
       {groupedDiagnostics.map((group) => {
         const entityKey = `${group.entityType}:${group.entityId}`;
         const isExpanded = !collapsedEntities.has(entityKey);
