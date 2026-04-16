@@ -19,6 +19,7 @@ import type {
 import { LanguageClientContext } from "../../../../lsp/context";
 import { CodeEditor } from "../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../monaco/editor-paths";
+import { NumberInput } from "../../../../components/number-input";
 
 // -- Form styles --------------------------------------------------------------
 
@@ -683,17 +684,30 @@ export const ScenarioFormSections = ({
               </div>
               <div className={paramFieldSmStyle}>
                 <span className={paramLabelStyle}>Default</span>
-                <Input
-                  size="sm"
-                  value={String(param.default)}
-                  onChange={(e) => {
-                    let val = Number(e.target.value) || 0;
-                    if (param.type === "ratio") {
-                      val = Math.max(0, Math.min(1, val));
+                {param.type === "boolean" ? (
+                  <Switch
+                    checked={param.default !== 0}
+                    onCheckedChange={(checked) =>
+                      updateScenarioParam(param._key, {
+                        default: checked ? 1 : 0,
+                      })
                     }
-                    updateScenarioParam(param._key, { default: val });
-                  }}
-                />
+                  />
+                ) : (
+                  <NumberInput
+                    size="sm"
+                    step={param.type === "integer" ? 1 : 0.001}
+                    value={String(param.default)}
+                    onChange={(e) => {
+                      let val =
+                        Number((e.target as HTMLInputElement).value) || 0;
+                      if (param.type === "ratio") {
+                        val = Math.max(0, Math.min(1, val));
+                      }
+                      updateScenarioParam(param._key, { default: val });
+                    }}
+                  />
+                )}
               </div>
               <IconButton
                 size="xs"
