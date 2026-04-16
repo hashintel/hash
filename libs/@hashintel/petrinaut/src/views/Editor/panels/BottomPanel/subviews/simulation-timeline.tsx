@@ -158,6 +158,7 @@ const metricPickerWrapperStyle = css({
 // (or `metric__*` in examples) so these cannot collide.
 const PER_PLACE_VALUE = "__per_place__";
 const PER_TYPE_VALUE = "__per_type__";
+const PER_TRANSITION_VALUE = "__per_transition__";
 
 function viewToSelectValue(view: TimelineView): string {
   switch (view.kind) {
@@ -165,6 +166,8 @@ function viewToSelectValue(view: TimelineView): string {
       return PER_PLACE_VALUE;
     case "per-type":
       return PER_TYPE_VALUE;
+    case "per-transition":
+      return PER_TRANSITION_VALUE;
     case "metric":
       return view.metricId;
   }
@@ -176,6 +179,9 @@ function selectValueToView(value: string): TimelineView {
   }
   if (value === PER_TYPE_VALUE) {
     return { kind: "per-type" };
+  }
+  if (value === PER_TRANSITION_VALUE) {
+    return { kind: "per-transition" };
   }
   return { kind: "metric", metricId: value };
 }
@@ -212,6 +218,7 @@ const TimelineViewPicker: React.FC = () => {
   const options = [
     { value: PER_PLACE_VALUE, label: "Tokens per place" },
     { value: PER_TYPE_VALUE, label: "Tokens per type" },
+    { value: PER_TRANSITION_VALUE, label: "Transition firings" },
     ...metrics.map((m) => ({ value: m.id, label: m.name })),
   ];
 
@@ -333,7 +340,7 @@ function useStreamingData(): {
 
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
-    petriNetDefinition: { places, types, metrics = [] },
+    petriNetDefinition: { places, types, transitions, metrics = [] },
   } = use(SDCPNContext);
   const { timelineView } = use(EditorContext);
 
@@ -394,6 +401,126 @@ function useStreamingData(): {
         series: [],
         extract: () => Number.NaN,
       };
+    }
+
+    if (timelineView.kind === "per-transition") {
+      // One series per transition; value at time t is the delta of an
+      // **interpolated** cumulative firing count over the trailing window.
+      //
+      // The raw `firingCount` is an integer step function, which makes the
+      // windowed delta visually spiky. To smooth it, we use the transition's
+      // `timeSinceLastFiringMs` and the most recent inter-firing interval
+      // to linearly ramp the cumulative from k to k+1 while the transition
+      // is between its k-th and expected (k+1)-th firing:
+      //
+      //   smoothed(t) = firingCount + min(1, tsl / lastInterval)
+      //
+      // Before a second firing occurs there's no interval estimate yet, so
+      // we fall back to the integer cumulative until one is known. The
+      // windowed delta is then computed from these floating-point values.
+      const PER_TRANSITION_WINDOW_SEC = 4;
+      // Exponential low-pass on the output. 0 < α ≤ 1; smaller = smoother
+      // (more lag). α ≈ 0.15 gives a ~6–7 frame effective window.
+      const OUTPUT_EWMA_ALPHA = 0.15;
+
+      const series: PlaceMeta[] = transitions.map((transition, index) => ({
+        placeId: `transition__${transition.id}`,
+        placeName: transition.name,
+        color: DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+      }));
+      const transitionIds = transitions.map((t) => t.id);
+
+      // Per-series state. Recreated when seriesConfig is recreated
+      // (view/transitions change). Simulation restart (time regression) is
+      // detected below and clears the buffers in-place.
+      const timeHistory: number[] = [];
+      const cumulativeHistories: number[][] = transitions.map(() => []);
+      const lastFiringTimes: (number | null)[] = transitions.map(() => null);
+      const lastIntervals: (number | null)[] = transitions.map(() => null);
+      const prevFiringCounts: number[] = transitions.map(() => 0);
+      const smoothedOutputs: number[] = transitions.map(() => 0);
+
+      const resetState = () => {
+        timeHistory.length = 0;
+        for (const history of cumulativeHistories) {
+          history.length = 0;
+        }
+        for (let i = 0; i < transitions.length; i++) {
+          lastFiringTimes[i] = null;
+          lastIntervals[i] = null;
+          prevFiringCounts[i] = 0;
+          smoothedOutputs[i] = 0;
+        }
+      };
+
+      const extract: SeriesExtractor = (frame, seriesIdx) => {
+        const id = transitionIds[seriesIdx];
+        if (!id) {
+          return 0;
+        }
+
+        // On the first series of each frame, grow (or reset) the shared
+        // time history. A time regression means the simulation restarted.
+        if (seriesIdx === 0) {
+          const last = timeHistory[timeHistory.length - 1];
+          if (last !== undefined && frame.time < last) {
+            resetState();
+          }
+          timeHistory.push(frame.time);
+        }
+
+        const transitionState = frame.transitions[id];
+        const firingCount = transitionState?.firingCount ?? 0;
+        const tslSec = (transitionState?.timeSinceLastFiringMs ?? 0) / 1000;
+
+        // If the firing count increased since the last frame we observed,
+        // a firing just occurred — update the last-firing time and, when
+        // we already had one, the observed inter-firing interval.
+        if (firingCount > prevFiringCounts[seriesIdx]!) {
+          const prevFiringTime = lastFiringTimes[seriesIdx] ?? null;
+          if (prevFiringTime !== null) {
+            const interval = frame.time - prevFiringTime;
+            if (interval > 0) {
+              lastIntervals[seriesIdx] = interval;
+            }
+          }
+          lastFiringTimes[seriesIdx] = frame.time;
+        }
+        prevFiringCounts[seriesIdx] = firingCount;
+
+        // Interpolated cumulative: ramp linearly over the last known
+        // interval; cap at +1 so we never overshoot the next firing.
+        const interval = lastIntervals[seriesIdx] ?? null;
+        const interpolated =
+          interval !== null && interval > 0
+            ? firingCount + Math.min(1, tslSec / interval)
+            : firingCount;
+
+        cumulativeHistories[seriesIdx]!.push(interpolated);
+
+        // Find the cumulative value at the first stored time ≤ t − window.
+        // If no such entry exists, treat the baseline as 0 (pre-simulation).
+        const targetTime = frame.time - PER_TRANSITION_WINDOW_SEC;
+        const history = cumulativeHistories[seriesIdx]!;
+        let prev = 0;
+        // Skip the current-frame entry (just pushed) by starting at length-2.
+        for (let i = timeHistory.length - 2; i >= 0; i--) {
+          if (timeHistory[i]! <= targetTime) {
+            prev = history[i]!;
+            break;
+          }
+        }
+        const rawDelta = interpolated - prev;
+
+        // Exponential low-pass on the output to tame the residual
+        // stochastic noise in firing intervals. Single MAC per frame.
+        const smoothed =
+          OUTPUT_EWMA_ALPHA * rawDelta +
+          (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
+        smoothedOutputs[seriesIdx] = smoothed;
+        return smoothed;
+      };
+      return { series, extract };
     }
 
     if (timelineView.kind === "per-type") {
@@ -460,7 +587,14 @@ function useStreamingData(): {
       return id ? (frame.places[id]?.count ?? 0) : 0;
     };
     return { series, extract };
-  }, [timelineView, places, types, selectedMetric, compiledMetric.fn]);
+  }, [
+    timelineView,
+    places,
+    types,
+    transitions,
+    selectedMetric,
+    compiledMetric.fn,
+  ]);
 
   const storeRef = useRef<StreamingStore>(
     createEmptyStore(seriesConfig.series),

@@ -30,11 +30,14 @@ export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
  * - `per-place`: a series per place, counting tokens over time.
  * - `per-type`: a series per color/type, counting tokens across all places
  *   that use that type (places with no color are aggregated as "Untyped").
+ * - `per-transition`: a series per transition, plotting its cumulative
+ *   firing count over time.
  * - `metric`: a single series computed by a user-authored metric function.
  */
 export type TimelineView =
   | { kind: "per-place" }
   | { kind: "per-type" }
+  | { kind: "per-transition" }
   | { kind: "metric"; metricId: string };
 
 /**
