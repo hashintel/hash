@@ -5,11 +5,15 @@ import {
   expectSignedIn,
   signInWithPassword,
 } from "../shared/signin-utils";
-import { testUsers, withTestUser } from "../shared/test-users";
+import { createUserAndCompleteSignup } from "../shared/signup-utils";
+import { testUsers } from "../shared/test-users";
 
 test("user can change password from settings", async ({ page }) => {
   const newPassword = "changed-pw-5ef6";
-  const credentials = await withTestUser(page, testUsers.pwChange);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.pwChange,
+  );
 
   await page.goto("/settings/security", { waitUntil: "networkidle" });
 
@@ -30,7 +34,10 @@ test("user can change password from settings", async ({ page }) => {
 
 test("user can recover account and set a new password", async ({ page }) => {
   const newPassword = "recovered-pw-3cd4";
-  const credentials = await withTestUser(page, testUsers.pwRecovery);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.pwRecovery,
+  );
 
   await clearSessionCookies(page);
 

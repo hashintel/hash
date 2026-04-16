@@ -1,8 +1,3 @@
-import type { Page } from "@playwright/test";
-
-import { deleteUserByEmail } from "./delete-user";
-import { createUserAndCompleteSignup } from "./signup-utils";
-
 export const defaultPassword = "test-pw-1ab2";
 
 interface TestUser {
@@ -58,13 +53,3 @@ export const testUsers = {
     "Signup Allow",
   ),
 } as const;
-
-/**
- * Clean up any leftover Kratos identity, then create and complete signup
- * for the given test user. Returns the user's credentials.
- */
-export const withTestUser = async (page: Page, testUser: TestUser) => {
-  await deleteUserByEmail(testUser.email);
-  await createUserAndCompleteSignup(page, testUser);
-  return { email: testUser.email, password: testUser.password };
-};

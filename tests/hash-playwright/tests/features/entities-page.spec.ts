@@ -1,4 +1,7 @@
-import { changeSidebarListDisplay } from "../shared/change-sidebar-list-display";
+import {
+  changeSidebarListDisplay,
+  expandSidebarSection,
+} from "../shared/change-sidebar-list-display";
 import { expect, test } from "../shared/runtime";
 
 test("user can visit a page listing entities of a type", async ({ page }) => {
@@ -11,14 +14,11 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
     section: "Entities",
   });
 
+  await expandSidebarSection({ page, section: "Entities" });
+
   const sidebar = page.getByTestId("page-sidebar");
-
-  // Expand the entities list in the sidebar
-  await sidebar.getByText("Entities", { exact: true }).click();
-
-  // Wait for entity types to load inside the expanded section
   const documentItem = sidebar.getByText("Document", { exact: true });
-  await expect(documentItem).toBeVisible({ timeout: 10_000 });
+  await expect(documentItem).toBeVisible();
   await documentItem.click();
 
   await page.waitForURL((url) => {

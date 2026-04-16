@@ -3,7 +3,8 @@ import {
   clearSessionCookies,
   signInWithPassword,
 } from "../shared/signin-utils";
-import { testUsers, withTestUser } from "../shared/test-users";
+import { createUserAndCompleteSignup } from "../shared/signup-utils";
+import { testUsers } from "../shared/test-users";
 import { generateTotpCode, waitForFreshTotpWindow } from "../shared/totp-utils";
 
 const enableTotpForCurrentUser = async (page: Page) => {
@@ -46,7 +47,7 @@ const enableTotpForCurrentUser = async (page: Page) => {
 };
 
 test("user can enable TOTP", async ({ page }) => {
-  await withTestUser(page, testUsers.mfaEnable);
+  await createUserAndCompleteSignup(page, testUsers.mfaEnable);
 
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
@@ -54,7 +55,10 @@ test("user can enable TOTP", async ({ page }) => {
 });
 
 test("user with TOTP is prompted for code at login", async ({ page }) => {
-  const credentials = await withTestUser(page, testUsers.mfaLogin);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaLogin,
+  );
   const { secret } = await enableTotpForCurrentUser(page);
 
   await clearSessionCookies(page);
@@ -76,7 +80,10 @@ test("user with TOTP is prompted for code at login", async ({ page }) => {
 });
 
 test("user can use backup code instead of TOTP", async ({ page }) => {
-  const credentials = await withTestUser(page, testUsers.mfaBackup);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaBackup,
+  );
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
   expect(backupCodes.length).toBeGreaterThan(0);
@@ -96,7 +103,10 @@ test("user can use backup code instead of TOTP", async ({ page }) => {
 });
 
 test("user can disable TOTP", async ({ page }) => {
-  const credentials = await withTestUser(page, testUsers.mfaDisable);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaDisable,
+  );
   await enableTotpForCurrentUser(page);
 
   await page.goto("/settings/security");
@@ -127,7 +137,10 @@ test("user can disable TOTP", async ({ page }) => {
 });
 
 test("wrong TOTP code shows error at login", async ({ page }) => {
-  const credentials = await withTestUser(page, testUsers.mfaWrongCode);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaWrongCode,
+  );
   await enableTotpForCurrentUser(page);
 
   await clearSessionCookies(page);

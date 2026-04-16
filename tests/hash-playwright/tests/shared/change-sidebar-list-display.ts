@@ -1,10 +1,21 @@
 import { expect, type Page } from "@playwright/test";
 
+const waitForUpdateEntity = (page: Page) =>
+  page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/graphql") &&
+      res.request().postData()?.includes("updateEntity") === true,
+  );
+
 /**
  * Changes the user's settings for how entities or types should be
- * displayed in the sidebar, and waits for the sidebar to reflect the
- * change. In list mode the section appears as an expandable header
- * (non-link); in link mode it appears as a regular nav link.
+ * displayed in the sidebar, waits for the sidebar to reflect the
+ * change, and — in list mode — expands the section.
+ *
+ * Each step waits for its `updateEntity` PATCH to complete before
+ * proceeding to avoid concurrent-update errors on the user entity
+ * (see FE-600).
  */
 export const changeSidebarListDisplay = async ({
   displayAs,
@@ -19,27 +30,71 @@ export const changeSidebarListDisplay = async ({
   await page.getByRole("link", { name: "Settings" }).click();
   await page.getByRole("link", { name: "Personalization" }).click();
 
-  const switchLabel = `${section} as a`;
+  const toggle = page.getByLabel(`${section} as a`);
+  await expect(toggle).toBeVisible();
 
-  await expect(page.getByLabel(switchLabel)).toBeVisible();
+  const alreadyCorrect =
+    displayAs === "list"
+      ? await toggle.isChecked()
+      : !(await toggle.isChecked());
 
-  if (
-    (displayAs === "link" &&
-      (await page.getByLabel(switchLabel).isChecked())) ||
-    (displayAs === "list" && !(await page.getByLabel(switchLabel).isChecked()))
-  ) {
-    await page.getByLabel(switchLabel).check();
+  if (!alreadyCorrect) {
+    const patchDone = waitForUpdateEntity(page);
+
+    if (displayAs === "list") {
+      await toggle.check();
+    } else {
+      await toggle.uncheck();
+    }
+
+    await patchDone;
   }
 
-  // The sidebar updates asynchronously after the toggle. Scope
-  // assertions to the sidebar to avoid matching settings-page content
-  // (e.g. the "Entities as a" label on the personalization page).
   const sidebar = page.getByTestId("page-sidebar");
+  const sidebarLink = sidebar.getByRole("link", {
+    name: section,
+    exact: true,
+  });
+
   if (displayAs === "list") {
-    // In list mode the section renders as a non-link expandable header.
-    await expect(sidebar.getByText(section, { exact: true })).toBeVisible();
+    await expect(sidebarLink).toBeHidden();
   } else {
-    // In link mode the section renders as a plain nav link.
-    await expect(sidebar.getByRole("link", { name: section })).toBeVisible();
+    await expect(sidebarLink).toBeVisible();
+  }
+};
+
+/**
+ * Ensure a sidebar section is expanded. If the section is collapsed
+ * (`MuiCollapse-hidden`), clicks the header and waits for the
+ * `updateEntity` PATCH to complete (FE-600).
+ *
+ * The section must already be in list mode (i.e. the NavLink header
+ * exists in the DOM).
+ */
+export const expandSidebarSection = async ({
+  page,
+  section,
+}: {
+  page: Page;
+  section: "Entities" | "Types";
+}) => {
+  const sidebar = page.getByTestId("page-sidebar");
+
+  // The NavLink renders: <div> <div>…header…</div> <div class="MuiCollapse-root">…</div> </div>
+  // The Collapse's previousElementSibling contains the section header text.
+  const isCollapsed = await sidebar.evaluate((sidebarEl, sectionName) => {
+    const collapse = Array.from(
+      sidebarEl.querySelectorAll(".MuiCollapse-root"),
+    ).find((col) => {
+      const text = col.previousElementSibling?.textContent;
+      return text != null && text.trim().startsWith(sectionName);
+    });
+    return collapse?.classList.contains("MuiCollapse-hidden") ?? false;
+  }, section);
+
+  if (isCollapsed) {
+    const expandDone = waitForUpdateEntity(page);
+    await sidebar.getByText(section, { exact: true }).click();
+    await expandDone;
   }
 };

@@ -5,10 +5,14 @@ import {
   expectSignedOut,
   signInWithPassword,
 } from "../shared/signin-utils";
-import { testUsers, withTestUser } from "../shared/test-users";
+import { createUserAndCompleteSignup } from "../shared/signup-utils";
+import { testUsers } from "../shared/test-users";
 
 test("user can sign in with password", async ({ page }) => {
-  const credentials = await withTestUser(page, testUsers.signinTest);
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.signinTest,
+  );
 
   await clearSessionCookies(page);
   await expectSignedOut(page);
@@ -18,7 +22,7 @@ test("user can sign in with password", async ({ page }) => {
 });
 
 test("user can sign out via account menu", async ({ page }) => {
-  await withTestUser(page, testUsers.signoutTest);
+  await createUserAndCompleteSignup(page, testUsers.signoutTest);
 
   // Use the real sign-out flow (not clearCookies)
   await page.getByTestId("user-avatar").click();

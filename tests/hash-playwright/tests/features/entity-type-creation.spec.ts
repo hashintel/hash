@@ -1,26 +1,26 @@
-import { changeSidebarListDisplay } from "../shared/change-sidebar-list-display";
+import {
+  changeSidebarListDisplay,
+  expandSidebarSection,
+} from "../shared/change-sidebar-list-display";
 import { expect, test } from "../shared/runtime";
+
+// Use bob so that sidebar-preference mutations don't conflict with
+// entities-page.spec.ts (which runs as alice) on the same entity.
+test.use({ storageState: "tests/.auth/bob.json" });
 
 test("user can create entity type", async ({ page }) => {
   await page.goto("/");
-  // Check if we are on the user page
   await expect(page.locator("text=Get support")).toBeVisible();
 
-  // Enable the full list display for 'Types' in the sidebar
   await changeSidebarListDisplay({
     displayAs: "list",
     page,
     section: "Types",
   });
 
+  await expandSidebarSection({ page, section: "Types" });
+
   const sidebar = page.getByTestId("page-sidebar");
-
-  // Expand the Types section so the "create entity type" button is in the
-  // DOM — the button is only rendered as an end-adornment on the Types
-  // list header when the section is open.
-  await sidebar.getByText("Types", { exact: true }).click();
-
-  // Wait for the button to appear after the section expands, then click
   const createBtn = sidebar.getByTestId("create-entity-type-btn");
   await expect(createBtn).toBeVisible();
   await createBtn.click();
@@ -49,7 +49,7 @@ test("user can create entity type", async ({ page }) => {
   await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) =>
-      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/) &&
+      !!url.pathname.match(/^\/@bob01\/types\/entity-type\/testentity/) &&
       url.searchParams.has("draft"),
   );
 
