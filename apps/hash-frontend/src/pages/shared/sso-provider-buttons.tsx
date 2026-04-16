@@ -73,16 +73,21 @@ export const SsoProviderButtons: FunctionComponent<
             },
           });
 
-    void updateFlow.catch((err: AxiosError) => {
-      const data = err.response?.data as
-        | { redirect_browser_to?: string }
-        | undefined;
-      if (err.response?.status === 422 && data?.redirect_browser_to) {
-        window.location.href = data.redirect_browser_to;
-        return;
-      }
-      void onFlowError(err);
-    });
+    void updateFlow
+      .catch((err: AxiosError) => {
+        const data = err.response?.data as
+          | { redirect_browser_to?: string }
+          | undefined;
+        if (err.response?.status === 422 && data?.redirect_browser_to) {
+          window.location.href = data.redirect_browser_to;
+          return;
+        }
+        return onFlowError(err);
+      })
+      .catch(() => {
+        // onFlowError already handles navigation/state — swallow any
+        // rejection so it doesn't surface as an unhandled promise.
+      });
   };
 
   return (
