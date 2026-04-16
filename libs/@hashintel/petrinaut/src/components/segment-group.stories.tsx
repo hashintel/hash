@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 import { useState } from "react";
+import { LuLayers2 } from "react-icons/lu";
+import { PiFlaskBold } from "react-icons/pi";
 import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
 
 import type { SegmentOption } from "./segment-group";
@@ -53,6 +55,28 @@ export const WithIcons: Story = {
   render: () => <SegmentGroupStory initialValue="edit" options={iconOptions} />,
 };
 
+const iconOnlyOptions: SegmentOption[] = [
+  { value: "edit", label: "Edit", icon: <TbCategory />, hideLabel: true },
+  {
+    value: "simulate",
+    label: "Simulate",
+    icon: <TbPlayerPlay />,
+    hideLabel: true,
+  },
+  {
+    value: "actual",
+    label: "Actual",
+    icon: <TbCircleFilled />,
+    hideLabel: true,
+  },
+];
+
+export const WithIconsOnly: Story = {
+  render: () => (
+    <SegmentGroupStory initialValue="edit" options={iconOnlyOptions} />
+  ),
+};
+
 export const WithDisabledItems: Story = {
   render: () => (
     <SegmentGroupStory
@@ -92,6 +116,61 @@ export const TwoOptions: Story = {
         { value: "predicate", label: "Predicate" },
         { value: "stochastic", label: "Stochastic Rate" },
       ]}
+    />
+  ),
+};
+
+const verticalIconOptions: SegmentOption[] = [
+  {
+    value: "experiments",
+    label: "Experiments",
+    icon: <LuLayers2 size={16} />,
+    hideLabel: true,
+    tooltip: "Experiments",
+  },
+  {
+    value: "results",
+    label: "Results",
+    icon: <PiFlaskBold size={16} />,
+    hideLabel: true,
+    tooltip: "Results",
+  },
+];
+
+export const VerticalIconOnly: Story = {
+  render: () => (
+    <SegmentGroupStory
+      initialValue="experiments"
+      options={verticalIconOptions}
+      orientation="vertical"
+      size="sm"
+    />
+  ),
+};
+
+export const VerticalIconOnlyMedium: Story = {
+  render: () => (
+    <SegmentGroupStory
+      initialValue="experiments"
+      options={verticalIconOptions}
+      orientation="vertical"
+      size="md"
+    />
+  ),
+};
+
+const verticalTextOptions: SegmentOption[] = [
+  { value: "overview", label: "Overview" },
+  { value: "details", label: "Details" },
+  { value: "settings", label: "Settings" },
+];
+
+export const VerticalWithLabels: Story = {
+  render: () => (
+    <SegmentGroupStory
+      initialValue="overview"
+      options={verticalTextOptions}
+      orientation="vertical"
     />
   ),
 };

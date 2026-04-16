@@ -31,10 +31,11 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   types: [],
 };
 
-/** Virtual file entry with optional prefix (for injected declarations) */
+/** Virtual file entry with optional prefix/suffix (for injected declarations and expression wrapping) */
 export type VirtualFile = {
   prefix?: string;
   content: string;
+  suffix?: string;
 };
 
 /** Controller for the virtual file system backing the LanguageServiceHost. */
@@ -70,7 +71,7 @@ export function createLanguageServiceHost(
   const getFileContent = (fileName: string): string | undefined => {
     const entry = files.get(fileName);
     if (entry) {
-      return (entry.prefix ?? "") + entry.content;
+      return (entry.prefix ?? "") + entry.content + (entry.suffix ?? "");
     }
     // Check bundled lib files (try both absolute path and just filename)
     if (BUNDLED_LIBS[fileName]) {

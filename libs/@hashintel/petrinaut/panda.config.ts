@@ -64,6 +64,14 @@ export default defineConfig({
           from: { opacity: "1", transform: "scale(1)" },
           to: { opacity: "0", transform: "scale(0.96)" },
         },
+        "drawer-in": {
+          from: { opacity: "0", transform: "translateX(100px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "drawer-out": {
+          from: { opacity: "1", transform: "translateX(0)" },
+          to: { opacity: "0", transform: "translateX(100px)" },
+        },
       },
     },
   },

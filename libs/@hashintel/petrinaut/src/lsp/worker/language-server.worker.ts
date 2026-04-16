@@ -23,11 +23,13 @@ import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
+import type { ScenarioSessionData } from "../lib/generate-virtual-files";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 import type {
   ClientMessage,
   PublishDiagnosticsParams,
+  ScenarioSessionParams,
   ServerMessage,
 } from "./protocol";
 
@@ -36,6 +38,9 @@ import type {
 // ---------------------------------------------------------------------------
 
 let server: SDCPNLanguageServer | null = null;
+
+/** Active scenario editing sessions (sessionId → session data). */
+const scenarioSessions = new Map<string, ScenarioSessionData>();
 
 function respond(id: number, result: unknown): void {
   self.postMessage({
@@ -75,11 +80,61 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
     },
   );
 
+  // Include diagnostics for all active scenario sessions
+  for (const [, session] of scenarioSessions) {
+    const scenarioFiles = server.getScenarioFileNames(session.sessionId);
+    for (const filePath of scenarioFiles) {
+      // Skip defs files — only check code files
+      if (filePath.endsWith("/defs.d.ts")) {
+        continue;
+      }
+      const uri = filePathToUri(filePath);
+      if (!uri) {
+        continue;
+      }
+      const userContent = server.getUserContent(filePath) ?? "";
+      const semanticDiags = server.getSemanticDiagnostics(filePath);
+      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
+      const allDiags = [...syntacticDiags, ...semanticDiags];
+      params.push({
+        uri,
+        diagnostics: allDiags.map((diag) =>
+          serializeDiagnostic(diag, userContent),
+        ),
+      });
+    }
+  }
+
   self.postMessage({
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
     params,
   } satisfies ServerMessage);
+}
+
+/** Convert protocol params to internal session data. */
+function toSessionData(params: ScenarioSessionParams): ScenarioSessionData {
+  return {
+    sessionId: params.sessionId,
+    scenarioParameters: params.scenarioParameters,
+    parameterOverrides: params.parameterOverrides,
+    initialState: params.initialState,
+    initialStateCode: params.initialStateCode,
+    initialStateAsCode: params.initialStateAsCode,
+  };
+}
+
+/** Sync scenario session files and publish diagnostics. */
+function syncScenarioSession(
+  sessionData: ScenarioSessionData,
+  sdcpn: SDCPN,
+): void {
+  if (!server) {
+    return;
+  }
+  scenarioSessions.set(sessionData.sessionId, sessionData);
+  server.syncScenarioFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn);
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +143,13 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
 
 /** Cache the last SDCPN for re-running diagnostics after single-file changes. */
 let lastSDCPN: SDCPN | null = null;
+
+/**
+ * Scenario sessions queued before the SDCPN `initialize` message arrives.
+ * In React, child effects fire before parent effects, so `temp/scenario/initialize`
+ * can arrive before the SDCPN `initialize`. We queue them and replay after init.
+ */
+let pendingScenarioInits: ScenarioSessionData[] = [];
 
 self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
   try {
@@ -99,6 +161,12 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
         lastSDCPN = sdcpn;
         server = new SDCPNLanguageServer();
         server.syncFiles(sdcpn);
+        // Replay scenario sessions that arrived before SDCPN init
+        for (const session of pendingScenarioInits) {
+          scenarioSessions.set(session.sessionId, session);
+          server.syncScenarioFiles(sdcpn, session);
+        }
+        pendingScenarioInits = [];
         publishAllDiagnostics(sdcpn);
         break;
       }
@@ -108,6 +176,10 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
         lastSDCPN = sdcpn;
         server ??= new SDCPNLanguageServer();
         server.syncFiles(sdcpn);
+        // Re-sync all scenario sessions since SDCPN types may have changed
+        for (const session of scenarioSessions.values()) {
+          server.syncScenarioFiles(sdcpn, session);
+        }
         publishAllDiagnostics(sdcpn);
         break;
       }
@@ -123,6 +195,48 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           if (lastSDCPN) {
             publishAllDiagnostics(lastSDCPN);
           }
+        }
+        break;
+      }
+
+      case "temp/scenario/initialize": {
+        const sessionData = toSessionData(data.params);
+        if (!lastSDCPN) {
+          // Queue — will be replayed when SDCPN `initialize` arrives
+          pendingScenarioInits.push(sessionData);
+          break;
+        }
+        syncScenarioSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/scenario/didChange": {
+        const sessionData = toSessionData(data.params);
+        if (!lastSDCPN) {
+          // Update queued session data or add new entry
+          const idx = pendingScenarioInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingScenarioInits[idx] = sessionData;
+          } else {
+            pendingScenarioInits.push(sessionData);
+          }
+          break;
+        }
+        syncScenarioSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/scenario/kill": {
+        const { sessionId } = data.params;
+        scenarioSessions.delete(sessionId);
+        pendingScenarioInits = pendingScenarioInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeScenarioSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN);
         }
         break;
       }

@@ -5,6 +5,7 @@ import type {
   DifferentialEquation,
   Parameter,
   Place,
+  Scenario,
   Transition,
 } from "../core/types/sdcpn";
 import type { SelectionMap } from "./selection";
@@ -64,6 +65,12 @@ export type MutationHelperFunctions = {
     updateFn: (parameter: Parameter) => void,
   ) => void;
   removeParameter: (parameterId: string) => void;
+  addScenario: (scenario: Scenario) => void;
+  updateScenario: (
+    scenarioId: string,
+    updateFn: (scenario: Scenario) => void,
+  ) => void;
+  removeScenario: (scenarioId: string) => void;
   deleteItemsByIds: (items: SelectionMap) => void;
   layoutGraph: () => Promise<void>;
   pasteEntities: () => Promise<Array<{ type: string; id: string }> | null>;
@@ -100,6 +107,9 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addParameter: () => {},
   updateParameter: () => {},
   removeParameter: () => {},
+  addScenario: () => {},
+  updateScenario: () => {},
+  removeScenario: () => {},
   deleteItemsByIds: () => {},
   layoutGraph: async () => {},
   pasteEntities: async () => null,

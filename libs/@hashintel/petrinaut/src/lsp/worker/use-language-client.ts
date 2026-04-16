@@ -8,6 +8,7 @@ import type {
   Hover,
   Position,
   PublishDiagnosticsParams,
+  ScenarioSessionParams,
   ServerMessage,
   SignatureHelp,
 } from "./protocol";
@@ -46,6 +47,12 @@ export type LanguageClientApi = {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /** Initialize a temporary scenario editing session (creates virtual files for expressions). */
+  initializeScenarioSession: (params: ScenarioSessionParams) => void;
+  /** Update a scenario editing session (re-syncs virtual files for expression type-checking). */
+  updateScenarioSession: (params: ScenarioSessionParams) => void;
+  /** Kill a scenario editing session (removes virtual files). */
+  killScenarioSession: (sessionId: string) => void;
   /** Register a callback for diagnostics pushed from the server. */
   onDiagnostics: (
     callback: (params: PublishDiagnosticsParams[]) => void,
@@ -165,6 +172,39 @@ export function useLanguageClient(): LanguageClientApi {
     [sendNotification],
   );
 
+  const initializeScenarioSession = useCallback(
+    (params: ScenarioSessionParams) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/scenario/initialize",
+        params,
+      });
+    },
+    [sendNotification],
+  );
+
+  const updateScenarioSession = useCallback(
+    (params: ScenarioSessionParams) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/scenario/didChange",
+        params,
+      });
+    },
+    [sendNotification],
+  );
+
+  const killScenarioSession = useCallback(
+    (sessionId: string) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/scenario/kill",
+        params: { sessionId },
+      });
+    },
+    [sendNotification],
+  );
+
   // --- Requests (return Promise) ---
 
   const sendRequest = useCallback(<T>(message: ClientMessage): Promise<T> => {
@@ -232,6 +272,9 @@ export function useLanguageClient(): LanguageClientApi {
     initialize,
     notifySDCPNChanged,
     notifyDocumentChanged,
+    initializeScenarioSession,
+    updateScenarioSession,
+    killScenarioSession,
     requestCompletion,
     requestHover,
     requestSignatureHelp,
