@@ -73,11 +73,19 @@ export function useRecenterOnPanelOpen(
         .setViewport({
           x:
             originalViewport.x -
-            RE_CENTER_PADDING -
+            (adjustment.x === 0
+              ? 0
+              : adjustment.x < 0
+                ? RE_CENTER_PADDING * -1
+                : RE_CENTER_PADDING) -
             adjustment.x * viewport.zoom,
           y:
             originalViewport.y -
-            RE_CENTER_PADDING -
+            (adjustment.y === 0
+              ? 0
+              : adjustment.y < 0
+                ? RE_CENTER_PADDING * -1
+                : RE_CENTER_PADDING) -
             adjustment.y * viewport.zoom,
           zoom: viewport.zoom,
         })
