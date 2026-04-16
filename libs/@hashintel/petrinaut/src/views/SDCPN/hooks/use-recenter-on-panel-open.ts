@@ -19,25 +19,30 @@ export function useRecenterOnPanelOpen(
 ) {
   const {
     isBottomPanelOpen,
+    isLeftSidebarOpen,
+    leftSidebarWidth,
     bottomPanelHeight,
     hasSelection,
     selection,
     propertiesPanelWidth,
   } = use(EditorContext);
 
+  const prevLeftSidebarOpen = useRef(isLeftSidebarOpen);
   const prevBottomPanelOpen = useRef(isBottomPanelOpen);
   const prevHasSelection = useRef(hasSelection);
 
   useEffect(() => {
+    const leftJustOpened = isLeftSidebarOpen && !prevLeftSidebarOpen.current;
     const bottomJustOpened = isBottomPanelOpen && !prevBottomPanelOpen.current;
     const propertiesJustOpened = hasSelection && !prevHasSelection.current;
 
+    prevLeftSidebarOpen.current = isLeftSidebarOpen;
     prevBottomPanelOpen.current = isBottomPanelOpen;
     prevHasSelection.current = hasSelection;
 
     if (!reactFlowInstance) return;
     if (!canvasRef.current) return;
-    if (!bottomJustOpened && !propertiesJustOpened) return;
+    if (!bottomJustOpened && !propertiesJustOpened && !leftJustOpened) return;
     if (selection.size === 0) return;
 
     const selectedNodeIds = new Set<string>();
@@ -57,36 +62,36 @@ export function useRecenterOnPanelOpen(
     if (selectedNodes.length === 0) return;
 
     const originalViewport = reactFlowInstance.getViewport();
-    const viewport = getViewportRect(canvasRef.current, originalViewport);
-
-    if (hasSelection) viewport.width -= propertiesPanelWidth / viewport.zoom;
-    if (isBottomPanelOpen) viewport.height -= bottomPanelHeight / viewport.zoom;
+    const viewport = getViewportRect(canvasRef.current, originalViewport, {
+      left: isLeftSidebarOpen ? leftSidebarWidth : 0,
+      bottom: isBottomPanelOpen ? bottomPanelHeight : 0,
+      right: hasSelection ? propertiesPanelWidth : 0,
+    });
 
     const adjustment = recenterToFitViewport(
       reactFlowInstance,
       viewport,
       selectedNodes,
     );
+
     if (adjustment && (adjustment.x !== 0 || adjustment.y !== 0)) {
+      const paddingX =
+        adjustment.x === 0
+          ? 0
+          : adjustment.x < 0
+            ? RE_CENTER_PADDING * -1
+            : RE_CENTER_PADDING;
+      const paddingY =
+        adjustment.y === 0
+          ? 0
+          : adjustment.y < 0
+            ? RE_CENTER_PADDING * -1
+            : RE_CENTER_PADDING;
       // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
       reactFlowInstance
         .setViewport({
-          x:
-            originalViewport.x -
-            (adjustment.x === 0
-              ? 0
-              : adjustment.x < 0
-                ? RE_CENTER_PADDING * -1
-                : RE_CENTER_PADDING) -
-            adjustment.x * viewport.zoom,
-          y:
-            originalViewport.y -
-            (adjustment.y === 0
-              ? 0
-              : adjustment.y < 0
-                ? RE_CENTER_PADDING * -1
-                : RE_CENTER_PADDING) -
-            adjustment.y * viewport.zoom,
+          x: originalViewport.x - paddingX - adjustment.x * viewport.zoom,
+          y: originalViewport.y - paddingY - adjustment.y * viewport.zoom,
           zoom: viewport.zoom,
         })
         .catch(() => {});
@@ -94,6 +99,8 @@ export function useRecenterOnPanelOpen(
   }, [
     isBottomPanelOpen,
     bottomPanelHeight,
+    leftSidebarWidth,
+    isLeftSidebarOpen,
     hasSelection,
     selection,
     propertiesPanelWidth,

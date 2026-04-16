@@ -70,13 +70,21 @@ export const recenterToFitViewport = (
 export const getViewportRect = (
   canvas: HTMLElement,
   viewport: { x: number; y: number; zoom: number },
+  overlays: { left?: number; right?: number; top?: number; bottom?: number } = {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
 ) => {
   const { width, height } = canvas.getBoundingClientRect();
   return {
-    width: width / viewport.zoom,
-    height: height / viewport.zoom,
-    x: -viewport.x / viewport.zoom,
-    y: -viewport.y / viewport.zoom,
+    width:
+      (width - (overlays.left ?? 0) - (overlays.right ?? 0)) / viewport.zoom,
+    height:
+      (height - (overlays.top ?? 0) - (overlays.bottom ?? 0)) / viewport.zoom,
+    x: (-viewport.x + (overlays.left ?? 0)) / viewport.zoom,
+    y: (-viewport.y + (overlays.top ?? 0)) / viewport.zoom,
     zoom: viewport.zoom,
   };
 };
