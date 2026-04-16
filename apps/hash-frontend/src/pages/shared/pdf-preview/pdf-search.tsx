@@ -16,9 +16,9 @@ import {
   Typography,
 } from "@mui/material";
 import debounce from "lodash/debounce";
-import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import { useEffect, useRef, useState } from "react";
+import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
 
 import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-icon";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
@@ -144,7 +144,7 @@ const findStringInPages = ({
 
 type PdfSearchProps = {
   closeSearch: () => void;
-  document: PDFDocumentProxy | null;
+  document: DocumentCallback | null;
   searchHits: SearchHits;
   setSearchHits: (hits: SearchHits) => void;
   selectedSearchHit: SearchHit | null;

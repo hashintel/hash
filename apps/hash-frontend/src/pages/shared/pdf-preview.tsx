@@ -11,12 +11,12 @@ import {
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
 import dynamic from "next/dynamic";
-import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
 import type {
   CustomTextRenderer,
+  DocumentCallback,
   OnDocumentLoadSuccess,
 } from "react-pdf/dist/cjs/shared/types";
 
@@ -134,7 +134,7 @@ export const PdfPreview = ({
       });
   }, [initialUrl]);
 
-  const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(
+  const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(
     null,
   );
   const [scale, setScale] = useState(1);
