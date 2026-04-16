@@ -167,7 +167,8 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
       try {
         message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
       } catch {
-        console.error("Malformed WebSocket message:", event.data);
+        const sanitizedEventData = String(event.data).replace(/[\r\n]/g, " ");
+        console.error("Malformed WebSocket message:", sanitizedEventData);
         return;
       }
 
