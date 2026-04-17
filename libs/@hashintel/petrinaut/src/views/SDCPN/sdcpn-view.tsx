@@ -28,6 +28,7 @@ import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
+import { useRecenterOnPanelOpen } from "./hooks/use-recenter-on-panel-open";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
 
@@ -95,6 +96,9 @@ export const SDCPNView: React.FC<{
   // Convert SDCPN to ReactFlow format with dragging state
   const { nodes, arcs } = useSdcpnToReactFlow();
 
+  // When a panel opens, recenter the viewport to keep selected nodes visible
+  useRecenterOnPanelOpen(canvasContainer, reactFlowInstance, nodes);
+
   // Center viewport on SDCPN load
   useEffect(() => {
     void reactFlowInstance?.fitView({
@@ -129,7 +133,8 @@ export const SDCPNView: React.FC<{
         const currentZoom = instance?.getViewport().zoom;
         const safeZoom = currentZoom ? Math.min(currentZoom, newZoom) : newZoom;
 
-        setMinZoom(safeZoom);
+        // even if theres only a single place, always allow the user to zoom out at least a minimum reasonable amount
+        setMinZoom(Math.min(safeZoom, 0.75));
       }
     },
     100,
