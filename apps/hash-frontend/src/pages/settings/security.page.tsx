@@ -312,6 +312,14 @@ const SecurityPage: NextPageWithLayout = () => {
       return;
     }
 
+    let csrfToken: string;
+    try {
+      csrfToken = mustGetCsrfTokenFromFlow(flow);
+    } catch {
+      setErrorMessage("Could not find CSRF token. Please reload the page.");
+      return;
+    }
+
     setUpdatingPassword(true);
     persistFlowIdInUrl(flow);
 
@@ -322,7 +330,7 @@ const SecurityPage: NextPageWithLayout = () => {
     void submitSettingsUpdate(flow, {
       method: "password",
       password,
-      csrf_token: mustGetCsrfTokenFromFlow(flow),
+      csrf_token: csrfToken,
     })
       .then((nextFlow) => {
         if (nextFlow) {
