@@ -31,35 +31,34 @@ const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
 );
 
-const getSessionCookies = async () => {
+const getApiOriginUrl = async () => {
   const apiOrigin = await getFromLocalStorage("apiOrigin");
-
-  return browser.cookies
-    .getAll({
-      url: apiOrigin ?? API_ORIGIN,
-    })
-    .then((options) =>
-      options.filter(
-        (option) =>
-          option.name.startsWith("csrf_token_") ||
-          option.name === "ory_kratos_session",
-      ),
-    );
+  return apiOrigin ?? API_ORIGIN;
 };
 
-const hasSessionCookies = async (): Promise<boolean> => {
-  const cookies = await getSessionCookies();
-  return cookies.length >= 2;
+const isLoggedIn = async (): Promise<boolean> => {
+  const cookies = await browser.cookies.getAll({
+    url: await getApiOriginUrl(),
+    name: "ory_kratos_session",
+  });
+  return cookies.length > 0;
 };
 
-const getCookieString = async () => {
-  const cookies = await getSessionCookies();
+/** Build the cookie header for WebSocket requests (needs both CSRF and session). */
+const buildWebsocketCookieString = async () => {
+  const url = await getApiOriginUrl();
+  const allCookies = await browser.cookies.getAll({ url });
+  const relevant = allCookies.filter(
+    (cookie) =>
+      cookie.name.startsWith("csrf_token_") ||
+      cookie.name === "ory_kratos_session",
+  );
 
-  if (cookies.length < 2) {
+  if (relevant.length < 2) {
     throw new Error("No session cookies available to use in websocket request");
   }
 
-  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
+  return relevant.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
 };
 
 const maxConcurrentRequests = 3;
@@ -124,7 +123,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
   const newWs = new WebSocket(websocketUrl);
 
   const externalRequestPoll = setInterval(() => {
-    void getCookieString()
+    void buildWebsocketCookieString()
       .then((cookie) =>
         newWs.send(
           JSON.stringify({
@@ -199,7 +198,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
         enqueueTask(async () => {
           const webPages = await getWebsiteContent(payload.data.urls);
 
-          const cookie = await getCookieString();
+          const cookie = await buildWebsocketCookieString();
 
           newWs.send(
             JSON.stringify({
@@ -239,7 +238,7 @@ const reconnectWebSocket = async () => {
   reconnecting = true;
 
   try {
-    if (!(await hasSessionCookies())) {
+    if (!(await isLoggedIn())) {
       // User isn't logged in — don't open a doomed connection that the
       // server will kill after 5 s. Retry later; a user action like
       // opening the popup will trigger getWebSocket() once cookies exist.
@@ -286,7 +285,7 @@ const sendInferEntitiesMessage = async (
 ) => {
   const socket = await getWebSocket();
 
-  const cookie = await getCookieString();
+  const cookie = await buildWebsocketCookieString();
 
   socket.send(
     JSON.stringify({
@@ -303,7 +302,7 @@ export const cancelInferEntities = async ({
 }: {
   flowRunId: string;
 }) => {
-  const cookie = await getCookieString();
+  const cookie = await buildWebsocketCookieString();
 
   const socket = await getWebSocket();
 
@@ -424,7 +423,7 @@ export const inferEntities = async (
  * connections that the server will immediately kill.
  */
 const init = async () => {
-  if (await hasSessionCookies()) {
+  if (await isLoggedIn()) {
     void getWebSocket();
   }
   // If no cookies, the WebSocket will be created on demand when
