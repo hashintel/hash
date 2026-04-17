@@ -153,7 +153,8 @@ const SecurityPage: NextPageWithLayout = () => {
           }
 
           setErrorMessage(
-            error.response?.data.ui.messages?.[0]?.text ??
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- response body is typed as SettingsFlow but non-400 responses have a different shape
+            error.response?.data?.ui?.messages?.[0]?.text ??
               "Something went wrong. Please try again.",
           );
           return undefined;

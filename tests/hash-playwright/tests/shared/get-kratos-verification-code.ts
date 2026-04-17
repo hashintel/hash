@@ -177,41 +177,45 @@ export const getKratosRecoveryCode = async (
   let elapsed = 0;
 
   while (elapsed < maxWaitMs) {
-    const response = await fetch("http://localhost:4437/mail");
+    try {
+      const response = await fetch("http://localhost:4437/mail");
 
-    if (!response.ok) {
-      throw new Error(
-        `Unable to fetch emails from mailslurper: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const data = (await response.json()) as {
-      mailItems?: MailslurperMailItem[];
-    };
-
-    const match = data.mailItems
-      ?.filter((mailItem) => {
-        const sentTimestamp = parseMailslurperDate(mailItem.dateSent);
-        return (
-          isRecoverySubject(mailItem.subject) &&
-          extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
-          (!afterTimestamp ||
-            (typeof sentTimestamp === "number" &&
-              sentTimestamp >= afterTimestamp - timestampBufferMs))
+      if (!response.ok) {
+        throw new Error(
+          `Unable to fetch emails from mailslurper: ${response.status} ${response.statusText}`,
         );
-      })
-      .sort((a, b) => {
-        const aTs = parseMailslurperDate(a.dateSent) ?? 0;
-        const bTs = parseMailslurperDate(b.dateSent) ?? 0;
-        return bTs - aTs;
-      })
-      .at(0);
-
-    if (match?.body) {
-      const code = match.body.match(/\b(\d{6})\b/)?.[1];
-      if (code) {
-        return code;
       }
+
+      const data = (await response.json()) as {
+        mailItems?: MailslurperMailItem[];
+      };
+
+      const match = data.mailItems
+        ?.filter((mailItem) => {
+          const sentTimestamp = parseMailslurperDate(mailItem.dateSent);
+          return (
+            isRecoverySubject(mailItem.subject) &&
+            extractToAddresses(mailItem.toAddresses).includes(emailAddress) &&
+            (!afterTimestamp ||
+              (typeof sentTimestamp === "number" &&
+                sentTimestamp >= afterTimestamp - timestampBufferMs))
+          );
+        })
+        .sort((a, b) => {
+          const aTs = parseMailslurperDate(a.dateSent) ?? 0;
+          const bTs = parseMailslurperDate(b.dateSent) ?? 0;
+          return bTs - aTs;
+        })
+        .at(0);
+
+      if (match?.body) {
+        const code = match.body.match(/\b(\d{6})\b/)?.[1];
+        if (code) {
+          return code;
+        }
+      }
+    } catch {
+      // Transient error — retry on next poll iteration.
     }
 
     await sleep(pollIntervalMs);

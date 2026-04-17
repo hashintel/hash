@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+
 import { chromium } from "@playwright/test";
 
 const baseURL = "http://localhost:3000";
@@ -30,6 +32,8 @@ const signInAndSaveState = async (
  * on the same entity.
  */
 export default async function globalSetup() {
+  mkdirSync("tests/.auth", { recursive: true });
+
   const browser = await chromium.launch();
   try {
     await signInAndSaveState(
