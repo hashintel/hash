@@ -146,6 +146,7 @@ const PlaceMainContent: React.FC = () => {
           } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
         >
           <Select
+            portal={true}
             value={place.colorId ?? ""}
             onValueChange={(value) => {
               const newType = value === "" ? null : value;
@@ -275,6 +276,7 @@ const PlaceMainContent: React.FC = () => {
             place.dynamicsEnabled && (
               <>
                 <Select
+                  portal={true}
                   value={place.differentialEquationId ?? undefined}
                   onValueChange={(value) => {
                     updatePlace(place.id, (existingPlace) => {

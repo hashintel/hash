@@ -294,6 +294,7 @@ export const ArcItem = ({
     <div className={cx(rowStyle, disabled && rowDisabledStyle)}>
       {hasSelect ? (
         <Select
+          portal={true}
           value={placeId}
           onValueChange={(newId) => {
             if (newId !== placeId) {
