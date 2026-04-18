@@ -390,7 +390,7 @@ jobs:
         run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
-        uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
+        uses: yuzutech/annotations-action@00b2d488bcba3bd01014dc073d276ef4a45d5c6c # v0.6.0
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
