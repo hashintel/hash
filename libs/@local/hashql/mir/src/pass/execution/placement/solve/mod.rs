@@ -233,7 +233,12 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
                     self.condensation[region_id].kind = kind;
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
-                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+                    let mut csp = ConstraintSatisfaction::new(
+                        self,
+                        csp::ConstraintSatisfactionMode::Initial,
+                        region_id,
+                        cyclic,
+                    );
 
                     if csp.retry(body) {
                         // Found a perturbation — flush the new assignments, and resume.
@@ -339,7 +344,12 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
                 }
                 PlacementRegionKind::Cyclic(cyclic) => {
                     let members = cyclic.members;
-                    let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+                    let mut csp = ConstraintSatisfaction::new(
+                        self,
+                        csp::ConstraintSatisfactionMode::Initial,
+                        region_id,
+                        cyclic,
+                    );
 
                     if !csp.solve(body) {
                         let region = PlacementRegionKind::Cyclic(csp.region);
@@ -469,7 +479,12 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
     ) -> (bool, PlacementRegionKind<'alloc>) {
         // Re-run with full boundary context — neighbor assignments may have changed since the
         // forward pass.
-        let mut csp = ConstraintSatisfaction::new(self, region_id, cyclic);
+        let mut csp = ConstraintSatisfaction::new(
+            self,
+            csp::ConstraintSatisfactionMode::Adjustment,
+            region_id,
+            cyclic,
+        );
         if !csp.solve(body) {
             // New solve found nothing better — keep the forward-pass assignment
             return (false, PlacementRegionKind::Cyclic(csp.region));
@@ -478,7 +493,7 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
         let region = csp.region;
 
         let prev_estimator = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: CostEstimationConfig::TRIVIAL,
             solver: self,
             determine_target: |block: BasicBlockId| self.targets[block],
         };
@@ -500,7 +515,7 @@ impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S>
             .sum();
 
         let next_estimator = CostEstimation {
-            config: CostEstimationConfig::LOOP,
+            config: CostEstimationConfig::TRIVIAL,
             solver: self,
             determine_target: |block: BasicBlockId| {
                 // Resolve SCC members from the candidate solution, everything else
