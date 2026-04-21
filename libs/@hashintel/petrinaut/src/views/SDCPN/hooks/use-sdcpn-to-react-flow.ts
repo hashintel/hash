@@ -28,8 +28,13 @@ import {
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { draggingStateByNodeId, isSelected, isNotSelectedConnection } =
-    use(EditorContext);
+  const {
+    draggingStateByNodeId,
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
 
@@ -122,7 +127,9 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
 
-      const notSelectedConnection = isNotSelectedConnection(arcId);
+      const notSelectedConnection =
+        isNotHoveredConnection(arcId) ||
+        (!hoveredItem && isNotSelectedConnection(arcId));
       if (notSelectedConnection)
         arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
 
@@ -168,7 +175,9 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
 
-      const notSelectedConnection = isNotSelectedConnection(arcId);
+      const notSelectedConnection =
+        isNotHoveredConnection(arcId) ||
+        (!hoveredItem && isNotSelectedConnection(arcId));
       if (notSelectedConnection)
         arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
 

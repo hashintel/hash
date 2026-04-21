@@ -96,6 +96,8 @@ export const SDCPNView: React.FC<{
     selectItem,
     clearSelection,
     hasSelection,
+    setHoveredItem,
+    clearHoveredItem,
   } = use(EditorContext);
 
   // Hook for applying node changes
@@ -249,6 +251,26 @@ export const SDCPNView: React.FC<{
     selectItem({ type: "arc", id: edge.id });
   }
 
+  function onNodeMouseEnter(
+    _event: React.MouseEvent,
+    node: { id: string; type?: string },
+  ) {
+    const type = node.type as "place" | "transition" | undefined;
+    if (type) setHoveredItem({ type, id: node.id });
+  }
+
+  function onNodeMouseLeave() {
+    clearHoveredItem();
+  }
+
+  function onEdgeMouseEnter(_event: React.MouseEvent, edge: { id: string }) {
+    setHoveredItem({ type: "arc", id: edge.id });
+  }
+
+  function onEdgeMouseLeave() {
+    clearHoveredItem();
+  }
+
   function onPaneClick(event: React.MouseEvent) {
     if (!reactFlowInstance || !canvasContainer.current) {
       return;
@@ -378,6 +400,10 @@ export const SDCPNView: React.FC<{
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
         onEdgeClick={onEdgeClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={onEdgeMouseLeave}
         onPaneClick={onPaneClick}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}

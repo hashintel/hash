@@ -88,6 +88,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     | "isSelectedConnection"
     | "isNotSelectedConnection"
     | "selectedConnections"
+    | "isHovered"
+    | "isHoveredConnection"
+    | "isNotHoveredConnection"
   > = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
@@ -169,6 +172,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         hasSelection: false,
       }));
     },
+    setHoveredItem: (item: SelectionItem) =>
+      setState((prev) => ({ ...prev, hoveredItem: item })),
+    clearHoveredItem: () =>
+      setState((prev) => ({ ...prev, hoveredItem: null })),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -226,7 +233,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: state.timelineChartType,
   });
 
-  const { selection } = state;
+  const { selection, hoveredItem } = state;
   const isSelected = (id: string) => selection.has(id);
 
   const selectedConnections = getNodeConnections(
@@ -238,12 +245,26 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const isNotSelectedConnection = (id: string) =>
     selection.size > 0 && !isSelected(id) && !selectedConnections.has(id);
 
+  const isHovered = (id: string) => hoveredItem?.id === id;
+
+  const hoveredConnections = getNodeConnections(
+    petriNetDefinition.transitions,
+    new Set(hoveredItem ? [hoveredItem?.id] : []),
+  );
+
+  const isHoveredConnection = (id: string) => hoveredConnections.has(id);
+  const isNotHoveredConnection = (id: string) =>
+    !!hoveredItem && !isHovered(id) && !hoveredConnections.has(id);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
     isSelected,
+    isHovered,
+    isHoveredConnection,
+    isNotHoveredConnection,
     isSelectedConnection,
     isNotSelectedConnection,
     selectedConnections,

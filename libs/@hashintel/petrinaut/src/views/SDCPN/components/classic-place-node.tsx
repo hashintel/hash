@@ -28,7 +28,8 @@ const placeCircleStyle = cva({
     alignItems: "center",
     gap: "3",
     minWidth: "0",
-    border: "2px solid",
+    border: "2px solid color-mix(in oklab, black, white 35%)",
+    backgroundColor: "neutral.s10",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
@@ -116,8 +117,13 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const { globalMode, isSelected, isNotSelectedConnection } =
-    use(EditorContext);
+  const {
+    globalMode,
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -141,7 +147,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotSelectedConnection(id)
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 
@@ -161,7 +168,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             : undefined,
           backgroundColor: data.typeColor
             ? hexToHsl(data.typeColor).lighten(35).css(1)
-            : "#FCFCFA",
+            : undefined,
         }}
       >
         {data.dynamicsEnabled && (

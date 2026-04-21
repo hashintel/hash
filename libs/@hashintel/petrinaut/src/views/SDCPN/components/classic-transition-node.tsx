@@ -25,7 +25,7 @@ const transitionBoxStyle = cva({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    background: "neutral.s20",
+    background: "neutral.s10",
     border: "2px solid",
     borderColor: "neutral.s80",
     fontSize: "[15px]",
@@ -35,8 +35,9 @@ const transitionBoxStyle = cva({
     transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor: "neutral.s100",
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
+      borderColor:
+        "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
+      outline: "[4px solid rgba(75, 126, 156, 0.08)]",
     },
   },
   variants: {
@@ -49,9 +50,6 @@ const transitionBoxStyle = cva({
       },
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      selectedConnection: {
-        borderColor: "neutral.s90",
       },
       notSelectedConnection: {
         _after: {
@@ -170,8 +168,12 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected, isNotSelectedConnection, isSelectedConnection } =
-    use(EditorContext);
+  const {
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -184,16 +186,14 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
   // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
+  const selectionVariant = isSelected(id)
     ? "resource"
     : selected
       ? "reactflow"
-      : isSelectedConnection(id)
-        ? "selectedConnection"
-        : isNotSelectedConnection(id)
-          ? "notSelectedConnection"
-          : "none";
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
+        ? "notSelectedConnection"
+        : "none";
 
   return (
     <div className={containerStyle}>

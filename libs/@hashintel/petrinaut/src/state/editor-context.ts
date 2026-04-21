@@ -38,6 +38,8 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
+  /** The item currently being hovered, if any. */
+  hoveredItem: SelectionItem | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   isPanelAnimating: boolean;
@@ -72,6 +74,14 @@ export type EditorActions = {
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   clearSelection: () => void;
+  setHoveredItem: (item: SelectionItem) => void;
+  clearHoveredItem: () => void;
+  /** Check whether a given ID is the currently hovered item. */
+  isHovered: (id: string) => boolean;
+  /** Check whether a given ID is connected to the currently hovered item. */
+  isHoveredConnection: (id: string) => boolean;
+  /** Check whether a given ID is not connected to the currently hovered item. */
+  isNotHoveredConnection: (id: string) => boolean;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -102,6 +112,7 @@ export const initialEditorState: EditorState = {
   activeBottomPanelTab: "diagnostics",
   selection: new Map(),
   hasSelection: false,
+  hoveredItem: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   isPanelAnimating: false,
@@ -128,6 +139,11 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
+  setHoveredItem: () => {},
+  clearHoveredItem: () => {},
+  isHovered: () => false,
+  isHoveredConnection: () => false,
+  isNotHoveredConnection: () => false,
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
