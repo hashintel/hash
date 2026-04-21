@@ -39,6 +39,14 @@ const transitionBoxStyle = cva({
         "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
       outline: "[4px solid rgba(75, 126, 156, 0.08)]",
     },
+    _after: {
+      content: '""',
+      transition: "[all 0.1s ease]",
+      position: "absolute",
+      pointerEvents: "none",
+      borderRadius: "[inherit]",
+      inset: "0",
+    },
   },
   variants: {
     selection: {
@@ -53,11 +61,6 @@ const transitionBoxStyle = cva({
       },
       notSelectedConnection: {
         _after: {
-          content: '""',
-          position: "absolute",
-          inset: "0",
-          pointerEvents: "none",
-          borderRadius: "[inherit]",
           background: "[rgba(255, 255, 255, 0.5)]",
         },
       },

@@ -36,6 +36,14 @@ export const nodeCardStyle = cva({
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
       shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
     },
+    _after: {
+      content: '""',
+      transition: "[all 0.1s ease]",
+      position: "absolute",
+      pointerEvents: "none",
+      borderRadius: "[inherit]",
+      inset: "0",
+    },
   },
   variants: {
     selection: {
@@ -50,11 +58,6 @@ export const nodeCardStyle = cva({
       },
       notSelectedConnection: {
         _after: {
-          content: '""',
-          position: "absolute",
-          inset: "0",
-          pointerEvents: "none",
-          borderRadius: "[inherit]",
           background: "[rgba(255, 255, 255, 0.5)]",
         },
       },
