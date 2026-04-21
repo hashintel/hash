@@ -95,7 +95,7 @@ export const SDCPNView: React.FC<{
     cursorMode,
     selectItem,
     clearSelection,
-    hasSelection,
+    hasCanvasSelection,
     setHoveredItem,
     clearHoveredItem,
   } = use(EditorContext);
@@ -428,7 +428,7 @@ export const SDCPNView: React.FC<{
         minZoom={minZoom}
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
-        {hasSelection && <div className={fadeBgStyle} />}
+        {hasCanvasSelection && <div className={fadeBgStyle} />}
         {showMinimap && <MiniMap pannable zoomable />}
         <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>

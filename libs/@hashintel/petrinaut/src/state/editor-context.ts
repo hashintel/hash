@@ -38,6 +38,8 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
+  /** Whether any items on the canvas are currently selected. */
+  hasCanvasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -112,6 +114,7 @@ export const initialEditorState: EditorState = {
   activeBottomPanelTab: "diagnostics",
   selection: new Map(),
   hasSelection: false,
+  hasCanvasSelection: false,
   hoveredItem: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",

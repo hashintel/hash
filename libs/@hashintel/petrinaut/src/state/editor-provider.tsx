@@ -16,6 +16,12 @@ import { UserSettingsContext } from "./user-settings-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
 
+const canvasSelections = (selection: SelectionMap) =>
+  Array.from(selection.entries()).filter(
+    ([_, s]) =>
+      s.type === "arc" || s.type === "place" || s.type === "transition",
+  );
+
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const { petriNetDefinition } = use(SDCPNContext);
@@ -72,12 +78,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ? selectionOrUpdater(prev.selection)
           : selectionOrUpdater;
       const hasSelection = selection.size > 0;
+      const hasCanvasSelection = canvasSelections(selection).length > 0;
       const animate = prev.hasSelection !== hasSelection;
       return {
         ...prev,
         ...(animate ? animationPatch() : {}),
         selection,
         hasSelection,
+        hasCanvasSelection,
       };
     });
   };
@@ -243,10 +251,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
   const isNotSelectedConnection = (id: string) =>
-    Array.from(selection.entries()).filter(
-      ([_, s]) =>
-        s.type === "arc" || s.type === "place" || s.type === "transition",
-    ).length > 0 &&
+    canvasSelections(selection).length > 0 &&
     !isSelected(id) &&
     !selectedConnections.has(id);
 
