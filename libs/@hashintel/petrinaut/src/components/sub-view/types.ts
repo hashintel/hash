@@ -72,4 +72,11 @@ export interface SubView {
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
    */
   resizable?: SubViewResizeConfig;
+  /**
+   * When true, the horizontal tab content wrapper renders with no padding,
+   * letting the subview occupy the full width/height of the panel area.
+   * Useful for visualizations like charts that manage their own bounds.
+   * Defaults to false.
+   */
+  noPadding?: boolean;
 }

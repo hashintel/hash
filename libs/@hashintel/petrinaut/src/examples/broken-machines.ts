@@ -12,6 +12,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           colorId: null,
           dynamicsEnabled: false,
           differentialEquationId: null,
+          showAsInitialState: true,
           x: -11 * SNAP_GRID_SIZE,
           y: -27 * SNAP_GRID_SIZE,
         },
@@ -21,6 +22,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
+          showAsInitialState: true,
           x: -10 * SNAP_GRID_SIZE,
           y: 5 * SNAP_GRID_SIZE,
         },
@@ -105,6 +107,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -132,6 +135,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -159,10 +163,12 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__d662407f-c56d-4a96-bcbb-ead785a9c594",
               weight: 1,
+              type: "standard",
             },
             {
               placeId: "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -185,6 +191,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -208,6 +215,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -234,6 +242,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -257,10 +266,12 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             {
               placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
               weight: 1,
+              type: "standard",
             },
             {
               placeId: "place__9cb073fb-f1d7-4613-8b10-8d1b08796f24",
               weight: 1,
+              type: "standard",
             },
           ],
           outputArcs: [
@@ -357,6 +368,32 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           variableName: "damage_reparation_per_second",
           type: "real",
           defaultValue: "0.333",
+        },
+      ],
+      scenarios: [
+        {
+          id: "scenario__default_production",
+          name: "Default Production",
+          description:
+            "Configurable raw material, machine count, and initial machine damage.",
+          scenarioParameters: [
+            { type: "integer", identifier: "raw_material", default: 10 },
+            { type: "integer", identifier: "machines_count", default: 3 },
+            { type: "ratio", identifier: "initial_machine_damage", default: 0 },
+          ],
+          parameterOverrides: {},
+          initialState: {
+            type: "code",
+            content: [
+              "return {",
+              "  RawMaterial: scenario.raw_material,",
+              "  AvailableMachines: Array.from(",
+              "    { length: scenario.machines_count },",
+              "    () => ({ machine_damage_ratio: scenario.initial_machine_damage }),",
+              "  ),",
+              "};",
+            ].join("\n"),
+          },
         },
       ],
     },

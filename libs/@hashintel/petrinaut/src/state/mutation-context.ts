@@ -5,6 +5,7 @@ import type {
   DifferentialEquation,
   Parameter,
   Place,
+  Scenario,
   Transition,
 } from "../core/types/sdcpn";
 import type { SelectionMap } from "./selection";
@@ -29,20 +30,25 @@ export type MutationHelperFunctions = {
   removeTransition: (transitionId: string) => void;
   addArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
+  ) => void;
+  updateArcType: (
+    transitionId: string,
+    placeId: string,
+    type: "standard" | "inhibitor",
   ) => void;
   addType: (type: Color) => void;
   updateType: (typeId: string, updateFn: (type: Color) => void) => void;
@@ -59,6 +65,12 @@ export type MutationHelperFunctions = {
     updateFn: (parameter: Parameter) => void,
   ) => void;
   removeParameter: (parameterId: string) => void;
+  addScenario: (scenario: Scenario) => void;
+  updateScenario: (
+    scenarioId: string,
+    updateFn: (scenario: Scenario) => void,
+  ) => void;
+  removeScenario: (scenarioId: string) => void;
   deleteItemsByIds: (items: SelectionMap) => void;
   layoutGraph: () => Promise<void>;
   pasteEntities: () => Promise<Array<{ type: string; id: string }> | null>;
@@ -85,6 +97,7 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addArc: () => {},
   removeArc: () => {},
   updateArcWeight: () => {},
+  updateArcType: () => {},
   addType: () => {},
   updateType: () => {},
   removeType: () => {},
@@ -94,6 +107,9 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addParameter: () => {},
   updateParameter: () => {},
   removeParameter: () => {},
+  addScenario: () => {},
+  updateScenario: () => {},
+  removeScenario: () => {},
   deleteItemsByIds: () => {},
   layoutGraph: async () => {},
   pasteEntities: async () => null,

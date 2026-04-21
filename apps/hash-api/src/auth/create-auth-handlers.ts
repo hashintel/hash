@@ -3,6 +3,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Session } from "@ory/kratos-client";
 import * as Sentry from "@sentry/node";
 import type { AxiosError } from "axios";
@@ -24,6 +25,7 @@ const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
 const kratosAfterRegistrationHookHandler =
   (
     context: ImpureGraphContext,
+    logger: Logger,
   ): RequestHandler<
     Record<string, never>,
     string,
@@ -39,6 +41,11 @@ const kratosAfterRegistrationHookHandler =
 
     // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
+      logger.error("Kratos webhook called with invalid API key");
+      Sentry.captureException(
+        new Error("Kratos webhook called with invalid API key"),
+      );
+
       res
         .status(401)
         .send(
@@ -68,7 +75,11 @@ const kratosAfterRegistrationHookHandler =
       } catch (error) {
         // The kratos hook can interrupt creation on 4xx and 5xx responses.
 
+        logger.error(
+          `Error creating user with kratos identity id "${kratosIdentityId}": ${stringifyError(error, { prettify: false })}`,
+        );
         Sentry.captureException(error);
+
         res.status(400).send(
           JSON.stringify({
             messages: [
@@ -86,13 +97,15 @@ const kratosAfterRegistrationHookHandler =
 export const addKratosAfterRegistrationHandler = ({
   app,
   context,
+  logger,
 }: {
   app: Express;
   context: ImpureGraphContext;
+  logger: Logger;
 }) => {
   app.post(
     "/kratos-after-registration",
-    kratosAfterRegistrationHookHandler(context),
+    kratosAfterRegistrationHookHandler(context, logger),
   );
 };
 
@@ -150,15 +163,30 @@ export const getUserAndSession = async ({
         ({ value }) => value === primaryEmailAddress,
       )?.verified === true;
 
-    const user = await getUser(context, authentication, {
+    let user = await getUser(context, authentication, {
       kratosIdentityId,
       emails: traits.emails,
     });
 
     if (!user) {
-      throw new Error(
-        `Could not find user with kratos identity id "${kratosIdentityId}"`,
-      );
+      const hashInstance = await getHashInstance(context, authentication);
+
+      if (!hashInstance.userSelfRegistrationIsEnabled) {
+        throw new Error("User registration is disabled.");
+      }
+
+      try {
+        user = await createUser(context, authentication, {
+          emails: traits.emails,
+          kratosIdentityId,
+        });
+      } catch (error) {
+        Sentry.captureException(error);
+
+        throw new Error(
+          `Error creating user with kratos identity id "${kratosIdentityId}"${error instanceof Error ? `: ${error.message}` : ""}`,
+        );
+      }
     }
 
     return { primaryEmailVerified, session: kratosSession, user };

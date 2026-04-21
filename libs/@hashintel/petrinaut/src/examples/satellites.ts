@@ -12,7 +12,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         dynamicsEnabled: true,
         differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const { satellite_radius, earth_radius } = parameters;
+  const { satellite_radius, planet_radius } = parameters;
 
   const width = 800;
   const height = 600;
@@ -28,11 +28,11 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {/* Background */}
       <rect width={width} height={height} fill="#000014" />
 
-      {/* Earth at center */}
+      {/* Planet at center */}
       <circle
         cx={centerX}
         cy={centerY}
-        r={earth_radius}
+        r={planet_radius}
         fill="#2196f3"
         stroke="#1976d2"
         strokeWidth="2"
@@ -41,7 +41,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
       {/* Satellites */}
       {tokens.map(({ x, y, direction, velocity }, index) => {
         // Convert satellite coordinates to screen coordinates
-        // Assuming satellite coordinates are relative to Earth center
+        // Assuming satellite coordinates are relative to planet center
         const screenX = centerX + x;
         const screenY = centerY + y;
 
@@ -58,12 +58,12 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
             />
 
             {/* Velocity vector indicator */}
-            {velocity > 0 && (
+            {Math.abs(velocity) > 0.01 && (
               <line
                 x1={screenX}
                 y1={screenY}
-                x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
-                y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
+                x2={screenX + Math.cos(direction) * Math.log(Math.abs(velocity)) * Math.sign(velocity) * 10}
+                y2={screenY + Math.sin(direction) * Math.log(Math.abs(velocity)) * Math.sign(velocity) * 10}
                 stroke="#ffc107"
                 strokeWidth="2"
                 markerEnd="url(#arrowhead)"
@@ -116,6 +116,7 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 2,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -169,6 +170,7 @@ export default TransitionKernel((tokens) => {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -178,20 +180,20 @@ export default TransitionKernel((tokens) => {
           },
         ],
         lambdaType: "predicate",
-        lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
+        lambdaCode: `// Check if satellite crashes into planet (within crash threshold of origin)
 export default Lambda((tokens, parameters) => {
-  const { earth_radius, crash_threshold, satellite_radius } = parameters;
+  const { planet_radius, crash_threshold, satellite_radius } = parameters;
 
   // Get satellite position
   const { x, y } = tokens.Space[0];
 
-  // Calculate distance from Earth center (origin)
+  // Calculate distance from planet center (origin)
   const distance = Math.hypot(x, y);
 
-  // Crash occurs if satellite is too close to Earth
-  return distance < earth_radius + crash_threshold + satellite_radius;
+  // Crash occurs if satellite is too close to planet
+  return distance < planet_radius + crash_threshold + satellite_radius;
 })`,
-        transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
+        transitionKernelCode: `// When satellite crashes into planet, it becomes debris at crash site
 export default TransitionKernel((tokens) => {
   return {
     Debris: [
@@ -250,7 +252,7 @@ export default Dynamics((tokens, parameters) => {
 
   // Process each token (satellite)
   return tokens.map(({ x, y, direction, velocity }) => {
-    const r = Math.hypot(x, y); // Distance to Earth center
+    const r = Math.hypot(x, y); // Distance to planet center
 
     // Gravitational acceleration vector (points toward origin)
     const ax = (-mu * x) / (r * r * r);
@@ -272,8 +274,8 @@ export default Dynamics((tokens, parameters) => {
     parameters: [
       {
         id: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
-        name: "Earth Radius",
-        variableName: "earth_radius",
+        name: "Planet Radius",
+        variableName: "planet_radius",
         type: "real",
         defaultValue: "50.0",
       },
@@ -304,6 +306,37 @@ export default Dynamics((tokens, parameters) => {
         variableName: "gravitational_constant",
         type: "real",
         defaultValue: "400000.0",
+      },
+    ],
+    scenarios: [
+      {
+        id: "af3ad9e9-fd8f-4e3d-a01e-66cecafe2ca6",
+        name: "All Around the World",
+        scenarioParameters: [
+          { type: "integer", identifier: "number_of_satellites", default: 8 },
+          { type: "real", identifier: "distance_from_surface", default: 30 },
+        ],
+        parameterOverrides: {},
+        initialState: {
+          type: "code",
+          content: [
+            "const distanceFromCenter =",
+            "  parameters.planet_radius + scenario.distance_from_surface;",
+            "",
+            "return {",
+            "  Space: Array.from({ length: scenario.number_of_satellites }, (_, i) => {",
+            "    const angle = (Math.PI * 2 * i) / scenario.number_of_satellites;",
+            "",
+            "    return {",
+            "      x: Math.cos(angle) * distanceFromCenter,",
+            "      y: Math.sin(angle) * distanceFromCenter,",
+            "      direction: angle,",
+            "      velocity: Math.sqrt(parameters.gravitational_constant / distanceFromCenter),",
+            "    };",
+            "  }),",
+            "};",
+          ].join("\n"),
+        },
       },
     ],
   },

@@ -6,6 +6,7 @@ import { TbTrash } from "react-icons/tb";
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
+import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -31,19 +32,25 @@ interface ArcPropertiesData {
   arcId: string;
   transitionId: string;
   placeId: string;
-  arcType: "input" | "output";
+  arcDirection: "input" | "output";
   sourceName: string;
   targetName: string;
   weight: number;
+  type: "standard" | "inhibitor";
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
+  updateArcType: (
+    transitionId: string,
+    placeId: string,
+    type: "standard" | "inhibitor",
+  ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
 }
@@ -64,11 +71,13 @@ const ArcMainContent: React.FC = () => {
   const {
     transitionId,
     placeId,
-    arcType,
+    arcDirection,
     sourceName,
     targetName,
     weight,
+    type,
     updateArcWeight,
+    updateArcType,
   } = useArcPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
@@ -80,6 +89,26 @@ const ArcMainContent: React.FC = () => {
       <Section title="Target">
         <div className={readOnlyFieldStyle}>{targetName}</div>
       </Section>
+      {arcDirection === "input" && (
+        <Section title="Type">
+          <Select
+            value={type}
+            onValueChange={(value) => {
+              updateArcType(
+                transitionId,
+                placeId,
+                value as "inhibitor" | "standard",
+              );
+            }}
+            options={[
+              { value: "standard", label: "Standard" },
+              { value: "inhibitor", label: "Inhibitor" },
+            ]}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </Section>
+      )}
       <Section title="Weight">
         <NumberInput
           size="sm"
@@ -92,7 +121,7 @@ const ArcMainContent: React.FC = () => {
               10,
             );
             if (value > 0) {
-              updateArcWeight(transitionId, arcType, placeId, value);
+              updateArcWeight(transitionId, arcDirection, placeId, value);
             }
           }}
           disabled={isReadOnly}
@@ -103,7 +132,7 @@ const ArcMainContent: React.FC = () => {
 };
 
 const DeleteArcAction: React.FC = () => {
-  const { transitionId, placeId, arcType, removeArc } =
+  const { transitionId, placeId, arcDirection, removeArc } =
     useArcPropertiesContext();
   const { clearSelection } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
@@ -114,7 +143,7 @@ const DeleteArcAction: React.FC = () => {
       size="xs"
       colorScheme="red"
       onClick={() => {
-        removeArc(transitionId, arcType, placeId);
+        removeArc(transitionId, arcDirection, placeId);
         clearSelection();
       }}
       disabled={isReadOnly}
@@ -142,13 +171,18 @@ interface ArcPropertiesProps {
   petriNetDefinition: SDCPN;
   updateArcWeight: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;
+  updateArcType: (
+    transitionId: string,
+    placeId: string,
+    type: "standard" | "inhibitor",
+  ) => void;
   removeArc: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
   ) => void;
 }
@@ -157,6 +191,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   arcId,
   petriNetDefinition,
   updateArcWeight,
+  updateArcType,
   removeArc,
 }) => {
   const parsed = parseArcId(arcId);
@@ -189,11 +224,13 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcId,
       transitionId: targetTransition.id,
       placeId: sourcePlace.id,
-      arcType: "input",
+      arcDirection: "input",
       sourceName: sourcePlace.name,
       targetName: targetTransition.name,
       weight: arc?.weight ?? 1,
+      type: arc?.type ?? "standard",
       updateArcWeight,
+      updateArcType,
       removeArc,
     };
   } else if (sourceTransition && targetPlace) {
@@ -204,11 +241,13 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       arcId,
       transitionId: sourceTransition.id,
       placeId: targetPlace.id,
-      arcType: "output",
+      arcDirection: "output",
       sourceName: sourceTransition.name,
       targetName: targetPlace.name,
       weight: arc?.weight ?? 1,
+      type: "standard",
       updateArcWeight,
+      updateArcType,
       removeArc,
     };
   } else {

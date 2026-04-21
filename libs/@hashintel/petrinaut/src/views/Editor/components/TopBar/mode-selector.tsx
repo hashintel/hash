@@ -18,8 +18,6 @@ const options: SegmentOption[] = [
     label: "Simulate",
     value: "simulate",
     icon: <TbPlayerPlay />,
-    disabled: true,
-    tooltip: "Simulate mode is not yet available.",
   },
   {
     label: "Actual",

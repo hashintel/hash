@@ -20,7 +20,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
   mutatePetriNetDefinition,
   children,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { petriNetDefinition, readonly } = use(SDCPNContext);
   const { compactNodes } = use(UserSettingsContext);
   const isReadOnly = useIsReadOnly();
 
@@ -30,6 +30,17 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
 
   function guardedMutate(fn: (sdcpn: SDCPN) => void): void {
     if (isReadOnly) {
+      return;
+    }
+    mutatePetriNetDefinition(fn);
+  }
+
+  /**
+   * Scenario CRUD is allowed even in simulate mode (the Simulate panel is
+   * where scenarios are managed). Only true `readonly` blocks them.
+   */
+  function scenarioMutate(fn: (sdcpn: SDCPN) => void): void {
+    if (readonly) {
       return;
     }
     mutatePetriNetDefinition(fn);
@@ -122,29 +133,34 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
-    addArc(transitionId, arcType, placeId, weight) {
+    addArc(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
-            transition[arcType === "input" ? "inputArcs" : "outputArcs"].push({
-              placeId,
-              weight,
-            });
+            if (arcDirection === "input") {
+              transition["inputArcs"].push({
+                type: "standard",
+                placeId,
+                weight,
+              });
+            } else {
+              transition["outputArcs"].push({ placeId, weight });
+            }
             break;
           }
         }
       });
     },
-    removeArc(transitionId, arcType, placeId) {
+    removeArc(transitionId, arcDirection, placeId) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
             for (const [index, arc] of transition[
-              arcType === "input" ? "inputArcs" : "outputArcs"
+              arcDirection === "input" ? "inputArcs" : "outputArcs"
             ].entries()) {
               if (arc.placeId === placeId) {
                 transition[
-                  arcType === "input" ? "inputArcs" : "outputArcs"
+                  arcDirection === "input" ? "inputArcs" : "outputArcs"
                 ].splice(index, 1);
                 break;
               }
@@ -154,15 +170,30 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
-    updateArcWeight(transitionId, arcType, placeId, weight) {
+    updateArcWeight(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === transitionId) {
             for (const arc of transition[
-              arcType === "input" ? "inputArcs" : "outputArcs"
+              arcDirection === "input" ? "inputArcs" : "outputArcs"
             ]) {
               if (arc.placeId === placeId) {
                 arc.weight = weight;
+                break;
+              }
+            }
+            break;
+          }
+        }
+      });
+    },
+    updateArcType(transitionId, placeId, type) {
+      guardedMutate((sdcpn) => {
+        for (const transition of sdcpn.transitions) {
+          if (transition.id === transitionId) {
+            for (const arc of transition["inputArcs"]) {
+              if (arc.placeId === placeId) {
+                arc.type = type;
                 break;
               }
             }
@@ -258,6 +289,38 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         for (const [index, parameter] of sdcpn.parameters.entries()) {
           if (parameter.id === parameterId) {
             sdcpn.parameters.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
+    addScenario(scenario) {
+      scenarioMutate((sdcpn) => {
+        const scenarios = sdcpn.scenarios ?? [];
+        scenarios.push(scenario);
+        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
+        sdcpn.scenarios = scenarios;
+      });
+    },
+    updateScenario(scenarioId, updateFn) {
+      scenarioMutate((sdcpn) => {
+        for (const scenario of sdcpn.scenarios ?? []) {
+          if (scenario.id === scenarioId) {
+            updateFn(scenario);
+            break;
+          }
+        }
+      });
+    },
+    removeScenario(scenarioId) {
+      scenarioMutate((sdcpn) => {
+        const scenarios = sdcpn.scenarios;
+        if (!scenarios) {
+          return;
+        }
+        for (const [index, scenario] of scenarios.entries()) {
+          if (scenario.id === scenarioId) {
+            scenarios.splice(index, 1);
             break;
           }
         }

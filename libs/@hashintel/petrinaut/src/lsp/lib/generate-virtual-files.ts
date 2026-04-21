@@ -1,4 +1,4 @@
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN, ScenarioParameter } from "../../core/types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 
@@ -14,7 +14,7 @@ function sanitizeColorId(colorId: string): string {
 /**
  * Maps SDCPN element types to TypeScript types
  */
-function toTsType(type: "real" | "integer" | "boolean"): string {
+function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
   return type === "boolean" ? "boolean" : "number";
 }
 
@@ -120,6 +120,11 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
     const inputTypeProperties: string[] = [];
 
     for (const arc of transition.inputArcs) {
+      // Inhibitor arcs never deliver tokens to the transition, so they should
+      // not contribute to the input type.
+      if (arc.type === "inhibitor") {
+        continue;
+      }
       const place = placeById.get(arc.placeId);
       if (!place?.colorId) {
         continue;
@@ -230,6 +235,163 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       ].join("\n"),
       content: transition.transitionKernelCode,
     });
+  }
+
+  return files;
+}
+
+/**
+ * Data required to generate virtual files for a scenario editing session.
+ */
+export type ScenarioSessionData = {
+  sessionId: string;
+  scenarioParameters: ScenarioParameter[];
+  /** Parameter ID → expression string */
+  parameterOverrides: Record<string, string>;
+  /** Place ID → expression string (used when initialStateAsCode is false) */
+  initialState: Record<string, string>;
+  /** Full code for "Define as code" initial state mode (used when initialStateAsCode is true) */
+  initialStateCode?: string;
+  /** Which initial state mode is active. Only the active mode's files are generated. */
+  initialStateAsCode: boolean;
+};
+
+/**
+ * Generates virtual files for a scenario editing session.
+ *
+ * Each parameter override and initial state expression gets its own code file
+ * wrapped so the expression is type-checked as the correct return type.
+ */
+export function generateScenarioSessionFiles(
+  sdcpn: SDCPN,
+  session: ScenarioSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId } = session;
+
+  const parametersDefsPath = getItemFilePath("parameters-defs");
+
+  // Build scenario object type: { hello: number; world: boolean; ... }
+  const scenarioProps = session.scenarioParameters
+    .filter((p) => p.identifier.trim() !== "")
+    .map((p) => `  "${p.identifier}": ${toTsType(p.type)};`)
+    .join("\n");
+
+  const scenarioTypeDecl =
+    scenarioProps.length > 0
+      ? `declare const scenario: {\n${scenarioProps}\n};`
+      : `declare const scenario: Record<string, never>;`;
+
+  const commonPrefix = [
+    `import type { Parameters } from "${parametersDefsPath}";`,
+    `declare const parameters: Parameters;`,
+    scenarioTypeDecl,
+  ].join("\n");
+
+  // Generate defs file (shared declarations for this session)
+  const defsPath = getItemFilePath("scenario-session-defs", { sessionId });
+  files.set(defsPath, {
+    content: commonPrefix,
+  });
+
+  // Generate code files for parameter overrides
+  const paramById = new Map(sdcpn.parameters.map((p) => [p.id, p]));
+  for (const [paramId, expression] of Object.entries(
+    session.parameterOverrides,
+  )) {
+    const param = paramById.get(paramId);
+    if (!param) {
+      continue;
+    }
+    // Skip empty expressions — they fall back to the parameter's default value
+    // at runtime, so there's nothing for the LSP to lint.
+    if (expression.trim() === "") {
+      continue;
+    }
+    const returnType = toTsType(param.type);
+    const filePath = getItemFilePath("scenario-param-override-code", {
+      sessionId,
+      paramId,
+    });
+    files.set(filePath, {
+      prefix: `${commonPrefix}\nfunction __check(): ${returnType} { return (\n`,
+      content: expression,
+      suffix: `\n); }`,
+    });
+  }
+
+  // Generate full code file for "Define as code" initial state — only when
+  // that mode is active so we don't lint stale code from the inactive mode.
+  if (session.initialStateAsCode && session.initialStateCode !== undefined) {
+    // Build return type: { "PlaceName"?: TokenType[], ... }
+    const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
+    const initialStateTypeImports: string[] = [];
+    const initialStateTypeProperties: string[] = [];
+
+    for (const place of sdcpn.places) {
+      let elementType: string;
+      if (place.colorId) {
+        const color = colorById.get(place.colorId);
+        if (color) {
+          const sanitized = sanitizeColorId(color.id);
+          const colorDefsPath = getItemFilePath("color-defs", {
+            colorId: color.id,
+          });
+          const importStatement = `import type { Color_${sanitized} } from "${colorDefsPath}";`;
+          if (!initialStateTypeImports.includes(importStatement)) {
+            initialStateTypeImports.push(importStatement);
+          }
+          elementType = `Color_${sanitized}[]`;
+        } else {
+          elementType = "number";
+        }
+      } else {
+        elementType = "number";
+      }
+      initialStateTypeProperties.push(`  "${place.name}"?: ${elementType};`);
+    }
+
+    const initialStateReturnType =
+      initialStateTypeProperties.length > 0
+        ? `{\n${initialStateTypeProperties.join("\n")}\n}`
+        : "Record<string, never>";
+
+    const fullCodePrefix = [
+      commonPrefix,
+      ...initialStateTypeImports,
+      `type InitialState = ${initialStateReturnType};`,
+      `function __check(): InitialState {`,
+    ].join("\n");
+
+    const filePath = getItemFilePath("scenario-initial-state-full-code", {
+      sessionId,
+    });
+    files.set(filePath, {
+      prefix: `${fullCodePrefix}\n`,
+      content: session.initialStateCode,
+      suffix: `\n}`,
+    });
+  }
+
+  // Generate code files for per-place initial state expressions — only when
+  // that mode is active.
+  if (!session.initialStateAsCode) {
+    for (const [placeId, expression] of Object.entries(session.initialState)) {
+      // Skip empty expressions — they fall back to 0 tokens at runtime.
+      if (expression.trim() === "") {
+        continue;
+      }
+      const filePath = getItemFilePath("scenario-initial-state-code", {
+        sessionId,
+        placeId,
+      });
+      // Initial state expressions for simple places return a number (token count)
+      files.set(filePath, {
+        prefix: `${commonPrefix}\nfunction __check(): number { return (\n`,
+        content: expression,
+        suffix: `\n); }`,
+      });
+    }
   }
 
   return files;

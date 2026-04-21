@@ -1,9 +1,22 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import { deleteUserByEmail } from "./delete-user";
 import { getKratosVerificationCode } from "./get-kratos-verification-code";
 
 const defaultPassword = "some-complex-pw-1ab2";
+
+/**
+ * Generate a unique shortname suffix per test run so that the web principal
+ * left behind by a previous run (see `deleteUserByEmail`) doesn't cause a
+ * "Shortname already taken" error. The suffix keeps the base name readable
+ * while guaranteeing uniqueness.
+ */
+const uniqueShortname = (base: string): string => {
+  const suffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
+  const maxBaseLength = 24 - suffix.length;
+  return `${base.slice(0, maxBaseLength)}${suffix}`;
+};
 
 /**
  * Fill in the signup form and submit it.
@@ -85,13 +98,18 @@ export const completeSignup = async (
 
 /**
  * Full flow: register a user, verify email, and complete signup.
+ *
+ * Before registering, deletes any Kratos identity left over from a previous
+ * run via the Graph admin API. The shortname is randomised per call to avoid
+ * colliding with the orphan web principal that `POST /users/delete`
+ * intentionally preserves.
  */
 export const createUserAndCompleteSignup = async (
   page: Page,
   {
     email,
     shortname,
-    displayName = shortname,
+    displayName,
     password = defaultPassword,
   }: {
     email: string;
@@ -100,6 +118,12 @@ export const createUserAndCompleteSignup = async (
     password?: string;
   },
 ) => {
+  // Clean up any leftover Kratos identity from a previous run so the
+  // registration doesn't fail with "identifier already exists".
+  await deleteUserByEmail(email);
+
+  const runShortname = uniqueShortname(shortname);
+
   const { emailDispatchTimestamp } = await registerUser(page, {
     email,
     password,
@@ -110,7 +134,10 @@ export const createUserAndCompleteSignup = async (
     afterTimestamp: emailDispatchTimestamp,
   });
 
-  await completeSignup(page, { shortname, displayName });
+  await completeSignup(page, {
+    shortname: runShortname,
+    displayName: displayName ?? runShortname,
+  });
 
   return { email, password };
 };

@@ -11,6 +11,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
+        showAsInitialState: true,
         x: -29 * SNAP_GRID_SIZE,
         y: 10 * SNAP_GRID_SIZE,
       },
@@ -20,6 +21,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
+        showAsInitialState: true,
         x: -13 * SNAP_GRID_SIZE,
         y: 19 * SNAP_GRID_SIZE,
       },
@@ -41,10 +43,12 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__susceptible",
             weight: 1,
+            type: "standard",
           },
           {
             placeId: "place__infected",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -68,6 +72,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           {
             placeId: "place__infected",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -101,6 +106,54 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         variableName: "recovery_rate",
         type: "real",
         defaultValue: "1",
+      },
+    ],
+    scenarios: [
+      {
+        id: "scenario__seasonal_flu",
+        name: "Seasonal Flu",
+        description:
+          "Moderate outbreak with R₀ ≈ 1.5. Models a typical seasonal influenza wave in a small community.",
+        scenarioParameters: [
+          { type: "integer", identifier: "population", default: 1000 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.01 },
+        ],
+        parameterOverrides: {
+          param__infection_rate: "1.5",
+          param__recovery_rate: "0.8",
+        },
+        initialState: {
+          type: "per_place",
+          content: {
+            place__susceptible:
+              "scenario.population * (1 - scenario.infected_ratio)",
+            place__infected: "scenario.population * scenario.infected_ratio",
+            place__recovered: "0",
+          },
+        },
+      },
+      {
+        id: "scenario__high_virulence",
+        name: "High Virulence Outbreak",
+        description:
+          "Aggressive pathogen with R₀ ≈ 6 and slow recovery, modelling rapid spread before interventions.",
+        scenarioParameters: [
+          { type: "integer", identifier: "population", default: 10000 },
+          { type: "ratio", identifier: "infected_ratio", default: 0.0001 },
+        ],
+        parameterOverrides: {
+          param__infection_rate: "6",
+          param__recovery_rate: "0.5",
+        },
+        initialState: {
+          type: "per_place",
+          content: {
+            place__susceptible:
+              "scenario.population * (1 - scenario.infected_ratio)",
+            place__infected: "scenario.population * scenario.infected_ratio",
+            place__recovered: "0",
+          },
+        },
       },
     ],
   },

@@ -4,10 +4,10 @@ import { use, useRef, useState } from "react";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
+import { deploymentPipelineSDCPN } from "../../examples/deployment-pipeline";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
-import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
@@ -31,6 +31,7 @@ import { exportTikZ } from "./lib/export-tikz";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
+import { SimulateView } from "./panels/SimulateView/simulate-view";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -111,6 +112,7 @@ export const EditorView = ({
   // Get editor context
   const {
     globalMode: mode,
+    setGlobalMode,
     editionMode,
     setEditionMode,
     cursorMode,
@@ -271,14 +273,6 @@ export const EditorView = ({
             label: "Load example",
             submenu: [
               {
-                id: "load-example-supply-chain",
-                label: "Supply Chain",
-                onClick: () => {
-                  createNewNet(supplyChainSDCPN);
-                  clearSelection();
-                },
-              },
-              {
                 id: "load-example-supply-chain-stochastic",
                 label: "Probabilistic Supply Chain",
                 onClick: () => {
@@ -318,10 +312,29 @@ export const EditorView = ({
                   clearSelection();
                 },
               },
+              {
+                id: "load-example-deployment-pipeline",
+                label: "Deployment Pipeline",
+                onClick: () => {
+                  createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
+              },
             ],
           },
         ]
       : []),
+    {
+      id: "docs",
+      label: "Docs",
+      onClick: () => {
+        window.open(
+          "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs",
+          "_blank",
+          "noopener,noreferrer",
+        );
+      },
+    },
   ];
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
@@ -349,33 +362,35 @@ export const EditorView = ({
           onTitleChange={setTitle}
           hideNetManagementControls={hideNetManagementControls}
           mode={mode}
-          onModeChange={() => {
-            // Mode change handled by TopBar; currently only "edit" is enabled
-          }}
+          onModeChange={setGlobalMode}
         />
 
         <Stack direction="row" className={rowContainerStyle}>
-          <Box className={canvasContainerStyle}>
-            {/* Left Sidebar - Tools and content panels */}
-            <LeftSideBar />
+          {mode === "simulate" ? (
+            <SimulateView />
+          ) : (
+            <Box className={canvasContainerStyle}>
+              {/* Left Sidebar - Tools and content panels */}
+              <LeftSideBar />
 
-            {/* Properties Panel - Right Side */}
-            <PropertiesPanel />
+              {/* Properties Panel - Right Side */}
+              <PropertiesPanel />
 
-            {/* SDCPN Visualization */}
-            <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization */}
+              <SDCPNView viewportActions={viewportActions} />
 
-            {/* Bottom Panel - Diagnostics, Simulation Settings */}
-            <BottomPanel />
+              {/* Bottom Panel - Diagnostics, Simulation Settings */}
+              <BottomPanel />
 
-            <BottomBar
-              mode={mode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-            />
-          </Box>
+              <BottomBar
+                mode={mode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+              />
+            </Box>
+          )}
         </Stack>
       </Stack>
     </PortalContainerContext>

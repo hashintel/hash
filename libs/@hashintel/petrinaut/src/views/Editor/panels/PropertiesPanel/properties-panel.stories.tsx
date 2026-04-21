@@ -106,8 +106,8 @@ const TRANSITION: Transition = {
   id: "transition-1",
   name: "ProcessOrder",
   inputArcs: [
-    { placeId: "place-1", weight: 1 },
-    { placeId: "place-2", weight: 2 },
+    { placeId: "place-1", weight: 1, type: "standard" },
+    { placeId: "place-2", weight: 2, type: "standard" },
   ],
   outputArcs: [{ placeId: "place-3", weight: 1 }],
   lambdaType: "predicate",
@@ -246,9 +246,10 @@ const TransitionPanelStory = () => {
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}
-        onArcWeightUpdate={(transitionId, arcType, placeId, weight) => {
+        onArcWeightUpdate={(transitionId, arcDirection, placeId, weight) => {
           updateTransition(transitionId, (tr) => {
-            const arcs = arcType === "input" ? tr.inputArcs : tr.outputArcs;
+            const arcs =
+              arcDirection === "input" ? tr.inputArcs : tr.outputArcs;
             const arc = arcs.find((a) => a.placeId === placeId);
             if (arc) {
               arc.weight = weight;

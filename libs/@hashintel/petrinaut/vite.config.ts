@@ -22,6 +22,12 @@ export default defineConfig(({ command }) => ({
         "react-dom",
         "@xyflow/react",
         "@babel/standalone",
+        // Pure-CJS dep pulled in transitively by @tanstack/react-form →
+        // @tanstack/react-store. Rolldown can't safely transform its
+        // `require("react")` when react is external, so it falls back to a
+        // runtime require helper that throws in the browser. Externalising it
+        // pushes CJS→ESM interop to the consumer's bundler.
+        /^use-sync-external-store(\/.*)?$/,
       ],
       output: {
         globals: {
@@ -32,11 +38,9 @@ export default defineConfig(({ command }) => ({
     },
     sourcemap: true,
     minify: true,
-    // Use esbuild for CSS minification. Vite 8 defaults to LightningCSS which
-    // strips the standard `backdrop-filter` in favour of `-webkit-backdrop-filter`
-    // based on its browser-target heuristics.
-    // https://github.com/parcel-bundler/lightningcss/issues/695
-    cssMinify: false,
+    // Vite 8 defaults to LightningCSS which is still unstable.
+    // e.g. https://github.com/parcel-bundler/lightningcss/issues/695
+    cssMinify: "esbuild",
   },
 
   define: {

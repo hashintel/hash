@@ -88,7 +88,7 @@
     "sync-fetch": "0.5.2",
     "tsdown": "^0.21.4",
     "typescript": "5.9.3",
-    "vite": "7.1.11",
+    "vite": "7.3.2",
     "vitest": "^4.0.16"
   }
 }

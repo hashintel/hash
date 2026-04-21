@@ -17,13 +17,17 @@ const containerStyle = css({
 
 const placeCircleStyle = cva({
   base: {
-    padding: "4",
+    paddingY: "4",
+    paddingX: "2",
     borderRadius: "[50%]",
     width: "[130px]",
     height: "[130px]",
     display: "flex",
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+    gap: "3",
+    minWidth: "0",
     border: "2px solid",
     fontSize: "[15px]",
     boxSizing: "border-box",
@@ -69,25 +73,13 @@ const dynamicsIconStyle = css({
   fontSize: "lg",
 });
 
-const contentWrapperStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "3",
-});
-
 const labelContainerStyle = css({
   textAlign: "center",
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "center",
-  padding: "[12px]",
+  padding: "[12px 0]",
   lineHeight: "[1.1]",
-});
-
-const labelSegmentStyle = css({
-  display: "inline-block",
-  whiteSpace: "nowrap",
+  maxWidth: "[100%]",
+  overflowWrap: "break-word",
+  lineClamp: "3",
 });
 
 const tokenCountBadgeStyle = css({
@@ -128,17 +120,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
-  // Split label into segments with unique keys (handles duplicate segments)
-  const labelSegments = splitPascalCase(data.label).reduce<
-    { key: string; text: string }[]
-  >((acc, segment) => {
-    const count = acc.filter((entry) => entry.text === segment).length;
-    acc.push({
-      key: count > 0 ? `${segment}-${String(count)}` : segment,
-      text: segment,
-    });
-    return acc;
-  }, []);
+  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
+  const label = splitPascalCase(data.label).join("\u200B");
 
   // Determine selection state
   const isInSelection = isSelected(id);
@@ -163,8 +146,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
           backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(30).css(0.8)
-            : "#FCFCFACC",
+            ? hexToHsl(data.typeColor).lighten(35).css(1)
+            : "#FCFCFA",
         }}
       >
         {data.dynamicsEnabled && (
@@ -172,19 +155,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             <TbMathFunction />
           </div>
         )}
-        <div className={contentWrapperStyle}>
-          <div className={labelContainerStyle}>
-            {labelSegments.map(({ key, text }) => (
-              <span key={key} className={labelSegmentStyle}>
-                {text}
-              </span>
-            ))}
-          </div>
-
-          {tokenCount !== null && (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          )}
-        </div>
+        <div className={labelContainerStyle}>{label}</div>
+        {tokenCount !== null && (
+          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+        )}
       </div>
       <Handle
         type="source"

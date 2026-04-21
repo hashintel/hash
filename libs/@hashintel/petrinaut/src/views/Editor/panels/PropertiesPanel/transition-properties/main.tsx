@@ -26,7 +26,7 @@ interface TransitionPropertiesProps {
   ) => void;
   onArcWeightUpdate: (
     transitionId: string,
-    arcType: "input" | "output",
+    arcDirection: "input" | "output",
     placeId: string,
     weight: number,
   ) => void;

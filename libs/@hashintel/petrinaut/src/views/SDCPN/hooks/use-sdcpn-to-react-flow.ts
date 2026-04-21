@@ -138,6 +138,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: inputArc.weight,
+          arcType: inputArc.type,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
@@ -179,6 +180,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
+          arcType: "standard" as const,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });

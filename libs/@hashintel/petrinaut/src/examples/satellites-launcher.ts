@@ -15,7 +15,7 @@ export const probabilisticSatellitesSDCPN: {
         dynamicsEnabled: true,
         differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const { satellite_radius, earth_radius } = parameters;
+  const { satellite_radius, planet_radius } = parameters;
 
   const width = 800;
   const height = 600;
@@ -31,11 +31,11 @@ export const probabilisticSatellitesSDCPN: {
       {/* Background */}
       <rect width={width} height={height} fill="#000014" />
 
-      {/* Earth at center */}
+      {/* Planet at center */}
       <circle
         cx={centerX}
         cy={centerY}
-        r={earth_radius}
+        r={planet_radius}
         fill="#2196f3"
         stroke="#1976d2"
         strokeWidth="2"
@@ -44,7 +44,7 @@ export const probabilisticSatellitesSDCPN: {
       {/* Satellites */}
       {tokens.map(({ x, y, direction, velocity }, index) => {
         // Convert satellite coordinates to screen coordinates
-        // Assuming satellite coordinates are relative to Earth center
+        // Assuming satellite coordinates are relative to planet center
         const screenX = centerX + x;
         const screenY = centerY + y;
 
@@ -119,6 +119,7 @@ export const probabilisticSatellitesSDCPN: {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 2,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -172,6 +173,7 @@ export default TransitionKernel((tokens) => {
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
             weight: 1,
+            type: "standard",
           },
         ],
         outputArcs: [
@@ -181,20 +183,20 @@ export default TransitionKernel((tokens) => {
           },
         ],
         lambdaType: "predicate",
-        lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
+        lambdaCode: `// Check if satellite crashes into planet (within crash threshold of origin)
 export default Lambda((tokens, parameters) => {
-  const { earth_radius, crash_threshold, satellite_radius } = parameters;
+  const { planet_radius, crash_threshold, satellite_radius } = parameters;
 
   // Get satellite position
   const { x, y } = tokens.Space[0];
 
-  // Calculate distance from Earth center (origin)
+  // Calculate distance from planet center (origin)
   const distance = Math.hypot(x, y);
 
-  // Crash occurs if satellite is too close to Earth
-  return distance < earth_radius + crash_threshold + satellite_radius;
+  // Crash occurs if satellite is too close to planet
+  return distance < planet_radius + crash_threshold + satellite_radius;
 })`,
-        transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
+        transitionKernelCode: `// When satellite crashes into planet, it becomes debris at crash site
 export default TransitionKernel((tokens) => {
   return {
     Debris: [
@@ -223,10 +225,12 @@ export default TransitionKernel((tokens) => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `export default Lambda((tokensByPlace, parameters) => {
-  return 1;
+  return parameters.launch_rate;
 });`,
         transitionKernelCode: `export default TransitionKernel((tokensByPlace, parameters) => {
-  const distance = 80;
+  const { planet_radius, altitude, initial_velocity } = parameters;
+
+  const distance = planet_radius + altitude;
   const angle = Distribution.Uniform(0, Math.PI * 2);
 
   return {
@@ -235,7 +239,7 @@ export default TransitionKernel((tokens) => {
         x: angle.map(a => Math.cos(a) * distance),
         y: angle.map(a => Math.sin(a) * distance),
         direction: Distribution.Uniform(0, Math.PI * 2),
-        velocity: Distribution.Gaussian(60, 20)
+        velocity: Distribution.Gaussian(initial_velocity, initial_velocity * 0.1)
       }
     ],
   };
@@ -285,7 +289,7 @@ export default Dynamics((tokens, parameters) => {
 
   // Process each token (satellite)
   return tokens.map(({ x, y, direction, velocity }) => {
-    const r = Math.hypot(x, y); // Distance to Earth center
+    const r = Math.hypot(x, y); // Distance to planet center
 
     // Gravitational acceleration vector (points toward origin)
     const ax = (-mu * x) / (r * r * r);
@@ -307,8 +311,8 @@ export default Dynamics((tokens, parameters) => {
     parameters: [
       {
         id: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
-        name: "Earth Radius",
-        variableName: "earth_radius",
+        name: "Planet Radius",
+        variableName: "planet_radius",
         type: "real",
         defaultValue: "50.0",
       },
@@ -339,6 +343,147 @@ export default Dynamics((tokens, parameters) => {
         variableName: "gravitational_constant",
         type: "real",
         defaultValue: "400000.0",
+      },
+      {
+        id: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+        name: "Altitude",
+        variableName: "altitude",
+        type: "real",
+        defaultValue: "40.0",
+      },
+      {
+        id: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+        name: "Launch Rate",
+        variableName: "launch_rate",
+        type: "real",
+        defaultValue: "0.5",
+      },
+      {
+        id: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+        name: "Initial Velocity",
+        variableName: "initial_velocity",
+        type: "real",
+        defaultValue: "67.0",
+      },
+    ],
+    scenarios: [
+      {
+        id: "scenario__moon_orbit",
+        name: "Moon Orbit",
+        description:
+          "Low gravity, small body. Satellites drift in gentle arcs around a lunar-mass body.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.3 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 20,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 11,
+          },
+        ],
+        parameterOverrides: {
+          // Planet-specific (hardcoded): gravitational_constant, planet_radius
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "14",
+          // Forwarded from scenario parameters
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
+            "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
+            "scenario.satellite_initial_velocity",
+        },
+        initialState: { type: "per_place", content: {} },
+      },
+      {
+        id: "scenario__earth_orbit",
+        name: "Earth Orbit",
+        description:
+          "Standard Earth gravity. High orbital velocities with frequent launches into low orbit.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.5 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 40,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 67,
+          },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "400000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "50",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
+            "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
+            "scenario.satellite_initial_velocity",
+        },
+        initialState: { type: "per_place", content: {} },
+      },
+      {
+        id: "scenario__mars_orbit",
+        name: "Mars Orbit",
+        description:
+          "Intermediate gravity between Moon and Earth. Moderate orbital speeds with a thin atmosphere margin.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.4 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 25,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 29,
+          },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "43000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "27",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
+            "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
+            "scenario.satellite_initial_velocity",
+        },
+        initialState: { type: "per_place", content: {} },
+      },
+      {
+        id: "scenario__solar_orbit",
+        name: "Solar Orbit",
+        description:
+          "Massive central body with extreme gravity. Satellites need very high velocities to maintain distant orbits.",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 0.6 },
+          {
+            type: "real",
+            identifier: "satellite_initial_altitude",
+            default: 50,
+          },
+          {
+            type: "real",
+            identifier: "satellite_initial_velocity",
+            default: 196,
+          },
+        ],
+        parameterOverrides: {
+          "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000000",
+          "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "80",
+          "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
+            "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
+            "scenario.satellite_initial_velocity",
+        },
+        initialState: { type: "per_place", content: {} },
       },
     ],
   },
