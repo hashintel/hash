@@ -84,6 +84,8 @@ const DEFAULT_EDITOR: EditorContextValue = {
   isSelected: () => false,
   isSelectedConnection: () => false,
   isNotSelectedConnection: () => false,
+  isHoveredConnection: () => false,
+  isNotHoveredConnection: () => false,
   selectedConnections: new Map(),
   setSelection: () => {},
   selectItem: () => {},

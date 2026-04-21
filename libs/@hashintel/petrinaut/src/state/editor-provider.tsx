@@ -249,7 +249,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const hoveredConnections = getNodeConnections(
     petriNetDefinition.transitions,
-    new Set(hoveredItem ? [hoveredItem?.id] : []),
+    new Set(hoveredItem ? [hoveredItem.id] : []),
   );
 
   const isHoveredConnection = (id: string) => hoveredConnections.has(id);
