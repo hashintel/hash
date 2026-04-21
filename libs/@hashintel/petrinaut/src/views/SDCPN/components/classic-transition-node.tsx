@@ -51,7 +51,7 @@ const transitionBoxStyle = cva({
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
       selectedConnection: {
-        borderColor: "neutral.s100",
+        borderColor: "neutral.s90",
       },
       notSelectedConnection: {
         _after: {

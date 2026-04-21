@@ -1,5 +1,4 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
 import {
   BaseEdge,
   type EdgeProps,
@@ -183,14 +182,11 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   markerEnd,
 }) => {
   // Derive selected state from EditorContext
-  const { isSelected, isNotSelectedConnection, isSelectedConnection } =
-    use(EditorContext);
+  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
 
   // Check if this arc is selected by its ID
   const selected = isSelected(id);
-  const notSelectedConnection = isNotSelectedConnection(id);
-  const selectedConnection = isSelectedConnection(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
 
@@ -237,22 +233,10 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
     });
   }
 
-  const strokeColor = style?.stroke ?? "#b1b1b7";
+  let strokeColor = style?.stroke ?? "#b1b1b7";
 
   return (
-    <g
-      style={
-        selectedConnection
-          ? {
-              filter: `brightness(${0.8})`,
-            }
-          : notSelectedConnection
-            ? {
-                filter: `brightness(${1 + NOT_SELECTED_CONNECTION_OVERLAY_OPACITY})`,
-              }
-            : undefined
-      }
-    >
+    <>
       {/* Custom SVG marker definition for inhibitor arcs (empty circle) */}
       {data?.arcType === "inhibitor" && (
         <defs>
@@ -311,8 +295,12 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         }
         style={
           data?.arcType === "inhibitor"
-            ? { ...style, strokeDasharray: INHIBITOR_DASH_PATTERN }
-            : style
+            ? {
+                ...style,
+                strokeDasharray: INHIBITOR_DASH_PATTERN,
+                stroke: strokeColor,
+              }
+            : { ...style, stroke: strokeColor }
         }
       />
 
@@ -355,6 +343,6 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
           </g>
         ) : null}
       </g>
-    </g>
+    </>
   );
 };

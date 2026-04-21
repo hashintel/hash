@@ -13,6 +13,7 @@ import type {
 import {
   classicNodeDimensions,
   compactNodeDimensions,
+  NOT_SELECTED_CONNECTION_OVERLAY_OPACITY,
 } from "../styles/styling";
 
 /**
@@ -27,7 +28,8 @@ import {
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { draggingStateByNodeId, isSelected } = use(EditorContext);
+  const { draggingStateByNodeId, isSelected, isNotSelectedConnection } =
+    use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
 
@@ -116,9 +118,13 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const placeType = place?.colorId
         ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor
+      let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
+
+      const notSelectedConnection = isNotSelectedConnection(arcId);
+      if (notSelectedConnection)
+        arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
@@ -158,9 +164,13 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const placeType = place?.colorId
         ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor
+      let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
+
+      const notSelectedConnection = isNotSelectedConnection(arcId);
+      if (notSelectedConnection)
+        arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
