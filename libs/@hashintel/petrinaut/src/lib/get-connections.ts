@@ -10,7 +10,7 @@ import type { SelectionMap } from "../state/selection";
  * An item is included if it shares an arc with a selected item:
  * - A selected place includes its connected transitions and arcs.
  * - A selected transition includes its connected places and arcs.
- * - A selected arc includes its source place and target transition.
+ * - A selected arc includes its source and target nodes.
  */
 export function getNodeConnections(
   transitions: readonly Transition[],

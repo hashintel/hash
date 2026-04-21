@@ -131,7 +131,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         isNotHoveredConnection(arcId) ||
         (!hoveredItem && isNotSelectedConnection(arcId));
       if (notSelectedConnection)
-        arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
+        arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
@@ -179,7 +179,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         isNotHoveredConnection(arcId) ||
         (!hoveredItem && isNotSelectedConnection(arcId));
       if (notSelectedConnection)
-        arcColor = `color-mix(in oklab, white ${(1 - NOT_SELECTED_CONNECTION_OVERLAY_OPACITY) * 100}%, ${arcColor})`;
+        arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
