@@ -107,7 +107,12 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected, isNotSelectedConnection } = use(EditorContext);
+  const {
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -125,7 +130,8 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotSelectedConnection(id)
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 
