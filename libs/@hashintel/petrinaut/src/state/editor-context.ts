@@ -64,7 +64,7 @@ export type EditorActions = {
   isSelected: (id: string) => boolean;
   /** Check whether a node/edge is connected to any selected item via an arc. */
   isSelectedConnection: (id: string) => boolean;
-  /** Check whether a node/edge is connected to any selected item via an arc. */
+  /** Check whether a node/edge is not connected to any selected item via an arc. */
   isNotSelectedConnection: (id: string) => boolean;
   /** Map of all items connected to the current selection, keyed by id. */
   selectedConnections: SelectionMap;

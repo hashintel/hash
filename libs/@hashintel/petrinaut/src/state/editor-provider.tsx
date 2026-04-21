@@ -243,7 +243,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
   const isNotSelectedConnection = (id: string) =>
-    selection.size > 0 && !isSelected(id) && !selectedConnections.has(id);
+    Array.from(selection.entries()).filter(
+      ([_, s]) =>
+        s.type === "arc" || s.type === "place" || s.type === "transition",
+    ).length > 0 &&
+    !isSelected(id) &&
+    !selectedConnections.has(id);
 
   const isHovered = (id: string) => hoveredItem?.id === id;
 
