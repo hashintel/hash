@@ -387,7 +387,6 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
                     expression,
                     alias: Some(ContinuationColumn::Entry.identifier()),
                 }])
-                .offset(0)
                 .build();
 
             let subquery = query::FromItem::Subquery {
