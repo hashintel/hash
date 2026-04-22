@@ -37,7 +37,6 @@ Boundary rules:
 - `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
 - `ds-helpers` must not depend on `ds-components`.
 - `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` are the canonical public preset/theme entrypoints.
-- If you need a package-owned token export, use `@hashintel/ds-components/tokens`.
 
 ## Panda CSS Configuration
 
@@ -83,7 +82,7 @@ With `strictTokens: true`, you must use the exact token names:
 | LineHeight       | `leading.none.textsm` | `none.text-sm`, `normal.text-base`               |
 | Arbitrary values | `64px`                | `[64px]`                                         |
 
-Token types for stories and public token access should come from `@hashintel/ds-components/tokens`.
+Token types for stories and public token access should come from `@hashintel/ds-helpers/tokens`.
 
 ### Import Patterns
 
@@ -94,10 +93,10 @@ import { css, cva, cx } from '@hashintel/ds-helpers/css';
 import { Box, Flex, Stack } from '@hashintel/ds-helpers/jsx';
 ```
 
-When you need the package-owned token facade, use:
+When you need token lookup helpers or token types, use:
 
 ```ts
-import { token, type Token } from '@hashintel/ds-components/tokens';
+import { token, type Token } from '@hashintel/ds-helpers/tokens';
 ```
 
 ## Color Token Naming
@@ -245,7 +244,6 @@ libs/@hashintel/ds-components/
 │   ├── playground/
 │   ├── stories/
 │   ├── theme.ts            # Public `./theme` facade
-│   └── tokens.ts           # Public `./tokens` facade
 ├── scripts/                # Token/codegen scripts
 ├── tests/                  # Snapshot/demo tests
 ├── .storybook/             # Storybook configuration

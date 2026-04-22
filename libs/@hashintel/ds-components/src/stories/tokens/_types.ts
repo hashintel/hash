@@ -3,7 +3,7 @@ import type {
   FontWeightToken,
   ShadowToken,
   SpacingToken,
-} from "../../tokens";
+} from "@hashintel/ds-helpers/tokens";
 
 export type SolidStep = ColorToken extends infer T
   ? T extends `neutral.s${infer S}`

@@ -1,10 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Box, VStack } from "@hashintel/ds-helpers/jsx";
+import type { Token } from "@hashintel/ds-helpers/tokens";
+import { token } from "@hashintel/ds-helpers/tokens";
 import type { Story } from "@ladle/react";
 import { ThemeState, useLadleContext } from "@ladle/react";
 
-import type { Token } from "../../tokens";
-import { token } from "../../tokens";
 import type { SolidStep } from "./_types";
 import figmaGray from "./figma-gray-reference.json";
 

@@ -21,7 +21,6 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Figma Code Connect | `src/components/*/*.figma.tsx` | Keep mappings close to the related component stories. |
 | Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
 | Package-owned theme facade | `src/theme.ts` | Re-exports from `src/preset/theme`. |
-| Package-owned token facade | `src/tokens.ts` | Re-exports the public token API from `@hashintel/ds-helpers/tokens`. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
 | Ladle harness | `.ladle/**`, `panda.ladle.config.ts`, `vite.ladle.config.ts` | Used for the token/demo surface and Playwright snapshots. |
@@ -36,10 +35,10 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { Box, Flex, Stack } from "@hashintel/ds-helpers/jsx";
 ```
 
-When you need token lookup helpers or public token types, use the package-owned facade:
+When you need token lookup helpers or public token types, use the generated runtime directly:
 
 ```ts
-import { token, type Token } from "@hashintel/ds-components/tokens";
+import { token, type Token } from "@hashintel/ds-helpers/tokens";
 ```
 
 When a consumer needs the Panda preset, use:
@@ -164,7 +163,7 @@ Color tokens should come from the semantic palette already defined in the preset
 
 - Start with the Figma variable or screenshot.
 - Check the preset sources under `src/preset/theme/**`.
-- Use `@hashintel/ds-components/tokens` in stories or small probes when you need to inspect the resolved token values.
+- Use `@hashintel/ds-helpers/tokens` in stories or small probes when you need to inspect the resolved token values.
 - Search existing components and token stories before creating a new naming pattern.
 
 ## Storybook, Ladle, And Snapshots
@@ -184,7 +183,7 @@ Color tokens should come from the semantic palette already defined in the preset
 ### Token lookup confusion
 
 - If a token name seems missing, check whether you are using an old alias like `spacing.4` or `size.textsm`.
-- Verify the name against the preset source or the exported `Token` type from `@hashintel/ds-components/tokens`.
+- Verify the name against the preset source or the exported `Token` type from `@hashintel/ds-helpers/tokens`.
 
 ### Component export confusion
 

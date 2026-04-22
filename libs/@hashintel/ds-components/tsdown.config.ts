@@ -6,7 +6,6 @@ export default defineConfig({
     "./src/main.ts",
     "./src/preset.ts",
     "./src/theme.ts",
-    "./src/tokens.ts",
     "./src/components/*.tsx",
   ],
   format: ["esm"],
