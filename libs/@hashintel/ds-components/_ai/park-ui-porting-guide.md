@@ -10,7 +10,6 @@ This guide was originally written before the FE-612 ownership restructure. Apply
 - token and color generation lives in `@hashintel/ds-components/scripts/**`
 - token demo stories live in `@hashintel/ds-components/src/stories/tokens/**`
 - `@hashintel/ds-helpers` is the generated Panda runtime only
-- `@hashintel/ds-theme` is a compatibility shim, not a source-owning package
 
 ## Reference Repositories
 

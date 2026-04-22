@@ -19,25 +19,24 @@ It still consumes the generated runtime styling utilities from `@hashintel/ds-he
 ┌─────────────────────────────────────┐
 │           ds-components             │
 │  preset source + scripts + demos    │
-└──────────────┬───────────────┬──────┘
-               │               │
-               │ panda codegen │ compatibility re-export
-               ▼               ▼
-      ┌─────────────────┐  ┌─────────────────┐
-      │   ds-helpers    │  │    ds-theme     │
-      │ generated only  │  │      shim       │
-      │ styled-system   │  │ re-exports from │
-      └────────┬────────┘  │  ds-components  │
-               │           └─────────────────┘
-               ▼
-      css(), cva(), jsx runtime
+└──────────────────────┬──────────────┘
+                       │
+                       │ panda codegen
+                       ▼
+              ┌─────────────────┐
+              │   ds-helpers    │
+              │ generated only  │
+              │ styled-system   │
+              └────────┬────────┘
+                       ▼
+              css(), cva(), jsx runtime
 ```
 
 Boundary rules:
 
 - `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
 - `ds-helpers` must not depend on `ds-components`.
-- `ds-theme` is a compatibility layer only; do not move source-of-truth code back into it.
+- `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` are the canonical public preset/theme entrypoints.
 - If you need a package-owned token export, use `@hashintel/ds-components/tokens`.
 
 ## Panda CSS Configuration
@@ -276,4 +275,3 @@ yarn lint:tsc
 ## Related Packages
 
 - **ds-helpers**: generated Panda styled-system artifact (`libs/@hashintel/ds-helpers`)
-- **ds-theme**: compatibility shim that re-exports from `ds-components` (`libs/@hashintel/ds-theme`)

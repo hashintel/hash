@@ -9,7 +9,7 @@ This guide covers the current post-FE-612 package layout for humans and coding a
 - `scripts/**` owns token and color code generation.
 - `src/components/**`, `src/stories/**`, `.ladle/**`, and `tests/**` are owned here as the component, demo, and snapshot surfaces.
 - `@hashintel/ds-helpers` is the generated Panda `styled-system` artifact only.
-- `@hashintel/ds-theme` is a compatibility shim that re-exports from `@hashintel/ds-components`.
+- The old `@hashintel/ds-theme` package has been retired; use `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` instead.
 
 For new internal work, treat `ds-components` as the only source of truth.
 
@@ -48,7 +48,7 @@ When a consumer needs the Panda preset, use:
 import { preset, scopedThemeConfig } from "@hashintel/ds-components/preset";
 ```
 
-Do not point new internal work at `@hashintel/ds-theme`; keep that package as a compatibility layer.
+Do not resurrect `@hashintel/ds-theme`; `ds-components` now owns the public preset and theme entrypoints directly.
 
 ## Component Workflow
 
@@ -179,7 +179,7 @@ Color tokens should come from the semantic palette already defined in the preset
 
 ### Stale package targets
 
-- Do not move preset code, token generators, or stories back into `ds-theme` or `ds-helpers`.
+- Do not move preset code, token generators, or stories back into a recreated theme package or into `ds-helpers`.
 - Do not add a dependency edge from `ds-helpers` back to `ds-components`.
 
 ### Token lookup confusion

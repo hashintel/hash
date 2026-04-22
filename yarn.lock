@@ -7670,18 +7670,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
-  dependencies:
-    "@hashintel/ds-components": "workspace:^"
-    "@tsconfig/strictest": "npm:^2.0.8"
-    npm-run-all: "npm:4.1.5"
-    tsdown: "npm:^0.21.4"
-    typescript: "npm:5.9.3"
-  languageName: unknown
-  linkType: soft
-
 "@hashintel/petrinaut@workspace:*, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
