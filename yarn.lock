@@ -7697,11 +7697,12 @@ __metadata:
     "@ark-ui/react": "npm:5.26.2"
     "@figma/code-connect": "npm:1.4.3"
     "@hashintel/ds-helpers": "workspace:^"
-    "@hashintel/ds-theme": "workspace:*"
+    "@hashintel/ds-theme": "workspace:^"
     "@hashintel/refractive": "workspace:^"
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@pandacss/dev": "npm:1.4.3"
+    "@pandacss/preset-panda": "npm:1.4.3"
     "@storybook/addon-docs": "npm:9.1.13"
     "@storybook/global": "npm:5.0.0"
     "@storybook/react": "npm:9.1.13"
@@ -7767,7 +7768,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-theme@workspace:*, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
+"@hashintel/ds-theme@workspace:*, @hashintel/ds-theme@workspace:^, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   dependencies:
