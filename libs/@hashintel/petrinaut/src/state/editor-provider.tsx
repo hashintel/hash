@@ -78,14 +78,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ? selectionOrUpdater(prev.selection)
           : selectionOrUpdater;
       const hasSelection = selection.size > 0;
-      const hasCanvasSelection = canvasSelections(selection).length > 0;
       const animate = prev.hasSelection !== hasSelection;
       return {
         ...prev,
         ...(animate ? animationPatch() : {}),
         selection,
         hasSelection,
-        hasCanvasSelection,
+        hasCanvasSelection: canvasSelections(selection).length > 0,
       };
     });
   };
@@ -149,6 +148,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ...(animate ? animationPatch() : {}),
           selection: newSelection,
           hasSelection: true,
+          hasCanvasSelection: canvasSelections(newSelection).length > 0,
         };
       });
     },
@@ -168,6 +168,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ...(animate ? animationPatch() : {}),
           selection: newSelection,
           hasSelection,
+          hasCanvasSelection: canvasSelections(newSelection).length > 0,
         };
       });
     },
@@ -178,6 +179,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...(prev.hasSelection ? animationPatch() : {}),
         selection: new Map(),
         hasSelection: false,
+        hasCanvasSelection: false,
       }));
     },
     setHoveredItem: (item: SelectionItem) =>
@@ -203,6 +205,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isBottomPanelOpen: false,
         selection: new Map(),
         hasSelection: false,
+        hasCanvasSelection: false,
       }));
     },
     setTimelineChartType: (chartType) =>
