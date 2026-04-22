@@ -53,7 +53,7 @@
     "react-resizable-panels": "4.6.5",
     "typescript": "5.9.3",
     "uplot": "1.6.32",
-    "uuid": "13.0.0",
+    "uuid": "14.0.0",
     "vscode-languageserver-types": "3.17.5",
     "web-worker": "1.4.1",
     "zod": "4.1.12"
