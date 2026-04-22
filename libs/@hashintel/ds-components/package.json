@@ -22,6 +22,10 @@
   "module": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "exports": {
+    "./preset": {
+      "types": "./dist/preset.d.ts",
+      "import": "./dist/preset.js"
+    },
     "./*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/components/*.js"
@@ -52,16 +56,17 @@
   "dependencies": {
     "@ark-ui/react": "5.26.2",
     "@hashintel/ds-helpers": "workspace:^",
+    "@hashintel/ds-theme": "workspace:^",
     "@hashintel/refractive": "workspace:^",
+    "@pandacss/dev": "1.4.3",
+    "@pandacss/preset-panda": "1.4.3",
     "canvas": "3.2.0",
     "motion": "12.23.24"
   },
   "devDependencies": {
     "@figma/code-connect": "1.4.3",
-    "@hashintel/ds-theme": "workspace:*",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
-    "@pandacss/dev": "1.4.3",
     "@storybook/addon-docs": "9.1.13",
     "@storybook/global": "5.0.0",
     "@storybook/react": "9.1.13",
