@@ -4,7 +4,8 @@ import { preset } from "./src/preset";
 
 export default defineConfig({
   importMap: "@hashintel/ds-helpers",
-  include: ["./src/**/*.{ts,tsx}"],
+  outdir: "../ds-helpers/styled-system",
+  include: ["./src/components/**/*.{ts,tsx}", "./src/playground/**/*.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,

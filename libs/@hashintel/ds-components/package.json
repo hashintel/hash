@@ -26,6 +26,14 @@
       "types": "./dist/preset.d.ts",
       "import": "./dist/preset.js"
     },
+    "./tokens": {
+      "types": "./dist/tokens.d.ts",
+      "import": "./dist/tokens.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.js"
+    },
     "./*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/components/*.js"
@@ -40,23 +48,33 @@
   },
   "scripts": {
     "build": "tsdown",
+    "build:ladle": "yarn codegen:ladle && ladle build",
     "codegen": "panda codegen --clean",
+    "codegen:colors": "tsx scripts/generate-colors-radix.ts",
+    "codegen:colors:figma": "tsx scripts/generate-colors.ts",
+    "codegen:ladle": "panda codegen --clean --config panda.ladle.config.ts",
+    "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "tsdown --watch",
+    "dev:ladle": "npm-run-all --parallel dev:panda:ladle ladle",
+    "dev:panda:ladle": "panda codegen --watch --config panda.ladle.config.ts",
     "dev:test": "vitest",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --fix .",
     "fix:format": "biome format --write",
+    "ladle": "ladle serve",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "turbo run build",
+    "preflight:ladle": "yarn build:ladle && ladle preview",
     "storybook": "storybook dev -p 6006",
-    "storybook:build": "storybook build"
+    "storybook:build": "storybook build",
+    "test:snapshots": "yarn build:ladle && playwright test",
+    "test:update": "yarn build:ladle && playwright test --update-snapshots"
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
     "@hashintel/ds-helpers": "workspace:^",
-    "@hashintel/ds-theme": "workspace:^",
     "@hashintel/refractive": "workspace:^",
     "@pandacss/dev": "1.4.3",
     "@pandacss/preset-panda": "1.4.3",
@@ -65,8 +83,14 @@
   },
   "devDependencies": {
     "@figma/code-connect": "1.4.3",
+    "@fontsource-variable/geist-mono": "5.2.7",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource-variable/inter-tight": "5.2.7",
+    "@ladle/react": "5.1.1",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@playwright/test": "1.58.2",
+    "@radix-ui/colors": "3.0.0",
     "@storybook/addon-docs": "9.1.13",
     "@storybook/global": "5.0.0",
     "@storybook/react": "9.1.13",
@@ -78,17 +102,21 @@
     "@vitejs/plugin-react": "5.0.4",
     "@vitest/browser-playwright": "^4.0.16",
     "bumpp": "^10.3.2",
+    "case-anything": "3.1.0",
+    "colorjs.io": "0.6.1",
     "eslint": "9.39.4",
     "eslint-plugin-storybook": "10.3.1",
     "lucide-react": "0.544.0",
     "npm-run-all": "4.1.5",
     "storybook": "9.1.19",
     "tsdown": "^0.21.4",
+    "tsx": "4.20.6",
     "typescript": "5.9.3",
     "vite": "7.3.2",
     "vite-plugin-dts": "4.5.4",
     "vitest": "^4.0.16",
-    "vitest-browser-react": "^2.0.2"
+    "vitest-browser-react": "^2.0.2",
+    "zod": "4.1.12"
   },
   "peerDependencies": {
     "@ark-ui/react": "^5.26.2",

@@ -1,3 +1,10 @@
+import { defineGlobalStyles, definePreset } from "@pandacss/dev";
+import pandaPreset from "@pandacss/preset-panda";
+
+import {
+  documentSurfaceStyles,
+  fontPipelineCssVars,
+} from "./preset/document-surface";
 import {
   blue,
   fontSizes,
@@ -7,15 +14,8 @@ import {
   palettes as basePalettes,
   red,
   staticColors,
-} from "@hashintel/ds-theme/theme";
-import { defineGlobalStyles, definePreset } from "@pandacss/dev";
-import pandaPreset from "@pandacss/preset-panda";
-
-import {
-  documentSurfaceStyles,
-  fontPipelineCssVars,
-} from "./preset/document-surface";
-import { createSemanticSet } from "./preset/theme-utils";
+} from "./preset/theme";
+import { createSemanticSet } from "./preset/theme/utils";
 
 type TokenTree = Record<string, unknown>;
 type TokenValueNode = TokenTree & { value: string };
@@ -312,3 +312,4 @@ export function scopedThemeConfig(scope: string) {
 }
 
 export const preset = createPreset();
+export default preset;

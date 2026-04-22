@@ -1,11 +1,12 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { Box, VStack } from "@hashintel/ds-helpers/jsx";
 import type { Story } from "@ladle/react";
 import { ThemeState, useLadleContext } from "@ladle/react";
-import { css } from "../styled-system/css";
-import { token } from "../styled-system/tokens";
-import { VStack, Box } from "../styled-system/jsx";
-import type { Token } from "../styled-system/tokens/tokens";
-import figmaGray from "./figma-gray-reference.json";
+
+import type { Token } from "../../tokens";
+import { token } from "../../tokens";
 import type { SolidStep } from "./_types";
+import figmaGray from "./figma-gray-reference.json";
 
 type FigmaStep = keyof typeof figmaGray.gray;
 
@@ -118,7 +119,9 @@ const FigmaSwatch = ({ step }: { step: string }) => {
   const entry = figmaGray.gray[step as keyof typeof figmaGray.gray];
   const { globalState } = useLadleContext();
 
-  if (!entry) return null;
+  if (!entry) {
+    return null;
+  }
 
   const isDark = globalState.theme === ThemeState.Dark;
   const color = isDark ? entry._dark : entry._light;

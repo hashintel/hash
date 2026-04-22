@@ -1,5 +1,5 @@
 import { defineConfig } from "@pandacss/dev";
-import { scopedThemeConfig } from "@hashintel/ds-theme";
+import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
 import { CODE_FONT_FAMILY } from "./src/constants/ui";
 

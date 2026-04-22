@@ -1,10 +1,10 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { HStack, VStack } from "@hashintel/ds-helpers/jsx";
 import type { Story } from "@ladle/react";
-import { css } from "../styled-system/css";
-import { token } from "../styled-system/tokens";
-import { VStack, HStack } from "../styled-system/jsx";
-import type { Token } from "../styled-system/tokens/tokens";
-import type { UtilityValues } from "../styled-system/types/prop-type";
-import type { TextStyle, Leading, FontWeightToken } from "./_types";
+
+import type { Token } from "../../tokens";
+import { token } from "../../tokens";
+import type { FontWeightToken, Leading, TextStyle } from "./_types";
 
 const textStyles: readonly TextStyle[] = [
   "xs",
@@ -130,7 +130,7 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
 );
 
 export const Typography: Story<{
-  leadingFactor: UtilityValues["leading"];
+  leadingFactor: Leading;
 }> = ({ leadingFactor }) => (
   <div className={css({ leading: leadingFactor })}>
     <VStack gap="8" alignItems="flex-start" p="6">

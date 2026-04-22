@@ -3,8 +3,7 @@ import type {
   FontWeightToken,
   ShadowToken,
   SpacingToken,
-} from "../styled-system/tokens/tokens";
-import type { UtilityValues } from "../styled-system/types/prop-type";
+} from "../../tokens";
 
 export type SolidStep = ColorToken extends infer T
   ? T extends `neutral.s${infer S}`
@@ -50,9 +49,18 @@ export type ElevationScale = ShadowToken extends infer T
     : never
   : never;
 
-export type TextStyle = UtilityValues["textStyle"];
+export type TextStyle =
+  | "xs"
+  | "sm"
+  | "base"
+  | "lg"
+  | "xl"
+  | "2xl"
+  | "3xl"
+  | "4xl";
 
-/* TODO: expand to full-set of modifiers: leading, spacing, roundness */
-export type Leading = UtilityValues["leading"];
+export type Leading = "tight" | "normal" | "loose";
+export type Density = "compact" | "normal" | "comfortable";
+export type Roundness = "none" | "sm" | "md" | "lg" | "xl";
 
 export type { FontWeightToken, SpacingToken };

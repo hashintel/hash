@@ -10,11 +10,10 @@ export { ColorVariants } from "./tokens.color-variants.story";
 
 // Background & border layering demo
 export { ColorLayering } from "./tokens.color-layering.story";
-
 export { ColorMappings } from "./tokens.color-migration.story";
 
 // Other tokens
-export { Spacing } from "./tokens.spacing.story";
-export { Typography } from "./tokens.typography.story";
 export { Radii } from "./tokens.radii.story";
 export { Shadows } from "./tokens.shadows.story";
+export { Spacing } from "./tokens.spacing.story";
+export { Typography } from "./tokens.typography.story";

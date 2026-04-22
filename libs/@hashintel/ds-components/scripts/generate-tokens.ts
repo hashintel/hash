@@ -11,7 +11,7 @@ import {
   transformLineHeightReference,
 } from "./transforms";
 
-const OUTPUT_DIR = "src/theme/tokens";
+const OUTPUT_DIR = "src/preset/theme/tokens";
 
 // ============================================================================
 // SPACING TOKENS
@@ -164,7 +164,7 @@ export const lineHeights = defineTokens.lineHeights(${formatTokensForOutput(line
 // ============================================================================
 
 function generateBarrelFile(): void {
-  const filePath = join(process.cwd(), "src/theme/tokens.gen.ts");
+  const filePath = join(process.cwd(), "src/preset/theme/tokens.gen.ts");
 
   const content = `export { spacing } from "./tokens/spacing.gen";
 export { fonts, fontWeights, fontSizes, lineHeights } from "./tokens/typography.gen";

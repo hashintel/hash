@@ -1,6 +1,6 @@
 import React, { type CSSProperties } from "react";
 
-import { cx } from "../../styled-system/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CellProps<C extends Record<string, any>> = Partial<
@@ -10,7 +10,7 @@ type CellProps<C extends Record<string, any>> = Partial<
 >;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function VariantGrid<C extends Record<string, any>>({
+export const VariantGrid = <C extends Record<string, any>>({
   children,
   cols,
   rows,
@@ -22,14 +22,12 @@ export function VariantGrid<C extends Record<string, any>>({
   gridGap?: number;
   cellClassName?: string;
   children: (props: C) => React.ReactElement<C>;
-}>) {
+}>) => {
   cols ??= [{}];
   rows ??= [{}];
   return (
     <div
-      className={
-        "grid grid-flow-row auto-rows-max grid-cols-[--num-cols] items-start justify-items-start gap-[--grid-gap]"
-      }
+      className="grid grid-flow-row auto-rows-max grid-cols-[--num-cols] items-start justify-items-start gap-[--grid-gap]"
       style={
         {
           "--num-cols": `repeat(${cols.length}, minmax(max-content, 1fr))`,
@@ -55,4 +53,4 @@ export function VariantGrid<C extends Record<string, any>>({
       )}
     </div>
   );
-}
+};

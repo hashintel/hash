@@ -1,13 +1,15 @@
-import { preset } from "@hashintel/ds-components/preset";
 import { defineConfig } from "@pandacss/dev";
 
+import { preset } from "./src/preset";
+
 export default defineConfig({
+  importMap: "@hashintel/ds-helpers",
+  outdir: "../ds-helpers/styled-system",
   include: [
-    /* TODO: separate this config from the one used for Ladle
-      - Ladle demo requires staticCSS and should have preflight:true
-      - exportable code should use the published preset entrypoint and should have preflight:false
-    */
-    "./stories/**/*.{ts,tsx}",
+    "./src/components/**/*.{ts,tsx}",
+    "./src/playground/**/*.{ts,tsx}",
+    "./src/stories/**/*.{ts,tsx}",
+    "./.ladle/**/*.{ts,tsx}",
   ],
   jsxFramework: "react",
   outExtension: "mjs",
@@ -20,18 +22,7 @@ export default defineConfig({
     css: [
       {
         properties: {
-          /*
-            NOTE:
-            this is specific to the Ladle demo,
-            so that we can have dynamic permutations
-
-            TODO:
-            extract these dynamically
-            from the exported tokens,
-            instead of hard-coding them here
-          */
           colorPalette: [
-            // core
             "neutral",
             "purple",
             "red",
@@ -40,7 +31,6 @@ export default defineConfig({
             "yellow",
             "green",
             "blue",
-            // status
             "status.info",
             "status.success",
             "status.warning",

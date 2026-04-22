@@ -1,9 +1,10 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { Box, HStack, VStack } from "@hashintel/ds-helpers/jsx";
 import type { Story } from "@ladle/react";
-import { css } from "../styled-system/css";
-import { token } from "../styled-system/tokens";
-import { VStack, HStack, Box } from "../styled-system/jsx";
-import type { Token } from "../styled-system/tokens/tokens";
-import type { UtilityValues } from "../styled-system/types/prop-type";
+
+import type { Token } from "../../tokens";
+import { token } from "../../tokens";
+import type { Roundness } from "./_types";
 
 const steps = [
   "xs",
@@ -56,9 +57,7 @@ const RadiusSwatch = ({ step }: { step: string }) => {
   );
 };
 
-const SwatchGrid = ({
-  roundness,
-}: { roundness?: UtilityValues["roundness"] }) => (
+const SwatchGrid = ({ roundness }: { roundness?: Roundness }) => (
   <div
     className={css({
       display: "grid",
@@ -74,9 +73,7 @@ const SwatchGrid = ({
   </div>
 );
 
-const ComponentDemo = ({
-  roundness,
-}: { roundness: UtilityValues["roundness"] }) => {
+const ComponentDemo = ({ roundness }: { roundness: Roundness }) => {
   const items = [
     { label: "Badge", radius: "sm" as const, w: "56px", h: "24px" },
     { label: "Input", radius: "md" as const, w: "120px", h: "36px" },
@@ -114,9 +111,7 @@ const ComponentDemo = ({
   );
 };
 
-export const Radii: Story<{ roundness: UtilityValues["roundness"] }> = ({
-  roundness,
-}) => (
+export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
   <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">

@@ -1,9 +1,9 @@
 /** @type {import('@ladle/react').UserConfig} */
 export default {
   base: process.env.LADLE_BASE_PATH || "/",
-  stories: "stories/*.stories.{js,ts,mdx}",
+  stories: "src/stories/**/*.stories.{js,ts,tsx,mdx}",
   port: 61000,
-  viteConfig: "./vite.config.ts",
+  viteConfig: "./vite.ladle.config.ts",
   outDir: ".build/ladle",
   envDir: ".",
   addons: {

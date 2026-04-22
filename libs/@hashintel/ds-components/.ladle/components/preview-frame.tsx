@@ -1,14 +1,14 @@
 import { type ComponentProps, Fragment } from "react";
 
+import { cx } from "@hashintel/ds-helpers/css";
 import { useLadleIsPreview } from "../hooks/use-ladle-control";
-import { cx } from "../../styled-system/css";
 
-export function PreviewFrame({
+export const PreviewFrame = ({
   children,
   key,
   className,
   ...divProps
-}: ComponentProps<"div">) {
+}: ComponentProps<"div">) => {
   const isPreview = useLadleIsPreview();
   return isPreview ? (
     <div key={key} className={cx("p-6", className)} {...divProps}>
@@ -17,4 +17,4 @@ export function PreviewFrame({
   ) : (
     <Fragment key={key}>{children}</Fragment>
   );
-}
+};

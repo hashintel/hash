@@ -1,7 +1,7 @@
 import type { PlaywrightTestConfig } from "@playwright/test";
 import { devices } from "@playwright/test";
 
-const ci = process.env.CI === "true";
+const ci = process.env["CI"] === "true";
 
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,

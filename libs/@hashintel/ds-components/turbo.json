@@ -6,7 +6,11 @@
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "outputs": ["styled-system/**"]
+      "outputs": ["../ds-helpers/styled-system/**"]
+    },
+    "build:ladle": {
+      "dependsOn": ["^build"],
+      "outputs": [".build/ladle/**"]
     },
     "storybook": {
       "cache": false,

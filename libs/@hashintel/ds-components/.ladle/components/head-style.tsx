@@ -13,7 +13,7 @@ const refCounts = new Map<string, number>();
  * Multiple instances with the same id share a single element; the element is only
  * removed when all instances have unmounted.
  */
-export function HeadStyle({ id, css }: HeadStyleProps) {
+export const HeadStyle = ({ id, css }: HeadStyleProps) => {
   // Effect 1: Element lifecycle management (ref counting)
   // Only runs on mount, unmount, or when `id` changes
   useLayoutEffect(() => {
@@ -48,4 +48,4 @@ export function HeadStyle({ id, css }: HeadStyleProps) {
   }, [id, css]);
 
   return null;
-}
+};

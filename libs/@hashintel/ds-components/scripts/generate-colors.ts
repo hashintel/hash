@@ -9,7 +9,7 @@ import {
   transformPropertyKey,
 } from "./transforms";
 
-const OUTPUT_DIR = "src/theme/colors";
+const OUTPUT_DIR = "src/preset/theme/colors";
 
 /**
  * DEPRECATED: This script reads Figma exports and will be removed once the
@@ -237,14 +237,14 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
 
 /**
  * Generate barrel file that re-exports all generated color token groups.
- * Output at parent level (src/theme/colors.gen.ts) instead of index.ts inside the directory.
+ * Output at parent level (src/preset/theme/colors.gen.ts) instead of index.ts inside the directory.
  * The barrel file is also .gen.ts since it's fully generated.
  */
 function writeBarrelFile(
   coreColorNames: string[],
   semanticColorNames: string[],
 ): void {
-  const filePath = join(process.cwd(), "src/theme/colors.gen.ts");
+  const filePath = join(process.cwd(), "src/preset/theme/colors.gen.ts");
 
   const coreImports = coreColorNames
     .map(

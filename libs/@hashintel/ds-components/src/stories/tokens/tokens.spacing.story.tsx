@@ -1,10 +1,10 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { HStack, VStack } from "@hashintel/ds-helpers/jsx";
 import type { Story } from "@ladle/react";
-import { css } from "../styled-system/css";
-import { token } from "../styled-system/tokens";
-import { VStack, HStack } from "../styled-system/jsx";
-import type { Token } from "../styled-system/tokens/tokens";
-import type { UtilityValues } from "../styled-system/types/prop-type";
-import type { SpacingToken } from "./_types";
+
+import type { Token } from "../../tokens";
+import { token } from "../../tokens";
+import type { Density, SpacingToken } from "./_types";
 
 const steps: readonly SpacingToken[] = [
   "0.5",
@@ -52,7 +52,7 @@ const SpacingBar = ({ step }: { step: string }) => {
   );
 };
 
-const DensityColumn = ({ density }: { density: UtilityValues["density"] }) => (
+const DensityColumn = ({ density }: { density: Density }) => (
   <VStack gap="0" alignItems="flex-start" className={css({ density })}>
     <span
       className={css({

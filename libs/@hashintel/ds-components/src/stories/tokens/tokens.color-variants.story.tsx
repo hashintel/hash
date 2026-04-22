@@ -1,8 +1,9 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { Box, Grid, HStack, VStack } from "@hashintel/ds-helpers/jsx";
 import type { Story } from "@ladle/react";
-import { css } from "../styled-system/css";
-import { token } from "../styled-system/tokens";
-import { VStack, HStack, Box, Grid } from "../styled-system/jsx";
-import type { Token } from "../styled-system/tokens/tokens";
+
+import type { Token } from "../../tokens";
+import { token } from "../../tokens";
 import type { PaletteName } from "./_types";
 
 const COLOR_PALETTES: readonly PaletteName[] = [
