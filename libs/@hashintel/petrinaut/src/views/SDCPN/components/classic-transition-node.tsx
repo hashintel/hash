@@ -45,7 +45,7 @@ const transitionBoxStyle = cva({
       position: "absolute",
       pointerEvents: "none",
       borderRadius: "[inherit]",
-      inset: "0",
+      inset: "[-2px]",
     },
   },
   variants: {

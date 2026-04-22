@@ -42,7 +42,7 @@ export const nodeCardStyle = cva({
       position: "absolute",
       pointerEvents: "none",
       borderRadius: "[inherit]",
-      inset: "0",
+      inset: "[-1px]",
     },
   },
   variants: {
