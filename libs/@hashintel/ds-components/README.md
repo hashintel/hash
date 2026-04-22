@@ -2,6 +2,16 @@
 
 React components for HASH's refractive design system, built with TypeScript, Ark UI, and PandaCSS.
 
+## Current Ownership Status
+
+As of the FE-612 restructure:
+
+- `@hashintel/ds-components` owns the Panda preset source, token/codegen scripts, and demo surfaces
+- `@hashintel/ds-helpers` is the thin generated `styled-system` artifact
+- `@hashintel/ds-theme` is a compatibility shim that re-exports from `ds-components`
+
+If this README or deeper contributor docs mention `ds-theme` as the source of truth, treat that as stale and follow the package `AGENTS.md` files instead.
+
 ## LLM-Driven Development
 
 **Component development is primarily handled by LLM coding assistants** (GitHub Copilot, Claude, etc.) using the [CONTRIBUTING.md](./CONTRIBUTING.md) as instructions.
@@ -36,9 +46,9 @@ Use LLM assistants to add or update components. Direct manual implementation is 
 
 ## Design System Architecture
 
-**Design Tokens:** Defined in [`@hashintel/ds-theme`](../ds-theme) package, synchronized from Figma variables
+**Design Tokens:** Defined in `src/preset/**` and generated/updated from `scripts/**`
 
-**Token Mapping:** [`figma-to-panda-mapping.json`](../ds-theme/figma-to-panda-mapping.json) (automatically generated) translates Figma variables to PandaCSS tokens
+**Generated Runtime Styling:** Emitted into [`@hashintel/ds-helpers`](../ds-helpers) via Panda `outdir`
 
 **Styling System:** [PandaCSS](https://panda-css.com) provides type-safe styling with design tokens fully type-checked at compile time. Invalid tokens or outdated token names (from Figma updates or mapper changes) will produce TypeScript errors, ensuring design system consistency.
 

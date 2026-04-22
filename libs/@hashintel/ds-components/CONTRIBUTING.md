@@ -4,6 +4,16 @@
 
 This document provides technical instructions for adding or updating components in the HASH Design System. All guidance is structured for automated code generation and modification by AI assistants.
 
+## Status Note
+
+The package ownership model changed in FE-612.
+
+- `@hashintel/ds-components` now owns the Panda preset source in `src/preset/**`, token/codegen scripts in `scripts/**`, and the token/demo surface.
+- `@hashintel/ds-helpers` is now the generated `styled-system` artifact only.
+- `@hashintel/ds-theme` is now a compatibility shim.
+
+If this document mentions `@hashintel/ds-theme` as the live token source, read that as `@hashintel/ds-components/src/preset/**` and `libs/@hashintel/ds-components/scripts/**` instead.
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -37,8 +47,9 @@ This document provides technical instructions for adding or updating components 
 
 ### Design System Context
 
-- **Design Tokens**: Defined in `@hashintel/ds-theme/src/index.ts`
-- **Figma Mapping**: Available in `@hashintel/ds-theme/src/figma-to-panda-mapping.json`
+- **Design Tokens**: Defined in `libs/@hashintel/ds-components/src/preset/**`
+- **Token/Codegen Inputs**: Live under `libs/@hashintel/ds-components/scripts/**`
+- **Generated Styled System**: Emitted to `@hashintel/ds-helpers/styled-system`
 - **Component Base**: Built on top of Ark UI components from `@ark-ui/react`
 
 ## Component Development Workflow

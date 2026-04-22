@@ -1,69 +1,44 @@
 # @hashintel/ds-theme - Agent Context
 
-## Architecture
-
-This package is the **foundation** of the HASH design system, providing design tokens that flow through the system:
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   ds-theme      │────▶│   ds-helpers    │────▶│  ds-components  │
-│  (Panda Preset) │     │ (Styled System) │     │ (React + Ark UI)│
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-     ▲ YOU ARE HERE           │                       │
-   Design tokens          css(), cva(),           Button, Checkbox,
-   from token generators  tokens, jsx             Avatar, etc.
-```
-
 ## Purpose
 
-A **Panda CSS preset** that exports design tokens. Consumed by `@hashintel/ds-helpers` which generates the styled-system utilities.
+`@hashintel/ds-theme` is now a compatibility shim.
 
-## Token Generation
+It exists so callers can keep importing:
 
-Primary color tokens are generated from Radix colors. The legacy Figma pipeline
-remains for reference and will be removed after the next token refresh.
+- `@hashintel/ds-theme`
+- `@hashintel/ds-theme/theme`
+
+but the source of truth now lives in `@hashintel/ds-components`.
+
+## Architecture
 
 ```
-scripts/generate-colors-radix.ts  →  src/theme/colors/*.gen.ts
-scripts/figma-variables.json      →  generate-colors.ts  →  src/theme/colors/*.gen.ts (deprecated)
-                                  →  generate-tokens.ts  →  src/theme/tokens/*.gen.ts
+ds-components src/preset + src/theme
+        │
+        ▼
+    ds-theme shim
+  re-exports only
 ```
 
-Note: Generated files use `.gen.ts` suffix and are gitignored (per repo convention).
+Boundary rules:
 
-### Generation Workflow
-
-1. Run `yarn codegen` to regenerate token files
-2. Downstream packages regenerate their styled-system via `panda codegen`
-3. Export variables from Figma only when refreshing legacy token sources
-
-### Codegen Scripts
-
-| Script                | Description                                  |
-| --------------------- | -------------------------------------------- |
-| `yarn codegen`              | Run all generators + format output            |
-| `yarn codegen:colors`       | Generate color tokens from Figma (deprecated) |
-| `yarn codegen:colors:radix` | Generate color tokens from Radix              |
-| `yarn codegen:tokens`       | Generate spacing/typography/radii from Figma  |
-| `yarn codegen:format`       | Format generated files with Biome             |
+- do not add token generation scripts or source-of-truth theme files back here
+- do not point Panda consumers here for new internal work; use `@hashintel/ds-components/preset`
+- if a change affects design tokens or preset behavior, make it in `ds-components`
 
 ## Exports
 
 | Entry Point                 | Description                                |
 | --------------------------- | ------------------------------------------ |
-| `@hashintel/ds-theme`       | Panda CSS preset (use in `presets: [...]`) |
-| `@hashintel/ds-theme/theme` | Direct theme object access                 |
+| `@hashintel/ds-theme`       | Re-export of `@hashintel/ds-components/preset` |
+| `@hashintel/ds-theme/theme` | Re-export of `@hashintel/ds-components/theme` |
 
 ### Usage in Consumer Packages
 
 ```ts
-// panda.config.ts in ds-helpers or ds-components
-import { defineConfig } from '@pandacss/dev';
-
-export default defineConfig({
-  presets: ['@hashintel/ds-theme'],
-  // ...
-});
+// Internal repo consumers should prefer this instead:
+import { scopedThemeConfig } from '@hashintel/ds-components/preset';
 ```
 
 ## Token Structure
@@ -101,21 +76,10 @@ Purpose-driven tokens that reference core colors:
 
 ```
 libs/@hashintel/ds-theme/
-├── scripts/
-│   ├── figma-variables.json   # Source: exported from Figma
-│   ├── generate-colors.ts     # Color token generator
-│   ├── generate-tokens.ts     # Spacing/typography/radii generator
-│   └── transforms.ts          # Shared transform utilities
 ├── src/
-│   ├── main.ts                # Panda CSS preset definition
-│   ├── theme.ts               # Theme object export
-│   └── theme/
-│       ├── colors/            # Generated color token files (*.gen.ts, gitignored)
-│       ├── colors.gen.ts      # Colors barrel export (generated, gitignored)
-│       ├── tokens/            # Generated + manual token files (*.gen.ts gitignored)
-│       ├── tokens.gen.ts      # Tokens barrel export (generated, gitignored)
-│       └── recipes/           # Panda CSS recipes (if any)
-├── dist/                      # Built output
+│   ├── main.ts     # re-exports ds-components preset helpers
+│   └── theme.ts    # re-exports ds-components theme facade
+├── dist/
 ├── package.json
 └── tsconfig.json
 ```
@@ -124,13 +88,11 @@ libs/@hashintel/ds-theme/
 
 | Script          | Description                      |
 | --------------- | -------------------------------- |
-| `yarn build`    | Build with tsdown                |
-| `yarn dev`      | Build in watch mode              |
-| `yarn codegen`  | Regenerate all tokens |
-| `yarn lint:tsc` | TypeScript type checking         |
-| `yarn test`     | Run tests                        |
+| `yarn build`    | Build the shim entrypoints |
+| `yarn dev`      | Build in watch mode |
+| `yarn lint:tsc` | TypeScript type checking |
 
 ## Related Packages
 
-- **ds-helpers**: Consumes this preset, generates styled-system (`libs/@hashintel/ds-helpers`)
-- **ds-components**: Imports utilities from ds-helpers (`libs/@hashintel/ds-components`)
+- **ds-components**: source-of-truth preset/theme owner (`libs/@hashintel/ds-components`)
+- **ds-helpers**: generated styled-system artifact (`libs/@hashintel/ds-helpers`)
