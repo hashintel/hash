@@ -65,14 +65,7 @@ export default [
     },
   },
   {
-    files: [
-      "scripts/**/*.ts",
-      ".ladle/**/*.{ts,tsx,mjs}",
-      "tests/**/*.ts",
-      "playwright.config.ts",
-      "panda.ladle.config.ts",
-      "vite.ladle.config.ts",
-    ],
+    files: ["scripts/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
