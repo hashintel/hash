@@ -2,6 +2,16 @@
 
 This document captures findings from analyzing park-ui's architecture to establish a repeatable process for porting components to `@hashintel/ds-components`.
 
+## Current Package Mapping
+
+This guide was originally written before the FE-612 ownership restructure. Apply the notes below using the current package boundaries:
+
+- preset and token source changes belong in `@hashintel/ds-components/src/preset/**`
+- token and color generation lives in `@hashintel/ds-components/scripts/**`
+- token demo stories live in `@hashintel/ds-components/src/stories/tokens/**`
+- `@hashintel/ds-helpers` is the generated Panda runtime only
+- `@hashintel/ds-theme` is a compatibility shim, not a source-owning package
+
 ## Reference Repositories
 
 | Repository | Local Path | Description |
@@ -109,7 +119,7 @@ Established mapping from Radix neutral → HASH gray:
 | 11 | 60 | Low-contrast text |
 | 12 | 90 | High-contrast text |
 
-Visual comparison story: `libs/@hashintel/ds-helpers/stories/colors.radix-mapping.story.tsx`
+Visual comparison story: `libs/@hashintel/ds-components/src/stories/tokens/tokens.color-migration.story.tsx`
 
 ### Alpha → Solid Mapping
 
@@ -227,10 +237,10 @@ bg: 'error'
 
 ### Option A: Adapt Tokens
 
-Add park-ui's variant structure to `@hashintel/ds-theme`:
+Add park-ui's variant structure to `@hashintel/ds-components/src/preset/theme/**`:
 
 ```ts
-// In ds-theme semantic tokens
+// In ds-components preset semantic tokens
 gray: {
   solid: {
     bg: { DEFAULT: '{colors.gray.50}', hover: '{colors.gray.60}' },
@@ -264,7 +274,7 @@ bg: 'bg.accent.bold.default'
 
 ### Hybrid Approach
 
-1. Define the 5 variant structures in ds-theme for `gray`/`neutral` only
+1. Define the 5 variant structures in `ds-components` preset sources for `gray`/`neutral` only
 2. Map `colorPalette` to use HASH accent tokens
 3. Keep direct scale references using the established LUT
 
@@ -274,13 +284,13 @@ bg: 'bg.accent.bold.default'
 
 | File | Purpose |
 |------|---------|
-| `libs/@hashintel/ds-helpers/stories/colors.radix-mapping.story.tsx` | Visual comparison tool for scale mapping |
+| `libs/@hashintel/ds-components/src/stories/tokens/tokens.color-migration.story.tsx` | Visual comparison tool for scale mapping |
 | `libs/@hashintel/ds-components/_ai/park-ui-porting-guide.md` | This document |
 
 ## Next Steps
 
 1. Decide on porting strategy (adapt tokens vs adapt recipes)
-2. If adapting tokens: extend ds-theme with variant structures
+2. If adapting tokens: extend the `ds-components` preset sources with variant structures
 3. If adapting recipes: create transform utility with LUT
 4. Port first component (suggest: Checkbox or Button) as proof of concept
 5. Document the porting workflow based on learnings
