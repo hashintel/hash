@@ -17,7 +17,9 @@
     "styled-system"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./styled-system/styles.css"
+  ],
   "exports": {
     "./css": {
       "types": "./styled-system/css/index.d.ts",

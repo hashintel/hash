@@ -10,15 +10,15 @@
     },
     "build:ladle": {
       "dependsOn": ["^build"],
-      "outputs": [".build/ladle/**"]
+      "outputs": [".build/ladle/**", "../ds-helpers/styled-system/**"]
     },
     "storybook": {
       "cache": false,
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "^build"],
       "persistent": true
     },
     "storybook:build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "^build"],
       "outputs": ["storybook-static/**"]
     }
   }

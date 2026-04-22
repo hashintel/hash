@@ -6,6 +6,7 @@ import { createBase, disableRules } from "@local/eslint/deprecated";
 export default [
   {
     ignores: [
+      ".build/**",
       ".ladle/**",
       ".storybook/**",
       "tests/**",

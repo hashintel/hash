@@ -51,7 +51,6 @@
     "build:ladle": "yarn codegen:ladle && ladle build",
     "codegen": "panda codegen --clean",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
-    "codegen:colors:figma": "tsx scripts/generate-colors.ts",
     "codegen:ladle": "panda codegen --clean --config panda.ladle.config.ts",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "tsdown --watch",

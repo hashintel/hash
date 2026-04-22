@@ -140,7 +140,6 @@ Run these from `libs/@hashintel/ds-components` when token or preset inputs chang
 
 ```bash
 yarn codegen:colors
-yarn codegen:colors:figma
 yarn codegen:tokens
 yarn codegen
 ```
