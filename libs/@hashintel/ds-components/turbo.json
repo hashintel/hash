@@ -6,11 +6,15 @@
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "outputs": ["../ds-helpers/styled-system/**"]
+      "outputs": ["src/preset/theme/*.gen.ts", "../ds-helpers/styled-system/**"]
     },
     "build:ladle": {
       "dependsOn": ["^build"],
-      "outputs": [".build/ladle/**", "../ds-helpers/styled-system/**"]
+      "outputs": [
+        ".build/ladle/**",
+        "src/preset/theme/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
     },
     "storybook": {
       "cache": false,
