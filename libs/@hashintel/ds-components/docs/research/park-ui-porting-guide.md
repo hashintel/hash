@@ -78,6 +78,7 @@ export const Label = withContext(Checkbox.Label, 'label')
 ### Testing Pattern
 
 Park UI uses **Storybook examples only** — no unit tests. Stories are organized as:
+
 - `/examples/{component}/{component}.stories.tsx` — story entry
 - `/examples/{component}/basic.tsx`, `variants.tsx`, etc. — individual examples
 
@@ -144,7 +145,9 @@ Since HASH doesn't have alpha variants, alpha references map to solid equivalent
 Park UI defines 5 semantic variants per color palette:
 
 ### 1. `solid`
+
 Bold, primary actions (buttons, badges)
+
 ```
 bg.DEFAULT → 9
 bg.hover → 10
@@ -152,7 +155,9 @@ fg → white
 ```
 
 ### 2. `subtle`
+
 Soft backgrounds, secondary emphasis
+
 ```
 bg.DEFAULT → a3
 bg.hover → a4
@@ -161,7 +166,9 @@ fg → a11
 ```
 
 ### 3. `surface`
+
 Cards, panels with visible borders
+
 ```
 bg.DEFAULT → a2
 bg.active → a3
@@ -171,7 +178,9 @@ fg → a11
 ```
 
 ### 4. `outline`
+
 Ghost-style with border only
+
 ```
 bg.hover → a2
 bg.active → a3
@@ -180,7 +189,9 @@ fg → a11
 ```
 
 ### 5. `plain`
+
 Text-only, no background or border
+
 ```
 bg.hover → a3
 bg.active → a4
@@ -203,27 +214,34 @@ error → red.9
 ## Token Reference Patterns in Recipes
 
 ### 1. `colorPalette.*` (dynamic)
+
 ```ts
 bg: 'colorPalette.solid.bg'
 color: 'colorPalette.subtle.fg'
 borderColor: 'colorPalette.surface.border.hover'
 ```
+
 Resolves based on `colorPalette` prop (e.g., `colorPalette="blue"`).
 
 ### 2. `gray.*` semantic
+
 ```ts
 bg: 'gray.surface.bg'
 borderColor: 'gray.outline.border'
 ```
+
 References gray palette's semantic variants directly.
 
 ### 3. `gray.{1-12}` direct (rare)
+
 ```ts
 bg: { _light: 'gray.2', _dark: 'gray.1' }
 ```
+
 Direct scale reference for edge cases.
 
 ### 4. Global aliases
+
 ```ts
 color: 'fg.default'
 bg: 'border'
