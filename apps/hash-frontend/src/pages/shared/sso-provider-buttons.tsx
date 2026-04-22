@@ -1,6 +1,6 @@
 import type { SvgIconProps } from "@mui/material";
 import { Box, Typography } from "@mui/material";
-import type { LoginFlow } from "@ory/client";
+import type { LoginFlow, RegistrationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import type { AxiosError } from "axios";
 import type { FunctionComponent } from "react";
@@ -43,10 +43,13 @@ const ssoButtonSx = {
 
 type FlowErrorHandler = (err: AxiosError) => void | Promise<void>;
 
-export const SsoProviderButtons: FunctionComponent<{
-  flow: LoginFlow;
-  onFlowError: FlowErrorHandler;
-}> = ({ flow, onFlowError }) => {
+type SsoFlow =
+  | { kind: "login"; flow: LoginFlow }
+  | { kind: "registration"; flow: RegistrationFlow };
+
+export const SsoProviderButtons: FunctionComponent<
+  SsoFlow & { onFlowError: FlowErrorHandler }
+> = ({ kind, flow, onFlowError }) => {
   const oidcNodes = flow.ui.nodes.filter(({ group }) => group === "oidc");
 
   if (oidcNodes.length === 0) {
@@ -55,15 +58,22 @@ export const SsoProviderButtons: FunctionComponent<{
 
   const handleProviderClick = (provider: string) => {
     const csrf_token = mustGetCsrfTokenFromFlow(flow);
-    void oryKratosClient
-      .updateLoginFlow({
-        flow: flow.id,
-        updateLoginFlowBody: {
-          method: "oidc",
-          provider,
-          csrf_token,
-        },
-      })
+    const updateFlow =
+      kind === "login"
+        ? oryKratosClient.updateLoginFlow({
+            flow: flow.id,
+            updateLoginFlowBody: { method: "oidc", provider, csrf_token },
+          })
+        : oryKratosClient.updateRegistrationFlow({
+            flow: flow.id,
+            updateRegistrationFlowBody: {
+              method: "oidc",
+              provider,
+              csrf_token,
+            },
+          });
+
+    void updateFlow
       .catch((err: AxiosError) => {
         const data = err.response?.data as
           | { redirect_browser_to?: string }
@@ -72,7 +82,11 @@ export const SsoProviderButtons: FunctionComponent<{
           window.location.href = data.redirect_browser_to;
           return;
         }
-        void onFlowError(err);
+        return onFlowError(err);
+      })
+      .catch(() => {
+        // onFlowError already handles navigation/state — swallow any
+        // rejection so it doesn't surface as an unhandled promise.
       });
   };
 
@@ -85,8 +99,9 @@ export const SsoProviderButtons: FunctionComponent<{
           mb: 2,
         }}
       >
-        If you use SSO, or have previously linked your account to another
-        service, sign in with them below
+        {kind === "login"
+          ? "If you use SSO, or have previously linked your account to another service, sign in with them below"
+          : "Or sign up with"}
       </Typography>
       <Box
         sx={{
