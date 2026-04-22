@@ -1,18 +1,18 @@
+import { preset } from "@hashintel/ds-components/preset";
 import { defineConfig } from "@pandacss/dev";
 
 export default defineConfig({
   include: [
     /* TODO: separate this config from the one used for Ladle
       - Ladle demo requires staticCSS and should have preflight:true
-      - exportable code should only include ds-components as a source, and should have preflight:false
+      - exportable code should use the published preset entrypoint and should have preflight:false
     */
     "./stories/**/*.{ts,tsx}",
-    "../ds-components/src/**/*.{ts,tsx}",
   ],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
-  presets: ["@hashintel/ds-theme"],
+  presets: [preset],
   strictPropertyValues: true,
   strictTokens: true,
   validation: "error",

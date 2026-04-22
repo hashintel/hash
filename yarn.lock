@@ -7744,6 +7744,7 @@ __metadata:
     "@fontsource-variable/geist-mono": "npm:5.2.7"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"
+    "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-theme": "workspace:*"
     "@ladle/react": "npm:5.1.1"
     "@mantine/hooks": "npm:8.3.5"
