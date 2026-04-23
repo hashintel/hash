@@ -6,13 +6,16 @@
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "outputs": ["src/preset/theme/*.gen.ts", "../ds-helpers/styled-system/**"]
+      "outputs": [
+        "src/preset/theme/**/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
     },
     "build:ladle": {
       "dependsOn": ["^build"],
       "outputs": [
         ".build/ladle/**",
-        "src/preset/theme/*.gen.ts",
+        "src/preset/theme/**/*.gen.ts",
         "../ds-helpers/styled-system/**"
       ]
     },
