@@ -28,17 +28,26 @@ const placeCircleStyle = cva({
     alignItems: "center",
     gap: "3",
     minWidth: "0",
-    border: "2px solid",
+    border: "2px solid color-mix(in oklab, black, white 35%)",
+    backgroundColor: "neutral.s10",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
     textAlign: "center",
     lineHeight: "[1.3]",
     cursor: "default",
-    transition: "[all 0.2s ease]",
+    transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
+    },
+    _after: {
+      content: '""',
+      transition: "[all 0.1s ease]",
+      position: "absolute",
+      pointerEvents: "none",
+      borderRadius: "[inherit]",
+      inset: "[-2px]", // override to cover border, since parent uses box-sizing border-box
     },
   },
   variants: {
@@ -51,6 +60,12 @@ const placeCircleStyle = cva({
       },
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
+      },
+      notSelectedConnection: {
+        borderColor: "neutral.s80",
+        _after: {
+          background: "[rgba(255, 255, 255, 0.5)]",
+        },
       },
       none: {},
     },
@@ -105,7 +120,13 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const { globalMode, isSelected } = use(EditorContext);
+  const {
+    globalMode,
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -129,7 +150,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : "none";
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
+        ? "notSelectedConnection"
+        : "none";
 
   return (
     <div className={containerStyle}>
@@ -147,7 +171,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             : undefined,
           backgroundColor: data.typeColor
             ? hexToHsl(data.typeColor).lighten(35).css(1)
-            : "#FCFCFA",
+            : undefined,
         }}
       >
         {data.dynamicsEnabled && (

@@ -57,7 +57,7 @@
     "mime-types": "2.1.35",
     "redis": "5.8.3",
     "slonik": "24.2.0",
-    "uuid": "13.0.0",
+    "uuid": "14.0.0",
     "wait-on": "9.0.1",
     "winston": "3.18.3",
     "winston-transport": "4.9.0"

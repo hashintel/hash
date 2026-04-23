@@ -25,18 +25,27 @@ const transitionBoxStyle = cva({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    background: "neutral.s20",
+    background: "neutral.s10",
     border: "2px solid",
     borderColor: "neutral.s80",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
     cursor: "default",
-    transition: "[outline 0.2s ease, border-color 0.2s ease]",
+    transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor: "neutral.s100",
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
+      borderColor:
+        "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
+      outline: "[4px solid rgba(75, 126, 156, 0.08)]",
+    },
+    _after: {
+      content: '""',
+      transition: "[all 0.1s ease]",
+      position: "absolute",
+      pointerEvents: "none",
+      borderRadius: "[inherit]",
+      inset: "[-2px]",
     },
   },
   variants: {
@@ -49,6 +58,11 @@ const transitionBoxStyle = cva({
       },
       reactflow: {
         outline: "[4px solid rgba(40, 172, 233, 0.6)]",
+      },
+      notSelectedConnection: {
+        _after: {
+          background: "[rgba(255, 255, 255, 0.5)]",
+        },
       },
       none: {},
     },
@@ -157,7 +171,12 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected } = use(EditorContext);
+  const {
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -170,12 +189,14 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   useFiringAnimation(boxRef, boltRef, firingDelta);
 
   // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
+  const selectionVariant = isSelected(id)
     ? "resource"
     : selected
       ? "reactflow"
-      : "none";
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
+        ? "notSelectedConnection"
+        : "none";
 
   return (
     <div className={containerStyle}>

@@ -9,10 +9,11 @@ import type { SelectionMap } from "./selection";
  */
 export function useSelectionCleanup() {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { selection, setSelection } = use(EditorContext);
+  const { selection, setSelection, hoveredItem, clearHoveredItem } =
+    use(EditorContext);
 
   useEffect(() => {
-    if (selection.size === 0) {
+    if (selection.size === 0 && !hoveredItem) {
       return;
     }
 
@@ -68,5 +69,16 @@ export function useSelectionCleanup() {
         return cleaned;
       });
     }
-  }, [petriNetDefinition, selection, setSelection]);
+
+    // Clear hoveredItem if it references a deleted element
+    if (hoveredItem && !validIds.has(hoveredItem.id)) {
+      clearHoveredItem();
+    }
+  }, [
+    petriNetDefinition,
+    selection,
+    setSelection,
+    hoveredItem,
+    clearHoveredItem,
+  ]);
 }
