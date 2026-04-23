@@ -8,14 +8,23 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { getNodeConnections } from "../lib/get-connections";
+import { SDCPNContext } from "./sdcpn-context";
 import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
 
+const canvasSelections = (selection: SelectionMap) =>
+  Array.from(selection.entries()).filter(
+    ([_, s]) =>
+      s.type === "arc" || s.type === "place" || s.type === "transition",
+  );
+
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const { petriNetDefinition } = use(SDCPNContext);
 
   const [state, setState] = useState<EditorState>(() => ({
     ...initialEditorState,
@@ -75,11 +84,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...(animate ? animationPatch() : {}),
         selection,
         hasSelection,
+        hasCanvasSelection: canvasSelections(selection).length > 0,
       };
     });
   };
 
-  const actions: Omit<EditorActions, "isSelected"> = {
+  const actions: Omit<
+    EditorActions,
+    | "isSelected"
+    | "isSelectedConnection"
+    | "isNotSelectedConnection"
+    | "selectedConnections"
+    | "isHovered"
+    | "isHoveredConnection"
+    | "isNotHoveredConnection"
+  > = {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
@@ -129,6 +148,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ...(animate ? animationPatch() : {}),
           selection: newSelection,
           hasSelection: true,
+          hasCanvasSelection: canvasSelections(newSelection).length > 0,
         };
       });
     },
@@ -148,6 +168,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           ...(animate ? animationPatch() : {}),
           selection: newSelection,
           hasSelection,
+          hasCanvasSelection: canvasSelections(newSelection).length > 0,
         };
       });
     },
@@ -158,8 +179,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...(prev.hasSelection ? animationPatch() : {}),
         selection: new Map(),
         hasSelection: false,
+        hasCanvasSelection: false,
       }));
     },
+    setHoveredItem: (item: SelectionItem) =>
+      setState((prev) => ({ ...prev, hoveredItem: item })),
+    clearHoveredItem: () =>
+      setState((prev) => ({ ...prev, hoveredItem: null })),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -179,6 +205,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isBottomPanelOpen: false,
         selection: new Map(),
         hasSelection: false,
+        hasCanvasSelection: false,
       }));
     },
     setTimelineChartType: (chartType) =>
@@ -217,8 +244,30 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: state.timelineChartType,
   });
 
-  const { selection } = state;
+  const { selection, hoveredItem } = state;
   const isSelected = (id: string) => selection.has(id);
+
+  const selectedConnections = getNodeConnections(
+    petriNetDefinition.transitions,
+    new Set(selection.keys()),
+  );
+
+  const isSelectedConnection = (id: string) => selectedConnections.has(id);
+  const isNotSelectedConnection = (id: string) =>
+    canvasSelections(selection).length > 0 &&
+    !isSelected(id) &&
+    !selectedConnections.has(id);
+
+  const isHovered = (id: string) => hoveredItem?.id === id;
+
+  const hoveredConnections = getNodeConnections(
+    petriNetDefinition.transitions,
+    new Set(hoveredItem ? [hoveredItem.id] : []),
+  );
+
+  const isHoveredConnection = (id: string) => hoveredConnections.has(id);
+  const isNotHoveredConnection = (id: string) =>
+    !!hoveredItem && !isHovered(id) && !hoveredConnections.has(id);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -226,6 +275,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     ...state,
     ...actions,
     isSelected,
+    isHovered,
+    isHoveredConnection,
+    isNotHoveredConnection,
+    isSelectedConnection,
+    isNotSelectedConnection,
+    selectedConnections,
     searchInputRef,
   };
 

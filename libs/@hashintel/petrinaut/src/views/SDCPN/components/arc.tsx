@@ -233,7 +233,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
     });
   }
 
-  const strokeColor = style?.stroke ?? "#b1b1b7";
+  let strokeColor = style?.stroke ?? "#b1b1b7";
 
   return (
     <>
@@ -295,8 +295,12 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         }
         style={
           data?.arcType === "inhibitor"
-            ? { ...style, strokeDasharray: INHIBITOR_DASH_PATTERN }
-            : style
+            ? {
+                ...style,
+                strokeDasharray: INHIBITOR_DASH_PATTERN,
+                stroke: strokeColor,
+              }
+            : { ...style, stroke: strokeColor }
         }
       />
 

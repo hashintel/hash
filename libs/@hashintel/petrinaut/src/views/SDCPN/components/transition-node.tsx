@@ -107,7 +107,12 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const { isSelected } = use(EditorContext);
+  const {
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -125,7 +130,10 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : "none";
+      : isNotHoveredConnection(id) ||
+          (!hoveredItem && isNotSelectedConnection(id))
+        ? "notSelectedConnection"
+        : "none";
 
   const subtitle =
     data.lambdaType === "stochastic" ? "Stochastic" : "Predicate";
