@@ -224,14 +224,18 @@ export const Checkbox = (props) => (
 
 | Script | Description |
 | --- | --- |
+| `yarn dev` | Start the primary Ladle-based demo loop |
+| `yarn dev:lib` | Watch the publishable component library build |
+| `yarn dev:storybook` | Start Storybook for component stories |
 | `yarn codegen` | Generate `../ds-helpers/styled-system` for the publish/runtime path |
 | `yarn codegen:ladle` | Generate the same styled-system with story/demo coverage enabled |
 | `yarn build` | Build the component library entrypoints |
 | `yarn build:ladle` | Build the Ladle demo surface |
-| `yarn storybook` | Start Storybook for component stories |
-| `yarn storybook:build` | Build static Storybook |
+| `yarn build:storybook` | Build static Storybook |
 | `yarn lint:eslint` | Lint the publishable package surface |
 | `yarn lint:tsc` | TypeScript type checking |
+| `yarn test:unit` | Run the Vitest unit suites without the Playwright snapshot harness |
+| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite |
 
 ## File Structure
 

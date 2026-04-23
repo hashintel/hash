@@ -46,19 +46,25 @@ Token lookup helpers and token types should also come from `@hashintel/ds-helper
 Run these from `libs/@hashintel/ds-components`:
 
 ```bash
+yarn dev
+yarn dev:lib
+yarn dev:storybook
 yarn codegen
 yarn codegen:ladle
 yarn lint:eslint
 yarn lint:tsc
-yarn storybook
-yarn dev:ladle
+yarn test:unit
 yarn test:snapshots
 yarn build
+yarn build:storybook
 ```
+
+`yarn dev` is the primary Ladle-based review loop. Use `yarn dev:storybook` for component-story review and `yarn dev:lib` when you only need the library watcher.
 
 ## Contributor Docs
 
 - See [CONTRIBUTING.md](./CONTRIBUTING.md) for the current contributor workflow.
+- See [SCRIPT_SURFACE_RECOMMENDATIONS.md](./SCRIPT_SURFACE_RECOMMENDATIONS.md) for the naming conventions applied here and proposed for sibling packages.
 - See `AGENTS.md` for package-scoped implementation rules.
 
 ## External References

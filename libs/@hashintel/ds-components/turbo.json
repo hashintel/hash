@@ -6,26 +6,39 @@
       "outputs": ["dist/**"]
     },
     "codegen": {
+      "dependsOn": [],
+      "outputs": [
+        "src/preset/theme/**/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
+    },
+    "codegen:ladle": {
+      "dependsOn": [],
       "outputs": [
         "src/preset/theme/**/*.gen.ts",
         "../ds-helpers/styled-system/**"
       ]
     },
     "build:ladle": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["@hashintel/refractive#build"],
       "outputs": [
         ".build/ladle/**",
         "src/preset/theme/**/*.gen.ts",
         "../ds-helpers/styled-system/**"
       ]
     },
-    "storybook": {
+    "dev": {
       "cache": false,
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["@hashintel/refractive#build"],
       "persistent": true
     },
-    "storybook:build": {
-      "dependsOn": ["codegen", "^build"],
+    "dev:storybook": {
+      "cache": false,
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "persistent": true
+    },
+    "build:storybook": {
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "outputs": ["storybook-static/**"]
     }
   }

@@ -113,7 +113,7 @@ Run the smallest relevant checks first, then broaden as needed:
 ```bash
 yarn lint:eslint
 yarn lint:tsc
-yarn storybook
+yarn dev:storybook
 ```
 
 When the change affects tokens, preset behavior, Ladle stories, or the snapshot harness, also run:
@@ -121,6 +121,7 @@ When the change affects tokens, preset behavior, Ladle stories, or the snapshot 
 ```bash
 yarn codegen:ladle
 yarn build:ladle
+yarn test:unit
 yarn test:snapshots
 ```
 
@@ -168,8 +169,9 @@ Color tokens should come from the semantic palette already defined in the preset
 
 ## Storybook, Ladle, And Snapshots
 
-- `yarn storybook` is the main human review surface for components.
-- `yarn dev:ladle` is the best local loop when changing token stories or the demo harness because it watches Panda codegen.
+- `yarn dev` is the primary Ladle-based loop and the best default when changing token stories or the demo harness because it watches Panda codegen.
+- `yarn dev:storybook` is the main human review surface for component stories.
+- `yarn dev:lib` is the lightest loop when you only need the publishable package build watcher.
 - `src/stories/tokens/**` owns the token reference stories that used to live under `ds-helpers`.
 - `tests/snapshots.spec.ts` exercises the Ladle surface and stores the images in `tests/__snapshots__/`.
 
