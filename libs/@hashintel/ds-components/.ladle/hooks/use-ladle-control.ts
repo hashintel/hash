@@ -1,7 +1,13 @@
 import { ActionType, ModeState, useLadleContext } from "@ladle/react";
 import { useIsFirstRender } from "@mantine/hooks";
-import { isFunction } from "@tool-belt/type-predicates";
 import { useCallback, useLayoutEffect, useRef } from "react";
+
+const isLazyInitializer = <T>(value: T | (() => T)): value is () => T =>
+  typeof value === "function";
+
+const isUpdater = <T>(
+  value: T | ((prev: T | undefined) => T) | undefined,
+): value is (prev: T | undefined) => T => typeof value === "function";
 
 export function useLadleControl<T>(
   paramName: string,
@@ -23,7 +29,9 @@ export function useLadleControl<T>(
           ...state,
           [paramName]: {
             ...state[paramName],
-            value: isFunction(initialValue) ? initialValue() : initialValue,
+            value: isLazyInitializer(initialValue)
+              ? initialValue()
+              : initialValue,
           },
         },
       });
@@ -31,16 +39,16 @@ export function useLadleControl<T>(
   }
 
   return useCallback(
-    (value?: T | ((prev: T) => T)) => {
+    (value?: T | ((prev: T | undefined) => T)) => {
       dispatch({
         type: ActionType.UpdateControl,
         value: {
           ...state,
           [paramName]: {
             ...state[paramName],
-            value: isFunction(value)
-              ? value(state[paramName]?.value)
-              : (value ?? "transparent"),
+            value: isUpdater(value)
+              ? value(state[paramName]?.value as T | undefined)
+              : (value ?? ("transparent" as T)),
           },
         },
       });

@@ -12,19 +12,19 @@ This document records the script naming conventions now applied in `@hashintel/d
 
 ## Applied In Ds-Components
 
-| Old | New | Notes |
-| --- | --- | --- |
-| `build:library` | `build:lib` | Shorter, consistent with `dev:lib`. |
-| `build:info` | `build:buildinfo` | Makes the artifact explicit. |
-| `storybook` | `dev:storybook` | Makes the runtime surface explicit. |
-| `storybook:build` | `build:storybook` | Aligns with verb-first naming. |
-| `codegen:panda` | `codegen:runtime` | Describes the generated output rather than the tool. |
-| `codegen:ladle:panda` | `codegen:runtime:ladle` | Keeps the same axis order as other script names. |
-| `dev:panda:ladle` | `dev:ladle:codegen` | Groups by surface first, then role. |
-| `ladle` | `dev:ladle:serve` | Removes the one-off bare tool name. |
-| `dev:test` | `test:unit:watch` | Uses the same family name as the non-watch command. |
-| `preflight:ladle` | `preview:ladle` | Uses the actual action being performed. |
-| `test:update` | `test:snapshots:update` | Clarifies which test family is being updated. |
+| Old                   | New                     | Notes                                                |
+| --------------------- | ----------------------- | ---------------------------------------------------- |
+| `build:library`       | `build:lib`             | Shorter, consistent with `dev:lib`.                  |
+| `build:info`          | `build:buildinfo`       | Makes the artifact explicit.                         |
+| `storybook`           | `dev:storybook`         | Makes the runtime surface explicit.                  |
+| `storybook:build`     | `build:storybook`       | Aligns with verb-first naming.                       |
+| `codegen:panda`       | `codegen:runtime`       | Describes the generated output rather than the tool. |
+| `codegen:ladle:panda` | `codegen:runtime:local` | Keeps the same axis order as other script names.     |
+| `dev:panda:ladle`     | `dev:codegen:local`     | Groups by surface first, then role.                  |
+| `ladle`               | `dev:ladle:serve`       | Removes the one-off bare tool name.                  |
+| `dev:test`            | `test:unit:watch`       | Uses the same family name as the non-watch command.  |
+| `preflight:ladle`     | `preview:ladle`         | Uses the actual action being performed.              |
+| `test:update`         | `test:snapshots:update` | Clarifies which test family is being updated.        |
 
 `yarn dev` now points at the package's primary human review surface, which is Ladle in `ds-components`.
 
@@ -32,32 +32,32 @@ This document records the script naming conventions now applied in `@hashintel/d
 
 This is the target shape I would recommend for design-system-adjacent packages when the owners are ready:
 
-| Kind | Recommended script |
-| --- | --- |
-| Primary interactive surface | `dev` |
-| Library-only watcher | `dev:lib` |
-| Storybook dev server | `dev:storybook` |
-| Ladle dev server | `dev:ladle` |
-| Storybook static build | `build:storybook` |
-| Ladle static build | `build:ladle` |
-| Unit tests | `test:unit` |
-| Unit tests in watch mode | `test:unit:watch` |
-| Snapshot or browser tests | `test:snapshots` |
-| Snapshot updates | `test:snapshots:update` |
-| Runtime styling/code generation | `codegen:runtime` |
+| Kind                            | Recommended script      |
+| ------------------------------- | ----------------------- |
+| Primary interactive surface     | `dev`                   |
+| Library-only watcher            | `dev:lib`               |
+| Storybook dev server            | `dev:storybook`         |
+| Ladle dev server                | `dev:ladle`             |
+| Storybook static build          | `build:storybook`       |
+| Ladle static build              | `build:ladle`           |
+| Unit tests                      | `test:unit`             |
+| Unit tests in watch mode        | `test:unit:watch`       |
+| Snapshot or browser tests       | `test:snapshots`        |
+| Snapshot updates                | `test:snapshots:update` |
+| Runtime styling/code generation | `codegen:runtime`       |
 
 ## Recommendations For Refractive
 
 `@hashintel/refractive` is already close. The main gaps are the Storybook names and the meaning of `dev`.
 
-| Current | Recommended |
-| --- | --- |
-| `dev` | `dev:storybook` |
-| `dev:lib` | `dev:lib` |
+| Current           | Recommended       |
+| ----------------- | ----------------- |
+| `dev`             | `dev:storybook`   |
+| `dev:lib`         | `dev:lib`         |
 | `build-storybook` | `build:storybook` |
-| `build` | `build` |
-| `lint:eslint` | `lint:eslint` |
-| `lint:tsc` | `lint:tsc` |
+| `build`           | `build`           |
+| `lint:eslint`     | `lint:eslint`     |
+| `lint:tsc`        | `lint:tsc`        |
 
 Optional follow-up once the owner agrees:
 
@@ -67,13 +67,13 @@ Optional follow-up once the owner agrees:
 
 `@hashintel/petrinaut` also has the right primitives already; the main inconsistency is that `dev` currently means Storybook without saying so.
 
-| Current | Recommended |
-| --- | --- |
-| `dev` | `dev:storybook` |
-| `build` | `build` |
-| `test:unit` | `test:unit` |
-| `lint:eslint` | `lint:eslint` |
-| `lint:tsc` | `lint:tsc` |
+| Current       | Recommended     |
+| ------------- | --------------- |
+| `dev`         | `dev:storybook` |
+| `build`       | `build`         |
+| `test:unit`   | `test:unit`     |
+| `lint:eslint` | `lint:eslint`   |
+| `lint:tsc`    | `lint:tsc`      |
 
 Optional follow-up once the owner agrees:
 

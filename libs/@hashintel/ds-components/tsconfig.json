@@ -16,15 +16,16 @@
   "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"],
   "extends": "@tsconfig/strictest/tsconfig.json",
   "include": [
-    "src",
-    ".storybook",
-    ".ladle",
-    "tests",
-    "scripts",
+    "src/**/*",
+    ".storybook/**/*",
+    ".ladle/**/*",
+    "tests/**/*",
+    "scripts/**/*",
     "panda.config.ts",
     "panda.local.config.ts",
     "playwright.config.ts",
     "tsdown.config.ts",
+    "vite.config.ts",
     "vite.ladle.config.ts"
   ]
 }
