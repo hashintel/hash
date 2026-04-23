@@ -23,7 +23,8 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Package-owned theme facade | `src/theme.ts` | Re-exports from `src/preset/theme`. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
-| Ladle harness | `.ladle/**`, `panda.ladle.config.ts`, `vite.ladle.config.ts` | Used for the token/demo surface and Playwright snapshots. |
+| Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Storybook and Ladle. |
+| Ladle harness | `.ladle/**`, `vite.ladle.config.ts` | Used for the token/demo surface and Playwright snapshots. |
 | Snapshot tests | `tests/**` | Snapshot harness for the Ladle surface. |
 
 ## Import Rules

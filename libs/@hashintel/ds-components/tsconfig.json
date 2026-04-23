@@ -22,7 +22,7 @@
     "tests",
     "scripts",
     "panda.config.ts",
-    "panda.ladle.config.ts",
+    "panda.local.config.ts",
     "playwright.config.ts",
     "tsdown.config.ts",
     "vite.ladle.config.ts"

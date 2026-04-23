@@ -38,7 +38,8 @@ Token lookup helpers and token types should also come from `@hashintel/ds-helper
 | Token and color generators | `scripts/**` |
 | Storybook stories | `src/components/*/*.stories.tsx` |
 | Token demo stories | `src/stories/**` |
-| Ladle harness | `.ladle/**`, `panda.ladle.config.ts`, `vite.ladle.config.ts` |
+| Local demo config | `panda.local.config.ts` |
+| Ladle harness | `.ladle/**`, `vite.ladle.config.ts` |
 | Snapshot tests | `tests/**` |
 
 ## Common Commands

@@ -68,7 +68,7 @@ Key points:
 
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
-- `panda.ladle.config.ts` exists separately for the Ladle/story surface
+- `panda.local.config.ts` exists separately for local demo surfaces such as Ladle and Storybook
 
 ### Token Naming Patterns (Strict Mode)
 
@@ -252,7 +252,7 @@ libs/@hashintel/ds-components/
 ├── tests/                  # Snapshot/demo tests
 ├── .storybook/             # Storybook configuration
 ├── panda.config.ts
-├── panda.ladle.config.ts
+├── panda.local.config.ts
 ├── package.json
 └── tsconfig.json
 ```

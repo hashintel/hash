@@ -12,7 +12,7 @@ export default [
       "tests/**",
       "playwright.config.ts",
       "postcss.config.cjs",
-      "panda.ladle.config.ts",
+      "panda.local.config.ts",
       "vite.ladle.config.ts",
       "src/stories/Intro.mdx",
     ],
