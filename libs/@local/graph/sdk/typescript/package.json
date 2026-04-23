@@ -32,7 +32,7 @@
     "@rust/hash-graph-store": "workspace:*",
     "@temporalio/client": "1.12.1",
     "effect": "3.20.0",
-    "uuid": "13.0.0"
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
