@@ -56,10 +56,14 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
+function getSrgbChannel(color: Color, channel: "r" | "g" | "b"): number {
+  return color.srgb[channel] ?? 0;
+}
+
 function toHex(color: Color): string {
-  const r = clamp(Math.round((color.srgb["r"] ?? 0) * 255), 0, 255);
-  const g = clamp(Math.round((color.srgb["g"] ?? 0) * 255), 0, 255);
-  const b = clamp(Math.round((color.srgb["b"] ?? 0) * 255), 0, 255);
+  const r = clamp(Math.round(getSrgbChannel(color, "r") * 255), 0, 255);
+  const g = clamp(Math.round(getSrgbChannel(color, "g") * 255), 0, 255);
+  const b = clamp(Math.round(getSrgbChannel(color, "b") * 255), 0, 255);
   const a = clamp(color.alpha, 0, 1);
   const rr = r.toString(16).padStart(2, "0");
   const gg = g.toString(16).padStart(2, "0");
@@ -74,9 +78,9 @@ function toHex(color: Color): string {
 }
 
 function toRgba(color: Color): string {
-  const r = clamp(Math.round((color.srgb["r"] ?? 0) * 255), 0, 255);
-  const g = clamp(Math.round((color.srgb["g"] ?? 0) * 255), 0, 255);
-  const b = clamp(Math.round((color.srgb["b"] ?? 0) * 255), 0, 255);
+  const r = clamp(Math.round(getSrgbChannel(color, "r") * 255), 0, 255);
+  const g = clamp(Math.round(getSrgbChannel(color, "g") * 255), 0, 255);
+  const b = clamp(Math.round(getSrgbChannel(color, "b") * 255), 0, 255);
   const a = clamp(Math.round(color.alpha * 1000) / 1000, 0, 1);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
@@ -251,7 +255,9 @@ function generateBaseTokens(
   // s125: extrapolate from s115 → s120 delta
   const lightS115 = interpolateColor(lightValues[11]!, lightValues[12]!);
   const darkS115 = interpolateColor(darkValues[11]!, darkValues[12]!);
-  tokens["s125"] = {
+  const solidEdgeKey = "s125";
+
+  tokens[solidEdgeKey] = {
     value: {
       _light: extrapolateColor(lightS115, lightValues[12]!),
       _dark: extrapolateColor(darkS115, darkValues[12]!),
@@ -285,7 +291,9 @@ function generateBaseTokens(
     lightAlphaValues[12]!,
   );
   const darkA115 = interpolateColor(darkAlphaValues[11]!, darkAlphaValues[12]!);
-  tokens["a125"] = {
+  const alphaEdgeKey = "a125";
+
+  tokens[alphaEdgeKey] = {
     value: {
       _light: extrapolateColor(lightA115, lightAlphaValues[12]!),
       _dark: extrapolateColor(darkA115, darkAlphaValues[12]!),
