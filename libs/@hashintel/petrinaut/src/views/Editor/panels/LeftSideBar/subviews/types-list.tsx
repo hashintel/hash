@@ -7,7 +7,7 @@ import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
   RowMenu,
@@ -63,8 +63,8 @@ function getNextTypeNumber(existingNames: string[]): number {
  */
 export const TypesSectionHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { types },
-  } = use(SDCPNContext);
+    activeNet: { types },
+  } = use(ActiveNetContext);
   const { addType } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
@@ -140,8 +140,8 @@ export const typesListSubView: SubView = createFilterableListSubView({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { types },
-    } = use(SDCPNContext);
+      activeNet: { types },
+    } = use(ActiveNetContext);
     return types.map((type) => ({
       ...type,
       icon: TokenTypeIcon,

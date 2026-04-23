@@ -73,6 +73,7 @@ const DEFAULT_EDITOR: EditorContextValue = {
   ...initialEditorState,
   setGlobalMode: () => {},
   setEditionMode: () => {},
+  setAddComponentMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},

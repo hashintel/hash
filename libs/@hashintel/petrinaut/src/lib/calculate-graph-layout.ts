@@ -1,7 +1,7 @@
 import type { ElkNode } from "elkjs";
 import ELK from "elkjs";
 
-import type { SDCPN } from "../core/types/sdcpn";
+import type { Place, Transition } from "../core/types/sdcpn";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers
@@ -37,7 +37,7 @@ export type NodePosition = {
  * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (
-  sdcpn: SDCPN,
+  sdcpn: { places: Place[]; transitions: Transition[] },
   dimensions: {
     place: { width: number; height: number };
     transition: { width: number; height: number };

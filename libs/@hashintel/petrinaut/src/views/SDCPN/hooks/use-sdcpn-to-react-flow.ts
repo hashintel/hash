@@ -3,8 +3,9 @@ import { use } from "react";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { PlaybackContext } from "../../../playback/context";
+import { ActiveNetContext } from "../../../state/active-net-context";
 import { EditorContext } from "../../../state/editor-context";
-import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
+import { generateArcId } from "../../../state/sdcpn-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 import type {
   NodeType,
@@ -26,7 +27,7 @@ import {
  * @returns An object with nodes (including dragging state) and arcs for ReactFlow
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { draggingStateByNodeId, isSelected } = use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);

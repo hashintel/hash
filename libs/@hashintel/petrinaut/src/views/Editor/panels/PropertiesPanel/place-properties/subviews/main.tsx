@@ -12,6 +12,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { ActiveNetContext } from "../../../../../../state/active-net-context";
 import { EditorContext } from "../../../../../../state/editor-context";
 import { MutationContext } from "../../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../../state/sdcpn-context";
@@ -47,10 +48,10 @@ const PlaceMainContent: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { selectItem } = use(EditorContext);
 
+  const { getItemType } = use(SDCPNContext);
   const {
-    getItemType,
-    petriNetDefinition: { differentialEquations, types: availableTypes },
-  } = use(SDCPNContext);
+    activeNet: { differentialEquations, types: availableTypes },
+  } = use(ActiveNetContext);
 
   // State for name input validation
   const [nameInputValue, setNameInputValue] = useState(place.name);

@@ -18,24 +18,29 @@ export const SDCPNProvider: React.FC<
         return "arc";
       }
 
-      if (sdcpn.types.some((type) => type.id === id)) {
-        return "type";
-      }
+      // Search root net and all subnets
+      const nets = [sdcpn, ...(sdcpn.subnets ?? [])];
 
-      if (sdcpn.parameters.some((parameter) => parameter.id === id)) {
-        return "parameter";
-      }
+      for (const net of nets) {
+        if (net.types.some((type) => type.id === id)) {
+          return "type";
+        }
 
-      if (sdcpn.differentialEquations.some((equation) => equation.id === id)) {
-        return "differentialEquation";
-      }
+        if (net.parameters.some((parameter) => parameter.id === id)) {
+          return "parameter";
+        }
 
-      if (sdcpn.places.some((place) => place.id === id)) {
-        return "place";
-      }
+        if (net.differentialEquations.some((equation) => equation.id === id)) {
+          return "differentialEquation";
+        }
 
-      if (sdcpn.transitions.some((transition) => transition.id === id)) {
-        return "transition";
+        if (net.places.some((place) => place.id === id)) {
+          return "place";
+        }
+
+        if (net.transitions.some((transition) => transition.id === id)) {
+          return "transition";
+        }
       }
 
       return null;

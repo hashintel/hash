@@ -1,10 +1,18 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { FaChevronDown, FaRegHand } from "react-icons/fa6";
+import { IoCubeOutline } from "react-icons/io5";
 import { LuMousePointerClick } from "react-icons/lu";
-import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
+import { TbCirclePlus2, TbHexagonPlus2, TbSquarePlus2 } from "react-icons/tb";
 
 import { Menu, type MenuItem } from "../../../../components/menu";
-import type { CursorMode, EditorState } from "../../../../state/editor-context";
+import { ActiveNetContext } from "../../../../state/active-net-context";
+import {
+  EditorContext,
+  type CursorMode,
+  type EditorState,
+} from "../../../../state/editor-context";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -110,6 +118,55 @@ const CursorModeDropdown: React.FC<{
   );
 };
 
+const ComponentDropdown: React.FC<{
+  editionMode: EditorEditionMode;
+}> = ({ editionMode }) => {
+  const {
+    petriNetDefinition: { subnets },
+  } = use(SDCPNContext);
+  const { setAddComponentMode, componentSubnetId } = use(EditorContext);
+
+  const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
+    id: subnet.id,
+    icon: <IoCubeOutline size={14} />,
+    label: subnet.name,
+    selected:
+      editionMode === "add-component" && componentSubnetId === subnet.id,
+    onClick: () => {
+      setAddComponentMode(subnet.id);
+    },
+  }));
+
+  if (items.length === 0) {
+    items.push({
+      id: "empty",
+      label: "No subnets defined",
+      disabled: true,
+    });
+  }
+
+  const isActive =
+    editionMode === "add-component" && componentSubnetId !== null;
+
+  return (
+    <Menu
+      trigger={
+        <button
+          type="button"
+          className={cursorTriggerStyle({ isActive })}
+          aria-label="Add component"
+        >
+          <TbHexagonPlus2 size={20} />
+          <FaChevronDown size={7} className={dropdownArrowStyle} />
+        </button>
+      }
+      items={items}
+      placement="top"
+      animated
+    />
+  );
+};
+
 interface ToolbarModesProps {
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
@@ -124,6 +181,8 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   onCursorModeChange,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const { activeSubnetId } = use(ActiveNetContext);
+  const isRootNet = activeSubnetId === null;
 
   return (
     <>
@@ -164,6 +223,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           >
             <TbSquarePlus2 />
           </ToolbarButton>
+          {isRootNet && <ComponentDropdown editionMode={editionMode} />}
         </>
       )}
     </>

@@ -10,7 +10,7 @@ import {
 } from "../../../../constants/ui";
 import { EditorContext } from "../../../../state/editor-context";
 import { MutationContext } from "../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../state/active-net-context";
 import { usePanelTarget } from "../../../../state/use-selection";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
 import { ArcProperties } from "./arc-properties/main";
@@ -65,7 +65,7 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const {
     updatePlace,
     updateTransition,

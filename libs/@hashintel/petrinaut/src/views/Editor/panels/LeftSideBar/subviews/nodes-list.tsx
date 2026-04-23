@@ -5,7 +5,7 @@ import {
   PlaceFilledIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 interface NodeItem {
@@ -29,8 +29,8 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { places, transitions },
-    } = use(SDCPNContext);
+      activeNet: { places, transitions },
+    } = use(ActiveNetContext);
 
     return [
       ...places.map((place) => ({

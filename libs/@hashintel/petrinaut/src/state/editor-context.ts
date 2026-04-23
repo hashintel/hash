@@ -13,7 +13,11 @@ export type DraggingStateByNodeId = Record<
 >;
 
 type EditorGlobalMode = "edit" | "simulate";
-type EditorEditionMode = "cursor" | "add-place" | "add-transition";
+type EditorEditionMode =
+  | "cursor"
+  | "add-place"
+  | "add-transition"
+  | "add-component";
 export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
   | "diagnostics"
@@ -38,6 +42,8 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
+  /** The subnet ID to instantiate when `editionMode` is `"add-component"`. */
+  componentSubnetId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   isPanelAnimating: boolean;
@@ -50,6 +56,8 @@ export type EditorState = {
 export type EditorActions = {
   setGlobalMode: (mode: EditorGlobalMode) => void;
   setEditionMode: (mode: EditorEditionMode) => void;
+  /** Enter `"add-component"` mode for the given subnet. */
+  setAddComponentMode: (subnetId: string) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
@@ -96,6 +104,7 @@ export const initialEditorState: EditorState = {
   activeBottomPanelTab: "diagnostics",
   selection: new Map(),
   hasSelection: false,
+  componentSubnetId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   isPanelAnimating: false,
@@ -106,6 +115,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
   setGlobalMode: () => {},
   setEditionMode: () => {},
+  setAddComponentMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},

@@ -9,7 +9,7 @@ import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../state/editor-context";
 import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
   RowMenu,
@@ -29,8 +29,8 @@ const parameterVarNameStyle = css({
  */
 export const ParametersHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { parameters },
-  } = use(SDCPNContext);
+    activeNet: { parameters },
+  } = use(ActiveNetContext);
   const { addParameter } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
@@ -103,8 +103,8 @@ export const parametersListSubView: SubView = createFilterableListSubView({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { parameters },
-    } = use(SDCPNContext);
+      activeNet: { parameters },
+    } = use(ActiveNetContext);
     return parameters.map((param) => ({
       ...param,
       icon: ParameterIcon,

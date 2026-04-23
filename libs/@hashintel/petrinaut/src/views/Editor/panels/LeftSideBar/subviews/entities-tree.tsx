@@ -13,7 +13,7 @@ import {
 } from "../../../../../constants/entity-icons";
 import { EditorContext } from "../../../../../state/editor-context";
 import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import type { SelectionItem } from "../../../../../state/selection";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
@@ -94,14 +94,14 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
 
 function useEntityTreeItems(): EntityTreeItem[] {
   const {
-    petriNetDefinition: {
+    activeNet: {
       places,
       transitions,
       types,
       differentialEquations,
       parameters,
     },
-  } = use(SDCPNContext);
+  } = use(ActiveNetContext);
 
   return [
     {

@@ -95,10 +95,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
-    if (
-      mode === "simulate" &&
-      (editionMode === "add-place" || editionMode === "add-transition")
-    ) {
+    if (mode === "simulate" && editionMode !== "cursor") {
       onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);

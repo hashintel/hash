@@ -8,6 +8,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { LanguageClientContext } from "../../../../../lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../simulation/context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import type { SelectionItemType } from "../../../../../state/selection";
@@ -157,7 +158,8 @@ const DiagnosticsContent: React.FC = () => {
   const { diagnosticsByUri, totalDiagnosticsCount } = use(
     LanguageClientContext,
   );
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { getItemType } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { selectItem, setGlobalMode } = use(EditorContext);
   const {
     state: simulationState,

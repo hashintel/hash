@@ -1,12 +1,13 @@
 import { use } from "react";
 
 import { pasteFromClipboard } from "../clipboard/clipboard";
-import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
+import type { MutateSDCPN, SDCPN, Subnet } from "../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
 } from "../views/SDCPN/styles/styling";
+import { ActiveNetContext } from "./active-net-context";
 import { MutationContext, type MutationContextValue } from "./mutation-context";
 import { generateArcId, SDCPNContext } from "./sdcpn-context";
 import { useIsReadOnly } from "./use-is-read-only";
@@ -20,7 +21,8 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
   mutatePetriNetDefinition,
   children,
 }) => {
-  const { petriNetDefinition, readonly } = use(SDCPNContext);
+  const { readonly } = use(SDCPNContext);
+  const { activeSubnetId, activeNet } = use(ActiveNetContext);
   const { compactNodes } = use(UserSettingsContext);
   const isReadOnly = useIsReadOnly();
 
@@ -33,6 +35,18 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
       return;
     }
     mutatePetriNetDefinition(fn);
+  }
+
+  /**
+   * Resolve the active net target (root or subnet) inside a mutation callback.
+   * Because mutations operate on the mutable draft, mutating the returned
+   * reference modifies the correct part of the SDCPN tree.
+   */
+  function resolveNet(sdcpn: SDCPN): SDCPN | Subnet {
+    if (activeSubnetId === null) {
+      return sdcpn;
+    }
+    return sdcpn.subnets?.find((s) => s.id === activeSubnetId) ?? sdcpn;
   }
 
   /**
@@ -49,12 +63,12 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
   const value: MutationContextValue = {
     addPlace(place) {
       guardedMutate((sdcpn) => {
-        sdcpn.places.push(place);
+        resolveNet(sdcpn).places.push(place);
       });
     },
     updatePlace(placeId, updateFn) {
       guardedMutate((sdcpn) => {
-        for (const place of sdcpn.places) {
+        for (const place of resolveNet(sdcpn).places) {
           if (place.id === placeId) {
             updateFn(place);
             break;
@@ -64,7 +78,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     updatePlacePosition(placeId, position) {
       guardedMutate((sdcpn) => {
-        for (const place of sdcpn.places) {
+        for (const place of resolveNet(sdcpn).places) {
           if (place.id === placeId) {
             place.x = position.x;
             place.y = position.y;
@@ -75,12 +89,13 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removePlace(placeId) {
       guardedMutate((sdcpn) => {
-        for (const [placeIndex, place] of sdcpn.places.entries()) {
+        const net = resolveNet(sdcpn);
+        for (const [placeIndex, place] of net.places.entries()) {
           if (place.id === placeId) {
-            sdcpn.places.splice(placeIndex, 1);
+            net.places.splice(placeIndex, 1);
 
             // Iterate backwards to avoid skipping entries when splicing
-            for (const transition of sdcpn.transitions) {
+            for (const transition of net.transitions) {
               for (let i = transition.inputArcs.length - 1; i >= 0; i--) {
                 if (transition.inputArcs[i]!.placeId === placeId) {
                   transition.inputArcs.splice(i, 1);
@@ -99,12 +114,12 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     addTransition(transition) {
       guardedMutate((sdcpn) => {
-        sdcpn.transitions.push(transition);
+        resolveNet(sdcpn).transitions.push(transition);
       });
     },
     updateTransition(transitionId, updateFn) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             updateFn(transition);
             break;
@@ -114,7 +129,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     updateTransitionPosition(transitionId, position) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             transition.x = position.x;
             transition.y = position.y;
@@ -125,9 +140,10 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removeTransition(transitionId) {
       guardedMutate((sdcpn) => {
-        for (const [index, transition] of sdcpn.transitions.entries()) {
+        const net = resolveNet(sdcpn);
+        for (const [index, transition] of net.transitions.entries()) {
           if (transition.id === transitionId) {
-            sdcpn.transitions.splice(index, 1);
+            net.transitions.splice(index, 1);
             break;
           }
         }
@@ -135,7 +151,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     addArc(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             if (arcDirection === "input") {
               transition["inputArcs"].push({
@@ -153,7 +169,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removeArc(transitionId, arcDirection, placeId) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             for (const [index, arc] of transition[
               arcDirection === "input" ? "inputArcs" : "outputArcs"
@@ -172,7 +188,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     updateArcWeight(transitionId, arcDirection, placeId, weight) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             for (const arc of transition[
               arcDirection === "input" ? "inputArcs" : "outputArcs"
@@ -189,7 +205,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     updateArcType(transitionId, placeId, type) {
       guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
+        for (const transition of resolveNet(sdcpn).transitions) {
           if (transition.id === transitionId) {
             for (const arc of transition["inputArcs"]) {
               if (arc.placeId === placeId) {
@@ -204,12 +220,12 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     addType(type) {
       guardedMutate((sdcpn) => {
-        sdcpn.types.push(type);
+        resolveNet(sdcpn).types.push(type);
       });
     },
     updateType(typeId, updateFn) {
       guardedMutate((sdcpn) => {
-        for (const type of sdcpn.types) {
+        for (const type of resolveNet(sdcpn).types) {
           if (type.id === typeId) {
             updateFn(type);
             break;
@@ -219,19 +235,20 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removeType(typeId) {
       guardedMutate((sdcpn) => {
-        for (const [index, type] of sdcpn.types.entries()) {
+        const net = resolveNet(sdcpn);
+        for (const [index, type] of net.types.entries()) {
           if (type.id === typeId) {
-            sdcpn.types.splice(index, 1);
+            net.types.splice(index, 1);
             break;
           }
         }
         // Clear dangling colorId references
-        for (const place of sdcpn.places) {
+        for (const place of net.places) {
           if (place.colorId === typeId) {
             place.colorId = null;
           }
         }
-        for (const equation of sdcpn.differentialEquations) {
+        for (const equation of net.differentialEquations) {
           if (equation.colorId === typeId) {
             equation.colorId = "";
           }
@@ -240,12 +257,12 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     addDifferentialEquation(equation) {
       guardedMutate((sdcpn) => {
-        sdcpn.differentialEquations.push(equation);
+        resolveNet(sdcpn).differentialEquations.push(equation);
       });
     },
     updateDifferentialEquation(equationId, updateFn) {
       guardedMutate((sdcpn) => {
-        for (const equation of sdcpn.differentialEquations) {
+        for (const equation of resolveNet(sdcpn).differentialEquations) {
           if (equation.id === equationId) {
             updateFn(equation);
             break;
@@ -255,14 +272,15 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removeDifferentialEquation(equationId) {
       guardedMutate((sdcpn) => {
-        for (const [index, equation] of sdcpn.differentialEquations.entries()) {
+        const net = resolveNet(sdcpn);
+        for (const [index, equation] of net.differentialEquations.entries()) {
           if (equation.id === equationId) {
-            sdcpn.differentialEquations.splice(index, 1);
+            net.differentialEquations.splice(index, 1);
             break;
           }
         }
         // Clear dangling differentialEquationId references
-        for (const place of sdcpn.places) {
+        for (const place of net.places) {
           if (place.differentialEquationId === equationId) {
             place.differentialEquationId = null;
           }
@@ -271,12 +289,12 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     addParameter(parameter) {
       guardedMutate((sdcpn) => {
-        sdcpn.parameters.push(parameter);
+        resolveNet(sdcpn).parameters.push(parameter);
       });
     },
     updateParameter(parameterId, updateFn) {
       guardedMutate((sdcpn) => {
-        for (const parameter of sdcpn.parameters) {
+        for (const parameter of resolveNet(sdcpn).parameters) {
           if (parameter.id === parameterId) {
             updateFn(parameter);
             break;
@@ -286,9 +304,10 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     removeParameter(parameterId) {
       guardedMutate((sdcpn) => {
-        for (const [index, parameter] of sdcpn.parameters.entries()) {
+        const net = resolveNet(sdcpn);
+        for (const [index, parameter] of net.parameters.entries()) {
           if (parameter.id === parameterId) {
-            sdcpn.parameters.splice(index, 1);
+            net.parameters.splice(index, 1);
             break;
           }
         }
@@ -350,6 +369,8 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     deleteItemsByIds(items) {
       guardedMutate((sdcpn) => {
+        const net = resolveNet(sdcpn);
+
         // Partition selection by type for targeted deletion
         const placeIds = new Set<string>();
         const transitionIds = new Set<string>();
@@ -388,10 +409,10 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
           placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
 
         if (hasCanvasDeletes) {
-          for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
-            const transition = sdcpn.transitions[i]!;
+          for (let i = net.transitions.length - 1; i >= 0; i--) {
+            const transition = net.transitions[i]!;
             if (transitionIds.has(transition.id)) {
-              sdcpn.transitions.splice(i, 1);
+              net.transitions.splice(i, 1);
               continue;
             }
 
@@ -428,26 +449,26 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
             }
           }
 
-          for (let i = sdcpn.places.length - 1; i >= 0; i--) {
-            if (placeIds.has(sdcpn.places[i]!.id)) {
-              sdcpn.places.splice(i, 1);
+          for (let i = net.places.length - 1; i >= 0; i--) {
+            if (placeIds.has(net.places[i]!.id)) {
+              net.places.splice(i, 1);
             }
           }
         }
 
         if (typeIds.size > 0) {
-          for (let i = sdcpn.types.length - 1; i >= 0; i--) {
-            if (typeIds.has(sdcpn.types[i]!.id)) {
-              sdcpn.types.splice(i, 1);
+          for (let i = net.types.length - 1; i >= 0; i--) {
+            if (typeIds.has(net.types[i]!.id)) {
+              net.types.splice(i, 1);
             }
           }
           // Clear dangling colorId references on places and equations
-          for (const place of sdcpn.places) {
+          for (const place of net.places) {
             if (place.colorId && typeIds.has(place.colorId)) {
               place.colorId = null;
             }
           }
-          for (const equation of sdcpn.differentialEquations) {
+          for (const equation of net.differentialEquations) {
             if (typeIds.has(equation.colorId)) {
               equation.colorId = "";
             }
@@ -455,13 +476,13 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
 
         if (equationIds.size > 0) {
-          for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
-            if (equationIds.has(sdcpn.differentialEquations[i]!.id)) {
-              sdcpn.differentialEquations.splice(i, 1);
+          for (let i = net.differentialEquations.length - 1; i >= 0; i--) {
+            if (equationIds.has(net.differentialEquations[i]!.id)) {
+              net.differentialEquations.splice(i, 1);
             }
           }
           // Clear dangling differentialEquationId references on places
-          for (const place of sdcpn.places) {
+          for (const place of net.places) {
             if (
               place.differentialEquationId &&
               equationIds.has(place.differentialEquationId)
@@ -472,9 +493,9 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
 
         if (parameterIds.size > 0) {
-          for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
-            if (parameterIds.has(sdcpn.parameters[i]!.id)) {
-              sdcpn.parameters.splice(i, 1);
+          for (let i = net.parameters.length - 1; i >= 0; i--) {
+            if (parameterIds.has(net.parameters[i]!.id)) {
+              net.parameters.splice(i, 1);
             }
           }
         }
@@ -485,16 +506,17 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         return;
       }
 
-      const sdcpn = petriNetDefinition;
+      const net = activeNet;
 
-      if (sdcpn.places.length === 0 && sdcpn.transitions.length === 0) {
+      if (net.places.length === 0 && net.transitions.length === 0) {
         return;
       }
 
-      const positions = await calculateGraphLayout(sdcpn, dimensions);
+      const positions = await calculateGraphLayout(net, dimensions);
 
       guardedMutate((sdcpnToMutate) => {
-        for (const place of sdcpnToMutate.places) {
+        const target = resolveNet(sdcpnToMutate);
+        for (const place of target.places) {
           const position = positions[place.id];
           if (position) {
             if (place.x !== position.x) {
@@ -506,7 +528,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
           }
         }
 
-        for (const transition of sdcpnToMutate.transitions) {
+        for (const transition of target.transitions) {
           const position = positions[transition.id];
           if (position) {
             if (transition.x !== position.x) {
@@ -527,9 +549,10 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     commitNodePositions(commits) {
       guardedMutate((sdcpn) => {
+        const net = resolveNet(sdcpn);
         for (const { id, itemType, position } of commits) {
           if (itemType === "place") {
-            for (const place of sdcpn.places) {
+            for (const place of net.places) {
               if (place.id === id) {
                 place.x = position.x;
                 place.y = position.y;
@@ -537,7 +560,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
               }
             }
           } else {
-            for (const transition of sdcpn.transitions) {
+            for (const transition of net.transitions) {
               if (transition.id === id) {
                 transition.x = position.x;
                 transition.y = position.y;

@@ -83,7 +83,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
-      setState((prev) => ({ ...prev, editionMode: mode })),
+      setState((prev) => ({
+        ...prev,
+        editionMode: mode,
+        // Clear componentSubnetId when leaving add-component mode
+        componentSubnetId:
+          mode === "add-component" ? prev.componentSubnetId : null,
+      })),
+    setAddComponentMode: (subnetId) =>
+      setState((prev) => ({
+        ...prev,
+        editionMode: "add-component" as const,
+        componentSubnetId: subnetId,
+      })),
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {

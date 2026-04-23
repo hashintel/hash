@@ -21,6 +21,7 @@ import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
 import type { ViewportAction } from "../../types/viewport-action";
 import { Arc } from "./components/arc";
+import { CursorTooltip } from "./components/cursor-tooltip";
 import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";
 import { MiniMap } from "./components/mini-map";
@@ -252,8 +253,7 @@ export const SDCPNView: React.FC<{
       return;
     }
 
-    // Only create nodes in add modes
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // Only create nodes in add-place / add-transition modes
     if (editionMode !== "add-place" && editionMode !== "add-transition") {
       return;
     }
@@ -333,7 +333,9 @@ export const SDCPNView: React.FC<{
 
   // Determine ReactFlow props based on edition mode
   const isAddMode =
-    editionMode === "add-place" || editionMode === "add-transition";
+    editionMode === "add-place" ||
+    editionMode === "add-transition" ||
+    editionMode === "add-component";
   const isPanMode = editionMode === "cursor" && cursorMode === "pan";
   const isSelectMode = editionMode === "cursor" && cursorMode === "select";
 
@@ -397,6 +399,7 @@ export const SDCPNView: React.FC<{
         {showMinimap && <MiniMap pannable zoomable />}
         <ViewportControls viewportActions={viewportActions} />
       </ReactFlow>
+      <CursorTooltip />
     </div>
   );
 };

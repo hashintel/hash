@@ -1,14 +1,15 @@
 import { use, useEffect } from "react";
 
+import { ActiveNetContext } from "./active-net-context";
 import { EditorContext } from "./editor-context";
-import { generateArcId, SDCPNContext } from "./sdcpn-context";
+import { generateArcId } from "./sdcpn-context";
 import type { SelectionMap } from "./selection";
 
 /**
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.
  */
 export function useSelectionCleanup() {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { selection, setSelection } = use(EditorContext);
 
   useEffect(() => {

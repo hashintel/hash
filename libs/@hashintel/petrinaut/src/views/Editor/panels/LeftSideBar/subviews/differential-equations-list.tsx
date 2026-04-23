@@ -9,7 +9,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../core/default-codes";
 import { EditorContext } from "../../../../../state/editor-context";
 import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
 import {
   RowMenu,
@@ -21,8 +21,8 @@ import {
  */
 export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { types, differentialEquations },
-  } = use(SDCPNContext);
+    activeNet: { types, differentialEquations },
+  } = use(ActiveNetContext);
   const { addDifferentialEquation } = use(MutationContext);
   const { selectItem } = use(EditorContext);
 
@@ -87,8 +87,8 @@ export const differentialEquationsListSubView: SubView =
     },
     useItems: () => {
       const {
-        petriNetDefinition: { differentialEquations },
-      } = use(SDCPNContext);
+        activeNet: { differentialEquations },
+      } = use(ActiveNetContext);
       return differentialEquations.map((eq) => ({
         ...eq,
         icon: DifferentialEquationIcon,

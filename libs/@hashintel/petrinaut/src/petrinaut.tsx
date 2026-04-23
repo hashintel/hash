@@ -21,6 +21,7 @@ import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
+import { ActiveNetProvider } from "./state/active-net-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { MutationProvider } from "./state/mutation-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
@@ -127,26 +128,30 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     <NotificationsProvider>
       <UndoRedoContext value={undoRedo ?? null}>
         <SDCPNProvider {...rest}>
-          <LanguageClientProvider key={rest.petriNetId}>
-            <MonacoProvider>
-              <SimulationProvider>
-                <PlaybackProvider>
-                  <UserSettingsProvider>
-                    <EditorProvider>
-                      <MutationProvider
-                        mutatePetriNetDefinition={mutatePetriNetDefinition}
-                      >
-                        <EditorView
-                          hideNetManagementControls={hideNetManagementControls}
-                          viewportActions={viewportActions}
-                        />
-                      </MutationProvider>
-                    </EditorProvider>
-                  </UserSettingsProvider>
-                </PlaybackProvider>
-              </SimulationProvider>
-            </MonacoProvider>
-          </LanguageClientProvider>
+          <ActiveNetProvider>
+            <LanguageClientProvider key={rest.petriNetId}>
+              <MonacoProvider>
+                <SimulationProvider>
+                  <PlaybackProvider>
+                    <UserSettingsProvider>
+                      <EditorProvider>
+                        <MutationProvider
+                          mutatePetriNetDefinition={mutatePetriNetDefinition}
+                        >
+                          <EditorView
+                            hideNetManagementControls={
+                              hideNetManagementControls
+                            }
+                            viewportActions={viewportActions}
+                          />
+                        </MutationProvider>
+                      </EditorProvider>
+                    </UserSettingsProvider>
+                  </PlaybackProvider>
+                </SimulationProvider>
+              </MonacoProvider>
+            </LanguageClientProvider>
+          </ActiveNetProvider>
         </SDCPNProvider>
       </UndoRedoContext>
     </NotificationsProvider>

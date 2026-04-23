@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from "uuid";
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { ActiveNetContext } from "../../../../../state/active-net-context";
+import { EditorContext } from "../../../../../state/editor-context";
 import { MutationContext } from "../../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../state/use-is-read-only";
@@ -29,13 +31,21 @@ const itemStyle = cva({
     fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s115",
+    cursor: "pointer",
+    transition: "[background-color 100ms ease-out]",
+    _hover: {
+      backgroundColor: "neutral.bg.surface.hover",
+    },
   },
   variants: {
-    kind: {
-      root: {
+    active: {
+      true: {
+        backgroundColor: "blue.s30",
         fontWeight: "semibold",
+        _hover: {
+          backgroundColor: "blue.s40",
+        },
       },
-      subnet: {},
     },
   },
 });
@@ -87,17 +97,47 @@ const NetsListContent: React.FC = () => {
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
+  const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
+  const { clearSelection } = use(EditorContext);
+
+  const handleSelect = (subnetId: string | null) => {
+    setActiveSubnetId(subnetId);
+    clearSelection();
+  };
 
   return (
     <div className={listStyle}>
-      <div className={itemStyle({ kind: "root" })}>
+      <div
+        className={itemStyle({ active: activeSubnetId === null })}
+        onClick={() => handleSelect(null)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            handleSelect(null);
+          }
+        }}
+        role="option"
+        aria-selected={activeSubnetId === null}
+        tabIndex={0}
+      >
         <span className={iconStyle}>
           <LuNetwork size={ICON_SIZE} />
         </span>
         Root
       </div>
       {(subnets ?? []).map((subnet) => (
-        <div key={subnet.id} className={itemStyle({ kind: "subnet" })}>
+        <div
+          key={subnet.id}
+          className={itemStyle({ active: activeSubnetId === subnet.id })}
+          onClick={() => handleSelect(subnet.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              handleSelect(subnet.id);
+            }
+          }}
+          role="option"
+          aria-selected={activeSubnetId === subnet.id}
+          tabIndex={0}
+        >
           <span className={iconStyle}>
             <LuNetwork size={ICON_SIZE} />
           </span>
