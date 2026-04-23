@@ -30,6 +30,7 @@
       "types": "./dist/theme.d.ts",
       "import": "./dist/theme.js"
     },
+    "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
     "./*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/components/*.js"
@@ -43,8 +44,10 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "npm-run-all build:library build:info",
+    "build:info": "panda ship --config panda.config.ts --outfile dist/panda.buildinfo.json",
     "build:ladle": "yarn codegen:ladle && ladle build",
+    "build:library": "tsdown",
     "codegen": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:panda",
     "codegen:ladle": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:ladle:panda",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
