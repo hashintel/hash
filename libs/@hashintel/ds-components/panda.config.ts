@@ -1,11 +1,11 @@
-import { defineConfig } from "@pandacss/dev";
+import { type Config, defineConfig } from "@pandacss/dev";
 
 import { preset } from "./src/preset";
 
-export default defineConfig({
+export const coreConfig: Config = {
   importMap: "@hashintel/ds-helpers",
   outdir: "../ds-helpers/styled-system",
-  include: ["./src/components/**/*.{ts,tsx}", "./src/playground/**/*.{ts,tsx}"],
+  include: ["./src/components/**/*.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
@@ -13,4 +13,6 @@ export default defineConfig({
   strictPropertyValues: true,
   strictTokens: true,
   validation: "error",
-});
+};
+
+export default defineConfig(coreConfig);
