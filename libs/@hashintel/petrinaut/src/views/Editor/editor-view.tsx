@@ -5,6 +5,7 @@ import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { deploymentPipelineSDCPN } from "../../examples/deployment-pipeline";
+import { hospitalNetwork } from "../../examples/hospital-network";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
 import { sirModel } from "../../examples/sir-model";
@@ -137,6 +138,7 @@ export const EditorView = ({
         types: [],
         differentialEquations: [],
         parameters: [],
+        subnets: [],
       },
     });
     clearSelection();
@@ -317,6 +319,14 @@ export const EditorView = ({
                 label: "Deployment Pipeline",
                 onClick: () => {
                   createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-hospital-network",
+                label: "Hospital Network (Subnets)",
+                onClick: () => {
+                  createNewNet(hospitalNetwork);
                   clearSelection();
                 },
               },

@@ -55,6 +55,7 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
     types: [],
     differentialEquations: [],
     parameters: [],
+    subnets: [],
   },
   readonly: true,
   setTitle: () => {},

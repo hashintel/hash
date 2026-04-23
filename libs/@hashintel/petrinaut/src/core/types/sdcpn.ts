@@ -112,6 +112,16 @@ export type Scenario = {
       };
 };
 
+export type Subnet = {
+  id: ID;
+  name: string;
+  places: Place[];
+  transitions: Transition[];
+  types: Color[];
+  differentialEquations: DifferentialEquation[];
+  parameters: Parameter[];
+};
+
 export type SDCPN = {
   places: Place[];
   transitions: Transition[];
@@ -119,6 +129,7 @@ export type SDCPN = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   scenarios?: Scenario[];
+  subnets?: Subnet[];
 };
 
 export type MinimalNetMetadata = {

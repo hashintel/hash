@@ -6,6 +6,7 @@ import type {
   Parameter,
   Place,
   Scenario,
+  Subnet,
   Transition,
 } from "../core/types/sdcpn";
 import type { SelectionMap } from "./selection";
@@ -71,6 +72,8 @@ export type MutationHelperFunctions = {
     updateFn: (scenario: Scenario) => void,
   ) => void;
   removeScenario: (scenarioId: string) => void;
+  addSubnet: (subnet: Subnet) => void;
+  removeSubnet: (subnetId: string) => void;
   deleteItemsByIds: (items: SelectionMap) => void;
   layoutGraph: () => Promise<void>;
   pasteEntities: () => Promise<Array<{ type: string; id: string }> | null>;
@@ -110,6 +113,8 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addScenario: () => {},
   updateScenario: () => {},
   removeScenario: () => {},
+  addSubnet: () => {},
+  removeSubnet: () => {},
   deleteItemsByIds: () => {},
   layoutGraph: async () => {},
   pasteEntities: async () => null,

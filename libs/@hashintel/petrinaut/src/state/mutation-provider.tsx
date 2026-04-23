@@ -326,6 +326,28 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
+    addSubnet(subnet) {
+      guardedMutate((sdcpn) => {
+        const subnets = sdcpn.subnets ?? [];
+        subnets.push(subnet);
+        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
+        sdcpn.subnets = subnets;
+      });
+    },
+    removeSubnet(subnetId) {
+      guardedMutate((sdcpn) => {
+        const subnets = sdcpn.subnets;
+        if (!subnets) {
+          return;
+        }
+        for (const [index, subnet] of subnets.entries()) {
+          if (subnet.id === subnetId) {
+            subnets.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
     deleteItemsByIds(items) {
       guardedMutate((sdcpn) => {
         // Partition selection by type for targeted deletion
