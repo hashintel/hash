@@ -68,6 +68,7 @@ Key points:
 
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
+- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
 - `panda.local.config.ts` exists separately for local demo surfaces such as Ladle and Storybook
 
 ### Token Naming Patterns (Strict Mode)
@@ -227,8 +228,7 @@ export const Checkbox = (props) => (
 | `yarn dev` | Start the primary Ladle-based demo loop |
 | `yarn dev:lib` | Watch the publishable component library build |
 | `yarn dev:storybook` | Start Storybook for component stories |
-| `yarn codegen` | Generate `../ds-helpers/styled-system` for the publish/runtime path |
-| `yarn codegen:ladle` | Generate the same styled-system with story/demo coverage enabled |
+| `yarn codegen` | Generate token source files and `../ds-helpers/styled-system` |
 | `yarn build` | Build the component library entrypoints |
 | `yarn build:ladle` | Build the Ladle demo surface |
 | `yarn build:storybook` | Build static Storybook |

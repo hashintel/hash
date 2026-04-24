@@ -1,9 +1,8 @@
 import { ThemeState, type GlobalProvider } from "@ladle/react";
 import { useLayoutEffect } from "react";
-import "@fontsource-variable/geist-mono.css";
-import "@fontsource-variable/inter.css";
-import "@fontsource-variable/inter-tight.css";
-import "../styled-system/styles.css";
+import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
 
 import "./index.css";
 

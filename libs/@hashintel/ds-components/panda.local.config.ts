@@ -4,7 +4,7 @@ import { coreConfig } from "./panda.config";
 
 export default defineConfig({
   ...coreConfig,
-  outdir: "styled-system",
+  outdir: "../ds-helpers/styled-system",
   include: [
     "./src/components/**/*.{ts,tsx}",
     "./src/playground/**/*.{ts,tsx}",

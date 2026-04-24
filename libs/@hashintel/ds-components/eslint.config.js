@@ -13,23 +13,12 @@ export default [
       "playwright.config.ts",
       "postcss.config.cjs",
       "panda.local.config.ts",
-      "vite.ladle.config.ts",
       "src/stories/Intro.mdx",
     ],
   },
   ...createBase(import.meta.dirname),
   ...storybook.configs["flat/recommended"],
   ...disableRules([]),
-  {
-    languageOptions: {
-      parserOptions: {
-        projectService: {
-          allowDefaultProject: ["vite.config.ts"],
-        },
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
   {
     rules: {
       "import/no-default-export": "error",

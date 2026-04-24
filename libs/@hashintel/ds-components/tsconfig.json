@@ -25,7 +25,6 @@
     "panda.local.config.ts",
     "playwright.config.ts",
     "tsdown.config.ts",
-    "vite.config.ts",
-    "vite.ladle.config.ts"
+    "vite.config.ts"
   ]
 }

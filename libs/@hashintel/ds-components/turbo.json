@@ -10,12 +10,8 @@
       "outputs": ["dist/panda.buildinfo.json"]
     },
     "build:ladle": {
-      "dependsOn": ["codegen:ladle", "@hashintel/refractive#build"],
-      "outputs": [
-        ".build/ladle/**",
-        "src/preset/theme/**/*.gen.ts",
-        "styled-system/**"
-      ]
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "outputs": [".build/ladle/**"]
     },
     "build:lib": {
       "dependsOn": ["codegen"],
@@ -32,18 +28,14 @@
         "../ds-helpers/styled-system/**"
       ]
     },
-    "codegen:ladle": {
-      "dependsOn": [],
-      "outputs": ["src/preset/theme/**/*.gen.ts", "styled-system/**"]
-    },
     "dev": {
       "cache": false,
-      "dependsOn": ["codegen:ladle", "@hashintel/refractive#build"],
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true
     },
     "dev:ladle": {
       "cache": false,
-      "dependsOn": ["codegen:ladle", "@hashintel/refractive#build"],
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true
     },
     "dev:storybook": {

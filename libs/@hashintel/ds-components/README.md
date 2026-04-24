@@ -39,7 +39,7 @@ Token lookup helpers and token types should also come from `@hashintel/ds-helper
 | Storybook stories | `src/components/*/*.stories.tsx` |
 | Token demo stories | `src/stories/**` |
 | Local demo config | `panda.local.config.ts` |
-| Ladle harness | `.ladle/**`, `vite.ladle.config.ts` |
+| Ladle harness | `.ladle/**` |
 | Snapshot tests | `tests/**` |
 
 ## Common Commands
@@ -51,7 +51,6 @@ yarn dev
 yarn dev:lib
 yarn dev:storybook
 yarn codegen
-yarn codegen:ladle
 yarn lint:eslint
 yarn lint:tsc
 yarn test:unit
@@ -61,6 +60,9 @@ yarn build:storybook
 ```
 
 `yarn dev` is the primary Ladle-based review loop. Use `yarn dev:storybook` for component-story review and `yarn dev:lib` when you only need the library watcher.
+`yarn prepare`/`yarn codegen` generates the shared `../ds-helpers/styled-system`
+runtime, and the demo loops rely on Vite/PostCSS for CSS extraction while the
+server is running.
 
 ## Contributor Docs
 

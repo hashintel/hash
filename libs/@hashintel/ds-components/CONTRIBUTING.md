@@ -24,7 +24,7 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
 | Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Storybook and Ladle. |
-| Ladle harness | `.ladle/**`, `vite.ladle.config.ts` | Used for the token/demo surface and Playwright snapshots. |
+| Ladle harness | `.ladle/**` | Used for the token/demo surface and Playwright snapshots. |
 | Snapshot tests | `tests/**` | Snapshot harness for the Ladle surface. |
 
 ## Import Rules
@@ -120,7 +120,7 @@ yarn dev:storybook
 When the change affects tokens, preset behavior, Ladle stories, or the snapshot harness, also run:
 
 ```bash
-yarn codegen:ladle
+yarn codegen
 yarn build:ladle
 yarn test:unit
 yarn test:snapshots
@@ -145,7 +145,9 @@ yarn codegen:tokens
 yarn codegen
 ```
 
-Use `yarn codegen:ladle` when the story/demo surface also needs Panda coverage.
+The `prepare` lifecycle runs the same `codegen` script. Ladle and Storybook use
+Panda's Vite/PostCSS integration through `postcss.config.cjs`; they do not need
+a separate local Panda runtime generation script.
 
 ### Token Naming In Strict Mode
 
@@ -170,7 +172,7 @@ Color tokens should come from the semantic palette already defined in the preset
 
 ## Storybook, Ladle, And Snapshots
 
-- `yarn dev` is the primary Ladle-based loop and the best default when changing token stories or the demo harness because it watches Panda codegen.
+- `yarn dev` is the primary Ladle-based loop and the best default when changing token stories or the demo harness. It uses the shared Vite/PostCSS config for Panda style extraction while Ladle is running.
 - `yarn dev:storybook` is the main human review surface for component stories.
 - `yarn dev:lib` is the lightest loop when you only need the publishable package build watcher.
 - `src/stories/tokens/**` owns the token reference stories that used to live under `ds-helpers`.

@@ -8,7 +8,7 @@ This document records the script naming conventions now applied in `@hashintel/d
 - Reserve bare top-level verbs like `build`, `dev`, and `test:unit` for the primary package workflows.
 - Use suffixes to describe the surface being operated on, for example `:lib`, `:storybook`, `:ladle`, or `:buildinfo`.
 - Keep cross-package ordering in `turbo.json` where possible.
-- Keep package-local command composition in `package.json`.
+- Prefer lifecycle hooks such as `prepare` for generated runtime setup instead of chaining codegen through every dev/build script.
 
 ## Applied In Ds-Components
 
@@ -18,10 +18,10 @@ This document records the script naming conventions now applied in `@hashintel/d
 | `build:info`          | `build:buildinfo`       | Makes the artifact explicit.                         |
 | `storybook`           | `dev:storybook`         | Makes the runtime surface explicit.                  |
 | `storybook:build`     | `build:storybook`       | Aligns with verb-first naming.                       |
-| `codegen:panda`       | `codegen:runtime`       | Describes the generated output rather than the tool. |
-| `codegen:ladle:panda` | `codegen:runtime:local` | Keeps the same axis order as other script names.     |
-| `dev:panda:ladle`     | `dev:codegen:local`     | Groups by surface first, then role.                  |
-| `ladle`               | `dev:ladle:serve`       | Removes the one-off bare tool name.                  |
+| `codegen:panda`       | `codegen`               | Keeps one canonical generated-runtime command.       |
+| local Panda demo codegen | removed              | Vite/PostCSS handles demo CSS extraction.            |
+| `dev:panda:ladle`     | removed                 | No separate Panda watcher is needed for Vite demos.  |
+| `ladle`               | `dev:ladle`             | Removes the one-off bare tool name.                  |
 | `dev:test`            | `test:unit:watch`       | Uses the same family name as the non-watch command.  |
 | `preflight:ladle`     | `preview:ladle`         | Uses the actual action being performed.              |
 | `test:update`         | `test:snapshots:update` | Clarifies which test family is being updated.        |
@@ -44,7 +44,7 @@ This is the target shape I would recommend for design-system-adjacent packages w
 | Unit tests in watch mode        | `test:unit:watch`       |
 | Snapshot or browser tests       | `test:snapshots`        |
 | Snapshot updates                | `test:snapshots:update` |
-| Runtime styling/code generation | `codegen:runtime`       |
+| Runtime styling/code generation | `codegen`               |
 
 ## Recommendations For Refractive
 
@@ -84,6 +84,6 @@ Optional follow-up once the owner agrees:
 
 - Prefer `dev:<surface>` over bare tool names.
 - Prefer `build:<surface>` over `<surface>:build`.
-- Prefer names that describe the produced artifact, such as `build:buildinfo` or `codegen:runtime`, over names that just expose the implementation tool.
+- Prefer names that describe the produced artifact, such as `build:buildinfo`, over names that just expose the implementation tool.
 - Use `:watch` only when it distinguishes a long-running variant of an existing command family.
 - Avoid introducing aliases unless they materially improve day-to-day ergonomics.
