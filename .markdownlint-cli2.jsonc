@@ -24,14 +24,19 @@
     "single-title": false
   },
   "gitignore": true,
-  "globs": ["*.md", "**/*.md", "**/*.mdc"],
+  "globs": [
+    "*.md",
+    "**/*.md",
+    "**/*.mdc"
+  ],
   "ignores": [
     "**/LICENSE*.md",
     "**/AGENTS*.md",
     "node_modules/**",
     "target/**",
     "**/_temp/**",
-    "**/_docs/**",
-    "**/_ai/**"
+    "**/_ai/**",
+    "libs/@hashintel/ds-components/**",
+    "libs/@hashintel/ds-helpers/**"
   ]
 }
