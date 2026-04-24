@@ -33,6 +33,9 @@
       "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true
     },
+    "lint:tsc": {
+      "dependsOn": ["codegen", "@hashintel/refractive#build"]
+    },
     "dev:ladle": {
       "cache": false,
       "dependsOn": ["codegen", "@hashintel/refractive#build"],
